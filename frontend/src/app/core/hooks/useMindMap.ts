@@ -84,6 +84,22 @@ export const useMindMap = (
     }
   }, [persistenceHook]);
 
+  const renameItem = useCallback(async (path: string, newName: string): Promise<void> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.renameItem === 'function') {
+      await adapter.renameItem(path, newName);
+      await persistenceHook.refreshMapList();
+    }
+  }, [persistenceHook]);
+
+  const deleteItem = useCallback(async (path: string): Promise<void> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.deleteItem === 'function') {
+      await adapter.deleteItem(path);
+      await persistenceHook.refreshMapList();
+    }
+  }, [persistenceHook]);
+
   const getSelectedFolderLabel = useCallback((): string | null => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && 'selectedFolderName' in adapter) {
@@ -234,6 +250,8 @@ export const useMindMap = (
     selectRootFolder,
     getSelectedFolderLabel,
     createFolder,
+    renameItem,
+    deleteItem,
     explorerTree: (persistenceHook as any).explorerTree || null
   };
 };

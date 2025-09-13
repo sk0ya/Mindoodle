@@ -512,6 +512,30 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         },
         { separator: true },
         {
+          label: '名前を変更',
+          icon: <Edit3 size={14} />,
+          onClick: () => {
+            if (!targetPath) return;
+            const currentName = targetPath.split('/').pop() || targetPath;
+            const newName = window.prompt('新しいフォルダ名', currentName);
+            if (newName && newName.trim()) {
+              const parent = targetPath.split('/').slice(0, -1).join('/');
+              const newPath = parent ? `${parent}/${newName.trim()}` : newName.trim();
+              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim(), newPath } }));
+            }
+          }
+        },
+        {
+          label: '削除',
+          icon: <Trash2 size={14} />,
+          onClick: () => {
+            if (targetPath && window.confirm(`フォルダ「${targetPath}」を削除しますか？（中身も削除されます）`)) {
+              window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
+            }
+          }
+        },
+        { separator: true },
+        {
           label: isCollapsed ? '展開' : '折りたたみ',
           icon: isCollapsed ? <FolderOpen size={14} /> : <Folder size={14} />,
           onClick: () => targetPath && toggleCategoryCollapse(targetPath)
@@ -532,6 +556,28 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             if (targetPath && /\.md$/i.test(targetPath)) {
               const mapId = targetPath.replace(/\.md$/i, '');
               window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId } }));
+            }
+          }
+        },
+        {
+          label: '名前を変更',
+          icon: <Edit3 size={14} />,
+          onClick: () => {
+            if (!targetPath) return;
+            const currentName = targetPath.split('/').pop() || targetPath;
+            const base = currentName.replace(/\.md$/i, '');
+            const newName = window.prompt('新しいファイル名', base);
+            if (newName && newName.trim()) {
+              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim() } }));
+            }
+          }
+        },
+        {
+          label: '削除',
+          icon: <Trash2 size={14} />,
+          onClick: () => {
+            if (targetPath && window.confirm(`ファイル「${targetPath}」を削除しますか？`)) {
+              window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
             }
           }
         },

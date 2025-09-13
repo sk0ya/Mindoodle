@@ -1045,6 +1045,31 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     };
   }, [mindMap]);
 
+  // Handle rename/delete events from explorer
+  React.useEffect(() => {
+    const onRename = async (e: any) => {
+      const oldPath = e?.detail?.oldPath;
+      const newName = e?.detail?.newName;
+      if (oldPath && newName && typeof (mindMap as any).renameItem === 'function') {
+        await (mindMap as any).renameItem(oldPath, newName);
+        window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+      }
+    };
+    const onDelete = async (e: any) => {
+      const path = e?.detail?.path;
+      if (path && typeof (mindMap as any).deleteItem === 'function') {
+        await (mindMap as any).deleteItem(path);
+        window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+      }
+    };
+    window.addEventListener('mindoodle:renameItem', onRename as EventListener);
+    window.addEventListener('mindoodle:deleteItem', onDelete as EventListener);
+    return () => {
+      window.removeEventListener('mindoodle:renameItem', onRename as EventListener);
+      window.removeEventListener('mindoodle:deleteItem', onDelete as EventListener);
+    };
+  }, [mindMap]);
+
   // インポート成功時のハンドラー
   const handleImportSuccess = async (importedData: MindMapData, warnings?: string[]) => {
     try {

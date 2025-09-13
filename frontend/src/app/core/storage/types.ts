@@ -35,6 +35,8 @@ export interface StorageAdapter {
   
   // Explorer tree (optional)
   getExplorerTree?(): Promise<ExplorerItem>;
+  renameItem?(path: string, newName: string): Promise<void>;
+  deleteItem?(path: string): Promise<void>;
   
   // ファイル操作（オプショナル - クラウドモードのみ）
   uploadFile?(mindmapId: string, nodeId: string, file: File): Promise<FileInfo>;

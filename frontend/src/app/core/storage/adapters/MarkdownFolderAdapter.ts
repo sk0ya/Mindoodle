@@ -299,6 +299,96 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
+  private async getExistingDirectory(dir: DirHandle, name: string): Promise<DirHandle | null> {
+    try {
+      const handle = await dir.getDirectoryHandle?.(name)
+        ?? await (dir as any).getDirectoryHandle(name);
+      return handle;
+    } catch {
+      return null;
+    }
+  }
+
+  private async resolveParentDirAndName(path: string): Promise<{ dir: DirHandle; name: string } | null> {
+    if (!this.rootHandle) return null;
+    const parts = (path || '').split('/').filter(Boolean);
+    if (parts.length === 0) return null;
+    const name = parts.pop() as string;
+    let dir: DirHandle = this.rootHandle as any;
+    for (const part of parts) {
+      const next = await this.getExistingDirectory(dir, part);
+      if (!next) return null;
+      dir = next;
+    }
+    return { dir, name };
+  }
+
+  async deleteItem(path: string): Promise<void> {
+    if (!this.rootHandle) throw new Error('No root folder selected');
+    const resolved = await this.resolveParentDirAndName(path);
+    if (!resolved) throw new Error('Path not found');
+    const { dir, name } = resolved;
+    const remover = (dir as any).removeEntry?.bind(dir);
+    if (!remover) throw new Error('removeEntry not supported');
+    try {
+      await remover(name, { recursive: true });
+    } catch (e) {
+      // Some browsers do not support recursive for files
+      await remover(name);
+    }
+  }
+
+  async renameItem(path: string, newName: string): Promise<void> {
+    if (!this.rootHandle) throw new Error('No root folder selected');
+    const resolved = await this.resolveParentDirAndName(path);
+    if (!resolved) throw new Error('Path not found');
+    const { dir, name } = resolved;
+    // Try file rename (copy + delete)
+    const file = await this.getExistingFile(dir, name);
+    if (file) {
+      const fileData = await (await file.getFile()).text();
+      const targetName = /\.md$/i.test(newName) ? newName : `${newName}.md`;
+      await this.writeTextFile(dir, targetName, fileData);
+      const remover = (dir as any).removeEntry?.bind(dir);
+      if (remover) await remover(name);
+      return;
+    }
+    // Directory rename (recursively copy then delete)
+    const srcDir = await this.getExistingDirectory(dir, name);
+    if (!srcDir) throw new Error('Item not found');
+    const dstDir = await this.getOrCreateDirectory(dir, newName);
+    await this.copyDirectoryRecursive(srcDir, dstDir);
+    const remover = (dir as any).removeEntry?.bind(dir);
+    if (remover) await remover(name, { recursive: true });
+  }
+
+  private async copyDirectoryRecursive(src: DirHandle, dst: DirHandle): Promise<void> {
+    // @ts-ignore
+    const iter = src.values?.() || src.entries?.();
+    // @ts-ignore
+    for await (const entry of iter) {
+      let kind: string, name: string, child: any;
+      if (Array.isArray(entry)) {
+        name = entry[0];
+        kind = entry[1].kind;
+      } else {
+        name = entry.name;
+        kind = entry.kind;
+      }
+      if (kind === 'file') {
+        // @ts-ignore
+        const fh = await src.getFileHandle?.(name) ?? await (src as any).getFileHandle(name);
+        const data = await (await fh.getFile()).text();
+        await this.writeTextFile(dst, name, data);
+      } else if (kind === 'directory') {
+        const dstSub = await this.getOrCreateDirectory(dst, name);
+        // @ts-ignore
+        const srcSub = await src.getDirectoryHandle?.(name) ?? await (src as any).getDirectoryHandle(name);
+        await this.copyDirectoryRecursive(srcSub, dstSub);
+      }
+    }
+  }
+
   private async *iterateEntries(dir: DirHandle): AsyncGenerator<any, void, unknown> {
     // Fallback iterator if .values() is not available
     // @ts-ignore
