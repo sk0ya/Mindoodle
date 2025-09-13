@@ -713,6 +713,7 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
         <div className="explorer-folder" key={item.path}>
           <div className={`category-header ${selectedPath === item.path ? 'selected' : ''}`}
             onClick={() => onSelectPath && onSelectPath(item.path)}
+            onDoubleClick={(e) => { e.preventDefault(); toggle(item.path); }}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-folder')}
           >
             <span className="category-expand-icon" onClick={(e) => { e.stopPropagation(); toggle(item.path); }}>
