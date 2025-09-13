@@ -71,7 +71,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     isVisible: boolean;
     position: { x: number; y: number };
     targetPath: string | null;
-    targetType: 'folder' | 'empty' | 'map' | null;
+    targetType: 'folder' | 'empty' | 'map' | 'explorer-folder' | 'explorer-file' | null;
     mapData?: MindMapData | null;
   }>({
     isVisible: false,
@@ -80,6 +80,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     targetType: null,
     mapData: null
   });
+  const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
 
   // イベントハンドラー
   const handleStartRename = useCallback((mapId: string, currentTitle: string) => {
@@ -496,6 +497,51 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           onClick: () => handleCreateFolder(null)
         }
       ];
+    } else if (targetType === 'explorer-folder') {
+      const isCollapsed = !!(targetPath && collapsedCategories.has(targetPath));
+      return [
+        {
+          label: 'マップを作成',
+          icon: <Workflow size={14} />,
+          onClick: () => handleCreateMap(targetPath)
+        },
+        {
+          label: 'フォルダを作成',
+          icon: <Folder size={14} />,
+          onClick: () => handleCreateFolder(targetPath)
+        },
+        { separator: true },
+        {
+          label: isCollapsed ? '展開' : '折りたたみ',
+          icon: isCollapsed ? <FolderOpen size={14} /> : <Folder size={14} />,
+          onClick: () => targetPath && toggleCategoryCollapse(targetPath)
+        },
+        { separator: true },
+        {
+          label: '再読み込み',
+          icon: <Workflow size={14} />, // generic
+          onClick: () => window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'))
+        }
+      ];
+    } else if (targetType === 'explorer-file') {
+      return [
+        {
+          label: '開く',
+          icon: <BookOpen size={14} />,
+          onClick: () => {
+            if (targetPath && /\.md$/i.test(targetPath)) {
+              const mapId = targetPath.replace(/\.md$/i, '');
+              window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId } }));
+            }
+          }
+        },
+        { separator: true },
+        {
+          label: '再読み込み',
+          icon: <Workflow size={14} />,
+          onClick: () => window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'))
+        }
+      ];
     }
     
     return [];
@@ -528,7 +574,21 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
       {explorerTree ? (
         <div className="maps-content-wrapper">
-          <ExplorerView tree={explorerTree} />
+          <ExplorerView 
+            tree={explorerTree}
+            selectedPath={explorerSelectedPath}
+            onSelectPath={setExplorerSelectedPath}
+            onContextMenu={(e, path, type) => {
+              e.preventDefault();
+              setContextMenu({
+                isVisible: true,
+                position: { x: e.clientX, y: e.clientY },
+                targetPath: path,
+                targetType: type,
+                mapData: null
+              });
+            }}
+          />
         </div>
       ) : filteredMaps.length === 0 ? (
         <div className="empty-state">
@@ -596,7 +656,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem }> = ({ tree }) => {
+const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu }) => {
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
   const toggle = (path: string) => setCollapsed(prev => ({ ...prev, [path]: !prev[path] }));
 
@@ -605,8 +665,13 @@ const ExplorerView: React.FC<{ tree: ExplorerItem }> = ({ tree }) => {
       const isCollapsed = collapsed[item.path] ?? false;
       return (
         <div className="explorer-folder" key={item.path}>
-          <div className="category-header" onClick={() => toggle(item.path)}>
-            <span className="category-expand-icon">{isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</span>
+          <div className={`category-header ${selectedPath === item.path ? 'selected' : ''}`}
+            onClick={() => onSelectPath && onSelectPath(item.path)}
+            onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-folder')}
+          >
+            <span className="category-expand-icon" onClick={(e) => { e.stopPropagation(); toggle(item.path); }}>
+              {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
+            </span>
             <span className="category-folder-icon">{isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />}</span>
             <span className="category-name">{item.name || '(root)'}</span>
           </div>
@@ -627,9 +692,14 @@ const ExplorerView: React.FC<{ tree: ExplorerItem }> = ({ tree }) => {
         const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
         window.dispatchEvent(ev);
       }
+      if (onSelectPath) onSelectPath(item.path);
     };
     return (
-      <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'}`} key={item.path} onClick={onClick} style={{ cursor: isMd ? 'pointer' : 'default' }}>
+      <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${selectedPath === item.path ? 'selected' : ''}`}
+        key={item.path}
+        onClick={onClick}
+        onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
+        style={{ cursor: isMd ? 'pointer' : 'default' }}>
         <span className="file-icon">{isMd ? <BookOpen size={14} /> : <Workflow size={14} />}</span>
         <span className="file-name">{item.name}</span>
       </div>

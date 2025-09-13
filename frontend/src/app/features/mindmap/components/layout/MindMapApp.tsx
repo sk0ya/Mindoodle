@@ -1023,6 +1023,28 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
   }, [selectMapById]);
 
+  // Refresh explorer/map list on external changes or when window regains focus
+  React.useEffect(() => {
+    const doRefresh = async () => {
+      if (typeof (mindMap as any).refreshMapList === 'function') {
+        await (mindMap as any).refreshMapList();
+      }
+    };
+    const onVisibility = () => { if (!document.hidden) doRefresh(); };
+    const onFocus = () => doRefresh();
+    const onCustom = () => doRefresh();
+    window.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('mindoodle:refreshExplorer', onCustom as EventListener);
+    const interval = window.setInterval(doRefresh, 7000);
+    return () => {
+      window.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('mindoodle:refreshExplorer', onCustom as EventListener);
+      window.clearInterval(interval);
+    };
+  }, [mindMap]);
+
   // インポート成功時のハンドラー
   const handleImportSuccess = async (importedData: MindMapData, warnings?: string[]) => {
     try {

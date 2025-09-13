@@ -559,9 +559,13 @@ const SidebarStyles: React.FC = () => (
 
     .explorer-file .file-icon { font-size: 14px; color: #666; display: inline-flex; align-items: center; }
     .explorer-file .file-name { font-size: 13px; color: #333; }
+    .explorer-file.selected { background: rgba(59, 130, 246, 0.15); }
+    .explorer-file.selected .file-name { color: #1f2937; }
 
     [data-theme="dark"] .explorer-file .file-icon { color: #9ca3af; }
     [data-theme="dark"] .explorer-file .file-name { color: #d1d5db; }
+    [data-theme="dark"] .explorer-file.selected { background: rgba(59, 130, 246, 0.25); }
+    [data-theme="dark"] .explorer-file.selected .file-name { color: #e5e7eb; }
 
     .map-item {
       padding: 4px 12px;
