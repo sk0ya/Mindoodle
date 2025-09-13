@@ -17,22 +17,24 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async initialize(): Promise<void> {
+    // Do not open picker here; must be a user gesture.
+    if (typeof (window as any)?.showDirectoryPicker !== 'function') {
+      logger.warn('File System Access API is not available in this environment');
+    }
+    this._isInitialized = true;
+    logger.info('📁 MarkdownFolderAdapter: Initialized (waiting for user to select a folder)');
+  }
+
+  // Must be called from a user gesture (e.g. button click)
+  async selectRootFolder(): Promise<void> {
     if (typeof (window as any)?.showDirectoryPicker !== 'function') {
       throw new Error('File System Access API is not available in this environment');
     }
-    try {
-      // Ask user to pick a folder that contains Mindoodle maps
-      this.rootHandle = await (window as any).showDirectoryPicker({
-        id: 'mindoodle-root',
-        mode: 'readwrite'
-      });
-      this._isInitialized = true;
-      logger.info('📁 MarkdownFolderAdapter: Root folder selected');
-    } catch (e) {
-      this._isInitialized = true; // allow app to continue
-      logger.warn('MarkdownFolderAdapter: Folder selection was cancelled or failed', e);
-      throw e;
-    }
+    this.rootHandle = await (window as any).showDirectoryPicker({
+      id: 'mindoodle-root',
+      mode: 'readwrite'
+    });
+    logger.info('📁 MarkdownFolderAdapter: Root folder selected');
   }
 
   async loadInitialData(): Promise<MindMapData> {
@@ -40,6 +42,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       await this.initialize();
     }
     if (!this.rootHandle) {
+      // No folder selected yet; return an initial in-memory map.
       return createInitialData();
     }
 
@@ -62,7 +65,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (!this._isInitialized) {
       await this.initialize();
     }
-    if (!this.rootHandle) return;
+    if (!this.rootHandle) {
+      logger.warn('MarkdownFolderAdapter: No folder selected; skipping save');
+      return;
+    }
 
     const folderName = this.sanitizeName(data.title || 'mindmap');
     const mapDir = await this.getOrCreateDirectory(this.rootHandle, folderName);
@@ -178,4 +184,3 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     return name.replace(/[^a-zA-Z0-9\-_.\s\u3040-\u30FF\u4E00-\u9FAF]/g, '_').trim() || 'untitled';
   }
 }
-

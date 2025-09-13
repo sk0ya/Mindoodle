@@ -1,11 +1,5 @@
-// Cloud functionality barrel exports
-export * from './indexedDB';
+// Mindoodle: only API exports kept; remove IndexedDB exports
 export * from './api';
-
-export type {
-  CachedCloudMindMap,
-  CloudCacheMetadata
-} from './indexedDB';
 
 export type {
   ApiResponse,

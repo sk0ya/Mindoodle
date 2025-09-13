@@ -26,5 +26,5 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true
   },
-base: '/MindFlow/',
+base: '/Mindoodle/',
 })
