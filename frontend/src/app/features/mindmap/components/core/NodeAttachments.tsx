@@ -364,9 +364,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     }
   }, [onShowFileActionMenu, node.id]);
 
-  const attachmentImages = (node.attachments || []).filter((f: FileAttachment) => f.isImage);
-  const imageFiles: FileAttachment[] = noteImageFiles.length > 0 ? noteImageFiles : attachmentImages;
-
+  // duplicate-safe: (defined earlier) imageFiles already computed
   if (imageFiles.length === 0) return null;
 
   // 画像切替インデックス
