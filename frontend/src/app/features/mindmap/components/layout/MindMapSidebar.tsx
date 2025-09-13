@@ -47,6 +47,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const [collapsedCategories, setCollapsedCategories] = useState(new Set<string>());
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
+  // Explorer collapsed state mapping: path -> collapsed?
+  const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
   
   // Drag & Drop フック
   const {
@@ -191,7 +193,10 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   }, [handleCreateFolder]);
 
   const handleExpandAll = useCallback(() => {
+    // Legacy maps view
     setCollapsedCategories(new Set());
+    // Explorer view
+    setExplorerCollapsed({}); // all expanded
   }, []);
 
   const handleCollapseAll = useCallback(() => {
@@ -204,9 +209,23 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       groups[category].push(map);
       return groups;
     }, {})), ...Array.from(emptyFolders)]);
-    
     setCollapsedCategories(allFolders);
-  }, [mindMaps, emptyFolders]);
+    // Explorer view: build list from explorerTree
+    const markAllCollapsed = (node: ExplorerItem | undefined, acc: Record<string, boolean>) => {
+      if (!node) return acc;
+      if (node.type === 'folder') {
+        if (node.path) acc[node.path] = true;
+        (node.children || []).forEach(child => markAllCollapsed(child, acc));
+      }
+      return acc;
+    };
+    // @ts-ignore explorerTree may be undefined
+    const tree: ExplorerItem | undefined = (explorerTree as any) || undefined;
+    if (tree) {
+      const next = markAllCollapsed(tree, {});
+      setExplorerCollapsed(next);
+    }
+  }, [mindMaps, emptyFolders, explorerTree]);
 
   // フォルダの削除ハンドラー
   const handleDeleteFolder = useCallback((folderPath: string) => {
@@ -624,6 +643,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             tree={explorerTree}
             selectedPath={explorerSelectedPath}
             onSelectPath={setExplorerSelectedPath}
+            collapsed={explorerCollapsed}
+            onTogglePath={(path: string) => setExplorerCollapsed(prev => ({ ...prev, [path]: !prev[path] }))}
             onContextMenu={(e, path, type) => {
               e.preventDefault();
               setContextMenu({
@@ -702,9 +723,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu }) => {
-  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
-  const toggle = (path: string) => setCollapsed(prev => ({ ...prev, [path]: !prev[path] }));
+const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath }) => {
+  const toggle = (path: string) => onTogglePath && onTogglePath(path);
 
   const NodeView: React.FC<{ item: ExplorerItem }> = ({ item }) => {
     if (item.type === 'folder') {
