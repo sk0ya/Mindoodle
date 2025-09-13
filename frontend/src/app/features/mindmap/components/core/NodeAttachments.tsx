@@ -239,10 +239,27 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     });
   }, [isResizing, onUpdateNode, svgRef, zoom, pan, resizeStartPos, resizeStartSize, originalAspectRatio, node.id]);
 
+  const updateNoteImageSize = (note: string | undefined, url: string, w: number, h: number): string | undefined => {
+    if (!note || !url) return note;
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const re = new RegExp(`(!\\[[^\\]]*\\]\\()(${esc(url)})([^)]*)\\)`, '');
+    if (re.test(note)) {
+      return note.replace(re, (_m, p1: string, p2: string) => `${p1}${p2} =${Math.round(w)}x${Math.round(h)})`);
+    }
+    return note;
+  };
+
   const handleResizeEnd = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
-      
+      // ノート画像のサイズ指定を更新（ノート画像が表示されている場合）
+      const usingNoteImages = noteImageFiles.length > 0;
+      if (usingNoteImages && onUpdateNode && currentImage?.downloadUrl) {
+        const newNote = updateNoteImageSize(node.note, currentImage.downloadUrl, imageDimensions.width, imageDimensions.height);
+        if (newNote && newNote !== node.note) {
+          onUpdateNode(node.id, { note: newNote, customImageWidth: imageDimensions.width, customImageHeight: imageDimensions.height });
+        }
+      }
       // リサイズ後に自動整列
       if (onAutoLayout) {
         requestAnimationFrame(() => {
@@ -250,7 +267,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
         });
       }
     }
-  }, [isResizing, onAutoLayout]);
+  }, [isResizing, onAutoLayout, onUpdateNode, node.id, node.note, currentImage?.downloadUrl, imageDimensions.width, imageDimensions.height, noteImageFiles.length]);
 
   // マウスイベントリスナーの管理
   useEffect(() => {

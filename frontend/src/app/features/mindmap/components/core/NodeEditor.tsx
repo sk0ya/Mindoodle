@@ -151,9 +151,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     return (
       <>
         <text
-          x={nodeLeftX + 8}
+          x={node.x}
           y={textY}
-          textAnchor="start"
+          textAnchor="middle"
           dominantBaseline="middle"
           fill={settings.theme === 'dark' ? 'var(--text-primary)' : 'black'}
           fontSize={settings.fontSize || node.fontSize || '14px'}
@@ -328,7 +328,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           height: '100%',
           border: '1px solid #ccc',
           background: settings.theme === 'dark' ? 'var(--bg-primary)' : 'white',
-          textAlign: 'left',
+          textAlign: 'center',
           fontSize: settings.fontSize || node.fontSize || '14px',
           fontWeight: node.fontWeight || 'normal',
           fontStyle: node.fontStyle || 'normal',
