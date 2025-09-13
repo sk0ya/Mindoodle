@@ -483,6 +483,8 @@ const SidebarStyles: React.FC = () => (
     .category-header.selected .category-count {
       color: white;
     }
+    .category-header.drag-over { background: rgba(59, 130, 246, 0.15); }
+    [data-theme="dark"] .category-header.drag-over { background: rgba(59, 130, 246, 0.25); }
 
     .category-expand-icon {
       font-size: 10px;

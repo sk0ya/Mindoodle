@@ -1070,6 +1070,20 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     };
   }, [mindMap]);
 
+  // Handle move events from explorer (drag & drop)
+  React.useEffect(() => {
+    const onMove = async (e: any) => {
+      const src = e?.detail?.sourcePath;
+      const dst = e?.detail?.targetFolderPath ?? '';
+      if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
+        await (mindMap as any).moveItem(src, dst);
+        window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+      }
+    };
+    window.addEventListener('mindoodle:moveItem', onMove as EventListener);
+    return () => window.removeEventListener('mindoodle:moveItem', onMove as EventListener);
+  }, [mindMap]);
+
   // インポート成功時のハンドラー
   const handleImportSuccess = async (importedData: MindMapData, warnings?: string[]) => {
     try {

@@ -100,6 +100,14 @@ export const useMindMap = (
     }
   }, [persistenceHook]);
 
+  const moveItem = useCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.moveItem === 'function') {
+      await adapter.moveItem(sourcePath, targetFolderPath);
+      await persistenceHook.refreshMapList();
+    }
+  }, [persistenceHook]);
+
   const getSelectedFolderLabel = useCallback((): string | null => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && 'selectedFolderName' in adapter) {
@@ -252,6 +260,7 @@ export const useMindMap = (
     createFolder,
     renameItem,
     deleteItem,
+    moveItem,
     explorerTree: (persistenceHook as any).explorerTree || null
   };
 };

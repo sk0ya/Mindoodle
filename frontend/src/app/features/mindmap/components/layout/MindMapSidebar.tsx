@@ -725,16 +725,27 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
 const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath }) => {
   const toggle = (path: string) => onTogglePath && onTogglePath(path);
+  const [dragOverPath, setDragOverPath] = React.useState<string | null>(null);
 
   const NodeView: React.FC<{ item: ExplorerItem }> = ({ item }) => {
     if (item.type === 'folder') {
       const isCollapsed = collapsed[item.path] ?? false;
       return (
         <div className="explorer-folder" key={item.path}>
-          <div className={`category-header ${selectedPath === item.path ? 'selected' : ''}`}
+          <div className={`category-header ${selectedPath === item.path ? 'selected' : ''} ${dragOverPath === item.path ? 'drag-over' : ''}`}
             onClick={() => onSelectPath && onSelectPath(item.path)}
             onDoubleClick={(e) => { e.preventDefault(); toggle(item.path); }}
             onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-folder')}
+            onDragOver={(e) => { e.preventDefault(); setDragOverPath(item.path); }}
+            onDragLeave={() => setDragOverPath(null)}
+            onDrop={(e) => {
+              e.preventDefault();
+              const src = e.dataTransfer.getData('mindoodle/path');
+              if (src) {
+                window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: item.path } }));
+              }
+              setDragOverPath(null);
+            }}
           >
             <span className="category-expand-icon" onClick={(e) => { e.stopPropagation(); toggle(item.path); }}>
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
@@ -766,6 +777,8 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
         key={item.path}
         onClick={onClick}
         onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
+        draggable={isMd}
+        onDragStart={(e) => { e.dataTransfer.setData('mindoodle/path', item.path); e.dataTransfer.effectAllowed = 'move'; }}
         style={{ cursor: isMd ? 'pointer' : 'default' }}>
         <span className="file-icon">{isMd ? <BookOpen size={14} /> : <Workflow size={14} />}</span>
         <span className="file-name">{item.name}</span>
@@ -773,7 +786,14 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
     );
   };
 
-  return <div className="explorer-root">{tree.children?.map(child => <NodeView key={child.path} item={child} />)}</div>;
+  return (
+    <div className="explorer-root"
+      onDragOver={(e) => { e.preventDefault(); setDragOverPath(''); }}
+      onDrop={(e) => { e.preventDefault(); const src = e.dataTransfer.getData('mindoodle/path'); if (src) window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: '' } })); setDragOverPath(null); }}
+    >
+      {tree.children?.map(child => <NodeView key={child.path} item={child} />)}
+    </div>
+  );
 };
 
 export default memo(MindMapSidebar);

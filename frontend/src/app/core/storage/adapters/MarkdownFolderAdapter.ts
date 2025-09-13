@@ -275,6 +275,15 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     await writable.close();
   }
 
+  private async copyFileHandle(srcFileHandle: FileHandle, dstDir: DirHandle, name: string): Promise<void> {
+    const dstHandle: FileHandle = await dstDir.getFileHandle?.(name, { create: true })
+      ?? await (dstDir as any).getFileHandle(name, { create: true });
+    const writable = await dstHandle.createWritable();
+    const blob = await srcFileHandle.getFile();
+    await writable.write(blob);
+    await writable.close();
+  }
+
   private async getFileName(fileHandle: FileHandle): Promise<string> {
     if ((fileHandle as any).name) return (fileHandle as any).name as string;
     try {
@@ -572,5 +581,65 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private sanitizeName(name: string): string {
     return name.replace(/[^a-zA-Z0-9\-_.\s\u3040-\u30FF\u4E00-\u9FAF]/g, '_').trim() || 'untitled';
+  }
+
+  async moveItem(sourcePath: string, targetFolderPath: string): Promise<void> {
+    if (!this.rootHandle) throw new Error('No root folder selected');
+    const resolved = await this.resolveParentDirAndName(sourcePath);
+    if (!resolved) throw new Error('Source path not found');
+    const { dir: srcParent, name } = resolved;
+    // Resolve/ensure target folder
+    let dstDir: DirHandle = this.rootHandle as any;
+    const parts = (targetFolderPath || '').split('/').filter(Boolean);
+    for (const part of parts) {
+      dstDir = await this.getOrCreateDirectory(dstDir, part);
+    }
+    // If moving to same parent and same name, nothing to do
+    if (srcParent === dstDir) return;
+
+    // Try move file first
+    const srcFile = await this.getExistingFile(srcParent, name);
+    if (srcFile) {
+      const uniqueName = await this.ensureUniqueName(dstDir, name);
+      await this.copyFileHandle(srcFile, dstDir, uniqueName);
+      const remover = (srcParent as any).removeEntry?.bind(srcParent);
+      if (remover) await remover(name);
+      return;
+    }
+    // Directory move
+    const srcDir = await this.getExistingDirectory(srcParent, name);
+    if (!srcDir) throw new Error('Source not found');
+    const uniqueFolderName = await this.ensureUniqueFolderName(dstDir, name);
+    const dstSub = await this.getOrCreateDirectory(dstDir, uniqueFolderName);
+    await this.copyDirectoryRecursive(srcDir, dstSub);
+    const remover = (srcParent as any).removeEntry?.bind(srcParent);
+    if (remover) await remover(name, { recursive: true });
+  }
+
+  private async ensureUniqueName(dir: DirHandle, desired: string): Promise<string> {
+    const exists = async (name: string) => !!(await this.getExistingFile(dir, name)) || !!(await this.getExistingDirectory(dir, name));
+    if (!(await exists(desired))) return desired;
+    const dot = desired.lastIndexOf('.');
+    const base = dot > 0 ? desired.substring(0, dot) : desired;
+    const ext = dot > 0 ? desired.substring(dot) : '';
+    let i = 1;
+    while (i < 1000) {
+      const candidate = `${base}-${i}${ext}`;
+      if (!(await exists(candidate))) return candidate;
+      i++;
+    }
+    return `${base}-${Date.now()}${ext}`;
+  }
+
+  private async ensureUniqueFolderName(dir: DirHandle, desired: string): Promise<string> {
+    const exists = async (name: string) => !!(await this.getExistingDirectory(dir, name));
+    if (!(await exists(desired))) return desired;
+    let i = 1;
+    while (i < 1000) {
+      const candidate = `${desired}-${i}`;
+      if (!(await exists(candidate))) return candidate;
+      i++;
+    }
+    return `${desired}-${Date.now()}`;
   }
 }
