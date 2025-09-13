@@ -106,8 +106,8 @@ const findNodeBySpatialDirection = (
 };
 
 interface MindMapAppProps {
-  storageMode?: 'local' | 'cloud';
-  onModeChange?: (mode: 'local' | 'cloud') => void;
+  storageMode?: 'local' | 'cloud' | 'markdown';
+  onModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   resetKey?: number;
 }
 
@@ -227,29 +227,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
-    
-    let config: StorageConfig;
-    switch (storageMode) {
-      case 'local':
-        config = localModeConfig;
-        break;
-      case 'cloud':
-        if (authAdapter) {
-          config = createCloudModeConfig(authAdapter);
-        } else {
-          // Auth adapter not available, fall back to local mode
-          logger.warn('Cloud mode requested but auth adapter not available, falling back to local mode');
-          config = localModeConfig;
-        }
-        break;
-      default:
-        config = localModeConfig;
-        break;
-    }
-    
-    
-    return config;
-  }, [storageMode, authAdapter]);
+    return { mode: 'markdown' } as StorageConfig;
+  }, []);
   
   // リセットキーでuseMindMapを強制リセット
   const mindMap = useMindMap(isAppReady, storageConfig, Math.max(resetKey, internalResetKey));

@@ -11,7 +11,7 @@ const App: React.FC = () => {
       </div>
     }>
       <LocalMindMapApp 
-        storageMode="local"
+        storageMode="markdown"
         // Do not pass onModeChange -> hides cloud/local switch
       />
     </React.Suspense>

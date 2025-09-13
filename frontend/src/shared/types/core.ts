@@ -193,7 +193,7 @@ export interface LayoutAlgorithm {
 }
 
 // Enum-like types
-export type StorageMode = 'local' | 'cloud';
+export type StorageMode = 'local' | 'cloud' | 'markdown';
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
 

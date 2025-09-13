@@ -8,13 +8,10 @@ export type {
   StorageAdapterFactory as IStorageAdapterFactory
 } from './types';
 
-export { LocalStorageAdapter } from './adapters/LocalStorageAdapter';
-export { CloudStorageAdapter } from './adapters/CloudStorageAdapter';
+// Mindoodle: only markdown folder adapter is used
 
 export {
   StorageAdapterFactory,
   defaultStorageAdapterFactory,
   createStorageAdapter,
-  createLocalStorageAdapter,
-  createCloudStorageAdapter,
 } from './StorageAdapterFactory';

@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import { clearLocalIndexedDB } from '../utils/indexedDB';
 import { logger } from '../../shared/utils/logger';
 import { localStorageManager } from '../../shared/utils/localStorage';
 
@@ -32,30 +31,13 @@ export const useDataCleanup = () => {
     }
   }, []);
 
-  // IndexedDBのクリーンアップ
-  const clearIndexedDB = useCallback(async (): Promise<void> => {
-    try {
-      setError(null);
-      await clearLocalIndexedDB();
-      logger.info('🧹 IndexedDB cleaned successfully');
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '不明なエラー';
-      setError(`IndexedDBのクリアに失敗しました: ${errorMessage}`);
-      logger.error('Failed to clear IndexedDB:', err);
-      throw err;
-    }
-  }, []);
-
   // すべてのローカルデータをクリア
   const clearAllData = useCallback(async (): Promise<void> => {
     setIsClearing(true);
     setError(null);
     
     try {
-      await Promise.all([
-        clearLocalStorage(),
-        clearIndexedDB()
-      ]);
+      await clearLocalStorage();
       
       logger.info('🧹 All local data cleared successfully');
     } catch (err) {
@@ -65,7 +47,7 @@ export const useDataCleanup = () => {
     } finally {
       setIsClearing(false);
     }
-  }, [clearLocalStorage, clearIndexedDB]);
+  }, [clearLocalStorage]);
 
   // データ使用量の取得
   const getDataStats = useCallback(async (): Promise<DataCleanupStats> => {
@@ -73,8 +55,6 @@ export const useDataCleanup = () => {
       // ローカルストレージアイテム数
       const localStorageItems = localStorageManager.getAllMindFlowKeys().length;
 
-      // IndexedDBのサイズは正確に取得するのが難しいため、概算値を返す
-      // 実際の実装では、navigator.storage.estimate()を使用することができる
       let indexedDBSize = 0;
       if ('storage' in navigator && 'estimate' in navigator.storage) {
         try {
@@ -101,7 +81,6 @@ export const useDataCleanup = () => {
 
   return {
     clearLocalStorage,
-    clearIndexedDB,
     clearAllData,
     getDataStats,
     isClearing,
