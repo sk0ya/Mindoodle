@@ -314,12 +314,45 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     }
   }, [onShowFileActionMenu, node.id]);
 
-  if (!node.attachments || node.attachments.length === 0) {
-    return null;
-  }
+  // ノート内の埋め込み画像を抽出（Markdown: ![alt](url)）
+  const extractNoteImages = (note?: string): string[] => {
+    if (!note) return [];
+    const urls: string[] = [];
+    const regex = /!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)/g; // capture URL inside ()
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(note)) !== null) {
+      const url = m[1];
+      if (typeof url === 'string' && url.length > 0) {
+        urls.push(url);
+      }
+    }
+    return urls;
+  };
 
-  // 画像ファイルのみを表示（1枚目のみ）
-  const firstImageFile = node.attachments?.find((f: FileAttachment) => f.isImage) || null;
+  const noteImageUrls = extractNoteImages(node.note);
+  const noteImageFiles: FileAttachment[] = noteImageUrls.map((u, i) => ({
+    id: `noteimg-${node.id}-${i}`,
+    name: (u.split('/').pop() || `image-${i}`),
+    type: 'image/*',
+    size: 0,
+    isImage: true,
+    createdAt: new Date().toISOString(),
+    downloadUrl: u
+  }));
+
+  // 画像候補: ノート埋め込み > 添付画像
+  const attachmentImages = (node.attachments || []).filter((f: FileAttachment) => f.isImage);
+  const imageFiles: FileAttachment[] = noteImageFiles.length > 0 ? noteImageFiles : attachmentImages;
+
+  if (imageFiles.length === 0) return null;
+
+  // 画像切替インデックス
+  const [imageIndex, setImageIndex] = useState(0);
+  useEffect(() => {
+    // ノードが変わったら先頭に戻す
+    setImageIndex(0);
+  }, [node.id]);
+  const currentImage = imageFiles[Math.max(0, Math.min(imageIndex, imageFiles.length - 1))];
   
   // calculateNodeSizeで既に計算済みの画像サイズを使用
   // カスタムサイズを優先
@@ -333,9 +366,9 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
 
   return (
     <>
-      {/* 最初の画像ファイルのみ表示 */}
-      {firstImageFile && (
-        <g key={firstImageFile.id}>
+      {/* ノートまたは添付の画像を表示（切替可能） */}
+      {currentImage && (
+        <g key={currentImage.id}>
           <foreignObject 
             x={imageX} 
             y={imageY} 
@@ -357,13 +390,13 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
               transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)', // スムーズなサイズ変更アニメーション
               cursor: 'pointer'
             }}
-            onClick={(e) => handleImageClick(e as any, firstImageFile)}
-            onDoubleClick={(e) => handleImageDoubleClick(e as any, firstImageFile)}
-            onContextMenu={(e) => handleFileActionMenu(e as any, firstImageFile)}
+            onClick={(e) => handleImageClick(e as any, currentImage)}
+            onDoubleClick={(e) => handleImageDoubleClick(e as any, currentImage)}
+            onContextMenu={(e) => handleFileActionMenu(e as any, currentImage)}
             >
-              {firstImageFile.downloadUrl && firstImageFile.downloadUrl.includes('/api/files/') ? (
+              {currentImage.downloadUrl && currentImage.downloadUrl.includes('/api/files/') ? (
                 <CloudImage
-                  file={firstImageFile}
+                  file={currentImage}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
@@ -375,14 +408,14 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
                     display: 'block',
                     margin: '0 auto'
                   }}
-                  onClick={(e) => handleImageClick(e, firstImageFile)}
-                  onDoubleClick={(e) => handleImageDoubleClick(e, firstImageFile)}
-                  onContextMenu={(e) => handleFileActionMenu(e, firstImageFile)}
+                  onClick={(e) => handleImageClick(e, currentImage)}
+                  onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
+                  onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
                 />
               ) : (
                 <img 
-                  src={firstImageFile.downloadUrl || firstImageFile.dataURL || firstImageFile.data} 
-                  alt={firstImageFile.name}
+                  src={currentImage.downloadUrl || currentImage.dataURL || currentImage.data} 
+                  alt={currentImage.name}
                   style={{
                     maxWidth: '100%',
                     maxHeight: '100%',
@@ -394,12 +427,39 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
                     display: 'block',
                     margin: '0 auto'
                   }}
-                  onClick={(e) => handleImageClick(e, firstImageFile)}
-                  onDoubleClick={(e) => handleImageDoubleClick(e, firstImageFile)}
-                  onContextMenu={(e) => handleFileActionMenu(e, firstImageFile)}
+                  onClick={(e) => handleImageClick(e, currentImage)}
+                  onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
+                  onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
                   onError={() => {}}
                   onLoad={() => {}}
                 />
+              )}
+
+              {/* 画像切替コントロール */}
+              {imageFiles.length > 1 && (
+                <div style={{ position: 'absolute', bottom: 6, right: 6, display: 'flex', gap: 6 }}>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev - 1 + imageFiles.length) % imageFiles.length); }}
+                    style={{
+                      background: 'rgba(0,0,0,0.4)', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 12
+                    }}
+                    title="前の画像"
+                  >
+                    ‹
+                  </button>
+                  <div style={{ background: 'rgba(0,0,0,0.4)', color: '#fff', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}>
+                    {imageIndex + 1} / {imageFiles.length}
+                  </div>
+                  <button
+                    onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev + 1) % imageFiles.length); }}
+                    style={{
+                      background: 'rgba(0,0,0,0.4)', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 12
+                    }}
+                    title="次の画像"
+                  >
+                    ›
+                  </button>
+                </div>
               )}
             </div>
           </foreignObject>

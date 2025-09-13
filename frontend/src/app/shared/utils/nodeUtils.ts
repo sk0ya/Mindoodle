@@ -174,8 +174,10 @@ export function calculateNodeSize(
   isEditing: boolean = false,
   globalFontSize?: number
 ): NodeSize {
-  // 画像の有無とサイズを確認
-  const hasImages = node.attachments && node.attachments.some((file: FileAttachment) => file.isImage);
+  // 画像の有無とサイズを確認（添付 or ノート埋め込み画像）
+  const hasAttachmentImages = node.attachments && node.attachments.some((file: FileAttachment) => file.isImage);
+  const hasNoteImages = !!(node as any)?.note && /!\[[^\]]*\]\(([^)]+)\)/.test((node as any).note as string);
+  const hasImages = !!hasAttachmentImages || !!hasNoteImages;
   
   let imageHeight = 0;
   let imageWidth = 0;
