@@ -9,6 +9,7 @@ import type { MindMapData } from '@shared/types';
 import { createChildFolderPath } from '../../../../shared/utils/folderUtils';
 import { logger } from '../../../../shared/utils/logger';
 import { useDragAndDrop } from '../../../../shared/hooks/useDragAndDrop';
+import type { ExplorerItem } from '../../../../core/storage/types';
 
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
@@ -22,6 +23,7 @@ interface MindMapSidebarProps {
   availableCategories: string[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
+  explorerTree?: ExplorerItem;
 }
 
 const MindMapSidebar: React.FC<MindMapSidebarProps> = ({ 
@@ -34,7 +36,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onChangeCategory,
   onChangeCategoryBulk,
   isCollapsed,
-  onToggleCollapse 
+  onToggleCollapse,
+  explorerTree
 }) => {
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -521,7 +524,11 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         onCollapseAll={handleCollapseAll}
       />
 
-      {filteredMaps.length === 0 ? (
+      {explorerTree ? (
+        <div className="maps-content-wrapper">
+          {renderExplorer(explorerTree, '')}
+        </div>
+      ) : filteredMaps.length === 0 ? (
         <div className="empty-state">
           <div className="empty-icon"><Workflow size={32} /></div>
           <div className="empty-title">
@@ -586,5 +593,49 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     </div>
   );
 };
+
+function renderExplorer(tree: ExplorerItem, _rootLabel: string): React.ReactNode {
+  const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
+  const toggle = (path: string) => setCollapsed(prev => ({ ...prev, [path]: !prev[path] }));
+
+  const NodeView: React.FC<{ item: ExplorerItem }> = ({ item }) => {
+    if (item.type === 'folder') {
+      const isCollapsed = collapsed[item.path] ?? false;
+      return (
+        <div className="explorer-folder" key={item.path}>
+          <div className="category-header" onClick={() => toggle(item.path)}>
+            <span className="category-folder-icon">{isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />}</span>
+            <span className="category-name">{item.name || '(root)'}</span>
+          </div>
+          {!isCollapsed && item.children && (
+            <div style={{ marginLeft: 16 }}>
+              {item.children.map(child => (
+                <NodeView key={child.path} item={child} />
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+    // file
+    const isMd = !!item.isMarkdown;
+    const mapId = isMd ? item.path.replace(/\.md$/i, '') : null;
+    const onClick = () => {
+      if (isMd && mapId) {
+        // Trigger selection via a custom event dispatched to the window
+        const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
+        window.dispatchEvent(ev);
+      }
+    };
+    return (
+      <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'}`} key={item.path} onClick={onClick} style={{ cursor: isMd ? 'pointer' : 'default' }}>
+        <span className="file-icon">{isMd ? <BookOpen size={14} /> : <Workflow size={14} />}</span>
+        <span className="file-name">{item.name}</span>
+      </div>
+    );
+  };
+
+  return <div className="explorer-root">{tree.children?.map(child => <NodeView key={child.path} item={child} />)}</div>;
+}
 
 export default memo(MindMapSidebar);

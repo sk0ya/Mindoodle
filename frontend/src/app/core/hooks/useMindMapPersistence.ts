@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import type { MindMapData } from '@shared/types';
 import { createInitialData } from '../../shared/types/dataTypes';
-import type { StorageAdapter, StorageConfig } from '../storage/types';
+import type { StorageAdapter, StorageConfig, ExplorerItem } from '../storage/types';
 import { createStorageAdapter } from '../storage/StorageAdapterFactory';
 import { logger } from '../../shared/utils/logger';
 import { useInitializationWaiter } from './useInitializationWaiter';
@@ -19,6 +19,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   const [isInitialized, setIsInitialized] = useState(false);
   const [storageAdapter, setStorageAdapter] = useState<StorageAdapter | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [explorerTree, setExplorerTree] = useState<ExplorerItem | null>(null);
 
   // 前回の設定を記録して無用な再初期化を防ぐ
   const prevConfigRef = useRef<StorageConfig | null>(null);
@@ -143,6 +144,20 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, storageAdapter, config.mode]);
 
+  // エクスプローラーツリー読み込み
+  const loadExplorerTree = useCallback(async (): Promise<void> => {
+    if (!isInitialized || !storageAdapter || typeof storageAdapter.getExplorerTree !== 'function') {
+      setExplorerTree(null);
+      return;
+    }
+    try {
+      const tree = await storageAdapter.getExplorerTree();
+      setExplorerTree(tree);
+    } catch (e) {
+      setExplorerTree(null);
+    }
+  }, [isInitialized, storageAdapter]);
+
   // 全マップ保存
   const saveAllMaps = useCallback(async (maps: MindMapData[]): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
@@ -200,16 +215,18 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   useEffect(() => {
     if (isInitialized && storageAdapter) {
       loadAllMaps();
+      loadExplorerTree();
     }
-  }, [isInitialized, storageAdapter, loadAllMaps]);
+  }, [isInitialized, storageAdapter, loadAllMaps, loadExplorerTree]);
 
 
   // マップ一覧を強制リフレッシュする関数
   const refreshMapList = useCallback(async () => {
     if (storageAdapter) {
       await loadAllMaps();
+      await loadExplorerTree();
     }
-  }, [storageAdapter, loadAllMaps]);
+  }, [storageAdapter, loadAllMaps, loadExplorerTree]);
 
   return {
     // 状態
@@ -217,6 +234,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     isInitialized,
     error,
     storageMode: config.mode,
+    explorerTree,
     
     // 操作
     loadInitialData,

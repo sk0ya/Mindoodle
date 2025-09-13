@@ -1,5 +1,5 @@
 import type { MindMapData } from '@shared/types';
-import type { StorageAdapter } from '../types';
+import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
 import { MarkdownImporter } from '../../../shared/utils/markdownImporter';
 import { exportToMarkdown } from '../../../shared/utils/exportUtils';
@@ -301,6 +301,61 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
     // No entries API available
     return;
+  }
+
+  // Explorer tree API
+  async getExplorerTree(): Promise<ExplorerItem> {
+    if (!this.rootHandle) {
+      throw new Error('No root folder selected');
+    }
+    const root: ExplorerItem = {
+      type: 'folder',
+      name: (this.rootHandle as any).name || '',
+      path: '',
+      children: []
+    };
+    root.children = await this.buildExplorerItems(this.rootHandle as any, '');
+    return root;
+  }
+
+  private async buildExplorerItems(dir: DirHandle, basePath: string): Promise<ExplorerItem[]> {
+    const items: ExplorerItem[] = [];
+    // Prefer values(); fallback to entries()
+    // @ts-ignore
+    if (dir.values) {
+      // @ts-ignore
+      for await (const entry of dir.values()) {
+        if (entry.kind === 'directory') {
+          const path = basePath ? `${basePath}/${entry.name}` : entry.name;
+          const childDir = await dir.getDirectoryHandle?.(entry.name) ?? await (dir as any).getDirectoryHandle(entry.name);
+          const children = await this.buildExplorerItems(childDir, path);
+          items.push({ type: 'folder', name: entry.name, path, children });
+        } else if (entry.kind === 'file') {
+          const name: string = entry.name || '';
+          const path = basePath ? `${basePath}/${name}` : name;
+          items.push({ type: 'file', name, path, isMarkdown: /\.md$/i.test(name) });
+        }
+      }
+      return items.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name, 'ja') : a.type === 'folder' ? -1 : 1));
+    }
+    // @ts-ignore
+    if (dir.entries) {
+      // @ts-ignore
+      for await (const [name, entry] of dir.entries()) {
+        if (entry.kind === 'directory') {
+          const path = basePath ? `${basePath}/${name}` : name;
+          // @ts-ignore
+          const childDir = await dir.getDirectoryHandle?.(name) ?? await (dir as any).getDirectoryHandle(name);
+          const children = await this.buildExplorerItems(childDir, path);
+          items.push({ type: 'folder', name, path, children });
+        } else if (entry.kind === 'file') {
+          const path = basePath ? `${basePath}/${name}` : name;
+          items.push({ type: 'file', name, path, isMarkdown: /\.md$/i.test(name) });
+        }
+      }
+      return items.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name, 'ja') : a.type === 'folder' ? -1 : 1));
+    }
+    return items;
   }
 
   private async ensureUniqueMarkdownName(dir: DirHandle, desired: string): Promise<string> {

@@ -7,6 +7,7 @@ import ExportSidebar from './ExportSidebar';
 import SearchSidebar from './SearchSidebar';
 import AttachmentsSidebar from './AttachmentsSidebar';
 import type { MindMapData } from '../../../../shared/types';
+import type { ExplorerItem } from '../../../../core/storage/types';
 import './PrimarySidebar.css';
 
 interface PrimarySidebarProps {
@@ -32,6 +33,7 @@ interface PrimarySidebarProps {
   onSelectFolder?: () => Promise<void> | void;
   onShowFolderGuide?: () => void;
   currentFolderLabel?: string | null;
+  explorerTree?: ExplorerItem | null;
   // Current map data for export
   currentMapData?: MindMapData | null;
   // Search props
@@ -62,6 +64,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onSelectFolder,
   onShowFolderGuide,
   currentFolderLabel,
+  explorerTree,
   // Current map data
   currentMapData,
   // Search props
@@ -88,6 +91,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             availableCategories={availableCategories}
             isCollapsed={false}
             onToggleCollapse={() => {}}
+            explorerTree={explorerTree || undefined}
           />
         );
       

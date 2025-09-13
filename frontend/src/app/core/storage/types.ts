@@ -7,6 +7,14 @@ import type { FileInfo } from '../cloud/api';
  * 統一ストレージインターフェース
  * Local/Cloudモードで共通の操作を提供
  */
+export interface ExplorerItem {
+  type: 'folder' | 'file';
+  name: string;
+  path: string; // relative from root
+  children?: ExplorerItem[];
+  isMarkdown?: boolean;
+}
+
 export interface StorageAdapter {
   // 初期化状態
   readonly isInitialized: boolean;
@@ -21,6 +29,9 @@ export interface StorageAdapter {
   addMapToList(map: MindMapData): Promise<void>;
   removeMapFromList(mapId: string): Promise<void>;
   updateMapInList(map: MindMapData): Promise<void>;
+  
+  // Explorer tree (optional)
+  getExplorerTree?(): Promise<ExplorerItem>;
   
   // ファイル操作（オプショナル - クラウドモードのみ）
   uploadFile?(mindmapId: string, nodeId: string, file: File): Promise<FileInfo>;

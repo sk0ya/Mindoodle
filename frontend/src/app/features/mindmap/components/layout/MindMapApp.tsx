@@ -1011,6 +1011,18 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setShowImportModal(true);
   };
 
+  // Listen to explorer selection events
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      const id = e?.detail?.mapId;
+      if (id && typeof selectMapById === 'function') {
+        selectMapById(id);
+      }
+    };
+    window.addEventListener('mindoodle:selectMapById', handler as EventListener);
+    return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
+  }, [selectMapById]);
+
   // インポート成功時のハンドラー
   const handleImportSuccess = async (importedData: MindMapData, warnings?: string[]) => {
     try {
@@ -1330,6 +1342,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onSelectFolder={handleSelectFolder}
         onShowFolderGuide={() => setShowFolderGuide(true)}
         currentFolderLabel={(mindMap as any).getSelectedFolderLabel?.() || null}
+        explorerTree={persistenceHook.explorerTree}
         onExport={handleExport}
         onImport={handleImport}
         currentMapData={data}
