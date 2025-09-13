@@ -1343,6 +1343,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onShowFolderGuide={() => setShowFolderGuide(true)}
         currentFolderLabel={(mindMap as any).getSelectedFolderLabel?.() || null}
         explorerTree={(mindMap as any).explorerTree || null}
+        onCreateFolder={async (path: string) => {
+          if (typeof (mindMap as any).createFolder === 'function') {
+            await (mindMap as any).createFolder(path);
+          }
+        }}
         onExport={handleExport}
         onImport={handleImport}
         currentMapData={data}

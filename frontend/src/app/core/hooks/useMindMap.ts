@@ -76,6 +76,14 @@ export const useMindMap = (
     return false;
   }, [persistenceHook]);
 
+  const createFolder = useCallback(async (relativePath: string): Promise<void> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.createFolder === 'function') {
+      await adapter.createFolder(relativePath);
+      await persistenceHook.refreshMapList();
+    }
+  }, [persistenceHook]);
+
   const getSelectedFolderLabel = useCallback((): string | null => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && 'selectedFolderName' in adapter) {
@@ -225,6 +233,7 @@ export const useMindMap = (
     refreshMapList: persistenceHook.refreshMapList,
     selectRootFolder,
     getSelectedFolderLabel,
+    createFolder,
     explorerTree: (persistenceHook as any).explorerTree || null
   };
 };

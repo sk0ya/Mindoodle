@@ -228,6 +228,13 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [storageAdapter, loadAllMaps, loadExplorerTree]);
 
+  // Create folder wrapper
+  const createFolder = useCallback(async (relativePath: string): Promise<void> => {
+    if (!isInitialized || !storageAdapter || typeof storageAdapter.createFolder !== 'function') return;
+    await storageAdapter.createFolder(relativePath);
+    await refreshMapList();
+  }, [isInitialized, storageAdapter, refreshMapList]);
+
   return {
     // 状態
     allMindMaps,
@@ -245,6 +252,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     addMapToList,
     removeMapFromList,
     updateMapInList,
+    createFolder,
     
     // ストレージアダプター（高度な使用のため）
     storageAdapter

@@ -34,6 +34,7 @@ interface PrimarySidebarProps {
   onShowFolderGuide?: () => void;
   currentFolderLabel?: string | null;
   explorerTree?: ExplorerItem | null;
+  onCreateFolder?: (path: string) => Promise<void> | void;
   // Current map data for export
   currentMapData?: MindMapData | null;
   // Search props
@@ -65,6 +66,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onShowFolderGuide,
   currentFolderLabel,
   explorerTree,
+  onCreateFolder,
   // Current map data
   currentMapData,
   // Search props
@@ -92,6 +94,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             isCollapsed={false}
             onToggleCollapse={() => {}}
             explorerTree={explorerTree || undefined}
+            onCreateFolder={onCreateFolder}
           />
         );
       

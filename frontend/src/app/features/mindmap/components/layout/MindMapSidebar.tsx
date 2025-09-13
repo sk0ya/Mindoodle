@@ -24,6 +24,7 @@ interface MindMapSidebarProps {
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   explorerTree?: ExplorerItem;
+  onCreateFolder?: (path: string) => Promise<void> | void;
 }
 
 const MindMapSidebar: React.FC<MindMapSidebarProps> = ({ 
@@ -37,7 +38,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onChangeCategoryBulk,
   isCollapsed,
   onToggleCollapse,
-  explorerTree
+  explorerTree,
+  onCreateFolder
 }) => {
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
@@ -146,19 +148,19 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     const newFolderName = window.prompt(`新しいフォルダ名を入力してください${parentInfo}:`, '');
     if (newFolderName && newFolderName.trim()) {
       const newFolderPath = createChildFolderPath(parentPath, newFolderName.trim());
-      
-      // フォルダのみを作成し、ダミーマップは作成しない
-      // フォルダ状態を管理するために、空フォルダのリストを管理
-      setEmptyFolders(prev => new Set([...prev, newFolderPath]));
-      
-      // 新しく作成したフォルダを展開状態にする
-      setCollapsedCategories(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(newFolderPath); // 展開状態にする
-        return newSet;
-      });
+      if (onCreateFolder) {
+        Promise.resolve(onCreateFolder(newFolderPath)).catch(() => {});
+      } else {
+        // フォールバック: UIのみ更新
+        setEmptyFolders(prev => new Set([...prev, newFolderPath]));
+        setCollapsedCategories(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(newFolderPath);
+          return newSet;
+        });
+      }
     }
-  }, []);
+  }, [onCreateFolder]);
 
   const handleCreateMap = useCallback((parentPath: string | null) => {
     const parentInfo = parentPath ? ` (${parentPath} 内)` : '';

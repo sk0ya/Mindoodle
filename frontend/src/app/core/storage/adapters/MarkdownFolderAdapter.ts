@@ -186,6 +186,16 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // No persistent handles kept beyond session
   }
 
+  async createFolder(relativePath: string): Promise<void> {
+    if (!this.rootHandle) throw new Error('No root folder selected');
+    let dir: DirHandle = this.rootHandle as any;
+    const parts = (relativePath || '').split('/').filter(Boolean);
+    for (const part of parts) {
+      dir = await this.getOrCreateDirectory(dir, part);
+    }
+    // nothing else to do; folder ensured
+  }
+
   private async loadMapFromDirectory(dir: DirHandle, categoryPath: string): Promise<MindMapData | null> {
     try {
       // Prefer map.md/README.md

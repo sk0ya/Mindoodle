@@ -30,6 +30,9 @@ export interface StorageAdapter {
   removeMapFromList(mapId: string): Promise<void>;
   updateMapInList(map: MindMapData): Promise<void>;
   
+  // File system operations (optional)
+  createFolder?(relativePath: string): Promise<void>;
+  
   // Explorer tree (optional)
   getExplorerTree?(): Promise<ExplorerItem>;
   
