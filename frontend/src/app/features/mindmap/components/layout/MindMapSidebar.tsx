@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
-import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen } from 'lucide-react';
+import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import CategoryGroup from './CategoryGroup';
 import SidebarCollapsed from './SidebarCollapsed';
@@ -604,6 +604,7 @@ const ExplorerView: React.FC<{ tree: ExplorerItem }> = ({ tree }) => {
       return (
         <div className="explorer-folder" key={item.path}>
           <div className="category-header" onClick={() => toggle(item.path)}>
+            <span className="category-expand-icon">{isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}</span>
             <span className="category-folder-icon">{isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />}</span>
             <span className="category-name">{item.name || '(root)'}</span>
           </div>

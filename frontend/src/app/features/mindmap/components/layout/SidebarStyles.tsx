@@ -535,6 +535,34 @@ const SidebarStyles: React.FC = () => (
       padding-left: 18px;
     }
 
+    /* Explorer view styles */
+    .explorer-file {
+      padding: 4px 12px;
+      margin: 0;
+      border-radius: 0;
+      cursor: default;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      height: 26px;
+    }
+
+    .explorer-file.is-md { cursor: pointer; }
+
+    .explorer-file:hover {
+      background: rgba(229, 229, 229, 0.6);
+    }
+
+    [data-theme="dark"] .explorer-file:hover {
+      background: rgba(75, 85, 99, 0.6);
+    }
+
+    .explorer-file .file-icon { font-size: 14px; color: #666; display: inline-flex; align-items: center; }
+    .explorer-file .file-name { font-size: 13px; color: #333; }
+
+    [data-theme="dark"] .explorer-file .file-icon { color: #9ca3af; }
+    [data-theme="dark"] .explorer-file .file-name { color: #d1d5db; }
+
     .map-item {
       padding: 4px 12px;
       margin: 0;
