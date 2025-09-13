@@ -3,6 +3,7 @@ import type { StorageAdapter, StorageConfig, StorageMode, StorageAdapterFactory 
 import type { AuthAdapter } from '../auth/types';
 import { LocalStorageAdapter } from './adapters/LocalStorageAdapter';
 import { CloudStorageAdapter } from './adapters/CloudStorageAdapter';
+import { MarkdownFolderAdapter } from './adapters/MarkdownFolderAdapter';
 import { logger } from '../../shared/utils/logger';
 
 /**
@@ -23,6 +24,9 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
         
       case 'cloud':
         return this.createCloudAdapter(config);
+      
+      case 'markdown':
+        return this.createMarkdownAdapter();
         
         
       default:
@@ -34,7 +38,7 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
    * 指定されたモードがサポートされているかチェック
    */
   isSupported(mode: StorageMode): boolean {
-    const supportedModes: StorageMode[] = ['local', 'cloud'];
+    const supportedModes: StorageMode[] = ['local', 'cloud', 'markdown'];
     return supportedModes.includes(mode);
   }
 
@@ -61,7 +65,8 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
       throw new Error(`Auth adapter is required for ${config.mode} mode`);
     }
 
-    if (!StorageAdapterFactory.isIndexedDBSupported()) {
+    // IndexedDB is only required for local/cloud adapters
+    if ((config.mode === 'local' || config.mode === 'cloud') && !StorageAdapterFactory.isIndexedDBSupported()) {
       throw new Error('IndexedDB is not supported in this environment');
     }
   }
@@ -87,6 +92,16 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
     const adapter = new CloudStorageAdapter(config.authAdapter);
     await adapter.initialize();
     logger.info('StorageAdapterFactory: Cloud adapter created');
+    return adapter;
+  }
+
+  /**
+   * Markdownフォルダアダプターを作成
+   */
+  private async createMarkdownAdapter(): Promise<StorageAdapter> {
+    const adapter = new MarkdownFolderAdapter();
+    await adapter.initialize();
+    logger.info('StorageAdapterFactory: Markdown folder adapter created');
     return adapter;
   }
 

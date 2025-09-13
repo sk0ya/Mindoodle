@@ -1,7 +1,7 @@
 {
-  "name": "mindmap-app",
+  "name": "mindoodle",
   "version": "1.0.0",
-  "description": "MindMeisterライクなマインドマップツール",
+  "description": "Markdownベースのローカル専用マインドマップ（Mindoodle）",
   "type": "module",
   "main": "index.js",
   "scripts": {

@@ -7,7 +7,7 @@ const ToolbarLogo: React.FC<ToolbarLogoProps> = () => {
     <div className="logo-section">
       <div className="logo">
         <div className="logo-text">
-          <span className="logo-title">MindFlow</span>
+          <span className="logo-title">Mindoodle</span>
         </div>
       </div>
     </div>

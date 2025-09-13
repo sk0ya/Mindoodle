@@ -49,7 +49,7 @@ export interface StorageConfig {
 /**
  * ストレージモード
  */
-export type StorageMode = 'local' | 'cloud';
+export type StorageMode = 'local' | 'cloud' | 'markdown';
 
 /**
  * 同期状態
