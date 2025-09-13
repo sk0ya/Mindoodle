@@ -176,6 +176,39 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
   const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
 
+  // --- Images pipeline (note-embedded first, then attachments) ---
+  const extractNoteImages = (note?: string): string[] => {
+    if (!note) return [];
+    const urls: string[] = [];
+    const regex = /!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)/g;
+    let m: RegExpExecArray | null;
+    while ((m = regex.exec(note)) !== null) {
+      urls.push(m[1]);
+    }
+    return urls;
+  };
+
+  const noteImageUrls = extractNoteImages(node.note);
+  const noteImageFiles: FileAttachment[] = noteImageUrls.map((u, i) => ({
+    id: `noteimg-${node.id}-${i}`,
+    name: (u.split('/').pop() || `image-${i}`),
+    type: 'image/*',
+    size: 0,
+    isImage: true,
+    createdAt: new Date().toISOString(),
+    downloadUrl: u
+  }));
+  const attachmentImages = (node.attachments || []).filter((f: FileAttachment) => f.isImage);
+  const imageFiles: FileAttachment[] = noteImageFiles.length > 0 ? noteImageFiles : attachmentImages;
+  const [imageIndex, setImageIndex] = useState(0);
+  useEffect(() => { setImageIndex(0); }, [node.id]);
+  const currentImage = imageFiles[imageIndex] || null;
+
+  // サイズ（カスタムがあれば優先）
+  const imageDimensions = node.customImageWidth && node.customImageHeight
+    ? { width: node.customImageWidth, height: node.customImageHeight }
+    : { width: 150, height: 105 };
+
   // 画像リサイズハンドラー
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     console.log('🎯 リサイズ開始:', { nodeId: node.id, isResizing });
@@ -331,33 +364,6 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     }
   }, [onShowFileActionMenu, node.id]);
 
-  // ノート内の埋め込み画像を抽出（Markdown: ![alt](url)）
-  const extractNoteImages = (note?: string): string[] => {
-    if (!note) return [];
-    const urls: string[] = [];
-    const regex = /!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)/g; // capture URL inside ()
-    let m: RegExpExecArray | null;
-    while ((m = regex.exec(note)) !== null) {
-      const url = m[1];
-      if (typeof url === 'string' && url.length > 0) {
-        urls.push(url);
-      }
-    }
-    return urls;
-  };
-
-  const noteImageUrls = extractNoteImages(node.note);
-  const noteImageFiles: FileAttachment[] = noteImageUrls.map((u, i) => ({
-    id: `noteimg-${node.id}-${i}`,
-    name: (u.split('/').pop() || `image-${i}`),
-    type: 'image/*',
-    size: 0,
-    isImage: true,
-    createdAt: new Date().toISOString(),
-    downloadUrl: u
-  }));
-
-  // 画像候補: ノート埋め込み > 添付画像
   const attachmentImages = (node.attachments || []).filter((f: FileAttachment) => f.isImage);
   const imageFiles: FileAttachment[] = noteImageFiles.length > 0 ? noteImageFiles : attachmentImages;
 
@@ -377,6 +383,9 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     ? { width: node.customImageWidth, height: node.customImageHeight }
     : { width: 150, height: 105 };
 
+  // 画像がなければ描画しない
+  if (!currentImage) return null;
+
   // 画像位置計算を統一（ノード上部に配置、4pxマージン）
   const imageY = node.y - nodeHeight / 2 + 4;
   const imageX = node.x - imageDimensions.width / 2;
@@ -384,8 +393,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   return (
     <>
       {/* ノートまたは添付の画像を表示（切替可能） */}
-      {currentImage && (
-        <g key={currentImage.id}>
+      <g key={currentImage.id}>
           <foreignObject 
             x={imageX} 
             y={imageY} 
@@ -546,7 +554,6 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
             </g>
           )}
         </g>
-      )}
     </>
   );
 };
