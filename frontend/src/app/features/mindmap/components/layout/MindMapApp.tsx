@@ -6,6 +6,7 @@ import PrimarySidebar from './PrimarySidebar';
 import MindMapHeader from './MindMapHeader';
 import MindMapWorkspace from './MindMapWorkspace';
 import MindMapModals from '../modals/MindMapModals';
+import FolderGuideModal from '../modals/FolderGuideModal';
 import ExportModal from '../modals/ExportModal';
 import ImportModal from '../modals/ImportModal';
 import NodeLinkModal from '../modals/NodeLinkModal';
@@ -213,6 +214,30 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   React.useEffect(() => {
     setResetKey(resetKey);
   }, [resetKey]);
+
+  // Folder guide modal state
+  const [showFolderGuide, setShowFolderGuide] = React.useState<boolean>(() => {
+    try {
+      const dismissed = localStorage.getItem('mindoodle_guide_dismissed');
+      return dismissed !== '1';
+    } catch { return true; }
+  });
+
+  const handleSelectFolder = React.useCallback(async () => {
+    try {
+      const adapter: any = persistenceHook.storageAdapter as any;
+      if (adapter && typeof adapter.selectRootFolder === 'function') {
+        await adapter.selectRootFolder();
+        await persistenceHook.refreshMapList();
+        setShowFolderGuide(false);
+        localStorage.setItem('mindoodle_guide_dismissed', '1');
+      } else {
+        console.warn('selectRootFolder is not available on current adapter');
+      }
+    } catch (e) {
+      console.error('Folder selection failed:', e);
+    }
+  }, [persistenceHook]);
 
   // Handle mode changes - reset modal state when switching to cloud mode
   React.useEffect(() => {
@@ -1319,6 +1344,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
+        <FolderGuideModal 
+          isOpen={showFolderGuide}
+          onClose={() => { setShowFolderGuide(false); localStorage.setItem('mindoodle_guide_dismissed','1'); }}
+          onSelectFolder={handleSelectFolder}
+        />
         <MindMapHeader 
           data={data}
           onTitleChange={handleTitleChange}
