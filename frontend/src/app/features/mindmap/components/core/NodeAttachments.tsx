@@ -364,25 +364,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     }
   }, [onShowFileActionMenu, node.id]);
 
-  // duplicate-safe: (defined earlier) imageFiles already computed
-  if (imageFiles.length === 0) return null;
-
-  // 画像切替インデックス
-  const [imageIndex, setImageIndex] = useState(0);
-  useEffect(() => {
-    // ノードが変わったら先頭に戻す
-    setImageIndex(0);
-  }, [node.id]);
-  const currentImage = imageFiles[Math.max(0, Math.min(imageIndex, imageFiles.length - 1))];
-  
-  // calculateNodeSizeで既に計算済みの画像サイズを使用
-  // カスタムサイズを優先
-  const imageDimensions = node.customImageWidth && node.customImageHeight
-    ? { width: node.customImageWidth, height: node.customImageHeight }
-    : { width: 150, height: 105 };
-
-  // 画像がなければ描画しない
-  if (!currentImage) return null;
+  // duplicate block removed (computed earlier)
 
   // 画像位置計算を統一（ノード上部に配置、4pxマージン）
   const imageY = node.y - nodeHeight / 2 + 4;
