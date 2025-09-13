@@ -1331,6 +1331,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             logger.error('applyAutoLayout function not available');
           }
         }}
+        onSelectFolder={handleSelectFolder}
+        onShowFolderGuide={() => setShowFolderGuide(true)}
         onExport={handleExport}
         onImport={handleImport}
         currentMapData={data}

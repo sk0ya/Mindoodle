@@ -9,13 +9,17 @@ interface SettingsSidebarProps {
   onStorageModeChange?: (mode: 'local' | 'cloud') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
+  onSelectFolder?: () => Promise<void> | void;
+  onShowFolderGuide?: () => void;
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   storageMode,
   onStorageModeChange,
   onShowKeyboardHelper,
-  onAutoLayout
+  onAutoLayout,
+  onSelectFolder,
+  onShowFolderGuide
 }) => {
   const { settings, updateSetting } = useMindMapStore();
   const { clearAllData, getDataStats, isClearing, error } = useDataCleanup();
@@ -61,6 +65,23 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   return (
     <div className="settings-sidebar">
 
+
+      <div className="settings-section">
+        <h3 className="settings-section-title">フォルダベース運用</h3>
+        <div className="settings-section-content">
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="settings-button" onClick={() => onSelectFolder && onSelectFolder()}>
+              作業フォルダを選択
+            </button>
+            <button className="settings-button" onClick={() => onShowFolderGuide && onShowFolderGuide()}>
+              ガイドを表示
+            </button>
+          </div>
+          <div className="settings-description" style={{ marginTop: 6 }}>
+            map.md をフォルダ直下に保存します。添付は attachments/ 配下に整理されます。
+          </div>
+        </div>
+      </div>
 
       <div className="settings-section">
         <h3 className="settings-section-title">テーマ</h3>
