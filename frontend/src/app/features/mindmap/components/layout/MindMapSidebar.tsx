@@ -739,12 +739,16 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
             onDragOver={(e) => { e.preventDefault(); setDragOverPath(item.path); }}
             onDragLeave={() => setDragOverPath(null)}
             onDrop={(e) => {
-              e.preventDefault();
-              const src = e.dataTransfer.getData('mindoodle/path');
-              if (src) {
-                window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: item.path } }));
+              try {
+                e.preventDefault();
+                const dt = e.dataTransfer;
+                const src = dt ? dt.getData('mindoodle/path') : '';
+                if (src) {
+                  window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: item.path } }));
+                }
+              } finally {
+                setDragOverPath(null);
               }
-              setDragOverPath(null);
             }}
           >
             <span className="category-expand-icon" onClick={(e) => { e.stopPropagation(); toggle(item.path); }}>
@@ -789,7 +793,16 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
   return (
     <div className="explorer-root"
       onDragOver={(e) => { e.preventDefault(); setDragOverPath(''); }}
-      onDrop={(e) => { e.preventDefault(); const src = e.dataTransfer.getData('mindoodle/path'); if (src) window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: '' } })); setDragOverPath(null); }}
+      onDrop={(e) => { 
+        try {
+          e.preventDefault(); 
+          const dt = e.dataTransfer; 
+          const src = dt ? dt.getData('mindoodle/path') : ''; 
+          if (src) window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: '' } })); 
+        } finally {
+          setDragOverPath(null); 
+        }
+      }}
     >
       {tree.children?.map(child => <NodeView key={child.path} item={child} />)}
     </div>
