@@ -126,7 +126,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
   if (!isEditing) {
     // 画像がある場合はテキストをノードの下部に表示
-    const hasImage = node.attachments && node.attachments.some(f => f.isImage);
+    const noteHasImages = !!(node as any)?.note && /!\[[^\]]*\]\(([^)]+)\)/.test((node as any).note as string);
+    const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages;
     
     // カスタム画像サイズを考慮
     const getActualImageHeight = () => {
@@ -291,7 +292,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }
 
   // 編集時も画像がある場合はテキストを下部に配置
-  const hasImage = node.attachments && node.attachments.some(f => f.isImage);
+  const noteHasImages = !!(node as any)?.note && /!\[[^\]]*\]\(([^)]+)\)/.test((node as any).note as string);
+  const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages;
   
   const getActualImageHeight = () => {
     if (!hasImage) return 0;
