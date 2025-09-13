@@ -1025,9 +1025,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Refresh explorer/map list on external changes or when window regains focus
   React.useEffect(() => {
-    const doRefresh = async () => {
-      if (typeof (mindMap as any).refreshMapList === 'function') {
-        await (mindMap as any).refreshMapList();
+    const doRefresh = () => {
+      try {
+        if (typeof (mindMap as any).refreshMapList === 'function') {
+          void (mindMap as any).refreshMapList();
+        }
+      } catch (e) {
+        console.error('Explorer refresh failed:', e);
       }
     };
     const onVisibility = () => { if (!document.hidden) doRefresh(); };
@@ -1047,19 +1051,29 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Handle rename/delete events from explorer
   React.useEffect(() => {
-    const onRename = async (e: any) => {
-      const oldPath = e?.detail?.oldPath;
-      const newName = e?.detail?.newName;
-      if (oldPath && newName && typeof (mindMap as any).renameItem === 'function') {
-        await (mindMap as any).renameItem(oldPath, newName);
-        window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+    const onRename = (e: any) => {
+      try {
+        const oldPath = e?.detail?.oldPath;
+        const newName = e?.detail?.newName;
+        if (oldPath && newName && typeof (mindMap as any).renameItem === 'function') {
+          void (mindMap as any).renameItem(oldPath, newName).then(() => {
+            window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+          }).catch(err => console.error('Rename failed:', err));
+        }
+      } catch (err) {
+        console.error('Rename handler failed:', err);
       }
     };
-    const onDelete = async (e: any) => {
-      const path = e?.detail?.path;
-      if (path && typeof (mindMap as any).deleteItem === 'function') {
-        await (mindMap as any).deleteItem(path);
-        window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+    const onDelete = (e: any) => {
+      try {
+        const path = e?.detail?.path;
+        if (path && typeof (mindMap as any).deleteItem === 'function') {
+          void (mindMap as any).deleteItem(path).then(() => {
+            window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+          }).catch(err => console.error('Delete failed:', err));
+        }
+      } catch (err) {
+        console.error('Delete handler failed:', err);
       }
     };
     window.addEventListener('mindoodle:renameItem', onRename as EventListener);
@@ -1072,12 +1086,17 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Handle move events from explorer (drag & drop)
   React.useEffect(() => {
-    const onMove = async (e: any) => {
-      const src = e?.detail?.sourcePath;
-      const dst = e?.detail?.targetFolderPath ?? '';
-      if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
-        await (mindMap as any).moveItem(src, dst);
-        window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+    const onMove = (e: any) => {
+      try {
+        const src = e?.detail?.sourcePath;
+        const dst = e?.detail?.targetFolderPath ?? '';
+        if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
+          void (mindMap as any).moveItem(src, dst).then(() => {
+            window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
+          }).catch(err => console.error('Move failed:', err));
+        }
+      } catch (err) {
+        console.error('Move handler failed:', err);
       }
     };
     window.addEventListener('mindoodle:moveItem', onMove as EventListener);
