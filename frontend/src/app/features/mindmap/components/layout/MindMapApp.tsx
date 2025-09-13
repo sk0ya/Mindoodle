@@ -1342,7 +1342,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onSelectFolder={handleSelectFolder}
         onShowFolderGuide={() => setShowFolderGuide(true)}
         currentFolderLabel={(mindMap as any).getSelectedFolderLabel?.() || null}
-        explorerTree={persistenceHook.explorerTree}
+        explorerTree={(mindMap as any).explorerTree || null}
         onExport={handleExport}
         onImport={handleImport}
         currentMapData={data}

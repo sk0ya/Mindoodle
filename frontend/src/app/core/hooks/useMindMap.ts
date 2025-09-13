@@ -224,6 +224,7 @@ export const useMindMap = (
     updateMapInList: persistenceHook.updateMapInList,
     refreshMapList: persistenceHook.refreshMapList,
     selectRootFolder,
-    getSelectedFolderLabel
+    getSelectedFolderLabel,
+    explorerTree: (persistenceHook as any).explorerTree || null
   };
 };

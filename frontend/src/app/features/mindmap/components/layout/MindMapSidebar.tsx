@@ -526,7 +526,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
       {explorerTree ? (
         <div className="maps-content-wrapper">
-          {renderExplorer(explorerTree, '')}
+          <ExplorerView tree={explorerTree} />
         </div>
       ) : filteredMaps.length === 0 ? (
         <div className="empty-state">
@@ -594,7 +594,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-function renderExplorer(tree: ExplorerItem, _rootLabel: string): React.ReactNode {
+const ExplorerView: React.FC<{ tree: ExplorerItem }> = ({ tree }) => {
   const [collapsed, setCollapsed] = React.useState<Record<string, boolean>>({});
   const toggle = (path: string) => setCollapsed(prev => ({ ...prev, [path]: !prev[path] }));
 
@@ -617,12 +617,10 @@ function renderExplorer(tree: ExplorerItem, _rootLabel: string): React.ReactNode
         </div>
       );
     }
-    // file
     const isMd = !!item.isMarkdown;
     const mapId = isMd ? item.path.replace(/\.md$/i, '') : null;
     const onClick = () => {
       if (isMd && mapId) {
-        // Trigger selection via a custom event dispatched to the window
         const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
         window.dispatchEvent(ev);
       }
@@ -636,6 +634,6 @@ function renderExplorer(tree: ExplorerItem, _rootLabel: string): React.ReactNode
   };
 
   return <div className="explorer-root">{tree.children?.map(child => <NodeView key={child.path} item={child} />)}</div>;
-}
+};
 
 export default memo(MindMapSidebar);
