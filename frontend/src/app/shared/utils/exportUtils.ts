@@ -149,6 +149,9 @@ export const exportToMarkdown = (
           : Math.min((headingLevelByText?.[n.text] ?? baseHeadingLevel) + relLevel, 6);
         const heading = '#'.repeat(Math.max(1, Math.min(absLevel, 6)));
         let md = `${heading} ${n.text}\n\n`;
+        if (n.note && n.note.trim()) {
+          md += `${n.note.trim()}\n\n`;
+        }
         if (n.children && n.children.length > 0) {
           n.children.forEach(child => {
             md += computeNode(child, relLevel + 1, absLevel);
