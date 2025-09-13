@@ -122,29 +122,19 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       logger.info(`💾 MarkdownFolderAdapter: Saved ${target.fileName} ${target.isRoot ? 'at root' : 'in directory'}`);
       return;
     }
-
-    // If a root-level map.md/README.md exists, keep saving to root map.md
-    const existingRoot = await this.getExistingFile(this.rootHandle as any, 'map.md')
-      || await this.getExistingFile(this.rootHandle as any, 'README.md');
-    if (existingRoot) {
-      await this.writeTextFile(this.rootHandle as any, 'map.md', markdown);
-      logger.info('💾 MarkdownFolderAdapter: Saved map.md at root');
-      return;
-    }
-
-    // Otherwise, save under a subfolder (honor category path if provided)
+    // New map: create a dedicated file. Honor category path if provided.
     let targetDir: DirHandle = this.rootHandle;
     if (data.category) {
       const parts = data.category.split('/').filter(Boolean);
       for (const part of parts) {
         targetDir = await this.getOrCreateDirectory(targetDir, part);
       }
-    } else {
-      const folderName = this.sanitizeName(data.title || 'mindmap');
-      targetDir = await this.getOrCreateDirectory(targetDir, folderName);
     }
-    await this.writeTextFile(targetDir, 'map.md', markdown);
-    logger.info('💾 MarkdownFolderAdapter: Saved map.md in', data.category || data.title || 'mindmap');
+    const baseName = this.sanitizeName(data.title || 'mindmap');
+    const fileName = await this.ensureUniqueMarkdownName(targetDir, `${baseName}.md`);
+    await this.writeTextFile(targetDir, fileName, markdown);
+    this.saveTargets.set(data.id, { dir: targetDir, fileName, isRoot: !data.category });
+    logger.info('💾 MarkdownFolderAdapter: Created file', fileName, 'in', data.category || '(root)');
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -311,6 +301,21 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
     // No entries API available
     return;
+  }
+
+  private async ensureUniqueMarkdownName(dir: DirHandle, desired: string): Promise<string> {
+    const exists = async (name: string) => !!(await this.getExistingFile(dir, name));
+    if (!(await exists(desired))) return desired;
+    const dot = desired.lastIndexOf('.');
+    const base = dot > 0 ? desired.substring(0, dot) : desired;
+    const ext = dot > 0 ? desired.substring(dot) : '';
+    let i = 1;
+    while (i < 1000) {
+      const candidate = `${base}-${i}${ext}`;
+      if (!(await exists(candidate))) return candidate;
+      i++;
+    }
+    return `${base}-${Date.now()}${ext}`;
   }
 
   // ======= IndexedDB persistence for directory handles =======
