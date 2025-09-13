@@ -31,6 +31,7 @@ interface PrimarySidebarProps {
   onImport?: () => void;
   onSelectFolder?: () => Promise<void> | void;
   onShowFolderGuide?: () => void;
+  currentFolderLabel?: string | null;
   // Current map data for export
   currentMapData?: MindMapData | null;
   // Search props
@@ -60,6 +61,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onImport,
   onSelectFolder,
   onShowFolderGuide,
+  currentFolderLabel,
   // Current map data
   currentMapData,
   // Search props
@@ -120,6 +122,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             onAutoLayout={onAutoLayout}
             onSelectFolder={onSelectFolder}
             onShowFolderGuide={onShowFolderGuide}
+            currentFolderLabel={currentFolderLabel}
           />
         );
       

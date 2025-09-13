@@ -87,11 +87,16 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   
   // ノードの平坦化
   const flattenVisibleNodes = (node: MindMapNode): MindMapNode[] => {
-    const result = [node];
+    // 複数ルート対応: 合成ルート(id==='root')は描画対象から除外し、子をトップレベルとして扱う
+    const isSyntheticRoot = node.id === 'root' && (!node.text || node.text.trim() === '');
+    const result: MindMapNode[] = [];
+    if (!isSyntheticRoot) {
+      result.push(node);
+    }
     if (!node?.collapsed && node?.children) {
-      node.children.forEach((child: MindMapNode) => 
-        result.push(...flattenVisibleNodes(child))
-      );
+      node.children.forEach((child: MindMapNode) => {
+        result.push(...flattenVisibleNodes(child));
+      });
     }
     return result;
   };

@@ -11,6 +11,7 @@ type FileHandle = any;
 export class MarkdownFolderAdapter implements StorageAdapter {
   private _isInitialized = false;
   private rootHandle: DirHandle | null = null;
+  private saveTargets: Map<string, { dir: DirHandle, fileName: string, isRoot: boolean, baseHeadingLevel?: number, headingLevelByText?: Record<string, number> } > = new Map();
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -21,8 +22,18 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (typeof (window as any)?.showDirectoryPicker !== 'function') {
       logger.warn('File System Access API is not available in this environment');
     }
+    // Try to restore previously selected folder handle from IndexedDB
+    try {
+      const restored = await this.restoreRootHandle();
+      if (restored) {
+        logger.info('📁 MarkdownFolderAdapter: Restored root folder from previous session');
+      } else {
+        logger.info('📁 MarkdownFolderAdapter: Initialized (waiting for user to select a folder)');
+      }
+    } catch (e) {
+      logger.warn('Failed to restore root folder handle:', e);
+    }
     this._isInitialized = true;
-    logger.info('📁 MarkdownFolderAdapter: Initialized (waiting for user to select a folder)');
   }
 
   // Must be called from a user gesture (e.g. button click)
@@ -35,6 +46,20 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       mode: 'readwrite'
     });
     logger.info('📁 MarkdownFolderAdapter: Root folder selected');
+    // Persist the handle for future sessions
+    try {
+      await this.saveRootHandle(this.rootHandle);
+    } catch (e) {
+      logger.warn('Failed to persist root folder handle:', e);
+    }
+  }
+
+  get selectedFolderName(): string | null {
+    try {
+      return (this.rootHandle as any)?.name ?? null;
+    } catch {
+      return null;
+    }
   }
 
   async loadInitialData(): Promise<MindMapData> {
@@ -47,10 +72,24 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
 
     try {
-      // Try to find first map folder and load its markdown
+      // Try root-level map first (map.md or README.md)
+      const rootFileHandle = await this.getExistingFile(this.rootHandle as any, 'map.md')
+        || await this.getExistingFile(this.rootHandle as any, 'README.md');
+      if (rootFileHandle) {
+        const data = await this.loadMapFromFile(rootFileHandle, this.rootHandle as any, '');
+        if (data) return data;
+      }
+
+      // Try any *.md at root level
+      for await (const fileHandle of this.iterateMarkdownFiles(this.rootHandle as any)) {
+        const data = await this.loadMapFromFile(fileHandle, this.rootHandle as any, '');
+        if (data) return data;
+      }
+
+      // Try to find first subfolder (recursively) containing markdown
       for await (const entry of (this.rootHandle as any).values?.() || this.iterateEntries(this.rootHandle)) {
         if (entry.kind === 'directory') {
-          const data = await this.loadMapFromDirectory(entry);
+          const data = await this.loadMapFromDirectory(entry, entry.name ?? '');
           if (data) return data;
         }
       }
@@ -70,11 +109,42 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return;
     }
 
-    const folderName = this.sanitizeName(data.title || 'mindmap');
-    const mapDir = await this.getOrCreateDirectory(this.rootHandle, folderName);
-    const markdown = exportToMarkdown(data, { includeMetadata: true });
-    await this.writeTextFile(mapDir, 'map.md', markdown);
-    logger.info('💾 MarkdownFolderAdapter: Saved map.md in', folderName);
+    const target = this.saveTargets.get(data.id);
+    const markdown = exportToMarkdown(data, { 
+      includeMetadata: false,
+      baseHeadingLevel: target?.baseHeadingLevel || 1,
+      headingLevelByText: target?.headingLevelByText
+    });
+
+    // If this map has a known save target (loaded from a specific file), write back to it
+    if (target) {
+      await this.writeTextFile(target.dir, target.fileName, markdown);
+      logger.info(`💾 MarkdownFolderAdapter: Saved ${target.fileName} ${target.isRoot ? 'at root' : 'in directory'}`);
+      return;
+    }
+
+    // If a root-level map.md/README.md exists, keep saving to root map.md
+    const existingRoot = await this.getExistingFile(this.rootHandle as any, 'map.md')
+      || await this.getExistingFile(this.rootHandle as any, 'README.md');
+    if (existingRoot) {
+      await this.writeTextFile(this.rootHandle as any, 'map.md', markdown);
+      logger.info('💾 MarkdownFolderAdapter: Saved map.md at root');
+      return;
+    }
+
+    // Otherwise, save under a subfolder (honor category path if provided)
+    let targetDir: DirHandle = this.rootHandle;
+    if (data.category) {
+      const parts = data.category.split('/').filter(Boolean);
+      for (const part of parts) {
+        targetDir = await this.getOrCreateDirectory(targetDir, part);
+      }
+    } else {
+      const folderName = this.sanitizeName(data.title || 'mindmap');
+      targetDir = await this.getOrCreateDirectory(targetDir, folderName);
+    }
+    await this.writeTextFile(targetDir, 'map.md', markdown);
+    logger.info('💾 MarkdownFolderAdapter: Saved map.md in', data.category || data.title || 'mindmap');
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -84,10 +154,20 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (!this.rootHandle) return [];
 
     const maps: MindMapData[] = [];
+
+    // Include all root-level *.md as maps
+    try {
+      for await (const fileHandle of this.iterateMarkdownFiles(this.rootHandle as any)) {
+        const data = await this.loadMapFromFile(fileHandle, this.rootHandle as any, '');
+        if (data) maps.push(data);
+      }
+    } catch (e) {
+      logger.warn('MarkdownFolderAdapter: Failed to read root-level markdown files', e);
+    }
+
     for await (const entry of (this.rootHandle as any).values?.() || this.iterateEntries(this.rootHandle)) {
       if (entry.kind === 'directory') {
-        const map = await this.loadMapFromDirectory(entry);
-        if (map) maps.push(map);
+        await this.collectMaps(entry, entry.name ?? '', maps);
       }
     }
     return maps;
@@ -116,29 +196,73 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // No persistent handles kept beyond session
   }
 
-  private async loadMapFromDirectory(dir: DirHandle): Promise<MindMapData | null> {
+  private async loadMapFromDirectory(dir: DirHandle, categoryPath: string): Promise<MindMapData | null> {
     try {
-      const fileHandle = await this.getExistingFile(dir, 'map.md') || await this.getExistingFile(dir, 'README.md');
-      if (!fileHandle) return null;
-      const file = await fileHandle.getFile();
-      const text = await file.text();
-      const rootNode = MarkdownImporter.parseMarkdownToNodes(text);
-      const title = rootNode.text || (dir.name ?? 'Untitled');
-      const now = new Date().toISOString();
-      const data: MindMapData = {
-        id: dir.name ?? `map-${now}`,
-        title,
-        rootNode,
-        createdAt: now,
-        updatedAt: now,
-        settings: {
-          autoSave: true,
-          autoLayout: false
+      // Prefer map.md/README.md
+      let fileHandle = await this.getExistingFile(dir, 'map.md') || await this.getExistingFile(dir, 'README.md');
+      if (!fileHandle) {
+        // Fallback to the first *.md within the directory
+        for await (const fh of this.iterateMarkdownFiles(dir)) {
+          fileHandle = fh;
+          break;
         }
-      };
+      }
+      if (!fileHandle) return null;
+
+      const data = await this.loadMapFromFile(fileHandle, dir, categoryPath);
+      if (data) {
+        // Mark save target as inside this directory
+        this.saveTargets.set(data.id, { dir, fileName: await this.getFileName(fileHandle), isRoot: false });
+      }
       return data;
     } catch (e) {
       logger.warn('MarkdownFolderAdapter: Failed to load from directory', e);
+      return null;
+    }
+  }
+
+  private async collectMaps(dir: DirHandle, categoryPath: string, out: MindMapData[]): Promise<void> {
+    // Add all *.md in current directory (include map.md/README.md and others)
+    for await (const fh of this.iterateMarkdownFiles(dir)) {
+      const data = await this.loadMapFromFile(fh, dir, categoryPath);
+      if (data) out.push(data);
+    }
+
+    // Recurse into subdirectories
+    for await (const entry of (dir as any).values?.() || this.iterateEntries(dir)) {
+      if (entry.kind === 'directory') {
+        const subPath = categoryPath ? `${categoryPath}/${entry.name}` : entry.name;
+        await this.collectMaps(entry, subPath, out);
+      }
+    }
+  }
+
+  private async loadMapFromFile(fileHandle: FileHandle, dirForSave: DirHandle, categoryPath: string): Promise<MindMapData | null> {
+    try {
+      const file = await fileHandle.getFile();
+      const text = await file.text();
+      const rootNode = MarkdownImporter.parseMarkdownToNodes(text);
+      const headings = MarkdownImporter.parseHeadings(text);
+      const baseHeadingLevel = headings[0]?.level || 1;
+      const headingLevelByText: Record<string, number> = {};
+      headings.forEach(h => { if (!(h.text in headingLevelByText)) headingLevelByText[h.text] = h.level; });
+      const fileName = await this.getFileName(fileHandle);
+      const baseName = fileName.replace(/\.md$/i, '') || 'Untitled';
+      const now = new Date().toISOString();
+      const data: MindMapData = {
+        id: categoryPath ? `${categoryPath}/${baseName}` : baseName,
+        title: baseName, // マップ名はファイル名に固定
+        category: categoryPath || undefined,
+        rootNode,
+        createdAt: now,
+        updatedAt: now,
+        settings: { autoSave: true, autoLayout: true }
+      };
+      // Record save target (dir where the file resides)
+      this.saveTargets.set(data.id, { dir: dirForSave, fileName, isRoot: !categoryPath, baseHeadingLevel, headingLevelByText });
+      return data;
+    } catch (e) {
+      logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
       return null;
     }
   }
@@ -149,6 +273,15 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const writable = await fileHandle.createWritable();
     await writable.write(content);
     await writable.close();
+  }
+
+  private async getFileName(fileHandle: FileHandle): Promise<string> {
+    if ((fileHandle as any).name) return (fileHandle as any).name as string;
+    try {
+      const file = await fileHandle.getFile?.();
+      if (file?.name) return file.name as string;
+    } catch {}
+    return 'map.md';
   }
 
   private async getOrCreateDirectory(parent: DirHandle, name: string): Promise<DirHandle> {
@@ -178,6 +311,103 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
     // No entries API available
     return;
+  }
+
+  // ======= IndexedDB persistence for directory handles =======
+  private async openDb(): Promise<IDBDatabase> {
+    return new Promise((resolve, reject) => {
+      const req = (window as any).indexedDB?.open?.('mindoodle-fsa', 1);
+      if (!req) { reject(new Error('indexedDB not available')); return; }
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains('handles')) {
+          db.createObjectStore('handles');
+        }
+      };
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+
+  private async saveRootHandle(handle: DirHandle): Promise<void> {
+    const db = await this.openDb();
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('handles', 'readwrite');
+      const store = tx.objectStore('handles');
+      const req = store.put(handle, 'root');
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+  }
+
+  private async loadRootHandle(): Promise<DirHandle | null> {
+    const db = await this.openDb();
+    const handle = await new Promise<DirHandle | null>((resolve, reject) => {
+      const tx = db.transaction('handles', 'readonly');
+      const store = tx.objectStore('handles');
+      const req = store.get('root');
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+    db.close();
+    return handle;
+  }
+
+  private async restoreRootHandle(): Promise<boolean> {
+    try {
+      const handle = await this.loadRootHandle();
+      if (!handle) return false;
+      const perm = await this.queryPermission(handle, 'readwrite');
+      if (perm === 'granted') {
+        this.rootHandle = handle;
+        return true;
+      }
+      return false;
+    } catch {
+      return false;
+    }
+  }
+
+  private async queryPermission(handle: any, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
+    try {
+      if (typeof handle.queryPermission === 'function') {
+        return await handle.queryPermission({ mode });
+      }
+      // Fallback: assume granted if methods exist
+      return 'granted';
+    } catch {
+      return 'denied';
+    }
+  }
+
+  private async *iterateMarkdownFiles(dir: DirHandle): AsyncGenerator<FileHandle, void, unknown> {
+    // Prefer using .values() to iterate entries
+    // Look for files ending with .md (case-insensitive)
+    // @ts-ignore
+    if (dir.values) {
+      // @ts-ignore
+      for await (const entry of dir.values()) {
+        if (entry.kind === 'file' && /\.md$/i.test(entry.name || '')) {
+          // @ts-ignore
+          const fh = await dir.getFileHandle?.(entry.name) ?? await (dir as any).getFileHandle(entry.name);
+          if (fh) yield fh;
+        }
+      }
+      return;
+    }
+    // Fallback via entries()
+    // @ts-ignore
+    if (dir.entries) {
+      // @ts-ignore
+      for await (const [name, entry] of dir.entries()) {
+        if (entry.kind === 'file' && /\.md$/i.test(name)) {
+          // @ts-ignore
+          const fh = await dir.getFileHandle?.(name) ?? await (dir as any).getFileHandle(name);
+          if (fh) yield fh;
+        }
+      }
+    }
   }
 
   private sanitizeName(name: string): string {

@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts, useMindMapStore, useMindMapPersistence } from '../../../../core';
+import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
 import { findNodeById, findParentNode, getSiblingNodes, getFirstVisibleChild } from '../../../../shared/utils/nodeTreeUtils';
 import ActivityBar from './ActivityBar';
 import PrimarySidebar from './PrimarySidebar';
@@ -32,14 +32,7 @@ import './MindMapApp.css';
 import type { MindMapNode, FileAttachment, MindMapData, NodeLink } from '@shared/types';
 import type { StorageConfig } from '../../../../core/storage/types';
 // Storage configurations
-const localModeConfig: StorageConfig = {
-  mode: 'local'
-};
-
-const createCloudModeConfig = (authAdapter: any): StorageConfig => ({
-  mode: 'cloud',
-  authAdapter
-});
+// Deprecated storage configs (Mindoodle uses markdown adapter internally)
 import { useOptionalAuth, LoginModal } from '../../../../components/auth';
 import { validateFile } from '../../../../shared/types/dataTypes';
 
@@ -171,11 +164,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const auth = useOptionalAuth();
   const authAdapter = auth?.authAdapter;
   
-  // 永続化フックを適切なauth adapterで使用
-  const persistenceHook = useMindMapPersistence({
-    mode: storageMode,
-    authAdapter: authAdapter // 適切なauth adapterを設定
-  });
+  // 永続化は useMindMap 内部の同一アダプターを使用する
   
   // For cloud mode, check if user is authenticated
   const isCloudMode = storageMode === 'cloud';
@@ -222,22 +211,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       return dismissed !== '1';
     } catch { return true; }
   });
-
-  const handleSelectFolder = React.useCallback(async () => {
-    try {
-      const adapter: any = persistenceHook.storageAdapter as any;
-      if (adapter && typeof adapter.selectRootFolder === 'function') {
-        await adapter.selectRootFolder();
-        await persistenceHook.refreshMapList();
-        setShowFolderGuide(false);
-        localStorage.setItem('mindoodle_guide_dismissed', '1');
-      } else {
-        console.warn('selectRootFolder is not available on current adapter');
-      }
-    } catch (e) {
-      console.error('Folder selection failed:', e);
-    }
-  }, [persistenceHook]);
 
   // Handle mode changes - reset modal state when switching to cloud mode
   React.useEffect(() => {
@@ -302,6 +275,23 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     redo
   } = mindMap;
 
+  // Now that mindMap is initialized, define folder selection handler
+  const handleSelectFolder = React.useCallback(async () => {
+    try {
+      if (typeof (mindMap as any).selectRootFolder === 'function') {
+        const ok = await (mindMap as any).selectRootFolder();
+        if (ok) {
+          setShowFolderGuide(false);
+          localStorage.setItem('mindoodle_guide_dismissed', '1');
+        } else {
+          console.warn('selectRootFolder is not available on current adapter');
+        }
+      }
+    } catch (e) {
+      console.error('Folder selection failed:', e);
+    }
+  }, [mindMap]);
+
   // フォルダ移動用の一括カテゴリ更新関数
   const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{id: string, category: string}>) => {
     console.log('Updating multiple map categories:', mapUpdates);
@@ -328,21 +318,27 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         updatedMaps.map(async (updatedMap) => {
           if (updatedMap) {
             console.log(`Updating map "${updatedMap.title}" to "${updatedMap.category}"`);
-            await persistenceHook.updateMapInList(updatedMap);
+            if (typeof (mindMap as any).updateMapInList === 'function') {
+              await (mindMap as any).updateMapInList(updatedMap);
+            }
           }
         })
       );
       
       // 成功後にマップリストを強制更新してUIを即座に反映
-      await persistenceHook.refreshMapList();
+      if (typeof (mindMap as any).refreshMapList === 'function') {
+        await (mindMap as any).refreshMapList();
+      }
       
       console.log(`Successfully batch updated ${updatedMaps.length} maps`);
     } catch (error) {
       console.error('Failed to batch update map categories:', error);
       // エラーが発生した場合も、可能な限り状態を同期
-      await persistenceHook.refreshMapList();
+      if (typeof (mindMap as any).refreshMapList === 'function') {
+        await (mindMap as any).refreshMapList();
+      }
     }
-  }, [allMindMaps, persistenceHook]);
+  }, [allMindMaps, mindMap]);
 
   // キーボードショートカット設定
   useKeyboardShortcuts({
@@ -1333,6 +1329,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }}
         onSelectFolder={handleSelectFolder}
         onShowFolderGuide={() => setShowFolderGuide(true)}
+        currentFolderLabel={(mindMap as any).getSelectedFolderLabel?.() || null}
         onExport={handleExport}
         onImport={handleImport}
         currentMapData={data}

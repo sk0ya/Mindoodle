@@ -32,21 +32,24 @@ export const useMindMap = (
     data: dataHook.data,
     setData: dataHook.setData,
     isInitialized: persistenceHook.isInitialized,
-    loadInitialData: persistenceHook.loadInitialData
+    loadInitialData: persistenceHook.loadInitialData,
+    applyAutoLayout: dataHook.applyAutoLayout
   });
 
   useDataReset(resetKey, {
     setData: dataHook.setData,
     isInitialized: persistenceHook.isInitialized,
     loadInitialData: persistenceHook.loadInitialData,
-    refreshMapList: persistenceHook.refreshMapList
+    refreshMapList: persistenceHook.refreshMapList,
+    applyAutoLayout: dataHook.applyAutoLayout
   });
 
   useStorageConfigChange(storageConfig, {
     setData: dataHook.setData,
     isInitialized: persistenceHook.isInitialized,
     loadInitialData: persistenceHook.loadInitialData,
-    refreshMapList: persistenceHook.refreshMapList
+    refreshMapList: persistenceHook.refreshMapList,
+    applyAutoLayout: dataHook.applyAutoLayout
   });
 
   // 自動保存機能
@@ -61,6 +64,25 @@ export const useMindMap = (
     },
     { autoSave: true, autoSaveInterval: 300 } // 自動保存設定
   );
+
+  // Folder selection helper to ensure we operate on the same adapter instance
+  const selectRootFolder = useCallback(async (): Promise<boolean> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.selectRootFolder === 'function') {
+      await adapter.selectRootFolder();
+      await persistenceHook.refreshMapList();
+      return true;
+    }
+    return false;
+  }, [persistenceHook]);
+
+  const getSelectedFolderLabel = useCallback((): string | null => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && 'selectedFolderName' in adapter) {
+      return (adapter as any).selectedFolderName ?? null;
+    }
+    return null;
+  }, [persistenceHook]);
 
   // マップ管理の高レベル操作（非同期対応）
   const mapOperations = {
@@ -196,6 +218,12 @@ export const useMindMap = (
     ...mapOperations,
     
     // ファイル操作
-    ...fileOperations
+    ...fileOperations,
+
+    // 永続化の一部を表に出す（同一アダプターをUIから利用するため）
+    updateMapInList: persistenceHook.updateMapInList,
+    refreshMapList: persistenceHook.refreshMapList,
+    selectRootFolder,
+    getSelectedFolderLabel
   };
 };

@@ -11,6 +11,7 @@ interface SettingsSidebarProps {
   onAutoLayout?: () => void;
   onSelectFolder?: () => Promise<void> | void;
   onShowFolderGuide?: () => void;
+  currentFolderLabel?: string | null;
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
@@ -19,7 +20,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onShowKeyboardHelper,
   onAutoLayout,
   onSelectFolder,
-  onShowFolderGuide
+  onShowFolderGuide,
+  currentFolderLabel
 }) => {
   const { settings, updateSetting } = useMindMapStore();
   const { clearAllData, getDataStats, isClearing, error } = useDataCleanup();
@@ -79,6 +81,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </div>
           <div className="settings-description" style={{ marginTop: 6 }}>
             map.md をフォルダ直下に保存します。添付は attachments/ 配下に整理されます。
+          </div>
+          <div className="settings-description" style={{ marginTop: 6, opacity: 0.8 }}>
+            選択フォルダ: {currentFolderLabel ? currentFolderLabel : '未選択（ブラウザ制限によりフルパスは表示できません）'}
           </div>
         </div>
       </div>

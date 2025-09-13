@@ -14,6 +14,37 @@ interface ParsedHeading {
  * マークダウンテキストを解析してノード階層に変換
  */
 export class MarkdownImporter {
+  // 公開API: 見出し一覧を取得（レベル・テキスト・内容）
+  static parseHeadings(markdownText: string): { level: number; text: string; content: string }[] {
+    const lines = markdownText.split('\n');
+    // 既存のロジックを使用
+    // @ts-ignore - using private method implementation inline
+    const headings: ParsedHeading[] = [];
+    let currentContent: string[] = [];
+    let currentHeading: ParsedHeading | null = null;
+    for (const line of lines) {
+      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      if (headingMatch) {
+        if (currentHeading) {
+          currentHeading.content = currentContent.join('\n').trim();
+          headings.push(currentHeading);
+        }
+        currentHeading = {
+          level: headingMatch[1].length,
+          text: headingMatch[2].trim(),
+          content: ''
+        };
+        currentContent = [];
+      } else {
+        currentContent.push(line);
+      }
+    }
+    if (currentHeading) {
+      currentHeading.content = currentContent.join('\n').trim();
+      headings.push(currentHeading);
+    }
+    return headings;
+  }
   
   /**
    * マークダウンテキストをパースしてMindMapNode構造に変換
@@ -103,28 +134,8 @@ export class MarkdownImporter {
    * 見出し階層を正規化（階層の欠落を空ノードで補完）
    */
   private static normalizeHeadingHierarchy(headings: ParsedHeading[]): ParsedHeading[] {
-    if (headings.length === 0) return [];
-    
-    const normalized: ParsedHeading[] = [];
-    let lastLevel = 0;
-    
-    for (const heading of headings) {
-      // 階層が飛んでいる場合は空ノードで埋める
-      if (heading.level > lastLevel + 1) {
-        for (let level = lastLevel + 1; level < heading.level; level++) {
-          normalized.push({
-            level,
-            text: '', // 空文字のノード
-            content: ''
-          });
-        }
-      }
-      
-      normalized.push(heading);
-      lastLevel = heading.level;
-    }
-    
-    return normalized;
+    // 余計な空ノードは作らず、抽出結果をそのまま返す
+    return headings;
   }
   
   /**
@@ -132,49 +143,62 @@ export class MarkdownImporter {
    */
   private static buildNodeHierarchy(headings: ParsedHeading[]): MindMapNode {
     if (headings.length === 0) {
-      return createNewNode('空のマップ');
+      const root = createNewNode('');
+      root.id = 'root';
+      root.children = [];
+      return root;
     }
-    
-    // ルートノードを作成
-    const firstHeading = headings[0];
-    const rootNode = createNewNode(firstHeading.text || 'インポートされたマップ');
-    rootNode.id = 'root';
-    
-    // 最初の見出しにノートがある場合は追加
-    if (firstHeading.content) {
-      rootNode.note = firstHeading.content;
+
+    // 左→右に走査しながら、その時点の最小レベル(currentMin)を更新する。
+    // ルートは「currentMin と同じレベルの見出し」すべて。
+    let currentMin = headings[0].level; // 先頭見出しが基準
+    const root = createNewNode('');
+    root.id = 'root';
+    root.children = [];
+
+    // 現在の currentMin に対するスタック（正規化レベルで保持）
+    let stack: { node: MindMapNode; level: number }[] = [];
+
+    const startNewRoot = (h: ParsedHeading) => {
+      const newRootNode = createNewNode(h.text);
+      if (h.content) newRootNode.note = h.content;
+      root.children.push(newRootNode);
+      stack = [{ node: newRootNode, level: 1 }];
+    };
+
+    for (const h of headings) {
+      if (h.level < currentMin) {
+        // より浅い見出しが出現 -> currentMin 更新、これもルート
+        currentMin = h.level;
+        startNewRoot(h);
+        continue;
+      }
+      if (h.level === currentMin) {
+        // 現在の最小レベルと同じ -> ルート
+        startNewRoot(h);
+        continue;
+      }
+
+      // 子孫レベル
+      const level = Math.max(2, h.level - currentMin + 1);
+      const newNode = createNewNode(h.text);
+      if (h.content) newNode.note = h.content;
+
+      // 適切な親をスタックから求める
+      while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+        stack.pop();
+      }
+      const parent = stack[stack.length - 1]?.node;
+      if (parent) {
+        parent.children = parent.children || [];
+        parent.children.push(newNode);
+      } else {
+        // 念のため、親がいない場合はルート直下に置く
+        root.children.push(newNode);
+      }
+      stack.push({ node: newNode, level });
     }
-    
-    // スタックでノード階層を管理
-    const nodeStack: { node: MindMapNode; level: number }[] = [
-      { node: rootNode, level: firstHeading.level }
-    ];
-    
-    // 残りの見出しを処理
-    for (let i = 1; i < headings.length; i++) {
-      const heading = headings[i];
-      const newNode = createNewNode(heading.text);
-      
-      // ノートがある場合は追加
-      if (heading.content) {
-        newNode.note = heading.content;
-      }
-      
-      // 適切な親ノードを見つける
-      while (nodeStack.length > 0 && nodeStack[nodeStack.length - 1].level >= heading.level) {
-        nodeStack.pop();
-      }
-      
-      if (nodeStack.length > 0) {
-        const parentNode = nodeStack[nodeStack.length - 1].node;
-        parentNode.children = parentNode.children || [];
-        parentNode.children.push(newNode);
-      }
-      
-      // 新しいノードをスタックに追加
-      nodeStack.push({ node: newNode, level: heading.level });
-    }
-    
-    return rootNode;
+
+    return root;
   }
 }

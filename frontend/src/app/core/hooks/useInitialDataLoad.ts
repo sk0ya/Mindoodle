@@ -7,6 +7,7 @@ interface InitialDataLoadDependencies {
   setData: (_data: MindMapData) => void;
   isInitialized: boolean;
   loadInitialData: () => Promise<MindMapData>;
+  applyAutoLayout?: () => void;
 }
 
 /**
@@ -27,6 +28,12 @@ export const useInitialDataLoad = (
         const initialData = await dependencies.loadInitialData();
         dependencies.setData(initialData);
         logger.info('Initial data loaded:', initialData.title);
+        // Auto layout after initial load
+        try {
+          dependencies.applyAutoLayout?.();
+        } catch (e) {
+          logger.warn('Auto layout after initial load failed:', e);
+        }
       } catch (error) {
         logger.error('Failed to load initial data:', error);
       }

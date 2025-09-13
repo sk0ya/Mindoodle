@@ -349,8 +349,19 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         }
       });
     } else {
-      // 検索がない場合：すべてのフォルダを表示
+      // 検索がない場合：すべてのフォルダを表示（中間フォルダも補完して表示）
       foldersToShow = new Set([...Object.keys(grouped), ...Array.from(emptyFolders)]);
+
+      // 中間の祖先フォルダをすべて追加
+      const addAncestors = (path: string) => {
+        const parts = path.split('/');
+        for (let i = 1; i < parts.length; i++) {
+          const parentPath = parts.slice(0, i).join('/');
+          if (parentPath) foldersToShow.add(parentPath);
+        }
+      };
+      Object.keys(grouped).forEach(addAncestors);
+      Array.from(emptyFolders).forEach(addAncestors);
     }
     
     // 階層構造を保持したソート

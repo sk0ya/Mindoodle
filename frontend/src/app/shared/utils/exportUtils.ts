@@ -6,6 +6,8 @@ import JSZip from 'jszip';
 interface ExportOptions {
   includeMetadata?: boolean;
   attachmentExportMode?: 'links-only' | 'download-urls' | 'embedded';
+  baseHeadingLevel?: number; // 見出しの基準レベル（未指定なら1）
+  headingLevelByText?: Record<string, number>; // テキストに基づく絶対レベルのヒント（トップレベル保存用）
 }
 
 /**
@@ -88,19 +90,18 @@ export const exportToMarkdown = (
   options: ExportOptions = {}
 ): string => {
   const { 
-    includeMetadata = true, 
-    attachmentExportMode = 'links-only'
+    includeMetadata = false, 
+    attachmentExportMode = 'links-only',
+    baseHeadingLevel = 1,
+    headingLevelByText
   } = options;
   
   let markdown = '';
   
   // メタデータ
+  // メタデータ出力はデフォルト無効（必要な場合のみオプションで有効化）
   if (includeMetadata) {
     markdown += `# ${data.title}\n\n`;
-    markdown += `- **カテゴリー**: ${data.category}\n`;
-    markdown += `- **作成日**: ${new Date(data.createdAt).toLocaleDateString('ja-JP')}\n`;
-    markdown += `- **更新日**: ${new Date(data.updatedAt).toLocaleDateString('ja-JP')}\n\n`;
-    markdown += '---\n\n';
   }
   
   const convertNodeToMarkdown = (node: MindMapNode, level: number = 0): string => {
@@ -137,46 +138,41 @@ export const exportToMarkdown = (
       
       return nodeMarkdown;
     } else {
-      // 通常のMarkdown形式（従来の処理）
-      const indent = ' '.repeat(level * 2);
-      const bullet = level === 0 ? '#' : '-';
-      const prefix = level === 0 ? `${bullet} ` : `${indent}${bullet} `;
-      
-      let nodeMarkdown = `${prefix}${node.text}\n`;
-      
-      // 添付ファイル
-      if (node.attachments && node.attachments.length > 0) {
-        node.attachments.forEach(attachment => {
-          switch (attachmentExportMode) {
-            case 'download-urls':
-              if (attachment.isImage && attachment.downloadUrl) {
-                nodeMarkdown += `${indent}  ![${attachment.name}](${attachment.downloadUrl})\n`;
-              } else if (attachment.downloadUrl) {
-                nodeMarkdown += `${indent}  📎 [${attachment.name}](${attachment.downloadUrl})\n`;
-              } else {
-                nodeMarkdown += `${indent}  📎 ${attachment.name} (ダウンロードURL無し)\n`;
-              }
-              break;
-            case 'links-only':
-            default:
-              nodeMarkdown += `${indent}  📎 ${attachment.name} (${formatFileSize(attachment.size)})\n`;
-              break;
-          }
-        });
-      }
-      
+      // 見出し階層でエクスポート（デフォルト）
+      // 見出しレベルは以下の優先度で決定:
+      // 1) 親の絶対レベル + 1
+      // 2) トップレベルの場合、headingLevelByText の指定（あれば）
+      // 3) baseHeadingLevel + 相対レベル
+      const computeNode = (n: MindMapNode, relLevel: number, parentAbs?: number): string => {
+        const absLevel = parentAbs
+          ? Math.min(parentAbs + 1, 6)
+          : Math.min((headingLevelByText?.[n.text] ?? baseHeadingLevel) + relLevel, 6);
+        const heading = '#'.repeat(Math.max(1, Math.min(absLevel, 6)));
+        let md = `${heading} ${n.text}\n\n`;
+        if (n.children && n.children.length > 0) {
+          n.children.forEach(child => {
+            md += computeNode(child, relLevel + 1, absLevel);
+          });
+        }
+        return md;
+      };
+      let nodeMarkdown = computeNode(node, level);
+
       // 子ノード
-      if (node.children && node.children.length > 0) {
-        node.children.forEach(child => {
-          nodeMarkdown += convertNodeToMarkdown(child, level + 1);
-        });
-      }
-      
+      // 子の処理は computeNode 内で実行済み
       return nodeMarkdown;
     }
   };
   
-  markdown += convertNodeToMarkdown(data.rootNode);
+  // 複数ルート対応: 合成ルート（テキスト空の 'root'）は出力せず、子をH1として出力
+  const isSyntheticRoot = data.rootNode && data.rootNode.id === 'root' && (!data.rootNode.text || data.rootNode.text.trim() === '');
+  if (isSyntheticRoot && data.rootNode.children && data.rootNode.children.length > 0) {
+    data.rootNode.children.forEach(child => {
+      markdown += convertNodeToMarkdown(child, 0);
+    });
+  } else {
+    markdown += convertNodeToMarkdown(data.rootNode);
+  }
   
   return markdown;
 };

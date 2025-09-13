@@ -7,6 +7,7 @@ export interface DataReloadDependencies {
   isInitialized: boolean;
   loadInitialData: () => Promise<MindMapData>;
   refreshMapList?: () => Promise<void>;
+  applyAutoLayout?: () => void;
 }
 
 export async function executeDataReload(
@@ -34,6 +35,12 @@ export async function executeDataReload(
     });
     
     dependencies.setData(initialData);
+    // Apply auto layout after reload
+    try {
+      dependencies.applyAutoLayout?.();
+    } catch (e) {
+      logger.warn('Auto layout after reload failed:', e);
+    }
     
     // マップ一覧も再読み込み（オプショナル）
     if (dependencies.refreshMapList) {
