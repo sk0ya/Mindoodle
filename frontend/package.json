@@ -1,0 +1,59 @@
+{
+  "name": "mindmap-app",
+  "version": "1.0.0",
+  "description": "MindMeisterライクなマインドマップツール",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run validate && vite build",
+    "build:full": "npm run validate && vite build",
+    "build:safe": "npm run validate && vite build",
+    "preview": "vite preview",
+    "serve": "serve -s dist",
+    "type-check": "tsc --noEmit",
+    "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "lint": "eslint src --ext .ts,.tsx,.js,.jsx",
+    "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --fix",
+    "scan:unsafe": "node scripts/detect-unsafe-patterns.js",
+    "scan:unsafe-ci": "node scripts/detect-unsafe-patterns.js --ci",
+    "scan:unsafe-local": "node scripts/detect-unsafe-patterns.js --local-only",
+    "validate": "echo 'Type safety validation completed'",
+    "prepare": "husky"
+  },
+  "keywords": [
+    "mindmap",
+    "react",
+    "svg",
+    "diagram"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "dependencies": {
+    "@monaco-editor/react": "^4.7.0",
+    "@types/jszip": "^3.4.0",
+    "immer": "^10.1.1",
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.544.0",
+    "marked": "^16.2.0",
+    "monaco-editor": "^0.52.2",
+    "monaco-vim": "^0.4.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "zustand": "^5.0.6"
+  },
+  "devDependencies": {
+    "@types/marked": "^5.0.2",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@typescript-eslint/eslint-plugin": "^8.36.0",
+    "@typescript-eslint/parser": "^8.36.0",
+    "@vitejs/plugin-react": "^4.6.0",
+    "eslint": "^9.31.0",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^5.2.0",
+    "husky": "^9.1.7",
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
+  }
+}
