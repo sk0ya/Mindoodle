@@ -277,7 +277,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           width: 100%;
         }
 
-        svg {
+        .mindmap-canvas-container > svg {
           display: block;
           box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
           width: 100%;
