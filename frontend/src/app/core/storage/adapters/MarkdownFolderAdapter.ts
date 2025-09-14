@@ -159,11 +159,16 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // Include all root-level *.md as maps
     try {
       for await (const fileHandle of this.iterateMarkdownFiles(this.rootHandle as any)) {
-        const data = await this.loadMapFromFile(fileHandle, this.rootHandle as any, '');
-        if (data) maps.push(data);
+        try {
+          const data = await this.loadMapFromFile(fileHandle, this.rootHandle as any, '');
+          if (data) maps.push(data);
+        } catch {
+          // Skip transient file errors silently during iteration
+        }
       }
     } catch (e) {
-      logger.warn('MarkdownFolderAdapter: Failed to read root-level markdown files', e);
+      // During rename/move, directory iterators may temporarily surface NotFound; keep quiet
+      logger.debug('MarkdownFolderAdapter: Root-level scan encountered a transient error', (e as any)?.name || (e as any)?.message || e);
     }
 
     for await (const entry of (this.rootHandle as any).values?.() || this.iterateEntries(this.rootHandle)) {
@@ -358,8 +363,12 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private async collectMaps(dir: DirHandle, categoryPath: string, out: MindMapData[]): Promise<void> {
     // Add all *.md in current directory (include map.md/README.md and others)
     for await (const fh of this.iterateMarkdownFiles(dir)) {
-      const data = await this.loadMapFromFile(fh, dir, categoryPath);
-      if (data) out.push(data);
+      try {
+        const data = await this.loadMapFromFile(fh, dir, categoryPath);
+        if (data) out.push(data);
+      } catch {
+        // Skip transient errors during deep traversal
+      }
     }
 
     // Recurse into subdirectories
@@ -711,9 +720,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       // @ts-ignore
       for await (const entry of dir.values()) {
         if (entry.kind === 'file' && /\.md$/i.test(entry.name || '')) {
-          // @ts-ignore
-          const fh = await dir.getFileHandle?.(entry.name) ?? await (dir as any).getFileHandle(entry.name);
-          if (fh) yield fh;
+          try {
+            // @ts-ignore
+            const fh = await dir.getFileHandle?.(entry.name) ?? await (dir as any).getFileHandle(entry.name);
+            if (fh) yield fh;
+          } catch (e) {
+            // NotFound or race condition during rename/move: ignore
+          }
         }
       }
       return;
@@ -724,9 +737,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       // @ts-ignore
       for await (const [name, entry] of dir.entries()) {
         if (entry.kind === 'file' && /\.md$/i.test(name)) {
-          // @ts-ignore
-          const fh = await dir.getFileHandle?.(name) ?? await (dir as any).getFileHandle(name);
-          if (fh) yield fh;
+          try {
+            // @ts-ignore
+            const fh = await dir.getFileHandle?.(name) ?? await (dir as any).getFileHandle(name);
+            if (fh) yield fh;
+          } catch (e) {
+            // NotFound or race: ignore
+          }
         }
       }
     }
