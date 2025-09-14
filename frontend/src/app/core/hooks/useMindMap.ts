@@ -131,6 +131,18 @@ export const useMindMap = (
     return null;
   }, [persistenceHook]);
 
+  const getMapLastModified = useCallback(async (mapId: string): Promise<number | null> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.getMapLastModified === 'function') {
+      try {
+        return await adapter.getMapLastModified(mapId);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [persistenceHook]);
+
   // Save raw markdown for current adapter (markdown mode only)
   const saveMapMarkdown = useCallback(async (mapId: string, markdown: string): Promise<void> => {
     const adapter: any = persistenceHook.storageAdapter as any;
@@ -295,6 +307,7 @@ export const useMindMap = (
     ,
     // markdown helpers
     getMapMarkdown,
+    getMapLastModified,
     saveMapMarkdown,
     // autosave control
     setAutoSaveEnabled: (enabled: boolean) => setAutoSaveEnabled(enabled)

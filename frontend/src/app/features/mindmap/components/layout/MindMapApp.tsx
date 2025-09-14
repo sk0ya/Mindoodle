@@ -291,6 +291,46 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [mindMap]);
 
+  // Minimal polling: refresh map list every 45s when window is focused and visible
+  React.useEffect(() => {
+    const interval = window.setInterval(() => {
+      try {
+        if (document.visibilityState === 'visible' && document.hasFocus()) {
+          if (typeof (mindMap as any).refreshMapList === 'function') {
+            void (mindMap as any).refreshMapList();
+          }
+        }
+      } catch (e) {
+        console.error('Explorer periodic refresh failed:', e);
+      }
+    }, 45000);
+    return () => window.clearInterval(interval);
+  }, [mindMap]);
+
+  // Minimal polling: check current map file's lastModified every 30s
+  React.useEffect(() => {
+    let prev: number | null = null;
+    let notifiedAt = 0;
+    const notifyCooldownMs = 2 * 60 * 1000; // 2 minutes
+    const tick = async () => {
+      try {
+        if (!data?.id) return;
+        if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
+        const lm = await getMapLastModifiedStable(data.id);
+        if (lm && prev && lm > prev) {
+          const now = Date.now();
+          if (now - notifiedAt > notifyCooldownMs) {
+            showNotification('warning', 'マップのMarkdownが外部で更新されました');
+            notifiedAt = now;
+          }
+        }
+        if (lm) prev = lm;
+      } catch {/* ignore */}
+    };
+    void tick();
+    const interval = window.setInterval(() => { void tick(); }, 30000);
+    return () => window.clearInterval(interval);
+  }, [data?.id, getMapLastModifiedStable, showNotification]);
   // フォルダ移動用の一括カテゴリ更新関数
   const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{id: string, category: string}>) => {
     console.log('Updating multiple map categories:', mapUpdates);
@@ -1468,6 +1508,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const getMapMarkdownStable = useCallback(async (mapId: string) => {
     return (mindMapRef.current as any).getMapMarkdown?.(mapId) || null;
   }, []); // No dependencies - using ref for stable access
+
+  const getMapLastModifiedStable = useCallback(async (mapId: string) => {
+    return (mindMapRef.current as any).getMapLastModified?.(mapId) || null;
+  }, []);
 
   const saveMapMarkdownStable = useCallback(async (mapId: string, markdown: string) => {
     return (mindMapRef.current as any).saveMapMarkdown?.(mapId, markdown);

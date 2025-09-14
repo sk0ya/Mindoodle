@@ -237,6 +237,41 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
+  // Return lastModified timestamp (ms) of a map file, or null if unavailable
+  async getMapLastModified(mapId: string): Promise<number | null> {
+    if (!this._isInitialized) {
+      await this.initialize();
+    }
+    if (!this.rootHandle) return null;
+    try {
+      const target = this.saveTargets.get(mapId);
+      if (target) {
+        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName)
+          ?? await (target.dir as any).getFileHandle(target.fileName);
+        const file = await fh.getFile();
+        // Some environments may not provide lastModified; guard it
+        // @ts-ignore
+        return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file as any)?.lastModified || null;
+      }
+      const parts = (mapId || '').split('/').filter(Boolean);
+      if (parts.length === 0) return null;
+      const base = parts.pop() as string;
+      let dir: DirHandle = this.rootHandle as any;
+      for (const p of parts) {
+        const next = await this.getExistingDirectory(dir, p);
+        if (!next) return null;
+        dir = next;
+      }
+      const fh = await this.getExistingFile(dir, `${base}.md`);
+      if (!fh) return null;
+      const file = await fh.getFile();
+      // @ts-ignore
+      return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file as any)?.lastModified || null;
+    } catch {
+      return null;
+    }
+  }
+
   // Save raw markdown text for a map by id
   async saveMapMarkdown(mapId: string, markdown: string): Promise<void> {
     if (!this._isInitialized) {
