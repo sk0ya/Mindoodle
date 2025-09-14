@@ -1023,9 +1023,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
   }, [selectMapById]);
 
-  // Refresh explorer/map list on external changes or when window regains focus
+  // Refresh explorer/map list only on focus/visibility/custom event (no polling)
   React.useEffect(() => {
+    // Debounce refresh to avoid rapid duplicate calls
+    let last = 0;
     const doRefresh = () => {
+      const now = Date.now();
+      if (now - last < 1500) return; // 1.5s debounce
+      last = now;
       try {
         if (typeof (mindMap as any).refreshMapList === 'function') {
           void (mindMap as any).refreshMapList();
@@ -1040,12 +1045,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     window.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onFocus);
     window.addEventListener('mindoodle:refreshExplorer', onCustom as EventListener);
-    const interval = window.setInterval(doRefresh, 7000);
+    // Initial refresh once when effect mounts
+    doRefresh();
     return () => {
       window.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('mindoodle:refreshExplorer', onCustom as EventListener);
-      window.clearInterval(interval);
     };
   }, [mindMap]);
 
