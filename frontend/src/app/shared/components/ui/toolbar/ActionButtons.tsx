@@ -12,8 +12,6 @@ interface ActionButtonsProps {
   onAutoLayout?: () => void;
   onToggleNotesPanel?: () => void;
   showNotesPanel?: boolean;
-  onToggleViewMode?: () => void;
-  viewMode?: 'mindmap' | 'outline';
   onCenterRootNode?: () => void;
 }
 
@@ -27,8 +25,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onAutoLayout,
   onToggleNotesPanel,
   showNotesPanel = false,
-  onToggleViewMode,
-  viewMode = 'mindmap',
+  
   onCenterRootNode
 }) => {
 
@@ -94,7 +91,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
       {/* ノート・ヘルプ・設定 */}
       <div className="action-group help-actions">
-        {onToggleNotesPanel && viewMode === 'mindmap' && (
+        {onToggleNotesPanel && (
           <ShortcutTooltip shortcut="Ctrl+Shift+N" description="ノートパネル">
             <button 
               className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`}
@@ -104,18 +101,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             </button>
           </ShortcutTooltip>
         )}
-        
-        {onToggleViewMode && (
-          <ShortcutTooltip shortcut="Ctrl+Shift+V" description={viewMode === 'mindmap' ? 'アウトライン表示に切替' : 'マインドマップ表示に切替'}>
-            <button 
-              className={`toolbar-btn view-mode ${viewMode === 'outline' ? 'active' : ''}`}
-              onClick={onToggleViewMode}
-            >
-              {viewMode === 'mindmap' ? <FileText size={16} /> : <Map size={16} />}
-            </button>
-          </ShortcutTooltip>
-        )}
-        
+
       </div>
     </div>
   );

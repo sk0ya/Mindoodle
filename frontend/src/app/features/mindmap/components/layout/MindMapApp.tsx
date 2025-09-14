@@ -12,8 +12,7 @@ import ImportModal from '../modals/ImportModal';
 import NodeLinkModal from '../modals/NodeLinkModal';
 import LinkActionMenu from '../modals/LinkActionMenu';
 import NodeNotesPanel from '../panels/NodeNotesPanel';
-import OutlineWorkspace from '../outline/OutlineWorkspace';
-import '../outline/OutlineWorkspace.css';
+// Outline mode removed
 import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
 import ContextMenu from '../../../../shared/components/ui/ContextMenu';
 import { useNotification } from '../../../../shared/hooks/useNotification';
@@ -1430,22 +1429,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setLinkActionMenuData(null);
   };
 
-  const handleOutlineSave = async (updatedData: MindMapData) => {
-    try {
-      store.setData(updatedData);
-      
-      if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout();
-      }
-      
-      showNotification('success', 'アウトラインをマインドマップに反映しました');
-      store.setShowOutlineEditor(false);
-    } catch (error) {
-      logger.error('Outline save failed:', error);
-      showNotification('error', 'アウトラインの保存に失敗しました');
-      handleError(error as Error, 'アウトライン保存', 'データ変換');
-    }
-  };
+  // Outline save feature removed
 
 
   // Show loading while auth is initializing in cloud mode
@@ -1557,14 +1541,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           onStorageModeChange={onModeChange}
           onToggleNotesPanel={() => store.toggleNotesPanel()}
           showNotesPanel={ui.showNotesPanel}
-          onToggleViewMode={() => store.toggleViewMode()}
-          viewMode={ui.viewMode}
           onCenterRootNode={handleCenterRootNode}
         />
         
         <div className="workspace-container">
-          {ui.viewMode === 'mindmap' ? (
-            <MindMapWorkspace 
+          <MindMapWorkspace 
               data={data}
               selectedNodeId={selectedNodeId}
               editingNodeId={editingNodeId}
@@ -1600,20 +1581,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onToggleAttachmentList={store.toggleAttachmentListForNode}
               onToggleLinkList={store.toggleLinkListForNode}
             />
-          ) : (
-            <OutlineWorkspace
-              data={data}
-              onSave={(updatedData) => {
-                store.setData(updatedData);
-                if (typeof applyAutoLayout === 'function') {
-                  applyAutoLayout();
-                }
-              }}
-              hasSidebar={activeView !== null}
-            />
-          )}
-          
-          {ui.showNotesPanel && ui.viewMode === 'mindmap' && (
+
+          {ui.showNotesPanel && (
             <NodeNotesPanel
               selectedNode={selectedNodeId ? findNodeById(data?.rootNode, selectedNodeId) : null}
               onUpdateNode={updateNode}
@@ -1774,15 +1743,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         />
       )}
       
-      {/* Outline Editor */}
-      {ui.showOutlineEditor && (
-        <OutlineWorkspace
-          data={data}
-          onSave={handleOutlineSave}
-          onClose={() => store.setShowOutlineEditor(false)}
-          hasSidebar={activeView !== null}
-        />
-      )}
+      {/* Outline Editor removed */}
 
       {/* Context Menu */}
       {contextMenu.visible && contextMenu.nodeId && (

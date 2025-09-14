@@ -19,8 +19,6 @@ interface ToolbarProps {
   onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onToggleNotesPanel?: () => void;
   showNotesPanel?: boolean;
-  onToggleViewMode?: () => void;
-  viewMode?: 'mindmap' | 'outline';
   onCenterRootNode?: () => void;
 }
 
@@ -38,8 +36,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
   onStorageModeChange,
   onToggleNotesPanel,
   showNotesPanel = false,
-  onToggleViewMode,
-  viewMode = 'mindmap',
   onCenterRootNode
 }) => {
   return (
@@ -61,8 +57,6 @@ const Toolbar: React.FC<ToolbarProps> = ({
         onAutoLayout={onAutoLayout}
         onToggleNotesPanel={onToggleNotesPanel}
         showNotesPanel={showNotesPanel}
-        onToggleViewMode={onToggleViewMode}
-        viewMode={viewMode}
         onCenterRootNode={onCenterRootNode}
       />
 
