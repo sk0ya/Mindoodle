@@ -40,7 +40,9 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   onDelete,
   availableMaps = [],
   currentMapData,
-  onLoadMapData
+  onLoadMapData,
+  loadExplorerTree,
+  onSaveFileLink
 }) => {
   const [mode, setMode] = useState<'markdown' | 'files'>('markdown');
   const [selectedMapId, setSelectedMapId] = useState('');
