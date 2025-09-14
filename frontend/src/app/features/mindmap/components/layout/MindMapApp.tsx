@@ -17,7 +17,7 @@ import '../outline/OutlineWorkspace.css';
 import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
 import ContextMenu from '../../../../shared/components/ui/ContextMenu';
 import { useNotification } from '../../../../shared/hooks/useNotification';
-import { resolveAnchorToNode } from '../../../../shared/utils/markdownLinkUtils';
+import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
 import { useErrorHandler, setupGlobalErrorHandlers } from '../../../../shared/hooks/useErrorHandler';
 import { useRetryableUpload } from '../../../../shared/hooks/useRetryableUpload';
 import { useAI } from '../../../../core/hooks/useAI';
@@ -1176,7 +1176,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Link-related handlers
   const handleAddLink = (nodeId: string) => {
-    console.log('📝 handleAddLink called:', nodeId);
+    // Open modal to choose target map/node, then append markdown on save
     setEditingLink(null);
     setLinkModalNodeId(nodeId);
     setShowLinkModal(true);
@@ -1192,18 +1192,69 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
 
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {
-    if (!linkModalNodeId) return;
-
+    if (!linkModalNodeId || !data) return;
     try {
-      if (editingLink) {
-        // Update existing link
-        store.updateNodeLink(linkModalNodeId, editingLink.id, linkData);
-        showNotification('success', 'リンクを更新しました');
+      const destNode = findNodeById(data.rootNode, linkModalNodeId);
+      if (!destNode) return;
+
+      const currentMapId = data.id;
+      const targetMapId = linkData.targetMapId || currentMapId;
+      let label = 'リンク';
+      let href = '';
+
+      // Helper to compute relative path idA -> idB
+      const toRelPath = (fromId: string, toId: string): string => {
+        const fromSegs = (fromId.split('/') as string[]);
+        fromSegs.pop(); // remove filename component
+        const toSegs = toId.split('/');
+        let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
+        const up = new Array(fromSegs.length - i).fill('..');
+        const down = toSegs.slice(i);
+        const joined = [...up, ...down].join('/');
+        return joined.length ? `${joined}.md` : `${toId.split('/').pop()}.md`;
+      };
+
+      // Determine label and href
+      if (targetMapId === currentMapId) {
+        if (linkData.targetNodeId) {
+          const targetNode = findNodeById(data.rootNode, linkData.targetNodeId);
+          if (targetNode) {
+            label = targetNode.text || 'リンク';
+            const anchor = computeAnchorForNode(data.rootNode, targetNode.id) || label;
+            href = `#${anchor}`;
+          }
+        } else {
+          // Current map without node → center root (no anchor)
+          label = data.title || 'このマップ';
+          href = '';
+        }
       } else {
-        // Add new link
-        store.addNodeLink(linkModalNodeId, linkData);
-        showNotification('success', 'リンクを追加しました');
+        // Other map
+        const targetMap = await loadMapData(targetMapId);
+        if (targetMap) {
+          if (linkData.targetNodeId) {
+            const targetNode = findNodeById(targetMap.rootNode, linkData.targetNodeId);
+            if (targetNode) {
+              label = targetNode.text || targetMap.title || 'リンク';
+              const anchor = computeAnchorForNode(targetMap.rootNode, targetNode.id);
+              const rel = toRelPath(currentMapId, targetMap.id);
+              href = anchor ? `${rel}#${encodeURIComponent(anchor)}` : rel;
+            }
+          } else {
+            label = targetMap.title || 'リンク';
+            const rel = toRelPath(currentMapId, targetMap.id);
+            href = rel;
+          }
+        }
       }
+
+      // Append to note
+      const currentNote = destNode.note || '';
+      const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
+      const linkText = href ? `[${label}](${href})` : `[${label}]`;
+      const appended = `${currentNote}${prefix}${linkText}\n`;
+      store.updateNode(linkModalNodeId, { note: appended });
+      showNotification('success', 'ノートにリンクを追加しました');
     } catch (error) {
       logger.error('Link save error:', error);
       handleError(error as Error, 'リンク操作', 'リンクの保存');
@@ -1712,6 +1763,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           onAddLink={(nodeId) => {
             setLinkModalNodeId(nodeId);
             setShowLinkModal(true);
+            handleContextMenuClose();
           }}
           onCopy={(node) => {
             // ショートカットキーと同じcopyNode関数を使用
