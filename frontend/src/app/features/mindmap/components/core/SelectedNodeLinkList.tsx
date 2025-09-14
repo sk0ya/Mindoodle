@@ -1,7 +1,8 @@
-import React, { memo, useCallback } from 'react';
-import { Link } from 'lucide-react';
+import React, { memo, useCallback, useMemo } from 'react';
+import { Link, ExternalLink } from 'lucide-react';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { calculateLinkListHeight } from '../../../../shared/utils/listHeightUtils';
+import { extractInternalMarkdownLinksDetailed, extractExternalLinksFromMarkdown, resolveHrefToMapTarget } from '../../../../shared/utils/markdownLinkUtils';
 
 interface SelectedNodeLinkListProps {
   node: MindMapNode;
@@ -105,7 +106,40 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     return findNode(rootNode) || 'ノードが見つかりません';
   };
 
-  if (!isVisible || !node.links || node.links.length === 0) {
+  // Derive links from markdown note; fallback to legacy node.links
+  const internalDetailed = useMemo(() => extractInternalMarkdownLinksDetailed(node.note, currentMapData?.rootNode), [node.note, currentMapData?.rootNode]);
+  const externalLinks = useMemo(() => extractExternalLinksFromMarkdown(node.note), [node.note]);
+  const resolvedMapLinks = useMemo(() => {
+    const currentId = currentMapData?.id || '';
+    const ids = (availableMaps || []).map(m => m.id);
+    return externalLinks
+      .map(ext => {
+        const target = resolveHrefToMapTarget(ext.href, currentId, ids);
+        if (!target) return null;
+        return {
+          id: `maplink|${target.mapId}|${target.anchorText || ''}`,
+          label: ext.label,
+          href: ext.href,
+          mapId: target.mapId,
+          anchorText: target.anchorText
+        };
+      })
+      .filter(Boolean) as Array<{ id: string; label: string; href: string; mapId: string; anchorText?: string }>
+  }, [externalLinks, currentMapData?.id, availableMaps]);
+
+  const unresolvedExternal = useMemo(() => {
+    const mapped = new Set(resolvedMapLinks.map(l => l.id));
+    return externalLinks.filter(ext => {
+      // crude check: if ext resolves to a map it will be in resolvedMapLinks; otherwise keep
+      const target = resolveHrefToMapTarget(ext.href, currentMapData?.id || '', (availableMaps || []).map(m => m.id));
+      return !target;
+    });
+  }, [externalLinks, resolvedMapLinks, currentMapData?.id, availableMaps]);
+
+  const hasMarkdownLinks = (internalDetailed.length + resolvedMapLinks.length + unresolvedExternal.length) > 0;
+  const links: NodeLink[] = hasMarkdownLinks ? [] : (node.links || []);
+
+  if (!isVisible || (!hasMarkdownLinks && links.length === 0)) {
     return null;
   }
 
@@ -115,7 +149,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   const listWidth = Math.max(nodeWidth, 300); // 最小幅300px
   
   // 動的高さ計算（共通ユーティリティを使用）
-  const listHeight = calculateLinkListHeight({ itemCount: node.links.length });
+  const listHeight = calculateLinkListHeight({ itemCount: hasMarkdownLinks ? (internalDetailed.length + resolvedMapLinks.length + unresolvedExternal.length) : links.length });
 
   return (
     <foreignObject
@@ -146,12 +180,27 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
 
         {/* リンク一覧 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-          {node.links.map((link) => {
-            const { mapTitle, nodeText } = getLinkDisplayInfo(link);
+          {(hasMarkdownLinks ? [
+            ...internalDetailed.map(l => ({ kind: 'internal' as const, item: l })),
+            ...resolvedMapLinks.map(m => ({ kind: 'map' as const, item: m })),
+            ...unresolvedExternal.map(e => ({ kind: 'external' as const, item: e }))
+          ] : links.map(l => ({ kind: 'legacy' as const, item: l }))).map((entry, idx) => {
+            const key = entry.kind === 'internal' ? entry.item.id
+              : entry.kind === 'map' ? entry.item.id
+              : entry.kind === 'external' ? `${entry.item.id}-${idx}`
+              : entry.item.id;
+            const title = entry.kind === 'internal' ? entry.item.label
+              : entry.kind === 'map' ? entry.item.label
+              : entry.kind === 'external' ? entry.item.label
+              : 'リンク';
+            const subtitle = entry.kind === 'internal' ? `#${entry.item.anchorText}`
+              : entry.kind === 'map' ? `${entry.item.mapId}${entry.item.anchorText ? `#${entry.item.anchorText}` : ''}`
+              : entry.kind === 'external' ? entry.item.href
+              : '';
             
             return (
               <div
-                key={link.id}
+                key={key}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -171,21 +220,96 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                   e.currentTarget.style.backgroundColor = 'transparent';
                   e.currentTarget.style.borderColor = 'transparent';
                 }}
-                onClick={(e) => handleLinkClick(e, link)}
-                onDoubleClick={() => handleLinkDoubleClick(link)}
-                onContextMenu={(e) => handleLinkContextMenu(e, link)}
+                onClick={(e) => {
+                  if (entry.kind === 'internal') {
+                    const link: NodeLink = {
+                      id: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      targetNodeId: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    handleLinkClick(e, link);
+                  } else if (entry.kind === 'map') {
+                    const link: NodeLink = {
+                      id: entry.item.id,
+                      targetMapId: entry.item.mapId,
+                      targetNodeId: entry.item.anchorText ? `text:${entry.item.anchorText}` : undefined,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    handleLinkClick(e, link);
+                  } else {
+                    // noop on single click
+                    e.stopPropagation();
+                  }
+                }}
+                onDoubleClick={() => {
+                  if (entry.kind === 'internal') {
+                    const link: NodeLink = {
+                      id: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      targetNodeId: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    handleLinkDoubleClick(link);
+                  } else if (entry.kind === 'map') {
+                    const nodeLink: NodeLink = {
+                      id: entry.item.id,
+                      targetMapId: entry.item.mapId,
+                      targetNodeId: entry.item.anchorText ? `text:${entry.item.anchorText}` : undefined,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    if (onLinkNavigate) onLinkNavigate(nodeLink);
+                  } else {
+                    // Resolve relative href to known map and jump if possible; otherwise open in new tab
+                    const href = entry.item.href;
+                    try {
+                      const base = window.location.origin;
+                      const url = href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('file:')
+                        ? href
+                        : new URL(href, base).toString();
+                      window.open(url, '_blank', 'noopener,noreferrer');
+                    } catch {
+                      window.open(href, '_blank', 'noopener,noreferrer');
+                    }
+                  }
+                }}
+                onContextMenu={(e) => {
+                  if (entry.kind === 'internal') {
+                    const link: NodeLink = {
+                      id: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      targetNodeId: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    handleLinkContextMenu(e, link);
+                  } else if (entry.kind === 'map') {
+                    const link: NodeLink = {
+                      id: entry.item.id,
+                      targetMapId: entry.item.mapId,
+                      targetNodeId: entry.item.anchorText ? `text:${entry.item.anchorText}` : undefined,
+                      createdAt: new Date().toISOString(),
+                      updatedAt: new Date().toISOString()
+                    };
+                    handleLinkContextMenu(e, link);
+                  } else {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }
+                }}
               >
                 {/* リンクアイコン */}
                 <span
                   style={{
                     marginRight: '6px',
                     flexShrink: 0,
-                    color: '#0969da',
+                    color: entry.kind === 'external' ? '#7c3aed' : '#0969da',
                     display: 'flex',
                     alignItems: 'center'
                   }}
                 >
-                  <Link size={12} />
+                  {entry.kind === 'external' ? <ExternalLink size={12} /> : <Link size={12} />}
                 </span>
 
                 {/* リンク情報 */}
@@ -201,7 +325,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       lineHeight: '1.1'
                     }}
                   >
-                    {mapTitle}
+                    {title}
                   </div>
                   
                   <div
@@ -215,7 +339,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       textOverflow: 'ellipsis'
                     }}
                   >
-                    {nodeText}
+                    {subtitle}
                   </div>
                 </div>
 
@@ -230,7 +354,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                   }}
                   className="action-hint"
                 >
-                  右クリック
+                  {entry.kind !== 'external' ? '右クリック' : 'ダブルクリック'}
                 </div>
               </div>
             );

@@ -1,6 +1,7 @@
 import type { MindMapNode, FileAttachment } from '@shared/types';
 import type { NormalizedData } from '../../core/data/normalizedStore';
 import { COLORS } from '../constants';
+import { extractInternalNodeLinksFromMarkdown, hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from './markdownLinkUtils';
 
 // アイコンレイアウト情報
 interface IconLayout {
@@ -128,7 +129,8 @@ function calculateTextWidthFallback(text: string): number {
  */
 export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconLayout {
   const hasAttachments = node.attachments && node.attachments.length > 0;
-  const hasLinks = node.links && node.links.length > 0;
+  const noteStr = (node as any)?.note as string | undefined;
+  const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0) || (node.links && node.links.length > 0);
   
   // アイコンの基本サイズ
   const ICON_WIDTH = 32;
@@ -243,7 +245,8 @@ export function calculateNodeSize(
   
   // アイコンレイアウトに必要な最小幅を計算
   const hasAttachments = false; // 添付画像UIは無効化方向
-  const hasLinks = node.links && node.links.length > 0;
+  const noteStr2 = (node as any)?.note as string | undefined;
+  const hasLinks = hasInternalMarkdownLinks(noteStr2) || (extractExternalLinksFromMarkdown(noteStr2).length > 0) || (node.links && node.links.length > 0);
   const ICON_WIDTH = 32;
   const ICON_SPACING = 6;
   const RIGHT_MARGIN = 12;

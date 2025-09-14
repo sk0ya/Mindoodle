@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { calculateIconLayout } from '../../../../shared/utils/nodeUtils';
+import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '../../../../shared/utils/markdownLinkUtils';
 import type { MindMapNode } from '@shared/types';
 
 interface NodeEditorProps {
@@ -36,7 +37,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onToggleLinkList
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { settings } = useMindMapStore();
+  const { settings, data } = useMindMapStore();
 
   // リンククリック時の処理
   const handleLinkClick = useCallback((e: React.MouseEvent) => {
@@ -152,7 +153,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const actualImageHeight = getActualImageHeight();
     const hasAttachments = false; // attachments removed
-    const hasLinks = node.links && node.links.length > 0;
+    // Derive links from note markdown (fallback to legacy node.links)
+    const internalLinks = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNode) || [];
+    const externalLinks = extractExternalLinksFromMarkdown(node.note) || [];
+    const legacyLinks = node.links && node.links.length > 0 ? node.links : [];
+    const hasAnyMarkdownLinks = internalLinks.length + externalLinks.length > 0;
+    const allLinks = hasAnyMarkdownLinks ? [...internalLinks, ...legacyLinks.slice(0,0), /* ignore legacy if md exists */] : legacyLinks;
+    const hasLinks = allLinks.length > 0;
     const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
     
     // アイコンレイアウトを計算してテキスト位置を調整
@@ -238,7 +245,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                       userSelect: 'none'
                     }}
                   >
-                    {node.links?.length || 0}
+                    {hasAnyMarkdownLinks ? (internalLinks.length + externalLinks.length) : (legacyLinks.length)}
                   </text>
                 </g>
               )}

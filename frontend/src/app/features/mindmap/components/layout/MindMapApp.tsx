@@ -17,6 +17,7 @@ import '../outline/OutlineWorkspace.css';
 import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
 import ContextMenu from '../../../../shared/components/ui/ContextMenu';
 import { useNotification } from '../../../../shared/hooks/useNotification';
+import { resolveAnchorToNode } from '../../../../shared/utils/markdownLinkUtils';
 import { useErrorHandler, setupGlobalErrorHandlers } from '../../../../shared/hooks/useErrorHandler';
 import { useRetryableUpload } from '../../../../shared/hooks/useRetryableUpload';
 import { useAI } from '../../../../core/hooks/useAI';
@@ -1282,6 +1283,24 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [data?.rootNode, centerNodeInView]);
 
+  // Helpers for resolving node by display text (exact or slug match)
+  const slugify = useCallback((text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''), []);
+  const findNodeByTextLoose = useCallback((root: MindMapNode, targetText: string) => {
+    if (!root || !targetText) return null;
+    const targetSlug = slugify(targetText);
+    const stack: MindMapNode[] = [root];
+    while (stack.length) {
+      const node = stack.pop()!;
+      if (!node) continue;
+      const byAnchor = resolveAnchorToNode(root, targetText);
+      if (byAnchor) return byAnchor;
+      if (node.text === targetText) return node;
+      if (slugify(node.text) === targetSlug) return node;
+      if (node.children && node.children.length) stack.push(...node.children);
+    }
+    return null;
+  }, [slugify]);
+
   const handleLinkNavigate = async (link: NodeLink) => {
     try {
       // If targetMapId is specified and different from current map
@@ -1294,11 +1313,22 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           // If targetNodeId is specified, select that node after map loads
           if (link.targetNodeId) {
             setTimeout(() => {
-              selectNode(link.targetNodeId!);
-              // マップロード後にノードを中央に移動
-              setTimeout(() => {
-                centerNodeInView(link.targetNodeId!);
-              }, 100);
+              const tn = link.targetNodeId!;
+              if (tn.startsWith('text:')) {
+                const targetText = tn.slice(5);
+                const current = useMindMapStore.getState().data;
+                const root = current?.rootNode as MindMapNode | undefined;
+                if (root) {
+                  const node = findNodeByTextLoose(root, targetText);
+                  if (node) {
+                    selectNode(node.id);
+                    setTimeout(() => centerNodeInView(node.id), 100);
+                  }
+                }
+              } else {
+                selectNode(tn);
+                setTimeout(() => centerNodeInView(tn), 100);
+              }
             }, 500); // Wait for map to load
           }
         } catch (error) {
@@ -1308,18 +1338,26 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       } else if (link.targetNodeId) {
         // Navigate to node in current map
         if (data) {
-          const targetNode = findNodeById(data.rootNode, link.targetNodeId);
-          if (targetNode) {
-            selectNode(link.targetNodeId);
-            // ノードを画面中央に移動
-            setTimeout(() => {
-              if (link.targetNodeId) {
-                centerNodeInView(link.targetNodeId);
-              }
-            }, 50); // DOM更新を待つ
-            showNotification('success', `ノード "${targetNode.text}" に移動しました`);
+          const tn = link.targetNodeId;
+          if (tn.startsWith('text:')) {
+            const targetText = tn.slice(5);
+            const node = findNodeByTextLoose(data.rootNode, targetText);
+            if (node) {
+              selectNode(node.id);
+              setTimeout(() => centerNodeInView(node.id), 50);
+              showNotification('success', `ノード "${node.text}" に移動しました`);
+            } else {
+              showNotification('error', `ノード "${targetText}" が見つかりません`);
+            }
           } else {
-            showNotification('error', `ノード "${link.targetNodeId}" が見つかりません`);
+            const targetNode = findNodeById(data.rootNode, tn);
+            if (targetNode) {
+              selectNode(tn);
+              setTimeout(() => centerNodeInView(tn), 50);
+              showNotification('success', `ノード "${targetNode.text}" に移動しました`);
+            } else {
+              showNotification('error', `ノード "${tn}" が見つかりません`);
+            }
           }
         }
       } else {
