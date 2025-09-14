@@ -41,6 +41,7 @@ export interface StorageAdapter {
 
   // Markdown helpers (optional)
   getMapMarkdown?(mapId: string): Promise<string | null>;
+  saveMapMarkdown?(mapId: string, markdown: string): Promise<void>;
   
   // ファイル操作（オプショナル - クラウドモードのみ）
   uploadFile?(mindmapId: string, nodeId: string, file: File): Promise<FileInfo>;

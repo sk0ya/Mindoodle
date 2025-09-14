@@ -129,6 +129,21 @@ export const useMindMap = (
     return null;
   }, [persistenceHook]);
 
+  // Save raw markdown for current adapter (markdown mode only)
+  const saveMapMarkdown = useCallback(async (mapId: string, markdown: string): Promise<void> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.saveMapMarkdown === 'function') {
+      try {
+        await adapter.saveMapMarkdown(mapId, markdown);
+      } catch (error) {
+        console.error('Failed to save map markdown:', error);
+        throw error;
+      }
+    } else {
+      throw new Error('saveMapMarkdown not supported by current storage adapter');
+    }
+  }, [persistenceHook]);
+
   // マップ管理の高レベル操作（非同期対応）
   const mapOperations = {
     createAndSelectMap: useCallback(async (title: string, category?: string): Promise<string> => {
@@ -277,6 +292,7 @@ export const useMindMap = (
     explorerTree: (persistenceHook as any).explorerTree || null
     ,
     // markdown helpers
-    getMapMarkdown
+    getMapMarkdown,
+    saveMapMarkdown
   };
 };

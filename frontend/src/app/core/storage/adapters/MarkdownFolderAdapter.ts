@@ -197,7 +197,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const target = this.saveTargets.get(mapId);
     if (target) {
       try {
-        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName) 
+        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName)
           ?? await (target.dir as any).getFileHandle(target.fileName);
         const file = await fh.getFile();
         return await file.text();
@@ -223,6 +223,54 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return await file.text();
     } catch {
       return null;
+    }
+  }
+
+  // Save raw markdown text for a map by id
+  async saveMapMarkdown(mapId: string, markdown: string): Promise<void> {
+    if (!this._isInitialized) {
+      await this.initialize();
+    }
+    if (!this.rootHandle) {
+      logger.warn('MarkdownFolderAdapter: No folder selected; skipping markdown save');
+      return;
+    }
+
+    // 1) Try saveTargets first (most reliable)
+    const target = this.saveTargets.get(mapId);
+    if (target) {
+      try {
+        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName)
+          ?? await (target.dir as any).getFileHandle(target.fileName);
+        const writable = await fh.createWritable();
+        await writable.write(markdown);
+        await writable.close();
+        logger.info(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
+        return;
+      } catch (e) {
+        logger.warn('Failed to save via saveTargets, trying path resolution:', e);
+      }
+    }
+
+    // 2) Resolve path from mapId and save
+    try {
+      const parts = (mapId || '').split('/').filter(Boolean);
+      if (parts.length === 0) throw new Error('Invalid mapId');
+      const base = parts.pop() as string;
+      let dir: DirHandle = this.rootHandle as any;
+
+      // Navigate to directory, creating if necessary
+      for (const p of parts) {
+        dir = await this.getOrCreateDirectory(dir, p);
+      }
+
+      const fileName = `${base}.md`;
+      await this.writeTextFile(dir, fileName, markdown);
+
+      logger.info(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId} via path resolution`);
+    } catch (error) {
+      logger.error(`❌ MarkdownFolderAdapter: Failed to save markdown for ${mapId}:`, error);
+      throw error;
     }
   }
 

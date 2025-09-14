@@ -1,9 +1,15 @@
-import React, { useRef, useEffect, useState } from 'react';
+import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { Editor, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { marked } from 'marked';
 import { useMindMapStore } from '../../core/store/mindMapStore';
 import { logger } from '../utils/logger';
+
+// Constants to prevent re-renders
+const EDITOR_HEIGHT = "100%";
+const EDITOR_WIDTH = "100%";
+const EDITOR_LANGUAGE = "markdown";
+const EDITOR_LOADING_TEXT = "エディターを読み込み中...";
 
 interface MarkdownEditorProps {
   value: string;
@@ -14,33 +20,59 @@ interface MarkdownEditorProps {
   vimMode?: boolean;
   autoFocus?: boolean;
   readOnly?: boolean;
+  onResize?: () => void;
 }
 
-export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({ 
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   value,
   onChange,
   onSave,
   className = '',
-  height = '400px',
+  height: _height = '400px',
   vimMode = false,
   autoFocus = false,
-  readOnly = false
+  readOnly = false,
+  onResize
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isVimEnabled, setIsVimEnabled] = useState(vimMode);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
+  const [internalValue, setInternalValue] = useState(value);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings } = useMindMapStore();
 
-  // Convert markdown to HTML
-  const getPreviewHtml = (): string => {
+  // Sync external value with internal value
+  useEffect(() => {
+    if (value !== internalValue) {
+      setInternalValue(value);
+    }
+  }, [value, internalValue]);
+
+  // Debounced onChange handler
+  const handleEditorChange = useCallback((newValue: string) => {
+    setInternalValue(newValue);
+
+    // Clear existing timeout
+    if (debounceTimeoutRef.current) {
+      clearTimeout(debounceTimeoutRef.current);
+    }
+
+    // Set new debounced timeout
+    debounceTimeoutRef.current = setTimeout(() => {
+      onChange(newValue);
+    }, 300); // 300ms debounce
+  }, [onChange]);
+
+  // Convert markdown to HTML (memoized for performance)
+  const previewHtml = useMemo((): string => {
     try {
-      const result = marked.parse(value || '');
+      const result = marked.parse(internalValue || '');
       return typeof result === 'string' ? result : '';
     } catch (error) {
       logger.warn('Markdown parsing error:', error);
       return '<p>マークダウンの解析でエラーが発生しました</p>';
     }
-  };
+  }, [internalValue]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -104,7 +136,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   };
 
-  const toggleVimMode = async () => {
+  const toggleVimMode = useCallback(async () => {
     if (!editorRef.current) return;
 
     if (isVimEnabled) {
@@ -121,7 +153,39 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       await enableVimMode(editorRef.current, monaco);
       setIsVimEnabled(true);
     }
-  };
+  }, [isVimEnabled]);
+
+  // Memoized mode change handlers
+  const setEditMode = useCallback(() => setMode('edit'), []);
+  const setPreviewMode = useCallback(() => setMode('preview'), []);
+  const setSplitMode = useCallback(() => setMode('split'), []);
+
+  // Memoized Monaco Editor props to prevent re-renders
+  const editorTheme = useMemo(() =>
+    settings.theme === 'dark' ? 'vs-dark' : 'vs',
+    [settings.theme]
+  );
+
+  const editorOptions = useMemo(() => ({
+    selectOnLineNumbers: true,
+    roundedSelection: false,
+    readOnly,
+    cursorStyle: 'line' as const,
+    automaticLayout: true,
+    // キーボード関連の設定を明示的に指定
+    acceptSuggestionOnEnter: 'off' as const,
+    acceptSuggestionOnCommitCharacter: false,
+    quickSuggestions: false,
+    parameterHints: { enabled: false },
+    suggestOnTriggerCharacters: false,
+    tabCompletion: 'off' as const,
+    wordBasedSuggestions: 'off' as const
+  }), [readOnly]);
+
+  const memoizedHandleEditorChange = useCallback((newValue: string | undefined) => {
+    handleEditorChange(newValue ?? '');
+  }, [handleEditorChange]);
+
 
   // Update theme and font settings when settings change
   useEffect(() => {
@@ -133,7 +197,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           monacoModule.editor.setTheme(settings.theme === 'dark' ? 'vs-dark' : 'vs');
         });
       }
-      
+
       // Update font settings
       editorRef.current.updateOptions({
         fontSize: settings.fontSize || 14,
@@ -142,8 +206,61 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   }, [settings.theme, settings.fontSize, settings.fontFamily]);
 
+  // Handle external resize events
+  useEffect(() => {
+    if (onResize && editorRef.current) {
+      // Force layout recalculation when onResize changes
+      const timeoutId = setTimeout(() => {
+        if (editorRef.current) {
+          editorRef.current.layout();
+        }
+      }, 100);
+      return () => clearTimeout(timeoutId);
+    }
+    return undefined;
+  }, [onResize]);
+
+  // Expose layout method for external use and ResizeObserver
+  useEffect(() => {
+    const resizeHandler = () => {
+      if (editorRef.current) {
+        editorRef.current.layout();
+      }
+    };
+
+    // Set up a custom resize handler that can be triggered externally
+    if (onResize) {
+      (window as any).__markdownEditor_forceLayout = resizeHandler;
+    }
+
+    // Set up ResizeObserver for more reliable resize detection
+    let resizeObserver: ResizeObserver | null = null;
+    if (editorRef.current) {
+      const editorElement = editorRef.current.getDomNode();
+      if (editorElement && window.ResizeObserver) {
+        resizeObserver = new ResizeObserver(() => {
+          resizeHandler();
+        });
+        resizeObserver.observe(editorElement.parentElement || editorElement);
+      }
+    }
+
+    return () => {
+      if ((window as any).__markdownEditor_forceLayout === resizeHandler) {
+        delete (window as any).__markdownEditor_forceLayout;
+      }
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+    };
+  }, [onResize]);
+
   useEffect(() => {
     return () => {
+      // Cleanup debounce timeout
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
       // Cleanup Vim mode on unmount
       if (editorRef.current) {
         const vimMode = (editorRef.current as any)._vimMode;
@@ -161,7 +278,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           <div className="mode-toggles">
             <button
               type="button"
-              onClick={() => setMode('edit')}
+              onClick={setEditMode}
               className={`mode-toggle ${mode === 'edit' ? 'active' : ''}`}
               title="編集モード"
             >
@@ -169,7 +286,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             </button>
             <button
               type="button"
-              onClick={() => setMode('preview')}
+              onClick={setPreviewMode}
               className={`mode-toggle ${mode === 'preview' ? 'active' : ''}`}
               title="プレビューモード"
             >
@@ -177,7 +294,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             </button>
             <button
               type="button"
-              onClick={() => setMode('split')}
+              onClick={setSplitMode}
               className={`mode-toggle ${mode === 'split' ? 'active' : ''}`}
               title="分割表示モード"
             >
@@ -205,34 +322,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         </div>
       </div>
       
-      <div className={`editor-container mode-${mode}`} style={{ height }}>
+      <div className={`editor-container mode-${mode}`}>
         {(mode === 'edit' || mode === 'split') && (
           <div className="editor-pane">
             <Editor
-              height="100%"
-              defaultLanguage="markdown"
-              value={value}
-              onChange={(newValue) => {
-                onChange(newValue ?? '');
-              }}
+              height={EDITOR_HEIGHT}
+              width={EDITOR_WIDTH}
+              defaultLanguage={EDITOR_LANGUAGE}
+              value={internalValue}
+              onChange={memoizedHandleEditorChange}
               onMount={handleEditorDidMount}
-              theme={settings.theme === 'dark' ? 'vs-dark' : 'vs'}
-      loading="エディターを読み込み中..."
-      options={{
-        selectOnLineNumbers: true,
-        roundedSelection: false,
-        readOnly,
-        cursorStyle: 'line',
-        automaticLayout: true,
-        // キーボード関連の設定を明示的に指定
-        acceptSuggestionOnEnter: 'off',
-        acceptSuggestionOnCommitCharacter: false,
-                quickSuggestions: false,
-                parameterHints: { enabled: false },
-                suggestOnTriggerCharacters: false,
-                tabCompletion: 'off',
-                wordBasedSuggestions: 'off'
-              }}
+              theme={editorTheme}
+              loading={EDITOR_LOADING_TEXT}
+              options={editorOptions}
             />
           </div>
         )}
@@ -240,10 +342,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         {(mode === 'preview' || mode === 'split') && (
           <div className="preview-pane">
             <div className="preview-content">
-              {value.trim() ? (
+              {internalValue.trim() ? (
                 <div
                   className="markdown-preview"
-                  dangerouslySetInnerHTML={{ __html: getPreviewHtml() }}
+                  dangerouslySetInnerHTML={{ __html: previewHtml }}
                 />
               ) : (
                 <div className="preview-empty">
@@ -266,6 +368,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         .markdown-editor {
           display: flex;
           flex-direction: column;
+          width: 100%;
+          height: 100%;
           border: 1px solid var(--border-color);
           border-radius: 6px;
           overflow: hidden;
@@ -355,39 +459,57 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
         .editor-container {
           flex: 1;
-          overflow: hidden;
           display: flex;
+          min-height: 0;
+        }
+
+        .editor-container.mode-edit {
+          flex-direction: column;
+        }
+
+        .editor-container.mode-preview {
+          flex-direction: column;
+        }
+
+        .editor-container.mode-split {
+          flex-direction: row;
         }
 
         .mode-edit .editor-pane {
-          width: 100%;
+          flex: 1;
+          overflow: hidden;
         }
 
         .mode-preview .preview-pane {
-          width: 100%;
+          flex: 1;
+          overflow: hidden;
         }
 
-        .mode-split .editor-pane,
-        .mode-split .preview-pane {
-          width: 50%;
+        .mode-split .editor-pane {
+          flex: 1;
+          overflow: hidden;
           border-right: 1px solid var(--border-color);
         }
 
         .mode-split .preview-pane {
+          flex: 1;
+          overflow: hidden;
           border-right: none;
-          border-left: 1px solid var(--border-color);
+          border-left: none;
         }
 
         .editor-pane {
           display: flex;
           flex-direction: column;
-          height: 100%;
+          flex: 1;
+          min-height: 0;
         }
 
         .preview-pane {
           display: flex;
           flex-direction: column;
-          height: 100%;
+          flex: 1;
+          min-height: 0;
           background: var(--bg-primary);
         }
 
@@ -395,6 +517,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           flex: 1;
           overflow-y: auto;
           padding: 20px;
+          min-height: 0;
           height: 100%;
         }
 

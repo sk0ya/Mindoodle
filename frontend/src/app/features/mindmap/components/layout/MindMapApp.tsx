@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
 import { findNodeById, findParentNode, getSiblingNodes, getFirstVisibleChild } from '../../../../shared/utils/nodeTreeUtils';
 import ActivityBar from './ActivityBar';
@@ -1433,11 +1433,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const handleOutlineSave = async (updatedData: MindMapData) => {
     try {
       store.setData(updatedData);
-      
+
       if (typeof applyAutoLayout === 'function') {
         applyAutoLayout();
       }
-      
+
       showNotification('success', 'アウトラインをマインドマップに反映しました');
       store.setShowOutlineEditor(false);
     } catch (error) {
@@ -1447,6 +1447,28 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   };
 
+  // ALL HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS
+  // Memoized values for NodeNotesPanel to prevent unnecessary re-renders
+  const memoizedSelectedNode = useMemo(() =>
+    selectedNodeId && data?.rootNode ? findNodeById(data.rootNode, selectedNodeId) : null,
+    [selectedNodeId, data?.rootNode]
+  );
+
+  const memoizedCurrentMapId = useMemo(() => data?.id || null, [data?.id]);
+
+  const handleCloseNotesPanel = useCallback(() => store.setShowNotesPanel(false), [store]);
+
+  // Use useRef to create stable function references that won't cause useEffect loops
+  const mindMapRef = useRef(mindMap);
+  mindMapRef.current = mindMap;
+
+  const getMapMarkdownStable = useCallback(async (mapId: string) => {
+    return (mindMapRef.current as any).getMapMarkdown?.(mapId) || null;
+  }, []); // No dependencies - using ref for stable access
+
+  const saveMapMarkdownStable = useCallback(async (mapId: string, markdown: string) => {
+    return (mindMapRef.current as any).saveMapMarkdown?.(mapId, markdown);
+  }, []); // No dependencies - using ref for stable access
 
   // Show loading while auth is initializing in cloud mode
   if (isCloudMode && auth && !auth.isReady) {
@@ -1612,14 +1634,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               hasSidebar={activeView !== null}
             />
           )}
-          
+
           {ui.showNotesPanel && ui.viewMode === 'mindmap' && (
             <NodeNotesPanel
-              selectedNode={selectedNodeId ? findNodeById(data?.rootNode, selectedNodeId) : null}
+              selectedNode={memoizedSelectedNode}
               onUpdateNode={updateNode}
-              onClose={() => store.setShowNotesPanel(false)}
-              currentMapId={data?.id || null}
-              getMapMarkdown={(mindMap as any).getMapMarkdown}
+              onClose={handleCloseNotesPanel}
+              currentMapId={memoizedCurrentMapId}
+              getMapMarkdown={getMapMarkdownStable}
+              saveMapMarkdown={saveMapMarkdownStable}
             />
           )}
         </div>
