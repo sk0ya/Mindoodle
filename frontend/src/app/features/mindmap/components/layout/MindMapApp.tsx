@@ -1071,31 +1071,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setShowImportModal(true);
   };
 
-  // Listen to explorer selection events
-  React.useEffect(() => {
-    const handler = (e: any) => {
-      const id = e?.detail?.mapId;
-      if (id && typeof selectMapById === 'function') {
-        selectMapById(id);
-      }
-    };
-    window.addEventListener('mindoodle:selectMapById', handler as EventListener);
-    // Global click fallback: capture clicks on elements with data-map-id
-    const clickFallback = (evt: MouseEvent) => {
-      const el = evt.target as HTMLElement | null;
-      if (!el) return;
-      const target = el.closest('[data-map-id]') as HTMLElement | null;
-      const mapId = target?.getAttribute('data-map-id');
-      if (mapId) {
-        try { selectMapById(mapId); } catch {}
-      }
-    };
-    document.addEventListener('click', clickFallback, true);
-    return () => {
-      window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
-      document.removeEventListener('click', clickFallback, true);
-    };
-  }, [selectMapById]);
+  // Removed global selection event/click fallback. Selection flows via props only.
 
   // Refresh explorer/map list only on focus/visibility/custom event (no polling)
   React.useEffect(() => {
@@ -1581,17 +1557,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         mindMaps={allMindMaps}
         currentMapId={currentMapId}
         onSelectMap={(mapId) => { selectMapById(mapId); }}
-        onOpenMapData={(mapData) => {
-          try { console.info('[MindMapApp] onOpenMapData', mapData?.id, mapData?.title); } catch {}
-          try {
-            // Set map data directly to ensure immediate switch without relying on list lookup
-            setData(mapData);
-            // Apply layout for consistent view
-            if (typeof applyAutoLayout === 'function') {
-              applyAutoLayout();
-            }
-          } catch {}
-        }}
         onCreateMap={createAndSelectMap}
         onDeleteMap={deleteMap}
         onRenameMap={(mapId, title) => updateMapMetadata(mapId, { title })}

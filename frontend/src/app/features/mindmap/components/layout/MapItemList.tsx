@@ -11,7 +11,6 @@ interface MapItemListProps {
   editingTitle: string;
   searchTerm: string;
   onSelectMap: (mapId: string) => void;
-  onOpenMapData?: (map: MindMapData) => void;
   onFinishRename: (mapId: string) => void;
   onCancelRename: () => void;
   onEditingTitleChange: (title: string) => void;
@@ -56,7 +55,6 @@ const MapItemList: React.FC<MapItemListProps> = ({
   editingTitle,
   searchTerm,
   onSelectMap,
-  onOpenMapData,
   onFinishRename,
   onCancelRename,
   onEditingTitleChange,
@@ -77,18 +75,8 @@ const MapItemList: React.FC<MapItemListProps> = ({
         <div
           key={map.id}
           className={`map-item ${currentMapId === map.id ? 'active' : ''}`}
-          data-map-id={map.id}
           onClick={() => {
-            try { console.info('[MapItemList] click', map.id, map.title); } catch {}
-            if (onOpenMapData) {
-              onOpenMapData(map);
-            } else {
-              onSelectMap(map.id);
-            }
-            try {
-              // Fallback event for any consumers listening globally
-              window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId: map.id } }));
-            } catch {}
+            onSelectMap(map.id);
           }}
           onContextMenu={(e) => onContextMenu && onContextMenu(e, categoryPath, 'map', map)}
           draggable={false}

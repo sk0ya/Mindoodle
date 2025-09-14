@@ -15,7 +15,6 @@ interface MindMapSidebarProps {
   mindMaps: MindMapData[];
   currentMapId: string | null;
   onSelectMap: (mapId: string) => void;
-  onOpenMapData?: (map: MindMapData) => void;
   onCreateMap: (title: string, category?: string) => void;
   onDeleteMap: (mapId: string) => void;
   onRenameMap: (mapId: string, newTitle: string) => void;
@@ -32,7 +31,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   mindMaps, 
   currentMapId, 
   onSelectMap, 
-  onOpenMapData,
   onCreateMap, 
   onDeleteMap,
   onRenameMap,
@@ -803,17 +801,12 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
       if (isMd && mapId) {
         if (onOpenMap) {
           onOpenMap(mapId);
-        } else {
-          // fallback to event if callback not provided
-          const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
-          window.dispatchEvent(ev);
         }
       }
     };
     return (
       <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${selectedPath === item.path ? 'selected' : ''}`}
         key={item.path}
-        data-map-id={isMd ? mapId || '' : ''}
         onClick={onClick}
         onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
         draggable={false}

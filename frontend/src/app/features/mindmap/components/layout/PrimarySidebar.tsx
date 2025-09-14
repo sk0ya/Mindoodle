@@ -16,7 +16,6 @@ interface PrimarySidebarProps {
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
   onSelectMap?: (mapId: string) => void;
-  onOpenMapData?: (map: MindMapData) => void;
   onCreateMap?: (title: string, category?: string) => void;
   onDeleteMap?: (mapId: string) => void;
   onRenameMap?: (mapId: string, newTitle: string) => void;
@@ -49,7 +48,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   mindMaps = [],
   currentMapId,
   onSelectMap,
-  onOpenMapData,
   onCreateMap,
   onDeleteMap,
   onRenameMap,
@@ -86,7 +84,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             mindMaps={mindMaps}
             currentMapId={currentMapId || null}
             onSelectMap={onSelectMap || (() => {})}
-            onOpenMapData={onOpenMapData}
             onCreateMap={onCreateMap || (() => {})}
             onDeleteMap={onDeleteMap || (() => {})}
             onRenameMap={onRenameMap || (() => {})}

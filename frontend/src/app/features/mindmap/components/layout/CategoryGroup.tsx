@@ -19,7 +19,6 @@ interface CategoryGroupProps {
   onFolderSelect: (folderPath: string) => void;
   onContextMenu: (e: React.MouseEvent, targetPath: string | null, targetType: 'folder' | 'empty' | 'map', mapData?: MindMapData) => void;
   onSelectMap: (mapId: string) => void;
-  onOpenMapData?: (map: MindMapData) => void;
   onFinishRename: (mapId: string) => void;
   onCancelRename: () => void;
   onEditingTitleChange: (title: string) => void;
@@ -45,7 +44,6 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({
   onFolderSelect,
   onContextMenu,
   onSelectMap,
-  onOpenMapData,
   onFinishRename,
   onCancelRename,
   onEditingTitleChange,
@@ -78,7 +76,6 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({
                 editingTitle={editingTitle}
                 searchTerm={searchTerm}
                 onSelectMap={onSelectMap}
-                onOpenMapData={onOpenMapData}
                 onFinishRename={onFinishRename}
                 onCancelRename={onCancelRename}
                 onEditingTitleChange={onEditingTitleChange}
@@ -176,7 +173,6 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({
                   editingTitle={editingTitle}
                   searchTerm={searchTerm}
                   onSelectMap={onSelectMap}
-                  onOpenMapData={onOpenMapData}
                   onFinishRename={onFinishRename}
                   onCancelRename={onCancelRename}
                   onEditingTitleChange={onEditingTitleChange}
