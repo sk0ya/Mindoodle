@@ -1713,6 +1713,39 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           availableMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
           currentMapData={data}
           onLoadMapData={loadMapData}
+          loadExplorerTree={async () => {
+            const adapter: any = persistenceHook.storageAdapter as any;
+            if (adapter && typeof adapter.getExplorerTree === 'function') {
+              try { return await adapter.getExplorerTree(); } catch { return null; }
+            }
+            return null;
+          }}
+          onSaveFileLink={(filePath: string, label: string) => {
+            try {
+              // Append to current context node's note
+              const destId = linkModalNodeId;
+              const destNode = findNodeById(data.rootNode, destId);
+              if (!destNode) return;
+              // Build relative path from current map directory to filePath
+              const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0? id.slice(0,i) : ''; };
+              const fromDir = dirOf(data.id);
+              const fromSegs = fromDir? fromDir.split('/') : [];
+              const toSegs = filePath.split('/');
+              let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
+              const up = new Array(fromSegs.length - i).fill('..');
+              const down = toSegs.slice(i);
+              const rel = [...up, ...down].join('/');
+              const href = rel || filePath; // fallback
+              const currentNote = destNode.note || '';
+              const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
+              const appended = `${currentNote}${prefix}[${label}](${href})\n`;
+              store.updateNode(destId, { note: appended });
+              showNotification('success', 'ノートにファイルリンクを追加しました');
+            } catch (e) {
+              logger.error('Failed to append file link:', e);
+              showNotification('error', 'ファイルリンクの追加に失敗しました');
+            }
+          }}
         />
       )}
 

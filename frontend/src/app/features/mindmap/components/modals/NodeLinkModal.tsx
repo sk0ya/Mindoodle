@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
+import type { ExplorerItem } from '../../../../core/storage/types';
 import { computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
 
 interface MapOption {
@@ -26,6 +27,8 @@ interface NodeLinkModalProps {
   availableMaps?: MapOption[];
   currentMapData?: MindMapData;
   onLoadMapData?: (mapId: string) => Promise<MindMapData | null>;
+  loadExplorerTree?: () => Promise<ExplorerItem | null>;
+  onSaveFileLink?: (href: string, label: string) => void;
 }
 
 const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
@@ -39,11 +42,16 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   currentMapData,
   onLoadMapData
 }) => {
+  const [mode, setMode] = useState<'markdown' | 'files'>('markdown');
   const [selectedMapId, setSelectedMapId] = useState('');
   const [mapQuery, setMapQuery] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState('');
   const [loadedMapData, setLoadedMapData] = useState<MindMapData | null>(null);
   const [isLoadingMapData, setIsLoadingMapData] = useState(false);
+  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const [fileQuery, setFileQuery] = useState('');
+  const [fileList, setFileList] = useState<string[]>([]);
+  const [selectedFilePath, setSelectedFilePath] = useState('');
   
   // ノード一覧を生成するヘルパー関数
   const flattenNodes = useCallback((rootNode: MindMapNode, mapId?: string): NodeOption[] => {
@@ -108,6 +116,34 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     }
   }, [link, isOpen]);
 
+  // ファイル一覧の読み込み（モード切替で遅延ロード）
+  useEffect(() => {
+    if (mode !== 'files' || !loadExplorerTree) return;
+    let cancelled = false;
+    const run = async () => {
+      try {
+        setIsLoadingFiles(true);
+        const tree = await loadExplorerTree();
+        if (cancelled || !tree) { setFileList([]); return; }
+        const files: string[] = [];
+        const walk = (item: ExplorerItem) => {
+          if (item.type === 'file') {
+            // マークダウン以外のみ
+            if (!item.isMarkdown) files.push(item.path);
+          } else if (item.children) {
+            item.children.forEach(walk);
+          }
+        };
+        walk(tree);
+        setFileList(files.sort((a,b)=>a.localeCompare(b,'ja')));
+      } finally {
+        if (!cancelled) setIsLoadingFiles(false);
+      }
+    };
+    run();
+    return () => { cancelled = true; };
+  }, [mode, loadExplorerTree]);
+
   // マップが変更された時にノード選択をリセットし、データを読み込み
   useEffect(() => {
     setSelectedNodeId('');
@@ -134,22 +170,25 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   }, [selectedMapId, currentMapData?.id, onLoadMapData]);
 
   const handleSave = useCallback(() => {
-    // マップが選択されていない場合は保存しない
-    if (!selectedMapId) {
+    if (mode === 'markdown') {
+      if (!selectedMapId) return; // 必須
+      const linkData: Partial<NodeLink> = {
+        ...(link?.id && { id: link.id }),
+        targetMapId: selectedMapId,
+        targetNodeId: selectedNodeId || undefined,
+        createdAt: link?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      onSave(linkData);
+      onClose();
       return;
     }
-
-    const linkData: Partial<NodeLink> = {
-      ...(link?.id && { id: link.id }),
-      targetMapId: selectedMapId,
-      targetNodeId: selectedNodeId || undefined,
-      createdAt: link?.createdAt || new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    onSave(linkData);
+    // files mode
+    if (!selectedFilePath || !onSaveFileLink) return;
+    const label = selectedFilePath.split('/').pop() || selectedFilePath;
+    onSaveFileLink(selectedFilePath, label);
     onClose();
-  }, [selectedMapId, selectedNodeId, link, onSave, onClose]);
+  }, [mode, selectedMapId, selectedNodeId, link, onSave, onClose, selectedFilePath, onSaveFileLink]);
 
   const handleDelete = useCallback(() => {
     if (link?.id && onDelete) {
@@ -196,6 +235,24 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         </div>
 
         <div className="modal-body">
+          <div className="mode-toggle" role="tablist" aria-label="リンク対象の種類">
+            <button
+              type="button"
+              className={`mode-tab ${mode==='markdown'?'active':''}`}
+              onClick={() => setMode('markdown')}
+            >
+              Markdown（マップ）
+            </button>
+            <button
+              type="button"
+              className={`mode-tab ${mode==='files'?'active':''}`}
+              onClick={() => setMode('files')}
+            >
+              ファイル
+            </button>
+          </div>
+
+          {mode === 'markdown' && (
           <div className="form-group">
             <label htmlFor="target-map">リンク先のマップ</label>
             <input
@@ -221,7 +278,9 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
               パス（フォルダ/ファイル）で表示しています
             </small>
           </div>
+          )}
 
+          {mode === 'markdown' && (
           <div className="form-group">
             <label htmlFor="target-node">リンク先のノード</label>
             <select
@@ -248,6 +307,37 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
               }
             </small>
           </div>
+          )}
+
+          {mode === 'files' && (
+            <>
+              <div className="form-group">
+                <label>ファイルを選択</label>
+                <input
+                  type="text"
+                  placeholder="検索（パス/ファイル名）"
+                  value={fileQuery}
+                  onChange={(e) => setFileQuery(e.target.value)}
+                  style={{ marginBottom: '8px' }}
+                />
+                <select
+                  value={selectedFilePath}
+                  onChange={(e) => setSelectedFilePath(e.target.value)}
+                  disabled={isLoadingFiles}
+                >
+                  <option value="">-- ファイルを選択 --</option>
+                  {fileList
+                    .filter(p => p.toLowerCase().includes(fileQuery.trim().toLowerCase()))
+                    .map(p => (
+                      <option key={p} value={p}>{p}</option>
+                    ))}
+                </select>
+                <small className="field-help">
+                  マークダウン以外のファイルのみ表示しています
+                </small>
+              </div>
+            </>
+          )}
 
           <div className="current-node-info">
             <p>
@@ -277,7 +367,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
             <button
               className="btn btn-primary"
               onClick={handleSave}
-              disabled={!selectedMapId}
+              disabled={mode==='markdown' ? !selectedMapId : !selectedFilePath}
             >
               {link ? '更新' : '作成'}
             </button>
@@ -345,6 +435,24 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
 
         .modal-body {
           padding: 20px 24px;
+        }
+
+        .mode-toggle {
+          display: flex;
+          gap: 8px;
+          margin-bottom: 12px;
+        }
+        .mode-tab {
+          padding: 6px 10px;
+          border: 1px solid #d1d5db;
+          background: #fff;
+          border-radius: 6px;
+          cursor: pointer;
+        }
+        .mode-tab.active {
+          background: #3b82f6;
+          border-color: #3b82f6;
+          color: #fff;
         }
 
         .form-group {
