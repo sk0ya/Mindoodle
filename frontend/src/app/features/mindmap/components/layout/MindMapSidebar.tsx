@@ -84,6 +84,25 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   });
   const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
 
+  // Sync explorer selection highlight with the app's current map selection
+  useEffect(() => {
+    if (!explorerTree || !currentMapId) return;
+    // DFS to find the file path that corresponds to currentMapId (path without .md)
+    const targetId = currentMapId;
+    const stack: ExplorerItem[] = [explorerTree];
+    while (stack.length) {
+      const item = stack.pop()!;
+      if (item.type === 'file' && item.isMarkdown && item.path) {
+        const id = item.path.replace(/\.md$/i, '');
+        if (id === targetId) {
+          setExplorerSelectedPath(item.path);
+          return;
+        }
+      }
+      (item.children || []).forEach(child => stack.push(child));
+    }
+  }, [explorerTree, currentMapId]);
+
   // イベントハンドラー
   const handleStartRename = useCallback((mapId: string, currentTitle: string) => {
     setEditingMapId(mapId);
