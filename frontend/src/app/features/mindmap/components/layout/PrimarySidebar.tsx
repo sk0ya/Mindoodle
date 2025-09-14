@@ -5,7 +5,6 @@ import AISidebar from './AISidebar';
 import ImportSidebar from './ImportSidebar';
 import ExportSidebar from './ExportSidebar';
 import SearchSidebar from './SearchSidebar';
-import AttachmentsSidebar from './AttachmentsSidebar';
 import type { MindMapData } from '../../../../shared/types';
 import type { ExplorerItem } from '../../../../core/storage/types';
 import './PrimarySidebar.css';
@@ -24,8 +23,8 @@ interface PrimarySidebarProps {
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
   availableCategories?: string[];
   // Settings props
-  storageMode?: 'local' | 'cloud';
-  onStorageModeChange?: (mode: 'local' | 'cloud') => void;
+  storageMode?: 'local' | 'cloud' | 'markdown';
+  onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
   onExport?: () => void;
@@ -108,8 +107,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
           />
         );
       
-      case 'attachments':
-        return <AttachmentsSidebar isVisible={true} />;
+      // attachments view removed
       
       case 'import':
         return <ImportSidebar onImport={onImport} />;

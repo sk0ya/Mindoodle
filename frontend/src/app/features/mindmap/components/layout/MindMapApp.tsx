@@ -399,14 +399,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       let nextNodeId: string | null = null;
       
       switch (direction) {
-        case 'left': // h - Move to parent node
+        case 'left': { // h - Move to parent node
           const parent = findParentNode(data.rootNode, selectedNodeId);
           if (parent) {
             nextNodeId = parent.id;
           }
           break;
-          
-        case 'right': // l - Move to first child (expand if collapsed)
+        }
+        case 'right': { // l - Move to first child (expand if collapsed)
           const firstChild = getFirstVisibleChild(currentNode);
           if (firstChild) {
             nextNodeId = firstChild.id;
@@ -416,9 +416,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             nextNodeId = currentNode.children[0].id;
           }
           break;
-          
+        }
         case 'up': // k - Move to previous sibling
-        case 'down': // j - Move to next sibling
+        case 'down': { // j - Move to next sibling
           const { siblings, currentIndex } = getSiblingNodes(data.rootNode, selectedNodeId);
           if (siblings.length > 1 && currentIndex !== -1) {
             let targetIndex = -1;
@@ -432,6 +432,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             }
           }
           break;
+        }
       }
       
       // Fallback to spatial navigation if hierarchical navigation doesn't work
@@ -1058,7 +1059,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         if (oldPath && newName && typeof (mindMap as any).renameItem === 'function') {
           void (mindMap as any).renameItem(oldPath, newName).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-          }).catch(err => console.error('Rename failed:', err));
+          }).catch((err: unknown) => console.error('Rename failed:', err));
         }
       } catch (err) {
         console.error('Rename handler failed:', err);
@@ -1070,7 +1071,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         if (path && typeof (mindMap as any).deleteItem === 'function') {
           void (mindMap as any).deleteItem(path).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-          }).catch(err => console.error('Delete failed:', err));
+          }).catch((err: unknown) => console.error('Delete failed:', err));
         }
       } catch (err) {
         console.error('Delete handler failed:', err);
@@ -1093,7 +1094,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
           void (mindMap as any).moveItem(src, dst).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-          }).catch(err => console.error('Move failed:', err));
+          }).catch((err: unknown) => console.error('Move failed:', err));
         }
       } catch (err) {
         console.error('Move handler failed:', err);
@@ -1494,12 +1495,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onDeleteNode={deleteNode}
               onRightClick={handleRightClick}
               onToggleCollapse={toggleNodeCollapse}
-              onFileUpload={(nodeId, files) => {
-                if (files.length > 0) {
-                  handleFileUpload(nodeId, files[0]);
-                }
-              }}
-              onRemoveFile={handleFileDelete}
               onShowImageModal={showImageModal}
               onShowFileActionMenu={(file, _nodeId, position) => showFileActionMenu(file, position)}
               onShowLinkActionMenu={handleShowLinkActionMenu}
@@ -1675,11 +1670,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             store.showCustomization({ x: contextMenu.position.x, y: contextMenu.position.y });
             handleContextMenuClose();
           }}
-          onFileUpload={(nodeId, files) => {
-            if (files.length > 0) {
-              handleFileUpload(nodeId, files[0]);
-            }
-          }}
+          // onFileUpload removed (attachments not supported)
           onAddLink={(nodeId) => {
             setLinkModalNodeId(nodeId);
             setShowLinkModal(true);

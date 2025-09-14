@@ -22,8 +22,6 @@ interface MindMapCanvasProps {
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onNavigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
-  onFileUpload: (nodeId: string, files: FileList) => void;
-  onRemoveFile: (nodeId: string, fileId: string) => void;
   onShowImageModal: (file: FileAttachment) => void;
   onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
@@ -65,8 +63,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onDeleteNode,
     onRightClick,
     onToggleCollapse,
-    onFileUpload,
-    onRemoveFile,
     onShowImageModal,
     onShowFileActionMenu,
     onShowLinkActionMenu,
@@ -178,8 +174,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
       onDeleteNode={onDeleteNode}
       onRightClick={onRightClick}
       onToggleCollapse={onToggleCollapse}
-      onFileUpload={onFileUpload}
-      onRemoveFile={onRemoveFile}
       onShowImageModal={onShowImageModal}
       onShowFileActionMenu={onShowFileActionMenu}
       onShowLinkActionMenu={onShowLinkActionMenu}

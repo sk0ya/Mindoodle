@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
-import { Paperclip, Link } from 'lucide-react';
+import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { calculateIconLayout } from '../../../../shared/utils/nodeUtils';
 import type { MindMapNode } from '@shared/types';
@@ -128,7 +128,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     // 画像がある場合はテキストをノードの下部に表示
     const noteStr: string = (node as any)?.note || '';
     const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
-    const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages;
+    const hasImage = noteHasImages;
 
     // カスタム画像サイズを考慮し、なければノート内<img>のheight属性を参照
     const getActualImageHeight = () => {
@@ -151,7 +151,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     };
 
     const actualImageHeight = getActualImageHeight();
-    const hasAttachments = node.attachments && node.attachments.length > 0;
+    const hasAttachments = false; // attachments removed
     const hasLinks = node.links && node.links.length > 0;
     const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
     
@@ -186,59 +186,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           return (
             <g>
               {/* 添付ファイルアイコン */}
-              {hasAttachments && iconLayout.attachmentIcon && (
-                <g>
-                  {/* 背景バッジ */}
-                  <rect
-                    x={node.x + iconLayout.attachmentIcon.x}
-                    y={textY + iconLayout.attachmentIcon.y}
-                    width="32"
-                    height="16"
-                    fill="white"
-                    stroke="#ddd"
-                    strokeWidth="1"
-                    rx="8"
-                    ry="8"
-                    style={{ 
-                      filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1))',
-                      cursor: 'pointer'
-                    }}
-                    onClick={handleAttachmentClick}
-                  />
-                  
-                  {/* Lucide 添付ファイルアイコン */}
-                  <foreignObject
-                    x={node.x + iconLayout.attachmentIcon.x + 2}
-                    y={textY + iconLayout.attachmentIcon.y + 2}
-                    width="12"
-                    height="12"
-                    style={{ 
-                      pointerEvents: 'none', 
-                      userSelect: 'none'
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                      <Paperclip size={10} />
-                    </div>
-                  </foreignObject>
-                  
-                  {/* ファイル数 */}
-                  <text
-                    x={node.x + iconLayout.attachmentIcon.x + 26}
-                    y={textY + iconLayout.attachmentIcon.y + 11}
-                    textAnchor="end"
-                    fill="#333"
-                    fontSize="11px"
-                    fontWeight="600"
-                    style={{ 
-                      pointerEvents: 'none', 
-                      userSelect: 'none'
-                    }}
-                  >
-                    {node.attachments?.length || 0}
-                  </text>
-                </g>
-              )}
+              {/* attachments removed */}
 
               {/* リンクアイコン */}
               {hasLinks && iconLayout.linkIcon && (
@@ -304,7 +252,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   // 編集時も画像がある場合はテキストを下部に配置
   const noteStr2: string = (node as any)?.note || '';
   const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
-  const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages2;
+  const hasImage = noteHasImages2;
 
   const getActualImageHeight = () => {
     if (!hasImage) return 0;

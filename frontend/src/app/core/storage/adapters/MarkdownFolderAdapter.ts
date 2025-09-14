@@ -376,7 +376,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const iter = src.values?.() || src.entries?.();
     // @ts-ignore
     for await (const entry of iter) {
-      let kind: string, name: string, child: any;
+      let kind: string, name: string;
       if (Array.isArray(entry)) {
         name = entry[0];
         kind = entry[1].kind;

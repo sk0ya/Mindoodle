@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Palette, Copy, Clipboard, Paperclip, Link, Trash2, Clock } from 'lucide-react';
+import { Bot, Palette, Copy, Clipboard, Link, Trash2, Clock } from 'lucide-react';
 import { MindMapNode } from '../../../types';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 
@@ -25,7 +25,6 @@ interface MenuItemsProps {
   onCopy: (node: MindMapNode) => void;
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
-  onFileUpload?: (nodeId: string, files: FileList) => void;
   onAddLink?: (nodeId: string) => void;
   onClose: () => void;
 }
@@ -37,7 +36,6 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   onCopy,
   onPaste,
   onAIGenerate,
-  onFileUpload,
   onAddLink,
   onClose
 }) => {
@@ -86,25 +84,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       disabled: !store.ui?.clipboard
     },
     { type: 'separator' as const },
-    ...(onFileUpload ? [{
-      icon: <Paperclip size={16} />,
-      label: 'ファイル添付',
-      action: () => {
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = 'image/*,text/plain,application/pdf,application/json';
-        fileInput.addEventListener('change', (e) => {
-          const target = e.target as HTMLInputElement;
-          const files = target.files;
-          if (files && files.length > 0 && onFileUpload) {
-            onFileUpload(selectedNode.id, files);
-          }
-          target.value = '';
-        });
-        fileInput.click();
-        onClose();
-      }
-    }] : []),
+    // attachments removed
     ...(onAddLink ? [{
       icon: <Link size={16} />,
       label: 'リンク追加',

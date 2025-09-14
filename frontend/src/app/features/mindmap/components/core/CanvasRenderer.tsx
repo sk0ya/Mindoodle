@@ -1,7 +1,6 @@
 import React, { memo, useEffect } from 'react';
 import { CanvasConnections, CanvasDragGuide } from '.';
 import { Node } from '../..';
-import SelectedNodeAttachmentList from './SelectedNodeAttachmentList';
 import SelectedNodeLinkList from './SelectedNodeLinkList';
 import { calculateNodeSize } from '../../../../shared/utils/nodeUtils';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
@@ -42,8 +41,6 @@ interface CanvasRendererProps {
   onDeleteNode: (nodeId: string) => void;
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onFileUpload: (nodeId: string, files: FileList) => void;
-  onRemoveFile: (nodeId: string, fileId: string) => void;
   onShowImageModal: (file: FileAttachment) => void;
   onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
@@ -91,8 +88,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onDeleteNode,
   onRightClick,
   onToggleCollapse,
-  onFileUpload,
-  onRemoveFile,
   onShowImageModal,
   onShowFileActionMenu,
   onShowLinkActionMenu,
@@ -188,8 +183,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onRightClick={onRightClick}
                 editText={editText}
                 setEditText={setEditText}
-                onFileUpload={onFileUpload}
-                onRemoveFile={onRemoveFile}
                 onShowImageModal={onShowImageModal}
                 onShowFileActionMenu={onShowFileActionMenu}
                 onShowLinkActionMenu={onShowLinkActionMenu}
@@ -205,37 +198,9 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
             ))}
           </g>
 
-          {/* アイコンクリック時の一覧表示 */}
+          {/* アイコンクリック時の一覧表示（添付一覧は廃止） */}
           {(() => {
-            const { showAttachmentListForNode, showLinkListForNode } = useMindMapStore().ui;
-            
-            // 添付ファイル一覧の表示
-            if (showAttachmentListForNode) {
-              const targetNode = allNodes.find(node => node.id === showAttachmentListForNode);
-              if (targetNode) {
-                const nodeSize = calculateNodeSize(targetNode, editText, editingNodeId === targetNode.id, settings.fontSize);
-                return (
-                  <SelectedNodeAttachmentList
-                    key={`attachment-list-${showAttachmentListForNode}`}
-                    node={targetNode}
-                    isVisible={true}
-                    nodeWidth={nodeSize.width}
-                    nodeHeight={nodeSize.height}
-                    onFileClick={(file) => {
-                      onShowFileActionMenu(file, targetNode.id, { x: window.innerWidth / 2, y: window.innerHeight / 2 });
-                    }}
-                    onFileDoubleClick={(file) => {
-                      if (file.isImage) {
-                        onShowImageModal(file);
-                      }
-                    }}
-                    onFileContextMenu={(file, position) => {
-                      onShowFileActionMenu(file, targetNode.id, position);
-                    }}
-                  />
-                );
-              }
-            }
+            const { showLinkListForNode } = useMindMapStore().ui;
             
             // リンク一覧の表示
             if (showLinkListForNode) {

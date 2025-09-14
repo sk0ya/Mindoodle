@@ -12,8 +12,8 @@ interface MindMapHeaderProps {
   zoom: number;
   onZoomReset: () => void;
   onAutoLayout?: () => void;
-  storageMode?: 'local' | 'cloud';
-  onStorageModeChange?: (mode: 'local' | 'cloud') => void;
+  storageMode?: 'local' | 'cloud' | 'markdown';
+  onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onToggleNotesPanel?: () => void;
   showNotesPanel?: boolean;
   onToggleViewMode?: () => void;

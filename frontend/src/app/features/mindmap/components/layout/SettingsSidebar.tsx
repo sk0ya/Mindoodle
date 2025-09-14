@@ -5,8 +5,8 @@ import { useDataCleanup, type DataCleanupStats } from '../../../../core/hooks/us
 
 interface SettingsSidebarProps {
   // 既存のprops（後方互換性のため保持）
-  storageMode?: 'local' | 'cloud';
-  onStorageModeChange?: (mode: 'local' | 'cloud') => void;
+  storageMode?: 'local' | 'cloud' | 'markdown';
+  onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
   onSelectFolder?: () => Promise<void> | void;

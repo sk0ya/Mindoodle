@@ -9,6 +9,7 @@ interface StorageConfigChangeDependencies {
   isInitialized: boolean;
   loadInitialData: () => Promise<MindMapData>;
   refreshMapList: () => Promise<void>;
+  applyAutoLayout?: () => void;
 }
 
 /**

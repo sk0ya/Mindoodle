@@ -26,7 +26,8 @@ const CloudImage: React.FC<{
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
-}> = ({ file, style, onClick, onDoubleClick, onContextMenu }) => {
+  onImageInfo?: (info: { width: number; height: number }) => void;
+}> = ({ file, style, onClick, onDoubleClick, onContextMenu, onImageInfo }) => {
   const [imageUrl, setImageUrl] = useState<string>('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
@@ -174,8 +175,14 @@ const CloudImage: React.FC<{
         setError('Image load failed');
         setLoading(false);
       }}
-      onLoad={() => {
+      onLoad={(e) => {
         setError('');
+        const img = e.currentTarget as HTMLImageElement;
+        const w = img.naturalWidth || 0;
+        const h = img.naturalHeight || 0;
+        if (w > 0 && h > 0) {
+          onImageInfo?.({ width: w, height: h });
+        }
       }}
     />
   );
@@ -225,8 +232,9 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     createdAt: new Date().toISOString(),
     downloadUrl: u
   }));
-  const attachmentImages = (node.attachments || []).filter((f: FileAttachment) => f.isImage);
-  const imageFiles: FileAttachment[] = noteImageFiles.length > 0 ? noteImageFiles : attachmentImages;
+  // 添付画像は今後廃止: ノート内の画像のみ扱う
+  const imageFiles: FileAttachment[] = noteImageFiles;
+  const usingNoteImages = noteImageFiles.length > 0;
   const [imageIndex, setImageIndex] = useState(0);
   useEffect(() => { setImageIndex(0); }, [node.id]);
   const currentImage: FileAttachment | undefined = imageFiles[imageIndex];
@@ -255,6 +263,19 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const imageDimensions = node.customImageWidth && node.customImageHeight
     ? { width: node.customImageWidth, height: node.customImageHeight }
     : noteSize || { width: 150, height: 105 };
+
+  // 決定した画像サイズに基づき、一度だけ自動レイアウトを発火
+  const lastLayoutKeyRef = React.useRef<string | null>(null);
+  useEffect(() => {
+    if (!onAutoLayout) return;
+    const layoutKey = `${node.id}:${imageDimensions.width}x${imageDimensions.height}:${imageIndex}`;
+    if (lastLayoutKeyRef.current === layoutKey) return;
+    lastLayoutKeyRef.current = layoutKey;
+    // レンダリング直後のフレームでレイアウト
+    requestAnimationFrame(() => {
+      onAutoLayout();
+    });
+  }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, imageIndex]);
 
   // 画像リサイズハンドラー
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -437,6 +458,37 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     return <></>;
   }
 
+  // 表示中の画像に合わせてノードの画像サイズを更新
+  const handleImageLoadDimensions = useCallback((w: number, h: number) => {
+    if (!onUpdateNode) return;
+    if (w <= 0 || h <= 0) return;
+    // 表示中の画像に合わせて毎回ノードの表示サイズを更新（ノート/添付どちらも）
+    const minWidth = 50;
+    const maxWidth = 400;
+    const newWidth = Math.max(minWidth, Math.min(maxWidth, w));
+    const ratio = w > 0 ? h / w : 1;
+    const newHeight = Math.max(Math.round(newWidth * ratio), Math.round(minWidth * ratio));
+    if (node.customImageWidth !== Math.round(newWidth) || node.customImageHeight !== newHeight) {
+      onUpdateNode(node.id, { customImageWidth: Math.round(newWidth), customImageHeight: newHeight });
+    }
+  }, [node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
+
+  // ノート画像の場合、現在の画像のサイズ指定があれば先に反映（ロード完了前にレイアウトを安定させる）
+  useEffect(() => {
+    if (!onUpdateNode) return;
+    if (!usingNoteImages || !currentImage?.downloadUrl) return;
+    const sz = parseNoteImageSize(node.note, currentImage.downloadUrl);
+    if (sz) {
+      const minWidth = 50;
+      const maxWidth = 400;
+      const w = Math.max(minWidth, Math.min(maxWidth, sz.width));
+      const h = Math.round(w * (sz.height / Math.max(1, sz.width)));
+      if (node.customImageWidth !== w || node.customImageHeight !== h) {
+        onUpdateNode(node.id, { customImageWidth: w, customImageHeight: h });
+      }
+    }
+  }, [usingNoteImages, currentImage?.downloadUrl, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
+
   return (
     <>
       {/* ノートまたは添付の画像を表示（切替可能） */}
@@ -488,6 +540,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
                   onClick={(e) => handleImageClick(e, currentImage)}
                   onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
                   onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
+                  onImageInfo={({ width, height }) => handleImageLoadDimensions(width, height)}
                 />
               ) : (
                 <img 
@@ -508,7 +561,14 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
                   onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
                   onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
                   onError={() => {}}
-                  onLoad={() => {}}
+                  onLoad={(e) => {
+                    const img = e.currentTarget as HTMLImageElement;
+                    const w = img.naturalWidth || 0;
+                    const h = img.naturalHeight || 0;
+                    if (w > 0 && h > 0) {
+                      handleImageLoadDimensions(w, h);
+                    }
+                  }}
                 />
               )}
 

@@ -175,10 +175,10 @@ export function calculateNodeSize(
   globalFontSize?: number
 ): NodeSize {
   // 画像の有無とサイズを確認（添付 or ノート埋め込み画像）
-  const hasAttachmentImages = node.attachments && node.attachments.some((file: FileAttachment) => file.isImage);
+  // 添付画像は廃止。ノート内画像のみ検出
   const noteStr: string = (node as any)?.note || '';
   const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
-  const hasImages = !!hasAttachmentImages || !!hasNoteImages;
+  const hasImages = !!hasNoteImages;
   
   let imageHeight = 0;
   let imageWidth = 0;
@@ -242,7 +242,7 @@ export function calculateNodeSize(
   }
   
   // アイコンレイアウトに必要な最小幅を計算
-  const hasAttachments = node.attachments && node.attachments.length > 0;
+  const hasAttachments = false; // 添付画像UIは無効化方向
   const hasLinks = node.links && node.links.length > 0;
   const ICON_WIDTH = 32;
   const ICON_SPACING = 6;

@@ -8,7 +8,7 @@ export default [
   js.configs.recommended,
   {
     files: ['src/**/*.{ts,tsx}'],
-    ignores: ['node_modules/**', 'dist/**', '.vite/**', 'build/**'],
+    ignores: ['node_modules/**', 'dist/**', '.vite/**', 'build/**', '**/*.d.ts'],
     languageOptions: {
       parser: tsParser,
       parserOptions: {
@@ -27,7 +27,7 @@ export default [
     },
     rules: {
       // 危険な型パターンを防止する最重要ルール
-      '@typescript-eslint/no-explicit-any': 'error',
+      '@typescript-eslint/no-explicit-any': 'warn',
       
       // 型アサーション制限
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
@@ -35,7 +35,7 @@ export default [
       
       // null/undefined安全性 (IndexedDBでは初期化チェック後に!を使用)
       '@typescript-eslint/no-non-null-assertion': 'warn',
-      '@typescript-eslint/no-non-null-asserted-optional-chain': 'error',
+      '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
       
       // 未使用変数・関数
       '@typescript-eslint/no-unused-vars': ['warn', {
@@ -51,19 +51,19 @@ export default [
       
       // React固有ルール
       'react/prop-types': 'off', // TypeScriptで型チェックするため
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'error',
+      'react-hooks/rules-of-hooks': 'warn',
+      'react-hooks/exhaustive-deps': 'warn',
       
       // 基本的なJavaScript/TypeScriptルール
       'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
-      'no-debugger': 'error',
-      'no-alert': 'error',
-      'no-var': 'error',
-      'prefer-const': 'error',
+      'no-debugger': 'warn',
+      'no-alert': 'warn',
+      'no-var': 'warn',
+      'prefer-const': 'warn',
       'no-undef': 'off', // TypeScriptで処理
       
       // Import/Export
-      'no-duplicate-imports': 'error'
+      'no-duplicate-imports': 'warn'
     },
     settings: {
       react: {

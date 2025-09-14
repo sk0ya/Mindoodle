@@ -17,7 +17,6 @@ interface ContextMenuProps {
   onCopy: (node: MindMapNode) => void;
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
-  onFileUpload?: (nodeId: string, files: FileList) => void;
   onAddLink?: (nodeId: string) => void;
   onClose: () => void;
 }
@@ -31,7 +30,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onCopy,
   onPaste,
   onAIGenerate,
-  onFileUpload,
   onAddLink,
   onClose
 }) => {
@@ -89,7 +87,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         onCopy={onCopy}
         onPaste={onPaste}
         onAIGenerate={onAIGenerate}
-        onFileUpload={onFileUpload}
         onAddLink={onAddLink}
         onClose={onClose}
       />

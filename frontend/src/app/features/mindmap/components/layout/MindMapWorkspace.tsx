@@ -19,8 +19,6 @@ interface MindMapWorkspaceProps {
   onDeleteNode: (nodeId: string) => void;
   onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onFileUpload: (nodeId: string, files: FileList) => void;
-  onRemoveFile: (nodeId: string, fileId: string) => void;
   onShowImageModal: (file: FileAttachment) => void;
   onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
@@ -61,8 +59,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onDeleteNode,
   onRightClick,
   onToggleCollapse,
-  onFileUpload,
-  onRemoveFile,
   onShowImageModal,
   onShowFileActionMenu,
   onShowLinkActionMenu,
@@ -99,8 +95,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onRightClick={onRightClick}
         onToggleCollapse={onToggleCollapse}
         onNavigateToDirection={(_direction: 'up' | 'down' | 'left' | 'right') => {}}
-        onFileUpload={onFileUpload}
-        onRemoveFile={onRemoveFile}
         onShowImageModal={onShowImageModal}
         onShowFileActionMenu={onShowFileActionMenu}
         onShowLinkActionMenu={onShowLinkActionMenu}
