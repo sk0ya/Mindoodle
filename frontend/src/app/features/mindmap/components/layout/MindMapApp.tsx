@@ -210,7 +210,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // フォルダ移動用の一括カテゴリ更新関数
   const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{id: string, category: string}>) => {
-    console.log('Updating multiple map categories:', mapUpdates);
+    logger.debug('Updating multiple map categories:', mapUpdates);
     
     if (mapUpdates.length === 0) return;
     
@@ -227,7 +227,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         };
       }).filter(Boolean);
       
-      console.log(`Batch updating ${updatedMaps.length} maps`);
+      logger.debug(`Batch updating ${updatedMaps.length} maps`);
       
       // 各マップを並列更新（非同期処理を並列実行）
       await Promise.all(
@@ -1060,7 +1060,24 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }}
         fileOperations={{
           onFileDownload: downloadFile,
-          onFileRename: () => {},
+          onFileRename: async (fileId: string, newName: string) => {
+            try {
+              if (!data) return;
+              const nodeId = ui.selectedFile?.nodeId || selectedNodeId;
+              if (!nodeId) return;
+              const node = findNodeById(data.rootNode, nodeId);
+              if (!node || !node.attachments) return;
+              const updated = {
+                ...node,
+                attachments: node.attachments.map(f => f.id === fileId ? { ...f, name: newName } : f)
+              };
+              updateNode(nodeId, updated);
+              showNotification('success', 'ファイル名を変更しました');
+            } catch (e) {
+              logger.error('Rename failed:', e);
+              showNotification('error', 'ファイル名の変更に失敗しました');
+            }
+          },
           onFileDelete: (fileId: string) => {
             // selectedFileとselectedNodeIdから適切なnodeIdを取得する必要があります
             if (ui.selectedFile && ui.selectedFile.nodeId) {
