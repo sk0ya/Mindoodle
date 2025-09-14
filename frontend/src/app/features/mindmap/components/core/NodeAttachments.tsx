@@ -237,6 +237,19 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const usingNoteImages = noteImageFiles.length > 0;
   const [imageIndex, setImageIndex] = useState(0);
   useEffect(() => { setImageIndex(0); }, [node.id]);
+  // ノート内の画像出現数が変動した際に、選択インデックスを安全に補正
+  useEffect(() => {
+    const len = imageFiles.length;
+    // 画像が無ければインデックスを0へ
+    if (len === 0) {
+      if (imageIndex !== 0) setImageIndex(0);
+      return;
+    }
+    // 範囲外になった場合は末尾にクランプ
+    if (imageIndex >= len) {
+      setImageIndex(len - 1);
+    }
+  }, [imageFiles.length]);
   const currentImage: FileAttachment | undefined = imageFiles[imageIndex];
 
   // ノート本文から画像の出現順序でエントリ一覧を抽出
@@ -471,11 +484,6 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const imageY = node.y - nodeHeight / 2 + 4;
   const imageX = node.x - imageDimensions.width / 2;
 
-  // 画像がない場合は何も描画しない
-  if (!currentImage) {
-    return <></>;
-  }
-
   // 表示中の画像に合わせてノードの画像サイズを更新
   const handleImageLoadDimensions = useCallback((w: number, h: number) => {
     if (!onUpdateNode) return;
@@ -510,6 +518,11 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
 
   // ホバー状態でコントロール表示
   const [isHovered, setIsHovered] = useState(false);
+
+  // 画像がない場合は何も描画しない（フック定義の後で判定し、Hooks規約を満たす）
+  if (!currentImage) {
+    return <></>;
+  }
 
   return (
     <>
