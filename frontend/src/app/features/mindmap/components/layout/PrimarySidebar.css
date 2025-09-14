@@ -43,7 +43,8 @@
   position: static !important;
   left: auto !important;
   top: auto !important;
-  z-index: auto !important;
+  z-index: 2000 !important;
+  pointer-events: auto !important;
   box-shadow: none !important;
 }
 
@@ -55,6 +56,7 @@
 
 .primary-sidebar .maps-content-wrapper {
   background: none !important;
+  pointer-events: auto !important;
 }
 
 .primary-sidebar .sidebar-title {

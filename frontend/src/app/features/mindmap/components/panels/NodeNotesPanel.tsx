@@ -54,26 +54,28 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     }
   }, [selectedNode]);
 
-  // Load map markdown when switching to map tab or when map changes
+  // Load map markdown only when switching to map tab and map changes, not while editing
+  const lastLoadedMapIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (tab === 'map-md' && currentMapId && getMapMarkdown) {
-      setLoadingMapMd(true);
-      getMapMarkdown(currentMapId)
-        .then(text => {
-          setMapMarkdown(text || '');
-          setMapMarkdownDirty(false);
-        })
-        .catch(error => {
-          console.error('Failed to load map markdown:', error);
-          setMapMarkdown('');
-        })
-        .finally(() => {
-          setLoadingMapMd(false);
-        });
-    } else if (tab === 'map-md') {
-      setMapMarkdown('');
-    }
-  }, [tab, currentMapId, getMapMarkdown]);
+    if (tab !== 'map-md') return;
+    if (!currentMapId || !getMapMarkdown) return;
+    if (mapMarkdownDirty) return; // do not overwrite local edits
+    if (lastLoadedMapIdRef.current === currentMapId) return;
+    setLoadingMapMd(true);
+    getMapMarkdown(currentMapId)
+      .then(text => {
+        setMapMarkdown(text || '');
+        setMapMarkdownDirty(false);
+        lastLoadedMapIdRef.current = currentMapId;
+      })
+      .catch(error => {
+        console.error('Failed to load map markdown:', error);
+        setMapMarkdown('');
+      })
+      .finally(() => {
+        setLoadingMapMd(false);
+      });
+  }, [tab, currentMapId]);
 
   // Handle note changes
   const handleNoteChange = useCallback((value: string) => {
