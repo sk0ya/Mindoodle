@@ -1,8 +1,7 @@
-import type { MindMapData } from '@shared/types';
+import type { MindMapData, MindMapNode } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
 import { MarkdownImporter } from '../../../shared/utils/markdownImporter';
-import { exportToMarkdown } from '../../../shared/utils/exportUtils';
 import { createInitialData } from '../../../shared/types/dataTypes';
 
 type DirHandle = any; // File System Access API types (browser only)
@@ -111,11 +110,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
 
     const target = this.saveTargets.get(data.id);
-    const markdown = exportToMarkdown(data, { 
-      includeMetadata: false,
-      baseHeadingLevel: target?.baseHeadingLevel || 1,
-      headingLevelByText: target?.headingLevelByText
-    });
+    const baseLevel = target?.baseHeadingLevel || 1;
+    const markdown = this.buildMarkdownDocument(data, baseLevel);
 
     // If this map has a known save target (loaded from a specific file), write back to it
     if (target) {
@@ -177,6 +173,24 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
     }
     return maps;
+  }
+
+  // Minimal Markdown exporter (replaces exportUtils usage)
+  private buildMarkdownDocument(data: MindMapData, baseLevel: number): string {
+    const lines: string[] = [];
+    const walk = (node: MindMapNode, level: number) => {
+      const h = '#'.repeat(Math.min(level, 6));
+      const title = (node.text || '').trim() || 'Untitled';
+      lines.push(`${h} ${title}`);
+      if (node.note && node.note.trim()) {
+        lines.push(node.note.trim());
+      }
+      if (node.children && node.children.length) {
+        node.children.forEach(child => walk(child, level + 1));
+      }
+    };
+    walk(data.rootNode, Math.max(1, baseLevel));
+    return lines.join('\n') + '\n';
   }
 
   async saveAllMaps(maps: MindMapData[]): Promise<void> {

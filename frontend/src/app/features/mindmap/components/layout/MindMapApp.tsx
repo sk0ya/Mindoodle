@@ -394,7 +394,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   };
 
-  // インポート/エクスポートのサイドバーは撤去（モーダル経由は継続）
+  // インポート/エクスポート機能は削除済み
 
   // Listen to explorer selection events
   React.useEffect(() => {
