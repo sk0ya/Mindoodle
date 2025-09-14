@@ -1080,7 +1080,21 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       }
     };
     window.addEventListener('mindoodle:selectMapById', handler as EventListener);
-    return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
+    // Global click fallback: capture clicks on elements with data-map-id
+    const clickFallback = (evt: MouseEvent) => {
+      const el = evt.target as HTMLElement | null;
+      if (!el) return;
+      const target = el.closest('[data-map-id]') as HTMLElement | null;
+      const mapId = target?.getAttribute('data-map-id');
+      if (mapId) {
+        try { selectMapById(mapId); } catch {}
+      }
+    };
+    document.addEventListener('click', clickFallback, true);
+    return () => {
+      window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
+      document.removeEventListener('click', clickFallback, true);
+    };
   }, [selectMapById]);
 
   // Refresh explorer/map list only on focus/visibility/custom event (no polling)
@@ -1567,6 +1581,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         mindMaps={allMindMaps}
         currentMapId={currentMapId}
         onSelectMap={(mapId) => { selectMapById(mapId); }}
+        onOpenMapData={(mapData) => { actionsHook.selectMap(mapData as any); }}
         onCreateMap={createAndSelectMap}
         onDeleteMap={deleteMap}
         onRenameMap={(mapId, title) => updateMapMetadata(mapId, { title })}
