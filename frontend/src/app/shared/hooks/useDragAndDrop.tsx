@@ -44,8 +44,10 @@ export const useDragAndDrop = ({
   const handleDragStart = useCallback((e: React.DragEvent, map: MindMapData) => {
     setDraggedMap(map);
     setDraggedFolder(null); // フォルダドラッグをクリア
-    e.dataTransfer.effectAllowed = 'move';
+    // Allow copy/link drops on targets
+    e.dataTransfer.effectAllowed = 'copyLink';
     e.dataTransfer.setData('text/map-id', map.id);
+    e.dataTransfer.setData('text/map-title', map.title || '');
     logger.debug('Map drag started:', map.title, 'category:', map.category);
   }, []);
 

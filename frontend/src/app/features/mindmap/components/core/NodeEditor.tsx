@@ -33,7 +33,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   blurTimeoutRef,
   isSelected = false,
   onSelectNode,
-  onToggleAttachmentList,
+  onToggleAttachmentList: _onToggleAttachmentList,
   onToggleLinkList
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -56,21 +56,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }, [isSelected, onSelectNode, onToggleLinkList, node.id]);
 
 
-  // 添付ファイルアイコンクリック時の処理
-  const handleAttachmentClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    
-    // ノードが選択されていない場合は選択してから添付ファイル一覧を表示
-    if (!isSelected && onSelectNode) {
-      onSelectNode(node.id);
-    }
-    
-    // 添付ファイル一覧をトグル（選択状態に関わらず）
-    if (onToggleAttachmentList) {
-      onToggleAttachmentList(node.id);
-    }
-  }, [isSelected, onSelectNode, onToggleAttachmentList, node.id]);
+  // 添付ファイルUIは無効化中（クリックハンドラ未使用）
 
   // 編集モードになった時に確実にフォーカスを設定
   useEffect(() => {
@@ -156,19 +142,24 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     // Derive links from note markdown (fallback to legacy node.links)
     const internalLinks = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNode) || [];
     const externalLinks = extractExternalLinksFromMarkdown(node.note) || [];
-    const legacyLinks = node.links && node.links.length > 0 ? node.links : [];
-    const hasAnyMarkdownLinks = internalLinks.length + externalLinks.length > 0;
-    const allLinks = hasAnyMarkdownLinks ? [...internalLinks, ...legacyLinks.slice(0,0), /* ignore legacy if md exists */] : legacyLinks;
-    const hasLinks = allLinks.length > 0;
+    const hasAnyMarkdownLinks = (internalLinks.length + externalLinks.length) > 0;
+    const hasLinks = hasAnyMarkdownLinks;
     const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
     
     // アイコンレイアウトを計算してテキスト位置を調整
     const iconLayout = calculateIconLayout(node, nodeWidth);
+    // リンクアイコンの分だけテキストを少し左に寄せる（中央基準の見た目ずれ回避）
+    const TEXT_ICON_SPACING = 6; // nodeUtilsと整合
+    const RIGHT_MARGIN = 2;
+    const iconBlockWidth = hasLinks && iconLayout.totalWidth > 0
+      ? iconLayout.totalWidth + TEXT_ICON_SPACING + RIGHT_MARGIN
+      : 0;
+    const textX = node.x - iconBlockWidth / 2;
     
     return (
       <>
         <text
-          x={node.x}
+          x={textX}
           y={textY}
           textAnchor="middle"
           dominantBaseline="middle"
@@ -202,8 +193,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   <rect
                     x={node.x + iconLayout.linkIcon.x}
                     y={textY + iconLayout.linkIcon.y}
-                    width="32"
-                    height="16"
+                    width="22"
+                    height="14"
                     fill="white"
                     stroke="#ddd"
                     strokeWidth="1"
@@ -220,32 +211,32 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   <foreignObject
                     x={node.x + iconLayout.linkIcon.x + 2}
                     y={textY + iconLayout.linkIcon.y + 2}
-                    width="12"
-                    height="12"
+                    width="10"
+                    height="10"
                     style={{ 
                       pointerEvents: 'none', 
                       userSelect: 'none'
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666' }}>
-                      <Link size={10} />
+                      <Link size={9} />
                     </div>
                   </foreignObject>
                   
                   {/* リンク数 */}
                   <text
-                    x={node.x + iconLayout.linkIcon.x + 26}
-                    y={textY + iconLayout.linkIcon.y + 11}
+                    x={node.x + iconLayout.linkIcon.x + 20}
+                    y={textY + iconLayout.linkIcon.y + 10}
                     textAnchor="end"
                     fill="#333"
-                    fontSize="11px"
+                    fontSize="10px"
                     fontWeight="600"
                     style={{ 
                       pointerEvents: 'none', 
                       userSelect: 'none'
                     }}
                   >
-                    {hasAnyMarkdownLinks ? (internalLinks.length + externalLinks.length) : (legacyLinks.length)}
+                    {internalLinks.length + externalLinks.length}
                   </text>
                 </g>
               )}

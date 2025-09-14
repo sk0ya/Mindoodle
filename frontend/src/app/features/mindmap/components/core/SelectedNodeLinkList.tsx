@@ -61,50 +61,9 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     onLinkContextMenu(link, { x: e.clientX, y: e.clientY });
   }, [onLinkContextMenu]);
 
-  // リンク情報を取得するヘルパー関数
-  const getLinkDisplayInfo = useCallback((link: NodeLink) => {
-    if (!link.targetMapId) {
-      // 現在のマップ内のリンク
-      return {
-        mapTitle: '現在のマップ',
-        nodeText: link.targetNodeId ? getNodeText(currentMapData?.rootNode, link.targetNodeId) : 'ルートノード'
-      };
-    } else {
-      // 他のマップへのリンク
-      const targetMap = availableMaps.find(map => map.id === link.targetMapId);
-      const mapTitle = targetMap?.title || 'マップが見つかりません';
-      
-      // 他のマップのノードテキストも取得できるようになった
-      let nodeText = 'ルートノード';
-      if (link.targetNodeId) {
-        // 現在は他のマップのノードテキスト取得は制限されているので、汎用的な表示
-        nodeText = 'リンク先ノード';
-      }
-      
-      return {
-        mapTitle,
-        nodeText
-      };
-    }
-  }, [availableMaps, currentMapData]);
+  // 旧ヘルパーは未使用のため削除
 
-  // ノードテキストを取得するヘルパー関数
-  const getNodeText = (rootNode: any, nodeId: string): string => {
-    if (!rootNode) return 'ノードが見つかりません';
-    
-    const findNode = (node: any): string | null => {
-      if (node.id === nodeId) return node.text;
-      if (node.children) {
-        for (const child of node.children) {
-          const result = findNode(child);
-          if (result) return result;
-        }
-      }
-      return null;
-    };
-    
-    return findNode(rootNode) || 'ノードが見つかりません';
-  };
+  // 旧ノードテキストヘルパーは未使用のため削除
 
   // Derive links from markdown note; fallback to legacy node.links
   // Build combined list preserving appearance order
@@ -157,9 +116,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   }, [node.note, currentMapData?.id, currentMapData?.rootNode, availableMaps]);
 
   const hasMarkdownLinks = combined.length > 0;
-  const links: NodeLink[] = hasMarkdownLinks ? [] : (node.links || []);
 
-  if (!isVisible || (!hasMarkdownLinks && links.length === 0)) {
+  if (!isVisible || !hasMarkdownLinks) {
     return null;
   }
 
@@ -169,7 +127,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   const listWidth = Math.max(nodeWidth, 300); // 最小幅300px
   
   // 動的高さ計算（共通ユーティリティを使用）
-  const listHeight = calculateLinkListHeight({ itemCount: hasMarkdownLinks ? combined.length : links.length });
+  const listHeight = calculateLinkListHeight({ itemCount: combined.length });
 
   return (
     <foreignObject
@@ -200,7 +158,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
 
         {/* リンク一覧 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-          {(hasMarkdownLinks ? combined : links.map(l => ({ kind: 'legacy' as const, item: l, index: 0 }))).map((entry: any, idx: number) => {
+          {combined.map((entry: any, idx: number) => {
             const key = entry.kind === 'legacy' ? entry.item.id : `${entry.kind}-${idx}-${entry.index}`;
             const title = entry.kind === 'internal' ? entry.label
               : entry.kind === 'map' ? entry.label

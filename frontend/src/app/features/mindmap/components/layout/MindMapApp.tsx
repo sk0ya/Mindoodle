@@ -1714,11 +1714,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           currentMapData={data}
           onLoadMapData={loadMapData}
           loadExplorerTree={async () => {
-            const adapter: any = persistenceHook.storageAdapter as any;
-            if (adapter && typeof adapter.getExplorerTree === 'function') {
-              try { return await adapter.getExplorerTree(); } catch { return null; }
+            // Use explorerTree exposed via useMindMap hook if available
+            try {
+              const tree = (mindMap as any).explorerTree || null;
+              return tree;
+            } catch {
+              return null;
             }
-            return null;
           }}
           onSaveFileLink={(filePath: string, label: string) => {
             try {

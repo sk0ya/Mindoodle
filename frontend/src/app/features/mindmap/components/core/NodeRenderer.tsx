@@ -16,6 +16,8 @@ interface NodeRendererProps {
   onClick: (e: React.MouseEvent) => void;
   onDoubleClick: (e: React.MouseEvent) => void;
   onContextMenu: (e: React.MouseEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
 }
 
 const NodeRenderer: React.FC<NodeRendererProps> = ({
@@ -31,7 +33,9 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   onMouseDown,
   onClick,
   onDoubleClick,
-  onContextMenu
+  onContextMenu,
+  onDragOver,
+  onDrop
 }) => {
   const { settings } = useMindMapStore();
   
@@ -73,6 +77,8 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
         onClick={onClick}
         onDoubleClick={onDoubleClick}
         onContextMenu={onContextMenu}
+        onDragOver={onDragOver}
+        onDrop={onDrop}
       />
     </>
   );

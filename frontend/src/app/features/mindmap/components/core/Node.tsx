@@ -5,6 +5,7 @@ import NodeAttachments from './NodeAttachments';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX } from '../../../../shared/utils/nodeUtils';
 import type { MindMapNode, FileAttachment, NodeLink } from '@shared/types';
+import { useMindMapStore } from '../../../../core/store/mindMapStore';
 
 interface NodeProps {
   node: MindMapNode;
@@ -129,6 +130,59 @@ const Node: React.FC<NodeProps> = ({
     onStartEdit(node.id);
   }, [node.id, onStartEdit]);
 
+  // Sidebar -> node DnD: add map link on drop
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    // Accept map or explorer file drops
+    const types = e.dataTransfer.types;
+    if (types.includes('text/map-id') || types.includes('mindoodle/path')) {
+      e.preventDefault();
+      // Indicate a copy drop to match effectAllowed
+      e.dataTransfer.dropEffect = 'copy';
+    }
+  }, []);
+
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    if (!onUpdateNode) return;
+    const types = e.dataTransfer.types;
+    const isExplorerPath = types.includes('mindoodle/path');
+    const isMapId = types.includes('text/map-id');
+    if (!isExplorerPath && !isMapId) return;
+    e.preventDefault();
+    e.stopPropagation();
+
+    const path = isExplorerPath ? e.dataTransfer.getData('mindoodle/path') : '';
+    const mapId = isMapId ? e.dataTransfer.getData('text/map-id') : (path.endsWith('.md') ? path.replace(/\.md$/i, '') : '');
+    const mapTitle = isMapId
+      ? (e.dataTransfer.getData('text/map-title') || mapId.split('/').pop() || 'リンク')
+      : (path.split('/').pop() || 'リンク');
+
+    try {
+      // Compute relative path from current map to target map id
+      // Get current map id from store
+      const currentData: any = useMindMapStore.getState().data;
+      const currentMapId: string = currentData?.id || '';
+      const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0 ? id.slice(0,i) : ''; };
+      const fromDir = dirOf(currentMapId);
+      const fromSegs = fromDir ? fromDir.split('/') : [];
+      const toSegs = (isExplorerPath ? (path.endsWith('.md') ? path.replace(/\.md$/i,'') : path) : mapId).split('/');
+      let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
+      const up = new Array(fromSegs.length - i).fill('..');
+      const down = toSegs.slice(i);
+      const relPathNoExt = [...up, ...down].join('/');
+      const href = isExplorerPath
+        ? (path.endsWith('.md') ? `${relPathNoExt}.md` : relPathNoExt) // keep extension for non-md
+        : `${relPathNoExt}.md`;
+
+      const currentNote = (node as any).note || '';
+      const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
+      const appended = `${currentNote}${prefix}[${mapTitle}](${href})\n`;
+      onUpdateNode(node.id, { note: appended });
+      if (onAutoLayout) {
+        setTimeout(() => { onAutoLayout(); }, 0);
+      }
+    } catch {}
+  }, [node.id, onUpdateNode, onAutoLayout]);
+
   const handleRightClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -165,7 +219,11 @@ const Node: React.FC<NodeProps> = ({
         onClick={handleClick}
         onDoubleClick={handleDoubleClick}
         onContextMenu={handleRightClick}
+        onDragOver={handleDragOver}
+        onDrop={handleDrop}
       />
+
+      {/* Removed HTML overlay to avoid blocking clicks; rely on SVG rect handlers */}
       
       {/* 2. 添付ファイル（画像とアイコン） */}
       <NodeAttachments
@@ -220,6 +278,7 @@ export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
   // ノードの基本情報が変わった場合は再レンダリング
   if (prevProps.node.id !== nextProps.node.id ||
       prevProps.node.text !== nextProps.node.text ||
+      (prevProps.node as any).note !== (nextProps.node as any).note ||
       prevProps.node.x !== nextProps.node.x ||
       prevProps.node.y !== nextProps.node.y ||
       prevProps.node.fontSize !== nextProps.node.fontSize ||

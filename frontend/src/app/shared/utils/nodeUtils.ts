@@ -1,7 +1,7 @@
-import type { MindMapNode, FileAttachment } from '@shared/types';
+import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '../../core/data/normalizedStore';
 import { COLORS } from '../constants';
-import { extractInternalNodeLinksFromMarkdown, hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from './markdownLinkUtils';
+import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from './markdownLinkUtils';
 
 // アイコンレイアウト情報
 interface IconLayout {
@@ -130,13 +130,13 @@ function calculateTextWidthFallback(text: string): number {
 export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconLayout {
   const hasAttachments = node.attachments && node.attachments.length > 0;
   const noteStr = (node as any)?.note as string | undefined;
-  const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0) || (node.links && node.links.length > 0);
+  const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0);
   
   // アイコンの基本サイズ
-  const ICON_WIDTH = 32;
-  const ICON_HEIGHT = 16;
+  const ICON_WIDTH = 22;
+  const ICON_HEIGHT = 14;
   const ICON_SPACING = 6;
-  const RIGHT_MARGIN = 12; // ノード右端からの最小マージン
+  const RIGHT_MARGIN = 2; // 右端との最小余白
   
   let totalWidth = 0;
   let attachmentIcon: { x: number; y: number } | undefined;
@@ -239,38 +239,38 @@ export function calculateNodeSize(
   } else {
     // 非編集時は実際のテキスト幅を計算
     const measuredWidth = measureTextWidth(node.text, fontSize, fontFamily, fontWeight, fontStyle);
-    const minWidth = fontSize * 4; // 最小4文字分の幅
+    const minWidth = fontSize * 2; // 最小2文字分の幅に縮小
     actualTextWidth = Math.max(measuredWidth, minWidth);
   }
   
   // アイコンレイアウトに必要な最小幅を計算
   const hasAttachments = false; // 添付画像UIは無効化方向
   const noteStr2 = (node as any)?.note as string | undefined;
-  const hasLinks = hasInternalMarkdownLinks(noteStr2) || (extractExternalLinksFromMarkdown(noteStr2).length > 0) || (node.links && node.links.length > 0);
+  const hasLinks = hasInternalMarkdownLinks(noteStr2) || (extractExternalLinksFromMarkdown(noteStr2).length > 0);
   const ICON_WIDTH = 32;
   const ICON_SPACING = 6;
-  const RIGHT_MARGIN = 12;
   
   let minIconWidth = 0;
   if (hasAttachments && hasLinks) {
-    minIconWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH + RIGHT_MARGIN;
+    minIconWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH; // 右マージンはここでは足さない
   } else if (hasAttachments || hasLinks) {
-    minIconWidth = ICON_WIDTH + RIGHT_MARGIN;
+    minIconWidth = ICON_WIDTH; // 右マージンはレイアウト側で微調整
   }
   
   // パディングを追加（左右に余白を持たせる）
-  const horizontalPadding = fontSize * 1.5; // フォントサイズに比例したパディング
-  const textBasedWidth = Math.max(actualTextWidth + horizontalPadding, fontSize * 2);
+  // テキスト左右の合計パディング（シンプルに一定幅）
+  const H_PADDING = 6; // px (左右合計) できるだけタイトに
+  const textBasedWidth = Math.max(actualTextWidth + H_PADDING, Math.max(fontSize * 2, 24));
   
   // ノードの高さは最小限に（フォントサイズ + 少しの上下パディング）
-  const baseNodeHeight = Math.max(fontSize + 8, 22); // フォントサイズ + 上下4pxずつの最小パディング
+  const baseNodeHeight = Math.max(fontSize + 8, 22); // 元の高さに戻す
   
   // アイコンとテキストが共存する場合の幅計算
   let finalWidth: number;
   
   if (minIconWidth > 0) {
     // アイコンがある場合：テキスト幅 + アイコン幅 + 余白を確保
-    const TEXT_ICON_SPACING = 14; // テキストとアイコン間の余白
+    const TEXT_ICON_SPACING = 6; // さらにタイトに
     const combinedWidth = textBasedWidth + minIconWidth + TEXT_ICON_SPACING;
     const imageBasedWidth = hasImages ? imageWidth + 10 : 0;
     finalWidth = Math.max(combinedWidth, imageBasedWidth);
