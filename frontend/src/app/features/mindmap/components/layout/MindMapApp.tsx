@@ -397,15 +397,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   };
 
-  // エクスポートハンドラー
-  const handleExport = () => {
-    setShowExportModal(true);
-  };
-
-  // マークダウンインポートハンドラー
-  const handleImport = () => {
-    setShowImportModal(true);
-  };
+  // インポート/エクスポートのサイドバーは撤去（モーダル経由は継続）
 
   // Listen to explorer selection events
   React.useEffect(() => {
@@ -901,8 +893,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             await (mindMap as any).createFolder(path);
           }
         }}
-        onExport={handleExport}
-        onImport={handleImport}
         currentMapData={data}
         onNodeSelect={(nodeId) => { selectNode(nodeId); centerNodeInView(nodeId); }}
         onMapSwitch={(mapId) => { selectMapById(mapId); }}

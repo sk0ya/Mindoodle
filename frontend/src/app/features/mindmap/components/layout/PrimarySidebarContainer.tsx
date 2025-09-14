@@ -21,8 +21,6 @@ type Props = {
   currentFolderLabel: string | null;
   explorerTree: any;
   onCreateFolder: (path: string) => Promise<void>;
-  onExport: () => void;
-  onImport: () => void;
   currentMapData: any;
   onNodeSelect: (nodeId: string) => void;
   onMapSwitch: (mapId: string) => void;
@@ -48,8 +46,6 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     currentFolderLabel,
     explorerTree,
     onCreateFolder,
-    onExport,
-    onImport,
     currentMapData,
     onNodeSelect,
     onMapSwitch,
@@ -77,8 +73,6 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       currentFolderLabel={currentFolderLabel}
       explorerTree={explorerTree}
       onCreateFolder={onCreateFolder}
-      onExport={onExport}
-      onImport={onImport}
       currentMapData={currentMapData}
       onNodeSelect={onNodeSelect}
       onMapSwitch={onMapSwitch}
@@ -87,4 +81,3 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
 };
 
 export default PrimarySidebarContainer;
-

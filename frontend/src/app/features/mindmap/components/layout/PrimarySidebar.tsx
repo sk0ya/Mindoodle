@@ -2,8 +2,6 @@ import React from 'react';
 import MindMapSidebar from './MindMapSidebar';
 import SettingsSidebar from './SettingsSidebar';
 import AISidebar from './AISidebar';
-import ImportSidebar from './ImportSidebar';
-import ExportSidebar from './ExportSidebar';
 import SearchSidebar from './SearchSidebar';
 import type { MindMapData } from '../../../../shared/types';
 import type { ExplorerItem } from '../../../../core/storage/types';
@@ -27,8 +25,6 @@ interface PrimarySidebarProps {
   onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
-  onExport?: () => void;
-  onImport?: () => void;
   onSelectFolder?: () => Promise<void> | void;
   onShowFolderGuide?: () => void;
   currentFolderLabel?: string | null;
@@ -59,8 +55,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onStorageModeChange,
   onShowKeyboardHelper,
   onAutoLayout,
-  onExport,
-  onImport,
   onSelectFolder,
   onShowFolderGuide,
   currentFolderLabel,
@@ -109,11 +103,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
       
       // attachments view removed
       
-      case 'import':
-        return <ImportSidebar onImport={onImport} />;
-      
-      case 'export':
-        return <ExportSidebar currentMap={currentMapData} onExport={onExport} />;
+      // import/export sidebars removed
       
       case 'ai':
         return <AISidebar />;
