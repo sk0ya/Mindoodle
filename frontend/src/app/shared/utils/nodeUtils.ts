@@ -176,7 +176,8 @@ export function calculateNodeSize(
 ): NodeSize {
   // 画像の有無とサイズを確認（添付 or ノート埋め込み画像）
   const hasAttachmentImages = node.attachments && node.attachments.some((file: FileAttachment) => file.isImage);
-  const hasNoteImages = !!(node as any)?.note && /!\[[^\]]*\]\(([^)]+)\)/.test((node as any).note as string);
+  const noteStr: string = (node as any)?.note || '';
+  const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
   const hasImages = !!hasAttachmentImages || !!hasNoteImages;
   
   let imageHeight = 0;
@@ -188,9 +189,32 @@ export function calculateNodeSize(
       imageWidth = node.customImageWidth;
       imageHeight = node.customImageHeight;
     } else {
-      // デフォルトの画像サイズを使用
-      imageWidth = 150;
-      imageHeight = 105;
+      // ノート内の<img>幅/高さを使用（最初に見つかったもの）
+      let noteW: number | null = null;
+      let noteH: number | null = null;
+      if (noteStr) {
+        const tagMatch = noteStr.match(/<img[^>]*>/i);
+        if (tagMatch) {
+          const tag = tagMatch[0];
+          const wMatch = tag.match(/\swidth=["']?(\d+)(?:px)?["']?/i);
+          const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+          if (wMatch && hMatch) {
+            const w = parseInt(wMatch[1], 10);
+            const h = parseInt(hMatch[1], 10);
+            if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+              noteW = w; noteH = h;
+            }
+          }
+        }
+      }
+      if (noteW && noteH) {
+        imageWidth = noteW;
+        imageHeight = noteH;
+      } else {
+        // デフォルトの画像サイズを使用
+        imageWidth = 150;
+        imageHeight = 105;
+      }
     }
   }
   

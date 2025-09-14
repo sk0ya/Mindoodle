@@ -126,20 +126,30 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
   if (!isEditing) {
     // 画像がある場合はテキストをノードの下部に表示
-    const noteHasImages = !!(node as any)?.note && /!\[[^\]]*\]\(([^)]+)\)/.test((node as any).note as string);
+    const noteStr: string = (node as any)?.note || '';
+    const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
     const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages;
-    
-    // カスタム画像サイズを考慮
+
+    // カスタム画像サイズを考慮し、なければノート内<img>のheight属性を参照
     const getActualImageHeight = () => {
       if (!hasImage) return 0;
-      
       if (node.customImageWidth && node.customImageHeight) {
         return node.customImageHeight;
       }
-      
+      if (noteStr) {
+        const tagMatch = noteStr.match(/<img[^>]*>/i);
+        if (tagMatch) {
+          const tag = tagMatch[0];
+          const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+          if (hMatch) {
+            const h = parseInt(hMatch[1], 10);
+            if (Number.isFinite(h) && h > 0) return h;
+          }
+        }
+      }
       return 105;
     };
-    
+
     const actualImageHeight = getActualImageHeight();
     const hasAttachments = node.attachments && node.attachments.length > 0;
     const hasLinks = node.links && node.links.length > 0;
@@ -292,19 +302,29 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }
 
   // 編集時も画像がある場合はテキストを下部に配置
-  const noteHasImages = !!(node as any)?.note && /!\[[^\]]*\]\(([^)]+)\)/.test((node as any).note as string);
-  const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages;
-  
+  const noteStr2: string = (node as any)?.note || '';
+  const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
+  const hasImage = (node.attachments && node.attachments.some(f => f.isImage)) || noteHasImages2;
+
   const getActualImageHeight = () => {
     if (!hasImage) return 0;
-    
     if (node.customImageWidth && node.customImageHeight) {
       return node.customImageHeight;
     }
-    
+    if (noteStr2) {
+      const tagMatch = noteStr2.match(/<img[^>]*>/i);
+      if (tagMatch) {
+        const tag = tagMatch[0];
+        const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+        if (hMatch) {
+          const h = parseInt(hMatch[1], 10);
+          if (Number.isFinite(h) && h > 0) return h;
+        }
+      }
+    }
     return 105;
   };
-  
+
   const actualImageHeight = getActualImageHeight();
   const editY = hasImage ? node.y + actualImageHeight / 2 - 10 : node.y - 10;
   

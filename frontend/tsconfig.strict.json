@@ -8,5 +8,5 @@
     "noPropertyAccessFromIndexSignature": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src/Local/**/*"]
+  "include": ["src/**/*"]
 }

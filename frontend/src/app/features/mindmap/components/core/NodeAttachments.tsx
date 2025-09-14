@@ -180,9 +180,15 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const extractNoteImages = (note?: string): string[] => {
     if (!note) return [];
     const urls: string[] = [];
-    const regex = /!\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)/g;
+    // Markdown image: ![alt](url "title")
+    const mdRe = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)/g;
     let m: RegExpExecArray | null;
-    while ((m = regex.exec(note)) !== null) {
+    while ((m = mdRe.exec(note)) !== null) {
+      urls.push(m[1]);
+    }
+    // HTML <img src="...">
+    const htmlRe = /<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>/gi;
+    while ((m = htmlRe.exec(note)) !== null) {
       urls.push(m[1]);
     }
     return urls;
@@ -202,12 +208,32 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const imageFiles: FileAttachment[] = noteImageFiles.length > 0 ? noteImageFiles : attachmentImages;
   const [imageIndex, setImageIndex] = useState(0);
   useEffect(() => { setImageIndex(0); }, [node.id]);
-  const currentImage = imageFiles[imageIndex] || null;
+  const currentImage: FileAttachment | undefined = imageFiles[imageIndex];
 
-  // サイズ（カスタムがあれば優先）
+  // ノート内のHTML画像タグからサイズ属性を取得
+  const parseNoteImageSize = (note: string | undefined, url: string | undefined): { width: number; height: number } | null => {
+    if (!note || !url) return null;
+    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const imgRe = new RegExp(`<img[^>]*\\ssrc=["']${esc(url)}["'][^>]*>`, 'i');
+    const m = note.match(imgRe);
+    if (!m) return null;
+    const tag = m[0];
+    const wMatch = tag.match(/\swidth=["']?(\d+)(?:px)?["']?/i);
+    const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+    if (!wMatch || !hMatch) return null;
+    const w = parseInt(wMatch[1], 10);
+    const h = parseInt(hMatch[1], 10);
+    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
+      return { width: w, height: h };
+    }
+    return null;
+  };
+
+  // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
+  const noteSize = currentImage ? parseNoteImageSize(node.note, currentImage.downloadUrl) : null;
   const imageDimensions = node.customImageWidth && node.customImageHeight
     ? { width: node.customImageWidth, height: node.customImageHeight }
-    : { width: 150, height: 105 };
+    : noteSize || { width: 150, height: 105 };
 
   // 画像リサイズハンドラー
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -275,11 +301,26 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const updateNoteImageSize = (note: string | undefined, url: string, w: number, h: number): string | undefined => {
     if (!note || !url) return note;
     const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const re = new RegExp(`(!\\[[^\\]]*\\]\\()(${esc(url)})([^)]*)\\)`, '');
-    if (re.test(note)) {
-      return note.replace(re, (_m, p1: string, p2: string) => `${p1}${p2} =${Math.round(w)}x${Math.round(h)})`);
+    const width = Math.round(w);
+    const height = Math.round(h);
+    // 1) 既存の<img>タグがある場合は width/height を更新
+    const imgTagRe = new RegExp(`<img([^>]*)\\ssrc=["']${esc(url)}["']([^>]*)>`, 'i');
+    if (imgTagRe.test(note)) {
+      return note.replace(imgTagRe, (_m, preAttrs: string, postAttrs: string) => {
+        const attrs = `${preAttrs} ${postAttrs}`
+          .replace(/\swidth=["']?\d+(?:px)?["']?/ig, '')
+          .replace(/\sheight=["']?\d+(?:px)?["']?/ig, '')
+          .trim();
+        return `<img src="${url}" ${attrs ? attrs + ' ' : ''}width="${width}" height="${height}">`;
+      });
     }
-    return note;
+    // 2) Markdown画像ならHTMLに差し替え
+    const mdRe = new RegExp(`!\\[([^\\]]*)\\]\\(\\s*${esc(url)}(?:\\s+[^)]*)?\\)`, '');
+    if (mdRe.test(note)) {
+      return note.replace(mdRe, (_m, alt: string) => `<img src="${url}" alt="${alt}" width="${width}" height="${height}">`);
+    }
+    // 3) 見つからない場合は末尾に追加
+    return `${note}\n<img src="${url}" width="${width}" height="${height}">`;
   };
 
   const handleResizeEnd = useCallback(() => {
@@ -369,6 +410,11 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   // 画像位置計算を統一（ノード上部に配置、4pxマージン）
   const imageY = node.y - nodeHeight / 2 + 4;
   const imageX = node.x - imageDimensions.width / 2;
+
+  // 画像がない場合は何も描画しない
+  if (!currentImage) {
+    return <></>;
+  }
 
   return (
     <>
