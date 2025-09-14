@@ -680,6 +680,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
                 mapData: null
               });
             }}
+            onOpenMap={(mapId: string) => onSelectMap(mapId)}
           />
         </div>
       ) : filteredMaps.length === 0 ? (
@@ -748,7 +749,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath }) => {
+const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void, onOpenMap?: (mapId: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath, onOpenMap }) => {
   const toggle = (path: string) => onTogglePath && onTogglePath(path);
   const [dragOverPath, setDragOverPath] = React.useState<string | null>(null);
 
@@ -795,11 +796,16 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
     const isMd = !!item.isMarkdown;
     const mapId = isMd ? item.path.replace(/\.md$/i, '') : null;
     const onClick = () => {
-      if (isMd && mapId) {
-        const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
-        window.dispatchEvent(ev);
-      }
       if (onSelectPath) onSelectPath(item.path);
+      if (isMd && mapId) {
+        if (onOpenMap) {
+          onOpenMap(mapId);
+        } else {
+          // fallback to event if callback not provided
+          const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
+          window.dispatchEvent(ev);
+        }
+      }
     };
     return (
       <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${selectedPath === item.path ? 'selected' : ''}`}
