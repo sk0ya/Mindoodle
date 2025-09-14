@@ -171,25 +171,24 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const isCloudMode = storageMode === 'cloud';
   const needsAuth = isCloudMode && auth && !auth.authState.isAuthenticated;
   
-  // Show login modal when cloud mode requires auth
+  // Show login modal when cloud mode requires auth (log only when state changes)
   React.useEffect(() => {
-    logger.debug('Auth check:', {
-      isCloudMode,
-      hasAuth: !!auth,
-      authIsReady: auth?.isReady,
-      isAuthenticated: auth?.authState.isAuthenticated,
-      needsAuth,
-      showLoginModal
-    });
+    const ready = !!auth?.isReady;
+    const isAuthed = !!auth?.authState.isAuthenticated;
+    const desired = needsAuth && ready ? true : (isCloudMode && isAuthed ? false : false);
 
-    if (needsAuth && auth?.isReady) {
-      logger.info('Showing login modal');
-      setShowLoginModal(true);
-    } else if (isCloudMode && auth?.authState.isAuthenticated) {
-      logger.info('User authenticated, hiding login modal');
-      setShowLoginModal(false);
+    // Only act when desired state differs
+    if (showLoginModal !== desired) {
+      setShowLoginModal(desired);
+      if (desired) {
+        logger.info('Showing login modal');
+      } else if (!isCloudMode) {
+        logger.info('Mode switched to local, hiding login modal');
+      } else {
+        logger.info('User authenticated, hiding login modal');
+      }
     }
-  }, [needsAuth, auth?.isReady, auth?.authState.isAuthenticated, isCloudMode, showLoginModal, auth, setShowLoginModal]);
+  }, [needsAuth, isCloudMode, auth?.isReady, auth?.authState.isAuthenticated, showLoginModal, setShowLoginModal]);
 
   // Force data reload when authentication status changes in cloud mode
   React.useEffect(() => {
@@ -213,16 +212,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     } catch { return true; }
   });
 
-  // Handle mode changes - reset modal state when switching to cloud mode
+  // Handle mode changes - ensure modal reflects mode (log only on change handled above)
   React.useEffect(() => {
-    if (isCloudMode && auth && !auth.authState.isAuthenticated && auth.isReady) {
-      logger.info('Mode switched to cloud, user not authenticated');
-      setShowLoginModal(true);
-    } else if (!isCloudMode) {
-      logger.info('Mode switched to local, hiding login modal');
-      setShowLoginModal(false);
+    const ready = !!auth?.isReady;
+    const isAuthed = !!auth?.authState.isAuthenticated;
+    const desired = (isCloudMode && !isAuthed && ready) ? true : false;
+    if (showLoginModal !== desired) {
+      setShowLoginModal(desired);
     }
-  }, [storageMode, isCloudMode, auth?.authState.isAuthenticated, auth?.isReady, auth, setShowLoginModal]);
+  }, [storageMode, isCloudMode, auth?.authState.isAuthenticated, auth?.isReady, showLoginModal, setShowLoginModal]);
   
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
