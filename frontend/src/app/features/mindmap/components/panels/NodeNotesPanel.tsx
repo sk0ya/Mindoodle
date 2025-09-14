@@ -89,24 +89,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     setMapMarkdownDirty(true);
   }, []);
 
-  // Stable function for loading map markdown
-  const loadMapMarkdown = useCallback(async () => {
-    if (!currentMapId || !getMapMarkdown) {
-      setMapMarkdown('');
-      return;
-    }
-    setLoadingMapMd(true);
-    try {
-      const text = await getMapMarkdown(currentMapId);
-      setMapMarkdown(text || '');
-      setMapMarkdownDirty(false);
-    } catch (error) {
-      console.error('Failed to load map markdown:', error);
-      setMapMarkdown('');
-    } finally {
-      setLoadingMapMd(false);
-    }
-  }, [currentMapId, getMapMarkdown]);
+  // (Removed unused loadMapMarkdown helper; loading is handled in an effect)
 
   // Save map markdown
   const handleSaveMapMarkdown = useCallback(async () => {

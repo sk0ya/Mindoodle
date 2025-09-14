@@ -182,10 +182,8 @@ export const useMindMap = (
           const text: string | null = await (adapter.getMapMarkdown?.(mapId));
           if (!text) return;
           const rootNode = MarkdownImporter.parseMarkdownToNodes(text);
-          const headings = MarkdownImporter.parseHeadings(text);
-          const baseHeadingLevel = headings[0]?.level || 1;
-          const headingLevelByText: Record<string, number> = {};
-          headings.forEach(h => { if (!(h.text in headingLevelByText)) headingLevelByText[h.text] = h.level; });
+          // Parse headings if needed in future; current fallback only builds minimal MindMapData
+          // const headings = MarkdownImporter.parseHeadings(text);
           const parts = (mapId || '').split('/').filter(Boolean);
           const baseName = parts.length ? parts[parts.length - 1] : (mapId || 'Untitled');
           const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';

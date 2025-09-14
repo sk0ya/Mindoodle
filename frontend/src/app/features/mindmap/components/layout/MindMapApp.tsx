@@ -1,31 +1,31 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
-import { findNodeById, findParentNode, getSiblingNodes, getFirstVisibleChild } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
 import ActivityBar from './ActivityBar';
-import PrimarySidebar from './PrimarySidebar';
+import PrimarySidebarContainer from './PrimarySidebarContainer';
 import MindMapHeader from './MindMapHeader';
-import MindMapWorkspace from './MindMapWorkspace';
+import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
 import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
-import ExportModal from '../modals/ExportModal';
-import ImportModal from '../modals/ImportModal';
 import NodeLinkModal from '../modals/NodeLinkModal';
 import LinkActionMenu from '../modals/LinkActionMenu';
 import NodeNotesPanel from '../panels/NodeNotesPanel';
 // Outline mode removed
-import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
 import ContextMenu from '../../../../shared/components/ui/ContextMenu';
 import { useNotification } from '../../../../shared/hooks/useNotification';
 import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
-import { useErrorHandler, setupGlobalErrorHandlers } from '../../../../shared/hooks/useErrorHandler';
+import { navigateLink } from '../../../../shared/utils/linkNavigation';
+import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
+import { useGlobalErrorHandlers } from '../../../../shared/hooks/useGlobalErrorHandlers';
 import { useRetryableUpload } from '../../../../shared/hooks/useRetryableUpload';
 import { useAI } from '../../../../core/hooks/useAI';
 import { useTheme } from '../../../../shared/hooks/useTheme';
-import { useModalState } from '../../../../shared/hooks/useModalState';
+import { useMindMapModals } from './useMindMapModals';
 import { useVimMode } from '../../../../core/hooks/useVimMode';
+import { useCloudAuthGate } from '../../../../core/hooks/useCloudAuthGate';
 import MindMapProviders from './MindMapProviders';
 import { logger } from '../../../../shared/utils/logger';
-import VimStatusBar from '../../../../shared/components/ui/VimStatusBar';
+import MindMapOverlays from './MindMapOverlays';
 import './MindMapApp.css';
 
 // Types
@@ -33,71 +33,10 @@ import type { MindMapNode, FileAttachment, MindMapData, NodeLink } from '@shared
 import type { StorageConfig } from '../../../../core/storage/types';
 // Storage configurations
 // Deprecated storage configs (Mindoodle uses markdown adapter internally)
-import { useOptionalAuth, LoginModal } from '../../../../components/auth';
+// Login modal moved into MindMapOverlays
 import { validateFile } from '../../../../shared/types/dataTypes';
 
-// Helper function for spatial navigation fallback
-const findNodeBySpatialDirection = (
-  currentNodeId: string,
-  direction: 'up' | 'down' | 'left' | 'right',
-  rootNode: MindMapNode
-): string | null => {
-  const currentNode = findNodeById(rootNode, currentNodeId);
-  if (!currentNode) return null;
-  
-  // Get all nodes in a flat list for distance calculation
-  const allNodes: MindMapNode[] = [];
-  const collectNodes = (node: MindMapNode) => {
-    allNodes.push(node);
-    if (node.children && !node.collapsed) {
-      node.children.forEach(collectNodes);
-    }
-  };
-  collectNodes(rootNode);
-  
-  // Filter out the current node
-  const otherNodes = allNodes.filter(node => node.id !== currentNodeId);
-  if (otherNodes.length === 0) return null;
-  
-  // Find the best node in the specified direction
-  let bestNode: MindMapNode | null = null;
-  let bestScore = Infinity;
-  
-  for (const node of otherNodes) {
-    const deltaX = node.x - currentNode.x;
-    const deltaY = node.y - currentNode.y;
-    
-    // Check if the node is in the correct direction
-    let isInDirection = false;
-    let directionalScore = 0;
-    
-    switch (direction) {
-      case 'right':
-        isInDirection = deltaX > 20;
-        directionalScore = deltaX + Math.abs(deltaY) * 0.5;
-        break;
-      case 'left':
-        isInDirection = deltaX < -20;
-        directionalScore = -deltaX + Math.abs(deltaY) * 0.5;
-        break;
-      case 'down':
-        isInDirection = deltaY > 20;
-        directionalScore = deltaY + Math.abs(deltaX) * 0.5;
-        break;
-      case 'up':
-        isInDirection = deltaY < -20;
-        directionalScore = -deltaY + Math.abs(deltaX) * 0.5;
-        break;
-    }
-    
-    if (isInDirection && directionalScore < bestScore) {
-      bestScore = directionalScore;
-      bestNode = node;
-    }
-  }
-  
-  return bestNode?.id || null;
-};
+import { useShortcutHandlers } from './useShortcutHandlers';
 
 interface MindMapAppProps {
   storageMode?: 'local' | 'cloud' | 'markdown';
@@ -133,10 +72,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // VSCode風サイドバーの状態
   const [activeView, setActiveView] = useState<string | null>('maps');
   
-  // グローバルエラーハンドラーの設定
-  React.useEffect(() => {
-    setupGlobalErrorHandlers(handleError);
-  }, [handleError]);
+  // グローバルエラーハンドラーの設定を簡潔に
+  useGlobalErrorHandlers(handleError);
   const [isAppReady] = useState(true);
   const [internalResetKey, setResetKey] = useState(resetKey);
   // モーダル状態管理
@@ -147,10 +84,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     showLinkModal, setShowLinkModal,
     editingLink, setEditingLink,
     linkModalNodeId, setLinkModalNodeId,
-    showLinkActionMenu, setShowLinkActionMenu,
-    linkActionMenuData, setLinkActionMenuData,
-    contextMenu, setContextMenu
-  } = useModalState();
+    showLinkActionMenu,
+    linkActionMenuData,
+    contextMenu, setContextMenu,
+    closeLinkModal,
+    openLinkActionMenu, closeLinkActionMenu,
+  } = useMindMapModals();
   
   const store = useMindMapStore();
   
@@ -160,44 +99,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // テーマ管理
   useTheme();
   
-  // Get auth adapter for cloud mode (using optional hook)
-  const auth = useOptionalAuth();
+  // Cloud 認証関連を独立したフックに委譲
+  const { auth, isCloudMode } = useCloudAuthGate(
+    storageMode,
+    setShowLoginModal,
+    () => setResetKey(prev => prev + 1)
+  );
   const authAdapter = auth?.authAdapter;
-  
-  // 永続化は useMindMap 内部の同一アダプターを使用する
-  
-  // For cloud mode, check if user is authenticated
-  const isCloudMode = storageMode === 'cloud';
-  const needsAuth = isCloudMode && auth && !auth.authState.isAuthenticated;
-  
-  // Show login modal when cloud mode requires auth
-  React.useEffect(() => {
-    logger.debug('Auth check:', {
-      isCloudMode,
-      hasAuth: !!auth,
-      authIsReady: auth?.isReady,
-      isAuthenticated: auth?.authState.isAuthenticated,
-      needsAuth,
-      showLoginModal
-    });
-
-    if (needsAuth && auth?.isReady) {
-      logger.info('Showing login modal');
-      setShowLoginModal(true);
-    } else if (isCloudMode && auth?.authState.isAuthenticated) {
-      logger.info('User authenticated, hiding login modal');
-      setShowLoginModal(false);
-    }
-  }, [needsAuth, auth?.isReady, auth?.authState.isAuthenticated, isCloudMode, showLoginModal, auth, setShowLoginModal]);
-
-  // Force data reload when authentication status changes in cloud mode
-  React.useEffect(() => {
-    if (isCloudMode && auth?.authState.isAuthenticated && auth?.isReady) {
-      logger.info('🔄 Authentication successful in cloud mode, forcing data reload');
-      // Increment reset key to force useMindMap to reinitialize with new auth context
-      setResetKey(prev => prev + 1);
-    }
-  }, [isCloudMode, auth?.authState.isAuthenticated, auth?.isReady]);
 
   // Sync external resetKey with internal resetKey
   React.useEffect(() => {
@@ -340,283 +248,64 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [allMindMaps, mindMap]);
 
-  // キーボードショートカット設定
-  useKeyboardShortcuts({
+  // キーボードショートカット設定（ハンドラー組み立てを外部化）
+  const finishEditingWrapper = (nodeId: string, text?: string) => {
+    if (text !== undefined) finishEditing(nodeId, text);
+  };
+  const shortcutHandlers = useShortcutHandlers({
+    data,
+    ui,
+    store,
+    logger,
+    showNotification,
     selectedNodeId,
     editingNodeId,
     setEditText,
-    startEdit: startEditing,
-    startEditWithCursorAtEnd: startEditingWithCursorAtEnd,
-    startEditWithCursorAtStart: startEditingWithCursorAtStart,
-    finishEdit: async (nodeId: string, text?: string) => {
-      if (text !== undefined) {
-        finishEditing(nodeId, text);
-      }
-    },
     editText,
+    startEditing,
+    startEditingWithCursorAtEnd,
+    startEditingWithCursorAtStart,
+    finishEditing: finishEditingWrapper,
     updateNode,
-    addChildNode: async (parentId: string, text?: string, autoEdit?: boolean) => {
-      try {
-        const newNodeId = store.addChildNode(parentId, text);
-        if (autoEdit && newNodeId) {
-          // 編集モードを開始する前に、少し待機してDOMが更新されるのを待つ
-          setTimeout(() => {
-            startEditing(newNodeId);
-          }, 50);
-        }
-        return newNodeId || null;
-      } catch (error) {
-        logger.error('子ノード追加に失敗:', error);
-        return null;
-      }
-    },
-    addSiblingNode: async (nodeId: string, text?: string, autoEdit?: boolean) => {
-      try {
-        const newNodeId = store.addSiblingNode(nodeId, text);
-        if (autoEdit && newNodeId) {
-          // 編集モードを開始する前に、少し待機してDOMが更新されるのを待つ
-          setTimeout(() => {
-            startEditing(newNodeId);
-          }, 50);
-        }
-        return newNodeId || null;
-      } catch (error) {
-        logger.error('兄弟ノード追加に失敗:', error);
-        return null;
-      }
-    },
     deleteNode,
     undo,
     redo,
     canUndo,
     canRedo,
-    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => {
-      if (!selectedNodeId || !data?.rootNode) return;
-      
-      const currentNode = findNodeById(data.rootNode, selectedNodeId);
-      if (!currentNode) return;
-      
-      let nextNodeId: string | null = null;
-      
-      switch (direction) {
-        case 'left': { // h - Move to parent node
-          const parent = findParentNode(data.rootNode, selectedNodeId);
-          if (parent) {
-            nextNodeId = parent.id;
-          }
-          break;
-        }
-        case 'right': { // l - Move to first child (expand if collapsed)
-          const firstChild = getFirstVisibleChild(currentNode);
-          if (firstChild) {
-            nextNodeId = firstChild.id;
-          } else if (currentNode.children && currentNode.children.length > 0 && currentNode.collapsed) {
-            // Expand collapsed node and move to first child
-            updateNode(selectedNodeId, { collapsed: false });
-            nextNodeId = currentNode.children[0].id;
-          }
-          break;
-        }
-        case 'up': // k - Move to previous sibling
-        case 'down': { // j - Move to next sibling
-          const { siblings, currentIndex } = getSiblingNodes(data.rootNode, selectedNodeId);
-          if (siblings.length > 1 && currentIndex !== -1) {
-            let targetIndex = -1;
-            if (direction === 'up' && currentIndex > 0) {
-              targetIndex = currentIndex - 1;
-            } else if (direction === 'down' && currentIndex < siblings.length - 1) {
-              targetIndex = currentIndex + 1;
-            }
-            if (targetIndex !== -1) {
-              nextNodeId = siblings[targetIndex].id;
-            }
-          }
-          break;
-        }
-      }
-      
-      // Fallback to spatial navigation if hierarchical navigation doesn't work
-      if (!nextNodeId) {
-        nextNodeId = findNodeBySpatialDirection(selectedNodeId, direction, data.rootNode);
-      }
-      
-      if (nextNodeId) {
-        selectNode(nextNodeId);
-      }
-    },
-    showMapList: ui.showMapList,
-    setShowMapList: (show: boolean) => store.setShowMapList(show),
-    showLocalStorage: ui.showLocalStoragePanel,
-    setShowLocalStorage: (show: boolean) => store.setShowLocalStoragePanel(show),
-    showTutorial: ui.showTutorial,
-    setShowTutorial: (show: boolean) => store.setShowTutorial(show),
-    showKeyboardHelper: ui.showShortcutHelper,
-    setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show),
-    copyNode: (nodeId: string) => {
-      const node = data?.rootNode ? findNodeById(data.rootNode, nodeId) : null;
-      if (node) {
-        // 内部クリップボードに保存
-        store.setClipboard(node);
-        
-        // システムクリップボードにマークダウン形式で保存
-        const convertNodeToMarkdown = (node: MindMapNode, level: number = 0): string => {
-          const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-          let markdown = `${prefix}${node.text}\n`;
-          
-          // ノートがあれば追加
-          if (node.note && node.note.trim()) {
-            markdown += `${node.note}\n`;
-          }
-          
-          // 子ノードを再帰的に処理
-          if (node.children && node.children.length > 0) {
-            node.children.forEach(child => {
-              markdown += convertNodeToMarkdown(child, level + 1);
-            });
-          }
-          
-          return markdown;
-        };
-        
-        const markdownText = convertNodeToMarkdown(node);
-        
-        // システムクリップボードに書き込み
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(markdownText).catch((error) => {
-            console.warn('システムクリップボードへの書き込みに失敗:', error);
-          });
-        }
-        
-        showNotification('success', `「${node.text}」をコピーしました`);
-      }
-    },
-    pasteNode: async (parentId: string) => {
-      // まずシステムクリップボードからMindMeisterのマークダウンを確認
+    selectNode,
+    applyAutoLayout,
+    pasteImageFromClipboard: async (nodeId: string) => {
+      // keep current image paste behavior via handleFileUpload
       try {
-        if (navigator.clipboard && navigator.clipboard.readText) {
-          const clipboardText = await navigator.clipboard.readText();
-          
-          // MindMeisterのマークダウン形式かチェック
-          const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('../../../../shared/utils/mindMeisterParser');
-          
-          if (clipboardText && isMindMeisterFormat(clipboardText)) {
-            const parsedNode = parseMindMeisterMarkdown(clipboardText);
-            
-            if (parsedNode) {
-              // パースされたノード構造を貼り付け
-              const pasteNodeRecursively = (nodeToAdd: MindMapNode, parentId: string): string | undefined => {
-                const newNodeId = store.addChildNode(parentId, nodeToAdd.text);
-                
-                if (newNodeId) {
-                  updateNode(newNodeId, {
-                    fontSize: nodeToAdd.fontSize,
-                    fontWeight: nodeToAdd.fontWeight,
-                    color: nodeToAdd.color,
-                    collapsed: false,
-                    attachments: nodeToAdd.attachments || [],
-                    note: nodeToAdd.note
-                  });
-                  
-                  if (nodeToAdd.children && nodeToAdd.children.length > 0) {
-                    nodeToAdd.children.forEach(child => {
-                      pasteNodeRecursively(child, newNodeId);
-                    });
-                  }
-                }
-                
-                return newNodeId;
-              };
-              
-              const newNodeId = pasteNodeRecursively(parsedNode, parentId);
-              if (newNodeId) {
-                showNotification('success', `「${parsedNode.text}」をMindMeisterから貼り付けました`);
-                selectNode(newNodeId);
-                return;
-              }
-            }
-          }
+        if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('クリップボードAPIが利用できません');
+        const items = await navigator.clipboard.read();
+        for (const item of items) for (const type of item.types) if (type.startsWith('image/')) {
+          const blob = await item.getType(type);
+          const ext = type.split('/')[1] || 'png';
+          const file = new File([blob], `pasted-image-${Date.now()}.${ext}`, { type });
+          await handleFileUpload(nodeId, file);
+          showNotification('success', '画像を貼り付けました');
+          return;
         }
-      } catch (error) {
-        console.warn('システムクリップボードからの読み取りに失敗:', error);
-      }
-      
-      // フォールバック: 内部クリップボードから貼り付け
+        throw new Error('クリップボードに画像がありません');
+      } catch (e) { throw e; }
+    },
+    pasteNodeFromClipboard: async (parentId: string) => {
       const clipboardNode = ui.clipboard;
-      if (!clipboardNode) {
-        showNotification('warning', 'コピーされたノードがありません');
-        return;
-      }
-      
-      const pasteNodeRecursively = (nodeToAdd: MindMapNode, parentId: string): string | undefined => {
-        const newNodeId = store.addChildNode(parentId, nodeToAdd.text);
-        
+      if (!clipboardNode) { showNotification('warning', 'コピーされたノードがありません'); return; }
+      const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
+        const newNodeId = store.addChildNode(parent, nodeToAdd.text);
         if (newNodeId) {
-          updateNode(newNodeId, {
-            fontSize: nodeToAdd.fontSize,
-            fontWeight: nodeToAdd.fontWeight,
-            color: nodeToAdd.color,
-            collapsed: false,
-            attachments: nodeToAdd.attachments || []
-          });
-          
-          if (nodeToAdd.children && nodeToAdd.children.length > 0) {
-            nodeToAdd.children.forEach(child => {
-              pasteNodeRecursively(child, newNodeId);
-            });
-          }
+          updateNode(newNodeId, { fontSize: nodeToAdd.fontSize, fontWeight: nodeToAdd.fontWeight, color: nodeToAdd.color, collapsed: false, attachments: nodeToAdd.attachments || [] });
+          nodeToAdd.children?.forEach(child => paste(child, newNodeId));
         }
-        
         return newNodeId;
       };
-      
-      const newNodeId = pasteNodeRecursively(clipboardNode, parentId);
-      if (newNodeId) {
-        showNotification('success', `「${clipboardNode.text}」を貼り付けました`);
-        selectNode(newNodeId);
-      }
+      const newId = paste(clipboardNode, parentId);
+      if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
     },
-    pasteImageFromClipboard: async (nodeId: string) => {
-      try {
-        // システムクリップボードアクセスの権限確認
-        if (!navigator.clipboard || !navigator.clipboard.read) {
-          throw new Error('クリップボードAPIが利用できません');
-        }
-
-        const clipboardItems = await navigator.clipboard.read();
-        let imageFound = false;
-
-        for (const clipboardItem of clipboardItems) {
-          for (const type of clipboardItem.types) {
-            if (type.startsWith('image/')) {
-              imageFound = true;
-              const blob = await clipboardItem.getType(type);
-              
-              // Blob を File に変換
-              const timestamp = Date.now();
-              const extension = type.split('/')[1] || 'png';
-              const fileName = `pasted-image-${timestamp}.${extension}`;
-              const file = new File([blob], fileName, { type });
-
-              // 既存のファイルアップロード処理を使用
-              await handleFileUpload(nodeId, file);
-              showNotification('success', '画像を貼り付けました');
-              return;
-            }
-          }
-        }
-
-        if (!imageFound) {
-          throw new Error('クリップボードに画像がありません');
-        }
-      } catch (error) {
-        // エラーは上位でキャッチされて通常のペーストにフォールバック
-        throw error;
-      }
-    },
-    findNodeById: (nodeId: string) => data?.rootNode ? findNodeById(data.rootNode, nodeId) : null,
-    closeAttachmentAndLinkLists: store.closeAttachmentAndLinkLists,
-    cancelEditing: store.cancelEditing
-  }, vim);
+  });
+  useKeyboardShortcuts(shortcutHandlers as any, vim);
 
   // UI state から個別に取得
   const { showKeyboardHelper, setShowKeyboardHelper } = {
@@ -1333,7 +1022,21 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [data?.rootNode, centerNodeInView]);
 
-  // Helpers for resolving node by display text (exact or slug match)
+  // Simplified link navigation via utility
+  const handleLinkNavigate2 = async (link: NodeLink) => {
+    await navigateLink(link, {
+      currentMapId,
+      dataRoot: data?.rootNode,
+      selectMapById,
+      selectNode,
+      centerNodeInView,
+      notify: showNotification,
+      getCurrentRootNode: () => useMindMapStore.getState().data?.rootNode || null,
+      resolveAnchorToNode,
+    });
+  };
+
+  /* Helpers for resolving node by display text (exact or slug match)
   const slugify = useCallback((text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''), []);
   const findNodeByTextLoose = useCallback((root: MindMapNode, targetText: string) => {
     if (!root || !targetText) return null;
@@ -1417,17 +1120,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       logger.error('Link navigation error:', error);
       handleError(error as Error, 'リンク操作', 'リンク先への移動');
     }
-  };
+  }; */
 
-  const handleShowLinkActionMenu = (link: NodeLink, position: { x: number; y: number }) => {
-    setLinkActionMenuData({ link, position });
-    setShowLinkActionMenu(true);
-  };
-
-  const handleCloseLinkActionMenu = () => {
-    setShowLinkActionMenu(false);
-    setLinkActionMenuData(null);
-  };
+  const handleShowLinkActionMenu = openLinkActionMenu;
+  const handleCloseLinkActionMenu = closeLinkActionMenu;
 
   // Outline save feature removed
 
@@ -1470,10 +1166,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
       />
       
-      <PrimarySidebar
+      <PrimarySidebarContainer
         activeView={activeView}
-        isVisible={activeView !== null}
-        mindMaps={allMindMaps}
+        storageMode={storageMode}
+        onModeChange={onModeChange}
+        allMindMaps={allMindMaps}
         currentMapId={currentMapId}
         onSelectMap={(mapId) => { selectMapById(mapId); }}
         onCreateMap={createAndSelectMap}
@@ -1481,9 +1178,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onRenameMap={(mapId, title) => updateMapMetadata(mapId, { title })}
         onChangeCategory={(mapId, category) => updateMapMetadata(mapId, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
-        availableCategories={['仕事', 'プライベート', '学習', '未分類']}
-        storageMode={storageMode}
-        onStorageModeChange={onModeChange}
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
         onAutoLayout={() => {
           logger.info('Manual auto layout triggered');
@@ -1505,13 +1199,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onExport={handleExport}
         onImport={handleImport}
         currentMapData={data}
-        onNodeSelect={(nodeId) => {
-          selectNode(nodeId);
-          centerNodeInView(nodeId);
-        }}
-        onMapSwitch={(mapId) => {
-          selectMapById(mapId);
-        }}
+        onNodeSelect={(nodeId) => { selectNode(nodeId); centerNodeInView(nodeId); }}
+        onMapSwitch={(mapId) => { selectMapById(mapId); }}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
@@ -1545,14 +1234,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         />
         
         <div className="workspace-container">
-          <MindMapWorkspace 
+          <MindMapWorkspaceContainer 
               data={data}
               selectedNodeId={selectedNodeId}
               editingNodeId={editingNodeId}
               editText={editText}
               setEditText={setEditText}
               onSelectNode={(nodeId) => {
-                selectNode(nodeId);
+                if (nodeId) selectNode(nodeId);
                 // ノート表示フラグが有効な場合のみノートパネルを表示
                 // ノートフラグが無効な場合はノード選択してもノートパネルを表示しない
               }}
@@ -1560,8 +1249,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onFinishEdit={finishEditing}
               onMoveNode={moveNode}
               onChangeSiblingOrder={changeSiblingOrder}
-              onAddChild={addNode}
-              onAddSibling={(nodeId) => store.addSiblingNode(nodeId)}
+              onAddChild={(parentId) => { addNode(parentId); }}
+              onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
               onDeleteNode={deleteNode}
               onRightClick={handleRightClick}
               onToggleCollapse={toggleNodeCollapse}
@@ -1573,7 +1262,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onAutoLayout={applyAutoLayout}
               availableMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
               currentMapData={data}
-              onLinkNavigate={handleLinkNavigate}
+              onLinkNavigate={handleLinkNavigate2}
               zoom={ui.zoom}
               setZoom={setZoom}
               pan={ui.pan}
@@ -1630,53 +1319,30 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }}
       />
       
-      {/* Keyboard Shortcut Helper */}
-      <KeyboardShortcutHelper
-        isVisible={showKeyboardHelper}
-        onClose={() => setShowKeyboardHelper(false)}
-      />
-      
-      {/* Vim status bar */}
-      <VimStatusBar />
-      
-      {/* Authentication Modal - Shows when cloud mode requires login */}
-      {isCloudMode && authAdapter && (
-        <LoginModal 
-          isOpen={showLoginModal}
-          onClose={() => {
-            logger.info('Login modal closed, switching to local mode');
-            setShowLoginModal(false);
-            // Switch back to local mode when user cancels login
-            if (onModeChange) {
-              onModeChange('local');
-            }
-          }}
-        />
-      )}
-
-      {/* Export Modal */}
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        mindMapData={data}
-      />
-
-      {/* Import Modal */}
-      <ImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
+      <MindMapOverlays
+        showKeyboardHelper={showKeyboardHelper}
+        setShowKeyboardHelper={setShowKeyboardHelper}
+        isCloudMode={isCloudMode}
+        authAdapter={authAdapter}
+        showLoginModal={showLoginModal}
+        onLoginClose={() => {
+          logger.info('Login modal closed, switching to local mode');
+          setShowLoginModal(false);
+          if (onModeChange) onModeChange('local');
+        }}
+        showExportModal={showExportModal}
+        setShowExportModal={setShowExportModal}
+        showImportModal={showImportModal}
+        setShowImportModal={setShowImportModal}
         onImportSuccess={handleImportSuccess}
+        data={data}
       />
 
       {/* Node Link Modal */}
       {showLinkModal && linkModalNodeId && (
         <NodeLinkModal
           isOpen={showLinkModal}
-          onClose={() => {
-            setShowLinkModal(false);
-            setEditingLink(null);
-            setLinkModalNodeId(null);
-          }}
+          onClose={closeLinkModal}
           node={findNodeById(data.rootNode, linkModalNodeId)!}
           link={editingLink}
           onSave={handleSaveLink}
@@ -1729,7 +1395,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           position={linkActionMenuData.position}
           link={linkActionMenuData.link}
           onClose={handleCloseLinkActionMenu}
-          onNavigate={handleLinkNavigate}
+          onNavigate={handleLinkNavigate2}
           onEdit={(link) => {
             handleCloseLinkActionMenu();
             handleEditLink(link, linkModalNodeId!);
