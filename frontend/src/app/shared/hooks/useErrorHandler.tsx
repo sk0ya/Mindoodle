@@ -171,5 +171,5 @@ export const setupGlobalErrorHandlers = (handleError: (error: Error, context?: s
     );
   });
 
-  logger.info('Global error handlers set up successfully');
+  logger.debug('Global error handlers set up successfully');
 };

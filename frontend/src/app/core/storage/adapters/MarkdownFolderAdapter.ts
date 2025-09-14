@@ -45,7 +45,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       id: 'mindoodle-root',
       mode: 'readwrite'
     });
-    logger.info('📁 MarkdownFolderAdapter: Root folder selected');
+      logger.debug('📁 MarkdownFolderAdapter: Root folder selected');
     // Persist the handle for future sessions
     try {
       await this.saveRootHandle(this.rootHandle);
@@ -119,7 +119,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // If this map has a known save target (loaded from a specific file), write back to it
     if (target) {
       await this.writeTextFile(target.dir, target.fileName, markdown);
-      logger.info(`💾 MarkdownFolderAdapter: Saved ${target.fileName} ${target.isRoot ? 'at root' : 'in directory'}`);
+      logger.debug(`💾 MarkdownFolderAdapter: Saved ${target.fileName} ${target.isRoot ? 'at root' : 'in directory'}`);
       return;
     }
     // New map: create a dedicated file. Honor category path if provided.
@@ -134,7 +134,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const fileName = await this.ensureUniqueMarkdownName(targetDir, `${baseName}.md`);
     await this.writeTextFile(targetDir, fileName, markdown);
     this.saveTargets.set(data.id, { dir: targetDir, fileName, isRoot: !data.category });
-    logger.info('💾 MarkdownFolderAdapter: Created file', fileName, 'in', data.category || '(root)');
+    logger.debug('💾 MarkdownFolderAdapter: Created file', fileName, 'in', data.category || '(root)');
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -245,7 +245,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         const writable = await fh.createWritable();
         await writable.write(markdown);
         await writable.close();
-        logger.info(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
+        logger.debug(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
         return;
       } catch (e) {
         logger.warn('Failed to save via saveTargets, trying path resolution:', e);
@@ -267,7 +267,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const fileName = `${base}.md`;
       await this.writeTextFile(dir, fileName, markdown);
 
-      logger.info(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId} via path resolution`);
+      logger.debug(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId} via path resolution`);
     } catch (error) {
       logger.error(`❌ MarkdownFolderAdapter: Failed to save markdown for ${mapId}:`, error);
       throw error;

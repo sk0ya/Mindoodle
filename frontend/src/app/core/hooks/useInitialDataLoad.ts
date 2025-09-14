@@ -24,10 +24,10 @@ export const useInitialDataLoad = (
 
     const loadData = async () => {
       try {
-        logger.info('Loading initial data...');
+        logger.debug('Loading initial data...');
         const initialData = await dependencies.loadInitialData();
         dependencies.setData(initialData);
-        logger.info('Initial data loaded:', initialData.title);
+        logger.debug('Initial data loaded:', initialData.title);
         // Auto layout after initial load
         try {
           dependencies.applyAutoLayout?.();

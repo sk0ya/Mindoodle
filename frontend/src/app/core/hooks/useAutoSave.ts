@@ -32,7 +32,7 @@ export const useAutoSave = (
     try {
       await saveData(currentData);
       await updateMapInList(currentData);
-      logger.info('Auto save completed:', currentData.title);
+      logger.debug('Auto save completed:', currentData.title);
       lastSaveTimeRef.current = currentData.updatedAt || '';
     } catch (error) {
       logger.error('Auto save failed:', error);

@@ -27,9 +27,9 @@ export async function executeDataReload(
       throw new Error(`${context}: Storage not initialized`);
     }
     
-    logger.info(`📥 ${context}: Loading initial data from storage...`);
+    logger.debug(`📥 ${context}: Loading initial data from storage...`);
     const initialData = await dependencies.loadInitialData();
-    logger.info(`📋 ${context}: Data loaded:`, {
+    logger.debug(`📋 ${context}: Data loaded:`, {
       id: initialData.id,
       title: initialData.title,
     });
@@ -47,7 +47,7 @@ export async function executeDataReload(
       await dependencies.refreshMapList();
     }
     
-    logger.info(`✅ ${context}: Data reloaded successfully:`, initialData.title);
+    logger.debug(`✅ ${context}: Data reloaded successfully:`, initialData.title);
   } catch (error) {
     logger.error(`❌ ${context}: Failed to reload data:`, error);
     throw error;
