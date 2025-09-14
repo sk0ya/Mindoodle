@@ -16,7 +16,6 @@ export interface AppSettings {
   // エディタ設定
   vimMode: boolean;
   previewMode: boolean;
-  showOutlineWidgets: boolean;
 }
 
 export interface SettingsSlice {
@@ -37,7 +36,6 @@ const DEFAULT_SETTINGS: AppSettings = {
   snapToGrid: false,
   vimMode: false,
   previewMode: false,
-  showOutlineWidgets: false
 };
 
 export const createSettingsSlice: StateCreator<

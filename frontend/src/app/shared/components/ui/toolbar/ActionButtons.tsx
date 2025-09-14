@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, RotateCw, Search, Ruler, Target, FileText, Map } from 'lucide-react';
+import { RotateCcw, RotateCw, Search, Ruler, Target, FileText } from 'lucide-react';
 import { ShortcutTooltip } from '../KeyboardShortcutHelper';
 
 interface ActionButtonsProps {

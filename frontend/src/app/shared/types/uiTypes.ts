@@ -18,8 +18,7 @@ export interface UIState {
   showLocalStoragePanel: boolean;
   showTutorial: boolean;
   showNotesPanel: boolean;
-  showOutlineEditor: boolean;
-  viewMode: 'mindmap' | 'outline';
+  
   
   // File and image states
   selectedImage: ImageFile | null;
@@ -75,10 +74,7 @@ export interface UIActions {
   setShowTutorial: (show: boolean) => void;
   setShowNotesPanel: (show: boolean) => void;
   toggleNotesPanel: () => void;
-  setShowOutlineEditor: (show: boolean) => void;
-  toggleOutlineEditor: () => void;
-  setViewMode: (mode: 'mindmap' | 'outline') => void;
-  toggleViewMode: () => void;
+  
   
   // File and Image Management
   setSelectedImage: (image: ImageFile | null) => void;

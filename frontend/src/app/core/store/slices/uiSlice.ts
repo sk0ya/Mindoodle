@@ -28,8 +28,6 @@ export const createUISlice: StateCreator<
     showLocalStoragePanel: false,
     showTutorial: false,
     showNotesPanel: false,
-    showOutlineEditor: false,
-    viewMode: 'mindmap',
     selectedImage: null,
     selectedFile: null,
     fileMenuPosition: { x: 0, y: 0 },
@@ -128,33 +126,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  setShowOutlineEditor: (show: boolean) => {
-    set((state) => {
-      state.ui.showOutlineEditor = show;
-    });
-  },
-
-  toggleOutlineEditor: () => {
-    set((state) => {
-      state.ui.showOutlineEditor = !state.ui.showOutlineEditor;
-    });
-  },
-
-  setViewMode: (mode: 'mindmap' | 'outline') => {
-    set((state) => {
-      state.ui.viewMode = mode;
-    });
-  },
-
-  toggleViewMode: () => {
-    set((state) => {
-      state.ui.viewMode = state.ui.viewMode === 'mindmap' ? 'outline' : 'mindmap';
-      // アウトラインモードに切り替える際は、ノートパネルを一時的に閉じる
-      if (state.ui.viewMode === 'outline') {
-        state.ui.showNotesPanel = false;
-      }
-    });
-  },
+  // Outline view removed; related actions deleted
 
   // File and Image Management Actions
   setSelectedImage: (image: ImageFile | null) => {
