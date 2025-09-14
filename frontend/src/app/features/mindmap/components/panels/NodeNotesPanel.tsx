@@ -210,10 +210,12 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
       <div className="panel-header">
         <div className="panel-title-section">
           <h3 className="panel-title">📝 ノート / 📄 マップMD</h3>
-          <div className="node-info">
-            <span className="node-name">{selectedNode.text}</span>
-            {isDirty && <span className="dirty-indicator">●</span>}
-          </div>
+          {tab === 'note' && (
+            <div className="node-info">
+              <span className="node-name">{selectedNode.text}</span>
+              {isDirty && <span className="dirty-indicator">●</span>}
+            </div>
+          )}
         </div>
         <div className="panel-controls">
           <div className="note-tabs" role="tablist" aria-label="Notes tabs">
