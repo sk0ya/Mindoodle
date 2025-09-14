@@ -816,13 +816,7 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
         data-map-id={isMd ? mapId || '' : ''}
         onClick={onClick}
         onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
-        draggable={true}
-        onDragStart={(e) => { 
-          e.dataTransfer.setData('mindoodle/path', item.path); 
-          e.dataTransfer.setData('mindoodle/is-md', isMd ? '1' : '0');
-          // Allow copy/link operations to be dropped on nodes
-          e.dataTransfer.effectAllowed = 'copyLink';
-        }}
+        draggable={false}
         style={{ cursor: 'pointer' }}>
         <span className="file-icon">{isMd ? <BookOpen size={14} /> : <Workflow size={14} />}</span>
         <span className="file-name">{item.name}</span>

@@ -1581,7 +1581,17 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         mindMaps={allMindMaps}
         currentMapId={currentMapId}
         onSelectMap={(mapId) => { selectMapById(mapId); }}
-        onOpenMapData={(mapData) => { actionsHook.selectMap(mapData as any); }}
+        onOpenMapData={(mapData) => {
+          try { console.info('[MindMapApp] onOpenMapData', mapData?.id, mapData?.title); } catch {}
+          try {
+            // Set map data directly to ensure immediate switch without relying on list lookup
+            setData(mapData);
+            // Apply layout for consistent view
+            if (typeof applyAutoLayout === 'function') {
+              applyAutoLayout();
+            }
+          } catch {}
+        }}
         onCreateMap={createAndSelectMap}
         onDeleteMap={deleteMap}
         onRenameMap={(mapId, title) => updateMapMetadata(mapId, { title })}

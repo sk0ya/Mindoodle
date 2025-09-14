@@ -79,6 +79,7 @@ const MapItemList: React.FC<MapItemListProps> = ({
           className={`map-item ${currentMapId === map.id ? 'active' : ''}`}
           data-map-id={map.id}
           onClick={() => {
+            try { console.info('[MapItemList] click', map.id, map.title); } catch {}
             if (onOpenMapData) {
               onOpenMapData(map);
             } else {
@@ -90,8 +91,7 @@ const MapItemList: React.FC<MapItemListProps> = ({
             } catch {}
           }}
           onContextMenu={(e) => onContextMenu && onContextMenu(e, categoryPath, 'map', map)}
-          draggable
-          onDragStart={(e) => onDragStart(e, map)}
+          draggable={false}
         >
           {editingMapId === map.id ? (
             <input
