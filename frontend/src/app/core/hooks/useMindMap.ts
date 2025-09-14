@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { useMindMapData } from './useMindMapData';
+import { MarkdownImporter } from '../../shared/utils/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
@@ -173,6 +174,36 @@ export const useMindMap = (
         actionsHook.selectMap(targetMap);
         return true;
       }
+      // Fallback: try to load markdown by id via adapter and parse
+      (async () => {
+        try {
+          const adapter: any = (persistenceHook as any).storageAdapter;
+          if (!adapter) return;
+          const text: string | null = await (adapter.getMapMarkdown?.(mapId));
+          if (!text) return;
+          const rootNode = MarkdownImporter.parseMarkdownToNodes(text);
+          const headings = MarkdownImporter.parseHeadings(text);
+          const baseHeadingLevel = headings[0]?.level || 1;
+          const headingLevelByText: Record<string, number> = {};
+          headings.forEach(h => { if (!(h.text in headingLevelByText)) headingLevelByText[h.text] = h.level; });
+          const parts = (mapId || '').split('/').filter(Boolean);
+          const baseName = parts.length ? parts[parts.length - 1] : (mapId || 'Untitled');
+          const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+          const now = new Date().toISOString();
+          const parsed: MindMapData = {
+            id: mapId,
+            title: baseName,
+            category: category || undefined,
+            rootNode,
+            createdAt: now,
+            updatedAt: now,
+            settings: { autoSave: true, autoLayout: true }
+          };
+          actionsHook.selectMap(parsed);
+          // Optionally, ensure future saves go back to the same file by updating list
+          try { await persistenceHook.updateMapInList(parsed); } catch {}
+        } catch {}
+      })();
       return false;
     }, [persistenceHook, actionsHook]),
 
