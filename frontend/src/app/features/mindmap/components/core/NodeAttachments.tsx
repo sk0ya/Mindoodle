@@ -1,6 +1,8 @@
 import React, { useCallback, memo, useState, useEffect } from 'react';
 import type { MindMapNode, FileAttachment } from '@shared/types';
 import { useOptionalAuth } from '../../../../components/auth';
+import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { loadRootDirectoryHandle, readFileFromRoot } from '../../../../shared/utils/fsa';
 
 interface NodeAttachmentsProps {
   node: MindMapNode;
@@ -32,6 +34,8 @@ const CloudImage: React.FC<{
   // 認証情報を取得 (オプショナル)
   const auth = useOptionalAuth();
 
+
+  const { data } = useMindMapStore();
 
   useEffect(() => {
     let cancelled = false;
@@ -89,9 +93,30 @@ const CloudImage: React.FC<{
             setImageUrl(blobUrl);
           }
         } else {
-          // 直接URLを使用（非R2ルート）
-          if (!cancelled) {
-            setImageUrl(file.downloadUrl);
+          // ローカルMarkdown相対パス対応 or 直接URL
+          const url = file.downloadUrl;
+          const isAbsolute = /^(https?:|data:|blob:)/i.test(url) || url.startsWith('/');
+          if (!isAbsolute) {
+            // Resolve relative to selected markdown root + current map category
+            const root = await loadRootDirectoryHandle();
+            const category = data?.category || '';
+            if (root) {
+              const fullPath = (category ? `${category}/${url}` : url).replace(/\/+/g, '/');
+              const blob = await readFileFromRoot(root, fullPath);
+              if (blob) {
+                blobUrl = URL.createObjectURL(blob);
+                if (!cancelled) setImageUrl(blobUrl);
+              } else if (!cancelled) {
+                // fallback: keep original (likely broken) URL to aid debugging
+                setImageUrl(url);
+              }
+            } else if (!cancelled) {
+              setImageUrl(url);
+            }
+          } else {
+            if (!cancelled) {
+              setImageUrl(url);
+            }
           }
         }
         
@@ -115,7 +140,7 @@ const CloudImage: React.FC<{
         URL.revokeObjectURL(blobUrl);
       }
     };
-  }, [file.downloadUrl, file.id, auth?.authAdapter?.isAuthenticated]);
+  }, [file.downloadUrl, file.id, auth?.authAdapter?.isAuthenticated, data?.category]);
 
   if (loading) {
     return (
@@ -180,16 +205,12 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const extractNoteImages = (note?: string): string[] => {
     if (!note) return [];
     const urls: string[] = [];
-    // Markdown image: ![alt](url "title")
-    const mdRe = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)/g;
+    // Combined regex that preserves source order for Markdown and HTML images
+    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>/gi;
     let m: RegExpExecArray | null;
-    while ((m = mdRe.exec(note)) !== null) {
-      urls.push(m[1]);
-    }
-    // HTML <img src="...">
-    const htmlRe = /<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>/gi;
-    while ((m = htmlRe.exec(note)) !== null) {
-      urls.push(m[1]);
+    while ((m = re.exec(note)) !== null) {
+      const url = m[1] || m[2];
+      if (url) urls.push(url);
     }
     return urls;
   };
@@ -445,7 +466,12 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
             onDoubleClick={(e) => handleImageDoubleClick(e as any, currentImage)}
             onContextMenu={(e) => handleFileActionMenu(e as any, currentImage)}
             >
-              {currentImage.downloadUrl && currentImage.downloadUrl.includes('/api/files/') ? (
+              {(() => {
+                const url = currentImage.downloadUrl || '';
+                const isR2 = !!url && url.includes('/api/files/');
+                const isRelative = !!url && !/^(https?:|data:|blob:|\/)/i.test(url);
+                return (isR2 || isRelative);
+              })() ? (
                 <CloudImage
                   file={currentImage}
                   style={{
