@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import CategoryGroup from './CategoryGroup';
