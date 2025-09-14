@@ -1,5 +1,6 @@
 import { type MindMapNode, createNewNode } from '../types/dataTypes';
 import { logger } from './logger';
+const DEBUG_MD = (import.meta as any)?.env?.VITE_DEBUG_MARKDOWN === '1' || (import.meta as any)?.env?.VITE_DEBUG_MARKDOWN === 'true';
 
 /**
  * マークダウンの見出し行を解析
@@ -50,18 +51,22 @@ export class MarkdownImporter {
    * マークダウンテキストをパースしてMindMapNode構造に変換
    */
   static parseMarkdownToNodes(markdownText: string): MindMapNode {
-    logger.debug('🔍 マークダウンパース開始', { 
-      textLength: markdownText.length, 
-      firstLine: markdownText.split('\n')[0] 
-    });
+    if (DEBUG_MD) {
+      logger.debug('🔍 マークダウンパース開始', { 
+        textLength: markdownText.length, 
+        firstLine: markdownText.split('\n')[0] 
+      });
+    }
     
     const lines = markdownText.split('\n');
     const headings = this.extractHeadings(lines);
     
-    logger.debug('📝 見出し抽出結果', { 
-      headingsCount: headings.length,
-      headings: headings.map(h => ({ level: h.level, text: h.text }))
-    });
+    if (DEBUG_MD) {
+      logger.debug('📝 見出し抽出結果', { 
+        headingsCount: headings.length,
+        headings: headings.map(h => ({ level: h.level, text: h.text }))
+      });
+    }
     
     if (headings.length === 0) {
       // 見出しがない場合は全体を1つのノートとする
@@ -74,18 +79,22 @@ export class MarkdownImporter {
     
     // 階層構造を正規化
     const normalizedHeadings = this.normalizeHeadingHierarchy(headings);
-    logger.debug('🔄 階層正規化結果', { 
-      normalizedCount: normalizedHeadings.length,
-      normalized: normalizedHeadings.map(h => ({ level: h.level, text: h.text }))
-    });
+    if (DEBUG_MD) {
+      logger.debug('🔄 階層正規化結果', { 
+        normalizedCount: normalizedHeadings.length,
+        normalized: normalizedHeadings.map(h => ({ level: h.level, text: h.text }))
+      });
+    }
     
     // ノード構造を構築
     const result = this.buildNodeHierarchy(normalizedHeadings);
-    logger.debug('🏗️ ノード構築結果', { 
-      rootText: result.text,
-      childrenCount: result.children?.length || 0,
-      result
-    });
+    if (DEBUG_MD) {
+      logger.debug('🏗️ ノード構築結果', { 
+        rootText: result.text,
+        childrenCount: result.children?.length || 0,
+        result
+      });
+    }
     
     return result;
   }

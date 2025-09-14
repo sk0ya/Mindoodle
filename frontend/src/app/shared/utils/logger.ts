@@ -17,7 +17,9 @@ class Logger {
 
   constructor() {
     const isDevelopment = import.meta.env.DEV;
-    const configuredLevel = (import.meta.env.VITE_LOG_LEVEL || (isDevelopment ? 'debug' : 'error')) as LogLevel;
+    // Default to 'info' in development to reduce noisy debug logs.
+    // Use VITE_LOG_LEVEL=debug to enable verbose logs when needed.
+    const configuredLevel = (import.meta.env.VITE_LOG_LEVEL || (isDevelopment ? 'info' : 'error')) as LogLevel;
     
     this.config = {
       level: configuredLevel,
