@@ -577,8 +577,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   };
 
   const handleEditLink = (link: NodeLink, nodeId: string) => {
-    console.log('🔥 handleEditLink called:', { link, nodeId });
-    console.trace('Call stack:');
+    logger.debug('handleEditLink', { link, nodeId });
     setEditingLink(link);
     setLinkModalNodeId(nodeId);
     setShowLinkModal(true);
@@ -1022,15 +1021,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
                 if (clipboardText && isMindMeisterFormat(clipboardText)) {
                   const parsedNode = parseMindMeisterMarkdown(clipboardText);
                   if (parsedNode) {
-                    const paste = (n: MindMapNode, parent: string): string | undefined => {
-                      const newId = store.addChildNode(parent, n.text);
-                      if (newId) {
-                        updateNode(newId, { fontSize: n.fontSize, fontWeight: n.fontWeight, color: n.color, collapsed: false, attachments: n.attachments || [], note: n.note });
-                        n.children?.forEach(c => paste(c, newId));
-                      }
-                      return newId;
-                    };
-                    const newId = paste(parsedNode, parentId);
+                    const { pasteNodeTree } = await import('../../../../shared/utils/pasteTree');
+                    const newId = pasteNodeTree(parsedNode, parentId, store.addChildNode, updateNode);
                     if (newId) { showNotification('success', `「${parsedNode.text}」をMindMeisterから貼り付けました`); selectNode(newId); }
                     return;
                   }
@@ -1039,15 +1031,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             } catch {}
             const clip = ui.clipboard;
             if (!clip) { showNotification('warning', 'コピーされたノードがありません'); return; }
-            const paste = (n: MindMapNode, parent: string): string | undefined => {
-              const newId = store.addChildNode(parent, n.text);
-              if (newId) {
-                updateNode(newId, { fontSize: n.fontSize, fontWeight: n.fontWeight, color: n.color, collapsed: false, attachments: n.attachments || [] });
-                n.children?.forEach(c => paste(c, newId));
-              }
-              return newId;
-            };
-            const newId = paste(clip, parentId);
+            const { pasteNodeTree } = await import('../../../../shared/utils/pasteTree');
+            const newId = pasteNodeTree(clip, parentId, store.addChildNode, updateNode);
             if (newId) { showNotification('success', `「${clip.text}」を貼り付けました`); selectNode(newId); }
           },
           onShowCustomization: (node: MindMapNode) => {
