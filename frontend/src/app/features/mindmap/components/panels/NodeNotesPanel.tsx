@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
 import type { MindMapNode } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
-import { marked } from 'marked';
+// Using Monaco-based MarkdownEditor for both note and map markdown views
 
 interface NodeNotesPanelProps {
   selectedNode: MindMapNode | null;
@@ -176,12 +176,15 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
           <div className="editor-container">
             {loadingMapMd ? (
               <div className="preview-empty"><div className="preview-empty-icon">⏳</div><div className="preview-empty-message">読み込み中...</div></div>
-            ) : mapMarkdown ? (
-              <div className="preview-content">
-                <div className="markdown-preview" dangerouslySetInnerHTML={{ __html: (marked.parse(mapMarkdown) as string) }} />
-              </div>
             ) : (
-              <div className="empty-state"><div className="empty-icon">📄</div><div className="empty-message">マップのマークダウンを表示できません</div></div>
+              <MarkdownEditor
+                value={mapMarkdown}
+                onChange={setMapMarkdown}
+                height="calc(100vh - 140px)"
+                className="node-editor"
+                autoFocus={false}
+                readOnly={true}
+              />
             )}
           </div>
         ) : (
@@ -253,12 +256,15 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
         <div className="editor-container">
           {loadingMapMd ? (
             <div className="preview-empty"><div className="preview-empty-icon">⏳</div><div className="preview-empty-message">読み込み中...</div></div>
-          ) : mapMarkdown ? (
-            <div className="preview-content">
-              <div className="markdown-preview" dangerouslySetInnerHTML={{ __html: (marked.parse(mapMarkdown) as string) }} />
-            </div>
           ) : (
-            <div className="empty-state"><div className="empty-icon">📄</div><div className="empty-message">マップのマークダウンを表示できません</div></div>
+            <MarkdownEditor
+              value={mapMarkdown}
+              onChange={setMapMarkdown}
+              height="calc(100vh - 140px)"
+              className="node-editor"
+              autoFocus={false}
+              readOnly={true}
+            />
           )}
         </div>
       )}

@@ -13,16 +13,18 @@ interface MarkdownEditorProps {
   height?: string;
   vimMode?: boolean;
   autoFocus?: boolean;
+  readOnly?: boolean;
 }
 
-export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({ 
   value,
   onChange,
   onSave,
   className = '',
   height = '400px',
   vimMode = false,
-  autoFocus = false
+  autoFocus = false,
+  readOnly = false
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const [isVimEnabled, setIsVimEnabled] = useState(vimMode);
@@ -61,7 +63,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       glyphMargin: false,
       overviewRulerLanes: 0,
       hideCursorInOverviewRuler: true,
-      overviewRulerBorder: false
+      overviewRulerBorder: false,
+      readOnly
     });
 
     // Add keyboard shortcuts
@@ -214,16 +217,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               }}
               onMount={handleEditorDidMount}
               theme={settings.theme === 'dark' ? 'vs-dark' : 'vs'}
-              loading="エディターを読み込み中..."
-              options={{
-                selectOnLineNumbers: true,
-                roundedSelection: false,
-                readOnly: false,
-                cursorStyle: 'line',
-                automaticLayout: true,
-                // キーボード関連の設定を明示的に指定
-                acceptSuggestionOnEnter: 'off',
-                acceptSuggestionOnCommitCharacter: false,
+      loading="エディターを読み込み中..."
+      options={{
+        selectOnLineNumbers: true,
+        roundedSelection: false,
+        readOnly,
+        cursorStyle: 'line',
+        automaticLayout: true,
+        // キーボード関連の設定を明示的に指定
+        acceptSuggestionOnEnter: 'off',
+        acceptSuggestionOnCommitCharacter: false,
                 quickSuggestions: false,
                 parameterHints: { enabled: false },
                 suggestOnTriggerCharacters: false,
