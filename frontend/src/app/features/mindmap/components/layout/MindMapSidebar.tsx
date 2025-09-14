@@ -517,8 +517,9 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         }
       ];
     } else if (targetType === 'explorer-folder') {
+      const isRoot = targetPath === '';
       const isCollapsed = !!(targetPath && collapsedCategories.has(targetPath));
-      return [
+      const baseItems: ContextMenuItem[] = [
         {
           label: 'マップを作成',
           icon: <Workflow size={14} />,
@@ -528,7 +529,9 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           label: 'フォルダを作成',
           icon: <Folder size={14} />,
           onClick: () => handleCreateFolder(targetPath)
-        },
+        }
+      ];
+      const mutatingItems: ContextMenuItem[] = isRoot ? [] : [
         { separator: true },
         {
           label: '名前を変更',
@@ -552,7 +555,9 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
               window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
             }
           }
-        },
+        }
+      ];
+      const rest: ContextMenuItem[] = [
         { separator: true },
         {
           label: isCollapsed ? '展開' : '折りたたみ',
@@ -566,6 +571,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           onClick: () => window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'))
         }
       ];
+      return [...baseItems, ...mutatingItems, ...rest];
     } else if (targetType === 'explorer-file') {
       return [
         {
@@ -809,7 +815,8 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
         }
       }}
     >
-      {tree.children?.map(child => <NodeView key={child.path} item={child} />)}
+      {/* ルートフォルダ自体も表示する（フォルダ名=選択したディレクトリ名） */}
+      <NodeView key={tree.path || '__root__'} item={tree} />
     </div>
   );
 };
