@@ -12,6 +12,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private _isInitialized = false;
   private rootHandle: DirHandle | null = null;
   private saveTargets: Map<string, { dir: DirHandle, fileName: string, isRoot: boolean, baseHeadingLevel?: number, headingLevelByText?: Record<string, number> } > = new Map();
+  private permissionWarned = false;
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -144,6 +145,16 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (!this.rootHandle) return [];
 
     const maps: MindMapData[] = [];
+
+    // Verify we still have permission; if not, avoid noisy attempts
+    const perm = await this.queryPermission(this.rootHandle as any, 'readwrite');
+    if (perm !== 'granted') {
+      if (!this.permissionWarned) {
+        logger.warn('MarkdownFolderAdapter: Root folder permission is not granted. Please reselect the folder in Settings.');
+        this.permissionWarned = true;
+      }
+      return maps;
+    }
 
     // Include all root-level *.md as maps
     try {
@@ -350,7 +361,18 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       this.saveTargets.set(data.id, { dir: dirForSave, fileName, isRoot: !categoryPath, baseHeadingLevel, headingLevelByText });
       return data;
     } catch (e) {
-      logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
+      const name = await this.getFileName(fileHandle).catch(() => 'unknown.md');
+      const tag = (e as any)?.name || (e as any)?.message || '';
+      if ((e as any)?.name === 'NotReadableError' || /NotReadable/i.test(String(tag))) {
+        if (!this.permissionWarned) {
+          logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
+          this.permissionWarned = true;
+        } else {
+          logger.debug('MarkdownFolderAdapter: Skipping unreadable file:', name);
+        }
+      } else {
+        logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
+      }
       return null;
     }
   }
@@ -504,6 +526,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   async getExplorerTree(): Promise<ExplorerItem> {
     if (!this.rootHandle) {
       throw new Error('No root folder selected');
+    }
+    const perm = await this.queryPermission(this.rootHandle as any, 'readwrite');
+    if (perm !== 'granted') {
+      if (!this.permissionWarned) {
+        logger.warn('MarkdownFolderAdapter: Root folder permission is not granted. Please reselect the folder in Settings.');
+        this.permissionWarned = true;
+      }
+      return { type: 'folder', name: (this.rootHandle as any).name || '', path: '', children: [] };
     }
     const root: ExplorerItem = {
       type: 'folder',
