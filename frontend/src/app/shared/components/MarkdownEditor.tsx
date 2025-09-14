@@ -41,12 +41,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings } = useMindMapStore();
 
-  // Sync external value with internal value
-  useEffect(() => {
-    if (value !== internalValue) {
-      setInternalValue(value);
-    }
-  }, [value, internalValue]);
+  // Note: internalValue is the source-of-truth during editing to avoid flicker.
+  // External value is used only for initial mount; callers should remount/editor or
+  // manage value changes explicitly when switching documents.
 
   // Debounced onChange handler
   const handleEditorChange = useCallback((newValue: string) => {
