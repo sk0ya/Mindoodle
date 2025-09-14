@@ -239,14 +239,37 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   useEffect(() => { setImageIndex(0); }, [node.id]);
   const currentImage: FileAttachment | undefined = imageFiles[imageIndex];
 
-  // ノート内のHTML画像タグからサイズ属性を取得
-  const parseNoteImageSize = (note: string | undefined, url: string | undefined): { width: number; height: number } | null => {
-    if (!note || !url) return null;
-    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const imgRe = new RegExp(`<img[^>]*\\ssrc=["']${esc(url)}["'][^>]*>`, 'i');
-    const m = note.match(imgRe);
-    if (!m) return null;
-    const tag = m[0];
+  // ノート本文から画像の出現順序でエントリ一覧を抽出
+  type NoteImageEntry = { type: 'md' | 'html'; url: string; tag: string; start: number; end: number };
+  const extractNoteImageEntries = (note?: string): NoteImageEntry[] => {
+    if (!note) return [];
+    const entries: NoteImageEntry[] = [];
+    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|(<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>)/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(note)) !== null) {
+      const full = m[0];
+      const start = m.index;
+      const end = start + full.length;
+      if (m[2]) {
+        // HTML
+        const url = m[3];
+        entries.push({ type: 'html', url, tag: full, start, end });
+      } else {
+        // Markdown
+        const url = m[1];
+        entries.push({ type: 'md', url, tag: full, start, end });
+      }
+    }
+    return entries;
+  };
+
+  // 指定インデックスのノート画像サイズ取得（HTMLのみ幅高さ取得可能）
+  const parseNoteImageSizeByIndex = (note: string | undefined, index: number): { width: number; height: number } | null => {
+    if (!note) return null;
+    const entries = extractNoteImageEntries(note);
+    const entry = entries[index];
+    if (!entry || entry.type !== 'html') return null;
+    const tag = entry.tag;
     const wMatch = tag.match(/\swidth=["']?(\d+)(?:px)?["']?/i);
     const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
     if (!wMatch || !hMatch) return null;
@@ -259,7 +282,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   };
 
   // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
-  const noteSize = currentImage ? parseNoteImageSize(node.note, currentImage.downloadUrl) : null;
+  const noteSize = currentImage ? parseNoteImageSizeByIndex(node.note, imageIndex) : null;
   const imageDimensions = node.customImageWidth && node.customImageHeight
     ? { width: node.customImageWidth, height: node.customImageHeight }
     : noteSize || { width: 150, height: 105 };
@@ -268,6 +291,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   const lastLayoutKeyRef = React.useRef<string | null>(null);
   useEffect(() => {
     if (!onAutoLayout) return;
+    if (isResizing) return; // リサイズ中は自動レイアウトを抑止
     const layoutKey = `${node.id}:${imageDimensions.width}x${imageDimensions.height}:${imageIndex}`;
     if (lastLayoutKeyRef.current === layoutKey) return;
     lastLayoutKeyRef.current = layoutKey;
@@ -275,7 +299,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     requestAnimationFrame(() => {
       onAutoLayout();
     });
-  }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, imageIndex]);
+  }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, imageIndex, isResizing]);
 
   // 画像リサイズハンドラー
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
@@ -340,29 +364,23 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     });
   }, [isResizing, onUpdateNode, svgRef, zoom, pan, resizeStartPos, resizeStartSize, originalAspectRatio, node.id]);
 
-  const updateNoteImageSize = (note: string | undefined, url: string, w: number, h: number): string | undefined => {
-    if (!note || !url) return note;
-    const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const updateNoteImageSizeByIndex = (note: string | undefined, index: number, w: number, h: number): string | undefined => {
+    if (!note) return note;
+    const entries = extractNoteImageEntries(note);
+    const entry = entries[index];
+    if (!entry) return note;
     const width = Math.round(w);
     const height = Math.round(h);
-    // 1) 既存の<img>タグがある場合は width/height を更新
-    const imgTagRe = new RegExp(`<img([^>]*)\\ssrc=["']${esc(url)}["']([^>]*)>`, 'i');
-    if (imgTagRe.test(note)) {
-      return note.replace(imgTagRe, (_m, preAttrs: string, postAttrs: string) => {
-        const attrs = `${preAttrs} ${postAttrs}`
-          .replace(/\swidth=["']?\d+(?:px)?["']?/ig, '')
-          .replace(/\sheight=["']?\d+(?:px)?["']?/ig, '')
-          .trim();
-        return `<img src="${url}" ${attrs ? attrs + ' ' : ''}width="${width}" height="${height}">`;
-      });
+    let replacement: string;
+    if (entry.type === 'html') {
+      replacement = entry.tag
+        .replace(/\swidth=["']?\d+(?:px)?["']?/ig, '')
+        .replace(/\sheight=["']?\d+(?:px)?["']?/ig, '')
+        .replace(/<img([^>]*)>/i, (_m, attrs: string) => `<img${attrs} width="${width}" height="${height}">`);
+    } else {
+      replacement = `<img src="${entry.url}" width="${width}" height="${height}">`;
     }
-    // 2) Markdown画像ならHTMLに差し替え
-    const mdRe = new RegExp(`!\\[([^\\]]*)\\]\\(\\s*${esc(url)}(?:\\s+[^)]*)?\\)`, '');
-    if (mdRe.test(note)) {
-      return note.replace(mdRe, (_m, alt: string) => `<img src="${url}" alt="${alt}" width="${width}" height="${height}">`);
-    }
-    // 3) 見つからない場合は末尾に追加
-    return `${note}\n<img src="${url}" width="${width}" height="${height}">`;
+    return note.slice(0, entry.start) + replacement + note.slice(entry.end);
   };
 
   const handleResizeEnd = useCallback(() => {
@@ -370,8 +388,8 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
       setIsResizing(false);
       // ノート画像のサイズ指定を更新（ノート画像が表示されている場合）
       const usingNoteImages = noteImageFiles.length > 0;
-      if (usingNoteImages && onUpdateNode && currentImage?.downloadUrl) {
-        const newNote = updateNoteImageSize(node.note, currentImage.downloadUrl, imageDimensions.width, imageDimensions.height);
+      if (usingNoteImages && onUpdateNode) {
+        const newNote = updateNoteImageSizeByIndex(node.note, imageIndex, imageDimensions.width, imageDimensions.height);
         if (newNote && newNote !== node.note) {
           onUpdateNode(node.id, { note: newNote, customImageWidth: imageDimensions.width, customImageHeight: imageDimensions.height });
         }
@@ -476,8 +494,9 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   // ノート画像の場合、現在の画像のサイズ指定があれば先に反映（ロード完了前にレイアウトを安定させる）
   useEffect(() => {
     if (!onUpdateNode) return;
-    if (!usingNoteImages || !currentImage?.downloadUrl) return;
-    const sz = parseNoteImageSize(node.note, currentImage.downloadUrl);
+    if (isResizing) return; // リサイズ中はノート側のサイズ反映で上書きしない
+    if (!usingNoteImages) return;
+    const sz = parseNoteImageSizeByIndex(node.note, imageIndex);
     if (sz) {
       const minWidth = 50;
       const maxWidth = 400;
@@ -487,7 +506,10 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
         onUpdateNode(node.id, { customImageWidth: w, customImageHeight: h });
       }
     }
-  }, [usingNoteImages, currentImage?.downloadUrl, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
+  }, [isResizing, usingNoteImages, imageIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
+
+  // ホバー状態でコントロール表示
+  const [isHovered, setIsHovered] = useState(false);
 
   return (
     <>
@@ -517,6 +539,8 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
             onClick={(e) => handleImageClick(e as any, currentImage)}
             onDoubleClick={(e) => handleImageDoubleClick(e as any, currentImage)}
             onContextMenu={(e) => handleFileActionMenu(e as any, currentImage)}
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
             >
               {(() => {
                 const url = currentImage.downloadUrl || '';
@@ -572,34 +596,57 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
                 />
               )}
 
-              {/* 画像切替コントロール */}
-              {imageFiles.length > 1 && (
-                <div style={{ position: 'absolute', bottom: 6, right: 6, display: 'flex', gap: 6 }}>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev - 1 + imageFiles.length) % imageFiles.length); }}
-                    style={{
-                      background: 'rgba(0,0,0,0.4)', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 12
-                    }}
-                    title="前の画像"
-                  >
-                    ‹
-                  </button>
-                  <div style={{ background: 'rgba(0,0,0,0.4)', color: '#fff', borderRadius: 4, padding: '2px 6px', fontSize: 12 }}>
-                    {imageIndex + 1} / {imageFiles.length}
-                  </div>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev + 1) % imageFiles.length); }}
-                    style={{
-                      background: 'rgba(0,0,0,0.4)', color: '#fff', border: 'none', borderRadius: 4, padding: '2px 6px', cursor: 'pointer', fontSize: 12
-                    }}
-                    title="次の画像"
-                  >
-                    ›
-                  </button>
-                </div>
+              {/* 画像切替コントロール（ノード選択時またはホバー時のみ表示） */}
+              {imageFiles.length > 1 && (isSelected || isHovered) && (
+                (() => {
+                  const tiny = imageDimensions.width < 100;
+                  const compact = imageDimensions.width < 140;
+                  const fontSize = tiny ? 9 : (compact ? 10 : 12);
+                  const padH = tiny ? '0 3px' : (compact ? '1px 4px' : '2px 6px');
+                  const btnPad = tiny ? '0 3px' : '0 4px';
+                  return (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        left: 6,
+                        bottom: 6,
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: tiny ? 2 : 4,
+                        background: 'rgba(0,0,0,0.45)',
+                        color: '#fff',
+                        borderRadius: 9999,
+                        padding: padH,
+                        pointerEvents: 'auto',
+                        lineHeight: 1
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev - 1 + imageFiles.length) % imageFiles.length); }}
+                        style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
+                        aria-label="前の画像"
+                        title="前の画像"
+                      >
+                        ‹
+                      </button>
+                      <div style={{ fontSize: fontSize - 1 }}>{imageIndex + 1}/{imageFiles.length}</div>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev + 1) % imageFiles.length); }}
+                        style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
+                        aria-label="次の画像"
+                        title="次の画像"
+                      >
+                        ›
+                      </button>
+                    </div>
+                  );
+                })()
               )}
             </div>
           </foreignObject>
+
+          {/* 外部オーバーレイは廃止（UIはできるだけ小さく、画像内に収める） */}
           
           {/* 画像選択時の枠線とリサイズハンドル */}
           {isSelected && (
