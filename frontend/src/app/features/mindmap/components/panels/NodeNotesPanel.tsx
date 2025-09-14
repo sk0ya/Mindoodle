@@ -3,17 +3,22 @@ import { X } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
 import type { MindMapNode } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
+import { marked } from 'marked';
 
 interface NodeNotesPanelProps {
   selectedNode: MindMapNode | null;
   onUpdateNode: (id: string, updates: Partial<MindMapNode>) => void;
   onClose?: () => void;
+  currentMapId?: string | null;
+  getMapMarkdown?: (mapId: string) => Promise<string | null>;
 }
 
 const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   selectedNode,
   onUpdateNode,
-  onClose
+  onClose,
+  currentMapId,
+  getMapMarkdown
 }) => {
   const [noteValue, setNoteValue] = useState('');
   const [isDirty, setIsDirty] = useState(false);
@@ -22,6 +27,9 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   const saveDataRef = useRef({ selectedNode, noteValue, isDirty, onUpdateNode });
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const [tab, setTab] = useState<'note' | 'map-md'>('note');
+  const [mapMarkdown, setMapMarkdown] = useState<string>('');
+  const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
 
   // Update ref when values change
   useEffect(() => {
@@ -39,6 +47,22 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
       setIsDirty(false);
     }
   }, [selectedNode]);
+
+  // Load map markdown when switching to map tab or when map changes
+  useEffect(() => {
+    const load = async () => {
+      if (tab !== 'map-md') return;
+      if (!currentMapId || !getMapMarkdown) { setMapMarkdown(''); return; }
+      setLoadingMapMd(true);
+      try {
+        const text = await getMapMarkdown(currentMapId);
+        setMapMarkdown(text || '');
+      } finally {
+        setLoadingMapMd(false);
+      }
+    };
+    void load();
+  }, [tab, currentMapId, getMapMarkdown]);
 
   // Handle note changes
   const handleNoteChange = useCallback((value: string) => {
@@ -116,6 +140,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, onClose]);
 
+  // When no node is selected, still allow viewing map markdown tab
   if (!selectedNode) {
     return (
       <div 
@@ -129,27 +154,43 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
           onMouseDown={handleResizeStart}
         />
         <div className="panel-header">
-          <h3 className="panel-title">📝 ノート</h3>
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="close-button"
-              title="閉じる (Esc)"
-            >
-<X size={20} />
-            </button>
-          )}
-        </div>
-        <div className="empty-state">
-          <div className="empty-icon">📄</div>
-          <div className="empty-message">
-            ノードを選択してください
-          </div>
-          <div className="empty-description">
-            選択したノードにマークダウン形式のノートを追加できます
+          <h3 className="panel-title">📝 ノート / 📄 マップMD</h3>
+          <div className="panel-controls">
+            <div className="note-tabs" role="tablist" aria-label="Notes tabs">
+              <button type="button" className={`note-tab ${tab === 'note' ? 'active' : ''}`} onClick={() => setTab('note')} role="tab" aria-selected={tab === 'note'}>ノート</button>
+              <button type="button" className={`note-tab ${tab === 'map-md' ? 'active' : ''}`} onClick={() => setTab('map-md')} role="tab" aria-selected={tab === 'map-md'}>マークダウン</button>
+            </div>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="close-button"
+                title="閉じる (Esc)"
+              >
+                <X size={20} />
+              </button>
+            )}
           </div>
         </div>
+        {tab === 'map-md' ? (
+          <div className="editor-container">
+            {loadingMapMd ? (
+              <div className="preview-empty"><div className="preview-empty-icon">⏳</div><div className="preview-empty-message">読み込み中...</div></div>
+            ) : mapMarkdown ? (
+              <div className="preview-content">
+                <div className="markdown-preview" dangerouslySetInnerHTML={{ __html: (marked.parse(mapMarkdown) as string) }} />
+              </div>
+            ) : (
+              <div className="empty-state"><div className="empty-icon">📄</div><div className="empty-message">マップのマークダウンを表示できません</div></div>
+            )}
+          </div>
+        ) : (
+          <div className="empty-state">
+            <div className="empty-icon">📄</div>
+            <div className="empty-message">ノードを選択してください</div>
+            <div className="empty-description">選択したノードにマークダウン形式のノートを追加できます</div>
+          </div>
+        )}
         <style>{getStyles(panelWidth, isResizing)}</style>
       </div>
     );
@@ -168,13 +209,17 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
       />
       <div className="panel-header">
         <div className="panel-title-section">
-          <h3 className="panel-title">📝 ノート</h3>
+          <h3 className="panel-title">📝 ノート / 📄 マップMD</h3>
           <div className="node-info">
             <span className="node-name">{selectedNode.text}</span>
             {isDirty && <span className="dirty-indicator">●</span>}
           </div>
         </div>
         <div className="panel-controls">
+          <div className="note-tabs" role="tablist" aria-label="Notes tabs">
+            <button type="button" className={`note-tab ${tab === 'note' ? 'active' : ''}`} onClick={() => setTab('note')} role="tab" aria-selected={tab === 'note'}>ノート</button>
+            <button type="button" className={`note-tab ${tab === 'map-md' ? 'active' : ''}`} onClick={() => setTab('map-md')} role="tab" aria-selected={tab === 'map-md'}>マークダウン</button>
+          </div>
           {onClose && (
             <button
               type="button"
@@ -185,24 +230,38 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
               className="close-button"
               title="閉じる (Esc)"
             >
-<X size={20} />
+              <X size={20} />
             </button>
           )}
         </div>
       </div>
 
-      <div className="editor-container">
-        <MarkdownEditor
-          value={noteValue}
-          onChange={handleNoteChange}
-          onSave={handleSave}
-          height="calc(100vh - 140px)"
-          className="node-editor"
-          autoFocus={false}
-        />
-      </div>
+      {tab === 'note' ? (
+        <div className="editor-container">
+          <MarkdownEditor
+            value={noteValue}
+            onChange={handleNoteChange}
+            onSave={handleSave}
+            height="calc(100vh - 140px)"
+            className="node-editor"
+            autoFocus={false}
+          />
+        </div>
+      ) : (
+        <div className="editor-container">
+          {loadingMapMd ? (
+            <div className="preview-empty"><div className="preview-empty-icon">⏳</div><div className="preview-empty-message">読み込み中...</div></div>
+          ) : mapMarkdown ? (
+            <div className="preview-content">
+              <div className="markdown-preview" dangerouslySetInnerHTML={{ __html: (marked.parse(mapMarkdown) as string) }} />
+            </div>
+          ) : (
+            <div className="empty-state"><div className="empty-icon">📄</div><div className="empty-message">マップのマークダウンを表示できません</div></div>
+          )}
+        </div>
+      )}
 
-      {isDirty && (
+      {tab === 'note' && isDirty && (
         <div className="save-status">
           <span className="unsaved-changes">未保存の変更があります</span>
           <button
@@ -318,6 +377,18 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       background: var(--hover-color);
       color: var(--text-primary);
     }
+
+    .note-tabs { display: inline-flex; gap: 6px; margin-right: 8px; }
+    .note-tab { 
+      background: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      padding: 4px 8px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .note-tab.active { background: var(--bg-primary); border-color: var(--accent); }
 
     .editor-container {
       flex: 1;

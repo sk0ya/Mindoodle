@@ -116,6 +116,19 @@ export const useMindMap = (
     return null;
   }, [persistenceHook]);
 
+  // Expose raw markdown fetch for current adapter (markdown mode only)
+  const getMapMarkdown = useCallback(async (mapId: string): Promise<string | null> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.getMapMarkdown === 'function') {
+      try {
+        return await adapter.getMapMarkdown(mapId);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  }, [persistenceHook]);
+
   // マップ管理の高レベル操作（非同期対応）
   const mapOperations = {
     createAndSelectMap: useCallback(async (title: string, category?: string): Promise<string> => {
@@ -262,5 +275,8 @@ export const useMindMap = (
     deleteItem,
     moveItem,
     explorerTree: (persistenceHook as any).explorerTree || null
+    ,
+    // markdown helpers
+    getMapMarkdown
   };
 };

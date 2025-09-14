@@ -1618,6 +1618,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               selectedNode={selectedNodeId ? findNodeById(data?.rootNode, selectedNodeId) : null}
               onUpdateNode={updateNode}
               onClose={() => store.setShowNotesPanel(false)}
+              currentMapId={data?.id || null}
+              getMapMarkdown={(mindMap as any).getMapMarkdown}
             />
           )}
         </div>

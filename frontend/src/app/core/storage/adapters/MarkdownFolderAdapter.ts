@@ -186,6 +186,46 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // No persistent handles kept beyond session
   }
 
+  // Return raw markdown text of a map by id (category/subpath + base name)
+  async getMapMarkdown(mapId: string): Promise<string | null> {
+    if (!this._isInitialized) {
+      await this.initialize();
+    }
+    if (!this.rootHandle) return null;
+
+    // 1) Try saveTargets (reliable when map was loaded or enumerated this session)
+    const target = this.saveTargets.get(mapId);
+    if (target) {
+      try {
+        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName) 
+          ?? await (target.dir as any).getFileHandle(target.fileName);
+        const file = await fh.getFile();
+        return await file.text();
+      } catch (e) {
+        // fall through to path resolution
+      }
+    }
+
+    // 2) Resolve path from mapId: "category/sub/name" => category/sub + name.md
+    try {
+      const parts = (mapId || '').split('/').filter(Boolean);
+      if (parts.length === 0) return null;
+      const base = parts.pop() as string;
+      let dir: DirHandle = this.rootHandle as any;
+      for (const p of parts) {
+        const next = await this.getExistingDirectory(dir, p);
+        if (!next) return null;
+        dir = next;
+      }
+      const fh = await this.getExistingFile(dir, `${base}.md`);
+      if (!fh) return null;
+      const file = await fh.getFile();
+      return await file.text();
+    } catch {
+      return null;
+    }
+  }
+
   async createFolder(relativePath: string): Promise<void> {
     if (!this.rootHandle) throw new Error('No root folder selected');
     let dir: DirHandle = this.rootHandle as any;

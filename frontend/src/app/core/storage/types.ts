@@ -38,6 +38,9 @@ export interface StorageAdapter {
   renameItem?(path: string, newName: string): Promise<void>;
   deleteItem?(path: string): Promise<void>;
   moveItem?(sourcePath: string, targetFolderPath: string): Promise<void>;
+
+  // Markdown helpers (optional)
+  getMapMarkdown?(mapId: string): Promise<string | null>;
   
   // ファイル操作（オプショナル - クラウドモードのみ）
   uploadFile?(mindmapId: string, nodeId: string, file: File): Promise<FileInfo>;
