@@ -316,24 +316,24 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
 
   // 画像リサイズハンドラー
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    console.log('🎯 リサイズ開始:', { nodeId: node.id, isResizing });
+    // logger.debug('Resize start', { nodeId: node.id, isResizing });
     e.stopPropagation();
     e.preventDefault();
     
     if (!onUpdateNode) {
-      console.log('❌ onUpdateNode が未定義');
+      // logger.debug('onUpdateNode is undefined');
       return;
     }
     
     if (!svgRef.current) {
-      console.log('❌ svgRef が未定義');
+      // logger.debug('svgRef is undefined');
       return;
     }
     
     const svgRect = svgRef.current.getBoundingClientRect();
     const currentDimensions = imageDimensions;
     
-    console.log('📏 現在の画像サイズ:', currentDimensions);
+    // logger.debug('Current image size', currentDimensions);
     
     setIsResizing(true);
     setResizeStartPos({
@@ -346,7 +346,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     });
     setOriginalAspectRatio(currentDimensions.width / currentDimensions.height);
     
-    console.log('✅ リサイズ開始完了');
+    // logger.debug('Resize handler started');
   }, [node, onUpdateNode, svgRef, zoom, pan, isResizing]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {

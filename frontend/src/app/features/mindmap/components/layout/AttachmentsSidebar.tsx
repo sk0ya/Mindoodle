@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import { logger } from '../../../../shared/utils/logger';
 import { X, RefreshCw, Download, Trash2 } from 'lucide-react';
 import { useMindMapStore } from '../../../../core';
 import { useMindMapPersistence } from '../../../../core/hooks/useMindMapPersistence';
@@ -80,7 +81,7 @@ const AttachmentsSidebar: React.FC<AttachmentsSidebarProps> = ({ isVisible }) =>
     const files: AttachedFile[] = [];
     
     // デバッグログ
-    console.log(`Checking node ${node.id}:`, {
+    logger.debug(`Checking node ${node.id}:`, {
       hasAttachments: !!node.attachments,
       attachmentsCount: node.attachments?.length || 0,
       attachments: node.attachments
@@ -88,7 +89,7 @@ const AttachmentsSidebar: React.FC<AttachmentsSidebarProps> = ({ isVisible }) =>
     
     if (node.attachments && node.attachments.length > 0) {
       node.attachments.forEach((attachment: FileAttachment) => {
-        console.log(`Found attachment:`, attachment);
+        logger.debug('Found attachment:', attachment);
         files.push({
           id: attachment.id,
           name: attachment.name,
@@ -106,7 +107,7 @@ const AttachmentsSidebar: React.FC<AttachmentsSidebarProps> = ({ isVisible }) =>
 
     // 子ノードも再帰的にチェック
     if (node.children && node.children.length > 0) {
-      console.log(`Checking ${node.children.length} children of node ${node.id}`);
+      logger.debug(`Checking ${node.children.length} children of node ${node.id}`);
       node.children.forEach(child => {
         files.push(...collectAttachmentsFromNode(child, mapId, mapTitle));
       });
@@ -125,7 +126,7 @@ const AttachmentsSidebar: React.FC<AttachmentsSidebarProps> = ({ isVisible }) =>
 
       // クラウドモードでstorageAdapterが利用可能な場合は、直接APIから全ファイル情報を取得
       if (storageAdapter && typeof (storageAdapter as any).getAllFiles === 'function') {
-        console.log('Loading files from cloud storage adapter');
+        logger.debug('Loading files from cloud storage adapter');
         try {
           const cloudFiles = await (storageAdapter as any).getAllFiles();
           console.log(`Found ${cloudFiles.length} files from cloud API:`, cloudFiles);
@@ -180,28 +181,28 @@ const AttachmentsSidebar: React.FC<AttachmentsSidebarProps> = ({ isVisible }) =>
       if (allFiles.length === 0) {
         // 現在のマップから収集
         if (mindMapData) {
-          console.log('Loading attachments from current mindMapData:', mindMapData);
-          console.log('Root node:', mindMapData.rootNode);
+          logger.debug('Loading attachments from current mindMapData:', mindMapData);
+          logger.debug('Root node:', mindMapData.rootNode);
           
           const currentMapFiles = collectAttachmentsFromNode(
             mindMapData.rootNode, 
             mindMapData.id, 
             mindMapData.title
           );
-          console.log(`Found ${currentMapFiles.length} files in current map`);
+          logger.debug(`Found ${currentMapFiles.length} files in current map`);
           allFiles.push(...currentMapFiles);
         } else {
-          console.log('No current mindMapData available');
+          logger.debug('No current mindMapData available');
         }
 
         // すべてのマップから収集
-        console.log('Available allMindMaps:', allMindMaps);
+        logger.debug('Available allMindMaps:', allMindMaps);
         if (allMindMaps && allMindMaps.length > 0) {
           allMindMaps.forEach((map, index) => {
-            console.log(`Processing map ${index + 1}/${allMindMaps.length}: ${map.title} (${map.id})`);
+            logger.debug(`Processing map ${index + 1}/${allMindMaps.length}: ${map.title} (${map.id})`);
             // 現在のマップは既に処理済みなのでスキップ
             if (mindMapData && map.id === mindMapData.id) {
-              console.log('Skipping current map (already processed)');
+              logger.debug('Skipping current map (already processed)');
               return;
             }
             
@@ -210,15 +211,15 @@ const AttachmentsSidebar: React.FC<AttachmentsSidebarProps> = ({ isVisible }) =>
               map.id,
               map.title
             );
-            console.log(`Found ${mapFiles.length} files in map "${map.title}"`);
+            logger.debug(`Found ${mapFiles.length} files in map "${map.title}"`);
             allFiles.push(...mapFiles);
           });
         } else {
-          console.log('No allMindMaps available or empty array');
+          logger.debug('No allMindMaps available or empty array');
         }
       }
 
-      console.log(`Total files found: ${allFiles.length}`, allFiles);
+      logger.debug(`Total files found: ${allFiles.length}`, allFiles);
       
       setAttachedFiles(allFiles);
     } catch (err) {

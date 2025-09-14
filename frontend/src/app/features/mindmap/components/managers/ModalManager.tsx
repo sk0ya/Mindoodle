@@ -50,14 +50,14 @@ export const useModalManager = ({
 
   // Link-related handlers
   const handleAddLink = React.useCallback((nodeId: string) => {
-    console.log('📝 handleAddLink called:', nodeId);
+    logger.debug('handleAddLink', { nodeId });
     setEditingLink(null);
     setLinkModalNodeId(nodeId);
     setShowLinkModal(true);
   }, [setEditingLink, setLinkModalNodeId, setShowLinkModal]);
 
   const handleEditLink = React.useCallback((link: NodeLink, nodeId: string) => {
-    console.log('🔥 handleEditLink called:', { link, nodeId });
+    logger.debug('handleEditLink', { link, nodeId });
     setEditingLink(link);
     setLinkModalNodeId(nodeId);
     setShowLinkModal(true);

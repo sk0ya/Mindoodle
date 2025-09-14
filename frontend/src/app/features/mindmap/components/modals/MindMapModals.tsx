@@ -38,18 +38,8 @@ const useAIModal = () => {
           const newNodeId = nodeOperations.onAddChild(aiTargetNode.id, text);
           
           // 追加ログを出力（デバッグ用）
-          if (newNodeId) {
-            console.log('AI生成された子ノードを追加:', {
-              parentId: aiTargetNode.id,
-              childId: newNodeId,
-              text: text
-            });
-          } else {
-            console.warn('AI子ノード追加に失敗:', {
-              parentId: aiTargetNode.id,
-              text: text
-            });
-          }
+          // Optionally log added/failed nodes here in dev
+          void newNodeId;
         }, index * 100); // 各ノード作成を100ms間隔で実行
       });
     }

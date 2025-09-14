@@ -73,7 +73,7 @@ export class OllamaService {
         
         if (this.isExtensionAvailable()) {
           clearInterval(checkInterval);
-          console.log('✅ Extension became available after', attempts * 100, 'ms');
+          // logger.debug('Extension became available', { afterMs: attempts * 100 });
           resolve(true);
         } else if (attempts >= maxAttempts) {
           clearInterval(checkInterval);
@@ -92,7 +92,7 @@ export class OllamaService {
       // 拡張機能の初期化を待つ
       const extensionAvailable = await this.waitForExtension();
       if (extensionAvailable && window.MindFlowOllamaBridge) {
-        console.log('Using extension for connection test');
+        // logger.debug('Using extension for connection test');
         const result = await window.MindFlowOllamaBridge.testConnection(this.baseUrl);
         return result;
       }
@@ -127,7 +127,7 @@ export class OllamaService {
       // 拡張機能の初期化を待つ
       const extensionAvailable = await this.waitForExtension();
       if (extensionAvailable && window.MindFlowOllamaBridge) {
-        console.log('Using extension for getting models');
+        // logger.debug('Using extension for getting models');
         const models = await window.MindFlowOllamaBridge.getModels(this.baseUrl);
         return models;
       }
@@ -174,16 +174,7 @@ export class OllamaService {
         },
       };
       
-      console.log('🤖 AI設定を使用してOllamaにリクエスト送信:', {
-        url: `${this.baseUrl}/api/generate`,
-        model: request.model,
-        promptLength: request.prompt.length,
-        systemPrompt: request.system?.substring(0, 50) + '...',
-        temperature: request.options?.temperature,
-        maxTokens: request.options?.num_predict,
-        fullPrompt: request.prompt.substring(0, 100) + '...',
-        usingExtension: this.isExtensionAvailable()
-      });
+      // Debug request details omitted in production
       
       let response;
       let data: OllamaResponse;
@@ -191,12 +182,7 @@ export class OllamaService {
       // 拡張機能の初期化を待つ
       const extensionAvailable = await this.waitForExtension();
       if (extensionAvailable && window.MindFlowOllamaBridge) {
-        console.log('🔄 Using extension for text generation');
-        console.log('📤 Extension request details:', {
-          url: `${this.baseUrl}/api/generate`,
-          model: request.model,
-          promptLength: request.prompt.length
-        });
+        // Debug extension request details omitted
         
         const result = await window.MindFlowOllamaBridge.request(
           `${this.baseUrl}/api/generate`,
@@ -209,12 +195,6 @@ export class OllamaService {
           }
         );
         
-        console.log('📥 Extension response:', {
-          success: result.success,
-          status: result.status,
-          hasData: !!result.data,
-          error: result.error
-        });
         
         if (!result.success) {
           throw new Error(`Extension request failed: ${result.error} (Status: ${result.status || 'unknown'})`);
@@ -238,13 +218,7 @@ export class OllamaService {
         data = await response.json();
       }
       
-      console.log('Received response from Ollama:', {
-        model: data.model,
-        responseLength: data.response.length,
-        done: data.done,
-        totalDuration: data.total_duration,
-        evalCount: data.eval_count,
-      });
+      // Debug response details omitted
       
       if (!data.response) {
         throw new Error('Empty response from Ollama');
@@ -271,14 +245,14 @@ export class OllamaService {
         .replace('{parentText}', parentText)
         .replace('{context}', context);
       
-      console.log('Generating child nodes for parent:', parentText);
+      // logger.debug('Generating child nodes for parent', { parentText });
       
       const response = await this.generateText(prompt, settings);
       
       // レスポンスを解析して子ノードの配列を作成
       const childNodes = this.parseChildNodesResponse(response);
       
-      console.log('Generated child nodes:', childNodes);
+      // logger.debug('Generated child nodes', { childNodes });
       
       return childNodes;
     } catch (error) {

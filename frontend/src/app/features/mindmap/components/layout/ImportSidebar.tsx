@@ -33,7 +33,8 @@ const ImportSidebar: React.FC<ImportSidebarProps> = ({
 
     if (markdownFiles.length > 0) {
       // ドラッグ&ドロップでのファイル処理をここに実装
-      console.log('Dropped markdown files:', markdownFiles);
+      // debug: dropped files count
+      // logger.debug('Dropped markdown files:', markdownFiles);
       onImport?.();
     }
   };

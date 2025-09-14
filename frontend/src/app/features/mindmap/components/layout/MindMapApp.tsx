@@ -233,7 +233,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       await Promise.all(
         updatedMaps.map(async (updatedMap) => {
           if (updatedMap) {
-            console.log(`Updating map "${updatedMap.title}" to "${updatedMap.category}"`);
+            logger.debug(`Updating map "${(updatedMap as any).title}" to "${(updatedMap as any).category}"`);
             if (typeof (mindMap as any).updateMapInList === 'function') {
               await (mindMap as any).updateMapInList(updatedMap);
             }
@@ -246,7 +246,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         await (mindMap as any).refreshMapList();
       }
       
-      console.log(`Successfully batch updated ${updatedMaps.length} maps`);
+      logger.debug(`Successfully batch updated ${updatedMaps.length} maps`);
     } catch (error) {
       console.error('Failed to batch update map categories:', error);
       // エラーが発生した場合も、可能な限り状態を同期
