@@ -7,6 +7,7 @@ import MindMapHeader from './MindMapHeader';
 import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
 import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
+import { useFolderGuide } from './useFolderGuide';
 import MindMapLinkOverlays from './MindMapLinkOverlays';
 import NodeNotesPanelContainer from './NodeNotesPanelContainer';
 // Outline mode removed
@@ -111,13 +112,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setResetKey(resetKey);
   }, [resetKey]);
 
-  // Folder guide modal state
-  const [showFolderGuide, setShowFolderGuide] = React.useState<boolean>(() => {
-    try {
-      const dismissed = localStorage.getItem('mindoodle_guide_dismissed');
-      return dismissed !== '1';
-    } catch { return true; }
-  });
+  // Folder guide modal state (extracted)
+  const { showFolderGuide, openGuide, closeGuide, markDismissed } = useFolderGuide();
 
   // Handle mode changes - reset modal state when switching to cloud mode
   React.useEffect(() => {
@@ -201,8 +197,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       if (typeof (mindMap as any).selectRootFolder === 'function') {
         const ok = await (mindMap as any).selectRootFolder();
         if (ok) {
-          setShowFolderGuide(false);
-          localStorage.setItem('mindoodle_guide_dismissed', '1');
+          closeGuide();
+          markDismissed();
         } else {
           console.warn('selectRootFolder is not available on current adapter');
         }
@@ -210,7 +206,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     } catch (e) {
       console.error('Folder selection failed:', e);
     }
-  }, [mindMap]);
+  }, [mindMap, closeGuide, markDismissed]);
 
   // フォルダ移動用の一括カテゴリ更新関数
   const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{id: string, category: string}>) => {
@@ -287,20 +283,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     selectNode,
     applyAutoLayout,
     pasteImageFromClipboard: async (nodeId: string) => {
-      // keep current image paste behavior via handleFileUpload
-      try {
-        if (!navigator.clipboard || !navigator.clipboard.read) throw new Error('クリップボードAPIが利用できません');
-        const items = await navigator.clipboard.read();
-        for (const item of items) for (const type of item.types) if (type.startsWith('image/')) {
-          const blob = await item.getType(type);
-          const ext = type.split('/')[1] || 'png';
-          const file = new File([blob], `pasted-image-${Date.now()}.${ext}`, { type });
-          await uploadFile(nodeId, file);
-          showNotification('success', '画像を貼り付けました');
-          return;
-        }
-        throw new Error('クリップボードに画像がありません');
-      } catch (e) { throw e; }
+      const { readClipboardImageAsFile } = await import('../../../../shared/utils/clipboard');
+      const file = await readClipboardImageAsFile();
+      await uploadFile(nodeId, file);
+      showNotification('success', '画像を貼り付けました');
     },
     pasteNodeFromClipboard: async (parentId: string) => {
       const clipboardNode = ui.clipboard;
@@ -908,7 +894,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           }
         }}
         onSelectFolder={handleSelectFolder}
-        onShowFolderGuide={() => setShowFolderGuide(true)}
+        onShowFolderGuide={openGuide}
         currentFolderLabel={(mindMap as any).getSelectedFolderLabel?.() || null}
         explorerTree={(mindMap as any).explorerTree || null}
         onCreateFolder={async (path: string) => {
@@ -926,8 +912,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
         <FolderGuideModal 
           isOpen={showFolderGuide}
-          onClose={() => { setShowFolderGuide(false); localStorage.setItem('mindoodle_guide_dismissed','1'); }}
-          onSelectFolder={handleSelectFolder}
+          onClose={closeGuide}
+          onSelectFolder={async () => { await handleSelectFolder(); markDismissed(); }}
         />
         <MindMapHeader 
           data={data}
