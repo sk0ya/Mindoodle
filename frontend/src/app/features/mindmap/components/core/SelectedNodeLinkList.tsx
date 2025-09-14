@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { Link, ExternalLink } from 'lucide-react';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { calculateLinkListHeight } from '../../../../shared/utils/listHeightUtils';
-import { extractInternalMarkdownLinksDetailed, extractExternalLinksFromMarkdown, resolveHrefToMapTarget } from '../../../../shared/utils/markdownLinkUtils';
+import { extractAllMarkdownLinksDetailed, resolveHrefToMapTarget, resolveAnchorToNode } from '../../../../shared/utils/markdownLinkUtils';
 
 interface SelectedNodeLinkListProps {
   node: MindMapNode;
@@ -107,36 +107,56 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   };
 
   // Derive links from markdown note; fallback to legacy node.links
-  const internalDetailed = useMemo(() => extractInternalMarkdownLinksDetailed(node.note, currentMapData?.rootNode), [node.note, currentMapData?.rootNode]);
-  const externalLinks = useMemo(() => extractExternalLinksFromMarkdown(node.note), [node.note]);
-  const resolvedMapLinks = useMemo(() => {
+  // Build combined list preserving appearance order
+  const combined = useMemo(() => {
+    const parsed = extractAllMarkdownLinksDetailed(node.note);
     const currentId = currentMapData?.id || '';
     const ids = (availableMaps || []).map(m => m.id);
-    return externalLinks
-      .map(ext => {
-        const target = resolveHrefToMapTarget(ext.href, currentId, ids);
-        if (!target) return null;
-        return {
-          id: `maplink|${target.mapId}|${target.anchorText || ''}`,
-          label: ext.label,
-          href: ext.href,
-          mapId: target.mapId,
-          anchorText: target.anchorText
-        };
-      })
-      .filter(Boolean) as Array<{ id: string; label: string; href: string; mapId: string; anchorText?: string }>
-  }, [externalLinks, currentMapData?.id, availableMaps]);
 
-  const unresolvedExternal = useMemo(() => {
-    const mapped = new Set(resolvedMapLinks.map(l => l.id));
-    return externalLinks.filter(ext => {
-      // crude check: if ext resolves to a map it will be in resolvedMapLinks; otherwise keep
-      const target = resolveHrefToMapTarget(ext.href, currentMapData?.id || '', (availableMaps || []).map(m => m.id));
-      return !target;
+    const slugify = (t: string) => (t || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+    const findByText = (root: any, text: string): MindMapNode | null => {
+      if (!root || !text) return null;
+      const targetSlug = slugify(text);
+      const stack: MindMapNode[] = [root];
+      while (stack.length) {
+        const n = stack.pop()!;
+        if (!n) continue;
+        if (n.text === text) return n;
+        if (slugify(n.text) === targetSlug) return n;
+        if (n.children && n.children.length) stack.push(...n.children);
+      }
+      return null;
+    };
+
+    return parsed.map(p => {
+      const href = p.href;
+      // Internal anchor forms
+      if (/^#/.test(href) || /^node:/i.test(href)) {
+        const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
+        let nodeId: string | undefined;
+        if (currentMapData?.rootNode) {
+          const byAnchor = resolveAnchorToNode(currentMapData.rootNode, anchor);
+          if (byAnchor) nodeId = byAnchor.id;
+          else {
+            const n = findByText(currentMapData.rootNode, anchor);
+            if (n) nodeId = n.id;
+          }
+        }
+        return { kind: 'internal' as const, index: p.index, label: p.label, anchorText: anchor, nodeId };
+      }
+
+      // Map-resolvable relative link
+      const target = resolveHrefToMapTarget(href, currentId, ids);
+      if (target) {
+        return { kind: 'map' as const, index: p.index, label: p.label, mapId: target.mapId, anchorText: target.anchorText, href };
+      }
+
+      // Unresolved external
+      return { kind: 'external' as const, index: p.index, label: p.label, href };
     });
-  }, [externalLinks, resolvedMapLinks, currentMapData?.id, availableMaps]);
+  }, [node.note, currentMapData?.id, currentMapData?.rootNode, availableMaps]);
 
-  const hasMarkdownLinks = (internalDetailed.length + resolvedMapLinks.length + unresolvedExternal.length) > 0;
+  const hasMarkdownLinks = combined.length > 0;
   const links: NodeLink[] = hasMarkdownLinks ? [] : (node.links || []);
 
   if (!isVisible || (!hasMarkdownLinks && links.length === 0)) {
@@ -149,7 +169,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   const listWidth = Math.max(nodeWidth, 300); // 最小幅300px
   
   // 動的高さ計算（共通ユーティリティを使用）
-  const listHeight = calculateLinkListHeight({ itemCount: hasMarkdownLinks ? (internalDetailed.length + resolvedMapLinks.length + unresolvedExternal.length) : links.length });
+  const listHeight = calculateLinkListHeight({ itemCount: hasMarkdownLinks ? combined.length : links.length });
 
   return (
     <foreignObject
@@ -180,22 +200,15 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
 
         {/* リンク一覧 */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-          {(hasMarkdownLinks ? [
-            ...internalDetailed.map(l => ({ kind: 'internal' as const, item: l })),
-            ...resolvedMapLinks.map(m => ({ kind: 'map' as const, item: m })),
-            ...unresolvedExternal.map(e => ({ kind: 'external' as const, item: e }))
-          ] : links.map(l => ({ kind: 'legacy' as const, item: l }))).map((entry, idx) => {
-            const key = entry.kind === 'internal' ? entry.item.id
-              : entry.kind === 'map' ? entry.item.id
-              : entry.kind === 'external' ? `${entry.item.id}-${idx}`
-              : entry.item.id;
-            const title = entry.kind === 'internal' ? entry.item.label
-              : entry.kind === 'map' ? entry.item.label
-              : entry.kind === 'external' ? entry.item.label
+          {(hasMarkdownLinks ? combined : links.map(l => ({ kind: 'legacy' as const, item: l, index: 0 }))).map((entry: any, idx: number) => {
+            const key = entry.kind === 'legacy' ? entry.item.id : `${entry.kind}-${idx}-${entry.index}`;
+            const title = entry.kind === 'internal' ? entry.label
+              : entry.kind === 'map' ? entry.label
+              : entry.kind === 'external' ? entry.label
               : 'リンク';
-            const subtitle = entry.kind === 'internal' ? `#${entry.item.anchorText}`
-              : entry.kind === 'map' ? `${entry.item.mapId}${entry.item.anchorText ? `#${entry.item.anchorText}` : ''}`
-              : entry.kind === 'external' ? entry.item.href
+            const subtitle = entry.kind === 'internal' ? `#${entry.anchorText}`
+              : entry.kind === 'map' ? `${entry.mapId}${entry.anchorText ? `#${entry.anchorText}` : ''}`
+              : entry.kind === 'external' ? entry.href
               : '';
             
             return (
@@ -223,17 +236,17 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 onClick={(e) => {
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
-                      id: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
-                      targetNodeId: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
+                      targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };
                     handleLinkClick(e, link);
                   } else if (entry.kind === 'map') {
                     const link: NodeLink = {
-                      id: entry.item.id,
-                      targetMapId: entry.item.mapId,
-                      targetNodeId: entry.item.anchorText ? `text:${entry.item.anchorText}` : undefined,
+                      id: `map|${entry.mapId}|${entry.anchorText || ''}`,
+                      targetMapId: entry.mapId,
+                      targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };
@@ -246,24 +259,24 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 onDoubleClick={() => {
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
-                      id: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
-                      targetNodeId: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
+                      targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };
                     handleLinkDoubleClick(link);
                   } else if (entry.kind === 'map') {
                     const nodeLink: NodeLink = {
-                      id: entry.item.id,
-                      targetMapId: entry.item.mapId,
-                      targetNodeId: entry.item.anchorText ? `text:${entry.item.anchorText}` : undefined,
+                      id: `map|${entry.mapId}|${entry.anchorText || ''}`,
+                      targetMapId: entry.mapId,
+                      targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };
                     if (onLinkNavigate) onLinkNavigate(nodeLink);
                   } else {
                     // Resolve relative href to known map and jump if possible; otherwise open in new tab
-                    const href = entry.item.href;
+                    const href = entry.href;
                     try {
                       const base = window.location.origin;
                       const url = href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('file:')
@@ -278,17 +291,17 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 onContextMenu={(e) => {
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
-                      id: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
-                      targetNodeId: entry.item.nodeId ? entry.item.nodeId : `text:${entry.item.anchorText}`,
+                      id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
+                      targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };
                     handleLinkContextMenu(e, link);
                   } else if (entry.kind === 'map') {
                     const link: NodeLink = {
-                      id: entry.item.id,
-                      targetMapId: entry.item.mapId,
-                      targetNodeId: entry.item.anchorText ? `text:${entry.item.anchorText}` : undefined,
+                      id: `map|${entry.mapId}|${entry.anchorText || ''}`,
+                      targetMapId: entry.mapId,
+                      targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
                       createdAt: new Date().toISOString(),
                       updatedAt: new Date().toISOString()
                     };

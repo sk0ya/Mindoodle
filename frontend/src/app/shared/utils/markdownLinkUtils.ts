@@ -236,6 +236,24 @@ export function extractExternalLinksFromMarkdown(note: string | undefined): Exte
   return results;
 }
 
+// Parse all markdown links in appearance order
+export interface ParsedMarkdownLink {
+  label: string;
+  href: string;
+  index: number; // position in original note for ordering
+}
+
+export function extractAllMarkdownLinksDetailed(note: string | undefined): ParsedMarkdownLink[] {
+  if (!note || !note.trim()) return [];
+  const re = /\[([^\]]+)\]\(([^)]+)\)/g;
+  const out: ParsedMarkdownLink[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(note)) !== null) {
+    out.push({ label: m[1].trim(), href: m[2].trim(), index: m.index });
+  }
+  return out;
+}
+
 // Resolve a relative markdown href to a known mapId and optional anchor text
 export function resolveHrefToMapTarget(
   href: string,
