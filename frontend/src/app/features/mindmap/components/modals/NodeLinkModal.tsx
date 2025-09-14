@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
+import { computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
 
 interface MapOption {
   id: string;
@@ -10,6 +11,8 @@ interface MapOption {
 interface NodeOption {
   id: string;
   text: string;
+  anchorText: string;
+  displayText: string; // 表示用（重複時は -1, -2 を含む）
   mapId?: string;
 }
 
@@ -46,9 +49,12 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     const result: NodeOption[] = [];
     
     const traverse = (node: MindMapNode) => {
+      const anchor = computeAnchorForNode(rootNode, node.id) || (node.text || '');
       result.push({
         id: node.id,
         text: node.text,
+        anchorText: anchor,
+        displayText: anchor, // 一覧はアンカー表記（重複時に -1 などが付与）
         mapId
       });
       if (node.children) {
@@ -210,7 +216,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
               <option value="">-- ノードを選択 --</option>
               {availableNodes().map((node) => (
                 <option key={node.id} value={node.id}>
-                  {node.text}
+                  {node.displayText}
                 </option>
               ))}
             </select>
