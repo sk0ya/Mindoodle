@@ -4,8 +4,8 @@ import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
 import { computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
 
 interface MapOption {
-  id: string;
-  title: string;
+  id: string; // category/baseName (folder-aware)
+  title: string; // baseName only
 }
 
 interface NodeOption {
@@ -40,6 +40,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   onLoadMapData
 }) => {
   const [selectedMapId, setSelectedMapId] = useState('');
+  const [mapQuery, setMapQuery] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState('');
   const [loadedMapData, setLoadedMapData] = useState<MindMapData | null>(null);
   const [isLoadingMapData, setIsLoadingMapData] = useState(false);
@@ -85,6 +86,15 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     
     return [];
   }, [selectedMapId, currentMapData, loadedMapData, flattenNodes]);
+
+  // フォルダ内のファイルも含むマップ一覧を検索して表示（idベースで見えるようにする）
+  const filteredMaps = useCallback(() => {
+    const q = mapQuery.trim().toLowerCase();
+    if (!q) return availableMaps;
+    return availableMaps.filter(m =>
+      m.id.toLowerCase().includes(q) || (m.title || '').toLowerCase().includes(q)
+    );
+  }, [availableMaps, mapQuery]);
 
   // 編集時は既存データを読み込み
   useEffect(() => {
@@ -188,20 +198,27 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         <div className="modal-body">
           <div className="form-group">
             <label htmlFor="target-map">リンク先のマップ</label>
+            <input
+              type="text"
+              placeholder="検索（パス/タイトル）"
+              value={mapQuery}
+              onChange={(e) => setMapQuery(e.target.value)}
+              style={{ marginBottom: '8px' }}
+            />
             <select
               id="target-map"
               value={selectedMapId}
               onChange={(e) => setSelectedMapId(e.target.value)}
             >
               <option value="">-- マップを選択 --</option>
-              {availableMaps.map((map) => (
+              {filteredMaps().map((map) => (
                 <option key={map.id} value={map.id}>
-                  {map.title}
+                  {map.id}
                 </option>
               ))}
             </select>
             <small className="field-help">
-              リンク先のマインドマップを選択してください
+              パス（フォルダ/ファイル）で表示しています
             </small>
           </div>
 
