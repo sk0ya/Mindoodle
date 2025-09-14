@@ -7,8 +7,7 @@ import MindMapHeader from './MindMapHeader';
 import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
 import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
-import NodeLinkModal from '../modals/NodeLinkModal';
-import LinkActionMenu from '../modals/LinkActionMenu';
+import MindMapLinkOverlays from './MindMapLinkOverlays';
 import NodeNotesPanel from '../panels/NodeNotesPanel';
 // Outline mode removed
 import ContextMenu from '../../../../shared/components/ui/ContextMenu';
@@ -1338,76 +1337,48 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         data={data}
       />
 
-      {/* Node Link Modal */}
-      {showLinkModal && linkModalNodeId && (
-        <NodeLinkModal
-          isOpen={showLinkModal}
-          onClose={closeLinkModal}
-          node={findNodeById(data.rootNode, linkModalNodeId)!}
-          link={editingLink}
-          onSave={handleSaveLink}
-          onDelete={handleDeleteLink}
-          availableMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
-          currentMapData={data}
-          onLoadMapData={loadMapData}
-          loadExplorerTree={async () => {
-            // Use explorerTree exposed via useMindMap hook if available
-            try {
-              const tree = (mindMap as any).explorerTree || null;
-              return tree;
-            } catch {
-              return null;
-            }
-          }}
-          onSaveFileLink={(filePath: string, label: string) => {
-            try {
-              // Append to current context node's note
-              const destId = linkModalNodeId;
-              const destNode = findNodeById(data.rootNode, destId);
-              if (!destNode) return;
-              // Build relative path from current map directory to filePath
-              const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0? id.slice(0,i) : ''; };
-              const fromDir = dirOf(data.id);
-              const fromSegs = fromDir? fromDir.split('/') : [];
-              const toSegs = filePath.split('/');
-              let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
-              const up = new Array(fromSegs.length - i).fill('..');
-              const down = toSegs.slice(i);
-              const rel = [...up, ...down].join('/');
-              const href = rel || filePath; // fallback
-              const currentNote = destNode.note || '';
-              const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
-              const appended = `${currentNote}${prefix}[${label}](${href})\n`;
-              store.updateNode(destId, { note: appended });
-              showNotification('success', 'ノートにファイルリンクを追加しました');
-            } catch (e) {
-              logger.error('Failed to append file link:', e);
-              showNotification('error', 'ファイルリンクの追加に失敗しました');
-            }
-          }}
-        />
-      )}
-
-      {/* Link Action Menu */}
-      {showLinkActionMenu && linkActionMenuData && (
-        <LinkActionMenu
-          isOpen={showLinkActionMenu}
-          position={linkActionMenuData.position}
-          link={linkActionMenuData.link}
-          onClose={handleCloseLinkActionMenu}
-          onNavigate={handleLinkNavigate2}
-          onEdit={(link) => {
-            handleCloseLinkActionMenu();
-            handleEditLink(link, linkModalNodeId!);
-          }}
-          onDelete={(linkId) => {
-            handleCloseLinkActionMenu();
-            handleDeleteLink(linkId);
-          }}
-          availableMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
-          currentMapData={data}
-        />
-      )}
+      <MindMapLinkOverlays
+        dataRoot={data.rootNode}
+        allMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
+        currentMapData={data}
+        showLinkModal={showLinkModal}
+        linkModalNodeId={linkModalNodeId}
+        editingLink={editingLink}
+        onCloseLinkModal={closeLinkModal}
+        onSaveLink={handleSaveLink}
+        onDeleteLink={handleDeleteLink}
+        onLoadMapData={loadMapData}
+        onSaveFileLink={(filePath: string, label: string) => {
+          try {
+            if (!linkModalNodeId) return;
+            const destNode = findNodeById(data.rootNode, linkModalNodeId);
+            if (!destNode) return;
+            const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0? id.slice(0,i) : ''; };
+            const fromDir = dirOf(data.id);
+            const fromSegs = fromDir? fromDir.split('/') : [];
+            const toSegs = filePath.split('/');
+            let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
+            const up = new Array(fromSegs.length - i).fill('..');
+            const down = toSegs.slice(i);
+            const rel = [...up, ...down].join('/');
+            const href = rel || filePath;
+            const currentNote = destNode.note || '';
+            const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
+            const appended = `${currentNote}${prefix}[${label}](${href})\n`;
+            store.updateNode(linkModalNodeId, { note: appended });
+            showNotification('success', 'ノートにファイルリンクを追加しました');
+          } catch (e) {
+            logger.error('Failed to append file link:', e);
+            showNotification('error', 'ファイルリンクの追加に失敗しました');
+          }
+        }}
+        showLinkActionMenu={showLinkActionMenu}
+        linkActionMenuData={linkActionMenuData as any}
+        onCloseLinkActionMenu={handleCloseLinkActionMenu}
+        onNavigate={handleLinkNavigate2}
+        onEditLink={handleEditLink}
+        onDeleteLinkFromMenu={handleDeleteLink}
+      />
       
       {/* Outline Editor removed */}
 
