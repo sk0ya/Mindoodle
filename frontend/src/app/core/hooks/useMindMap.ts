@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useMindMapData } from './useMindMapData';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
@@ -53,6 +53,8 @@ export const useMindMap = (
   });
 
   // 自動保存機能
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+
   const { saveManually } = useAutoSave(
     dataHook.data,
     {
@@ -60,7 +62,7 @@ export const useMindMap = (
       updateMapInList: persistenceHook.updateMapInList
     },
     {
-      enabled: persistenceHook.isInitialized
+      enabled: autoSaveEnabled && persistenceHook.isInitialized
     },
     { autoSave: true, autoSaveInterval: 300 } // 自動保存設定
   );
@@ -293,6 +295,8 @@ export const useMindMap = (
     ,
     // markdown helpers
     getMapMarkdown,
-    saveMapMarkdown
+    saveMapMarkdown,
+    // autosave control
+    setAutoSaveEnabled: (enabled: boolean) => setAutoSaveEnabled(enabled)
   };
 };

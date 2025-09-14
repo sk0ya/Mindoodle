@@ -12,6 +12,7 @@ interface NodeNotesPanelProps {
   currentMapId?: string | null;
   getMapMarkdown?: (mapId: string) => Promise<string | null>;
   saveMapMarkdown?: (mapId: string, markdown: string) => Promise<void>;
+  setAutoSaveEnabled?: (enabled: boolean) => void;
 }
 
 const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
@@ -20,7 +21,8 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   onClose,
   currentMapId,
   getMapMarkdown,
-  saveMapMarkdown
+  saveMapMarkdown,
+  setAutoSaveEnabled
 }) => {
   const [noteValue, setNoteValue] = useState('');
   const [isDirty, setIsDirty] = useState(false);
@@ -200,6 +202,14 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleSave, onClose]);
+
+  // Disable auto-save when editing map markdown tab is active; re-enable otherwise
+  useEffect(() => {
+    if (!setAutoSaveEnabled) return;
+    const enabled = tab !== 'map-md';
+    setAutoSaveEnabled(enabled);
+    return () => { setAutoSaveEnabled(true); };
+  }, [tab, setAutoSaveEnabled]);
 
   // When no node is selected, still allow viewing map markdown tab
   if (!selectedNode) {

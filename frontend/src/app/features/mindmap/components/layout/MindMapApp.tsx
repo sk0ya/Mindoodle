@@ -1470,6 +1470,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     return (mindMapRef.current as any).saveMapMarkdown?.(mapId, markdown);
   }, []); // No dependencies - using ref for stable access
 
+  const setAutoSaveEnabledStable = useCallback((enabled: boolean) => {
+    return (mindMapRef.current as any).setAutoSaveEnabled?.(enabled);
+  }, []);
+
   // Show loading while auth is initializing in cloud mode
   if (isCloudMode && auth && !auth.isReady) {
     return (
@@ -1643,6 +1647,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               currentMapId={memoizedCurrentMapId}
               getMapMarkdown={getMapMarkdownStable}
               saveMapMarkdown={saveMapMarkdownStable}
+              setAutoSaveEnabled={setAutoSaveEnabledStable}
             />
           )}
         </div>
