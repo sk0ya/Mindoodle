@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
 import { findNodeById, findParentNode, getSiblingNodes, getFirstVisibleChild } from '../../../../shared/utils/nodeTreeUtils';
 import ActivityBar from './ActivityBar';
@@ -171,24 +171,25 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const isCloudMode = storageMode === 'cloud';
   const needsAuth = isCloudMode && auth && !auth.authState.isAuthenticated;
   
-  // Show login modal when cloud mode requires auth (log only when state changes)
+  // Show login modal when cloud mode requires auth
   React.useEffect(() => {
-    const ready = !!auth?.isReady;
-    const isAuthed = !!auth?.authState.isAuthenticated;
-    const desired = needsAuth && ready ? true : (isCloudMode && isAuthed ? false : false);
+    logger.debug('Auth check:', {
+      isCloudMode,
+      hasAuth: !!auth,
+      authIsReady: auth?.isReady,
+      isAuthenticated: auth?.authState.isAuthenticated,
+      needsAuth,
+      showLoginModal
+    });
 
-    // Only act when desired state differs
-    if (showLoginModal !== desired) {
-      setShowLoginModal(desired);
-      if (desired) {
-        logger.info('Showing login modal');
-      } else if (!isCloudMode) {
-        logger.info('Mode switched to local, hiding login modal');
-      } else {
-        logger.info('User authenticated, hiding login modal');
-      }
+    if (needsAuth && auth?.isReady) {
+      logger.info('Showing login modal');
+      setShowLoginModal(true);
+    } else if (isCloudMode && auth?.authState.isAuthenticated) {
+      logger.info('User authenticated, hiding login modal');
+      setShowLoginModal(false);
     }
-  }, [needsAuth, isCloudMode, auth?.isReady, auth?.authState.isAuthenticated, showLoginModal, setShowLoginModal]);
+  }, [needsAuth, auth?.isReady, auth?.authState.isAuthenticated, isCloudMode, showLoginModal, auth, setShowLoginModal]);
 
   // Force data reload when authentication status changes in cloud mode
   React.useEffect(() => {
@@ -212,15 +213,16 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     } catch { return true; }
   });
 
-  // Handle mode changes - ensure modal reflects mode (log only on change handled above)
+  // Handle mode changes - reset modal state when switching to cloud mode
   React.useEffect(() => {
-    const ready = !!auth?.isReady;
-    const isAuthed = !!auth?.authState.isAuthenticated;
-    const desired = (isCloudMode && !isAuthed && ready) ? true : false;
-    if (showLoginModal !== desired) {
-      setShowLoginModal(desired);
+    if (isCloudMode && auth && !auth.authState.isAuthenticated && auth.isReady) {
+      logger.info('Mode switched to cloud, user not authenticated');
+      setShowLoginModal(true);
+    } else if (!isCloudMode) {
+      logger.info('Mode switched to local, hiding login modal');
+      setShowLoginModal(false);
     }
-  }, [storageMode, isCloudMode, auth?.authState.isAuthenticated, auth?.isReady, showLoginModal, setShowLoginModal]);
+  }, [storageMode, isCloudMode, auth?.authState.isAuthenticated, auth?.isReady, auth, setShowLoginModal]);
   
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
@@ -290,67 +292,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       console.error('Folder selection failed:', e);
     }
   }, [mindMap]);
-  
-  // Stable references for adapter-facing helpers (must be declared before effects using them)
-  const mindMapRef = useRef(mindMap);
-  mindMapRef.current = mindMap;
-  
-  const getMapMarkdownStable = useCallback(async (mapId: string) => {
-    return (mindMapRef.current as any).getMapMarkdown?.(mapId) || null;
-  }, []);
-  
-  const getMapLastModifiedStable = useCallback(async (mapId: string) => {
-    return (mindMapRef.current as any).getMapLastModified?.(mapId) || null;
-  }, []);
-  
-  const saveMapMarkdownStable = useCallback(async (mapId: string, markdown: string) => {
-    return (mindMapRef.current as any).saveMapMarkdown?.(mapId, markdown);
-  }, []);
-  
-  const setAutoSaveEnabledStable = useCallback((enabled: boolean) => {
-    return (mindMapRef.current as any).setAutoSaveEnabled?.(enabled);
-  }, []);
 
-  // Minimal polling: refresh map list every 45s when window is focused and visible
-  React.useEffect(() => {
-    const interval = window.setInterval(() => {
-      try {
-        if (document.visibilityState === 'visible' && document.hasFocus()) {
-          if (typeof (mindMap as any).refreshMapList === 'function') {
-            void (mindMap as any).refreshMapList();
-          }
-        }
-      } catch (e) {
-        console.error('Explorer periodic refresh failed:', e);
-      }
-    }, 45000);
-    return () => window.clearInterval(interval);
-  }, [mindMap]);
-
-  // Minimal polling: check current map file's lastModified every 30s
-  React.useEffect(() => {
-    let prev: number | null = null;
-    let notifiedAt = 0;
-    const notifyCooldownMs = 2 * 60 * 1000; // 2 minutes
-    const tick = async () => {
-      try {
-        if (!data?.id) return;
-        if (document.visibilityState !== 'visible' || !document.hasFocus()) return;
-        const lm = await getMapLastModifiedStable(data.id);
-        if (lm && prev && lm > prev) {
-          const now = Date.now();
-          if (now - notifiedAt > notifyCooldownMs) {
-            showNotification('warning', 'マップのMarkdownが外部で更新されました');
-            notifiedAt = now;
-          }
-        }
-        if (lm) prev = lm;
-      } catch {/* ignore */}
-    };
-    void tick();
-    const interval = window.setInterval(() => { void tick(); }, 30000);
-    return () => window.clearInterval(interval);
-  }, [data?.id, getMapLastModifiedStable, showNotification]);
   // フォルダ移動用の一括カテゴリ更新関数
   const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{id: string, category: string}>) => {
     console.log('Updating multiple map categories:', mapUpdates);
@@ -1071,16 +1013,21 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setShowImportModal(true);
   };
 
-  // Removed global selection event/click fallback. Selection flows via props only.
-
-  // Refresh explorer/map list only on focus/visibility/custom event (no polling)
+  // Listen to explorer selection events
   React.useEffect(() => {
-    // Debounce refresh to avoid rapid duplicate calls
-    let last = 0;
+    const handler = (e: any) => {
+      const id = e?.detail?.mapId;
+      if (id && typeof selectMapById === 'function') {
+        selectMapById(id);
+      }
+    };
+    window.addEventListener('mindoodle:selectMapById', handler as EventListener);
+    return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
+  }, [selectMapById]);
+
+  // Refresh explorer/map list on external changes or when window regains focus
+  React.useEffect(() => {
     const doRefresh = () => {
-      const now = Date.now();
-      if (now - last < 1500) return; // 1.5s debounce
-      last = now;
       try {
         if (typeof (mindMap as any).refreshMapList === 'function') {
           void (mindMap as any).refreshMapList();
@@ -1095,12 +1042,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     window.addEventListener('visibilitychange', onVisibility);
     window.addEventListener('focus', onFocus);
     window.addEventListener('mindoodle:refreshExplorer', onCustom as EventListener);
-    // Initial refresh once when effect mounts
-    doRefresh();
+    const interval = window.setInterval(doRefresh, 7000);
     return () => {
       window.removeEventListener('visibilitychange', onVisibility);
       window.removeEventListener('focus', onFocus);
       window.removeEventListener('mindoodle:refreshExplorer', onCustom as EventListener);
+      window.clearInterval(interval);
     };
   }, [mindMap]);
 
@@ -1486,11 +1433,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const handleOutlineSave = async (updatedData: MindMapData) => {
     try {
       store.setData(updatedData);
-
+      
       if (typeof applyAutoLayout === 'function') {
         applyAutoLayout();
       }
-
+      
       showNotification('success', 'アウトラインをマインドマップに反映しました');
       store.setShowOutlineEditor(false);
     } catch (error) {
@@ -1500,18 +1447,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   };
 
-  // ALL HOOKS MUST BE BEFORE ANY CONDITIONAL RETURNS
-  // Memoized values for NodeNotesPanel to prevent unnecessary re-renders
-  const memoizedSelectedNode = useMemo(() =>
-    selectedNodeId && data?.rootNode ? findNodeById(data.rootNode, selectedNodeId) : null,
-    [selectedNodeId, data?.rootNode]
-  );
-
-  const memoizedCurrentMapId = useMemo(() => data?.id || null, [data?.id]);
-
-  const handleCloseNotesPanel = useCallback(() => store.setShowNotesPanel(false), [store]);
-
-  // (moved) stable refs & helpers are declared earlier to satisfy TDZ for hooks below
 
   // Show loading while auth is initializing in cloud mode
   if (isCloudMode && auth && !auth.isReady) {
@@ -1677,16 +1612,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               hasSidebar={activeView !== null}
             />
           )}
-
+          
           {ui.showNotesPanel && ui.viewMode === 'mindmap' && (
             <NodeNotesPanel
-              selectedNode={memoizedSelectedNode}
+              selectedNode={selectedNodeId ? findNodeById(data?.rootNode, selectedNodeId) : null}
               onUpdateNode={updateNode}
-              onClose={handleCloseNotesPanel}
-              currentMapId={memoizedCurrentMapId}
-              getMapMarkdown={getMapMarkdownStable}
-              saveMapMarkdown={saveMapMarkdownStable}
-              setAutoSaveEnabled={setAutoSaveEnabledStable}
+              onClose={() => store.setShowNotesPanel(false)}
+              currentMapId={data?.id || null}
+              getMapMarkdown={(mindMap as any).getMapMarkdown}
             />
           )}
         </div>

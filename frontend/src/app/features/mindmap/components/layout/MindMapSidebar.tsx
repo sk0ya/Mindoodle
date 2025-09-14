@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import CategoryGroup from './CategoryGroup';
@@ -83,25 +83,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     mapData: null
   });
   const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
-
-  // Sync explorer selection highlight with the app's current map selection
-  useEffect(() => {
-    if (!explorerTree || !currentMapId) return;
-    // DFS to find the file path that corresponds to currentMapId (path without .md)
-    const targetId = currentMapId;
-    const stack: ExplorerItem[] = [explorerTree];
-    while (stack.length) {
-      const item = stack.pop()!;
-      if (item.type === 'file' && item.isMarkdown && item.path) {
-        const id = item.path.replace(/\.md$/i, '');
-        if (id === targetId) {
-          setExplorerSelectedPath(item.path);
-          return;
-        }
-      }
-      (item.children || []).forEach(child => stack.push(child));
-    }
-  }, [explorerTree, currentMapId]);
 
   // イベントハンドラー
   const handleStartRename = useCallback((mapId: string, currentTitle: string) => {
@@ -680,7 +661,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
                 mapData: null
               });
             }}
-            onOpenMap={(mapId: string) => onSelectMap(mapId)}
           />
         </div>
       ) : filteredMaps.length === 0 ? (
@@ -724,7 +704,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             onFolderSelect={handleFolderSelect}
             onContextMenu={handleContextMenu}
             onSelectMap={onSelectMap}
-            onOpenMapData={onOpenMapData}
             onFinishRename={handleFinishRename}
             onCancelRename={handleCancelRename}
             onEditingTitleChange={setEditingTitle}
@@ -750,7 +729,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void, onOpenMap?: (mapId: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath, onOpenMap }) => {
+const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath }) => {
   const toggle = (path: string) => onTogglePath && onTogglePath(path);
   const [dragOverPath, setDragOverPath] = React.useState<string | null>(null);
 
@@ -797,19 +776,24 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
     const isMd = !!item.isMarkdown;
     const mapId = isMd ? item.path.replace(/\.md$/i, '') : null;
     const onClick = () => {
-      if (onSelectPath) onSelectPath(item.path);
       if (isMd && mapId) {
-        if (onOpenMap) {
-          onOpenMap(mapId);
-        }
+        const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
+        window.dispatchEvent(ev);
       }
+      if (onSelectPath) onSelectPath(item.path);
     };
     return (
       <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${selectedPath === item.path ? 'selected' : ''}`}
         key={item.path}
         onClick={onClick}
         onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
-        draggable={false}
+        draggable={true}
+        onDragStart={(e) => { 
+          e.dataTransfer.setData('mindoodle/path', item.path); 
+          e.dataTransfer.setData('mindoodle/is-md', isMd ? '1' : '0');
+          // Allow copy/link operations to be dropped on nodes
+          e.dataTransfer.effectAllowed = 'copyLink';
+        }}
         style={{ cursor: 'pointer' }}>
         <span className="file-icon">{isMd ? <BookOpen size={14} /> : <Workflow size={14} />}</span>
         <span className="file-name">{item.name}</span>

@@ -75,11 +75,10 @@ const MapItemList: React.FC<MapItemListProps> = ({
         <div
           key={map.id}
           className={`map-item ${currentMapId === map.id ? 'active' : ''}`}
-          onClick={() => {
-            onSelectMap(map.id);
-          }}
+          onClick={() => onSelectMap(map.id)}
           onContextMenu={(e) => onContextMenu && onContextMenu(e, categoryPath, 'map', map)}
-          draggable={false}
+          draggable
+          onDragStart={(e) => onDragStart(e, map)}
         >
           {editingMapId === map.id ? (
             <input
