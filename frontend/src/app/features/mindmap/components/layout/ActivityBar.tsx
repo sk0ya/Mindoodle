@@ -1,5 +1,5 @@
 import React from 'react';
-import { Workflow, Search, Paperclip, Download, Upload, Bot, Settings, Keyboard } from 'lucide-react';
+import { Workflow, Search, Bot, Settings, Keyboard } from 'lucide-react';
 import './ActivityBar.css';
 
 interface ActivityBarItem {
@@ -29,24 +29,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
       label: '検索',
       isActive: activeView === 'search'
     },
-    {
-      id: 'attachments',
-      icon: <Paperclip size={16} />,
-      label: '添付ファイル',
-      isActive: activeView === 'attachments'
-    },
-    {
-      id: 'import',
-      icon: <Download size={16} />,
-      label: 'インポート',
-      isActive: activeView === 'import'
-    },
-    {
-      id: 'export',
-      icon: <Upload size={16} />,
-      label: 'エクスポート',
-      isActive: activeView === 'export'
-    },
+    // attachments/import/export removed
     {
       id: 'ai',
       icon: <Bot size={16} />,

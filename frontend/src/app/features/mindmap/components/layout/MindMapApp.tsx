@@ -78,8 +78,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const [internalResetKey, setResetKey] = useState(resetKey);
   // モーダル状態管理
   const {
-    showExportModal, setShowExportModal,
-    showImportModal, setShowImportModal,
     showLoginModal, setShowLoginModal,
     showLinkModal, setShowLinkModal,
     editingLink, setEditingLink,
@@ -170,7 +168,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     selectMapById,
     deleteMap,
     updateMapMetadata,
-    addImportedMapToList,
     applyAutoLayout,
     
     // 履歴操作
@@ -491,65 +488,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     return () => window.removeEventListener('mindoodle:moveItem', onMove as EventListener);
   }, [mindMap]);
 
-  // インポート成功時のハンドラー
-  const handleImportSuccess = async (importedData: MindMapData, warnings?: string[]) => {
-    try {
-      logger.info('マークダウンインポートが成功しました', {
-        title: importedData.title,
-        nodeCount: countNodes(importedData.rootNode),
-        warnings,
-        rootNode: importedData.rootNode,
-        rootNodeChildren: importedData.rootNode?.children?.length || 0
-      });
+  // インポート成功時のハンドラー（未使用）
+  // const handleImportSuccess = async () => {};
 
-      // インポートされたデータを直接ストアに設定
-      logger.info('ストアにデータを設定中...', { 
-        hasData: !!importedData, 
-        hasRootNode: !!importedData?.rootNode,
-        rootNodeText: importedData?.rootNode?.text 
-      });
-      store.setData(importedData);
-
-      // マップをマップリストに追加（永続化）
-      logger.info('マップリストに追加中...', { mapId: importedData.id, title: importedData.title });
-      if (typeof addImportedMapToList === 'function') {
-        await addImportedMapToList(importedData);
-        logger.info('✅ マップリストに追加完了');
-      } else {
-        logger.warn('⚠️ addImportedMapToList関数が利用できません');
-      }
-      
-      // 設定後の確認
-      const currentData = store.data;
-      logger.info('ストア設定後の確認', {
-        currentTitle: currentData?.title,
-        currentRootText: currentData?.rootNode?.text,
-        currentChildrenCount: currentData?.rootNode?.children?.length || 0
-      });
-
-      // インポート後に自動整列を適用
-      logger.info('インポート後の自動整列を適用中...');
-      if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout();
-        logger.info('✅ 自動整列が完了しました');
-      } else {
-        logger.warn('⚠️ applyAutoLayout関数が利用できません');
-      }
-
-      // 成功通知
-      showNotification('success', `「${importedData.title}」をインポートしました`);
-      
-      // 警告がある場合は表示
-      if (warnings && warnings.length > 0) {
-        warnings.forEach(warning => {
-          showNotification('warning', warning);
-        });
-      }
-    } catch (error) {
-      logger.error('インポート後の処理でエラーが発生しました:', error);
-      handleError(error as Error, 'インポート処理', 'データ作成');
-    }
-  };
 
   // ノード数を数える補助関数
   const countNodes = (node: MindMapNode): number => {
@@ -1083,12 +1024,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           setShowLoginModal(false);
           if (onModeChange) onModeChange('local');
         }}
-        showExportModal={showExportModal}
-        setShowExportModal={setShowExportModal}
-        showImportModal={showImportModal}
-        setShowImportModal={setShowImportModal}
-        onImportSuccess={handleImportSuccess}
-        data={data}
       />
 
       <MindMapLinkOverlays

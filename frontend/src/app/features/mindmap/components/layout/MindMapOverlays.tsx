@@ -2,8 +2,6 @@ import React from 'react';
 import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
 import VimStatusBar from '../../../../shared/components/ui/VimStatusBar';
 import { LoginModal } from '../../../../components/auth';
-import ExportModal from '../modals/ExportModal';
-import ImportModal from '../modals/ImportModal';
 
 type Props = {
   // keyboard helper
@@ -16,15 +14,8 @@ type Props = {
   showLoginModal: boolean;
   onLoginClose: () => void;
 
-  // export/import
-  showExportModal: boolean;
-  setShowExportModal: (v: boolean) => void;
-  showImportModal: boolean;
-  setShowImportModal: (v: boolean) => void;
-  onImportSuccess: (...args: any[]) => void;
-
-  // mindmap data
-  data: any;
+  // mindmap data (for other overlays if needed)
+  // no additional data needed
 };
 
 const MindMapOverlays: React.FC<Props> = ({
@@ -34,12 +25,6 @@ const MindMapOverlays: React.FC<Props> = ({
   authAdapter,
   showLoginModal,
   onLoginClose,
-  showExportModal,
-  setShowExportModal,
-  showImportModal,
-  setShowImportModal,
-  onImportSuccess,
-  data,
 }) => {
   return (
     <>
@@ -57,17 +42,7 @@ const MindMapOverlays: React.FC<Props> = ({
         />
       )}
 
-      <ExportModal
-        isOpen={showExportModal}
-        onClose={() => setShowExportModal(false)}
-        mindMapData={data}
-      />
-
-      <ImportModal
-        isOpen={showImportModal}
-        onClose={() => setShowImportModal(false)}
-        onImportSuccess={onImportSuccess}
-      />
+      {/* Import/Export modals removed */}
     </>
   );
 };
