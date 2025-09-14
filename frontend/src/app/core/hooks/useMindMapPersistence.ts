@@ -132,11 +132,26 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     try {
       const savedMaps = await storageAdapter.loadAllMaps();
       if (savedMaps && savedMaps.length > 0) {
-        setAllMindMaps(savedMaps);
+        // Avoid unnecessary state updates if list is unchanged
+        setAllMindMaps(prev => {
+          const sameLength = prev.length === savedMaps.length;
+          if (sameLength) {
+            let same = true;
+            for (let i = 0; i < prev.length; i++) {
+              const a = prev[i];
+              const b = savedMaps[i];
+              if (a.id !== b.id || a.updatedAt !== b.updatedAt || a.title !== b.title || a.category !== b.category) {
+                same = false; break;
+              }
+            }
+            if (same) return prev;
+          }
+          return savedMaps;
+        });
         logger.debug(`Loaded ${savedMaps.length} maps from ${config.mode} storage`);
       } else {
         logger.debug(`No saved maps found in ${config.mode} storage`);
-        setAllMindMaps([]);
+        setAllMindMaps(prev => (prev.length === 0 ? prev : []));
       }
     } catch (loadError) {
       logger.error(`Failed to load maps from ${config.mode} storage:`, loadError);
