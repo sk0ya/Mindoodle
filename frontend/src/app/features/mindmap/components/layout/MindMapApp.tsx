@@ -290,6 +290,26 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       console.error('Folder selection failed:', e);
     }
   }, [mindMap]);
+  
+  // Stable references for adapter-facing helpers (must be declared before effects using them)
+  const mindMapRef = useRef(mindMap);
+  mindMapRef.current = mindMap;
+  
+  const getMapMarkdownStable = useCallback(async (mapId: string) => {
+    return (mindMapRef.current as any).getMapMarkdown?.(mapId) || null;
+  }, []);
+  
+  const getMapLastModifiedStable = useCallback(async (mapId: string) => {
+    return (mindMapRef.current as any).getMapLastModified?.(mapId) || null;
+  }, []);
+  
+  const saveMapMarkdownStable = useCallback(async (mapId: string, markdown: string) => {
+    return (mindMapRef.current as any).saveMapMarkdown?.(mapId, markdown);
+  }, []);
+  
+  const setAutoSaveEnabledStable = useCallback((enabled: boolean) => {
+    return (mindMapRef.current as any).setAutoSaveEnabled?.(enabled);
+  }, []);
 
   // Minimal polling: refresh map list every 45s when window is focused and visible
   React.useEffect(() => {
@@ -1501,25 +1521,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   const handleCloseNotesPanel = useCallback(() => store.setShowNotesPanel(false), [store]);
 
-  // Use useRef to create stable function references that won't cause useEffect loops
-  const mindMapRef = useRef(mindMap);
-  mindMapRef.current = mindMap;
-
-  const getMapMarkdownStable = useCallback(async (mapId: string) => {
-    return (mindMapRef.current as any).getMapMarkdown?.(mapId) || null;
-  }, []); // No dependencies - using ref for stable access
-
-  const getMapLastModifiedStable = useCallback(async (mapId: string) => {
-    return (mindMapRef.current as any).getMapLastModified?.(mapId) || null;
-  }, []);
-
-  const saveMapMarkdownStable = useCallback(async (mapId: string, markdown: string) => {
-    return (mindMapRef.current as any).saveMapMarkdown?.(mapId, markdown);
-  }, []); // No dependencies - using ref for stable access
-
-  const setAutoSaveEnabledStable = useCallback((enabled: boolean) => {
-    return (mindMapRef.current as any).setAutoSaveEnabled?.(enabled);
-  }, []);
+  // (moved) stable refs & helpers are declared earlier to satisfy TDZ for hooks below
 
   // Show loading while auth is initializing in cloud mode
   if (isCloudMode && auth && !auth.isReady) {

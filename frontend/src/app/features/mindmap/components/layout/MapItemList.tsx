@@ -75,7 +75,13 @@ const MapItemList: React.FC<MapItemListProps> = ({
         <div
           key={map.id}
           className={`map-item ${currentMapId === map.id ? 'active' : ''}`}
-          onClick={() => onSelectMap(map.id)}
+          onClick={() => {
+            onSelectMap(map.id);
+            try {
+              // Fallback event for any consumers listening globally
+              window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId: map.id } }));
+            } catch {}
+          }}
           onContextMenu={(e) => onContextMenu && onContextMenu(e, categoryPath, 'map', map)}
           draggable
           onDragStart={(e) => onDragStart(e, map)}
