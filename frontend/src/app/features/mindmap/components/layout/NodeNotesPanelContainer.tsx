@@ -1,10 +1,10 @@
 import React from 'react';
 import NodeNotesPanel from '../panels/NodeNotesPanel';
 import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
-import type { MindMapNode, MapIdentifier } from '@shared/types';
+import type { MindMapNode, MapIdentifier, MindMapData } from '@shared/types';
 
 type Props = {
-  dataRoot: MindMapNode | null;
+  dataRoot: MindMapData | null;
   selectedNodeId: string | null;
   currentMapIdentifier?: MapIdentifier | null;
   onUpdateNode: (id: string, updates: Partial<MindMapNode>) => void;
@@ -24,11 +24,32 @@ const NodeNotesPanelContainer: React.FC<Props> = ({
   saveMapMarkdown,
   setAutoSaveEnabled,
 }) => {
-  const selectedNode = dataRoot && selectedNodeId ? findNodeById(dataRoot, selectedNodeId) : null;
+  // Search for the selected node in all root nodes
+  const selectedNode = React.useMemo(() => {
+    if (!dataRoot || !selectedNodeId) return null;
+
+    const rootNodes = dataRoot.rootNodes || [];
+
+    // Search through all root nodes, not just the first one
+    for (const rootNode of rootNodes) {
+      const found = findNodeById(rootNode, selectedNodeId);
+      if (found) {
+        return found;
+      }
+    }
+
+
+    return null;
+  }, [dataRoot, selectedNodeId]);
+  // Clean onUpdateNode wrapper
+  const wrappedOnUpdateNode = React.useCallback((id: string, updates: Partial<MindMapNode>) => {
+    onUpdateNode(id, updates);
+  }, [onUpdateNode]);
+
   return (
     <NodeNotesPanel
       selectedNode={selectedNode}
-      onUpdateNode={onUpdateNode}
+      onUpdateNode={wrappedOnUpdateNode}
       onClose={onClose}
       currentMapIdentifier={currentMapIdentifier || null}
       getMapMarkdown={getMapMarkdown}

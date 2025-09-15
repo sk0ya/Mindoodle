@@ -826,7 +826,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
           {ui.showNotesPanel && (
             <NodeNotesPanelContainer
-              dataRoot={data?.rootNodes?.[0] || null}
+              dataRoot={data}
               selectedNodeId={selectedNodeId}
               onUpdateNode={updateNode}
               onClose={() => store.setShowNotesPanel(false)}

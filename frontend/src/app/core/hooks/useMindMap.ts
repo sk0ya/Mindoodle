@@ -133,7 +133,7 @@ export const useMindMap = (
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
       try {
-        return await adapter.getMapMarkdown(id.mapId);
+        return await adapter.getMapMarkdown(id);
       } catch {
         return null;
       }

@@ -61,6 +61,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     if (!currentMapIdentifier || !getMapMarkdown) return;
     if (mapMarkdownDirty) return; // do not overwrite local edits
     if (lastLoadedMapIdRef.current === currentMapIdentifier.mapId) return;
+
     setLoadingMapMd(true);
     getMapMarkdown(currentMapIdentifier)
       .then(text => {
