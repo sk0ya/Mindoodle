@@ -52,10 +52,6 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   } = options;
 
   const newRootNode = cloneDeep(rootNode);
-  
-  // ルートノードを配置
-  newRootNode.x = centerX;
-  newRootNode.y = centerY;
 
   // サブツリーの実際の高さを計算（画像サイズを考慮した適応的間隔）
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
@@ -71,10 +67,6 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       // 前の子ノードとのスペース計算（画像サイズを考慮）
       let spacing = 0;
       if (index > 0) {
-        // const prevChild = node.children[index - 1];
-        // const prevChildSize = calculateNodeSize(prevChild, undefined, false, globalFontSize); // Unused
-        // const currentChildSize = calculateNodeSize(child, undefined, false, globalFontSize); // Unused
-        
         // より密な垂直間隔にするため、基本間隔を調整
         spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
       }
@@ -151,19 +143,43 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         // 次の子ノードのためのオフセット更新（画像サイズに応じた間隔）
         currentOffset += childInfo.actualHeight;
         if (index < childrenWithHeights.length - 1) {
-          // const currentChildSize = calculateNodeSize(childInfo.node, undefined, false, globalFontSize); // Unused
-          // const nextChildSize = calculateNodeSize(childrenWithHeights[index + 1].node, undefined, false, globalFontSize); // Unused
-          
           // 基本間隔のみを使用（追加の画像間隔は除去）
           let spacing = nodeSpacing;
           currentOffset += spacing;
         }
       });
+
+      // 子ノードの配置が完了した後、この親ノードを子ノード群の中心に再配置
+      if (childrenWithHeights.length > 0) {
+        // 子ノードのY座標の最小値と最大値を計算
+        let minY = Infinity;
+        let maxY = -Infinity;
+
+        const calculateNodeBounds = (childNode: MindMapNode) => {
+          const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
+          const nodeTop = childNode.y - nodeSize.height / 2;
+          const nodeBottom = childNode.y + nodeSize.height / 2;
+          
+          minY = Math.min(minY, nodeTop);
+          maxY = Math.max(maxY, nodeBottom);
+
+          // 子ノードも再帰的にチェック
+          if (childNode.children) {
+            childNode.children.forEach(grandChild => calculateNodeBounds(grandChild));
+          }
+        };
+
+        node.children.forEach(child => calculateNodeBounds(child));
+
+        // 親ノードを子ノード群の中心に再配置
+        const childrenCenterY = (minY + maxY) / 2;
+        node.y = childrenCenterY;
+      }
     }
   };
 
   if (!newRootNode.collapsed && newRootNode.children && newRootNode.children.length > 0) {
-    // ルートの子ノードの実際の高さを考慮した配置
+    // 最初に子ノードを仮配置して、実際の配置範囲を計算
     const childrenWithHeights = newRootNode.children.map(child => ({
       node: child,
       actualHeight: calculateSubtreeActualHeight(child),
@@ -174,17 +190,13 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
       let spacing = 0;
       if (index > 0) {
-        // const prevChild = childrenWithHeights[index - 1];
-        // const prevChildSize = calculateNodeSize(prevChild.node, undefined, false, globalFontSize); // Unused
-        // const currentChildSize = calculateNodeSize(child.node, undefined, false, globalFontSize); // Unused
-        
         // より密な垂直間隔にするため、基本間隔を調整
         spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
       }
       return sum + child.actualHeight + spacing;
     }, 0);
     
-    // 子ノードの開始位置を計算（ルートノードを中心とする）
+    // 子ノードを配置
     let currentOffset = -totalActualHeight / 2;
     
     childrenWithHeights.forEach((childInfo, index) => {
@@ -207,10 +219,41 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         currentOffset += spacing;
       }
     });
+
+    // 子ノードの配置が完了した後、ルートノードを子ノード群の中心に再配置
+    if (childrenWithHeights.length > 0) {
+      // 子ノードのY座標の最小値と最大値を計算
+      let minY = Infinity;
+      let maxY = -Infinity;
+
+      const calculateNodeBounds = (node: MindMapNode) => {
+        const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
+        const nodeTop = node.y - nodeSize.height / 2;
+        const nodeBottom = node.y + nodeSize.height / 2;
+        
+        minY = Math.min(minY, nodeTop);
+        maxY = Math.max(maxY, nodeBottom);
+
+        // 子ノードも再帰的にチェック
+        if (node.children) {
+          node.children.forEach(child => calculateNodeBounds(child));
+        }
+      };
+
+      newRootNode.children.forEach(child => calculateNodeBounds(child));
+
+      // ルートノードを子ノード群の中心に配置
+      const childrenCenterY = (minY + maxY) / 2;
+      newRootNode.y = childrenCenterY;
+    }
+  } else {
+    // 子ノードがない場合はデフォルト位置
+    newRootNode.x = centerX;
+    newRootNode.y = centerY;
   }
 
   return newRootNode;
-};
+};;;
 
 /**
  * 自動レイアウト選択 - 常にシンプルな右側階層レイアウトを使用
