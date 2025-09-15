@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { MindMapData } from '@shared/types';
+import type { MindMapData, MindMapNode } from '@shared/types';
 import { logger } from '../../../shared/utils/logger';
 import { normalizeTreeData, denormalizeTreeData } from '../../data';
 import { autoSelectLayout, calculateNodeSize } from '../../../shared';
@@ -90,70 +90,122 @@ export const createDataSlice: StateCreator<
         firstNodeId: rootNodes[0]?.id
       });
       
+      // Memoized node size calculation
+      const nodeSizeCache = new Map<string, { width: number; height: number }>();
+      const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
+        const cacheKey = `${node.id}_${node.text}_${state.settings.fontSize}`;
+        if (nodeSizeCache.has(cacheKey)) {
+          return nodeSizeCache.get(cacheKey)!;
+        }
+        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize);
+        nodeSizeCache.set(cacheKey, size);
+        return size;
+      };
+
+      // Optimized subtree bounds calculation with memoization
+      const boundsCache = new Map<string, { minY: number; maxY: number }>();
+      const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
+        // Create cache key based on node id and position (to invalidate on position changes)
+        const cacheKey = `${node.id}_${node.y || 0}`;
+        
+        if (boundsCache.has(cacheKey)) {
+          return boundsCache.get(cacheKey)!;
+        }
+
+        const nodeY = node.y || 0;
+        const nodeSize = getNodeSize(node);
+        const nodeTop = nodeY - nodeSize.height / 2;
+        const nodeBottom = nodeY + nodeSize.height / 2;
+
+        let minY = nodeTop;
+        let maxY = nodeBottom;
+
+        if (node.children && node.children.length > 0) {
+          // Use parallel processing for children bounds calculation
+          const childBounds = node.children.map(child => getSubtreeBounds(child));
+          for (const bounds of childBounds) {
+            minY = Math.min(minY, bounds.minY);
+            maxY = Math.max(maxY, bounds.maxY);
+          }
+        }
+
+        const result = { minY, maxY };
+        boundsCache.set(cacheKey, result);
+        return result;
+      };
+
+      // Memoized node count calculation  
+      const nodeCountCache = new Map<string, number>();
+      const getNodeCount = (node: MindMapNode): number => {
+        if (nodeCountCache.has(node.id)) {
+          return nodeCountCache.get(node.id)!;
+        }
+        
+        const count = !node.children || node.children.length === 0 
+          ? 1 
+          : 1 + node.children.reduce((sum, child) => sum + getNodeCount(child), 0);
+        
+        nodeCountCache.set(node.id, count);
+        return count;
+      };
+
       // Apply layout to each root node separately
       const layoutedRootNodes: MindMapNode[] = [];
       let previousSubtreeBottom = 0;
 
-      rootNodes.forEach((rootNode, index) => {
+      // Process root nodes sequentially but cache results
+      for (let index = 0; index < rootNodes.length; index++) {
+        const rootNode = rootNodes[index];
         const layoutedNode = autoSelectLayout(rootNode, {
           globalFontSize: state.settings.fontSize
         });
 
-        if (!layoutedNode) return;
-
-        // Calculate subtree bounds (min/max Y coordinates including node size)
-        const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-          const nodeY = node.y || 0;
-
-          // Calculate actual node bounds using node size
-          const nodeSize = calculateNodeSize(node, undefined, false, state.settings.fontSize);
-          const nodeTop = nodeY - nodeSize.height / 2;
-          const nodeBottom = nodeY + nodeSize.height / 2;
-
-          let minY = nodeTop;
-          let maxY = nodeBottom;
-
-          if (node.children) {
-            node.children.forEach(child => {
-              const childBounds = getSubtreeBounds(child);
-              minY = Math.min(minY, childBounds.minY);
-              maxY = Math.max(maxY, childBounds.maxY);
-            });
-          }
-
-          return { minY, maxY };
-        };
+        if (!layoutedNode) continue;
 
         if (index > 0) {
-          // For subsequent root nodes, first calculate current subtree bounds
+          // Calculate current subtree bounds
           const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
           const currentSubtreeTop = currentSubtreeBounds.minY;
 
-          // Calculate offset needed to position this subtree 4px below the previous one
-          const targetTopY = previousSubtreeBottom + 4;
+          // Calculate adaptive spacing with cached node counts
+          const previousRoot = layoutedRootNodes[index - 1];
+          const previousNodeCount = getNodeCount(previousRoot);
+          const currentNodeCount = getNodeCount(layoutedNode);
+
+          // Optimized spacing calculation
+          const baseSpacing = 8;
+          const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
+          const adaptiveSpacing = baseSpacing + complexityFactor;
+
+          // Calculate and apply offset
+          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
           const offsetY = targetTopY - currentSubtreeTop;
 
-          // Apply offset to root and all children
-          const applyOffsetToSubtree = (node: MindMapNode, offset: number) => {
-            node.y = (node.y || 0) + offset;
-            if (node.children) {
-              node.children.forEach(child => applyOffsetToSubtree(child, offset));
+          // Optimized offset application using iteration instead of recursion
+          const nodesToProcess = [layoutedNode];
+          while (nodesToProcess.length > 0) {
+            const currentNode = nodesToProcess.pop()!;
+            currentNode.y = (currentNode.y || 0) + offsetY;
+            
+            if (currentNode.children) {
+              nodesToProcess.push(...currentNode.children);
             }
-          };
+          }
 
-          applyOffsetToSubtree(layoutedNode, offsetY);
-
-          // Now calculate the final bottom position after offset
+          // Clear cache for modified nodes to force recalculation
+          boundsCache.clear();
+          
+          // Calculate final bottom position
           const finalBounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = finalBounds.maxY;
         } else {
-          // First root node - calculate its bottom boundary
+          // First root node
           const bounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = bounds.maxY;
         }
 
         layoutedRootNodes.push(layoutedNode);
-      });
+      }
       
       if (layoutedRootNodes.some(node => !node)) {
         logger.error('❌ Auto layout: One or more layouted nodes are null or undefined');
@@ -164,29 +216,33 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
       
-      set((draft) => {
-        if (draft.data) {
-          draft.data = {
-            ...draft.data,
-            rootNodes: layoutedRootNodes
-          };
-          
-          // Update normalized data
-          try {
-            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
-          } catch (normalizeError) {
-            logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
+      // Optimized state update using requestAnimationFrame for smoother UI
+      requestAnimationFrame(() => {
+        set((draft) => {
+          if (draft.data) {
+            draft.data = {
+              ...draft.data,
+              rootNodes: layoutedRootNodes
+            };
+            
+            // Update normalized data
+            try {
+              draft.normalizedData = normalizeTreeData(layoutedRootNodes);
+            } catch (normalizeError) {
+              logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
+            }
+            
+            // Add to history
+            try {
+              draft.history = [...draft.history.slice(0, draft.historyIndex + 1), draft.data];
+              draft.historyIndex = draft.history.length - 1;
+            } catch (historyError) {
+              logger.error('❌ Auto layout: Failed to update history:', historyError);
+            }
           }
-          
-          // Add to history
-          try {
-            draft.history = [...draft.history.slice(0, draft.historyIndex + 1), draft.data];
-            draft.historyIndex = draft.history.length - 1;
-          } catch (historyError) {
-            logger.error('❌ Auto layout: Failed to update history:', historyError);
-          }
-        }
+        });
       });
+      
       logger.debug('🎉 Auto layout applied successfully');
     } catch (error) {
       logger.error('❌ Auto layout failed:', error);
@@ -194,4 +250,4 @@ export const createDataSlice: StateCreator<
       logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
   },
-});;;
+});
