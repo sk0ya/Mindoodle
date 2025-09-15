@@ -202,11 +202,58 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   // Minimal Markdown exporter (replaces exportUtils usage)
+  // Minimal Markdown exporter (replaces exportUtils usage)
+  // Minimal Markdown exporter (replaces exportUtils usage)
+  // Minimal Markdown exporter (replaces exportUtils usage)
+  // Minimal Markdown exporter (replaces exportUtils usage)
+  // Minimal Markdown exporter (replaces exportUtils usage)
   private buildMarkdownDocument(data: MindMapData, baseLevel: number): string {
     const lines: string[] = [];
+    
+    // Try to get saved heading levels for this map
+    const stKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
+    let target = this.saveTargets.get(stKey);
+    if (!target) {
+      const found = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${data.mapIdentifier.mapId}`));
+      if (found) target = found[1];
+    }
+    if (!target) {
+      target = this.saveTargets.get(data.mapIdentifier.mapId);
+    }
+    
+    const savedHeadingLevels = target?.headingLevelByText || {};
+    
+    // Debug logging
+    console.log('🔍 buildMarkdownDocument debug:', {
+      mapId: data.mapIdentifier.mapId,
+      baseLevel,
+      savedHeadingLevels,
+      targetFound: !!target
+    });
+    
     const walk = (node: MindMapNode, level: number) => {
-      const h = '#'.repeat(Math.min(level, 6));
       const title = (node.text || '').trim();
+      
+      let headingLevel: number;
+      
+      // First try to use originalHeadingLevel stored in the node
+      if ((node as any).originalHeadingLevel !== undefined) {
+        headingLevel = Math.min((node as any).originalHeadingLevel, 6);
+        console.log(`📝 Node "${title}": using originalHeadingLevel = ${headingLevel}`);
+      }
+      // Fallback to saved heading level by text
+      else if (savedHeadingLevels[title] !== undefined) {
+        headingLevel = Math.min(savedHeadingLevels[title], 6);
+        console.log(`📝 Node "${title}": using savedHeadingLevel = ${headingLevel}`);
+      }
+      // Final fallback to calculated level
+      else {
+        headingLevel = Math.min(level, 6);
+        console.log(`📝 Node "${title}": using calculatedLevel = ${headingLevel}`);
+      }
+      
+      const h = '#'.repeat(headingLevel);
+      
       lines.push(`${h} ${title}`);
       if (node.note && node.note.trim()) {
         lines.push(node.note.trim());
@@ -425,22 +472,22 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     try {
       const file = await fileHandle.getFile();
       const text = await file.text();
+      
+      console.log('🔍 loadMapFromFile - Original markdown text:', text.substring(0, 200) + '...');
+      
       const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
-      // Extract heading information from parsed nodes
-      const extractHeadingLevels = (nodes: any[], level = 1): { text: string; level: number }[] => {
-        const headings: { text: string; level: number }[] = [];
-        for (const node of nodes) {
-          headings.push({ text: node.text, level });
-          if (node.children && node.children.length > 0) {
-            headings.push(...extractHeadingLevels(node.children, level + 1));
-          }
-        }
-        return headings;
-      };
-      const headings = extractHeadingLevels(parseResult.rootNodes);
-      const baseHeadingLevel = headings[0]?.level || 1;
-      const headingLevelByText: Record<string, number> = {};
-      headings.forEach((h: { text: string; level: number }) => { if (!(h.text in headingLevelByText)) headingLevelByText[h.text] = h.level; });
+      
+      // Use heading level information from MarkdownImporter
+      const headingLevelByText = parseResult.headingLevelByText;
+      
+      console.log('🔍 loadMapFromFile - Parsed heading levels:', headingLevelByText);
+      
+      // Find the minimum heading level as base level
+      const headingLevels = Object.values(headingLevelByText);
+      const baseHeadingLevel = headingLevels.length > 0 ? Math.min(...headingLevels) : 1;
+      
+      console.log('🔍 loadMapFromFile - Base heading level:', baseHeadingLevel);
+      
       const fileName = await this.getFileName(fileHandle);
       const baseName = fileName.replace(/\.md$/i, '');
       const mapId = categoryPath ? `${categoryPath}/${baseName}` : baseName;
@@ -456,6 +503,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       };
       // Record save target (dir where the file resides)
       this.saveTargets.set(data.mapIdentifier.mapId, { dir: dirForSave, fileName, isRoot: !categoryPath, baseHeadingLevel, headingLevelByText });
+      
+      console.log('🔍 loadMapFromFile - Saved target info:', {
+        mapId: data.mapIdentifier.mapId,
+        baseHeadingLevel,
+        headingLevelByText
+      });
+      
       return data;
     } catch (e) {
       const name = await this.getFileName(fileHandle).catch(() => 'unknown.md');

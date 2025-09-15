@@ -21,7 +21,10 @@ export class MarkdownImporter {
   /**
    * マークダウンをパースしてMindMapNode構造に変換
    */
-  static parseMarkdownToNodes(markdownText: string): { rootNodes: MindMapNode[] } {
+  /**
+   * マークダウンをパースしてMindMapNode構造に変換
+   */
+  static parseMarkdownToNodes(markdownText: string): { rootNodes: MindMapNode[]; headingLevelByText: Record<string, number> } {
     if (DEBUG_MD) {
       logger.debug('🔍 マークダウンパース開始', {
         textLength: markdownText.length,
@@ -44,8 +47,16 @@ export class MarkdownImporter {
       const rootNode = createNewNode('インポートされた内容');
       rootNode.id = 'root';
       rootNode.note = markdownText;
-      return { rootNodes: [rootNode] };
+      return { rootNodes: [rootNode], headingLevelByText: {} };
     }
+
+    // 見出しレベル情報を抽出
+    const headingLevelByText: Record<string, number> = {};
+    headings.forEach(heading => {
+      if (!(heading.text in headingLevelByText)) {
+        headingLevelByText[heading.text] = heading.level;
+      }
+    });
 
     // ノード構造を構築
     const rootNodes = this.buildNodeHierarchy(headings);
@@ -60,7 +71,7 @@ export class MarkdownImporter {
       });
     }
 
-    return { rootNodes };
+    return { rootNodes, headingLevelByText };
   }
 
   /**
@@ -104,6 +115,11 @@ export class MarkdownImporter {
    * - ルートは「自分より前にレベルが高い見出しがないノード」
    * - レベルは変更しない
    */
+  /**
+   * 見出しリストからノード階層を構築
+   * - ルートは「自分より前にレベルが高い見出しがないノード」
+   * - レベルは変更しない
+   */
   private static buildNodeHierarchy(headings: ParsedHeading[]): MindMapNode[] {
     const rootNodes: MindMapNode[] = [];
     const stack: { node: MindMapNode; level: number }[] = [];
@@ -112,6 +128,9 @@ export class MarkdownImporter {
       const newNode = createNewNode(heading.text);
       if (heading.content) newNode.note = heading.content;
       newNode.children = [];
+      
+      // Store original heading level in the node
+      (newNode as any).originalHeadingLevel = heading.level;
 
       // スタックから自分より同じか深いレベルをポップ
       while (stack.length > 0 && stack[stack.length - 1].level >= heading.level) {
