@@ -369,38 +369,53 @@ export function calculateChildNodeX(parentNode: MindMapNode, childNodeSize: Node
  */
 export function getBranchColor(nodeId: string, normalizedData: NormalizedData): string {
   if (!normalizedData || !nodeId) return '#666';
-  
-  // ルートノードの場合は基本色
-  if (nodeId === 'root') return '#333';
-  
+
+  // 現在のノードがルートノードかどうかを判定
+  const isRootNode = !normalizedData.parentMap[nodeId];
+
+  if (isRootNode) {
+    // ルートノード自体はデフォルト色
+    return '#333';
+  }
+
   // 現在のノードから親を辿ってルートノードの直接の子（ブランチルート）を見つける
   let currentNodeId = nodeId;
   let branchRootId: string | null = null;
-  
-  while (currentNodeId && currentNodeId !== 'root') {
+
+  while (currentNodeId) {
     const parentId = normalizedData.parentMap[currentNodeId];
-    
-    if (parentId === 'root') {
-      // ルートノードの直接の子が見つかった（これがブランチルート）
+
+    if (!parentId) {
+      // 親がいない = ルートノードに到達（これは起こらないはず）
+      break;
+    }
+
+    // 親がルートノードかどうかをチェック
+    const parentIsRoot = !normalizedData.parentMap[parentId];
+
+    if (parentIsRoot) {
+      // 親がルートノード = 現在のノードがブランチルート
       branchRootId = currentNodeId;
       break;
     }
-    
-    if (!parentId) break;
+
     currentNodeId = parentId;
   }
-  
+
   // ブランチルートが見つからない場合はデフォルト色
   if (!branchRootId) return '#666';
-  
-  // ルートノードの子ノード一覧を取得して、インデックスを特定
-  const rootChildren = normalizedData.childrenMap['root'] || [];
+
+  // ルートノードを取得してその子ノード一覧からインデックスを特定
+  const parentOfBranchRoot = normalizedData.parentMap[branchRootId];
+  if (!parentOfBranchRoot) return '#666';
+
+  const rootChildren = normalizedData.childrenMap[parentOfBranchRoot] || [];
   const branchIndex = rootChildren.indexOf(branchRootId);
-  
+
   // インデックスに基づいて色を決定
   if (branchIndex >= 0) {
     return COLORS.NODE_COLORS[branchIndex % COLORS.NODE_COLORS.length];
   }
-  
+
   return '#666';
 }
