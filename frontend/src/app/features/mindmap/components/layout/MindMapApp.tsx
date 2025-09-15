@@ -673,6 +673,35 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [data?.rootNodes, centerNodeInView]);
 
+  // マップが切り替わった時の前のマップIDを記録
+  const [prevMapId, setPrevMapId] = React.useState<string | null>(null);
+
+  // マップが初期化された時やマップ切り替え時にルートノードを選択し中央に表示
+  React.useEffect(() => {
+    const currentMapId = data?.mapIdentifier?.mapId;
+
+    if (data?.rootNodes?.[0] && currentMapId) {
+      const rootNodeId = data.rootNodes[0].id;
+
+      // マップが切り替わった場合、または初回読み込みで選択ノードがない場合
+      const mapChanged = currentMapId !== prevMapId;
+      const noSelectedNode = !selectedNodeId;
+
+      if (mapChanged || noSelectedNode) {
+        selectNode(rootNodeId);
+        // 少し遅延してから中央表示（レイアウトが確定してから）
+        setTimeout(() => {
+          centerNodeInView(rootNodeId, true);
+        }, 100);
+      }
+
+      // 現在のマップIDを記録
+      if (currentMapId !== prevMapId) {
+        setPrevMapId(currentMapId);
+      }
+    }
+  }, [data?.rootNodes, data?.mapIdentifier?.mapId, selectedNodeId, selectNode, centerNodeInView, prevMapId]);
+
   // Simplified link navigation via utility
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
