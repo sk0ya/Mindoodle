@@ -243,24 +243,24 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, storageAdapter, config.mode]);
 
-  // 初期化完了時に全マップを読み込み
+  // 初期化完了時に軽量データのみ読み込み
   useEffect(() => {
     if (isInitialized && storageAdapter) {
-      loadAllMaps();
+      // Skip loadAllMaps - maps will be loaded on-demand when selected
       loadExplorerTree();
       loadWorkspaces();
     }
-  }, [isInitialized, storageAdapter, loadAllMaps, loadExplorerTree, loadWorkspaces]);
+  }, [isInitialized, storageAdapter, loadExplorerTree, loadWorkspaces]);
 
 
   // マップ一覧を強制リフレッシュする関数
   const refreshMapList = useCallback(async () => {
     if (storageAdapter) {
-      await loadAllMaps();
+      // Only refresh explorer tree for periodic updates - much lighter than loading all maps
       await loadExplorerTree();
       await loadWorkspaces();
     }
-  }, [storageAdapter, loadAllMaps, loadExplorerTree, loadWorkspaces]);
+  }, [storageAdapter, loadExplorerTree, loadWorkspaces]);
 
   // Create folder wrapper
   const createFolder = useCallback(async (relativePath: string): Promise<void> => {

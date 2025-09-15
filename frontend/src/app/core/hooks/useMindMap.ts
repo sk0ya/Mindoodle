@@ -190,7 +190,7 @@ export const useMindMap = (
         try {
           const adapter: any = (persistenceHook as any).storageAdapter;
           if (!adapter) return;
-          const text: string | null = await (adapter.getMapMarkdown?.(mapId));
+          const text: string | null = await (adapter.getMapMarkdown?.(target));
           if (!text) return;
           const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
           // Parse headings if needed in future; current fallback only builds minimal MindMapData
