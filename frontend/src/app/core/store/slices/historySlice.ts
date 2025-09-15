@@ -29,7 +29,9 @@ export const createHistorySlice: StateCreator<
       set((draft) => {
         draft.historyIndex = newIndex;
         draft.data = previousData;
-        draft.normalizedData = normalizeTreeData(previousData.rootNode);
+        
+        // Only use rootNodes array
+        draft.normalizedData = normalizeTreeData(previousData.rootNodes);
         
         // Clear editing state when undoing
         draft.editingNodeId = null;
@@ -47,7 +49,9 @@ export const createHistorySlice: StateCreator<
       set((draft) => {
         draft.historyIndex = newIndex;
         draft.data = nextData;
-        draft.normalizedData = normalizeTreeData(nextData.rootNode);
+        
+        // Only use rootNodes array
+        draft.normalizedData = normalizeTreeData(nextData.rootNodes);
         
         // Clear editing state when redoing
         draft.editingNodeId = null;
@@ -65,4 +69,4 @@ export const createHistorySlice: StateCreator<
     const { history, historyIndex } = get();
     return historyIndex < history.length - 1;
   },
-});
+});;;

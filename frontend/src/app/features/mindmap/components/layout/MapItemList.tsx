@@ -98,7 +98,7 @@ const MapItemList: React.FC<MapItemListProps> = ({
                 <div className="map-title">{highlightSearchTerm(map.title, searchTerm)}</div>
                 <div className="map-meta">
                   <span className="node-count">
-                    {getNodeCount(map.rootNode)} ノード
+                    {map.rootNodes?.reduce((total, root) => total + getNodeCount(root), 0) || 0} ノード
                   </span>
                   <span className="update-date">
                     {formatDate(map.updatedAt)}

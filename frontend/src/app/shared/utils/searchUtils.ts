@@ -52,8 +52,13 @@ export function searchNodesRecursively(
  */
 export function searchNodes(query: string, mapData: MindMapData | null): SearchResult[] {
   if (!query.trim() || !mapData) return [];
-  
-  return searchNodesRecursively(mapData.rootNode, query, mapData);
+
+  const results: SearchResult[] = [];
+  const rootNodes = mapData.rootNodes || [];
+  for (const rootNode of rootNodes) {
+    results.push(...searchNodesRecursively(rootNode, query, mapData));
+  }
+  return results;
 }
 
 /**
@@ -65,8 +70,11 @@ export function searchMultipleMaps(query: string, maps: MindMapData[]): SearchRe
   const allResults: SearchResult[] = [];
   
   maps.forEach(mapData => {
-    const mapResults = searchNodesRecursively(mapData.rootNode, query, mapData);
-    allResults.push(...mapResults);
+    const rootNodes = mapData.rootNodes || [];
+    rootNodes.forEach(rootNode => {
+      const mapResults = searchNodesRecursively(rootNode, query, mapData);
+      allResults.push(...mapResults);
+    });
   });
   
   return allResults;

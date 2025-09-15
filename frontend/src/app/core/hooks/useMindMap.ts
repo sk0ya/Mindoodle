@@ -202,7 +202,6 @@ export const useMindMap = (
           const parsed: MindMapData = {
             title: baseName,
             category: category || undefined,
-            rootNode: parseResult.rootNodes[0],
             rootNodes: parseResult.rootNodes,
             createdAt: now,
             updatedAt: now,

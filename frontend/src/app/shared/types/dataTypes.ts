@@ -143,7 +143,7 @@ export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => 
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   mapIdentifier,
-  rootNode: {
+  rootNodes: [{
     id: 'root',
     text: DEFAULTS.NEW_MAP_TITLE,
     x: COORDINATES.ROOT_NODE_X,
@@ -152,7 +152,7 @@ export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => 
     fontWeight: TYPOGRAPHY.DEFAULT_FONT_WEIGHT,
     children: [],
     attachments: [],
-  },
+  }],
   settings: {
     autoSave: DEFAULTS.AUTO_SAVE,
     autoLayout: DEFAULTS.AUTO_LAYOUT,
@@ -160,7 +160,7 @@ export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => 
     showGrid: DEFAULTS.SHOW_GRID,
     animationEnabled: DEFAULTS.ANIMATION_ENABLED
   }
-});
+});;
 
 export const createNewNode = (
   text: string = '', 
@@ -305,9 +305,9 @@ export const createFileAttachment = (
 
 // 既存のノードに色を自動割り当てする
 export const assignColorsToExistingNodes = (mindMapData: MindMapData): MindMapData => {
-  // rootNodeが存在しない場合の対応
-  if (!mindMapData || !mindMapData.rootNode) {
-    logger.warn('Invalid mindmap data or missing rootNode:', mindMapData);
+  // rootNodes配列が存在しない場合の対応
+  if (!mindMapData || !mindMapData.rootNodes || mindMapData.rootNodes.length === 0) {
+    logger.warn('Invalid mindmap data or missing rootNodes:', mindMapData);
     return mindMapData || createInitialData({ mapId: 'temp', workspaceId: DEFAULT_WORKSPACE_ID });
   }
   
@@ -316,19 +316,33 @@ export const assignColorsToExistingNodes = (mindMapData: MindMapData): MindMapDa
   
   const assignColors = (node: MindMapNode, parentColor: string | null = null, isRootChild: boolean = false, childIndex: number = 0): void => {
     // 親がいないかどうかでルートノード判定（ID固定に依存しない）
-    const findParentNode = (rootNode: MindMapNode, nodeId: string): MindMapNode | null => {
+    const findParentNode = (rootNodes: MindMapNode[], nodeId: string): MindMapNode | null => {
+      for (const rootNode of rootNodes) {
+        if (!rootNode.children) continue;
+
+        for (const child of rootNode.children) {
+          if (child.id === nodeId) return rootNode;
+          const parent = findParentNodeInTree(child, nodeId);
+          if (parent) return parent;
+        }
+      }
+      return null;
+    };
+
+    const findParentNodeInTree = (rootNode: MindMapNode, nodeId: string): MindMapNode | null => {
       if (!rootNode.children) return null;
 
       for (const child of rootNode.children) {
         if (child.id === nodeId) return rootNode;
-        const parent = findParentNode(child, nodeId);
+        const parent = findParentNodeInTree(child, nodeId);
         if (parent) return parent;
       }
 
       return null;
     };
 
-    const isRootNode = node.id === clonedData.rootNode.id || findParentNode(clonedData.rootNode, node.id) === null;
+    const isRootNode = clonedData.rootNodes.some(root => root.id === node.id) || 
+                      findParentNode(clonedData.rootNodes, node.id) === null;
 
     if (isRootNode) {
       // ルートノードには色を設定しない
@@ -351,10 +365,12 @@ export const assignColorsToExistingNodes = (mindMapData: MindMapData): MindMapDa
     }
   };
   
-  // クローンされたデータに対して色の割り当てを実行
-  assignColors(clonedData.rootNode);
+  // クローンされたデータの全てのルートノードに対して色の割り当てを実行
+  clonedData.rootNodes.forEach(rootNode => {
+    assignColors(rootNode);
+  });
   
   return clonedData;
-};
+};;
 
 

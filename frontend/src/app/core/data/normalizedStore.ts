@@ -1,23 +1,25 @@
-import type { MindMapNode, MindMapData } from '@shared/types';
+import type { MindMapNode } from '@shared/types';
 import { logger } from '../../shared/utils/logger';
 
 // 正規化されたデータ構造
 export interface NormalizedData {
   nodes: Record<string, MindMapNode>;
-  rootNodeId: string;
+  rootNodeIds: string[]; // Changed from single rootNodeId to array of rootNodeIds
   parentMap: Record<string, string>; // child -> parent
   childrenMap: Record<string, string[]>; // parent -> children
 }
 
-export interface NormalizedMindMapData extends Omit<MindMapData, 'rootNode'> {
-  rootNodeId: string;
-  normalizedData: NormalizedData;
+export interface NormalizedMindMapData {
+  nodes: Record<string, MindMapNode>;
+  rootNodeIds: string[]; // Changed from single rootNodeId to array of rootNodeIds
+  parentMap: Record<string, string>; // child -> parent
+  childrenMap: Record<string, string[]>; // parent -> children
 }
 
 /**
  * 従来の階層構造を正規化構造に変換
  */
-export function normalizeTreeData(rootNode: MindMapNode): NormalizedData {
+export function normalizeTreeData(rootNodes: MindMapNode[]): NormalizedData {
   const nodes: Record<string, MindMapNode> = {};
   const parentMap: Record<string, string> = {};
   const childrenMap: Record<string, string[]> = {};
@@ -42,11 +44,14 @@ export function normalizeTreeData(rootNode: MindMapNode): NormalizedData {
     });
   }
 
-  traverse(rootNode);
+  // 複数のルートノードを処理
+  rootNodes.forEach(rootNode => {
+    traverse(rootNode);
+  });
 
   return {
     nodes,
-    rootNodeId: rootNode.id,
+    rootNodeIds: rootNodes.map(node => node.id),
     parentMap,
     childrenMap
   };
@@ -55,8 +60,8 @@ export function normalizeTreeData(rootNode: MindMapNode): NormalizedData {
 /**
  * 正規化構造から階層構造を復元
  */
-export function denormalizeTreeData(normalizedData: NormalizedData): MindMapNode {
-  const { nodes, rootNodeId, childrenMap } = normalizedData;
+export function denormalizeTreeData(normalizedData: NormalizedData): MindMapNode[] {
+  const { nodes, rootNodeIds, childrenMap } = normalizedData;
 
   function buildTree(nodeId: string): MindMapNode {
     const node = nodes[nodeId];
@@ -73,7 +78,7 @@ export function denormalizeTreeData(normalizedData: NormalizedData): MindMapNode
     };
   }
 
-  return buildTree(rootNodeId);
+  return rootNodeIds.map(rootNodeId => buildTree(rootNodeId));
 }
 
 /**
@@ -115,7 +120,7 @@ export function deleteNormalizedNode(
   normalizedData: NormalizedData,
   nodeId: string
 ): NormalizedData {
-  if (nodeId === normalizedData.rootNodeId) {
+  if (normalizedData.rootNodeIds.includes(nodeId)) {
     throw new Error('Cannot delete root node');
   }
 
@@ -204,7 +209,7 @@ export function moveNormalizedNode(
   nodeId: string,
   newParentId: string
 ): NormalizedData {
-  if (nodeId === normalizedData.rootNodeId) {
+  if (normalizedData.rootNodeIds.includes(nodeId)) {
     throw new Error('Cannot move root node');
   }
 
@@ -288,6 +293,51 @@ export function addSiblingNormalizedNode(
     childrenMap: {
       ...normalizedData.childrenMap,
       [parentId]: newSiblings,
+      [newNode.id]: []
+    }
+  };
+}
+
+// ルートノードの兄弟ノードを追加する関数（複数ルートノード対応）
+export function addRootSiblingNode(
+  normalizedData: NormalizedData,
+  siblingRootNodeId: string,
+  newNode: MindMapNode,
+  insertAfter: boolean = true
+): NormalizedData {
+  if (normalizedData.nodes[newNode.id]) {
+    throw new Error(`Node already exists: ${newNode.id}`);
+  }
+
+  const { children, ...nodeWithoutChildren } = newNode;
+  void children; // childrenは使用しないがdestructuringで除外する必要がある
+
+  // 新しいルートノードIDリストを作成
+  const currentRootIds = normalizedData.rootNodeIds;
+  const siblingIndex = currentRootIds.indexOf(siblingRootNodeId);
+  
+  if (siblingIndex === -1) {
+    throw new Error(`Root sibling node not found: ${siblingRootNodeId}`);
+  }
+
+  // ルートノードリストに新しいノードを追加
+  const insertionIndex = insertAfter ? siblingIndex + 1 : siblingIndex;
+  const newRootIds = [...currentRootIds];
+  newRootIds.splice(insertionIndex, 0, newNode.id);
+
+  return {
+    ...normalizedData,
+    nodes: {
+      ...normalizedData.nodes,
+      [newNode.id]: { ...nodeWithoutChildren, children: [] }
+    },
+    rootNodeIds: newRootIds,
+    parentMap: {
+      ...normalizedData.parentMap,
+      // 新しいルートノードには親を設定しない
+    },
+    childrenMap: {
+      ...normalizedData.childrenMap,
       [newNode.id]: []
     }
   };

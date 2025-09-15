@@ -6,11 +6,12 @@ import {
   updateLinkInNodeTree, 
   removeLinkFromNodeTree 
 } from '../../../shared/utils/linkUtils';
-import { 
+import {
   updateNormalizedNode,
   deleteNormalizedNode,
   addNormalizedNode,
   addSiblingNormalizedNode,
+  addRootSiblingNode,
   moveNormalizedNode,
   changeSiblingOrderNormalized,
   denormalizeTreeData
@@ -49,6 +50,18 @@ export interface NodeSlice {
   deleteNodeLink: (nodeId: string, linkId: string) => void;
 }
 
+// Helper function to sync normalized data back to tree structure with multiple root nodes only
+const syncNormalizedDataToTree = (state: any) => {
+  if (!state.normalizedData || !state.data) return;
+
+  const newRootNodes = denormalizeTreeData(state.normalizedData);
+
+  state.data = {
+    ...state.data,
+    rootNodes: newRootNodes,
+    updatedAt: new Date().toISOString()
+  };
+};
 export const createNodeSlice: StateCreator<
   MindMapStore,
   [["zustand/immer", never]],
@@ -76,15 +89,8 @@ export const createNodeSlice: StateCreator<
       try {
         state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, updates);
         
-        // Sync back to tree structure
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('updateNode error:', error);
       }
@@ -155,15 +161,8 @@ export const createNodeSlice: StateCreator<
         // Select the new node
         state.selectedNodeId = newNode.id;
         
-        // Sync back to tree structure
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('addChildNode error:', error);
       }
@@ -203,48 +202,64 @@ export const createNodeSlice: StateCreator<
         if (!currentNode) return;
         
         const parentId = state.normalizedData.parentMap[nodeId];
-        if (!parentId) return; // ルートノードには兄弟を追加できない
-        
-        const parentNode = state.normalizedData.nodes[parentId];
-        if (!parentNode) return;
         
         // 設定を取得してノード作成時に適用
         const settings = state.settings;
-        const newNode = createNewNode(text, parentNode, settings);
-        newNodeId = newNode.id;
-        
-        // 兄弟ノードは同じ階層レベルに配置
-        const position: Position = {
-          x: currentNode.x + 200, // 兄弟ノードは横に配置
-          y: currentNode.y + 80   // 少し下にずらす
-        };
-        
-        // 位置を更新
-        newNode.x = position.x;
-        newNode.y = position.y;
-        
-        // Add sibling node first to establish parent-child relationship
-        state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, true);
-        
-        // 兄弟ノードはブランチベースの色割り当て
-        const color = getBranchColor(newNode.id, state.normalizedData);
-        
-        // Update color after establishing relationship
-        newNode.color = color;
-        state.normalizedData.nodes[newNode.id] = { ...newNode };
+        let newNode: MindMapNode;
+
+        if (!parentId) {
+          // ルートノードの兄弟ノードを追加（新しいルートノード）
+          newNode = createNewNode(text, currentNode, settings);
+          newNodeId = newNode.id;
+          
+          // ルートノード同士は横に並べて配置
+          const position: Position = {
+            x: currentNode.x + 300, // ルートノード間の距離を大きく
+            y: currentNode.y
+          };
+
+          newNode.x = position.x;
+          newNode.y = position.y;
+
+          // 新しいルートノードを追加
+          state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
+
+          // ルートノードはブランチベースの色割り当て
+          const color = getBranchColor(newNode.id, state.normalizedData);
+          newNode.color = color;
+          state.normalizedData.nodes[newNode.id] = { ...newNode };
+          
+        } else {
+          // 通常の兄弟ノード追加
+          const parentNode = state.normalizedData.nodes[parentId];
+          if (!parentNode) return;
+          
+          newNode = createNewNode(text, parentNode, settings);
+          newNodeId = newNode.id;
+          
+          // 兄弟ノードは同じ階層レベルに配置
+          const position: Position = {
+            x: currentNode.x + 200, // 兄弟ノードは横に配置
+            y: currentNode.y + 80   // 少し下にずらす
+          };
+          
+          newNode.x = position.x;
+          newNode.y = position.y;
+          
+          // Add sibling node first to establish parent-child relationship
+          state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, true);
+          
+          // 兄弟ノードはブランチベースの色割り当て
+          const color = getBranchColor(newNode.id, state.normalizedData);
+          newNode.color = color;
+          state.normalizedData.nodes[newNode.id] = { ...newNode };
+        }
         
         // 新しいノードを選択
         state.selectedNodeId = newNode.id;
         
-        // ツリー構造と同期
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('addSiblingNode error:', error);
       }
@@ -316,15 +331,8 @@ export const createNodeSlice: StateCreator<
           state.editText = '';
         }
         
-        // Sync back to tree structure
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('deleteNode error:', error);
       }
@@ -352,15 +360,8 @@ export const createNodeSlice: StateCreator<
       try {
         state.normalizedData = moveNormalizedNode(state.normalizedData, nodeId, newParentId);
         
-        // Sync back to tree structure
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('moveNode error:', error);
       }
@@ -374,7 +375,7 @@ export const createNodeSlice: StateCreator<
   },
 
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {
-    logger.debug('🏪 Store changeSiblingOrder開始:', { draggedNodeId, targetNodeId, insertBefore });
+    logger.debug('🎪 Store changeSiblingOrder開始:', { draggedNodeId, targetNodeId, insertBefore });
     set((state) => {
       if (!state.normalizedData) {
         logger.error('❌ normalizedDataが存在しません');
@@ -390,16 +391,9 @@ export const createNodeSlice: StateCreator<
         const hasChanged = JSON.stringify(originalData.childrenMap) !== JSON.stringify(state.normalizedData.childrenMap);
         logger.debug('🔄 変更チェック:', { hasChanged });
         
-        // Sync back to tree structure
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-          logger.debug('🔄 データ更新完了');
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
+        logger.debug('🔄 データ更新完了');
         logger.debug('✅ changeSiblingOrder完了');
       } catch (error) {
         logger.error('❌ changeSiblingOrder error:', error);
@@ -552,15 +546,8 @@ export const createNodeSlice: StateCreator<
           collapsed: newCollapsedState 
         });
         
-        // Sync back to tree structure
-        const newRootNode = denormalizeTreeData(state.normalizedData);
-        if (state.data) {
-          state.data = {
-            ...state.data,
-            rootNode: newRootNode,
-            updatedAt: new Date().toISOString()
-          };
-        }
+        // Sync back to tree structure with multiple root nodes support
+        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('toggleNodeCollapse error:', error);
       }
@@ -579,11 +566,22 @@ export const createNodeSlice: StateCreator<
       if (!state.data) return;
       
       try {
-        // Update tree structure with new link
-        const updatedRootNode = addLinkToNodeInTree(state.data.rootNode, nodeId, linkData);
+        // Update tree structure with new link - only use rootNodes
+        const rootNodes = state.data.rootNodes || [];
+        
+        let updatedRootNodes = rootNodes;
+        for (let i = 0; i < rootNodes.length; i++) {
+          const updatedRootNode = addLinkToNodeInTree(rootNodes[i], nodeId, linkData);
+          if (updatedRootNode !== rootNodes[i]) {
+            updatedRootNodes = [...rootNodes];
+            updatedRootNodes[i] = updatedRootNode;
+            break;
+          }
+        }
+        
         state.data = {
           ...state.data,
-          rootNode: updatedRootNode,
+          rootNodes: updatedRootNodes,
           updatedAt: new Date().toISOString()
         };
 
@@ -608,11 +606,22 @@ export const createNodeSlice: StateCreator<
       if (!state.data) return;
       
       try {
-        // Update tree structure
-        const updatedRootNode = updateLinkInNodeTree(state.data.rootNode, nodeId, linkId, updates);
+        // Update tree structure - only use rootNodes
+        const rootNodes = state.data.rootNodes || [];
+        
+        let updatedRootNodes = rootNodes;
+        for (let i = 0; i < rootNodes.length; i++) {
+          const updatedRootNode = updateLinkInNodeTree(rootNodes[i], nodeId, linkId, updates);
+          if (updatedRootNode !== rootNodes[i]) {
+            updatedRootNodes = [...rootNodes];
+            updatedRootNodes[i] = updatedRootNode;
+            break;
+          }
+        }
+        
         state.data = {
           ...state.data,
-          rootNode: updatedRootNode,
+          rootNodes: updatedRootNodes,
           updatedAt: new Date().toISOString()
         };
 
@@ -639,11 +648,22 @@ export const createNodeSlice: StateCreator<
       if (!state.data) return;
       
       try {
-        // Update tree structure
-        const updatedRootNode = removeLinkFromNodeTree(state.data.rootNode, nodeId, linkId);
+        // Update tree structure - only use rootNodes
+        const rootNodes = state.data.rootNodes || [];
+        
+        let updatedRootNodes = rootNodes;
+        for (let i = 0; i < rootNodes.length; i++) {
+          const updatedRootNode = removeLinkFromNodeTree(rootNodes[i], nodeId, linkId);
+          if (updatedRootNode !== rootNodes[i]) {
+            updatedRootNodes = [...rootNodes];
+            updatedRootNodes[i] = updatedRootNode;
+            break;
+          }
+        }
+        
         state.data = {
           ...state.data,
-          rootNode: updatedRootNode,
+          rootNodes: updatedRootNodes,
           updatedAt: new Date().toISOString()
         };
 
@@ -662,4 +682,4 @@ export const createNodeSlice: StateCreator<
       }
     });
   },
-});
+});;

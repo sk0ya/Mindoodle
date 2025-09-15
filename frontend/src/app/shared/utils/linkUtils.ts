@@ -148,7 +148,11 @@ export const getLinkTargetInfo = (
   let targetNode: MindMapNode | null = null;
   
   if (isCurrentMap && link.targetNodeId) {
-    targetNode = findNodeById(currentData.rootNode, link.targetNodeId);
+    const rootNodes = currentData.rootNodes || [];
+    for (const rootNode of rootNodes) {
+      targetNode = findNodeById(rootNode, link.targetNodeId);
+      if (targetNode) break;
+    }
   }
 
   const canNavigate = isCurrentMap && (targetNode !== null || !link.targetNodeId);

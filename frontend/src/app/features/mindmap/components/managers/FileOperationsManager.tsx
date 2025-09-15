@@ -95,7 +95,12 @@ export const useFileOperationsManager = ({
         );
         
         // ノードにファイルを添付
-        const node = data?.rootNode && findNodeById(data.rootNode, nodeId);
+        const rootNodes = data?.rootNodes || [];
+        let node = null;
+        for (const rootNode of rootNodes) {
+          node = findNodeById(rootNode, nodeId);
+          if (node) break;
+        }
         if (node) {
           logger.info('📎 Attaching file to node...', {
             nodeId,
@@ -208,7 +213,12 @@ export const useFileOperationsManager = ({
         throw new Error('マインドマップデータが利用できません');
       }
 
-      const node = findNodeById(data.rootNode, nodeId);
+      const rootNodes = data.rootNodes || [];
+      let node = null;
+      for (const rootNode of rootNodes) {
+        node = findNodeById(rootNode, nodeId);
+        if (node) break;
+      }
       if (!node || !node.attachments) {
         throw new Error('ノードまたは添付ファイルが見つかりません');
       }

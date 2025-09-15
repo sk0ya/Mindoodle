@@ -140,7 +140,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     const actualImageHeight = getActualImageHeight();
     const hasAttachments = false; // attachments removed
     // Derive links from note markdown (fallback to legacy node.links)
-    const internalLinks = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNode) || [];
+    const internalLinks = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNodes?.[0]) || [];
     const externalLinks = extractExternalLinksFromMarkdown(node.note) || [];
     const hasAnyMarkdownLinks = (internalLinks.length + externalLinks.length) > 0;
     const hasLinks = hasAnyMarkdownLinks;

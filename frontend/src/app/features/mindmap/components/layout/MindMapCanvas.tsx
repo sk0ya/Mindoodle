@@ -83,12 +83,10 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   
   // ノードの平坦化
   const flattenVisibleNodes = (node: MindMapNode): MindMapNode[] => {
-    // 複数ルート対応: 合成ルート(id==='root')は描画対象から除外し、子をトップレベルとして扱う
-    const isSyntheticRoot = node.id === 'root' && (!node.text || node.text.trim() === '');
     const result: MindMapNode[] = [];
-    if (!isSyntheticRoot) {
-      result.push(node);
-    }
+    // 全てのノードを表示対象とする（複数ルートノード対応）
+    result.push(node);
+
     if (!node?.collapsed && node?.children) {
       node.children.forEach((child: MindMapNode) => {
         result.push(...flattenVisibleNodes(child));
@@ -97,9 +95,13 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     return result;
   };
   
-  const allNodes = flattenVisibleNodes(data.rootNode);
+  // Only use rootNodes array - no fallback to single rootNode
+  const rootNodes = data.rootNodes || [];
+
+  // Flatten all nodes from all root nodes
+  const allNodes = rootNodes.flatMap(rootNode => flattenVisibleNodes(rootNode));
   
-  // ドラッグハンドラーを使用
+  // ドラッグハンドラーを使用 - only use rootNodes
   const { dragState, handleDragStart, handleDragMove, handleDragEnd } = useCanvasDragHandler({
     allNodes,
     zoom,
@@ -107,7 +109,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     svgRef,
     onChangeParent,
     onChangeSiblingOrder,
-    rootNode: data.rootNode
+    rootNode: rootNodes.length > 0 ? rootNodes[0] : { id: 'temp', text: '', x: 0, y: 0, children: [] } // Pass first root for compatibility
   });
 
   // ビューポートハンドラーを使用

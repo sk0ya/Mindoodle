@@ -23,8 +23,10 @@ export const useMindMapActions = () => {
       newMap.title = title;
       newMap.category = category || '';
 
-      // rootNodeのテキストもマップタイトルに合わせる
-      newMap.rootNode.text = title;
+      // rootNodesの最初のノードのテキストもマップタイトルに合わせる
+      if (newMap.rootNodes && newMap.rootNodes.length > 0) {
+        newMap.rootNodes[0].text = title;
+      }
 
       logger.debug('Created new map:', newMap);
       return newMap;

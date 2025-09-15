@@ -87,12 +87,24 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     
     if (selectedMapId === currentMapData?.mapIdentifier.mapId) {
       // 現在のマップが選択された場合
-      return currentMapData ? flattenNodes(currentMapData.rootNode, selectedMapId) : [];
+      const nodes: any[] = [];
+      if (currentMapData?.rootNodes) {
+        currentMapData.rootNodes.forEach(rootNode => {
+          nodes.push(...flattenNodes(rootNode, selectedMapId));
+        });
+      }
+      return nodes;
     }
     
     // 他のマップが選択された場合
     if (loadedMapData && loadedMapData.mapIdentifier.mapId === selectedMapId) {
-      return flattenNodes(loadedMapData.rootNode, selectedMapId);
+      const nodes: any[] = [];
+      if (loadedMapData.rootNodes) {
+        loadedMapData.rootNodes.forEach(rootNode => {
+          nodes.push(...flattenNodes(rootNode, selectedMapId));
+        });
+      }
+      return nodes;
     }
     
     return [];

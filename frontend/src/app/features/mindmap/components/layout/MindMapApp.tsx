@@ -250,7 +250,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     if (text !== undefined) finishEditing(nodeId, text);
   };
   const shortcutHandlers = useShortcutHandlers({
-    data,
+    data: data ? { rootNode: data.rootNodes?.[0] } : null,
     ui,
     store,
     logger,
@@ -513,7 +513,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {
     if (!linkModalNodeId || !data) return;
     try {
-      const destNode = findNodeById(data.rootNode, linkModalNodeId);
+      const rootNodes = data.rootNodes || [];
+      let destNode = null;
+      for (const rootNode of rootNodes) {
+        destNode = findNodeById(rootNode, linkModalNodeId);
+        if (destNode) break;
+      }
       if (!destNode) return;
 
       const currentMapId = data.mapIdentifier.mapId;
@@ -536,10 +541,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       // Determine label and href
       if (targetMapId === currentMapId) {
         if (linkData.targetNodeId) {
-          const targetNode = findNodeById(data.rootNode, linkData.targetNodeId);
+          const rootNodes = data.rootNodes || [];
+          let targetNode = null;
+          for (const rootNode of rootNodes) {
+            targetNode = findNodeById(rootNode, linkData.targetNodeId);
+            if (targetNode) break;
+          }
           if (targetNode) {
             label = targetNode.text || 'リンク';
-            const anchor = computeAnchorForNode(data.rootNode, targetNode.id) || label;
+            const anchor = computeAnchorForNode(data.rootNodes?.[0], targetNode.id) || label;
             href = `#${anchor}`;
           }
         } else {
@@ -552,10 +562,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         const targetMap = await loadMapData({ mapId: targetMapId, workspaceId: data.mapIdentifier.workspaceId });
         if (targetMap) {
           if (linkData.targetNodeId) {
-            const targetNode = findNodeById(targetMap.rootNode, linkData.targetNodeId);
+            const targetRootNodes = targetMap.rootNodes || [];
+            let targetNode = null;
+            for (const rootNode of targetRootNodes) {
+              targetNode = findNodeById(rootNode, linkData.targetNodeId);
+              if (targetNode) break;
+            }
             if (targetNode) {
               label = targetNode.text || targetMap.title || 'リンク';
-              const anchor = computeAnchorForNode(targetMap.rootNode, targetNode.id);
+              const anchor = computeAnchorForNode(targetMap.rootNodes?.[0], targetNode.id);
               const rel = toRelPath(currentMapId, targetMap.mapIdentifier.mapId);
               href = anchor ? `${rel}#${encodeURIComponent(anchor)}` : rel;
             }
@@ -595,8 +610,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // ノードを画面中央に移動する関数
   const centerNodeInView = useCallback((nodeId: string, animate = true) => {
     if (!data) return;
-    
-    const targetNode = findNodeById(data.rootNode, nodeId);
+
+    const rootNodes = data.rootNodes || [];
+    let targetNode = null;
+    for (const rootNode of rootNodes) {
+      targetNode = findNodeById(rootNode, nodeId);
+      if (targetNode) break;
+    }
     if (!targetNode) return;
 
     // ビューポートの中心座標を計算
@@ -648,22 +668,22 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // ルートノードを中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
-    if (data?.rootNode) {
-      centerNodeInView(data.rootNode.id, true);
+    if (data?.rootNodes?.[0]) {
+      centerNodeInView(data.rootNodes[0].id, true);
     }
-  }, [data?.rootNode, centerNodeInView]);
+  }, [data?.rootNodes, centerNodeInView]);
 
   // Simplified link navigation via utility
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
       currentMapId,
-      dataRoot: data?.rootNode,
+      dataRoot: data?.rootNodes?.[0],
       selectMapById,
       currentWorkspaceId: (data as any)?.mapIdentifier?.workspaceId as string,
       selectNode,
       centerNodeInView,
       notify: showNotification,
-      getCurrentRootNode: () => useMindMapStore.getState().data?.rootNode || null,
+      getCurrentRootNode: () => useMindMapStore.getState().data?.rootNodes?.[0] || null,
       resolveAnchorToNode,
     });
   };
@@ -806,7 +826,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
           {ui.showNotesPanel && (
             <NodeNotesPanelContainer
-              dataRoot={data?.rootNode || null}
+              dataRoot={data?.rootNodes?.[0] || null}
               selectedNodeId={selectedNodeId}
               onUpdateNode={updateNode}
               onClose={() => store.setShowNotesPanel(false)}
@@ -823,7 +843,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         ui={ui}
         selectedNodeId={selectedNodeId}
         nodeOperations={{
-          findNode: (nodeId: string) => findNodeById(data?.rootNode, nodeId),
+          findNode: (nodeId: string) => {
+            const rootNodes = data?.rootNodes || [];
+            let targetNode = null;
+            for (const rootNode of rootNodes) {
+              targetNode = findNodeById(rootNode, nodeId);
+              if (targetNode) break;
+            }
+            return targetNode;
+          },
           onDeleteNode: deleteNode,
           onUpdateNode: updateNode,
           onCopyNode: (node: MindMapNode) => {
@@ -878,7 +906,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               if (!data) return;
               const nodeId = ui.selectedFile?.nodeId || selectedNodeId;
               if (!nodeId) return;
-              const node = findNodeById(data.rootNode, nodeId);
+              const rootNodes = data.rootNodes || [];
+              let node = null;
+              for (const rootNode of rootNodes) {
+                node = findNodeById(rootNode, nodeId);
+                if (node) break;
+              }
               if (!node || !node.attachments) return;
               const updated = {
                 ...node,
@@ -916,7 +949,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       />
 
       <MindMapLinkOverlays
-        dataRoot={data.rootNode}
+        dataRoot={data.rootNodes?.[0]}
         allMaps={allMindMaps.map(map => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
         currentMapData={data}
         showLinkModal={showLinkModal}
@@ -929,7 +962,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onSaveFileLink={(filePath: string, label: string) => {
           try {
             if (!linkModalNodeId) return;
-            const destNode = findNodeById(data.rootNode, linkModalNodeId);
+            const rootNodes = data.rootNodes || [];
+            let destNode = null;
+            for (const rootNode of rootNodes) {
+              destNode = findNodeById(rootNode, linkModalNodeId);
+              if (destNode) break;
+            }
             if (!destNode) return;
             const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0? id.slice(0,i) : ''; };
             const fromDir = dirOf(data.mapIdentifier.mapId);
@@ -963,7 +1001,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       <MindMapContextMenuOverlay
         visible={contextMenu.visible}
         position={contextMenu.position}
-        dataRoot={data?.rootNode || null}
+        dataRoot={data?.rootNodes?.[0] || null}
         nodeId={contextMenu.nodeId}
         onDelete={deleteNode}
         onCustomize={(node) => {
@@ -977,7 +1015,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           handleContextMenuClose();
         }}
         onCopyNode={(nodeId) => {
-          const nodeToFind = data?.rootNode ? findNodeById(data.rootNode, nodeId) : null;
+          const rootNodes = data?.rootNodes || [];
+          let nodeToFind = null;
+          for (const rootNode of rootNodes) {
+            nodeToFind = findNodeById(rootNode, nodeId);
+            if (nodeToFind) break;
+          }
           if (!nodeToFind) return;
           store.setClipboard(nodeToFind);
           const toMd = (node: MindMapNode, level = 0): string => {

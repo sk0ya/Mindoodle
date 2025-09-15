@@ -51,8 +51,7 @@ export interface MindMapNode {
 // Main mindmap data structure
 export interface MindMapData {
   title: string;
-  rootNode: MindMapNode;
-  rootNodes?: MindMapNode[]; // 複数ルートノード対応
+  rootNodes: MindMapNode[]; // 複数ルートノード対応
   category?: string;
   // Unified identifier for storage routing
   mapIdentifier: MapIdentifier;

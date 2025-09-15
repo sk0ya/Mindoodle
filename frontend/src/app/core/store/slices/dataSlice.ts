@@ -30,7 +30,8 @@ export const createDataSlice: StateCreator<
   setData: (data: MindMapData) => {
     set((state) => {
       state.data = data;
-      state.normalizedData = normalizeTreeData(data.rootNode);
+      // Only use rootNodes array
+      state.normalizedData = normalizeTreeData(data.rootNodes);
       
       // Add to history if not already there
       if (state.history.length === 0 || state.history[state.historyIndex] !== data) {
@@ -43,8 +44,8 @@ export const createDataSlice: StateCreator<
   // Update normalized data from current tree
   updateNormalizedData: () => {
     set((state) => {
-      if (state.data?.rootNode) {
-        state.normalizedData = normalizeTreeData(state.data.rootNode);
+      if (state.data) {
+        state.normalizedData = normalizeTreeData(state.data.rootNodes);
       }
     });
   },
@@ -53,10 +54,10 @@ export const createDataSlice: StateCreator<
   syncToMindMapData: () => {
     set((state) => {
       if (state.normalizedData && state.data) {
-        const newRootNode = denormalizeTreeData(state.normalizedData);
+        const newRootNodes = denormalizeTreeData(state.normalizedData);
         const newData = {
           ...state.data,
-          rootNode: newRootNode,
+          rootNodes: newRootNodes,
           updatedAt: new Date().toISOString()
         };
         state.data = newData;
@@ -70,8 +71,10 @@ export const createDataSlice: StateCreator<
 
   applyAutoLayout: () => {
     const state = get();
-    if (!state.data?.rootNode) {
-      logger.warn('⚠️ Auto layout: No root node found');
+    const rootNodes = state.data?.rootNodes || [];
+    
+    if (rootNodes.length === 0) {
+      logger.warn('⚠️ Auto layout: No root nodes found');
       return;
     }
     
@@ -82,38 +85,57 @@ export const createDataSlice: StateCreator<
     }
     
     try {
-      logger.debug('🎯 Applying auto layout to root node:', {
-        nodeId: state.data.rootNode.id,
-        hasChildren: state.data.rootNode.children && state.data.rootNode.children.length > 0,
-        childrenCount: state.data.rootNode.children?.length || 0
+      logger.debug('🎯 Applying auto layout to root nodes:', {
+        rootNodesCount: rootNodes.length,
+        firstNodeId: rootNodes[0]?.id
       });
       
-      const layoutedRootNode = autoSelectLayout(state.data.rootNode, {
-        globalFontSize: state.settings.fontSize
+      // Apply layout to each root node separately
+      const layoutedRootNodes = rootNodes.map((rootNode, index) => {
+        const layoutedNode = autoSelectLayout(rootNode, {
+          globalFontSize: state.settings.fontSize
+        });
+
+        // Offset multiple root nodes vertically to prevent overlap
+        if (index > 0 && layoutedNode) {
+          const offsetY = index * 400; // 400px spacing between root nodes vertically
+          layoutedNode.y = (layoutedNode.y || 0) + offsetY;
+
+          // Apply vertical offset to all children recursively
+          const applyOffsetToChildren = (node: MindMapNode, offset: number) => {
+            if (node.children) {
+              node.children.forEach(child => {
+                child.y = (child.y || 0) + offset;
+                applyOffsetToChildren(child, offset);
+              });
+            }
+          };
+          applyOffsetToChildren(layoutedNode, offsetY);
+        }
+
+        return layoutedNode;
       });
       
-      if (!layoutedRootNode) {
-        logger.error('❌ Auto layout: layoutedRootNode is null or undefined');
+      if (layoutedRootNodes.some(node => !node)) {
+        logger.error('❌ Auto layout: One or more layouted nodes are null or undefined');
         return;
       }
       
       logger.debug('✅ Auto layout result:', {
-        nodeId: layoutedRootNode.id,
-        childrenCount: layoutedRootNode.children?.length || 0,
-        rootPosition: { x: layoutedRootNode.x, y: layoutedRootNode.y }
+        layoutedNodesCount: layoutedRootNodes.length
       });
       
       set((draft) => {
         if (draft.data) {
           draft.data = {
             ...draft.data,
-            rootNode: layoutedRootNode,
+            rootNodes: layoutedRootNodes,
             updatedAt: new Date().toISOString()
           };
           
           // Update normalized data
           try {
-            draft.normalizedData = normalizeTreeData(layoutedRootNode);
+            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
           } catch (normalizeError) {
             logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
           }
@@ -134,4 +156,4 @@ export const createDataSlice: StateCreator<
       logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
   },
-});
+});;;

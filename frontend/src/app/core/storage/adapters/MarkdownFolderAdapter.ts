@@ -215,7 +215,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         node.children.forEach(child => walk(child, level + 1));
       }
     };
-    walk(data.rootNode, Math.max(1, baseLevel));
+    
+    // Support multiple root nodes
+    const rootNodes = data.rootNodes || [];
+    rootNodes.forEach(rootNode => {
+      walk(rootNode, Math.max(1, baseLevel));
+    });
+    
     return lines.join('\n') + '\n';
   }
 
@@ -442,7 +448,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const data: MindMapData = {
         title: baseName, // マップ名はファイル名に固定
         category: categoryPath || undefined,
-        rootNode: parseResult.rootNodes[0],
         rootNodes: parseResult.rootNodes,
         createdAt: fileLastModified,
         updatedAt: fileLastModified,
