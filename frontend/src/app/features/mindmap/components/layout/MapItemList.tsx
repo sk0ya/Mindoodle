@@ -1,6 +1,6 @@
 import React, { useCallback } from 'react';
 import { Workflow } from 'lucide-react';
-import type { MindMapData, MindMapNode } from '@shared/types';
+import type { MindMapData, MindMapNode, MapIdentifier } from '@shared/types';
 import { highlightSearchTerm } from '../../../../shared/utils/highlightUtils';
 
 interface MapItemListProps {
@@ -10,8 +10,8 @@ interface MapItemListProps {
   editingMapId: string | null;
   editingTitle: string;
   searchTerm: string;
-  onSelectMap: (mapId: string) => void;
-  onFinishRename: (mapId: string) => void;
+  onSelectMap: (id: MapIdentifier) => void;
+  onFinishRename: (id: MapIdentifier) => void;
   onCancelRename: () => void;
   onEditingTitleChange: (title: string) => void;
   onDragStart: (e: React.DragEvent, map: MindMapData) => void;
@@ -63,30 +63,31 @@ const MapItemList: React.FC<MapItemListProps> = ({
 }) => {
   const handleKeyPress = useCallback((e: React.KeyboardEvent, mapId: string) => {
     if (e.key === 'Enter') {
-      onFinishRename(mapId);
+      const ws = (maps.find(m => m.mapIdentifier.mapId === mapId) as any)?.mapIdentifier?.workspaceId as string;
+      onFinishRename({ mapId, workspaceId: ws });
     } else if (e.key === 'Escape') {
       onCancelRename();
     }
-  }, [onFinishRename, onCancelRename]);
+  }, [onFinishRename, onCancelRename, maps]);
 
   return (
     <>
       {maps.map((map) => (
         <div
-          key={map.id}
-          className={`map-item ${currentMapId === map.id ? 'active' : ''}`}
-          onClick={() => onSelectMap(map.id)}
+          key={map.mapIdentifier.mapId}
+          className={`map-item ${currentMapId === map.mapIdentifier.mapId ? 'active' : ''}`}
+          onClick={() => onSelectMap({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId })}
           onContextMenu={(e) => onContextMenu && onContextMenu(e, categoryPath, 'map', map)}
           draggable
           onDragStart={(e) => onDragStart(e, map)}
         >
-          {editingMapId === map.id ? (
+          {editingMapId === map.mapIdentifier.mapId ? (
             <input
               type="text"
               value={editingTitle}
               onChange={(e) => onEditingTitleChange(e.target.value)}
-              onBlur={() => onFinishRename(map.id)}
-              onKeyDown={(e) => handleKeyPress(e, map.id)}
+              onBlur={() => onFinishRename({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId })}
+              onKeyDown={(e) => handleKeyPress(e, map.mapIdentifier.mapId)}
               autoFocus
               className="title-input"
             />

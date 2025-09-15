@@ -1,8 +1,5 @@
 import React, { useCallback, memo, useState, useEffect } from 'react';
 import type { MindMapNode, FileAttachment } from '@shared/types';
-import { useOptionalAuth } from '../../../../components/auth';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
-import { loadRootDirectoryHandle, readFileFromRoot } from '../../../../shared/utils/fsa';
 
 interface NodeAttachmentsProps {
   node: MindMapNode;
@@ -17,177 +14,6 @@ interface NodeAttachmentsProps {
   onAutoLayout?: () => void;
   nodeHeight: number;
 }
-
-
-// クラウド画像用のコンポーネント
-const CloudImage: React.FC<{ 
-  file: FileAttachment; 
-  style: React.CSSProperties;
-  onClick: (e: React.MouseEvent) => void;
-  onDoubleClick: (e: React.MouseEvent) => void;
-  onContextMenu: (e: React.MouseEvent) => void;
-  onImageInfo?: (info: { width: number; height: number }) => void;
-}> = ({ file, style, onClick, onDoubleClick, onContextMenu, onImageInfo }) => {
-  const [imageUrl, setImageUrl] = useState<string>('');
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string>('');
-  
-  // 認証情報を取得 (オプショナル)
-  const auth = useOptionalAuth();
-
-
-  const { data } = useMindMapStore();
-
-  useEffect(() => {
-    let cancelled = false;
-    let blobUrl: string | null = null;
-
-    const loadImage = async () => {
-      if (!file.downloadUrl) {
-        if (!cancelled) {
-          setError('No download URL available');
-          setLoading(false);
-        }
-        return;
-      }
-
-      setLoading(true);
-      setError('');
-
-      try {
-        // R2ストレージからの画像取得処理
-        if (file.downloadUrl.includes('/api/files/')) {
-          // 認証ヘッダーを取得
-          const headers: Record<string, string> = {};
-          
-          if (auth?.authAdapter?.getAuthHeaders) {
-            const authHeaders = auth.authAdapter.getAuthHeaders();
-            Object.assign(headers, authHeaders);
-          }
-          
-          // ダウンロード用URLを構築（R2ストレージから直接取得）
-          const downloadUrl = file.downloadUrl.includes('?type=download') 
-            ? file.downloadUrl 
-            : `${file.downloadUrl}?type=download`;
-          
-          // R2経由でダウンロードしてBlob URLを作成
-          const response = await fetch(downloadUrl, {
-            method: 'GET',
-            headers,
-            mode: 'cors'
-          });
-          
-          if (!response.ok) {
-            throw new Error(`Failed to fetch image from R2: ${response.status} ${response.statusText}`);
-          }
-          
-          const blob = await response.blob();
-          
-          // 画像ファイルかチェック
-          if (blob.size === 0) {
-            throw new Error('Empty file received from R2 storage');
-          }
-          
-          blobUrl = URL.createObjectURL(blob);
-          
-          if (!cancelled) {
-            setImageUrl(blobUrl);
-          }
-        } else {
-          // ローカルMarkdown相対パス対応 or 直接URL
-          const url = file.downloadUrl;
-          const isAbsolute = /^(https?:|data:|blob:)/i.test(url) || url.startsWith('/');
-          if (!isAbsolute) {
-            // Resolve relative to selected markdown root + current map category
-            const root = await loadRootDirectoryHandle();
-            const category = data?.category || '';
-            if (root) {
-              const fullPath = (category ? `${category}/${url}` : url).replace(/\/+/g, '/');
-              const blob = await readFileFromRoot(root, fullPath);
-              if (blob) {
-                blobUrl = URL.createObjectURL(blob);
-                if (!cancelled) setImageUrl(blobUrl);
-              } else if (!cancelled) {
-                // fallback: keep original (likely broken) URL to aid debugging
-                setImageUrl(url);
-              }
-            } else if (!cancelled) {
-              setImageUrl(url);
-            }
-          } else {
-            if (!cancelled) {
-              setImageUrl(url);
-            }
-          }
-        }
-        
-        if (!cancelled) {
-          setLoading(false);
-        }
-      } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : 'Unknown error');
-          setLoading(false);
-        }
-      }
-    };
-
-    loadImage();
-
-    // クリーンアップ
-    return () => {
-      cancelled = true;
-      if (blobUrl) {
-        URL.revokeObjectURL(blobUrl);
-      }
-    };
-  }, [file.downloadUrl, file.id, auth?.authAdapter?.isAuthenticated, data?.category]);
-
-  if (loading) {
-    return (
-      <div style={style}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: 'transparent' }}>
-          読み込み中...
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={style}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', backgroundColor: 'rgba(255, 238, 238, 0.8)', color: '#c00', fontSize: '12px', textAlign: 'center' }}>
-          画像読み込み<br />エラー
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <img
-      src={imageUrl}
-      alt={file.name}
-      style={style}
-      onClick={onClick}
-      onDoubleClick={onDoubleClick}
-      onContextMenu={onContextMenu}
-      onError={() => {
-        setError('Image load failed');
-        setLoading(false);
-      }}
-      onLoad={(e) => {
-        setError('');
-        const img = e.currentTarget as HTMLImageElement;
-        const w = img.naturalWidth || 0;
-        const h = img.naturalHeight || 0;
-        if (w > 0 && h > 0) {
-          onImageInfo?.({ width: w, height: h });
-        }
-      }}
-    />
-  );
-};
-
 
 const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   node,
@@ -555,30 +381,8 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             >
-              {(() => {
-                const url = currentImage.downloadUrl || '';
-                const isR2 = !!url && url.includes('/api/files/');
-                const isRelative = !!url && !/^(https?:|data:|blob:|\/)/i.test(url);
-                return (isR2 || isRelative);
-              })() ? (
-                <CloudImage
-                  file={currentImage}
-                  style={{
-                    maxWidth: '100%',
-                    maxHeight: '100%',
-                    width: 'auto',
-                    height: 'auto',
-                    objectFit: 'contain',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                    display: 'block',
-                    margin: '0 auto'
-                  }}
-                  onClick={(e) => handleImageClick(e, currentImage)}
-                  onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
-                  onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
-                  onImageInfo={({ width, height }) => handleImageLoadDimensions(width, height)}
-                />
+              {false ? (
+                <div>CloudImage削除済み</div>
               ) : (
                 <img 
                   src={currentImage.downloadUrl || currentImage.dataURL || currentImage.data} 

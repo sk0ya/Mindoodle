@@ -1,4 +1,4 @@
-import type { MindMapData } from '@shared/types';
+import type { MindMapData, MapIdentifier } from '@shared/types';
 
 // Storage operation results
 export interface StorageResult<T = void> {
@@ -29,12 +29,12 @@ export interface MapPersistenceOperations {
   refreshMapList: () => Promise<void>;
   addMapToList: (mapData: MindMapData) => Promise<void>;
   updateMapInList: (mapData: MindMapData) => Promise<void>;
-  removeMapFromList: (mapId: string) => Promise<void>;
+  removeMapFromList: (id: MapIdentifier) => Promise<void>;
   
   // File operations
-  uploadFile?: (mapId: string, nodeId: string, file: File) => Promise<FileUploadResult>;
-  downloadFile?: (mapId: string, nodeId: string, fileId: string) => Promise<Blob>;
-  deleteFile?: (mapId: string, nodeId: string, fileId: string) => Promise<void>;
+  uploadFile?: (id: MapIdentifier, nodeId: string, file: File) => Promise<FileUploadResult>;
+  downloadFile?: (id: MapIdentifier, nodeId: string, fileId: string) => Promise<Blob>;
+  deleteFile?: (id: MapIdentifier, nodeId: string, fileId: string) => Promise<void>;
 }
 
 // Storage configuration

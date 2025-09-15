@@ -43,7 +43,7 @@ export const useAutoSave = (
     if (!enabled || !data) return;
 
     const currentUpdatedAt = data.updatedAt || '';
-    const currentMapId = data.id || '';
+    const currentMapId = data.mapIdentifier.mapId || '';
 
     // マップが切り替わった場合は保存しない
     if (currentMapId !== lastMapIdRef.current) {
@@ -73,7 +73,7 @@ export const useAutoSave = (
         saveTimeoutRef.current = null;
       }
     };
-  }, [data?.updatedAt, data?.id, enabled, performAutoSave, debounceMs, data]);
+  }, [data?.updatedAt, data?.mapIdentifier.mapId, enabled, performAutoSave, debounceMs, data]);
 
   const saveManually = useCallback(async () => {
     if (data) {

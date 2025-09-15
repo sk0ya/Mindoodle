@@ -3,11 +3,11 @@ import { logger } from '../../../../shared/utils/logger';
 import type { StorageConfig } from '../../../../core/storage/types';
 
 interface AuthenticationManagerProps {
-  storageMode: 'local' | 'cloud';
+  storageMode: 'local' | 'markdown';
   auth: any;
   setShowLoginModal: (show: boolean) => void;
   setResetKey: (key: number | ((prev: number) => number)) => void;
-  onModeChange?: (mode: 'local' | 'cloud') => void;
+  onModeChange?: (mode: 'local' | 'markdown') => void;
 }
 
 export const useAuthenticationManager = ({
@@ -19,7 +19,7 @@ export const useAuthenticationManager = ({
 }: AuthenticationManagerProps) => {
   
   // For cloud mode, check if user is authenticated
-  const isCloudMode = storageMode === 'cloud';
+  const isCloudMode = false; // クラウドモードは削除されました
   const needsAuth = isCloudMode && auth && !auth.authState.isAuthenticated;
   
   // Show login modal when cloud mode requires auth
@@ -63,21 +63,14 @@ export const useAuthenticationManager = ({
 
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
-    const authAdapter = auth?.authAdapter;
-    
+    // 認証関連は削除されました
     let config: StorageConfig;
     switch (storageMode) {
       case 'local':
         config = { mode: 'local' };
         break;
-      case 'cloud':
-        if (authAdapter) {
-          config = { mode: 'cloud', authAdapter };
-        } else {
-          // Auth adapter not available, fall back to local mode
-          logger.warn('Cloud mode requested but auth adapter not available, falling back to local mode');
-          config = { mode: 'local' };
-        }
+      case 'markdown':
+        config = { mode: 'markdown' };
         break;
       default:
         config = { mode: 'local' };

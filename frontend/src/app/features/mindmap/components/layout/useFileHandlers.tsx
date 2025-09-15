@@ -5,9 +5,6 @@ import type { FileAttachment } from '@shared/types';
 
 type Params = {
   data: any;
-  storageMode: 'local' | 'cloud' | 'markdown';
-  storageConfig?: any;
-  auth?: any;
   updateNode: (id: string, updates: any) => void;
   showNotification: (type: 'success'|'error'|'info'|'warning', msg: string) => void;
   handleError: (error: Error, context?: string, action?: string) => void;
@@ -16,7 +13,7 @@ type Params = {
 };
 
 export function useFileHandlers({
-  data, storageMode, storageConfig, auth,
+  data,
   updateNode, showNotification, handleError, handleAsyncError, retryableUpload,
 }: Params) {
   const uploadFile = async (nodeId: string, file: File): Promise<void> => {
@@ -35,25 +32,8 @@ export function useFileHandlers({
     try {
       await handleAsyncError((async () => {
         const fileAttachment = await retryableUpload(uploadKey, file.name, async (): Promise<FileAttachment> => {
-          if (storageMode === 'cloud') {
-            const { CloudStorageAdapter } = await import('../../../../core/storage/adapters/CloudStorageAdapter');
-            if (!auth) throw new Error('クラウドファイルアップロードには認証が必要です');
-            const storageAdapter = new CloudStorageAdapter(auth.authAdapter);
-            await storageAdapter.initialize();
-            const result = await storageAdapter.uploadFile(data.id, nodeId, file);
-            return {
-              id: result.id,
-              name: result.fileName,
-              type: result.mimeType,
-              size: result.fileSize,
-              isImage: result.attachmentType === 'image',
-              createdAt: result.uploadedAt,
-              downloadUrl: result.downloadUrl,
-              storagePath: result.storagePath,
-              r2FileId: result.id,
-              nodeId,
-            } as FileAttachment;
-          } else {
+          // ローカルモードのみサポート
+          {
             const reader = new FileReader();
             const dataURL = await new Promise<string>((resolve, reject) => {
               reader.onload = () => resolve(reader.result as string);
@@ -89,21 +69,11 @@ export function useFileHandlers({
     try {
       let downloadUrl = '';
       const fileName = file.name;
-      const fileId = file.r2FileId || file.id;
-      if (storageMode === 'cloud' && fileId) {
-        if (!data) throw new Error('マインドマップデータが利用できません');
-        if (!auth?.authAdapter) throw new Error('クラウドファイルダウンロードには認証が必要です');
-        const { CloudStorageAdapter } = await import('../../../../core/storage/adapters/CloudStorageAdapter');
-        const storageAdapter = new CloudStorageAdapter(auth.authAdapter);
-        await storageAdapter.initialize();
-        const blob = await storageAdapter.downloadFile(data.id, file.nodeId || '', fileId);
-        downloadUrl = URL.createObjectURL(blob);
-      } else if (file.data) {
+
+      if (file.data) {
         downloadUrl = `data:${file.type};base64,${file.data}`;
       } else if (file.dataURL) {
         downloadUrl = file.dataURL;
-      } else if (storageMode === 'cloud' && file.downloadUrl) {
-        downloadUrl = file.downloadUrl;
       } else {
         throw new Error('ダウンロード可能なファイルデータが見つかりません');
       }
@@ -131,14 +101,7 @@ export function useFileHandlers({
       if (!node || !node.attachments) throw new Error('ノードまたは添付ファイルが見つかりません');
       const fileToDelete = node.attachments.find((f: FileAttachment) => f.id === fileId);
       if (!fileToDelete) throw new Error('削除するファイルが見つかりません');
-      if (storageMode === 'cloud' && (fileToDelete.r2FileId || fileToDelete.id)) {
-        const idForDelete = fileToDelete.r2FileId || fileToDelete.id;
-        const { createStorageAdapter } = await import('../../../../core/storage/StorageAdapterFactory');
-        const adapter = await createStorageAdapter(storageConfig);
-        if ((adapter as any)?.deleteFile) {
-          await (adapter as any).deleteFile(data.id, nodeId, idForDelete);
-        }
-      }
+      // クラウドモードサポート終了
       const updatedAttachments = node.attachments.filter((f: FileAttachment) => f.id !== fileId);
       updateNode(nodeId, { ...node, attachments: updatedAttachments });
       showNotification('success', `${fileToDelete.name} を削除しました`);

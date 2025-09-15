@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronDown, ChevronRight, Folder, FolderOpen } from 'lucide-react';
 import MapItemList from './MapItemList';
-import type { MindMapData } from '@shared/types';
+import type { MindMapData, MapIdentifier } from '@shared/types';
 import { getFolderName } from '../../../../shared/utils/folderUtils';
 import { highlightSearchTerm } from '../../../../shared/utils/highlightUtils';
 
@@ -18,8 +18,8 @@ interface CategoryGroupProps {
   onToggleCategoryCollapse: (category: string) => void;
   onFolderSelect: (folderPath: string) => void;
   onContextMenu: (e: React.MouseEvent, targetPath: string | null, targetType: 'folder' | 'empty' | 'map', mapData?: MindMapData) => void;
-  onSelectMap: (mapId: string) => void;
-  onFinishRename: (mapId: string) => void;
+  onSelectMap: (id: MapIdentifier) => void;
+  onFinishRename: (id: MapIdentifier) => void;
   onCancelRename: () => void;
   onEditingTitleChange: (title: string) => void;
   onDragStart: (e: React.DragEvent, map: MindMapData) => void;
@@ -76,7 +76,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({
                 editingTitle={editingTitle}
                 searchTerm={searchTerm}
                 onSelectMap={onSelectMap}
-                onFinishRename={onFinishRename}
+                onFinishRename={(id) => onFinishRename(id)}
                 onCancelRename={onCancelRename}
                 onEditingTitleChange={onEditingTitleChange}
                 onDragStart={onDragStart}
@@ -173,7 +173,7 @@ const CategoryGroup: React.FC<CategoryGroupProps> = ({
                   editingTitle={editingTitle}
                   searchTerm={searchTerm}
                   onSelectMap={onSelectMap}
-                  onFinishRename={onFinishRename}
+            onFinishRename={(id) => onFinishRename(id)}
                   onCancelRename={onCancelRename}
                   onEditingTitleChange={onEditingTitleChange}
                   onDragStart={onDragStart}

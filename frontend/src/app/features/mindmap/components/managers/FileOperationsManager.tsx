@@ -62,59 +62,11 @@ export const useFileOperationsManager = ({
                 fileSize: file.size, 
                 fileType: file.type,
                 nodeId,
-                mapId: data.id
+                mapId: data.mapIdentifier.mapId
               });
               
-              // CloudStorageAdapterを直接使用
-              const { CloudStorageAdapter } = await import('../../../../core/storage/adapters/CloudStorageAdapter');
-              logger.debug('CloudStorageAdapter imported successfully');
-              
-              if (!auth) {
-                logger.error('Authentication not available for cloud upload');
-                throw new Error('クラウドファイルアップロードには認証が必要です');
-              }
-              
-              logger.info('🚀 Cloud mode file upload starting...', {
-                fileName: file.name,
-                fileSize: file.size,
-                fileType: file.type,
-                nodeId: nodeId,
-                mapId: data?.id,
-                hasAuth: !!auth,
-                hasAuthAdapter: !!auth.authAdapter,
-                isAuthenticated: auth.authAdapter?.isAuthenticated,
-                userId: auth.authAdapter?.user?.id
-              });
-              
-              const storageAdapter = new CloudStorageAdapter(auth.authAdapter);
-              logger.debug('CloudStorageAdapter created, initializing...');
-              
-              await storageAdapter.initialize();
-              logger.debug('CloudStorageAdapter initialized');
-              
-              if (typeof storageAdapter.uploadFile === 'function') {
-                logger.debug('Calling uploadFile method...');
-                const uploadResult = await storageAdapter.uploadFile(data.id, nodeId, file);
-                logger.debug('Upload result received:', uploadResult);
-                
-                const fileAttachment = {
-                  id: uploadResult.id,
-                  name: uploadResult.fileName,
-                  type: uploadResult.mimeType,
-                  size: uploadResult.fileSize,
-                  isImage: uploadResult.attachmentType === 'image',
-                  createdAt: uploadResult.uploadedAt,
-                  downloadUrl: uploadResult.downloadUrl,
-                  storagePath: uploadResult.storagePath,
-                  r2FileId: uploadResult.id,
-                  nodeId: nodeId // nodeIdも保存
-                };
-                logger.info('File uploaded to cloud successfully:', fileAttachment);
-                return fileAttachment;
-              } else {
-                logger.error('uploadFile method not available on storage adapter');
-                throw new Error('Cloud storage adapter not available or uploadFile method missing');
-              }
+              // クラウドモードは削除されました
+              throw new Error('クラウドファイルアップロード機能は削除されました');
             } else {
               // ローカルモード: Base64エンコードしてローカル保存
               logger.debug('Processing file for local storage...');
@@ -199,7 +151,7 @@ export const useFileOperationsManager = ({
           fileName: file.name, 
           fileId: fileId,
           nodeId: file.nodeId,
-          mapId: data?.id
+          mapId: data?.mapIdentifier.mapId
         });
 
         if (!data) {
@@ -210,24 +162,8 @@ export const useFileOperationsManager = ({
           throw new Error('クラウドファイルダウンロードには認証が必要です');
         }
 
-        // CloudStorageAdapterを直接使用してファイルをダウンロード
-        const { CloudStorageAdapter } = await import('../../../../core/storage/adapters/CloudStorageAdapter');
-        const storageAdapter = new CloudStorageAdapter(auth.authAdapter);
-        
-        await storageAdapter.initialize();
-        
-        if (typeof storageAdapter.downloadFile === 'function') {
-          logger.debug('Calling downloadFile method...');
-          const blob = await storageAdapter.downloadFile(data.id, file.nodeId || '', fileId);
-          logger.debug('Download blob received:', { size: blob.size, type: blob.type });
-          
-          // BlobからダウンロードURLを作成
-          downloadUrl = URL.createObjectURL(blob);
-          logger.info('File downloaded from cloud successfully');
-        } else {
-          logger.error('downloadFile method not available on storage adapter');
-          throw new Error('Cloud storage adapter downloadFile method not available');
-        }
+        // クラウドモードは削除されました
+        throw new Error('クラウドファイルダウンロード機能は削除されました');
       } else if (file.data) {
         // ローカルモード: Base64データから直接使用
         downloadUrl = `data:${file.type};base64,${file.data}`;
@@ -289,14 +225,14 @@ export const useFileOperationsManager = ({
           fileName: fileToDelete.name, 
           fileId: fileIdForDeletion,
           nodeId: nodeId,
-          mapId: data.id
+          mapId: data.mapIdentifier.mapId
         });
 
         // ストレージアダプターを直接作成
         const { createStorageAdapter } = await import('../../../../core/storage/StorageAdapterFactory');
         const adapter = await createStorageAdapter(storageConfig);
         if (adapter && 'deleteFile' in adapter && typeof adapter.deleteFile === 'function') {
-          await adapter.deleteFile(data.id, nodeId, fileIdForDeletion);
+          await adapter.deleteFile(data.mapIdentifier.mapId, nodeId, fileIdForDeletion);
           logger.info('File deleted from cloud storage successfully');
         }
       }

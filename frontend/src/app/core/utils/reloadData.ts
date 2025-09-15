@@ -1,6 +1,7 @@
 import { createInitialData } from '../../shared/types/dataTypes';
 import { logger } from '../../shared/utils/logger';
 import type { MindMapData } from '@shared/types';
+import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 
 export interface DataReloadDependencies {
   setData: (data: MindMapData) => void;
@@ -8,6 +9,7 @@ export interface DataReloadDependencies {
   loadInitialData: () => Promise<MindMapData>;
   refreshMapList?: () => Promise<void>;
   applyAutoLayout?: () => void;
+  currentWorkspaceId?: string;
 }
 
 export async function executeDataReload(
@@ -18,7 +20,7 @@ export async function executeDataReload(
     logger.info(`🔄 ${context}: Clearing data before reload...`);
     
     // 現在のデータを明示的にクリア（一時的な空のマップで置き換え）
-    const tempClearData = createInitialData();
+    const tempClearData = createInitialData({ mapId: `temp_${Date.now()}`, workspaceId: dependencies.currentWorkspaceId || DEFAULT_WORKSPACE_ID });
     tempClearData.title = '読み込み中...';
     dependencies.setData(tempClearData);
     
@@ -30,7 +32,7 @@ export async function executeDataReload(
     logger.debug(`📥 ${context}: Loading initial data from storage...`);
     const initialData = await dependencies.loadInitialData();
     logger.debug(`📋 ${context}: Data loaded:`, {
-      id: initialData.id,
+      id: initialData.mapIdentifier.mapId,
       title: initialData.title,
     });
     

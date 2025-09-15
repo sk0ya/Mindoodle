@@ -1,10 +1,11 @@
 import { useState, useCallback } from 'react';
+import type { MapIdentifier } from '@shared/types';
 import { logger } from '../utils/logger';
 import type { MindMapData } from '@shared/types';
 
 interface UseDragAndDropOptions {
   mindMaps: MindMapData[];
-  onChangeCategory: (mapId: string, category: string) => void;
+  onChangeCategory: (id: MapIdentifier, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
   setEmptyFolders: React.Dispatch<React.SetStateAction<Set<string>>>;
   setCollapsedCategories: React.Dispatch<React.SetStateAction<Set<string>>>;
@@ -46,7 +47,7 @@ export const useDragAndDrop = ({
     setDraggedFolder(null); // フォルダドラッグをクリア
     // Allow copy/link drops on targets
     e.dataTransfer.effectAllowed = 'copyLink';
-    e.dataTransfer.setData('text/map-id', map.id);
+    e.dataTransfer.setData('text/map-id', map.mapIdentifier.mapId);
     e.dataTransfer.setData('text/map-title', map.title || '');
     logger.debug('Map drag started:', map.title, 'category:', map.category);
   }, []);
@@ -70,7 +71,7 @@ export const useDragAndDrop = ({
     // マップのドロップ処理
     if (draggedMap && draggedMap.category !== category) {
       logger.debug('Moving map from', draggedMap.category, 'to', category);
-      onChangeCategory(draggedMap.id, category);
+      onChangeCategory({ mapId: draggedMap.mapIdentifier.mapId, workspaceId: draggedMap.mapIdentifier.workspaceId }, category);
     }
     
     clearDragState();
@@ -93,7 +94,7 @@ export const useDragAndDrop = ({
     // マップをフォルダにドロップする場合
     if (draggedMap && draggedMap.category !== targetFolderPath) {
       logger.debug('Moving map from', draggedMap.category, 'to folder', targetFolderPath);
-      onChangeCategory(draggedMap.id, targetFolderPath);
+      onChangeCategory({ mapId: draggedMap.mapIdentifier.mapId, workspaceId: draggedMap.mapIdentifier.workspaceId }, targetFolderPath);
       clearDragState();
       return;
     }
@@ -128,7 +129,7 @@ export const useDragAndDrop = ({
     // 一括更新を使用
     if (onChangeCategoryBulk && mapsToUpdate.length > 0) {
       const mapUpdates = mapsToUpdate.map(map => ({
-        id: map.id,
+        id: map.mapIdentifier.mapId,
         category: map.category?.replace(draggedFolder, newFolderPath) || newFolderPath
       })).filter(update => update.category !== undefined);
       
@@ -141,7 +142,7 @@ export const useDragAndDrop = ({
         const updatedCategory = map.category?.replace(draggedFolder, newFolderPath);
         if (updatedCategory) {
           logger.debug(`Updating map "${map.title}" from "${map.category}" to "${updatedCategory}"`);
-          onChangeCategory(map.id, updatedCategory);
+          onChangeCategory({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId }, updatedCategory);
         }
       });
     }
@@ -181,7 +182,7 @@ export const useDragAndDrop = ({
     // マップをルートレベルに移動
     if (draggedMap && draggedMap.category !== '') {
       logger.debug('Moving map to root level');
-      onChangeCategory(draggedMap.id, '');
+      onChangeCategory({ mapId: draggedMap.mapIdentifier.mapId, workspaceId: draggedMap.mapIdentifier.workspaceId }, '');
       clearDragState();
       return;
     }
@@ -210,7 +211,7 @@ export const useDragAndDrop = ({
       // 一括更新を使用
       if (onChangeCategoryBulk && mapsToUpdate.length > 0) {
         const mapUpdates = mapsToUpdate.map(map => ({
-          id: map.id,
+          id: map.mapIdentifier.mapId,
           category: map.category?.replace(draggedFolder, draggedFolderName) || draggedFolderName
         })).filter(update => update.category !== undefined);
         
@@ -223,7 +224,7 @@ export const useDragAndDrop = ({
           const updatedCategory = map.category?.replace(draggedFolder, draggedFolderName);
           if (updatedCategory) {
             logger.debug(`Root drop - Updating map "${map.title}" from "${map.category}" to "${updatedCategory}"`);
-            onChangeCategory(map.id, updatedCategory);
+            onChangeCategory({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId }, updatedCategory);
           }
         });
       }

@@ -1,18 +1,14 @@
 import React from 'react';
 import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
 import VimStatusBar from '../../../../shared/components/ui/VimStatusBar';
-import { LoginModal } from '../../../../components/auth';
+// LoginModalは削除されました
 
 type Props = {
   // keyboard helper
   showKeyboardHelper: boolean;
   setShowKeyboardHelper: (v: boolean) => void;
 
-  // auth/login
-  isCloudMode: boolean;
-  authAdapter: any;
-  showLoginModal: boolean;
-  onLoginClose: () => void;
+  // auth/login (削除済み)
 
   // mindmap data (for other overlays if needed)
   // no additional data needed
@@ -21,10 +17,6 @@ type Props = {
 const MindMapOverlays: React.FC<Props> = ({
   showKeyboardHelper,
   setShowKeyboardHelper,
-  isCloudMode,
-  authAdapter,
-  showLoginModal,
-  onLoginClose,
 }) => {
   return (
     <>
@@ -35,12 +27,7 @@ const MindMapOverlays: React.FC<Props> = ({
 
       <VimStatusBar />
 
-      {isCloudMode && authAdapter && (
-        <LoginModal
-          isOpen={showLoginModal}
-          onClose={onLoginClose}
-        />
-      )}
+      {/* LoginModal削除済み */}
 
       {/* Import/Export modals removed */}
     </>

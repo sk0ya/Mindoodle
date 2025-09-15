@@ -9,6 +9,7 @@ interface DataResetDependencies {
   loadInitialData: () => Promise<MindMapData>;
   refreshMapList: () => Promise<void>;
   applyAutoLayout?: () => void;
+  currentWorkspaceId?: string;
 }
 
 /**
