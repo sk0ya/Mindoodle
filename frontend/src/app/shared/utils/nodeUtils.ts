@@ -332,19 +332,19 @@ export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode
  */
 export function getDynamicNodeSpacing(parentNodeSize: NodeSize, childNodeSize: NodeSize, isRootChild: boolean = false): number {
   if (isRootChild) {
-    // ルートノードの子の場合：ルートノードのサイズに応じて調整
-    const baseDistance = 120; // LAYOUT.ROOT_TO_CHILD_DISTANCE
-    const widthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.2);
-    const imageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.15 : 0;
-    
+    // ルートノードの子の場合：密な配置にするため距離を大幅に短縮
+    const baseDistance = 50; // 120から50に短縮
+    const widthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.1); // 0.2から0.1に削減
+    const imageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.05 : 0; // 0.15から0.05に削減
+
     return baseDistance + widthAdjustment + imageAdjustment;
   } else {
-    // 通常の親子間：両方のノードサイズを考慮
-    const baseDistance = 60; // LAYOUT.TOGGLE_TO_CHILD_DISTANCE
-    const parentWidthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.1);
-    const parentImageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.1 : 0;
-    const childSizeAdjustment = Math.max(0, (childNodeSize.width - 100) * 0.05);
-    
+    // 通常の親子間：密な配置にするため距離を短縮
+    const baseDistance = 40; // 60から40に短縮
+    const parentWidthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.05); // 0.1から0.05に削減
+    const parentImageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.05 : 0; // 0.1から0.05に削減
+    const childSizeAdjustment = Math.max(0, (childNodeSize.width - 100) * 0.02); // 0.05から0.02に削減
+
     return baseDistance + parentWidthAdjustment + parentImageAdjustment + childSizeAdjustment;
   }
 }

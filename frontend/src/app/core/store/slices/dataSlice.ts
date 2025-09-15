@@ -2,7 +2,7 @@ import type { StateCreator } from 'zustand';
 import type { MindMapData } from '@shared/types';
 import { logger } from '../../../shared/utils/logger';
 import { normalizeTreeData, denormalizeTreeData } from '../../data';
-import { autoSelectLayout } from '../../../shared';
+import { autoSelectLayout, calculateNodeSize } from '../../../shared';
 import type { MindMapStore, DataState } from './types';
 
 export interface DataSlice extends DataState {
@@ -91,29 +91,68 @@ export const createDataSlice: StateCreator<
       });
       
       // Apply layout to each root node separately
-      const layoutedRootNodes = rootNodes.map((rootNode, index) => {
+      const layoutedRootNodes: MindMapNode[] = [];
+      let previousSubtreeBottom = 0;
+
+      rootNodes.forEach((rootNode, index) => {
         const layoutedNode = autoSelectLayout(rootNode, {
           globalFontSize: state.settings.fontSize
         });
 
-        // Offset multiple root nodes vertically to prevent overlap
-        if (index > 0 && layoutedNode) {
-          const offsetY = index * 400; // 400px spacing between root nodes vertically
-          layoutedNode.y = (layoutedNode.y || 0) + offsetY;
+        if (!layoutedNode) return;
 
-          // Apply vertical offset to all children recursively
-          const applyOffsetToChildren = (node: MindMapNode, offset: number) => {
+        // Calculate subtree bounds (min/max Y coordinates including node size)
+        const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
+          const nodeY = node.y || 0;
+
+          // Calculate actual node bounds using node size
+          const nodeSize = calculateNodeSize(node, undefined, false, state.settings.fontSize);
+          const nodeTop = nodeY - nodeSize.height / 2;
+          const nodeBottom = nodeY + nodeSize.height / 2;
+
+          let minY = nodeTop;
+          let maxY = nodeBottom;
+
+          if (node.children) {
+            node.children.forEach(child => {
+              const childBounds = getSubtreeBounds(child);
+              minY = Math.min(minY, childBounds.minY);
+              maxY = Math.max(maxY, childBounds.maxY);
+            });
+          }
+
+          return { minY, maxY };
+        };
+
+        if (index > 0) {
+          // For subsequent root nodes, first calculate current subtree bounds
+          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
+          const currentSubtreeTop = currentSubtreeBounds.minY;
+
+          // Calculate offset needed to position this subtree 4px below the previous one
+          const targetTopY = previousSubtreeBottom + 4;
+          const offsetY = targetTopY - currentSubtreeTop;
+
+          // Apply offset to root and all children
+          const applyOffsetToSubtree = (node: MindMapNode, offset: number) => {
+            node.y = (node.y || 0) + offset;
             if (node.children) {
-              node.children.forEach(child => {
-                child.y = (child.y || 0) + offset;
-                applyOffsetToChildren(child, offset);
-              });
+              node.children.forEach(child => applyOffsetToSubtree(child, offset));
             }
           };
-          applyOffsetToChildren(layoutedNode, offsetY);
+
+          applyOffsetToSubtree(layoutedNode, offsetY);
+
+          // Now calculate the final bottom position after offset
+          const finalBounds = getSubtreeBounds(layoutedNode);
+          previousSubtreeBottom = finalBounds.maxY;
+        } else {
+          // First root node - calculate its bottom boundary
+          const bounds = getSubtreeBounds(layoutedNode);
+          previousSubtreeBottom = bounds.maxY;
         }
 
-        return layoutedNode;
+        layoutedRootNodes.push(layoutedNode);
       });
       
       if (layoutedRootNodes.some(node => !node)) {

@@ -75,8 +75,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         // const prevChildSize = calculateNodeSize(prevChild, undefined, false, globalFontSize); // Unused
         // const currentChildSize = calculateNodeSize(child, undefined, false, globalFontSize); // Unused
         
-        // 基本間隔のみを使用（追加の画像間隔は除去）
-        spacing = nodeSpacing;
+        // より密な垂直間隔にするため、基本間隔を調整
+        spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
       }
       
       return sum + childHeight + spacing;
@@ -130,10 +130,10 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
           const prevChildSize = calculateNodeSize(prevChild.node, undefined, false, globalFontSize);
           const currentChildSize = calculateNodeSize(child.node, undefined, false, globalFontSize);
           
-          // 基本間隔に画像の高さに応じた追加間隔を加える
-          spacing = nodeSpacing;
+          // より密な配置にするため、画像による追加間隔を削減
+          spacing = Math.max(nodeSpacing, 10); // 最小10pxを保証
           if (prevChildSize.imageHeight > 80 || currentChildSize.imageHeight > 80) {
-            spacing += Math.max(prevChildSize.imageHeight, currentChildSize.imageHeight) * 0.1;
+            spacing += Math.max(prevChildSize.imageHeight, currentChildSize.imageHeight) * 0.03; // 0.1から0.03に削減
           }
         }
         return sum + child.actualHeight + spacing;
@@ -178,8 +178,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         // const prevChildSize = calculateNodeSize(prevChild.node, undefined, false, globalFontSize); // Unused
         // const currentChildSize = calculateNodeSize(child.node, undefined, false, globalFontSize); // Unused
         
-        // 基本間隔のみを使用（追加の画像間隔は除去）
-        spacing = nodeSpacing;
+        // より密な垂直間隔にするため、基本間隔を調整
+        spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
       }
       return sum + child.actualHeight + spacing;
     }, 0);
@@ -199,10 +199,10 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         const currentChildSize = calculateNodeSize(childInfo.node, undefined, false, globalFontSize);
         const nextChildSize = calculateNodeSize(childrenWithHeights[index + 1].node, undefined, false, globalFontSize);
         
-        // 基本間隔に画像の高さに応じた追加間隔を加える
-        let spacing = nodeSpacing;
+        // より密な配置にするため、画像による追加間隔を削減
+        let spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
         if (currentChildSize.imageHeight > 80 || nextChildSize.imageHeight > 80) {
-          spacing += Math.max(currentChildSize.imageHeight, nextChildSize.imageHeight) * 0.1;
+          spacing += Math.max(currentChildSize.imageHeight, nextChildSize.imageHeight) * 0.03; // 0.1から0.03に削減
         }
         currentOffset += spacing;
       }
