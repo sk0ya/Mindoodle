@@ -115,21 +115,153 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   };
 
-  const enableVimMode = async (editor: editor.IStandaloneCodeEditor, _monaco: typeof import('monaco-editor')) => {
+  const enableVimMode = async (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
     try {
       // Dynamically import monaco-vim for Vim mode support
       const { initVimMode } = await import('monaco-vim');
-      
-      // Initialize Vim mode
+
+      // Initialize Vim mode with focus restriction
       const vimMode = initVimMode(editor, document.getElementById('vim-statusbar'));
-      
+
+      // Prevent vim mode from interfering with global key events
+      // We'll add a global event listener to prevent vim mode from capturing
+      // keys when the editor doesn't have focus
+      const editorDom = editor.getDomNode();
+      let globalKeyListener: ((e: KeyboardEvent) => void) | null = null;
+
+      if (editorDom) {
+        globalKeyListener = (e: KeyboardEvent) => {
+          const activeElement = document.activeElement;
+          const editorContainer = editorDom.closest('.monaco-editor');
+
+          // If focus is outside the editor container, ensure vim doesn't interfere
+          if (!activeElement || !editorContainer || !editorContainer.contains(activeElement)) {
+            // Stop vim from processing this event by preventing it from reaching vim's listeners
+            e.stopImmediatePropagation();
+          }
+        };
+
+        // Add the listener in capture phase to intercept before vim mode processes it
+        document.addEventListener('keydown', globalKeyListener, true);
+
+        // Store the listener for cleanup
+        (editor as any)._vimModeGlobalListener = globalKeyListener;
+      }
+
       // Add Vim commands
       vimMode.defineEx('write', 'w', () => {
         onSave?.();
       });
 
-      // Store vim mode instance for cleanup
+      // Preserve important Monaco keyboard shortcuts that should work in vim mode
+      // These commands will be available regardless of vim mode state
+      const preservedCommands = [
+        // Save command (Ctrl+S / Cmd+S)
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
+          handler: () => onSave?.(),
+        },
+        // Delete key should work in insert mode and normal editing
+        {
+          keybinding: monaco.KeyCode.Delete,
+          handler: () => {
+            // Only handle Delete if we're not in a vim mode that should handle it
+            const vimState = (vimMode as any).state;
+            if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
+              // Let Monaco handle the delete in insert/replace mode
+              return false; // Return false to let Monaco handle it
+            }
+            // In normal/visual mode, let vim handle it
+            return false;
+          },
+        },
+        // Backspace key
+        {
+          keybinding: monaco.KeyCode.Backspace,
+          handler: () => {
+            const vimState = (vimMode as any).state;
+            if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
+              return false; // Let Monaco handle it
+            }
+            return false;
+          },
+        },
+        // Common editing shortcuts that should work in insert mode
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ,
+          handler: () => {
+            editor.trigger('keyboard', 'undo', null);
+          },
+        },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyY,
+          handler: () => {
+            editor.trigger('keyboard', 'redo', null);
+          },
+        },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyZ,
+          handler: () => {
+            editor.trigger('keyboard', 'redo', null);
+          },
+        },
+        // Copy, Cut, Paste should work in insert mode
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC,
+          handler: () => {
+            const vimState = (vimMode as any).state;
+            if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
+              editor.trigger('keyboard', 'editor.action.clipboardCopyAction', null);
+            }
+            return false; // Let vim handle it in other modes
+          },
+        },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyX,
+          handler: () => {
+            const vimState = (vimMode as any).state;
+            if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
+              editor.trigger('keyboard', 'editor.action.clipboardCutAction', null);
+            }
+            return false; // Let vim handle it in other modes
+          },
+        },
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyV,
+          handler: () => {
+            const vimState = (vimMode as any).state;
+            if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
+              editor.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
+            }
+            return false; // Let vim handle it in other modes
+          },
+        },
+        // Select All
+        {
+          keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyA,
+          handler: () => {
+            const vimState = (vimMode as any).state;
+            if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
+              editor.trigger('keyboard', 'editor.action.selectAll', null);
+            }
+            return false; // Let vim handle it in other modes
+          },
+        }
+      ];
+
+      // Add the preserved commands
+      const commandIds: string[] = [];
+      preservedCommands.forEach((cmd, index) => {
+        const commandId = `vimModePreserved_${index}`;
+        const disposable = editor.addCommand(cmd.keybinding, cmd.handler);
+        if (disposable) {
+          commandIds.push(commandId);
+        }
+      });
+
+      // Store vim mode instance and command IDs for cleanup
       (editor as any)._vimMode = vimMode;
+      (editor as any)._vimModeCommandIds = commandIds;
     } catch (error) {
       logger.warn('Vim mode not available:', error);
       setIsVimEnabled(false);
@@ -142,10 +274,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     if (isVimEnabled) {
       // Disable Vim mode
       const vimMode = (editorRef.current as any)._vimMode;
+      const globalListener = (editorRef.current as any)._vimModeGlobalListener;
+
       if (vimMode) {
         vimMode.dispose();
         delete (editorRef.current as any)._vimMode;
       }
+
+      // Remove global key listener
+      if (globalListener) {
+        document.removeEventListener('keydown', globalListener, true);
+        delete (editorRef.current as any)._vimModeGlobalListener;
+      }
+
+      // Clean up command IDs if they exist
+      const commandIds = (editorRef.current as any)._vimModeCommandIds;
+      if (commandIds) {
+        delete (editorRef.current as any)._vimModeCommandIds;
+      }
+
       setIsVimEnabled(false);
     } else {
       // Enable Vim mode
@@ -264,8 +411,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       // Cleanup Vim mode on unmount
       if (editorRef.current) {
         const vimMode = (editorRef.current as any)._vimMode;
+        const globalListener = (editorRef.current as any)._vimModeGlobalListener;
+
         if (vimMode) {
           vimMode.dispose();
+        }
+
+        // Remove global key listener
+        if (globalListener) {
+          document.removeEventListener('keydown', globalListener, true);
         }
       }
     };

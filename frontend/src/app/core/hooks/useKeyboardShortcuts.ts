@@ -46,15 +46,18 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Vimium対策: キーボードイベントを早期に捕獲
-      // Don't handle shortcuts when editing text  
+      // Don't handle shortcuts when editing text
       const target = event.target as HTMLElement;
-      if (
-        target.tagName === 'INPUT' ||
+      const isInTextInput = target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
-        target.contentEditable === 'true'
-      ) {
-        // Special handling for editing mode
-        if (handlers.editingNodeId) {
+        target.contentEditable === 'true';
+
+      // Check if we're in Monaco Editor (markdown editor)
+      const isInMonacoEditor = target.closest('.monaco-editor') !== null;
+
+      if (isInTextInput || isInMonacoEditor) {
+        // Special handling for editing mode in mindmap nodes
+        if (handlers.editingNodeId && !isInMonacoEditor) {
           if (event.key === 'Enter') {
             event.preventDefault();
             handlers.finishEdit(handlers.editingNodeId, handlers.editText);
@@ -65,13 +68,14 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             if (vim && vim.isEnabled) vim.setMode('normal');
           }
         }
+        // For Monaco Editor or other text inputs, let them handle their own keys
         return;
       }
 
       const { key, ctrlKey, metaKey, shiftKey } = event;
       const isModifier = ctrlKey || metaKey;
 
-      // Vimium競合対策: hjklキーの場合は即座に preventDefault
+      // Vimium競合対策: vimキーの場合は即座に preventDefault
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
         const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o'];
         if (vimKeys.includes(key.toLowerCase())) {
@@ -134,6 +138,16 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
               handlers.addSiblingNode(handlers.selectedNodeId, '', true);
             }
             return;
+          case 'delete':
+          case 'backspace':
+            event.preventDefault();
+            if (handlers.selectedNodeId) {
+              handlers.deleteNode(handlers.selectedNodeId);
+            }
+            return;
+          default:
+            // For non-vim keys in vim mode, allow normal handling to continue
+            break;
         }
       }
 
@@ -164,8 +178,16 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         }
       }
 
-      // Standard navigation shortcuts (when vim is disabled)
-      if ((!vim || !vim.isEnabled) && !isModifier && handlers.selectedNodeId) {
+      // Standard navigation shortcuts (when vim is disabled OR for non-vim keys when vim is enabled)
+      if (!isModifier && handlers.selectedNodeId) {
+        // Skip if vim is enabled and this is a vim key that was already handled
+        if (vim && vim.isEnabled && vim.mode === 'normal') {
+          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter'];
+          if (vimKeys.includes(key.toLowerCase())) {
+            // This key was already handled by vim mode, skip standard handling
+            return;
+          }
+        }
         switch (key) {
           case ' ': // Space
             event.preventDefault();
