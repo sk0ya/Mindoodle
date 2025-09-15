@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Keyboard, HardDrive, Cloud, Trash2, Ruler, TriangleAlert } from 'lucide-react';
+import { Moon, Sun, Keyboard, HardDrive, Trash2, Ruler, TriangleAlert } from 'lucide-react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { useDataCleanup, type DataCleanupStats } from '../../../../core/hooks/useDataCleanup';
 
 interface SettingsSidebarProps {
   // 既存のprops（後方互換性のため保持）
-  storageMode?: 'local' | 'cloud' | 'markdown';
-  onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
+  storageMode?: 'local' | 'markdown';
+  onStorageModeChange?: (mode: 'local' | 'markdown') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
-  onSelectFolder?: () => Promise<void> | void;
-  onShowFolderGuide?: () => void;
-  currentFolderLabel?: string | null;
+  // Workspace selection moved to Maps view
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
@@ -19,9 +17,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onStorageModeChange,
   onShowKeyboardHelper,
   onAutoLayout,
-  onSelectFolder,
-  onShowFolderGuide,
-  currentFolderLabel
 }) => {
   const { settings, updateSetting } = useMindMapStore();
   const { clearAllData, getDataStats, isClearing, error } = useDataCleanup();
@@ -68,25 +63,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     <div className="settings-sidebar">
 
 
-      <div className="settings-section">
-        <h3 className="settings-section-title">フォルダベース運用</h3>
-        <div className="settings-section-content">
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button className="settings-button" onClick={() => onSelectFolder && onSelectFolder()}>
-              作業フォルダを選択
-            </button>
-            <button className="settings-button" onClick={() => onShowFolderGuide && onShowFolderGuide()}>
-              ガイドを表示
-            </button>
-          </div>
-          <div className="settings-description" style={{ marginTop: 6 }}>
-            map.md をフォルダ直下に保存します。添付は attachments/ 配下に整理されます。
-          </div>
-          <div className="settings-description" style={{ marginTop: 6, opacity: 0.8 }}>
-            選択フォルダ: {currentFolderLabel ? currentFolderLabel : '未選択（ブラウザ制限によりフルパスは表示できません）'}
-          </div>
-        </div>
-      </div>
+      {/* Workspace selection moved to Maps sidebar */}
 
       <div className="settings-section">
         <h3 className="settings-section-title">テーマ</h3>
@@ -196,13 +173,13 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <input
                 type="radio"
                 name="storageMode"
-                value="cloud"
-                checked={storageMode === 'cloud'}
-                onChange={() => onStorageModeChange?.('cloud')}
+                value="markdown"
+                checked={storageMode === 'markdown'}
+                onChange={() => onStorageModeChange?.('markdown')}
               />
               <span className="settings-radio-label">
-                <span className="settings-icon"><Cloud size={16} /></span>
-                クラウド
+                <span className="settings-icon"><HardDrive size={16} /></span>
+                マークダウン
               </span>
             </label>
           </div>

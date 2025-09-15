@@ -1,7 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { X } from 'lucide-react';
 import type { FileAttachment } from '@shared/types';
-import { useOptionalAuth } from '../../../components/auth';
+// 認証関連は削除されました
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -16,7 +16,7 @@ const CloudModalImage: React.FC<{ file: FileAttachment }> = ({ file }) => {
   const [error, setError] = useState<string>('');
   
   // 認証情報を取得 (オプショナル)
-  const auth = useOptionalAuth();
+  // 認証関連は削除されました
 
   useEffect(() => {
     const loadImage = async () => {
@@ -35,10 +35,7 @@ const CloudModalImage: React.FC<{ file: FileAttachment }> = ({ file }) => {
             'Accept': 'image/*,*/*'
           };
           
-          if (auth?.authAdapter?.getAuthHeaders) {
-            const authHeaders = auth.authAdapter.getAuthHeaders();
-            Object.assign(headers, authHeaders);
-          }
+          // 認証ヘッダーは削除されました
           
           const response = await fetch(file.downloadUrl, {
             method: 'GET',
@@ -71,7 +68,7 @@ const CloudModalImage: React.FC<{ file: FileAttachment }> = ({ file }) => {
         URL.revokeObjectURL(imageUrl);
       }
     };
-  }, [file.downloadUrl, auth?.authAdapter, imageUrl]);
+  }, [file.downloadUrl, imageUrl]);
 
   if (loading) {
     return <div style={{ color: 'white', textAlign: 'center' }}>読み込み中...</div>;

@@ -50,15 +50,28 @@ export interface MindMapNode {
 
 // Main mindmap data structure
 export interface MindMapData {
-  id: string;
   title: string;
   rootNode: MindMapNode;
+  rootNodes?: MindMapNode[]; // 複数ルートノード対応
   category?: string;
+  // Unified identifier for storage routing
+  mapIdentifier: MapIdentifier;
   theme?: string;
   createdAt: string;
   updatedAt: string;
   settings: MindMapSettings;
 }
+
+// Default workspace ID for when no workspace is selected
+export const DEFAULT_WORKSPACE_ID = '__default__';
+
+// Unified identifier for maps (id + workspace)
+export interface MapIdentifier {
+  mapId: string;
+  workspaceId: string; // always required
+}
+
+// No factory helper needed; maps hold the identifier directly
 
 // Settings configuration
 export interface MindMapSettings {

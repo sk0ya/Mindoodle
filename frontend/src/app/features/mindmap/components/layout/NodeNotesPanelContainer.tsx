@@ -1,23 +1,23 @@
 import React from 'react';
 import NodeNotesPanel from '../panels/NodeNotesPanel';
 import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, MapIdentifier } from '@shared/types';
 
 type Props = {
   dataRoot: MindMapNode | null;
   selectedNodeId: string | null;
-  currentMapId: string | null;
+  currentMapIdentifier?: MapIdentifier | null;
   onUpdateNode: (id: string, updates: Partial<MindMapNode>) => void;
   onClose: () => void;
-  getMapMarkdown?: (mapId: string) => Promise<string | null>;
-  saveMapMarkdown?: (mapId: string, markdown: string) => Promise<void>;
+  getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
+  saveMapMarkdown?: (id: MapIdentifier, markdown: string) => Promise<void>;
   setAutoSaveEnabled?: (enabled: boolean) => void;
 };
 
 const NodeNotesPanelContainer: React.FC<Props> = ({
   dataRoot,
   selectedNodeId,
-  currentMapId,
+  currentMapIdentifier,
   onUpdateNode,
   onClose,
   getMapMarkdown,
@@ -30,7 +30,7 @@ const NodeNotesPanelContainer: React.FC<Props> = ({
       selectedNode={selectedNode}
       onUpdateNode={onUpdateNode}
       onClose={onClose}
-      currentMapId={currentMapId}
+      currentMapIdentifier={currentMapIdentifier || null}
       getMapMarkdown={getMapMarkdown}
       saveMapMarkdown={saveMapMarkdown}
       setAutoSaveEnabled={setAutoSaveEnabled}
@@ -39,4 +39,3 @@ const NodeNotesPanelContainer: React.FC<Props> = ({
 };
 
 export default NodeNotesPanelContainer;
-

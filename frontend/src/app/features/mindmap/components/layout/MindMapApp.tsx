@@ -23,14 +23,13 @@ import { useTheme } from '../../../../shared/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import { useVimMode } from '../../../../core/hooks/useVimMode';
 import { useFileHandlers } from './useFileHandlers';
-import { useCloudAuthGate } from '../../../../core/hooks/useCloudAuthGate';
 import MindMapProviders from './MindMapProviders';
 import { logger } from '../../../../shared/utils/logger';
 import MindMapOverlays from './MindMapOverlays';
 import './MindMapApp.css';
 
 // Types
-import type { MindMapNode, MindMapData, NodeLink } from '@shared/types';
+import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '../../../../core/storage/types';
 // Storage configurations
 // Deprecated storage configs (Mindoodle uses markdown adapter internally)
@@ -39,8 +38,8 @@ import type { StorageConfig } from '../../../../core/storage/types';
 import { useShortcutHandlers } from './useShortcutHandlers';
 
 interface MindMapAppProps {
-  storageMode?: 'local' | 'cloud' | 'markdown';
-  onModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
+  storageMode?: 'local' | 'markdown';
+  onModeChange?: (mode: 'local' | 'markdown') => void;
   resetKey?: number;
 }
 
@@ -78,7 +77,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const [internalResetKey, setResetKey] = useState(resetKey);
   // モーダル状態管理
   const {
-    showLoginModal, setShowLoginModal,
+    // showLoginModal削除済み
     showLinkModal, setShowLinkModal,
     editingLink, setEditingLink,
     linkModalNodeId, setLinkModalNodeId,
@@ -96,14 +95,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   
   // テーマ管理
   useTheme();
-  
-  // Cloud 認証関連を独立したフックに委譲
-  const { auth, isCloudMode } = useCloudAuthGate(
-    storageMode,
-    setShowLoginModal,
-    () => setResetKey(prev => prev + 1)
-  );
-  const authAdapter = auth?.authAdapter;
 
   // Sync external resetKey with internal resetKey
   React.useEffect(() => {
@@ -111,18 +102,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   }, [resetKey]);
 
   // Folder guide modal state (extracted)
-  const { showFolderGuide, openGuide, closeGuide, markDismissed } = useFolderGuide();
+  const { showFolderGuide, closeGuide, markDismissed } = useFolderGuide();
 
-  // Handle mode changes - reset modal state when switching to cloud mode
+  // Handle mode changes (loginModal削除済み)
   React.useEffect(() => {
-    if (isCloudMode && auth && !auth.authState.isAuthenticated && auth.isReady) {
-      logger.info('Mode switched to cloud, user not authenticated');
-      setShowLoginModal(true);
-    } else if (!isCloudMode) {
-      logger.info('Mode switched to local, hiding login modal');
-      setShowLoginModal(false);
-    }
-  }, [storageMode, isCloudMode, auth?.authState.isAuthenticated, auth?.isReady, auth, setShowLoginModal]);
+      // ログインモーダル関連は削除されました
+  }, [storageMode]);
   
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
@@ -172,21 +157,28 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     
     // 履歴操作
     undo,
-    redo
+    redo,
+    workspaces,
+    addWorkspace,
+    removeWorkspace
   } = mindMap;
 
   // ファイルハンドラーを外部フックに委譲
   const { uploadFile, downloadFile, deleteFile } = useFileHandlers({
     data,
-    storageMode,
-    storageConfig,
-    auth,
     updateNode,
     showNotification,
     handleError,
     handleAsyncError,
     retryableUpload,
   });
+
+  // Bridge workspaces to sidebar via globals (quick wiring)
+  React.useEffect(() => {
+    (window as any).mindoodleWorkspaces = workspaces || [];
+    (window as any).mindoodleAddWorkspace = async () => { try { await (addWorkspace as any)?.(); await (mindMap as any).refreshMapList?.(); } catch {} };
+    (window as any).mindoodleRemoveWorkspace = async (id: string) => { try { await (removeWorkspace as any)?.(id); await (mindMap as any).refreshMapList?.(); } catch {} };
+  }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
   // Now that mindMap is initialized, define folder selection handler
   const handleSelectFolder = React.useCallback(async () => {
@@ -214,7 +206,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     try {
       // 一括でマップ情報を更新
       const updatedMaps = mapUpdates.map(update => {
-        const mapToUpdate = allMindMaps.find(map => map.id === update.id);
+        const mapToUpdate = allMindMaps.find(map => map.mapIdentifier.mapId === update.id);
         if (!mapToUpdate) return null;
         
         return {
@@ -361,23 +353,23 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   };
 
   // 他のマップのデータを取得する関数
-  const loadMapData = useCallback(async (mapId: string): Promise<MindMapData | null> => {
+  const loadMapData = useCallback(async (mapIdentifier: MapIdentifier): Promise<MindMapData | null> => {
     try {
-      if (data && mapId === data.id) {
+      if (data && mapIdentifier.mapId === data.mapIdentifier.mapId && mapIdentifier.workspaceId === data.mapIdentifier.workspaceId) {
         // 現在のマップの場合はそのまま返す
         return data;
       }
-      
+
       // 他のマップのデータを読み込む
       // 永続化フックから適切なメソッドを使用
-      const targetMap = allMindMaps.find(map => map.id === mapId);
+      const targetMap = allMindMaps.find(map => map.mapIdentifier.mapId === mapIdentifier.mapId && map.mapIdentifier.workspaceId === mapIdentifier.workspaceId);
       if (targetMap) {
         // 既に読み込み済みのマップデータがある場合はそれを返す
         return targetMap;
       }
       
       // マップが見つからない場合
-      logger.warn('指定されたマップが見つかりません:', mapId);
+      logger.warn('指定されたマップが見つかりません:', mapIdentifier);
       showNotification('warning', '指定されたマップが見つかりません');
       return null;
     } catch (error) {
@@ -390,7 +382,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // UI用のハンドラー
   const handleTitleChange = (title: string) => {
     if (data) {
-      updateMapMetadata(data.id, { title });
+      updateMapMetadata(data.mapIdentifier, { title });
     }
   };
 
@@ -399,9 +391,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // Listen to explorer selection events
   React.useEffect(() => {
     const handler = (e: any) => {
-      const id = e?.detail?.mapId;
+      const id = e?.detail?.mapId as string | undefined;
+      const ws = e?.detail?.workspaceId as string;
       if (id && typeof selectMapById === 'function') {
-        selectMapById(id);
+        selectMapById({ mapId: id, workspaceId: ws });
       }
     };
     window.addEventListener('mindoodle:selectMapById', handler as EventListener);
@@ -523,7 +516,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       const destNode = findNodeById(data.rootNode, linkModalNodeId);
       if (!destNode) return;
 
-      const currentMapId = data.id;
+      const currentMapId = data.mapIdentifier.mapId;
       const targetMapId = linkData.targetMapId || currentMapId;
       let label = 'リンク';
       let href = '';
@@ -556,19 +549,19 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }
       } else {
         // Other map
-        const targetMap = await loadMapData(targetMapId);
+        const targetMap = await loadMapData({ mapId: targetMapId, workspaceId: data.mapIdentifier.workspaceId });
         if (targetMap) {
           if (linkData.targetNodeId) {
             const targetNode = findNodeById(targetMap.rootNode, linkData.targetNodeId);
             if (targetNode) {
               label = targetNode.text || targetMap.title || 'リンク';
               const anchor = computeAnchorForNode(targetMap.rootNode, targetNode.id);
-              const rel = toRelPath(currentMapId, targetMap.id);
+              const rel = toRelPath(currentMapId, targetMap.mapIdentifier.mapId);
               href = anchor ? `${rel}#${encodeURIComponent(anchor)}` : rel;
             }
           } else {
             label = targetMap.title || 'リンク';
-            const rel = toRelPath(currentMapId, targetMap.id);
+            const rel = toRelPath(currentMapId, targetMap.mapIdentifier.mapId);
             href = rel;
           }
         }
@@ -666,6 +659,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       currentMapId,
       dataRoot: data?.rootNode,
       selectMapById,
+      currentWorkspaceId: (data as any)?.mapIdentifier?.workspaceId as string,
       selectNode,
       centerNodeInView,
       notify: showNotification,
@@ -674,109 +668,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     });
   };
 
-  /* Helpers for resolving node by display text (exact or slug match)
-  const slugify = useCallback((text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, ''), []);
-  const findNodeByTextLoose = useCallback((root: MindMapNode, targetText: string) => {
-    if (!root || !targetText) return null;
-    const targetSlug = slugify(targetText);
-    const stack: MindMapNode[] = [root];
-    while (stack.length) {
-      const node = stack.pop()!;
-      if (!node) continue;
-      const byAnchor = resolveAnchorToNode(root, targetText);
-      if (byAnchor) return byAnchor;
-      if (node.text === targetText) return node;
-      if (slugify(node.text) === targetSlug) return node;
-      if (node.children && node.children.length) stack.push(...node.children);
-    }
-    return null;
-  }, [slugify]);
-
-  const handleLinkNavigate = async (link: NodeLink) => {
-    try {
-      // If targetMapId is specified and different from current map
-      if (link.targetMapId && link.targetMapId !== currentMapId) {
-        // Navigate to different map
-        try {
-          await selectMapById(link.targetMapId);
-          showNotification('success', `マップ "${link.targetMapId}" に移動しました`);
-          
-          // If targetNodeId is specified, select that node after map loads
-          if (link.targetNodeId) {
-            setTimeout(() => {
-              const tn = link.targetNodeId!;
-              if (tn.startsWith('text:')) {
-                const targetText = tn.slice(5);
-                const current = useMindMapStore.getState().data;
-                const root = current?.rootNode as MindMapNode | undefined;
-                if (root) {
-                  const node = findNodeByTextLoose(root, targetText);
-                  if (node) {
-                    selectNode(node.id);
-                    setTimeout(() => centerNodeInView(node.id), 100);
-                  }
-                }
-              } else {
-                selectNode(tn);
-                setTimeout(() => centerNodeInView(tn), 100);
-              }
-            }, 500); // Wait for map to load
-          }
-        } catch (error) {
-          showNotification('error', `マップ "${link.targetMapId}" が見つかりません`);
-          return;
-        }
-      } else if (link.targetNodeId) {
-        // Navigate to node in current map
-        if (data) {
-          const tn = link.targetNodeId;
-          if (tn.startsWith('text:')) {
-            const targetText = tn.slice(5);
-            const node = findNodeByTextLoose(data.rootNode, targetText);
-            if (node) {
-              selectNode(node.id);
-              setTimeout(() => centerNodeInView(node.id), 50);
-              showNotification('success', `ノード "${node.text}" に移動しました`);
-            } else {
-              showNotification('error', `ノード "${targetText}" が見つかりません`);
-            }
-          } else {
-            const targetNode = findNodeById(data.rootNode, tn);
-            if (targetNode) {
-              selectNode(tn);
-              setTimeout(() => centerNodeInView(tn), 50);
-              showNotification('success', `ノード "${targetNode.text}" に移動しました`);
-            } else {
-              showNotification('error', `ノード "${tn}" が見つかりません`);
-            }
-          }
-        }
-      } else {
-        showNotification('info', 'リンク先が指定されていません');
-      }
-    } catch (error) {
-      logger.error('Link navigation error:', error);
-      handleError(error as Error, 'リンク操作', 'リンク先への移動');
-    }
-  }; */
-
   const handleShowLinkActionMenu = openLinkActionMenu;
   const handleCloseLinkActionMenu = closeLinkActionMenu;
 
   // Outline save feature removed
-
-
-  // Show loading while auth is initializing in cloud mode
-  if (isCloudMode && auth && !auth.isReady) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">認証システムを初期化中...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (!data) {
     return (
@@ -810,11 +705,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onModeChange={onModeChange}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
-        onSelectMap={(mapId) => { selectMapById(mapId); }}
-        onCreateMap={createAndSelectMap}
+        onSelectMap={(id) => {
+          selectMapById(id);
+        }}
+        onCreateMap={(title: string, category?: string) => createAndSelectMap(title, data?.mapIdentifier.workspaceId, category)}
         onDeleteMap={deleteMap}
-        onRenameMap={(mapId, title) => updateMapMetadata(mapId, { title })}
-        onChangeCategory={(mapId, category) => updateMapMetadata(mapId, { category })}
+        onRenameMap={(id, title) => updateMapMetadata(id, { title })}
+        onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
         onAutoLayout={() => {
@@ -825,9 +722,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             logger.error('applyAutoLayout function not available');
           }
         }}
-        onSelectFolder={handleSelectFolder}
-        onShowFolderGuide={openGuide}
-        currentFolderLabel={(mindMap as any).getSelectedFolderLabel?.() || null}
+        workspaces={workspaces as any}
+        onAddWorkspace={addWorkspace as any}
+        onRemoveWorkspace={removeWorkspace as any}
         explorerTree={(mindMap as any).explorerTree || null}
         onCreateFolder={async (path: string) => {
           if (typeof (mindMap as any).createFolder === 'function') {
@@ -836,7 +733,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }}
         currentMapData={data}
         onNodeSelect={(nodeId) => { selectNode(nodeId); centerNodeInView(nodeId); }}
-        onMapSwitch={(mapId) => { selectMapById(mapId); }}
+        onMapSwitch={(id) => { selectMapById(id); }}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
@@ -863,7 +760,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             }
           }}
           storageMode={storageMode}
-          onStorageModeChange={onModeChange}
+          onStorageModeChange={onModeChange as ((mode: 'local' | 'markdown') => void) | undefined}
           onToggleNotesPanel={() => store.toggleNotesPanel()}
           showNotesPanel={ui.showNotesPanel}
           onCenterRootNode={handleCenterRootNode}
@@ -896,7 +793,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onAddLink={handleAddLink}
               onUpdateNode={updateNode}
               onAutoLayout={applyAutoLayout}
-              availableMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
+              availableMaps={allMindMaps.map(map => ({ id: map.mapIdentifier.mapId, title: map.title }))}
               currentMapData={data}
               onLinkNavigate={handleLinkNavigate2}
               zoom={ui.zoom}
@@ -913,7 +810,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               selectedNodeId={selectedNodeId}
               onUpdateNode={updateNode}
               onClose={() => store.setShowNotesPanel(false)}
-              currentMapId={data?.id || null}
+              currentMapIdentifier={data ? data.mapIdentifier : null}
               getMapMarkdown={(mindMap as any).getMapMarkdown}
               saveMapMarkdown={(mindMap as any).saveMapMarkdown}
               setAutoSaveEnabled={(mindMap as any).setAutoSaveEnabled}
@@ -1016,19 +913,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       <MindMapOverlays
         showKeyboardHelper={showKeyboardHelper}
         setShowKeyboardHelper={setShowKeyboardHelper}
-        isCloudMode={isCloudMode}
-        authAdapter={authAdapter}
-        showLoginModal={showLoginModal}
-        onLoginClose={() => {
-          logger.info('Login modal closed, switching to local mode');
-          setShowLoginModal(false);
-          if (onModeChange) onModeChange('local');
-        }}
       />
 
       <MindMapLinkOverlays
         dataRoot={data.rootNode}
-        allMaps={allMindMaps.map(map => ({ id: map.id, title: map.title }))}
+        allMaps={allMindMaps.map(map => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
         currentMapData={data}
         showLinkModal={showLinkModal}
         linkModalNodeId={linkModalNodeId}
@@ -1043,7 +932,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             const destNode = findNodeById(data.rootNode, linkModalNodeId);
             if (!destNode) return;
             const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0? id.slice(0,i) : ''; };
-            const fromDir = dirOf(data.id);
+            const fromDir = dirOf(data.mapIdentifier.mapId);
             const fromSegs = fromDir? fromDir.split('/') : [];
             const toSegs = filePath.split('/');
             let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;

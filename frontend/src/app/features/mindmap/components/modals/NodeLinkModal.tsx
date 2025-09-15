@@ -1,11 +1,12 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
-import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
+import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/types';
+import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '../../../../core/storage/types';
 import { computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
 
 interface MapOption {
-  id: string; // category/baseName (folder-aware)
+  mapIdentifier: { mapId: string; workspaceId: string };
   title: string; // baseName only
 }
 
@@ -26,7 +27,7 @@ interface NodeLinkModalProps {
   onDelete?: (linkId: string) => void;
   availableMaps?: MapOption[];
   currentMapData?: MindMapData;
-  onLoadMapData?: (mapId: string) => Promise<MindMapData | null>;
+  onLoadMapData?: (mapIdentifier: MapIdentifier) => Promise<MindMapData | null>;
   loadExplorerTree?: () => Promise<ExplorerItem | null>;
   onSaveFileLink?: (href: string, label: string) => void;
 }
@@ -84,13 +85,13 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       return [];
     }
     
-    if (selectedMapId === currentMapData?.id) {
+    if (selectedMapId === currentMapData?.mapIdentifier.mapId) {
       // 現在のマップが選択された場合
       return currentMapData ? flattenNodes(currentMapData.rootNode, selectedMapId) : [];
     }
     
     // 他のマップが選択された場合
-    if (loadedMapData && loadedMapData.id === selectedMapId) {
+    if (loadedMapData && loadedMapData.mapIdentifier.mapId === selectedMapId) {
       return flattenNodes(loadedMapData.rootNode, selectedMapId);
     }
     
@@ -102,7 +103,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     const q = mapQuery.trim().toLowerCase();
     if (!q) return availableMaps;
     return availableMaps.filter(m =>
-      m.id.toLowerCase().includes(q) || (m.title || '').toLowerCase().includes(q)
+      m.mapIdentifier.mapId.toLowerCase().includes(q) || (m.title || '').toLowerCase().includes(q)
     );
   }, [availableMaps, mapQuery]);
 
@@ -151,9 +152,9 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     setSelectedNodeId('');
     
     // 他のマップが選択された場合、そのデータを読み込む
-    if (selectedMapId && selectedMapId !== currentMapData?.id && onLoadMapData) {
+    if (selectedMapId && selectedMapId !== currentMapData?.mapIdentifier.mapId && onLoadMapData) {
       setIsLoadingMapData(true);
-      onLoadMapData(selectedMapId)
+      onLoadMapData({ mapId: selectedMapId, workspaceId: currentMapData?.mapIdentifier.workspaceId || DEFAULT_WORKSPACE_ID })
         .then(mapData => {
           setLoadedMapData(mapData);
         })
@@ -169,7 +170,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       setLoadedMapData(null);
       setIsLoadingMapData(false);
     }
-  }, [selectedMapId, currentMapData?.id, onLoadMapData]);
+  }, [selectedMapId, currentMapData?.mapIdentifier.mapId, onLoadMapData]);
 
   const handleSave = useCallback(() => {
     if (mode === 'markdown') {
@@ -271,8 +272,8 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
             >
               <option value="">-- マップを選択 --</option>
               {filteredMaps().map((map) => (
-                <option key={map.id} value={map.id}>
-                  {map.id}
+                <option key={map.mapIdentifier.mapId} value={map.mapIdentifier.mapId}>
+                  {map.mapIdentifier.mapId}
                 </option>
               ))}
             </select>
@@ -303,7 +304,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
                 ? 'まずマップを選択してください'
                 : isLoadingMapData
                 ? 'マップデータを読み込み中...'
-                : selectedMapId && selectedMapId !== currentMapData?.id && !loadedMapData
+                : selectedMapId && selectedMapId !== currentMapData?.mapIdentifier.mapId && !loadedMapData
                 ? 'マップデータの読み込みに失敗しました'
                 : 'リンク先のノードを選択してください'
               }
