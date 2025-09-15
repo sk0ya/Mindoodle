@@ -15,8 +15,8 @@ interface ToolbarProps {
   zoom: number;
   onZoomReset: () => void;
   onAutoLayout?: () => void;
-  storageMode?: 'local' | 'markdown';
-  onStorageModeChange?: (mode: 'local' | 'markdown') => void;
+  storageMode?: 'local' | 'cloud' | 'markdown';
+  onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onToggleNotesPanel?: () => void;
   showNotesPanel?: boolean;
   onCenterRootNode?: () => void;
@@ -62,7 +62,7 @@ const Toolbar: React.FC<ToolbarProps> = ({
 
       {onStorageModeChange && storageMode !== 'markdown' && (
         <StorageModeSwitch
-          currentMode={storageMode as 'local' | 'markdown'}
+          currentMode={storageMode as 'local' | 'cloud'}
           onModeChange={onStorageModeChange}
         />
       )}

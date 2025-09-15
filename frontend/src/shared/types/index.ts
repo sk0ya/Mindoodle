@@ -19,7 +19,6 @@ export type {
   UserId,
   MindMapNode,
   MindMapData,
-  MapIdentifier,
   MindMapSettings,
   FileAttachment,
   NodeLink,
@@ -44,9 +43,8 @@ export type {
   AuthHookReturn
 } from './core';
 
-// Export branded type utilities and constants
+// Export branded type utilities
 export {
-  DEFAULT_WORKSPACE_ID,
   createNodeId,
   createMapId,
   createFileId,

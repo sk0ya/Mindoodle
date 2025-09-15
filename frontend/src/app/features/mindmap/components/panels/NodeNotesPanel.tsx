@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
-import type { MindMapNode, MapIdentifier } from '@shared/types';
+import type { MindMapNode } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
 // Using Monaco-based MarkdownEditor for both note and map markdown views
 
@@ -9,9 +9,9 @@ interface NodeNotesPanelProps {
   selectedNode: MindMapNode | null;
   onUpdateNode: (id: string, updates: Partial<MindMapNode>) => void;
   onClose?: () => void;
-  currentMapIdentifier?: MapIdentifier | null;
-  getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
-  saveMapMarkdown?: (id: MapIdentifier, markdown: string) => Promise<void>;
+  currentMapId?: string | null;
+  getMapMarkdown?: (mapId: string) => Promise<string | null>;
+  saveMapMarkdown?: (mapId: string, markdown: string) => Promise<void>;
   setAutoSaveEnabled?: (enabled: boolean) => void;
 }
 
@@ -19,7 +19,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   selectedNode,
   onUpdateNode,
   onClose,
-  currentMapIdentifier,
+  currentMapId,
   getMapMarkdown,
   saveMapMarkdown,
   setAutoSaveEnabled
@@ -58,15 +58,15 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   const lastLoadedMapIdRef = useRef<string | null>(null);
   useEffect(() => {
     if (tab !== 'map-md') return;
-    if (!currentMapIdentifier || !getMapMarkdown) return;
+    if (!currentMapId || !getMapMarkdown) return;
     if (mapMarkdownDirty) return; // do not overwrite local edits
-    if (lastLoadedMapIdRef.current === currentMapIdentifier.mapId) return;
+    if (lastLoadedMapIdRef.current === currentMapId) return;
     setLoadingMapMd(true);
-    getMapMarkdown(currentMapIdentifier)
+    getMapMarkdown(currentMapId)
       .then(text => {
         setMapMarkdown(text || '');
         setMapMarkdownDirty(false);
-        lastLoadedMapIdRef.current = currentMapIdentifier.mapId;
+        lastLoadedMapIdRef.current = currentMapId;
       })
       .catch(error => {
         console.error('Failed to load map markdown:', error);
@@ -75,7 +75,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
       .finally(() => {
         setLoadingMapMd(false);
       });
-  }, [tab, currentMapIdentifier]);
+  }, [tab, currentMapId]);
 
   // Handle note changes
   const handleNoteChange = useCallback((value: string) => {
@@ -93,15 +93,15 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
 
   // Save map markdown
   const handleSaveMapMarkdown = useCallback(async () => {
-    if (currentMapIdentifier && mapMarkdownDirty && saveMapMarkdown) {
+    if (currentMapId && mapMarkdownDirty && saveMapMarkdown) {
       try {
-        await saveMapMarkdown(currentMapIdentifier, mapMarkdown);
+        await saveMapMarkdown(currentMapId, mapMarkdown);
         setMapMarkdownDirty(false);
       } catch (error) {
         console.error('Failed to save map markdown:', error);
       }
     }
-  }, [currentMapIdentifier, mapMarkdown, mapMarkdownDirty, saveMapMarkdown]);
+  }, [currentMapId, mapMarkdown, mapMarkdownDirty, saveMapMarkdown]);
 
   // Memoized resize trigger function
   const handleResize = useCallback(() => {

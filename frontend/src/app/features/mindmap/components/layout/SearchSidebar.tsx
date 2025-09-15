@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
-import type { MindMapData, MapIdentifier } from '@shared/types';
+import type { MindMapData } from '../../../../shared/types';
 import { searchNodes, searchMultipleMaps, getMatchPosition, type SearchResult } from '../../../../shared/utils/searchUtils';
 import './SearchSidebar.css';
 
@@ -10,7 +10,7 @@ interface SearchSidebarProps {
   currentMapData?: MindMapData | null;
   allMapsData?: MindMapData[];
   onNodeSelect?: (nodeId: string) => void;
-  onMapSwitch?: (id: MapIdentifier) => void;
+  onMapSwitch?: (mapId: string) => void;
 }
 
 const SearchSidebar: React.FC<SearchSidebarProps> = ({
@@ -59,8 +59,8 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
 
   const handleNodeClick = (result: SearchResult) => {
     // 他のマップのノードの場合は、まずマップを切り替えてからノードを選択
-    if (result.mapId && result.mapId !== currentMapData?.mapIdentifier.mapId) {
-      onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
+    if (result.mapId && result.mapId !== currentMapData?.id) {
+      onMapSwitch?.(result.mapId);
       // マップ切り替え後にノードを選択（少し遅延させる）
       setTimeout(() => {
         onNodeSelect?.(result.nodeId);

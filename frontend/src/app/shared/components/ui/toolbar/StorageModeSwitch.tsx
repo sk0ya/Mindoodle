@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
-import { ChevronUp, ChevronDown, Check, HardDrive } from 'lucide-react';
+import { ChevronUp, ChevronDown, Check, HardDrive, Cloud } from 'lucide-react';
 import { ShortcutTooltip } from '../KeyboardShortcutHelper';
 
 interface StorageModeSwitchProps {
-  currentMode: 'local' | 'markdown';
-  onModeChange: (mode: 'local' | 'markdown') => void;
+  currentMode: 'local' | 'cloud';
+  onModeChange: (mode: 'local' | 'cloud') => void;
 }
 
 const STORAGE_MODES = [
   { id: 'local' as const, label: 'ローカル', icon: <HardDrive size={16} />, description: 'このデバイスのみ' },
-  { id: 'markdown' as const, label: 'マークダウン', icon: <HardDrive size={16} />, description: 'Markdownファイル' }
+  { id: 'cloud' as const, label: 'クラウド', icon: <Cloud size={16} />, description: 'デバイス間同期' }
 ];
 
 const StorageModeSwitch: React.FC<StorageModeSwitchProps> = ({
@@ -20,7 +20,7 @@ const StorageModeSwitch: React.FC<StorageModeSwitchProps> = ({
 
   const currentModeInfo = STORAGE_MODES.find(mode => mode.id === currentMode);
 
-  const handleModeSelect = (mode: 'local' | 'markdown') => {
+  const handleModeSelect = (mode: 'local' | 'cloud') => {
     onModeChange(mode);
     setIsOpen(false);
   };

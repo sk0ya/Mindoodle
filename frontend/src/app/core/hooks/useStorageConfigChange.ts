@@ -10,7 +10,6 @@ interface StorageConfigChangeDependencies {
   loadInitialData: () => Promise<MindMapData>;
   refreshMapList: () => Promise<void>;
   applyAutoLayout?: () => void;
-  currentWorkspaceId?: string;
 }
 
 /**
@@ -27,7 +26,7 @@ export const useStorageConfigChange = (
     const prevConfig = prevStorageConfigRef.current;
 
     const modeChanged = currentConfig?.mode !== prevConfig?.mode;
-    const authChanged = false; // 認証は削除されました
+    const authChanged = currentConfig?.authAdapter !== prevConfig?.authAdapter;
 
 
     if (modeChanged || authChanged) {

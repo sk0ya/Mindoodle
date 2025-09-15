@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { createInitialData } from '../../shared/types/dataTypes';
-import type { MindMapData, MapIdentifier } from '@shared/types';
+import type { MindMapData } from '@shared/types';
 import { logger } from '../../shared/utils/logger';
 
 /**
@@ -13,26 +13,24 @@ export const useMindMapActions = () => {
 
   const mapActions = {
     // マップ作成
-    createMap: useCallback((title: string, workspaceId: string, category?: string): MindMapData => {
-      const mapId = `map_${Date.now()}`;
-      const mapIdentifier = {
-        mapId,
-        workspaceId
-      };
-      const newMap = createInitialData(mapIdentifier);
+    createMap: useCallback((title: string, category?: string): MindMapData => {
+      const newMap = createInitialData();
+      newMap.id = `map_${Date.now()}`;
       newMap.title = title;
       newMap.category = category || '';
-
+      newMap.createdAt = new Date().toISOString();
+      newMap.updatedAt = new Date().toISOString();
+      
       // rootNodeのテキストもマップタイトルに合わせる
       newMap.rootNode.text = title;
-
+      
       logger.debug('Created new map:', newMap);
       return newMap;
     }, []),
 
     // マップ選択
     selectMap: useCallback((mapData: MindMapData) => {
-      try { console.info('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title); } catch {}
+      try { console.info('[useMindMapActions.selectMap] selecting', mapData.id, mapData.title); } catch {}
       store.setData(mapData);
       try {
         // 自動整列を適用
@@ -44,44 +42,34 @@ export const useMindMapActions = () => {
     }, [store]),
 
     // マップ削除（データから）
-    deleteMapData: useCallback((workspaceId: string) => {
+    deleteMapData: useCallback(() => {
       const currentData = store.data;
       if (currentData) {
         logger.debug('Deleting map:', currentData.title);
         // 新しい空のマップを作成
-        const mapId = `map_${Date.now()}`;
-        const mapIdentifier = {
-          mapId,
-          workspaceId
-        };
-        const newMap = createInitialData(mapIdentifier);
+        const newMap = createInitialData();
         store.setData(newMap);
       }
     }, [store]),
 
     // マップ複製
     duplicateMap: useCallback((sourceMap: MindMapData, newTitle?: string): MindMapData => {
-      const mapId = `map_${Date.now()}`;
-      const mapIdentifier = {
-        mapId,
-        workspaceId: sourceMap.mapIdentifier.workspaceId
-      };
       const duplicatedMap = {
         ...sourceMap,
-        mapIdentifier,
+        id: `map_${Date.now()}`,
         title: newTitle || `${sourceMap.title} (複製)`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-
+      
       logger.debug('Duplicated map:', duplicatedMap.title);
       return duplicatedMap;
     }, []),
 
     // マップのメタデータ更新
-    updateMapMetadata: useCallback((mapIdentifier: MapIdentifier, updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
+    updateMapMetadata: useCallback((id: string, updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
       const currentData = store.data;
-      if (currentData && currentData.mapIdentifier.mapId === mapIdentifier.mapId && currentData.mapIdentifier.workspaceId === mapIdentifier.workspaceId) {
+      if (currentData && currentData.id === id) {
         const updatedData = {
           ...currentData,
           ...updates,
@@ -155,7 +143,7 @@ export const useMindMapActions = () => {
 
   return {
     // 状態
-    currentMapId: store.data?.mapIdentifier.mapId || null,
+    currentMapId: store.data?.id || null,
     
     // マップ操作
     ...mapActions,

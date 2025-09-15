@@ -5,7 +5,7 @@ import CategoryGroup from './CategoryGroup';
 import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from './SidebarStyles';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
-import type { MindMapData, MapIdentifier } from '@shared/types';
+import type { MindMapData } from '@shared/types';
 import { createChildFolderPath } from '../../../../shared/utils/folderUtils';
 import { logger } from '../../../../shared/utils/logger';
 import { useDragAndDrop } from '../../../../shared/hooks/useDragAndDrop';
@@ -14,18 +14,15 @@ import type { ExplorerItem } from '../../../../core/storage/types';
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
   currentMapId: string | null;
-  onSelectMap: (id: MapIdentifier) => void;
+  onSelectMap: (mapId: string) => void;
   onCreateMap: (title: string, category?: string) => void;
-  onDeleteMap: (id: MapIdentifier) => void;
-  onRenameMap: (id: MapIdentifier, newTitle: string) => void;
-  onChangeCategory: (id: MapIdentifier, category: string) => void;
+  onDeleteMap: (mapId: string) => void;
+  onRenameMap: (mapId: string, newTitle: string) => void;
+  onChangeCategory: (mapId: string, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
   availableCategories: string[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
-  workspaces?: Array<{ id: string; name: string }>;
-  onAddWorkspace?: () => void;
-  onRemoveWorkspace?: (id: string) => void;
   explorerTree?: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
 }
@@ -41,9 +38,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onChangeCategoryBulk,
   isCollapsed,
   onToggleCollapse,
-  workspaces = [],
-  onAddWorkspace,
-  onRemoveWorkspace,
   explorerTree,
   onCreateFolder
 }) => {
@@ -91,14 +85,14 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
 
   // イベントハンドラー
-  const handleStartRename = useCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
-    setEditingMapId(mapIdentifier.mapId);
+  const handleStartRename = useCallback((mapId: string, currentTitle: string) => {
+    setEditingMapId(mapId);
     setEditingTitle(currentTitle);
   }, []);
 
-  const handleFinishRename = useCallback((mapIdentifier: MapIdentifier) => {
+  const handleFinishRename = useCallback((mapId: string) => {
     if (editingTitle.trim() && editingTitle.trim() !== '') {
-      onRenameMap(mapIdentifier, editingTitle.trim());
+      onRenameMap(mapId, editingTitle.trim());
     }
     setEditingMapId(null);
     setEditingTitle('');
@@ -298,7 +292,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       mapsToUpdate.forEach(map => {
         const updatedCategory = map.category?.replace(oldPath, newPath);
         if (updatedCategory) {
-          onChangeCategory({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId }, updatedCategory);
+          onChangeCategory(map.id, updatedCategory);
         }
       });
       
@@ -491,12 +485,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         {
           label: 'マップを開く',
           icon: <BookOpen size={14} />,
-          onClick: () => onSelectMap(mapData.mapIdentifier)
+          onClick: () => onSelectMap(mapData.id)
         },
         {
           label: '名前を変更',
           icon: <Edit3 size={14} />,
-          onClick: () => handleStartRename(mapData.mapIdentifier, mapData.title)
+          onClick: () => handleStartRename(mapData.id, mapData.title)
         },
         {
           label: 'マップを削除',
@@ -504,7 +498,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           onClick: () => {
             // eslint-disable-next-line no-alert
             if (window.confirm(`「${mapData.title}」を削除しますか？`)) {
-              onDeleteMap(mapData.mapIdentifier);
+              onDeleteMap(mapData.id);
             }
           }
         }
@@ -585,10 +579,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           icon: <BookOpen size={14} />,
           onClick: () => {
             if (targetPath && /\.md$/i.test(targetPath)) {
-              const wsMatch = targetPath.match(/^\/((ws_[^/]+))\//);
-              const workspaceId = wsMatch ? wsMatch[1] : undefined;
-              const mapId = targetPath.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
-              window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } }));
+              const mapId = targetPath.replace(/\.md$/i, '');
+              window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId } }));
             }
           }
         },
@@ -641,26 +633,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   // 展開状態
   return (
     <div className="mindmap-sidebar">
-      <div className="workspaces-header" style={{ padding: '8px 8px 4px 8px', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>workspaces</div>
-          <div>
-            <button className="maps-action-button" onClick={() => onAddWorkspace && onAddWorkspace()} title="Add workspace">＋</button>
-          </div>
-        </div>
-        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          {workspaces && workspaces.length > 0 ? (
-            workspaces.map((ws) => (
-              <span key={ws.id} className="workspace-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: 999, fontSize: 12 }}>
-                <span>{ws.name}</span>
-                {onRemoveWorkspace && <button onClick={() => onRemoveWorkspace(ws.id)} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}
-              </span>
-            ))
-          ) : (
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No workspace. Click ＋ to add.</span>
-          )}
-        </div>
-      </div>
       <SidebarHeader
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
@@ -732,7 +704,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             onFolderSelect={handleFolderSelect}
             onContextMenu={handleContextMenu}
             onSelectMap={onSelectMap}
-            onFinishRename={(id) => handleFinishRename(id)}
+            onFinishRename={handleFinishRename}
             onCancelRename={handleCancelRename}
             onEditingTitleChange={setEditingTitle}
             onDragStart={handleDragStart}
@@ -753,9 +725,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       />
 
       <SidebarStyles />
-      <style>{`
-        .workspace-chip button:hover { color: var(--text-primary); }
-      `}</style>
     </div>
   );
 };
@@ -805,11 +774,10 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
       );
     }
     const isMd = !!item.isMarkdown;
-    const workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
-    const mapId = isMd ? item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '') : null;
+    const mapId = isMd ? item.path.replace(/\.md$/i, '') : null;
     const onClick = () => {
       if (isMd && mapId) {
-        const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } });
+        const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId } });
         window.dispatchEvent(ev);
       }
       if (onSelectPath) onSelectPath(item.path);
@@ -833,7 +801,6 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
     );
   };
 
-  const isSyntheticWorkspacesRoot = tree.name === 'workspaces' && !tree.path;
   return (
     <div className="explorer-root"
       onDragOver={(e) => { e.preventDefault(); setDragOverPath(''); }}
@@ -848,15 +815,8 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
         }
       }}
     >
-      {isSyntheticWorkspacesRoot ? (
-        <div>
-          {(tree.children || []).map(child => (
-            <NodeView key={child.path} item={child} />
-          ))}
-        </div>
-      ) : (
-        <NodeView key={tree.path || '__root__'} item={tree} />
-      )}
+      {/* ルートフォルダ自体も表示する（フォルダ名=選択したディレクトリ名） */}
+      <NodeView key={tree.path || '__root__'} item={tree} />
     </div>
   );
 };

@@ -46,6 +46,7 @@
       "@local/core/*": ["src/Local/core/*"],
       "@local/features/*": ["src/Local/features/*"],
       "@local/shared/*": ["src/Local/shared/*"],
+      "@cloud/*": ["src/Cloud/*"],
       "@shared/*": ["src/shared/*"]
     }
   },

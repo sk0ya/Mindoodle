@@ -1,5 +1,4 @@
 import { useCallback, useState } from 'react';
-import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '../../shared/utils/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
@@ -43,8 +42,7 @@ export const useMindMap = (
     isInitialized: persistenceHook.isInitialized,
     loadInitialData: persistenceHook.loadInitialData,
     refreshMapList: persistenceHook.refreshMapList,
-    applyAutoLayout: dataHook.applyAutoLayout,
-    currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId
+    applyAutoLayout: dataHook.applyAutoLayout
   });
 
   useStorageConfigChange(storageConfig, {
@@ -52,8 +50,7 @@ export const useMindMap = (
     isInitialized: persistenceHook.isInitialized,
     loadInitialData: persistenceHook.loadInitialData,
     refreshMapList: persistenceHook.refreshMapList,
-    applyAutoLayout: dataHook.applyAutoLayout,
-    currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId
+    applyAutoLayout: dataHook.applyAutoLayout
   });
 
   // 自動保存機能
@@ -74,12 +71,6 @@ export const useMindMap = (
   // Folder selection helper to ensure we operate on the same adapter instance
   const selectRootFolder = useCallback(async (): Promise<boolean> => {
     const adapter: any = persistenceHook.storageAdapter as any;
-    if (adapter && typeof adapter.addWorkspace === 'function') {
-      await adapter.addWorkspace();
-      await persistenceHook.refreshMapList();
-      return true;
-    }
-    // fallback legacy
     if (adapter && typeof adapter.selectRootFolder === 'function') {
       await adapter.selectRootFolder();
       await persistenceHook.refreshMapList();
@@ -129,11 +120,11 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   // Expose raw markdown fetch for current adapter (markdown mode only)
-  const getMapMarkdown = useCallback(async (id: MapIdentifier): Promise<string | null> => {
+  const getMapMarkdown = useCallback(async (mapId: string): Promise<string | null> => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
       try {
-        return await adapter.getMapMarkdown(id.mapId);
+        return await adapter.getMapMarkdown(mapId);
       } catch {
         return null;
       }
@@ -141,11 +132,11 @@ export const useMindMap = (
     return null;
   }, [persistenceHook]);
 
-  const getMapLastModified = useCallback(async (id: MapIdentifier): Promise<number | null> => {
+  const getMapLastModified = useCallback(async (mapId: string): Promise<number | null> => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && typeof adapter.getMapLastModified === 'function') {
       try {
-        return await adapter.getMapLastModified(id.mapId);
+        return await adapter.getMapLastModified(mapId);
       } catch {
         return null;
       }
@@ -154,11 +145,11 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   // Save raw markdown for current adapter (markdown mode only)
-  const saveMapMarkdown = useCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
+  const saveMapMarkdown = useCallback(async (mapId: string, markdown: string): Promise<void> => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && typeof adapter.saveMapMarkdown === 'function') {
       try {
-        await adapter.saveMapMarkdown(id, markdown);
+        await adapter.saveMapMarkdown(mapId, markdown);
       } catch (error) {
         console.error('Failed to save map markdown:', error);
         throw error;
@@ -170,17 +161,15 @@ export const useMindMap = (
 
   // マップ管理の高レベル操作（非同期対応）
   const mapOperations = {
-    createAndSelectMap: useCallback(async (title: string, workspaceId: string, category?: string): Promise<string> => {
-      const newMap = actionsHook.createMap(title, workspaceId, category);
+    createAndSelectMap: useCallback(async (title: string, category?: string): Promise<string> => {
+      const newMap = actionsHook.createMap(title, category);
       await persistenceHook.addMapToList(newMap);
       actionsHook.selectMap(newMap);
-      return newMap.mapIdentifier.mapId;
+      return newMap.id;
     }, [actionsHook, persistenceHook]),
 
-    selectMapById: useCallback((target: MapIdentifier) => {
-      const mapId = target.mapId;
-      const workspaceId = target.workspaceId;
-      const targetMap = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === workspaceId);
+    selectMapById: useCallback((mapId: string) => {
+      const targetMap = persistenceHook.allMindMaps.find(map => map.id === mapId);
       if (targetMap) {
         actionsHook.selectMap(targetMap);
         return true;
@@ -192,7 +181,7 @@ export const useMindMap = (
           if (!adapter) return;
           const text: string | null = await (adapter.getMapMarkdown?.(mapId));
           if (!text) return;
-          const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
+          const rootNode = MarkdownImporter.parseMarkdownToNodes(text);
           // Parse headings if needed in future; current fallback only builds minimal MindMapData
           // const headings = MarkdownImporter.parseHeadings(text);
           const parts = (mapId || '').split('/').filter(Boolean);
@@ -200,14 +189,13 @@ export const useMindMap = (
           const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
           const now = new Date().toISOString();
           const parsed: MindMapData = {
+            id: mapId,
             title: baseName,
             category: category || undefined,
-            rootNode: parseResult.rootNodes[0],
-            rootNodes: parseResult.rootNodes,
+            rootNode,
             createdAt: now,
             updatedAt: now,
-            settings: { autoSave: true, autoLayout: true },
-            mapIdentifier: { mapId, workspaceId }
+            settings: { autoSave: true, autoLayout: true }
           };
           actionsHook.selectMap(parsed);
           // Optionally, ensure future saves go back to the same file by updating list
@@ -217,24 +205,23 @@ export const useMindMap = (
       return false;
     }, [persistenceHook, actionsHook]),
 
-    deleteMap: useCallback(async (id: MapIdentifier): Promise<void> => {
-      await persistenceHook.removeMapFromList(id);
+    deleteMap: useCallback(async (mapId: string): Promise<void> => {
+      await persistenceHook.removeMapFromList(mapId);
       // 現在のマップが削除された場合は新しいマップを作成
-      if (dataHook.data?.mapIdentifier.mapId === id.mapId) {
-        const newMap = actionsHook.createMap('新しいマインドマップ', id.workspaceId);
+      if (dataHook.data?.id === mapId) {
+        const newMap = actionsHook.createMap('新しいマインドマップ');
         actionsHook.selectMap(newMap);
       }
     }, [persistenceHook, dataHook, actionsHook]),
 
-    updateMapMetadata: useCallback(async (target: MapIdentifier, updates: { title?: string; category?: string }): Promise<void> => {
-      const mapId = target.mapId;
+    updateMapMetadata: useCallback(async (mapId: string, updates: { title?: string; category?: string }): Promise<void> => {
       // 現在選択中のマップの場合のみストアを更新
-      if (dataHook.data?.mapIdentifier.mapId === mapId) {
-        actionsHook.updateMapMetadata(target, updates);
+      if (dataHook.data?.id === mapId) {
+        actionsHook.updateMapMetadata(mapId, updates);
       }
       
       // マップリストを常に更新（全マップ中から該当するマップを探して更新）
-      const mapToUpdate = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === target.workspaceId);
+      const mapToUpdate = persistenceHook.allMindMaps.find(map => map.id === mapId);
       if (mapToUpdate) {
         const updatedMap = {
           ...mapToUpdate,
@@ -347,9 +334,6 @@ export const useMindMap = (
     moveItem,
     explorerTree: (persistenceHook as any).explorerTree || null
     ,
-    workspaces: (persistenceHook as any).workspaces || [],
-    addWorkspace: (persistenceHook as any).addWorkspace,
-    removeWorkspace: (persistenceHook as any).removeWorkspace,
     // markdown helpers
     getMapMarkdown,
     getMapLastModified,

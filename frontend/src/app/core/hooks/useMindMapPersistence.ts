@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
-import type { MindMapData, MapIdentifier } from '@shared/types';
-import { DEFAULT_WORKSPACE_ID } from '@shared/types';
+import type { MindMapData } from '@shared/types';
 import { createInitialData } from '../../shared/types/dataTypes';
 import type { StorageAdapter, StorageConfig, ExplorerItem } from '../storage/types';
 import { createStorageAdapter } from '../storage/StorageAdapterFactory';
@@ -21,7 +20,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   const [storageAdapter, setStorageAdapter] = useState<StorageAdapter | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [explorerTree, setExplorerTree] = useState<ExplorerItem | null>(null);
-  const [workspaces, setWorkspaces] = useState<Array<{ id: string; name: string }>>([]);
 
   // 前回の設定を記録して無用な再初期化を防ぐ
   const prevConfigRef = useRef<StorageConfig | null>(null);
@@ -30,10 +28,11 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   useEffect(() => {
     const prevConfig = prevConfigRef.current;
     const modeChanged = prevConfig?.mode !== config.mode;
+    const authAdapterChanged = prevConfig?.authAdapter !== config.authAdapter;
     
 
     // 設定が実際に変更された場合のみ再初期化
-    if (!prevConfig || modeChanged ) {
+    if (!prevConfig || modeChanged || authAdapterChanged) {
       logger.debug(`(Re)initializing ${config.mode} storage adapter`, {
         reason: !prevConfig ? 'first-init' : modeChanged ? 'mode-changed' : 'auth-changed'
       });
@@ -83,15 +82,14 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   const { waitForInitialization } = useInitializationWaiter();
 
   // 初期データ読み込み
-  const loadInitialData = useCallback(async (defaultWorkspaceId: string = DEFAULT_WORKSPACE_ID): Promise<MindMapData> => {
+  const loadInitialData = useCallback(async (): Promise<MindMapData> => {
     if (!isInitialized || !storageAdapter) {
       await waitForInitialization(() => isInitialized && !!storageAdapter);
     }
 
     if (!storageAdapter) {
       logger.warn('Storage adapter not available, creating default data');
-      const mapIdentifier = { mapId: `map_${Date.now()}`, workspaceId: defaultWorkspaceId };
-      return createInitialData(mapIdentifier);
+      return createInitialData();
     }
 
     try {
@@ -110,8 +108,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
     
     // デフォルトデータを作成して返す
-    const mapIdentifier = { mapId: `map_${Date.now()}`, workspaceId: defaultWorkspaceId };
-    const initialData = createInitialData(mapIdentifier);
+    const initialData = createInitialData();
     logger.debug('Created initial data:', initialData.title);
     return initialData;
   }, [isInitialized, storageAdapter, config.mode, waitForInitialization]);
@@ -143,7 +140,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
             for (let i = 0; i < prev.length; i++) {
               const a = prev[i];
               const b = savedMaps[i];
-              if (a.mapIdentifier.mapId !== b.mapIdentifier.mapId || a.updatedAt !== b.updatedAt || a.title !== b.title || a.category !== b.category) {
+              if (a.id !== b.id || a.updatedAt !== b.updatedAt || a.title !== b.title || a.category !== b.category) {
                 same = false; break;
               }
             }
@@ -176,20 +173,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, storageAdapter]);
 
-  // Workspaces management
-  const loadWorkspaces = useCallback(async (): Promise<void> => {
-    if (!isInitialized || !storageAdapter || typeof storageAdapter.listWorkspaces !== 'function') {
-      setWorkspaces([]);
-      return;
-    }
-    try {
-      const ws = await storageAdapter.listWorkspaces();
-      setWorkspaces(ws);
-    } catch {
-      setWorkspaces([]);
-    }
-  }, [isInitialized, storageAdapter]);
-
   // 全マップ保存
   const saveAllMaps = useCallback(async (maps: MindMapData[]): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
@@ -216,13 +199,13 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   }, [isInitialized, storageAdapter, config.mode]);
 
   // マップをリストから削除
-  const removeMapFromList = useCallback(async (id: MapIdentifier): Promise<void> => {
+  const removeMapFromList = useCallback(async (mapId: string): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
     
     try {
-      await storageAdapter.removeMapFromList(id);
-      setAllMindMaps(prevMaps => prevMaps.filter(map => !(map.mapIdentifier.mapId === id.mapId && map.mapIdentifier.workspaceId === id.workspaceId)));
-      logger.debug(`Removed map from list (${config.mode}):`, id.mapId);
+      await storageAdapter.removeMapFromList(mapId);
+      setAllMindMaps(prevMaps => prevMaps.filter(map => map.id !== mapId));
+      logger.debug(`Removed map from list (${config.mode}):`, mapId);
     } catch (removeError) {
       logger.error(`Failed to remove map from list (${config.mode}):`, removeError);
     }
@@ -235,7 +218,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     try {
       await storageAdapter.updateMapInList(updatedMap);
       setAllMindMaps(prevMaps => 
-        prevMaps.map(map => map.mapIdentifier.mapId === updatedMap.mapIdentifier.mapId ? updatedMap : map)
+        prevMaps.map(map => map.id === updatedMap.id ? updatedMap : map)
       );
       logger.debug(`Updated map in list (${config.mode}):`, updatedMap.title);
     } catch (updateError) {
@@ -248,9 +231,8 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     if (isInitialized && storageAdapter) {
       loadAllMaps();
       loadExplorerTree();
-      loadWorkspaces();
     }
-  }, [isInitialized, storageAdapter, loadAllMaps, loadExplorerTree, loadWorkspaces]);
+  }, [isInitialized, storageAdapter, loadAllMaps, loadExplorerTree]);
 
 
   // マップ一覧を強制リフレッシュする関数
@@ -258,9 +240,8 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     if (storageAdapter) {
       await loadAllMaps();
       await loadExplorerTree();
-      await loadWorkspaces();
     }
-  }, [storageAdapter, loadAllMaps, loadExplorerTree, loadWorkspaces]);
+  }, [storageAdapter, loadAllMaps, loadExplorerTree]);
 
   // Create folder wrapper
   const createFolder = useCallback(async (relativePath: string): Promise<void> => {
@@ -276,7 +257,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     error,
     storageMode: config.mode,
     explorerTree,
-    workspaces,
     
     // 操作
     loadInitialData,
@@ -290,9 +270,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     createFolder,
     
     // ストレージアダプター（高度な使用のため）
-    storageAdapter,
-    // workspace ops
-    addWorkspace: async () => { if (storageAdapter && typeof (storageAdapter as any).addWorkspace === 'function') { await (storageAdapter as any).addWorkspace(); await refreshMapList(); } },
-    removeWorkspace: async (id: string) => { if (storageAdapter && typeof (storageAdapter as any).removeWorkspace === 'function') { await (storageAdapter as any).removeWorkspace(id); await refreshMapList(); } }
+    storageAdapter
   };
 };

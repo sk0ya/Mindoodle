@@ -1,9 +1,7 @@
 import { cloneDeep } from '../utils/lodash-utils';
-import type { MapIdentifier } from '@shared/types';
-import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import { COORDINATES, LAYOUT, TYPOGRAPHY, COLORS, DEFAULTS, STORAGE, VALIDATION } from '../constants/index';
 import { logger } from '../utils/logger';
-import { generateNodeId } from '../utils/idGenerator';
+import { generateNodeId, generateMapId } from '../utils/idGenerator';
 export { validateFile, formatFileSize } from '../utils/fileUtils';
 
 // ========================================
@@ -103,12 +101,12 @@ export interface FileHandlersDependency {
 }
 
 export interface MapHandlersDependency {
-  handleNavigateToMap: (id: MapIdentifier) => Promise<void>;
+  handleNavigateToMap: (mapId: string) => Promise<void>;
   handleCreateMap: (title: string) => Promise<string>;
-  handleDeleteMap: (id: MapIdentifier) => Promise<void>;
-  handleRenameMap: (id: MapIdentifier, newTitle: string) => Promise<void>;
-  handleChangeCategory: (id: MapIdentifier, category: string) => Promise<void>;
-  handleSelectMap: (id: MapIdentifier) => Promise<void>;
+  handleDeleteMap: (mapId: string) => Promise<void>;
+  handleRenameMap: (mapId: string, newTitle: string) => Promise<void>;
+  handleChangeCategory: (mapId: string, category: string) => Promise<void>;
+  handleSelectMap: (mapId: string) => Promise<void>;
 }
 
 export interface UIStateDependency {
@@ -136,13 +134,13 @@ export const THEMES: Record<string, Theme> = {
 };
 
 
-export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => ({
+export const createInitialData = (): MindMapData => ({
+  id: generateMapId(),
   title: DEFAULTS.NEW_MAP_TITLE,
   category: '',
   theme: 'default',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
-  mapIdentifier,
   rootNode: {
     id: 'root',
     text: DEFAULTS.NEW_MAP_TITLE,
@@ -308,29 +306,14 @@ export const assignColorsToExistingNodes = (mindMapData: MindMapData): MindMapDa
   // rootNodeが存在しない場合の対応
   if (!mindMapData || !mindMapData.rootNode) {
     logger.warn('Invalid mindmap data or missing rootNode:', mindMapData);
-    return mindMapData || createInitialData({ mapId: 'temp', workspaceId: DEFAULT_WORKSPACE_ID });
+    return mindMapData || createInitialData();
   }
   
   // 🔧 重要: 完全なディープクローンを作成してオブジェクト参照の共有を防止
   const clonedData = deepClone(mindMapData);
   
   const assignColors = (node: MindMapNode, parentColor: string | null = null, isRootChild: boolean = false, childIndex: number = 0): void => {
-    // 親がいないかどうかでルートノード判定（ID固定に依存しない）
-    const findParentNode = (rootNode: MindMapNode, nodeId: string): MindMapNode | null => {
-      if (!rootNode.children) return null;
-
-      for (const child of rootNode.children) {
-        if (child.id === nodeId) return rootNode;
-        const parent = findParentNode(child, nodeId);
-        if (parent) return parent;
-      }
-
-      return null;
-    };
-
-    const isRootNode = node.id === clonedData.rootNode.id || findParentNode(clonedData.rootNode, node.id) === null;
-
-    if (isRootNode) {
+    if (node.id === 'root') {
       // ルートノードには色を設定しない
       node.color = undefined;
     } else if (isRootChild) {
@@ -342,11 +325,11 @@ export const assignColorsToExistingNodes = (mindMapData: MindMapData): MindMapDa
       // 他の場合は親の色を継承
       node.color = parentColor;
     }
-
+    
     // 子ノードも再帰的に処理（インプレース変更）
     if (node.children) {
       node.children.forEach((child: MindMapNode, index: number) =>
-        assignColors(child, node.color, isRootNode, index)
+        assignColors(child, node.color, node.id === 'root', index)
       );
     }
   };

@@ -143,7 +143,7 @@ export const getLinkTargetInfo = (
   targetNode: MindMapNode | null;
   canNavigate: boolean;
 } => {
-  const isCurrentMap = !link.targetMapId || link.targetMapId === currentData.mapIdentifier.mapId;
+  const isCurrentMap = !link.targetMapId || link.targetMapId === currentData.id;
   
   let targetNode: MindMapNode | null = null;
   

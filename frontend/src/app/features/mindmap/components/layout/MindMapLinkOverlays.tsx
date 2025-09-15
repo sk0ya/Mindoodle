@@ -2,12 +2,12 @@ import React from 'react';
 import NodeLinkModal from '../modals/NodeLinkModal';
 import LinkActionMenu from '../modals/LinkActionMenu';
 import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
-import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
+import type { MindMapNode, NodeLink } from '@shared/types';
 
 type Props = {
   // data
   dataRoot: MindMapNode;
-  allMaps: Array<{ mapIdentifier: { mapId: string; workspaceId: string }; title: string }>;
+  allMaps: Array<{ id: string; title: string }>;
   currentMapData: any;
 
   // modal state
@@ -17,7 +17,7 @@ type Props = {
   onCloseLinkModal: () => void;
   onSaveLink: (linkData: Partial<NodeLink>) => Promise<void> | void;
   onDeleteLink: (linkId: string) => Promise<void> | void;
-  onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<any>;
+  onLoadMapData: (mapId: string) => Promise<any>;
   onSaveFileLink: (filePath: string, label: string) => void;
 
   // action menu state

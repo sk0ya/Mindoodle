@@ -7,7 +7,6 @@ export interface SearchResult {
   mapId: string | null;
   mapTitle: string | null;
   matchType: 'text' | 'note';
-  workspaceId: string;
 }
 
 /**
@@ -30,10 +29,9 @@ export function searchNodesRecursively(
       nodeId: node.id,
       text: node.text,
       note: node.note || '',
-      mapId: mapData.mapIdentifier.mapId,
+      mapId: mapData.id,
       mapTitle: mapData.title,
-      matchType: textMatch ? 'text' : 'note',
-      workspaceId: (mapData as any).mapIdentifier?.workspaceId as string
+      matchType: textMatch ? 'text' : 'note'
     });
   }
 

@@ -142,9 +142,7 @@ export const createNodeSlice: StateCreator<
         state.normalizedData = addNormalizedNode(state.normalizedData, parentId, newNode);
         
         // Color assignment - ブランチベースの色割り当て
-        // ルートノードかどうかは親がいるかどうかで判定
-        const isRootNode = state.normalizedData.parentMap[parentId] === undefined;
-        const color = isRootNode
+        const color = parentNode.id === 'root' 
           ? COLORS.NODE_COLORS[childNodes.length % COLORS.NODE_COLORS.length]
           : getBranchColor(newNode.id, state.normalizedData);
         

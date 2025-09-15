@@ -11,8 +11,8 @@ interface LinkActionMenuProps {
   onEdit: (link: NodeLink) => void;
   onDelete: (linkId: string) => void;
   // リンク表示用の追加データ
-  availableMaps?: { mapIdentifier: { mapId: string; workspaceId: string }; title: string }[];
-  currentMapData?: { mapIdentifier: { mapId: string; workspaceId: string }; rootNode: any };
+  availableMaps?: { id: string; title: string }[];
+  currentMapData?: { id: string; rootNode: any };
 }
 
 const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
@@ -101,7 +101,7 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
       };
     } else {
       // 他のマップへのリンク
-      const targetMap = availableMaps.find(map => map.mapIdentifier.mapId === link.targetMapId);
+      const targetMap = availableMaps.find(map => map.id === link.targetMapId);
       return {
         mapTitle: targetMap?.title || `マップID: ${link.targetMapId}`,
         nodeText: link.targetNodeId ? `ノードID: ${link.targetNodeId}` : 'ルートノード'

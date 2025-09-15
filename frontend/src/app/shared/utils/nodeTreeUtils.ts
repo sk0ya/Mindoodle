@@ -83,14 +83,6 @@ export function getFirstVisibleChild(node: MindMapNode): MindMapNode | null {
   if (!node.children || node.children.length === 0 || node.collapsed) {
     return null;
   }
-
+  
   return node.children[0];
-}
-
-/**
- * ノードがルートノード（親がいない）かどうかを判定
- */
-export function isRootNode(rootNode: MindMapNode, nodeId: string): boolean {
-  if (rootNode.id === nodeId) return true;
-  return findParentNode(rootNode, nodeId) === null;
 }

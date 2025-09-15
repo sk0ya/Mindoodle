@@ -1,5 +1,7 @@
 // Storage abstraction types for dual Local/Cloud architecture
-import type { MindMapData, MapIdentifier } from '@shared/types';
+import type { MindMapData } from '@shared/types';
+import type { AuthAdapter } from '../auth/types';
+import type { FileInfo } from '../cloud/api';
 
 /**
  * 統一ストレージインターフェース
@@ -25,7 +27,7 @@ export interface StorageAdapter {
   loadAllMaps(): Promise<MindMapData[]>;
   saveAllMaps(maps: MindMapData[]): Promise<void>;
   addMapToList(map: MindMapData): Promise<void>;
-  removeMapFromList(id: MapIdentifier): Promise<void>;
+  removeMapFromList(mapId: string): Promise<void>;
   updateMapInList(map: MindMapData): Promise<void>;
   
   // File system operations (optional)
@@ -38,22 +40,19 @@ export interface StorageAdapter {
   moveItem?(sourcePath: string, targetFolderPath: string): Promise<void>;
 
   // Markdown helpers (optional)
-  getMapMarkdown?(id: MapIdentifier): Promise<string | null>;
-  getMapLastModified?(id: MapIdentifier): Promise<number | null>;
-  saveMapMarkdown?(id: MapIdentifier, markdown: string): Promise<void>;
+  getMapMarkdown?(mapId: string): Promise<string | null>;
+  getMapLastModified?(mapId: string): Promise<number | null>;
+  saveMapMarkdown?(mapId: string, markdown: string): Promise<void>;
   
   // ファイル操作（オプショナル - クラウドモードのみ）
+  uploadFile?(mindmapId: string, nodeId: string, file: File): Promise<FileInfo>;
   deleteFile?(mindmapId: string, nodeId: string, fileId: string): Promise<void>;
+  getFileInfo?(mindmapId: string, nodeId: string, fileId: string): Promise<FileInfo>;
   downloadFile?(mindmapId: string, nodeId: string, fileId: string): Promise<Blob>;
   
   // ライフサイクル
   initialize(): Promise<void>;
   cleanup(): void;
-
-  // Workspace management (optional; markdown/local adapters)
-  listWorkspaces?(): Promise<Array<{ id: string; name: string }>>;
-  addWorkspace?(): Promise<void>;
-  removeWorkspace?(id: string): Promise<void>;
 }
 
 
@@ -62,6 +61,7 @@ export interface StorageAdapter {
  */
 export interface StorageConfig {
   mode: StorageMode;
+  authAdapter?: AuthAdapter;
   autoSave?: boolean;
   syncInterval?: number;
   retryAttempts?: number;
@@ -71,7 +71,7 @@ export interface StorageConfig {
 /**
  * ストレージモード
  */
-export type StorageMode = 'local' | 'markdown';
+export type StorageMode = 'local' | 'cloud' | 'markdown';
 
 /**
  * 同期状態

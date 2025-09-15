@@ -1,4 +1,4 @@
-import type { MindMapNode, MapIdentifier } from '@shared/types';
+import type { MindMapNode } from '@shared/types';
 
 const slugify = (text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
 
@@ -19,8 +19,7 @@ function findNodeByTextLoose(root: MindMapNode, targetText: string): MindMapNode
 interface Ctx {
   currentMapId: string | null | undefined;
   dataRoot: MindMapNode | null | undefined;
-  selectMapById: (id: MapIdentifier) => Promise<boolean> | boolean;
-  currentWorkspaceId: string | null | undefined;
+  selectMapById: (id: string) => Promise<boolean> | boolean;
   selectNode: (id: string) => void;
   centerNodeInView: (id: string, animate?: boolean) => void;
   notify: (type: 'success'|'error'|'info'|'warning', message: string) => void;
@@ -34,8 +33,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
   const { currentMapId, dataRoot, selectMapById, selectNode, centerNodeInView, notify, getCurrentRootNode } = ctx;
   try {
     if (link.targetMapId && link.targetMapId !== currentMapId) {
-      const wsid = ctx.currentWorkspaceId as string;
-      const ok = await selectMapById({ mapId: link.targetMapId, workspaceId: wsid });
+      const ok = await selectMapById(link.targetMapId);
       if (!ok) { notify('error', `マップ "${link.targetMapId}" が見つかりません`); return; }
       notify('success', `マップ "${link.targetMapId}" に移動しました`);
       if (link.targetNodeId) {

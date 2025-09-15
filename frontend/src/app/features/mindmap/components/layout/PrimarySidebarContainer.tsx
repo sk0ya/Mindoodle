@@ -1,31 +1,29 @@
 import React from 'react';
 import PrimarySidebar from './PrimarySidebar';
-import type { MapIdentifier } from '@shared/types';
 
 type Props = {
   activeView: string | null;
-  storageMode: 'local' | 'markdown';
-  onModeChange?: (mode: 'local' | 'markdown') => void;
+  storageMode: 'local' | 'cloud' | 'markdown';
+  onModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   // Mind map context
   allMindMaps: any[];
   currentMapId: string | null;
-  onSelectMap: (id: MapIdentifier) => void;
+  onSelectMap: (mapId: string) => void;
   onCreateMap: (title: string, category?: string) => Promise<string>;
-  onDeleteMap: (id: MapIdentifier) => Promise<void>;
-  onRenameMap: (id: MapIdentifier, title: string) => Promise<void> | void;
-  onChangeCategory: (id: MapIdentifier, category: string) => Promise<void> | void;
+  onDeleteMap: (mapId: string) => Promise<void>;
+  onRenameMap: (mapId: string, title: string) => Promise<void> | void;
+  onChangeCategory: (mapId: string, category: string) => Promise<void> | void;
   onChangeCategoryBulk: (updates: Array<{ id: string; category: string }>) => Promise<void>;
   onShowKeyboardHelper: () => void;
   onAutoLayout: () => void;
-  // Workspaces management
-  workspaces?: Array<{ id: string; name: string }>;
-  onAddWorkspace?: () => void;
-  onRemoveWorkspace?: (id: string) => void;
+  onSelectFolder: () => Promise<void>;
+  onShowFolderGuide: () => void;
+  currentFolderLabel: string | null;
   explorerTree: any;
   onCreateFolder: (path: string) => Promise<void>;
   currentMapData: any;
   onNodeSelect: (nodeId: string) => void;
-  onMapSwitch: (id: MapIdentifier) => void;
+  onMapSwitch: (mapId: string) => void;
 };
 
 const PrimarySidebarContainer: React.FC<Props> = (props) => {
@@ -43,9 +41,9 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     onChangeCategoryBulk,
     onShowKeyboardHelper,
     onAutoLayout,
-    workspaces,
-    onAddWorkspace,
-    onRemoveWorkspace,
+    onSelectFolder,
+    onShowFolderGuide,
+    currentFolderLabel,
     explorerTree,
     onCreateFolder,
     currentMapData,
@@ -70,9 +68,9 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       onStorageModeChange={onModeChange}
       onShowKeyboardHelper={onShowKeyboardHelper}
       onAutoLayout={onAutoLayout}
-      workspaces={workspaces}
-      onAddWorkspace={onAddWorkspace}
-      onRemoveWorkspace={onRemoveWorkspace}
+      onSelectFolder={onSelectFolder}
+      onShowFolderGuide={onShowFolderGuide}
+      currentFolderLabel={currentFolderLabel}
       explorerTree={explorerTree}
       onCreateFolder={onCreateFolder}
       currentMapData={currentMapData}

@@ -3,7 +3,7 @@ import MindMapSidebar from './MindMapSidebar';
 import SettingsSidebar from './SettingsSidebar';
 import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
-import type { MindMapData, MapIdentifier } from '@shared/types';
+import type { MindMapData } from '../../../../shared/types';
 import type { ExplorerItem } from '../../../../core/storage/types';
 import './PrimarySidebar.css';
 
@@ -13,29 +13,28 @@ interface PrimarySidebarProps {
   // Maps view props
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
-  onSelectMap?: (id: MapIdentifier) => void;
+  onSelectMap?: (mapId: string) => void;
   onCreateMap?: (title: string, category?: string) => void;
-  onDeleteMap?: (id: MapIdentifier) => void;
-  onRenameMap?: (id: MapIdentifier, newTitle: string) => void;
-  onChangeCategory?: (id: MapIdentifier, category: string) => void;
+  onDeleteMap?: (mapId: string) => void;
+  onRenameMap?: (mapId: string, newTitle: string) => void;
+  onChangeCategory?: (mapId: string, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
   availableCategories?: string[];
-  // Workspaces
-  workspaces?: Array<{ id: string; name: string }>;
-  onAddWorkspace?: () => void;
-  onRemoveWorkspace?: (id: string) => void;
   // Settings props
-  storageMode?: 'local' | 'markdown';
-  onStorageModeChange?: (mode: 'local' | 'markdown') => void;
+  storageMode?: 'local' | 'cloud' | 'markdown';
+  onStorageModeChange?: (mode: 'local' | 'cloud' | 'markdown') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
+  onSelectFolder?: () => Promise<void> | void;
+  onShowFolderGuide?: () => void;
+  currentFolderLabel?: string | null;
   explorerTree?: ExplorerItem | null;
   onCreateFolder?: (path: string) => Promise<void> | void;
   // Current map data for export
   currentMapData?: MindMapData | null;
   // Search props
   onNodeSelect?: (nodeId: string) => void;
-  onMapSwitch?: (id: MapIdentifier) => void;
+  onMapSwitch?: (mapId: string) => void;
 }
 
 const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
@@ -51,14 +50,14 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onChangeCategory,
   onChangeCategoryBulk,
   availableCategories = [],
-  workspaces = [],
-  onAddWorkspace,
-  onRemoveWorkspace,
   // Settings props
   storageMode,
   onStorageModeChange,
   onShowKeyboardHelper,
   onAutoLayout,
+  onSelectFolder,
+  onShowFolderGuide,
+  currentFolderLabel,
   explorerTree,
   onCreateFolder,
   // Current map data
@@ -87,9 +86,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             availableCategories={availableCategories}
             isCollapsed={false}
             onToggleCollapse={() => {}}
-            workspaces={workspaces}
-            onAddWorkspace={onAddWorkspace}
-            onRemoveWorkspace={onRemoveWorkspace}
             explorerTree={explorerTree || undefined}
             onCreateFolder={onCreateFolder}
           />
@@ -119,6 +115,9 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             onStorageModeChange={onStorageModeChange}
             onShowKeyboardHelper={onShowKeyboardHelper}
             onAutoLayout={onAutoLayout}
+            onSelectFolder={onSelectFolder}
+            onShowFolderGuide={onShowFolderGuide}
+            currentFolderLabel={currentFolderLabel}
           />
         );
       
