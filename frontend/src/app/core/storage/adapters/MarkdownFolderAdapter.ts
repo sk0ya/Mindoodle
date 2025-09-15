@@ -15,6 +15,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private workspaces: Array<{ id: string; name: string; handle: DirHandle }> = [];
   private saveTargets: Map<string, { dir: DirHandle, fileName: string, isRoot: boolean, baseHeadingLevel?: number, headingLevelByText?: Record<string, number> } > = new Map();
   private permissionWarned = false;
+  private allMaps: MindMapData[] = [];
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -118,6 +119,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async saveData(data: MindMapData): Promise<void> {
+    console.log('🔍 saveData called for:', data.mapIdentifier.mapId, data.title);
+    
     if (!this._isInitialized) {
       await this.initialize();
     }
@@ -129,49 +132,53 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return;
     }
 
-    const stKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
-    // Resolve existing save target: try ws key, then any key ending with ::id, then plain id
-    let target = this.saveTargets.get(stKey);
-    if (!target) {
-      const found = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${data.mapIdentifier.mapId}`));
-      if (found) target = found[1];
-    }
-    if (!target) {
-      target = this.saveTargets.get(data.mapIdentifier.mapId);
-    }
-    const baseLevel = target?.baseHeadingLevel || 1;
-    const markdown = this.buildMarkdownDocument(data, baseLevel);
-
-    // If this map has a known save target (loaded from a specific file), write back to it
-    if (target) {
-      await this.writeTextFile(target.dir, target.fileName, markdown);
-      logger.debug(`💾 MarkdownFolderAdapter: Saved ${target.fileName} ${target.isRoot ? 'at root' : 'in directory'}`);
+    // mapIdentifier.mapIdから直接ファイルパスを決定
+    const mapId = data.mapIdentifier.mapId;
+    console.log('📁 Resolving file path from mapId:', mapId);
+    
+    // mapIdの構造: category/filename または filename
+    const parts = (mapId || '').split('/').filter(Boolean);
+    if (parts.length === 0) {
+      console.log('❌ Invalid mapId, cannot determine file path');
       return;
     }
-    // New map: create a dedicated file. Honor category path if provided.
+    
+    const fileName = parts[parts.length - 1] + '.md';
+    const categoryParts = parts.slice(0, -1);
+    
+    console.log('📂 Category parts:', categoryParts);
+    console.log('📄 File name:', fileName);
+    
+    // ディレクトリを辿る
     let targetDir: DirHandle = wsHandle;
-    if (data.category) {
-      const parts = data.category.split('/').filter(Boolean);
-      for (const part of parts) {
-        targetDir = await this.getOrCreateDirectory(targetDir, part);
-      }
+    for (const categoryPart of categoryParts) {
+      targetDir = await this.getOrCreateDirectory(targetDir, categoryPart);
     }
-    const baseName = this.sanitizeName(data.title || 'mindmap');
-    const fileName = await this.ensureUniqueMarkdownName(targetDir, `${baseName}.md`);
+    
+    // ファイルに保存
+    const baseLevel = 1; // デフォルトの見出しレベル
+    const markdown = this.buildMarkdownDocument(data, baseLevel);
+    
+    console.log('✅ Saving directly to file:', fileName, 'in directory:', categoryParts.join('/') || '(root)');
     await this.writeTextFile(targetDir, fileName, markdown);
-    // Persist mapping with ws key if available, and also plain id as fallback
-    this.saveTargets.set(stKey, { dir: targetDir, fileName, isRoot: !data.category });
-    this.saveTargets.set(data.mapIdentifier.mapId, { dir: targetDir, fileName, isRoot: !data.category });
-    logger.debug('💾 MarkdownFolderAdapter: Created file', fileName, 'in', data.category || '(root)');
+    
+    // saveTargetsにも記録（後続の処理のため）
+    const stKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
+    this.saveTargets.set(stKey, { dir: targetDir, fileName, isRoot: categoryParts.length === 0 });
+    this.saveTargets.set(data.mapIdentifier.mapId, { dir: targetDir, fileName, isRoot: categoryParts.length === 0 });
+    
+    logger.debug('💾 MarkdownFolderAdapter: Saved file', fileName);
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
+    console.log('🗄️ MarkdownFolderAdapter.loadAllMaps called');
     if (!this._isInitialized) {
       await this.initialize();
     }
     if (this.workspaces.length === 0 && !this.rootHandle) return [];
 
     const maps: MindMapData[] = [];
+    console.log('🗄️ Starting to load maps...');
     const targets = this.workspaces.length > 0 ? this.workspaces.map(w => ({ handle: w.handle, id: w.id, name: w.name })) : [{ handle: this.rootHandle as any, id: '__default__', name: (this.rootHandle as any)?.name || '' }];
     for (const t of targets) {
       const perm = await this.queryPermission(t.handle as any, 'readwrite');
@@ -186,7 +193,19 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         for await (const fileHandle of this.iterateMarkdownFiles(t.handle as any)) {
           try {
             const data = await this.loadMapFromFile(fileHandle, t.handle as any, '', t.id);
-            if (data) { maps.push(data); }
+            if (data) {
+              console.log('🗄️ Loading map from file:', data.mapIdentifier.mapId, data.title);
+              // Check for duplicates
+              const existing = maps.find(m =>
+                m.mapIdentifier.mapId === data.mapIdentifier.mapId &&
+                m.mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
+              );
+              if (existing) {
+                console.log('⚠️ Duplicate map found, skipping:', data.mapIdentifier.mapId);
+              } else {
+                maps.push(data);
+              }
+            }
           } catch {}
         }
       } catch (e) {
@@ -198,6 +217,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         }
       }
     }
+    console.log('🗄️ MarkdownFolderAdapter.loadAllMaps finished. Total maps:', maps.length);
+    console.log('🗄️ Final map list:', maps.map(m => `${m.mapIdentifier.mapId}: ${m.title}`));
     return maps;
   }
 
@@ -268,8 +289,27 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
-  async addMapToList(map: MindMapData): Promise<void> {
-    await this.saveData(map);
+  async addMapToList(newMap: MindMapData): Promise<void> {
+    // Initialize allMaps if not done yet
+    if (!this.allMaps) {
+      this.allMaps = [];
+    }
+    
+    const existingIndex = this.allMaps.findIndex(map => 
+      map.mapIdentifier.mapId === newMap.mapIdentifier.mapId &&
+      map.mapIdentifier.workspaceId === newMap.mapIdentifier.workspaceId
+    );
+    
+    if (existingIndex !== -1) {
+      // Update existing entry
+      this.allMaps[existingIndex] = newMap;
+    } else {
+      // Add new entry
+      this.allMaps.push(newMap);
+    }
+    
+    // Don't call saveData here - only add to the in-memory list
+    // Actual saving should be done explicitly by the user or through other means
   }
 
   async removeMapFromList(id: { mapId: string; workspaceId?: string }): Promise<void> {
@@ -447,7 +487,19 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     for await (const fh of this.iterateMarkdownFiles(dir)) {
       try {
         const data = await this.loadMapFromFile(fh, dir, categoryPath, ws.id);
-        if (data) { out.push(data); }
+        if (data) {
+          console.log('🗄️ collectMapsForWorkspace - Loading map:', data.mapIdentifier.mapId, data.title);
+          // Check for duplicates
+          const existing = out.find(m =>
+            m.mapIdentifier.mapId === data.mapIdentifier.mapId &&
+            m.mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
+          );
+          if (existing) {
+            console.log('⚠️ Duplicate map found in collectMapsForWorkspace, skipping:', data.mapIdentifier.mapId);
+          } else {
+            out.push(data);
+          }
+        }
       } catch {}
     }
     for await (const entry of (dir as any).values?.() || this.iterateEntries(dir)) {
@@ -485,9 +537,16 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         settings: { autoSave: true, autoLayout: true },
         mapIdentifier: { mapId, workspaceId: workspaceId || DEFAULT_WORKSPACE_ID }
       };
-      // Record save target (dir where the file resides)
-      this.saveTargets.set(data.mapIdentifier.mapId, { dir: dirForSave, fileName, isRoot: !categoryPath, baseHeadingLevel, headingLevelByText });
       
+      // Record save target with both keys to ensure consistency
+      const saveTarget = { dir: dirForSave, fileName, isRoot: !categoryPath, baseHeadingLevel, headingLevelByText };
+      
+      // Set with plain mapId (legacy compatibility)
+      this.saveTargets.set(data.mapIdentifier.mapId, saveTarget);
+      
+      // Set with composite key (matches saveData lookup)
+      const compositeKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
+      this.saveTargets.set(compositeKey, saveTarget);
       
       return data;
     } catch (e) {

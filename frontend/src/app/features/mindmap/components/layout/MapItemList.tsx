@@ -61,14 +61,18 @@ const MapItemList: React.FC<MapItemListProps> = ({
   onDragStart,
   onContextMenu
 }) => {
-  const handleKeyPress = useCallback((e: React.KeyboardEvent, mapId: string) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent, mapIdentifier: MapIdentifier) => {
     if (e.key === 'Enter') {
-      const ws = (maps.find(m => m.mapIdentifier.mapId === mapId) as any)?.mapIdentifier?.workspaceId as string;
-      onFinishRename({ mapId, workspaceId: ws });
+      onFinishRename(mapIdentifier);
     } else if (e.key === 'Escape') {
       onCancelRename();
     }
-  }, [onFinishRename, onCancelRename, maps]);
+  }, [onFinishRename, onCancelRename]);
+
+  // ダブルクリック防止のためのデバウンス
+  const handleMapClick = useCallback((mapIdentifier: MapIdentifier) => {
+    onSelectMap(mapIdentifier);
+  }, [onSelectMap]);
 
   return (
     <>
@@ -76,7 +80,11 @@ const MapItemList: React.FC<MapItemListProps> = ({
         <div
           key={map.mapIdentifier.mapId}
           className={`map-item ${currentMapId === map.mapIdentifier.mapId ? 'active' : ''}`}
-          onClick={() => onSelectMap({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId })}
+          onClick={() => handleMapClick(map.mapIdentifier)}
+          onDoubleClick={(e) => {
+            e.preventDefault();
+            // ダブルクリック時は何もしない（シングルクリックのみで十分）
+          }}
           onContextMenu={(e) => onContextMenu && onContextMenu(e, categoryPath, 'map', map)}
           draggable
           onDragStart={(e) => onDragStart(e, map)}
@@ -86,8 +94,8 @@ const MapItemList: React.FC<MapItemListProps> = ({
               type="text"
               value={editingTitle}
               onChange={(e) => onEditingTitleChange(e.target.value)}
-              onBlur={() => onFinishRename({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId })}
-              onKeyDown={(e) => handleKeyPress(e, map.mapIdentifier.mapId)}
+              onBlur={() => onFinishRename(map.mapIdentifier)}
+              onKeyDown={(e) => handleKeyPress(e, map.mapIdentifier)}
               autoFocus
               className="title-input"
             />

@@ -14,7 +14,10 @@ export const useMindMapActions = () => {
   const mapActions = {
     // マップ作成
     createMap: useCallback((title: string, workspaceId: string, category?: string): MindMapData => {
-      const mapId = `map_${Date.now()}`;
+      // ファイルパスベースのmapIdを生成（カテゴリ/タイトルの形式）
+      const sanitizedTitle = title.replace(/[/\\:*?"<>|]/g, '_').trim() || 'Untitled';
+      const categoryPath = category ? category.replace(/[/\\:*?"<>|]/g, '_').trim() : '';
+      const mapId = categoryPath ? `${categoryPath}/${sanitizedTitle}` : sanitizedTitle;
       const mapIdentifier = {
         mapId,
         workspaceId

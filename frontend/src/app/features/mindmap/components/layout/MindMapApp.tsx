@@ -390,11 +390,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Listen to explorer selection events
   React.useEffect(() => {
-    const handler = (e: any) => {
+    const handler = async (e: any) => {
       const id = e?.detail?.mapId as string | undefined;
       const ws = e?.detail?.workspaceId as string;
       if (id && typeof selectMapById === 'function') {
-        selectMapById({ mapId: id, workspaceId: ws });
+        await selectMapById({ mapId: id, workspaceId: ws });
       }
     };
     window.addEventListener('mindoodle:selectMapById', handler as EventListener);
@@ -754,8 +754,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onModeChange={onModeChange}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
-        onSelectMap={(id) => {
-          selectMapById(id);
+        onSelectMap={async (id) => {
+          await selectMapById(id);
         }}
         onCreateMap={(title: string, category?: string) => createAndSelectMap(title, data?.mapIdentifier.workspaceId, category)}
         onDeleteMap={deleteMap}
@@ -782,7 +782,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }}
         currentMapData={data}
         onNodeSelect={(nodeId) => { selectNode(nodeId); centerNodeInView(nodeId); }}
-        onMapSwitch={(id) => { selectMapById(id); }}
+        onMapSwitch={async (id) => { await selectMapById(id); }}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>

@@ -9,6 +9,7 @@ import { useInitialDataLoad } from './useInitialDataLoad';
 import { useDataReset } from './useDataReset';
 import { useStorageConfigChange } from './useStorageConfigChange';
 import { useAutoSave } from './useAutoSave';
+import { logger } from '../../shared/utils/logger';
 import type { StorageConfig } from '../storage/types';
 import type { MindMapData } from '@shared/types';
 
@@ -62,13 +63,12 @@ export const useMindMap = (
   const { saveManually } = useAutoSave(
     dataHook.data,
     {
-      saveData: persistenceHook.saveData,
-      updateMapInList: persistenceHook.updateMapInList
+      saveData: persistenceHook.saveData
     },
     {
-      enabled: autoSaveEnabled && persistenceHook.isInitialized
+      enabled: autoSaveEnabled
     },
-    { autoSave: true, autoSaveInterval: 300 } // 自動保存設定
+    { autoSave: false, autoSaveInterval: 300 }
   );
 
   // Folder selection helper to ensure we operate on the same adapter instance
@@ -177,43 +177,96 @@ export const useMindMap = (
       return newMap.mapIdentifier.mapId;
     }, [actionsHook, persistenceHook]),
 
-    selectMapById: useCallback((target: MapIdentifier) => {
+    selectMapById: useCallback(async (target: MapIdentifier): Promise<boolean> => {
       const mapId = target.mapId;
       const workspaceId = target.workspaceId;
+
       const targetMap = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === workspaceId);
       if (targetMap) {
         actionsHook.selectMap(targetMap);
         return true;
       }
+
       // Fallback: try to load markdown by id via adapter and parse
-      (async () => {
+      // 重複実行を防ぐため、既に実行中の場合はスキップ
+      const fallbackKey = `${workspaceId}:${mapId}`;
+      if ((window as any).__selectMapFallbackInProgress?.[fallbackKey]) {
+        return false;
+      }
+      // 実行中フラグを設定
+      (window as any).__selectMapFallbackInProgress = (window as any).__selectMapFallbackInProgress || {};
+      (window as any).__selectMapFallbackInProgress[fallbackKey] = true;
+
+      try {
+        const adapter: any = (persistenceHook as any).storageAdapter;
+        if (!adapter) {
+          delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+          return false;
+        }
+        const text: string | null = await (adapter.getMapMarkdown?.(target));
+        if (!text) {
+          delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+          return false;
+        }
+
+        // 再度チェック：他の処理で既にリストに追加されている可能性
+        const existingMap = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === workspaceId);
+        if (existingMap) {
+          actionsHook.selectMap(existingMap);
+          delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+          return true;
+        }
+        
+        // allMindMapsから同じタイトルのマップを検索して、正しいmapIdentifierを取得
+        const existingMapByTitle = persistenceHook.allMindMaps.find(map => 
+          map.title === mapId && map.mapIdentifier.workspaceId === workspaceId
+        );
+        
+        let actualMapId = mapId;
+        if (existingMapByTitle) {
+          // 既存のマップが見つかった場合、そのmapIdentifierを使用
+          actualMapId = existingMapByTitle.mapIdentifier.mapId;
+          console.log('🔄 Found existing map by title. Using mapId:', actualMapId, 'instead of requested:', mapId);
+        }
+        
+        const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
+        const parts = (actualMapId || '').split('/').filter(Boolean);
+        const baseName = parts.length ? parts[parts.length - 1] : (actualMapId || 'Untitled');
+        const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+        const now = new Date().toISOString();
+        const parsed: MindMapData = {
+          title: mapId, // UIで表示されるタイトル
+          category: category || undefined,
+          rootNodes: parseResult.rootNodes,
+          createdAt: now,
+          updatedAt: now,
+          settings: { autoSave: true, autoLayout: true },
+          mapIdentifier: { mapId: actualMapId, workspaceId } // 正しいファイルベースのmapId
+        };
+
+        actionsHook.selectMap(parsed);
+
+        // リストに追加（重複チェック後）
         try {
-          const adapter: any = (persistenceHook as any).storageAdapter;
-          if (!adapter) return;
-          const text: string | null = await (adapter.getMapMarkdown?.(target));
-          if (!text) return;
-          const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
-          // Parse headings if needed in future; current fallback only builds minimal MindMapData
-          // const headings = MarkdownImporter.parseHeadings(text);
-          const parts = (mapId || '').split('/').filter(Boolean);
-          const baseName = parts.length ? parts[parts.length - 1] : (mapId || 'Untitled');
-          const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
-          const now = new Date().toISOString();
-          const parsed: MindMapData = {
-            title: baseName,
-            category: category || undefined,
-            rootNodes: parseResult.rootNodes,
-            createdAt: now,
-            updatedAt: now,
-            settings: { autoSave: true, autoLayout: true },
-            mapIdentifier: { mapId, workspaceId }
-          };
-          actionsHook.selectMap(parsed);
-          // Optionally, ensure future saves go back to the same file by updating list
-          try { await persistenceHook.updateMapInList(parsed); } catch {}
-        } catch {}
-      })();
-      return false;
+          // 最終重複チェック
+          const stillNotExists = !persistenceHook.allMindMaps.find(m =>
+            m.mapIdentifier.mapId === actualMapId && m.mapIdentifier.workspaceId === workspaceId
+          );
+
+          if (stillNotExists) {
+            await persistenceHook.addMapToList(parsed);
+          }
+        } catch (e) {
+          logger.error('Failed to add map to list:', e);
+        }
+
+        delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+        return true;
+      } catch (e) {
+        logger.error('Fallback error:', e);
+        delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+        return false;
+      }
     }, [persistenceHook, actionsHook]),
 
     deleteMap: useCallback(async (id: MapIdentifier): Promise<void> => {

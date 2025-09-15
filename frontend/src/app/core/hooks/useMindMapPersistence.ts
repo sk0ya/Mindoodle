@@ -131,9 +131,10 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   // 全マップ読み込み
   const loadAllMaps = useCallback(async (): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
-    
+
     try {
       const savedMaps = await storageAdapter.loadAllMaps();
+
       if (savedMaps && savedMaps.length > 0) {
         // Avoid unnecessary state updates if list is unchanged
         setAllMindMaps(prev => {
@@ -147,7 +148,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
                 same = false; break;
               }
             }
-            if (same) return prev;
+            if (same) {
+              return prev;
+            }
           }
           return savedMaps;
         });
@@ -205,10 +208,22 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   // マップをリストに追加
   const addMapToList = useCallback(async (newMap: MindMapData): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
-    
+
     try {
       await storageAdapter.addMapToList(newMap);
-      setAllMindMaps(prevMaps => [...prevMaps, newMap]);
+      setAllMindMaps(prevMaps => {
+        // Check for duplicates before adding
+        const existingMapIndex = prevMaps.findIndex(m =>
+          m.mapIdentifier.mapId === newMap.mapIdentifier.mapId &&
+          m.mapIdentifier.workspaceId === newMap.mapIdentifier.workspaceId
+        );
+
+        if (existingMapIndex !== -1) {
+          return prevMaps; // Return unchanged if duplicate exists
+        }
+
+        return [...prevMaps, newMap];
+      });
       logger.debug(`Added map to list (${config.mode}):`, newMap.title);
     } catch (addError) {
       logger.error(`Failed to add map to list (${config.mode}):`, addError);

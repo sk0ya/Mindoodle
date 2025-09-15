@@ -168,8 +168,7 @@ export const createDataSlice: StateCreator<
         if (draft.data) {
           draft.data = {
             ...draft.data,
-            rootNodes: layoutedRootNodes,
-            updatedAt: new Date().toISOString()
+            rootNodes: layoutedRootNodes
           };
           
           // Update normalized data

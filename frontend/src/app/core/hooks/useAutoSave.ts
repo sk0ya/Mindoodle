@@ -9,7 +9,6 @@ interface AutoSaveOptions {
 
 interface AutoSaveCallbacks {
   saveData: (_data: MindMapData) => Promise<void>;
-  updateMapInList: (_data: MindMapData) => Promise<void>;
 }
 
 /**
@@ -22,22 +21,22 @@ export const useAutoSave = (
   settings?: { autoSave?: boolean; autoSaveInterval?: number }
 ) => {
   const { debounceMs = settings?.autoSaveInterval || 300, enabled = settings?.autoSave ?? options.enabled ?? true } = options;
-  const { saveData, updateMapInList } = callbacks;
+  const { saveData } = callbacks;
 
   const lastSaveTimeRef = useRef<string>('');
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastMapIdRef = useRef<string>('');
+  const isInitialLoadRef = useRef<boolean>(true);
 
   const performAutoSave = useCallback(async (currentData: MindMapData) => {
     try {
       await saveData(currentData);
-      await updateMapInList(currentData);
       logger.debug('Auto save completed:', currentData.title);
       lastSaveTimeRef.current = currentData.updatedAt || '';
     } catch (error) {
       logger.error('Auto save failed:', error);
     }
-  }, [saveData, updateMapInList]);
+  }, [saveData]);
 
   useEffect(() => {
     if (!enabled || !data) return;
@@ -45,9 +44,18 @@ export const useAutoSave = (
     const currentUpdatedAt = data.updatedAt || '';
     const currentMapId = data.mapIdentifier.mapId || '';
 
+
     // マップが切り替わった場合は保存しない
     if (currentMapId !== lastMapIdRef.current) {
       lastMapIdRef.current = currentMapId;
+      lastSaveTimeRef.current = currentUpdatedAt;
+      isInitialLoadRef.current = true; // 新しいマップの初回読み込みをマーク
+      return;
+    }
+
+    // 初回読み込み時は保存しない
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
       lastSaveTimeRef.current = currentUpdatedAt;
       return;
     }
@@ -73,7 +81,7 @@ export const useAutoSave = (
         saveTimeoutRef.current = null;
       }
     };
-  }, [data?.updatedAt, data?.mapIdentifier.mapId, enabled, performAutoSave, debounceMs, data]);
+  }, [data?.updatedAt, data?.mapIdentifier.mapId, enabled, performAutoSave, debounceMs]); // dataを依存配列から除外
 
   const saveManually = useCallback(async () => {
     if (data) {
