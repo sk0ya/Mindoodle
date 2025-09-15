@@ -157,21 +157,71 @@ const Node: React.FC<NodeProps> = ({
       : (path.split('/').pop() || 'リンク');
 
     try {
-      // Compute relative path from current map to target map id
-      // Get current map id from store
+      // Get current map id from store - this is the path of current map file
       const currentData: any = useMindMapStore.getState().data;
-      const currentMapId: string = currentData?.id || '';
-      const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0 ? id.slice(0,i) : ''; };
-      const fromDir = dirOf(currentMapId);
-      const fromSegs = fromDir ? fromDir.split('/') : [];
-      const toSegs = (isExplorerPath ? (path.endsWith('.md') ? path.replace(/\.md$/i,'') : path) : mapId).split('/');
-      let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
-      const up = new Array(fromSegs.length - i).fill('..');
-      const down = toSegs.slice(i);
-      const relPathNoExt = [...up, ...down].join('/');
-      const href = isExplorerPath
-        ? (path.endsWith('.md') ? `${relPathNoExt}.md` : relPathNoExt) // keep extension for non-md
-        : `${relPathNoExt}.md`;
+      const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
+
+      // Determine target path - both should be file paths
+      const targetPath = isExplorerPath ? path : mapId;
+
+      // Calculate relative path between two file paths
+      const calculateRelativePath = (from: string, to: string): string => {
+        // Remove .md extension if present for path calculation
+        const fromPath = from.replace(/\.md$/i, '');
+        const toPath = to.replace(/\.md$/i, '');
+
+        // Get directory path for from (current map directory)
+        const fromDir = fromPath.includes('/') ? fromPath.split('/').slice(0, -1).join('/') : '';
+        // Get directory path for to (target file directory)
+        const toDir = toPath.includes('/') ? toPath.split('/').slice(0, -1).join('/') : '';
+        // Get filename for to
+        const toFile = toPath.split('/').pop() || toPath;
+
+        // If both are in the same directory, just return the filename
+        if (fromDir === toDir) {
+          return toFile;
+        }
+
+        // Split directory paths into segments
+        const fromSegments = fromDir ? fromDir.split('/') : [];
+        const toDirSegments = toDir ? toDir.split('/') : [];
+
+        // Find common base path
+        let commonLength = 0;
+        const minLength = Math.min(fromSegments.length, toDirSegments.length);
+        for (let i = 0; i < minLength; i++) {
+          if (fromSegments[i] === toDirSegments[i]) {
+            commonLength = i + 1;
+          } else {
+            break;
+          }
+        }
+
+        // Calculate relative path
+        const upLevels = fromSegments.length - commonLength;
+        const downPath = toDirSegments.slice(commonLength);
+
+        const relativeParts = [];
+        for (let i = 0; i < upLevels; i++) {
+          relativeParts.push('..');
+        }
+        relativeParts.push(...downPath);
+        relativeParts.push(toFile);
+
+        return relativeParts.join('/');
+      };
+
+      let href = calculateRelativePath(currentMapId, targetPath);
+
+      // Add .md extension if target is a markdown file
+      if (targetPath.endsWith('.md') || !isExplorerPath) {
+        href += '.md';
+      }
+
+      // If same file, just use the filename
+      if (href === '.md') {
+        href = targetPath.split('/').pop() || 'file.md';
+      }
 
       const currentNote = (node as any).note || '';
       const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
@@ -180,7 +230,9 @@ const Node: React.FC<NodeProps> = ({
       if (onAutoLayout) {
         setTimeout(() => { onAutoLayout(); }, 0);
       }
-    } catch {}
+    } catch (error) {
+      console.error('Error handling drop:', error);
+    }
   }, [node.id, onUpdateNode, onAutoLayout]);
 
   const handleRightClick = useCallback((e: React.MouseEvent) => {

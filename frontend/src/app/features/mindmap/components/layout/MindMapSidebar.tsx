@@ -820,8 +820,10 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
         onClick={onClick}
         onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
         draggable={true}
-        onDragStart={(e) => { 
-          e.dataTransfer.setData('mindoodle/path', item.path); 
+        onDragStart={(e) => {
+          // Convert absolute path to workspace-relative path
+          const workspaceRelativePath = item.path.startsWith('/ws_') ? item.path.replace(/^\/ws_[^/]+\//, '') : item.path;
+          e.dataTransfer.setData('mindoodle/path', workspaceRelativePath);
           e.dataTransfer.setData('mindoodle/is-md', isMd ? '1' : '0');
           // Allow copy/link operations to be dropped on nodes
           e.dataTransfer.effectAllowed = 'copyLink';
