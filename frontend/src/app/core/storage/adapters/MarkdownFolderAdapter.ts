@@ -847,21 +847,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     return items;
   }
 
-  private async ensureUniqueMarkdownName(dir: DirHandle, desired: string): Promise<string> {
-    const exists = async (name: string) => !!(await this.getExistingFile(dir, name));
-    if (!(await exists(desired))) return desired;
-    const dot = desired.lastIndexOf('.');
-    const base = dot > 0 ? desired.substring(0, dot) : desired;
-    const ext = dot > 0 ? desired.substring(dot) : '';
-    let i = 1;
-    while (i < 1000) {
-      const candidate = `${base}-${i}${ext}`;
-      if (!(await exists(candidate))) return candidate;
-      i++;
-    }
-    return `${base}-${Date.now()}${ext}`;
-  }
-
   // ======= IndexedDB persistence for directory handles =======
   private async openLegacyDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -1011,10 +996,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         }
       }
     }
-  }
-
-  private sanitizeName(name: string): string {
-    return name.replace(/[^a-zA-Z0-9\-_.\s\u3040-\u30FF\u4E00-\u9FAF]/g, '_').trim() || 'untitled';
   }
 
   async moveItem(sourcePath: string, targetFolderPath: string): Promise<void> {

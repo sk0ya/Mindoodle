@@ -231,7 +231,6 @@ export const useMindMap = (
         
         const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
         const parts = (actualMapId || '').split('/').filter(Boolean);
-        const baseName = parts.length ? parts[parts.length - 1] : (actualMapId || 'Untitled');
         const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
         const now = new Date().toISOString();
         const parsed: MindMapData = {
