@@ -492,7 +492,9 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return data;
     } catch (e) {
       const name = await this.getFileName(fileHandle).catch(() => 'unknown.md');
-      const tag = (e as any)?.name || (e as any)?.message || '';
+      const errorMessage = (e as any)?.message || '';
+      const tag = (e as any)?.name || errorMessage;
+
       if ((e as any)?.name === 'NotReadableError' || /NotReadable/i.test(String(tag))) {
         if (!this.permissionWarned) {
           logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
@@ -500,6 +502,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         } else {
           logger.debug('MarkdownFolderAdapter: Skipping unreadable file:', name);
         }
+      } else if (errorMessage.includes('見出しが見つかりません')) {
+        logger.warn(`MarkdownFolderAdapter: File "${name}" has no headings and cannot be imported as a mindmap`);
       } else {
         logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
       }

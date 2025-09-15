@@ -43,11 +43,8 @@ export class MarkdownImporter {
     }
 
     if (headings.length === 0) {
-      logger.info('⚠️ 見出しが見つからないため、全体をノートとして処理');
-      const rootNode = createNewNode('インポートされた内容');
-      rootNode.id = 'root';
-      rootNode.note = markdownText;
-      return { rootNodes: [rootNode], headingLevelByText: {} };
+      logger.warn('⚠️ 見出しが見つかりません。マークダウンファイルには少なくとも1つの見出し（# 見出し）が必要です。');
+      throw new Error('マークダウンファイルに見出しが見つかりません。少なくとも1つの見出し（# 見出し）を追加してください。');
     }
 
     // 見出しレベル情報を抽出
