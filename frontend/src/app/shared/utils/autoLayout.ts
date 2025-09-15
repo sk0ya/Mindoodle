@@ -60,17 +60,17 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       return nodeSize.height;
     }
     
-    // 子ノードの合計高さ + 画像サイズに応じた間隔
+    // 子ノードの合計高さ + 最小限の間隔
     const childrenTotalHeight = node.children.reduce((sum, child, index) => {
       const childHeight = calculateSubtreeActualHeight(child);
-      
-      // 前の子ノードとのスペース計算（画像サイズを考慮）
+
+      // 前の子ノードとの最小限のスペース計算
       let spacing = 0;
       if (index > 0) {
-        // より密な垂直間隔にするため、基本間隔を調整
-        spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
+        // 密なレイアウトのため、最小間隔のみを使用
+        spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
       }
-      
+
       return sum + childHeight + spacing;
     }, 0);
     
@@ -114,19 +114,12 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         nodeCount: calculateSubtreeNodeCount(child)
       }));
       
-      // 全子ノードの合計高さ + 画像サイズに応じた間隔を計算
+      // 全子ノードの合計高さ + 最小限の間隔を計算
       const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
         let spacing = 0;
         if (index > 0) {
-          const prevChild = childrenWithHeights[index - 1];
-          const prevChildSize = calculateNodeSize(prevChild.node, undefined, false, globalFontSize);
-          const currentChildSize = calculateNodeSize(child.node, undefined, false, globalFontSize);
-          
-          // より密な配置にするため、画像による追加間隔を削減
-          spacing = Math.max(nodeSpacing, 10); // 最小10pxを保証
-          if (prevChildSize.imageHeight > 80 || currentChildSize.imageHeight > 80) {
-            spacing += Math.max(prevChildSize.imageHeight, currentChildSize.imageHeight) * 0.03; // 0.1から0.03に削減
-          }
+          // 密なレイアウトのため、最小間隔のみを使用
+          spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
         }
         return sum + child.actualHeight + spacing;
       }, 0);
@@ -140,11 +133,11 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         
         positionNode(childInfo.node, node, depth + 1, yOffset + childCenterOffset);
         
-        // 次の子ノードのためのオフセット更新（画像サイズに応じた間隔）
+        // 次の子ノードのためのオフセット更新（最小限の間隔）
         currentOffset += childInfo.actualHeight;
         if (index < childrenWithHeights.length - 1) {
-          // 基本間隔のみを使用（追加の画像間隔は除去）
-          let spacing = nodeSpacing;
+          // 密なレイアウトのため、基本間隔の半分を使用
+          let spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
           currentOffset += spacing;
         }
       });
@@ -186,12 +179,12 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       nodeCount: calculateSubtreeNodeCount(child)
     }));
     
-    // 全子ノードの合計高さ + 画像サイズに応じた間隔を計算
+    // 全子ノードの合計高さ + 最小限の間隔を計算
     const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
       let spacing = 0;
       if (index > 0) {
-        // より密な垂直間隔にするため、基本間隔を調整
-        spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
+        // 密なレイアウトのため、最小間隔のみを使用
+        spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
       }
       return sum + child.actualHeight + spacing;
     }, 0);
@@ -205,17 +198,11 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       
       positionNode(childInfo.node, newRootNode, 1, childCenterOffset);
       
-      // 次の子ノードのためのオフセット更新（画像サイズに応じた間隔）
+      // 次の子ノードのためのオフセット更新（最小限の間隔）
       currentOffset += childInfo.actualHeight;
       if (index < childrenWithHeights.length - 1) {
-        const currentChildSize = calculateNodeSize(childInfo.node, undefined, false, globalFontSize);
-        const nextChildSize = calculateNodeSize(childrenWithHeights[index + 1].node, undefined, false, globalFontSize);
-        
-        // より密な配置にするため、画像による追加間隔を削減
-        let spacing = Math.max(nodeSpacing, 4); // 最小4pxを保証
-        if (currentChildSize.imageHeight > 80 || nextChildSize.imageHeight > 80) {
-          spacing += Math.max(currentChildSize.imageHeight, nextChildSize.imageHeight) * 0.03; // 0.1から0.03に削減
-        }
+        // 密なレイアウトのため、基本間隔の半分を使用
+        let spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
         currentOffset += spacing;
       }
     });
