@@ -867,7 +867,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               editText={editText}
               setEditText={setEditText}
               onSelectNode={(nodeId) => {
-                if (nodeId) selectNode(nodeId);
+                selectNode(nodeId);
                 // ノート表示フラグが有効な場合のみノートパネルを表示
                 // ノートフラグが無効な場合はノード選択してもノートパネルを表示しない
               }}

@@ -46,22 +46,22 @@ export const useCanvasEventHandler = ({
 
     // しきい値以上動いた場合はドラッグと見なす
     const wasDragging = totalMovement > DRAG_THRESHOLD;
-    
+
     // ドラッグまたはパン操作の場合は背景クリック処理をスキップ
     // マウスダウン時に記録したパン状態を使用（ViewportHandlerが先にリセットするため）
     const wasPanning = wasPanningRef.current;
-    
+
     if (wasDragging || wasPanning) {
       return;
     }
 
     // ノード要素（rect, circle, foreignObject）以外をクリックした場合に背景クリック処理
     const target = e.target as Element;
-    const isNodeElement = target.tagName === 'rect' || 
-                         target.tagName === 'circle' || 
+    const isNodeElement = target.tagName === 'rect' ||
+                         target.tagName === 'circle' ||
                          target.tagName === 'foreignObject' ||
                          target.closest('foreignObject');
-    
+
     if (!isNodeElement) {
       // 編集中の場合は編集を確定
       if (editingNodeId) {
@@ -72,7 +72,7 @@ export const useCanvasEventHandler = ({
       // 添付ファイル・リンク一覧を閉じる
       store.closeAttachmentAndLinkLists();
     }
-    
+
     // マウスアップ時にパン状態をリセット
     wasPanningRef.current = false;
   }, [editingNodeId, editText, onFinishEdit, onSelectNode, store]);
