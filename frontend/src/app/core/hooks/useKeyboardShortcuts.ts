@@ -79,7 +79,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vimium競合対策: vimキーの場合は即座に preventDefault
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm', 'z'];
+        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm', 'z', 'd'];
         if (vimKeys.includes(key.toLowerCase())) {
           event.preventDefault();
           event.stopPropagation();
@@ -89,11 +89,15 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vim mode handling
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        // Handle key sequence for commands like 'zz'
-        if (key.toLowerCase() === 'z') {
-          const newBuffer = vim.commandBuffer + 'z';
-          vim.appendToCommandBuffer('z');
-          // Check if we have 'zz' command (two z's)
+        // Handle key sequence for commands like 'zz', 'za', and 'dd'
+        const currentBuffer = vim.commandBuffer;
+        const newBuffer = currentBuffer + key.toLowerCase();
+
+        if (['z', 'd'].includes(key.toLowerCase()) ||
+            (key.toLowerCase() === 'a' && currentBuffer === 'z')) {
+          vim.appendToCommandBuffer(key.toLowerCase());
+
+          // Check for complete commands
           if (newBuffer === 'zz') {
             // Execute center command
             if (handlers.centerNodeInView && handlers.selectedNodeId) {
@@ -101,12 +105,33 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             }
             vim.clearCommandBuffer();
             return;
+          } else if (newBuffer === 'za') {
+            // Execute toggle collapse command
+            if (handlers.selectedNodeId) {
+              const selectedNode = handlers.findNodeById(handlers.selectedNodeId);
+              if (selectedNode && selectedNode.children && selectedNode.children.length > 0) {
+                handlers.updateNode(handlers.selectedNodeId, { collapsed: !selectedNode.collapsed });
+              }
+            }
+            vim.clearCommandBuffer();
+            return;
+          } else if (newBuffer === 'dd') {
+            // Execute delete command
+            if (handlers.selectedNodeId) {
+              handlers.deleteNode(handlers.selectedNodeId);
+            }
+            vim.clearCommandBuffer();
+            return;
           }
+
+          // If we reach here, it's a partial command, continue waiting
           return;
         }
 
         // Clear command buffer if we press any other key
-        if (vim.commandBuffer.length > 0 && key.toLowerCase() !== 'z') {
+        if (vim.commandBuffer.length > 0 &&
+            !['z', 'd'].includes(key.toLowerCase()) &&
+            !(key.toLowerCase() === 'a' && vim.commandBuffer === 'z')) {
           vim.clearCommandBuffer();
         }
 
@@ -214,7 +239,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       if (!isModifier && handlers.selectedNodeId) {
         // Skip if vim is enabled and this is a vim key that was already handled
         if (vim && vim.isEnabled && vim.mode === 'normal') {
-          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm', 'z'];
+          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm', 'z', 'd'];
           if (vimKeys.includes(key.toLowerCase())) {
             // This key was already handled by vim mode, skip standard handling
             return;
