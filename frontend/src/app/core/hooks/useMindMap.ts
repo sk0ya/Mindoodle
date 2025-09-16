@@ -120,6 +120,14 @@ export const useMindMap = (
     }
   }, [persistenceHook]);
 
+  const readImageAsDataURL = useCallback(async (relativePath: string, workspaceId?: string): Promise<string | null> => {
+    const adapter: any = persistenceHook.storageAdapter as any;
+    if (adapter && typeof adapter.readImageAsDataURL === 'function') {
+      return await adapter.readImageAsDataURL(relativePath, workspaceId);
+    }
+    return null;
+  }, [persistenceHook]);
+
   const getSelectedFolderLabel = useCallback((): string | null => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && 'selectedFolderName' in adapter) {
@@ -396,6 +404,7 @@ export const useMindMap = (
     renameItem,
     deleteItem,
     moveItem,
+    readImageAsDataURL,
     explorerTree: (persistenceHook as any).explorerTree || null
     ,
     workspaces: (persistenceHook as any).workspaces || [],

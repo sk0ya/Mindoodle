@@ -35,6 +35,7 @@ interface NodeProps {
   globalFontSize?: number;
   onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
 
 const Node: React.FC<NodeProps> = ({
@@ -63,7 +64,8 @@ const Node: React.FC<NodeProps> = ({
   svgRef,
   globalFontSize,
   onToggleAttachmentList,
-  onToggleLinkList
+  onToggleLinkList,
+  onLoadRelativeImage
 }) => {
   const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -290,6 +292,7 @@ const Node: React.FC<NodeProps> = ({
         onUpdateNode={onUpdateNode}
         onAutoLayout={onAutoLayout}
         nodeHeight={nodeHeight}
+        onLoadRelativeImage={onLoadRelativeImage}
       />
 
 

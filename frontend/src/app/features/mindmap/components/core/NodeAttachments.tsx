@@ -13,6 +13,7 @@ interface NodeAttachmentsProps {
   onUpdateNode?: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
   nodeHeight: number;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
 
 const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
@@ -26,7 +27,8 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   onShowFileActionMenu,
   onUpdateNode,
   onAutoLayout,
-  nodeHeight
+  nodeHeight,
+  onLoadRelativeImage
 }) => {  
   // 画像リサイズ状態管理
   const [isResizing, setIsResizing] = useState(false);
@@ -48,6 +50,12 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     return urls;
   };
 
+  // Check if a path is a relative local file path
+  const isRelativeLocalPath = (path: string): boolean => {
+    if (/^(https?:|data:|blob:)/i.test(path)) return false;
+    return path.startsWith('./') || path.startsWith('../') || (!path.includes('://') && !path.startsWith('/'));
+  };
+
   const noteImageUrls = extractNoteImages(node.note);
   const noteImageFiles: FileAttachment[] = noteImageUrls.map((u, i) => ({
     id: `noteimg-${node.id}-${i}`,
@@ -56,8 +64,44 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     size: 0,
     isImage: true,
     createdAt: new Date().toISOString(),
-    downloadUrl: u
-  }));
+    downloadUrl: u,
+    isRelativeLocal: isRelativeLocalPath(u)
+  } as FileAttachment & { isRelativeLocal?: boolean }));
+
+  // State to hold resolved data URLs for relative local images
+  const [resolvedImageUrls, setResolvedImageUrls] = useState<Record<string, string>>({});
+
+  // Effect to load relative local images using the adapter
+  useEffect(() => {
+    const loadRelativeImages = async () => {
+      if (!onLoadRelativeImage) {
+        return;
+      }
+
+      const newResolvedUrls: Record<string, string> = {};
+
+      for (const imageFile of noteImageFiles) {
+        const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
+        if (relativeFile.isRelativeLocal && relativeFile.downloadUrl) {
+          try {
+            const dataUrl = await onLoadRelativeImage(relativeFile.downloadUrl);
+            if (dataUrl) {
+              newResolvedUrls[relativeFile.downloadUrl] = dataUrl;
+            }
+          } catch (error) {
+            console.warn('Failed to load relative image:', relativeFile.downloadUrl, error);
+          }
+        }
+      }
+
+      if (Object.keys(newResolvedUrls).length > 0) {
+        setResolvedImageUrls(prev => ({ ...prev, ...newResolvedUrls }));
+      }
+    };
+
+    loadRelativeImages();
+  }, [noteImageFiles, onLoadRelativeImage]);
+
   // 添付画像は今後廃止: ノート内の画像のみ扱う
   const imageFiles: FileAttachment[] = noteImageFiles;
   const usingNoteImages = noteImageFiles.length > 0;
@@ -384,8 +428,15 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
               {false ? (
                 <div>CloudImage削除済み</div>
               ) : (
-                <img 
-                  src={currentImage.downloadUrl || currentImage.dataURL || currentImage.data} 
+                <img
+                  src={(() => {
+                    // Use resolved data URL for relative local images
+                    const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
+                    if (relativeFile.isRelativeLocal && relativeFile.downloadUrl && resolvedImageUrls[relativeFile.downloadUrl]) {
+                      return resolvedImageUrls[relativeFile.downloadUrl];
+                    }
+                    return currentImage.downloadUrl || currentImage.dataURL || currentImage.data;
+                  })()} 
                   alt={currentImage.name}
                   style={{
                     maxWidth: '100%',

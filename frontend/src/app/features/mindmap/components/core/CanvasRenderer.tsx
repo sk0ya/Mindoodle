@@ -62,6 +62,7 @@ interface CanvasRendererProps {
   // Icon toggle handlers
   onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
 
 const CanvasRenderer: React.FC<CanvasRendererProps> = ({
@@ -100,7 +101,8 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onDragMove,
   onDragEnd,
   onToggleAttachmentList,
-  onToggleLinkList
+  onToggleLinkList,
+  onLoadRelativeImage
 }) => {
   const { settings } = useMindMapStore();
 
@@ -194,6 +196,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 globalFontSize={settings.fontSize}
                 onToggleAttachmentList={onToggleAttachmentList}
                 onToggleLinkList={onToggleLinkList}
+                onLoadRelativeImage={onLoadRelativeImage}
               />
             ))}
           </g>

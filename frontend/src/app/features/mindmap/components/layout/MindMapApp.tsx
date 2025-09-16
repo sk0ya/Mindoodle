@@ -404,6 +404,21 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [data, allMindMaps, showNotification]);
 
+  // 相対パス画像を読み込む関数
+  const onLoadRelativeImage = useCallback(async (relativePath: string): Promise<string | null> => {
+    try {
+      if (typeof (mindMap as any).readImageAsDataURL === 'function') {
+        const workspaceId = data?.mapIdentifier?.workspaceId;
+        return await (mindMap as any).readImageAsDataURL(relativePath, workspaceId);
+      }
+
+      return null;
+    } catch (error) {
+      console.warn('Failed to load relative image:', relativePath, error);
+      return null;
+    }
+  }, [mindMap, data]);
+
   // UI用のハンドラー
   const handleTitleChange = (title: string) => {
     if (data) {
@@ -895,6 +910,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               setPan={setPan}
               onToggleAttachmentList={store.toggleAttachmentListForNode}
               onToggleLinkList={store.toggleLinkListForNode}
+              onLoadRelativeImage={onLoadRelativeImage}
             />
 
           {ui.showNotesPanel && (

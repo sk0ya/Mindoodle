@@ -44,6 +44,7 @@ interface MindMapCanvasProps {
   // Icon toggle handlers
   onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
 
 const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
@@ -76,7 +77,8 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     pan,
     setPan,
     onToggleAttachmentList,
-    onToggleLinkList
+    onToggleLinkList,
+    onLoadRelativeImage
   } = props;
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -189,6 +191,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
       onDragEnd={handleDragEndAdapter}
       onToggleAttachmentList={onToggleAttachmentList}
       onToggleLinkList={onToggleLinkList}
+      onLoadRelativeImage={onLoadRelativeImage}
     />
   );
 };

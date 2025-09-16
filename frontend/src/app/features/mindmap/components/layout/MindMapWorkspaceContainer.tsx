@@ -33,6 +33,7 @@ type Props = {
   setPan: (pan: Position | ((prev: Position) => Position)) => void;
   onToggleAttachmentList: (nodeId: string) => void;
   onToggleLinkList: (nodeId: string) => void;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 };
 
 const MindMapWorkspaceContainer: React.FC<Props> = (props) => {

@@ -41,6 +41,7 @@ interface MindMapWorkspaceProps {
   // Icon toggle handlers
   onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
 
 const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
@@ -73,7 +74,8 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   pan,
   setPan,
   onToggleAttachmentList,
-  onToggleLinkList
+  onToggleLinkList,
+  onLoadRelativeImage
 }) => {
   
   return (
@@ -110,6 +112,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         setPan={setPan}
         onToggleAttachmentList={onToggleAttachmentList}
         onToggleLinkList={onToggleLinkList}
+        onLoadRelativeImage={onLoadRelativeImage}
       />
     </ErrorBoundary>
   );

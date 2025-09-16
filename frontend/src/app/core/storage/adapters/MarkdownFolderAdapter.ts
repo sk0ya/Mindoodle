@@ -900,6 +900,68 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     await this.restoreWorkspaces();
   }
 
+  // Read image file from workspace and convert to data URL for display
+  async readImageAsDataURL(relativePath: string, workspaceId?: string): Promise<string | null> {
+    if (!this._isInitialized) {
+      await this.initialize();
+    }
+
+    // Get the appropriate workspace handle
+    const wsHandle = workspaceId
+      ? this.workspaces.find(w => w.id === workspaceId)?.handle
+      : (this.workspaces[0]?.handle || this.rootHandle);
+
+    if (!wsHandle) {
+      return null;
+    }
+
+    try {
+      // Parse relative path
+      const cleanPath = relativePath.replace(/^\.\//, ''); // Remove leading ./
+      const parts = cleanPath.split('/').filter(Boolean);
+      if (parts.length === 0) return null;
+
+      // Navigate to directory
+      let currentDir: DirHandle = wsHandle as any;
+      const fileName = parts.pop() as string;
+
+      for (const part of parts) {
+        if (part === '..') {
+          // Handle parent directory navigation - not supported in File System Access API
+          // We can't go up from the selected folder
+          console.warn('Parent directory navigation (..) not supported for images in File System Access API');
+          return null;
+        }
+        const nextDir = await this.getExistingDirectory(currentDir, part);
+        if (!nextDir) return null;
+        currentDir = nextDir;
+      }
+
+      // Get the image file
+      const fileHandle = await this.getExistingFile(currentDir, fileName);
+      if (!fileHandle) return null;
+
+      const file = await fileHandle.getFile();
+
+      // Check if it's an image file
+      if (!file.type.startsWith('image/')) {
+        console.warn('File is not an image:', fileName, 'type:', file.type);
+        return null;
+      }
+
+      // Convert to data URL
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result as string);
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      console.warn('Failed to read image file:', relativePath, error);
+      return null;
+    }
+  }
+
   private async queryPermission(handle: any, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
     try {
       if (typeof handle.queryPermission === 'function') {
