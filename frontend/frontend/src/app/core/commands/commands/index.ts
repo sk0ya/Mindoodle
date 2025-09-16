@@ -7,6 +7,7 @@ import { centerCommand } from './center';
 import { deleteCommand } from './delete';
 import { toggleCommand } from './toggle';
 import { editCommand } from './edit';
+import { insertCommand, appendCommand, openCommand } from './insert';
 import {
   navigateCommand,
   upCommand,
@@ -23,6 +24,11 @@ export const commands = [
   toggleCommand,
   editCommand,
 
+  // Insert mode commands
+  insertCommand,
+  appendCommand,
+  openCommand,
+
   // Navigation commands
   navigateCommand,
   upCommand,
@@ -37,6 +43,9 @@ export {
   deleteCommand,
   toggleCommand,
   editCommand,
+  insertCommand,
+  appendCommand,
+  openCommand,
   navigateCommand,
   upCommand,
   downCommand,
@@ -54,6 +63,6 @@ export function registerAllCommands(registry: any) {
 // Command categories for organization
 export const commandCategories = {
   navigation: [navigateCommand, upCommand, downCommand, leftCommand, rightCommand, centerCommand],
-  editing: [deleteCommand, editCommand],
+  editing: [deleteCommand, editCommand, insertCommand, appendCommand, openCommand],
   structure: [toggleCommand],
 } as const;

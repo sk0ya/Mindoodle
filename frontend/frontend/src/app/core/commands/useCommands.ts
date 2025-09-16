@@ -25,6 +25,7 @@ interface UseCommandsProps {
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     findNodeById: (nodeId: string) => any;
     startEditWithCursorAtStart: (nodeId: string) => void;
+    startEditWithCursorAtEnd: (nodeId: string) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
@@ -146,6 +147,9 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'dd': 'delete',
       'za': 'toggle',
       'ciw': 'edit',
+      'i': 'insert',
+      'a': 'append',
+      'o': 'open',
       'h': 'left',
       'j': 'down',
       'k': 'up',
@@ -205,6 +209,9 @@ export function useVimCommands(props: UseCommandsProps) {
     delete: () => commands.executeVimCommand('dd'),
     toggle: () => commands.executeVimCommand('za'),
     edit: () => commands.executeVimCommand('ciw'),
+    insert: () => commands.executeVimCommand('i'),
+    append: () => commands.executeVimCommand('a'),
+    open: () => commands.executeVimCommand('o'),
     navigateUp: () => commands.executeVimCommand('k'),
     navigateDown: () => commands.executeVimCommand('j'),
     navigateLeft: () => commands.executeVimCommand('h'),

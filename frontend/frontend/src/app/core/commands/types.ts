@@ -29,6 +29,7 @@ export interface CommandContext {
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     findNodeById: (nodeId: string) => MindMapNode | null;
     startEditWithCursorAtStart: (nodeId: string) => void;
+    startEditWithCursorAtEnd: (nodeId: string) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
