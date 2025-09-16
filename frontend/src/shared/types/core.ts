@@ -46,6 +46,18 @@ export interface MindMapNode {
   
   // Markdown note for each node
   note?: string;
+
+  // Markdown structure metadata
+  markdownMeta?: MarkdownNodeMeta;
+}
+
+// Markdown structure metadata for preserving original format
+export interface MarkdownNodeMeta {
+  type: 'heading' | 'unordered-list' | 'ordered-list';
+  level: number;
+  originalFormat: string; // #, ##, -, *, +, 1., 2. など
+  indentLevel?: number; // リストのインデントレベル（スペース数）
+  lineNumber: number; // 元の行番号
 }
 
 // Main mindmap data structure

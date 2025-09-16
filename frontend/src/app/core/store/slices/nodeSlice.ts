@@ -143,7 +143,56 @@ export const createNodeSlice: StateCreator<
         // Update position first
         newNode.x = newPosition.x;
         newNode.y = newPosition.y;
-        
+
+        // Set markdownMeta based on siblings or parent
+        if (childNodes.length > 0) {
+          // Check the last sibling for markdownMeta
+          const lastSibling = childNodes[childNodes.length - 1];
+          if (lastSibling && lastSibling.markdownMeta) {
+            newNode.markdownMeta = {
+              type: lastSibling.markdownMeta.type,
+              level: lastSibling.markdownMeta.level,
+              originalFormat: lastSibling.markdownMeta.originalFormat,
+              indentLevel: lastSibling.markdownMeta.indentLevel,
+              lineNumber: -1
+            };
+          }
+        } else if (parentNode.markdownMeta) {
+          // No siblings, determine child type based on parent
+          if (parentNode.markdownMeta.type === 'heading') {
+            const childLevel = parentNode.markdownMeta.level + 1;
+
+            // レベル7以上になる場合はリストに変更
+            if (childLevel >= 7) {
+              newNode.markdownMeta = {
+                type: 'unordered-list',
+                level: 1,
+                originalFormat: '-',
+                indentLevel: 0,
+                lineNumber: -1
+              };
+            } else {
+              // 見出しの子は見出し（レベル+1）
+              newNode.markdownMeta = {
+                type: 'heading',
+                level: childLevel,
+                originalFormat: '#'.repeat(childLevel),
+                indentLevel: 0,
+                lineNumber: -1
+              };
+            }
+          } else {
+            // 親がリストの場合は同じタイプで一段深いインデント
+            newNode.markdownMeta = {
+              type: parentNode.markdownMeta.type,
+              level: parentNode.markdownMeta.level + 1,
+              originalFormat: parentNode.markdownMeta.originalFormat,
+              indentLevel: (parentNode.markdownMeta.indentLevel || 0) + 2,
+              lineNumber: -1
+            };
+          }
+        }
+
         // Add node to normalized data first to establish parent-child relationship
         state.normalizedData = addNormalizedNode(state.normalizedData, parentId, newNode);
         
@@ -221,6 +270,17 @@ export const createNodeSlice: StateCreator<
           newNode.x = position.x;
           newNode.y = position.y;
 
+          // Set markdownMeta same as current root sibling node
+          if (currentNode.markdownMeta) {
+            newNode.markdownMeta = {
+              type: currentNode.markdownMeta.type,
+              level: currentNode.markdownMeta.level,
+              originalFormat: currentNode.markdownMeta.originalFormat,
+              indentLevel: currentNode.markdownMeta.indentLevel,
+              lineNumber: -1
+            };
+          }
+
           // 新しいルートノードを追加
           state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
 
@@ -245,7 +305,18 @@ export const createNodeSlice: StateCreator<
           
           newNode.x = position.x;
           newNode.y = position.y;
-          
+
+          // Set markdownMeta same as current sibling node
+          if (currentNode.markdownMeta) {
+            newNode.markdownMeta = {
+              type: currentNode.markdownMeta.type,
+              level: currentNode.markdownMeta.level,
+              originalFormat: currentNode.markdownMeta.originalFormat,
+              indentLevel: currentNode.markdownMeta.indentLevel,
+              lineNumber: -1
+            };
+          }
+
           // Add sibling node first to establish parent-child relationship
           state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, true);
           

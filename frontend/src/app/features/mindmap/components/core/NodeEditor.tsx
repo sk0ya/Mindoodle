@@ -174,7 +174,28 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           }}
         >
           <title>{node.text}</title>
-          {node.text}
+          {(() => {
+            // マークダウンマーカーを表示
+            const markdownMeta = node.markdownMeta;
+            if (markdownMeta) {
+              let marker = '';
+              // typeに基づいてマーカーを決定
+              if (markdownMeta.type === 'heading') {
+                marker = '#';
+              } else if (markdownMeta.type === 'unordered-list') {
+                marker = '-';
+              } else if (markdownMeta.type === 'ordered-list') {
+                marker = '1.';
+              }
+              return (
+                <>
+                  <tspan fill="#888" fontWeight="500">{marker}</tspan>
+                  <tspan dx="0.3em">{node.text}</tspan>
+                </>
+              );
+            }
+            return node.text;
+          })()}
         </text>
         
         {/* アイコン表示エリア（添付ファイルとリンク） */}

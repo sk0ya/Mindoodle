@@ -229,58 +229,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   // Minimal Markdown exporter (replaces exportUtils usage)
   // Minimal Markdown exporter (replaces exportUtils usage)
   private buildMarkdownDocument(data: MindMapData, baseLevel: number): string {
-    const lines: string[] = [];
-    
-    // Try to get saved heading levels for this map
-    const stKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
-    let target = this.saveTargets.get(stKey);
-    if (!target) {
-      const found = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${data.mapIdentifier.mapId}`));
-      if (found) target = found[1];
-    }
-    if (!target) {
-      target = this.saveTargets.get(data.mapIdentifier.mapId);
-    }
-    
-    const savedHeadingLevels = target?.headingLevelByText || {};
-    
-    
-    const walk = (node: MindMapNode, level: number) => {
-      const title = (node.text || '').trim();
-      
-      let headingLevel: number;
-      
-      // First try to use originalHeadingLevel stored in the node
-      if ((node as any).originalHeadingLevel !== undefined) {
-        headingLevel = Math.min((node as any).originalHeadingLevel, 6);
-      }
-      // Fallback to saved heading level by text
-      else if (savedHeadingLevels[title] !== undefined) {
-        headingLevel = Math.min(savedHeadingLevels[title], 6);
-      }
-      // Final fallback to calculated level
-      else {
-        headingLevel = Math.min(level, 6);
-      }
-      
-      const h = '#'.repeat(headingLevel);
-      
-      lines.push(`${h} ${title}`);
-      if (node.note && node.note.trim()) {
-        lines.push(node.note.trim());
-      }
-      if (node.children && node.children.length) {
-        node.children.forEach(child => walk(child, level + 1));
-      }
-    };
-    
-    // Support multiple root nodes
-    const rootNodes = data.rootNodes || [];
-    rootNodes.forEach(rootNode => {
-      walk(rootNode, Math.max(1, baseLevel));
-    });
-    
-    return lines.join('\n') + '\n';
+    console.log('🔍 buildMarkdownDocument called - using MarkdownImporter.convertNodesToMarkdown');
+
+    // Use the proper markdown conversion logic that respects node types
+    return MarkdownImporter.convertNodesToMarkdown(data.rootNodes || []);
   }
 
   async saveAllMaps(maps: MindMapData[]): Promise<void> {

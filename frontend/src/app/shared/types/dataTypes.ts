@@ -163,11 +163,11 @@ export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => 
 });;
 
 export const createNewNode = (
-  text: string = '', 
-  parentNode: MindMapNode | null = null, 
+  text: string = '',
+  parentNode: MindMapNode | null = null,
   settings?: { fontSize?: number; fontFamily?: string }
 ): MindMapNode => {
-  return {
+  const newNode: MindMapNode = {
     id: generateNodeId(),
     text,
     x: parentNode ? parentNode.x + LAYOUT.LEVEL_SPACING : COORDINATES.DEFAULT_CENTER_X,
@@ -178,6 +178,12 @@ export const createNewNode = (
     children: [],
     attachments: [], // ファイル添付用
   };
+
+  // 新規ノードは親がマークダウンノードの場合のみメタデータを設定
+  // 通常のマインドマップ操作では markdownMeta は設定しない
+  // マークダウンインポート時やマークダウンシンク時のみ設定される
+
+  return newNode;
 };
 
 export const calculateNodePosition = (parentNode: MindMapNode | null, childIndex: number, totalChildren: number): Position => {

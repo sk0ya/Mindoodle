@@ -229,7 +229,7 @@ export function calculateNodeSize(
   const fontWeight = node.fontWeight || 'normal';
   const fontStyle = node.fontStyle || 'normal';
   
-  // Canvas APIを使用して実際のテキスト幅を測定
+  // Canvas APIを使用して実際のテキスト幅を測定（マーカーを含む）
   let actualTextWidth: number;
   if (isEditing) {
     // 編集中は実際のテキスト幅を計算し、最小幅を確保
@@ -237,8 +237,23 @@ export function calculateNodeSize(
     const minWidth = fontSize * 8; // 最小8文字分の幅
     actualTextWidth = Math.max(measuredWidth, minWidth);
   } else {
-    // 非編集時は実際のテキスト幅を計算
-    const measuredWidth = measureTextWidth(node.text, fontSize, fontFamily, fontWeight, fontStyle);
+    // 非編集時は実際のテキスト幅を計算（マーカーを含む）
+    let displayText = node.text;
+
+    // マーカーがある場合は追加
+    if (node.markdownMeta) {
+      let marker = '';
+      if (node.markdownMeta.type === 'heading') {
+        marker = '# ';
+      } else if (node.markdownMeta.type === 'unordered-list') {
+        marker = '- ';
+      } else if (node.markdownMeta.type === 'ordered-list') {
+        marker = '1. ';
+      }
+      displayText = marker + node.text;
+    }
+
+    const measuredWidth = measureTextWidth(displayText, fontSize, fontFamily, fontWeight, fontStyle);
     const minWidth = fontSize * 2; // 最小2文字分の幅に縮小
     actualTextWidth = Math.max(measuredWidth, minWidth);
   }
