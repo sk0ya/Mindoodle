@@ -79,7 +79,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vimium競合対策: vimキーの場合は即座に preventDefault
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm', 'z', 'd'];
+        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm', 'z', 'd', 'c', 'w'];
         if (vimKeys.includes(key.toLowerCase())) {
           event.preventDefault();
           event.stopPropagation();
@@ -93,8 +93,10 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         const currentBuffer = vim.commandBuffer;
         const newBuffer = currentBuffer + key.toLowerCase();
 
-        if (['z', 'd'].includes(key.toLowerCase()) ||
-            (key.toLowerCase() === 'a' && currentBuffer === 'z')) {
+        if (['z', 'd', 'c'].includes(key.toLowerCase()) ||
+            (key.toLowerCase() === 'a' && currentBuffer === 'z') ||
+            (key.toLowerCase() === 'i' && currentBuffer === 'c') ||
+            (key.toLowerCase() === 'w' && currentBuffer === 'ci')) {
           vim.appendToCommandBuffer(key.toLowerCase());
 
           // Check for complete commands
@@ -122,6 +124,17 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             }
             vim.clearCommandBuffer();
             return;
+          } else if (newBuffer === 'ciw') {
+            // Execute change in word command (clear text and enter insert mode)
+            if (handlers.selectedNodeId) {
+              vim.setMode('insert');
+              handlers.updateNode(handlers.selectedNodeId, { text: '' });
+              setTimeout(() => {
+                handlers.startEditWithCursorAtStart(handlers.selectedNodeId!);
+              }, 10);
+            }
+            vim.clearCommandBuffer();
+            return;
           }
 
           // If we reach here, it's a partial command, continue waiting
@@ -130,8 +143,10 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
         // Clear command buffer if we press any other key
         if (vim.commandBuffer.length > 0 &&
-            !['z', 'd'].includes(key.toLowerCase()) &&
-            !(key.toLowerCase() === 'a' && vim.commandBuffer === 'z')) {
+            !['z', 'd', 'c'].includes(key.toLowerCase()) &&
+            !(key.toLowerCase() === 'a' && vim.commandBuffer === 'z') &&
+            !(key.toLowerCase() === 'i' && vim.commandBuffer === 'c') &&
+            !(key.toLowerCase() === 'w' && vim.commandBuffer === 'ci')) {
           vim.clearCommandBuffer();
         }
 
@@ -239,7 +254,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       if (!isModifier && handlers.selectedNodeId) {
         // Skip if vim is enabled and this is a vim key that was already handled
         if (vim && vim.isEnabled && vim.mode === 'normal') {
-          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm', 'z', 'd'];
+          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm', 'z', 'd', 'c', 'w'];
           if (vimKeys.includes(key.toLowerCase())) {
             // This key was already handled by vim mode, skip standard handling
             return;
