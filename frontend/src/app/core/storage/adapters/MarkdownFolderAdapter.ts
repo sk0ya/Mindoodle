@@ -1,4 +1,4 @@
-import type { MindMapData, MindMapNode } from '@shared/types';
+import type { MindMapData } from '@shared/types';
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
@@ -156,8 +156,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
     
     // ファイルに保存
-    const baseLevel = 1; // デフォルトの見出しレベル
-    const markdown = this.buildMarkdownDocument(data, baseLevel);
+    const markdown = this.buildMarkdownDocument(data);
     
     console.log('✅ Saving directly to file:', fileName, 'in directory:', categoryParts.join('/') || '(root)');
     await this.writeTextFile(targetDir, fileName, markdown);
@@ -228,7 +227,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   // Minimal Markdown exporter (replaces exportUtils usage)
   // Minimal Markdown exporter (replaces exportUtils usage)
   // Minimal Markdown exporter (replaces exportUtils usage)
-  private buildMarkdownDocument(data: MindMapData, baseLevel: number): string {
+  private buildMarkdownDocument(data: MindMapData): string {
     console.log('🔍 buildMarkdownDocument called - using MarkdownImporter.convertNodesToMarkdown');
 
     // Use the proper markdown conversion logic that respects node types

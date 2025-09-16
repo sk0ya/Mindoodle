@@ -13,6 +13,7 @@ type Props = {
   onCopyNode: (nodeId: string) => void;
   onPasteNode: (parentId: string) => Promise<void>;
   onAIGenerate?: (node: MindMapNode) => void;
+  onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   onClose: () => void;
   nodeId: string | null;
 };
@@ -27,6 +28,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onCopyNode,
   onPasteNode,
   onAIGenerate,
+  onMarkdownNodeType,
   onClose,
   nodeId,
 }) => {
@@ -43,6 +45,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
       onCopy={(node) => onCopyNode(node.id)}
       onPaste={onPasteNode}
       onAIGenerate={onAIGenerate}
+      onMarkdownNodeType={onMarkdownNodeType}
       onClose={onClose}
     />
   );

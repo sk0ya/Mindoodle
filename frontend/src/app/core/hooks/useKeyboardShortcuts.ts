@@ -39,6 +39,7 @@ interface KeyboardShortcutHandlers {
   pasteImageFromClipboard: (_nodeId: string) => Promise<void>;
   findNodeById: (_nodeId: string) => MindMapNode | null;
   closeAttachmentAndLinkLists: () => void;
+  onMarkdownNodeType?: (_nodeId: string, _newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
 }
 
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
@@ -77,7 +78,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vimium競合対策: vimキーの場合は即座に preventDefault
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o'];
+        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm'];
         if (vimKeys.includes(key.toLowerCase())) {
           event.preventDefault();
           event.stopPropagation();
@@ -145,6 +146,15 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
               handlers.deleteNode(handlers.selectedNodeId);
             }
             return;
+          case 'm': // Change heading to list (one-way only)
+            event.preventDefault();
+            if (handlers.selectedNodeId && handlers.onMarkdownNodeType) {
+              const selectedNode = handlers.findNodeById(handlers.selectedNodeId);
+              if (selectedNode?.markdownMeta?.type === 'heading') {
+                handlers.onMarkdownNodeType(handlers.selectedNodeId, 'unordered-list');
+              }
+            }
+            return;
           default:
             // For non-vim keys in vim mode, allow normal handling to continue
             break;
@@ -182,7 +192,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       if (!isModifier && handlers.selectedNodeId) {
         // Skip if vim is enabled and this is a vim key that was already handled
         if (vim && vim.isEnabled && vim.mode === 'normal') {
-          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter'];
+          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm'];
           if (vimKeys.includes(key.toLowerCase())) {
             // This key was already handled by vim mode, skip standard handling
             return;
@@ -260,6 +270,15 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
                   await handlers.pasteNode(handlers.selectedNodeId);
                 }
               });
+            }
+            break;
+          case 'm':
+            event.preventDefault();
+            if (handlers.selectedNodeId && handlers.onMarkdownNodeType) {
+              const selectedNode = handlers.findNodeById(handlers.selectedNodeId);
+              if (selectedNode?.markdownMeta?.type === 'heading') {
+                handlers.onMarkdownNodeType(handlers.selectedNodeId, 'unordered-list');
+              }
             }
             break;
         }

@@ -265,6 +265,37 @@ export const useMarkdownSync = () => {
   }, []);
 
   /**
+   * ノードタイプを変更（見出し ↔ リスト）
+   */
+  const changeNodeType = useCallback((
+    nodes: MindMapNode[],
+    nodeId: string,
+    newType: 'heading' | 'unordered-list' | 'ordered-list',
+    onNodesUpdate: (nodes: MindMapNode[]) => void
+  ) => {
+    try {
+      let updatedNodes = MarkdownImporter.changeNodeType(nodes, nodeId, newType);
+
+      // 順序ありリストに変更した場合は番号を再計算
+      if (newType === 'ordered-list') {
+        updatedNodes = MarkdownImporter.renumberOrderedLists(updatedNodes);
+      }
+
+      onNodesUpdate(updatedNodes);
+      return updatedNodes;
+    } catch (error) {
+      // エラーをキャッチして上位に伝える
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      // エラーフラグ付きのオブジェクトを返す
+      const errorResult = {
+        ...nodes,
+        __conversionError: errorMessage
+      } as MindMapNode[] & { __conversionError: string };
+      return errorResult;
+    }
+  }, []);
+
+  /**
    * リストタイプを変更
    */
   const changeListType = useCallback((
@@ -293,6 +324,7 @@ export const useMarkdownSync = () => {
     setNodeMarkdownMeta,
     addChildNodeWithMarkdownMeta,
     changeNodeIndent,
+    changeNodeType,
     changeListType
   };
 };

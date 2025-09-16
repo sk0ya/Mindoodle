@@ -532,6 +532,125 @@ export class MarkdownImporter {
   }
 
   /**
+   * ノードがリストに安全に変換できるかチェック
+   */
+  static canSafelyConvertToList(
+    nodes: MindMapNode[],
+    targetNodeId: string
+  ): { canConvert: boolean; reason?: string } {
+    const findNodeWithContext = (nodeList: MindMapNode[], parentNode?: MindMapNode): { node: MindMapNode; parent?: MindMapNode; siblings: MindMapNode[] } | null => {
+      for (let i = 0; i < nodeList.length; i++) {
+        const node = nodeList[i];
+        if (node.id === targetNodeId) {
+          return {
+            node,
+            parent: parentNode,
+            siblings: nodeList
+          };
+        }
+        if (node.children && node.children.length > 0) {
+          const found = findNodeWithContext(node.children, node);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const context = findNodeWithContext(nodes);
+    if (!context) return { canConvert: false, reason: 'ノードが見つかりません' };
+
+    const { node, siblings } = context;
+    const nodeIndex = siblings.findIndex(n => n.id === targetNodeId);
+
+    // 1. 見出し子がいる場合は変換不可
+    if (node.children && node.children.some(child => child.markdownMeta?.type === 'heading')) {
+      return { canConvert: false, reason: '見出し子ノードがあるため変換できません' };
+    }
+
+    // 2. 兄弟に見出しがいる場合は変換不可
+    const hasHeadingSiblings = siblings.some((sibling, index) =>
+      index !== nodeIndex && sibling.markdownMeta?.type === 'heading'
+    );
+    if (hasHeadingSiblings) {
+      return { canConvert: false, reason: '見出し兄弟ノードがあるため変換できません' };
+    }
+
+    return { canConvert: true };
+  }
+
+  /**
+   * ノードタイプを変更（見出し ↔ リスト）
+   */
+  static changeNodeType(
+    nodes: MindMapNode[],
+    nodeId: string,
+    newType: 'heading' | 'unordered-list' | 'ordered-list'
+  ): MindMapNode[] {
+    // 見出し→リストの変換時は安全性をチェック
+    if (newType === 'unordered-list' || newType === 'ordered-list') {
+      const safetyCheck = this.canSafelyConvertToList(nodes, nodeId);
+      if (!safetyCheck.canConvert) {
+        console.warn('変換できません:', safetyCheck.reason);
+        // エラーをthrowして上位で処理
+        throw new Error(safetyCheck.reason);
+      }
+    }
+    const processNode = (nodeList: MindMapNode[]): MindMapNode[] => {
+      return nodeList.map(node => {
+        if (node.id === nodeId && node.markdownMeta) {
+          const currentMeta = node.markdownMeta;
+          let newMeta = { ...currentMeta };
+
+          if (newType === 'heading') {
+            // リスト → 見出しに変更
+            newMeta = {
+              type: 'heading',
+              level: Math.min(currentMeta.level || 1, 6), // 最大レベル6
+              originalFormat: '#'.repeat(Math.min(currentMeta.level || 1, 6)),
+              indentLevel: 0,
+              lineNumber: currentMeta.lineNumber
+            };
+          } else if (newType === 'unordered-list') {
+            // 見出し/順序ありリスト → 順序なしリスト
+            newMeta = {
+              type: 'unordered-list',
+              level: currentMeta.level || 1,
+              originalFormat: '-',
+              indentLevel: currentMeta.indentLevel || 0,
+              lineNumber: currentMeta.lineNumber
+            };
+          } else if (newType === 'ordered-list') {
+            // 見出し/順序なしリスト → 順序ありリスト
+            newMeta = {
+              type: 'ordered-list',
+              level: currentMeta.level || 1,
+              originalFormat: '1.',
+              indentLevel: currentMeta.indentLevel || 0,
+              lineNumber: currentMeta.lineNumber
+            };
+          }
+
+          return {
+            ...node,
+            markdownMeta: newMeta
+          };
+        }
+
+        if (node.children && node.children.length > 0) {
+          return {
+            ...node,
+            children: processNode(node.children)
+          };
+        }
+
+        return node;
+      });
+    };
+
+    return processNode(nodes);
+  }
+
+  /**
    * リストタイプを変更（順序なし↔順序あり）
    */
   static changeListType(
@@ -690,7 +809,7 @@ export class MarkdownImporter {
       return nodeList.map(node => {
         if (node.markdownMeta) {
           const meta = node.markdownMeta;
-          let styledNode = { ...node };
+          const styledNode = { ...node };
 
           // 見出しレベルに応じたスタイリング
           if (meta.type === 'heading') {

@@ -13,6 +13,7 @@ import NodeNotesPanelContainer from './NodeNotesPanelContainer';
 // Outline mode removed
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import { useNotification } from '../../../../shared/hooks/useNotification';
+import { useMarkdownSync } from '../../../../shared/hooks/useMarkdownSync';
 import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
 import { navigateLink } from '../../../../shared/utils/linkNavigation';
 import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
@@ -51,6 +52,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   
   const { showNotification } = useNotification();
   const { handleError, handleAsyncError } = useErrorHandler();
+  const markdownSync = useMarkdownSync();
   const { retryableUpload } = useRetryableUpload({
     maxRetries: 3,
     retryDelay: 2000, // 2秒
@@ -290,6 +292,29 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       };
       const newId = paste(clipboardNode, parentId);
       if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
+    },
+    changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
+      if (data?.rootNodes?.[0]) {
+        markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
+          // 変換エラーをチェック
+          if ((updatedNodes as any).__conversionError) {
+            const errorMessage = (updatedNodes as any).__conversionError;
+            showNotification('warning', `変換できません: ${errorMessage}`);
+            return;
+          }
+
+          const newData = { ...data, rootNodes: updatedNodes };
+          store.setData(newData);
+
+          // 強制的に再レンダリングをトリガーしてマーカーを即座に更新
+          setTimeout(() => {
+            selectNode(null);
+            setTimeout(() => {
+              selectNode(nodeId);
+            }, 1);
+          }, 1);
+        });
+      }
     },
   });
   useKeyboardShortcuts(shortcutHandlers as any, vim);
@@ -1099,6 +1124,25 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           const newId = paste(clipboardNode, parentId);
           if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
           handleContextMenuClose();
+        }}
+        onMarkdownNodeType={(nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
+          if (data?.rootNodes?.[0]) {
+            // コンテキストメニューをすぐに閉じる
+            handleContextMenuClose();
+
+            // ノード変換を実行（markdownSyncのコールバック形式を使用）
+            markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
+              // 変換エラーをチェック
+              if ((updatedNodes as any).__conversionError) {
+                const errorMessage = (updatedNodes as any).__conversionError;
+                showNotification('warning', `変換できません: ${errorMessage}`);
+                return;
+              }
+
+              const newData = { ...data, rootNodes: updatedNodes };
+              store.setData(newData);
+            });
+          }
         }}
         onAIGenerate={ai.aiSettings.enabled ? handleAIGenerate : undefined}
         onClose={handleContextMenuClose}

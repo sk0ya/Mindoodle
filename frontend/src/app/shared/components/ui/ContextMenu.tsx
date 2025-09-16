@@ -18,8 +18,7 @@ interface ContextMenuProps {
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
-  onMarkdownIndent?: (nodeId: string, direction: 'increase' | 'decrease') => void;
-  onMarkdownListType?: (nodeId: string, newType: 'unordered-list' | 'ordered-list') => void;
+  onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   onClose: () => void;
 }
 
@@ -33,8 +32,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onPaste,
   onAIGenerate,
   onAddLink,
-  onMarkdownIndent,
-  onMarkdownListType,
+  onMarkdownNodeType,
   onClose
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
@@ -92,8 +90,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         onPaste={onPaste}
         onAIGenerate={onAIGenerate}
         onAddLink={onAddLink}
-        onMarkdownIndent={onMarkdownIndent}
-        onMarkdownListType={onMarkdownListType}
+        onMarkdownNodeType={onMarkdownNodeType}
         onClose={onClose}
       />
       

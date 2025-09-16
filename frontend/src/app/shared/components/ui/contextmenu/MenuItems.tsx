@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Palette, Copy, Clipboard, Link, Trash2, Clock, Indent, Outdent, List, ListOrdered } from 'lucide-react';
+import { Bot, Palette, Copy, Clipboard, Link, Trash2, Clock, List } from 'lucide-react';
 import { MindMapNode } from '../../../types';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 
@@ -26,8 +26,7 @@ interface MenuItemsProps {
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
-  onMarkdownIndent?: (nodeId: string, direction: 'increase' | 'decrease') => void;
-  onMarkdownListType?: (nodeId: string, newType: 'unordered-list' | 'ordered-list') => void;
+  onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   onClose: () => void;
 }
 
@@ -39,8 +38,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   onPaste,
   onAIGenerate,
   onAddLink,
-  onMarkdownIndent,
-  onMarkdownListType,
+  onMarkdownNodeType,
   onClose
 }) => {
   const store = useMindMapStore();
@@ -94,38 +92,16 @@ const MenuItems: React.FC<MenuItemsProps> = ({
     },
     { type: 'separator' as const },
 
-    // マークダウンリスト操作メニュー（マークダウンノードの場合のみ）
-    ...(isMarkdownNode && onMarkdownIndent && onMarkdownListType ? [
+    // マークダウンノード変換メニュー（見出し→リストのみ）
+    ...(isMarkdownNode && onMarkdownNodeType && markdownMeta?.type === 'heading' ? [
       {
-        icon: <Indent size={16} />,
-        label: markdownMeta?.type === 'heading' ? '見出しレベル増加' : 'インデント増加',
+        icon: <List size={16} />,
+        label: 'リストに変更',
         action: () => {
-          onMarkdownIndent(selectedNode.id, 'increase');
+          onMarkdownNodeType(selectedNode.id, 'unordered-list');
           onClose();
         },
-        shortcut: 'Tab',
-        disabled: markdownMeta?.type === 'heading' && markdownMeta.level >= 6
-      },
-      {
-        icon: <Outdent size={16} />,
-        label: markdownMeta?.type === 'heading' ? '見出しレベル減少' : 'インデント減少',
-        action: () => {
-          onMarkdownIndent(selectedNode.id, 'decrease');
-          onClose();
-        },
-        shortcut: 'Shift+Tab',
-        disabled: (markdownMeta?.type === 'heading' && markdownMeta.level <= 1) ||
-                  (markdownMeta?.type !== 'heading' && (markdownMeta?.indentLevel || 0) <= 0)
-      },
-      {
-        icon: markdownMeta?.type === 'ordered-list' ? <List size={16} /> : <ListOrdered size={16} />,
-        label: markdownMeta?.type === 'ordered-list' ? '順序なしリストに変更' : '順序ありリストに変更',
-        action: () => {
-          const newType = markdownMeta?.type === 'ordered-list' ? 'unordered-list' : 'ordered-list';
-          onMarkdownListType(selectedNode.id, newType);
-          onClose();
-        },
-        disabled: markdownMeta?.type === 'heading'
+        shortcut: 'Ctrl+M / m'
       },
       { type: 'separator' as const }
     ] : []),
