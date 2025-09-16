@@ -632,15 +632,22 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   };
 
-  // ノードを画面中央に移動する関数
-  const centerNodeInView = useCallback((nodeId: string, animate = true) => {
+  // ノードを画面中央に移動する関数（最適化済み）
+  const centerNodeInView = useCallback((nodeId: string, animate = false) => {
     if (!data) return;
 
+    // ルートノードの場合は最適化（検索を省略）
     const rootNodes = data.rootNodes || [];
     let targetNode = null;
-    for (const rootNode of rootNodes) {
-      targetNode = findNodeById(rootNode, nodeId);
-      if (targetNode) break;
+
+    if (rootNodes.length > 0 && rootNodes[0].id === nodeId) {
+      targetNode = rootNodes[0];
+    } else {
+      // その他のノードは検索
+      for (const rootNode of rootNodes) {
+        targetNode = findNodeById(rootNode, nodeId);
+        if (targetNode) break;
+      }
     }
     if (!targetNode) return;
 
@@ -664,27 +671,35 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     const newPanY = viewportCenterY / currentZoom - nodeY;
 
     if (animate) {
-      // アニメーション付きでパンを更新
+      // 非同期アニメーション（ユーザー操作をブロックしない）
       const currentPan = ui.pan;
-      // const duration = 300; // 300ms (未使用)
-      const steps = 20;
-      
+      const steps = 16; // ステップ数を削減（20→16）
+      const duration = 250; // 短時間化（300→250ms）
+      const stepDuration = duration / steps;
+
       const deltaX = (newPanX - currentPan.x) / steps;
       const deltaY = (newPanY - currentPan.y) / steps;
-      
+
       let step = 0;
+
       const animateStep = () => {
         if (step < steps) {
           step++;
           const currentX = currentPan.x + (deltaX * step);
           const currentY = currentPan.y + (deltaY * step);
-          setPan({ x: currentX, y: currentY });
-          
-          requestAnimationFrame(animateStep);
+
+          // setState を間引いて負荷軽減（2ステップごと）
+          if (step % 2 === 0 || step === steps) {
+            setPan({ x: currentX, y: currentY });
+          }
+
+          // setTimeout で間隔を空けてブロッキングを防ぐ
+          window.setTimeout(animateStep, stepDuration);
         }
       };
-      
-      requestAnimationFrame(animateStep);
+
+      // 最初のステップを開始
+      window.setTimeout(animateStep, 0);
     } else {
       // 即座にパンを更新
       setPan({ x: newPanX, y: newPanY });
@@ -694,14 +709,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // ルートノードを中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
     if (data?.rootNodes?.[0]) {
-      centerNodeInView(data.rootNodes[0].id, true);
+      centerNodeInView(data.rootNodes[0].id, false);
     }
   }, [data?.rootNodes, centerNodeInView]);
 
   // マップが切り替わった時の前のマップIDを記録
   const [prevMapId, setPrevMapId] = React.useState<string | null>(null);
 
-  // マップが初期化された時やマップ切り替え時にルートノードを選択し中央に表示
+  // マップが初期化された時やマップ切り替え時にルートノードを選択し中央に表示（非同期化）
   React.useEffect(() => {
     const currentMapId = data?.mapIdentifier?.mapId;
 
@@ -712,11 +727,16 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       const mapChanged = currentMapId !== prevMapId;
 
       if (mapChanged) {
+        // 即座にノード選択
         selectNode(rootNodeId);
-        // 少し遅延してから中央表示（レイアウトが確定してから）
+
+        // 中央移動処理を非同期で実行（ユーザー操作をブロックしない）
         setTimeout(() => {
-          centerNodeInView(rootNodeId, true);
-        }, 100);
+          // さらに非同期で中央移動を実行（UIスレッドを開放）
+          requestIdleCallback(() => {
+            centerNodeInView(rootNodeId, false);
+          }, { timeout: 200 });
+        }, 50); // より短い遅延
       }
 
       // 現在のマップIDを記録
