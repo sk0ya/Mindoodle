@@ -247,77 +247,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [allMindMaps, mindMap]);
 
-  // キーボードショートカット設定（ハンドラー組み立てを外部化）
-  const finishEditingWrapper = (nodeId: string, text?: string) => {
-    if (text !== undefined) finishEditing(nodeId, text);
-  };
-  const shortcutHandlers = useShortcutHandlers({
-    data: data ? { rootNode: data.rootNodes?.[0] } : null,
-    ui,
-    store,
-    logger,
-    showNotification,
-    selectedNodeId,
-    editingNodeId,
-    setEditText,
-    editText,
-    startEditing,
-    startEditingWithCursorAtEnd,
-    startEditingWithCursorAtStart,
-    finishEditing: finishEditingWrapper,
-    updateNode,
-    deleteNode,
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    selectNode,
-    applyAutoLayout,
-    pasteImageFromClipboard: async (nodeId: string) => {
-      const { readClipboardImageAsFile } = await import('../../../../shared/utils/clipboard');
-      const file = await readClipboardImageAsFile();
-      await uploadFile(nodeId, file);
-      showNotification('success', '画像を貼り付けました');
-    },
-    pasteNodeFromClipboard: async (parentId: string) => {
-      const clipboardNode = ui.clipboard;
-      if (!clipboardNode) { showNotification('warning', 'コピーされたノードがありません'); return; }
-      const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
-        const newNodeId = store.addChildNode(parent, nodeToAdd.text);
-        if (newNodeId) {
-          updateNode(newNodeId, { fontSize: nodeToAdd.fontSize, fontWeight: nodeToAdd.fontWeight, color: nodeToAdd.color, collapsed: false, attachments: nodeToAdd.attachments || [] });
-          nodeToAdd.children?.forEach(child => paste(child, newNodeId));
-        }
-        return newNodeId;
-      };
-      const newId = paste(clipboardNode, parentId);
-      if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
-    },
-    changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
-      if (data?.rootNodes?.[0]) {
-        markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
-          // 変換エラーをチェック
-          if ((updatedNodes as any).__conversionError) {
-            const errorMessage = (updatedNodes as any).__conversionError;
-            showNotification('warning', `変換できません: ${errorMessage}`);
-            return;
-          }
-
-          const newData = { ...data, rootNodes: updatedNodes };
-          store.setData(newData);
-
-          // 強制的に再レンダリングをトリガーしてマーカーを即座に更新
-          setTimeout(() => {
-            selectNode(null);
-            setTimeout(() => {
-              selectNode(nodeId);
-            }, 1);
-          }, 1);
-        });
-      }
-    },
-  });
-  useKeyboardShortcuts(shortcutHandlers as any, vim);
+  // キーボードショートカット設定は後で定義
 
   // UI state から個別に取得
   const { showKeyboardHelper, setShowKeyboardHelper } = {
@@ -777,6 +707,79 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   };
 
   const handleShowLinkActionMenu = openLinkActionMenu;
+
+  // キーボードショートカット設定（ハンドラー組み立てを外部化）
+  const finishEditingWrapper = (nodeId: string, text?: string) => {
+    if (text !== undefined) finishEditing(nodeId, text);
+  };
+  const shortcutHandlers = useShortcutHandlers({
+    data: data ? { rootNode: data.rootNodes?.[0] } : null,
+    ui,
+    store,
+    logger,
+    showNotification,
+    centerNodeInView,
+    selectedNodeId,
+    editingNodeId,
+    setEditText,
+    editText,
+    startEditing,
+    startEditingWithCursorAtEnd,
+    startEditingWithCursorAtStart,
+    finishEditing: finishEditingWrapper,
+    updateNode,
+    deleteNode,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    selectNode,
+    applyAutoLayout,
+    pasteImageFromClipboard: async (nodeId: string) => {
+      const { readClipboardImageAsFile } = await import('../../../../shared/utils/clipboard');
+      const file = await readClipboardImageAsFile();
+      await uploadFile(nodeId, file);
+      showNotification('success', '画像を貼り付けました');
+    },
+    pasteNodeFromClipboard: async (parentId: string) => {
+      const clipboardNode = ui.clipboard;
+      if (!clipboardNode) { showNotification('warning', 'コピーされたノードがありません'); return; }
+      const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
+        const newNodeId = store.addChildNode(parent, nodeToAdd.text);
+        if (newNodeId) {
+          updateNode(newNodeId, { fontSize: nodeToAdd.fontSize, fontWeight: nodeToAdd.fontWeight, color: nodeToAdd.color, collapsed: false, attachments: nodeToAdd.attachments || [] });
+          nodeToAdd.children?.forEach(child => paste(child, newNodeId));
+        }
+        return newNodeId;
+      };
+      const newId = paste(clipboardNode, parentId);
+      if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
+    },
+    changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
+      if (data?.rootNodes?.[0]) {
+        markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
+          // 変換エラーをチェック
+          if ((updatedNodes as any).__conversionError) {
+            const errorMessage = (updatedNodes as any).__conversionError;
+            showNotification('warning', `変換できません: ${errorMessage}`);
+            return;
+          }
+
+          const newData = { ...data, rootNodes: updatedNodes };
+          store.setData(newData);
+
+          // 強制的に再レンダリングをトリガーしてマーカーを即座に更新
+          setTimeout(() => {
+            selectNode(null);
+            setTimeout(() => {
+              selectNode(nodeId);
+            }, 1);
+          }, 1);
+        });
+      }
+    },
+  });
+  useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
 
   // Outline save feature removed

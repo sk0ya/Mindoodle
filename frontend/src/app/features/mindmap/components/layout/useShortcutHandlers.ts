@@ -9,6 +9,8 @@ interface Args {
   store: any;
   logger: any;
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
+  // viewport control
+  centerNodeInView: (nodeId: string, animate?: boolean) => void;
   // mindmap data/actions
   selectedNodeId: string | null;
   editingNodeId: string | null;
@@ -34,6 +36,7 @@ interface Args {
 export function useShortcutHandlers(args: Args) {
   const {
     data, ui, store, logger, showNotification,
+    centerNodeInView,
     selectedNodeId, editingNodeId, editText, setEditText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
@@ -153,8 +156,10 @@ export function useShortcutHandlers(args: Args) {
     findNodeById: (nodeId: string) => data?.rootNode ? findNodeById(data.rootNode, nodeId) : null,
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
     onMarkdownNodeType: changeNodeType,
+    centerNodeInView,
   }), [
     data, ui, store, logger, showNotification,
+    centerNodeInView,
     selectedNodeId, editingNodeId, editText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,

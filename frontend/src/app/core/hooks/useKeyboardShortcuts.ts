@@ -40,6 +40,7 @@ interface KeyboardShortcutHandlers {
   findNodeById: (_nodeId: string) => MindMapNode | null;
   closeAttachmentAndLinkLists: () => void;
   onMarkdownNodeType?: (_nodeId: string, _newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
 }
 
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
@@ -78,7 +79,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vimium競合対策: vimキーの場合は即座に preventDefault
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm'];
+        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm', 'z'];
         if (vimKeys.includes(key.toLowerCase())) {
           event.preventDefault();
           event.stopPropagation();
@@ -88,6 +89,27 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vim mode handling
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
+        // Handle key sequence for commands like 'zz'
+        if (key.toLowerCase() === 'z') {
+          const newBuffer = vim.commandBuffer + 'z';
+          vim.appendToCommandBuffer('z');
+          // Check if we have 'zz' command (two z's)
+          if (newBuffer === 'zz') {
+            // Execute center command
+            if (handlers.centerNodeInView && handlers.selectedNodeId) {
+              handlers.centerNodeInView(handlers.selectedNodeId, false);
+            }
+            vim.clearCommandBuffer();
+            return;
+          }
+          return;
+        }
+
+        // Clear command buffer if we press any other key
+        if (vim.commandBuffer.length > 0 && key.toLowerCase() !== 'z') {
+          vim.clearCommandBuffer();
+        }
+
         switch (key.toLowerCase()) {
           case 'h': // Left
             handlers.closeAttachmentAndLinkLists();
@@ -192,7 +214,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       if (!isModifier && handlers.selectedNodeId) {
         // Skip if vim is enabled and this is a vim key that was already handled
         if (vim && vim.isEnabled && vim.mode === 'normal') {
-          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm'];
+          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm', 'z'];
           if (vimKeys.includes(key.toLowerCase())) {
             // This key was already handled by vim mode, skip standard handling
             return;
