@@ -708,11 +708,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     if (data?.rootNodes?.[0] && currentMapId) {
       const rootNodeId = data.rootNodes[0].id;
 
-      // マップが切り替わった場合、または初回読み込みで選択ノードがない場合
+      // マップが切り替わった場合のみ処理を実行
       const mapChanged = currentMapId !== prevMapId;
-      const noSelectedNode = !selectedNodeId;
 
-      if (mapChanged || noSelectedNode) {
+      if (mapChanged) {
         selectNode(rootNodeId);
         // 少し遅延してから中央表示（レイアウトが確定してから）
         setTimeout(() => {
