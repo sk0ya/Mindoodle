@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
+import { useVimMode } from '../../../../core/hooks/useVimMode';
 import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
@@ -22,7 +23,6 @@ import { useRetryableUpload } from '../../../../shared/hooks/useRetryableUpload'
 import { useAI } from '../../../../core/hooks/useAI';
 import { useTheme } from '../../../../shared/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
-import { useVimMode } from '../../../../core/hooks/useVimMode';
 import { useFileHandlers } from './useFileHandlers';
 import MindMapProviders from './MindMapProviders';
 import { logger } from '../../../../shared/utils/logger';
@@ -67,8 +67,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     loadSettingsFromStorage();
   }, [loadSettingsFromStorage]);
   
-  // Vim mode hook
-  const vim = useVimMode();
   
   // VSCode風サイドバーの状態
   const [activeView, setActiveView] = useState<string | null>('maps');
@@ -779,6 +777,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       }
     },
   });
+  // Vim mode hook
+  const vim = useVimMode();
+
   useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
 

@@ -21,19 +21,49 @@ interface UseCommandsProps {
   editingNodeId: string | null;
   vim?: VimModeHook;
   handlers: {
+    // Node operations
     updateNode: (id: string, updates: any) => void;
     deleteNode: (id: string) => void;
-    centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     findNodeById: (nodeId: string) => any;
+
+    // Navigation
+    centerNodeInView?: (nodeId: string, animate?: boolean) => void;
+    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
+
+    // Editing
+    startEdit: (nodeId: string) => void;
     startEditWithCursorAtStart: (nodeId: string) => void;
     startEditWithCursorAtEnd: (nodeId: string) => void;
-    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
+
+    // Structure operations
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
+
+    // Clipboard operations
     copyNode: (nodeId: string) => void;
     pasteNode: (parentId: string) => Promise<void>;
+    pasteImageFromClipboard: (nodeId: string) => Promise<void>;
+
+    // Undo/Redo
     undo: () => void;
     redo: () => void;
+    canUndo: boolean;
+    canRedo: boolean;
+
+    // UI state management
+    showKeyboardHelper: boolean;
+    setShowKeyboardHelper: (show: boolean) => void;
+    showMapList: boolean;
+    setShowMapList: (show: boolean) => void;
+    showLocalStorage: boolean;
+    setShowLocalStorage: (show: boolean) => void;
+    showTutorial: boolean;
+    setShowTutorial: (show: boolean) => void;
+
+    // UI operations
+    closeAttachmentAndLinkLists: () => void;
+
+    // Markdown operations
     onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   };
 }

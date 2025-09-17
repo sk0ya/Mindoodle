@@ -116,19 +116,49 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     editingNodeId: handlers.editingNodeId,
     vim,
     handlers: {
+      // Node operations
       updateNode: handlers.updateNode,
       deleteNode: handlers.deleteNode,
-      centerNodeInView: handlers.centerNodeInView,
       findNodeById: handlers.findNodeById,
+
+      // Navigation
+      centerNodeInView: handlers.centerNodeInView,
+      navigateToDirection: handlers.navigateToDirection,
+
+      // Editing
+      startEdit: handlers.startEdit,
       startEditWithCursorAtStart: handlers.startEditWithCursorAtStart,
       startEditWithCursorAtEnd: handlers.startEditWithCursorAtEnd,
-      navigateToDirection: handlers.navigateToDirection,
+
+      // Structure operations
       addChildNode: handlers.addChildNode,
       addSiblingNode: handlers.addSiblingNode,
+
+      // Clipboard operations
       copyNode: handlers.copyNode,
       pasteNode: handlers.pasteNode,
+      pasteImageFromClipboard: handlers.pasteImageFromClipboard,
+
+      // Undo/Redo
       undo: handlers.undo,
       redo: handlers.redo,
+      canUndo: handlers.canUndo,
+      canRedo: handlers.canRedo,
+
+      // UI state management
+      showKeyboardHelper: handlers.showKeyboardHelper,
+      setShowKeyboardHelper: handlers.setShowKeyboardHelper,
+      showMapList: handlers.showMapList,
+      setShowMapList: handlers.setShowMapList,
+      showLocalStorage: handlers.showLocalStorage,
+      setShowLocalStorage: handlers.setShowLocalStorage,
+      showTutorial: handlers.showTutorial,
+      setShowTutorial: handlers.setShowTutorial,
+
+      // UI operations
+      closeAttachmentAndLinkLists: handlers.closeAttachmentAndLinkLists,
+
+      // Markdown operations
       onMarkdownNodeType: handlers.onMarkdownNodeType,
     }
   });
@@ -327,7 +357,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
     // Vimium対策: captureフェーズでイベントを捕獲
     document.addEventListener('keydown', handleKeyDown, true);
-    
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
     };

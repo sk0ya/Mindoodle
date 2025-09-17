@@ -17,6 +17,42 @@ import {
   rightCommand
 } from './navigate';
 
+// New command categories
+import {
+  undoCommand,
+  redoCommand,
+  saveCommand,
+  copyCommand,
+  pasteCommand
+} from './application';
+
+import {
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand
+} from './ui';
+
+import {
+  arrowNavigateCommand,
+  selectNodeCommand,
+  findNodeCommand,
+  zoomInCommand,
+  zoomOutCommand,
+  zoomResetCommand
+} from './navigation';
+
+import {
+  importMindmapCommand,
+  exportMindmapCommand,
+  newMindmapCommand,
+  clearMindmapCommand,
+  statsCommand,
+  autoLayoutCommand,
+  themeCommand
+} from './mindmap';
+
 // Export all commands
 export const commands = [
   // Core vim commands
@@ -41,6 +77,37 @@ export const commands = [
   downCommand,
   leftCommand,
   rightCommand,
+
+  // Application commands
+  undoCommand,
+  redoCommand,
+  saveCommand,
+  copyCommand,
+  pasteCommand,
+
+  // UI commands
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand,
+
+  // Extended navigation commands
+  arrowNavigateCommand,
+  selectNodeCommand,
+  findNodeCommand,
+  zoomInCommand,
+  zoomOutCommand,
+  zoomResetCommand,
+
+  // Mindmap commands
+  importMindmapCommand,
+  exportMindmapCommand,
+  newMindmapCommand,
+  clearMindmapCommand,
+  statsCommand,
+  autoLayoutCommand,
+  themeCommand,
 ];
 
 // Export individual commands for direct access
@@ -60,6 +127,33 @@ export {
   downCommand,
   leftCommand,
   rightCommand,
+  // Application commands
+  undoCommand,
+  redoCommand,
+  saveCommand,
+  copyCommand,
+  pasteCommand,
+  // UI commands
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand,
+  // Extended navigation commands
+  arrowNavigateCommand,
+  selectNodeCommand,
+  findNodeCommand,
+  zoomInCommand,
+  zoomOutCommand,
+  zoomResetCommand,
+  // Mindmap commands
+  importMindmapCommand,
+  exportMindmapCommand,
+  newMindmapCommand,
+  clearMindmapCommand,
+  statsCommand,
+  autoLayoutCommand,
+  themeCommand,
 };
 
 // Helper function to register all commands
