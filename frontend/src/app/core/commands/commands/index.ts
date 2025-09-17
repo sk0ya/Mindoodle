@@ -8,6 +8,7 @@ import { deleteCommand } from './delete';
 import { toggleCommand } from './toggle';
 import { editCommand } from './edit';
 import { insertCommand, appendCommand, openCommand } from './insert';
+import { addChildCommand, addSiblingCommand, convertNodeCommand } from './structure';
 import {
   navigateCommand,
   upCommand,
@@ -29,6 +30,11 @@ export const commands = [
   appendCommand,
   openCommand,
 
+  // Structure commands
+  addChildCommand,
+  addSiblingCommand,
+  convertNodeCommand,
+
   // Navigation commands
   navigateCommand,
   upCommand,
@@ -46,6 +52,9 @@ export {
   insertCommand,
   appendCommand,
   openCommand,
+  addChildCommand,
+  addSiblingCommand,
+  convertNodeCommand,
   navigateCommand,
   upCommand,
   downCommand,
@@ -64,5 +73,5 @@ export function registerAllCommands(registry: any) {
 export const commandCategories = {
   navigation: [navigateCommand, upCommand, downCommand, leftCommand, rightCommand, centerCommand],
   editing: [deleteCommand, editCommand, insertCommand, appendCommand, openCommand],
-  structure: [toggleCommand],
+  structure: [toggleCommand, addChildCommand, addSiblingCommand, convertNodeCommand],
 } as const;

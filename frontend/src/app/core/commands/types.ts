@@ -37,6 +37,7 @@ export interface CommandContext {
     pasteNode: (parentId: string) => Promise<void>;
     undo: () => void;
     redo: () => void;
+    onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   };
 }
 

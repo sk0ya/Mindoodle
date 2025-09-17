@@ -52,8 +52,8 @@ export const deleteCommand: Command = {
       };
     }
 
-    // Check if this is the root node
-    if (node.isRoot) {
+    // Check if this is the root node (by checking if it has special ID)
+    if (node.id === 'root') {
       return {
         success: false,
         error: 'Cannot delete the root node'

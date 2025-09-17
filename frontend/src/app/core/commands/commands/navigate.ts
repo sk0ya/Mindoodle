@@ -77,8 +77,8 @@ export const upCommand: Command = {
   description: 'Navigate up to the previous sibling node',
   category: 'navigation',
   examples: ['up', 'k', 'u'],
-  execute(context: CommandContext): CommandResult {
-    return navigateCommand.execute(context, { direction: 'up' });
+  async execute(context: CommandContext): Promise<CommandResult> {
+    return await navigateCommand.execute(context, { direction: 'up' });
   }
 };
 
@@ -88,8 +88,8 @@ export const downCommand: Command = {
   description: 'Navigate down to the next sibling node',
   category: 'navigation',
   examples: ['down', 'j', 'd'],
-  execute(context: CommandContext): CommandResult {
-    return navigateCommand.execute(context, { direction: 'down' });
+  async execute(context: CommandContext): Promise<CommandResult> {
+    return await navigateCommand.execute(context, { direction: 'down' });
   }
 };
 
@@ -99,8 +99,8 @@ export const leftCommand: Command = {
   description: 'Navigate left to the parent node',
   category: 'navigation',
   examples: ['left', 'h', 'parent'],
-  execute(context: CommandContext): CommandResult {
-    return navigateCommand.execute(context, { direction: 'left' });
+  async execute(context: CommandContext): Promise<CommandResult> {
+    return await navigateCommand.execute(context, { direction: 'left' });
   }
 };
 
@@ -110,8 +110,8 @@ export const rightCommand: Command = {
   description: 'Navigate right to the first child node',
   category: 'navigation',
   examples: ['right', 'l', 'child'],
-  execute(context: CommandContext): CommandResult {
-    return navigateCommand.execute(context, { direction: 'right' });
+  async execute(context: CommandContext): Promise<CommandResult> {
+    return await navigateCommand.execute(context, { direction: 'right' });
   }
 };
 

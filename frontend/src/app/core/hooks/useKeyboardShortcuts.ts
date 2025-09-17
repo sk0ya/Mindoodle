@@ -6,6 +6,8 @@
 import { useEffect } from 'react';
 import type { MindMapNode } from '@shared/types';
 import type { VimModeHook } from './useVimMode';
+import { useCommands } from '../commands';
+import type { UseCommandsReturn } from '../commands/useCommands';
 
 interface KeyboardShortcutHandlers {
   selectedNodeId: string | null;
@@ -43,8 +45,94 @@ interface KeyboardShortcutHandlers {
   centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
 }
 
+/**
+ * Handle vim key sequences using command system delegation
+ */
+function handleVimKeySequence(
+  key: string,
+  vim: VimModeHook,
+  commands: UseCommandsReturn,
+  handlers: KeyboardShortcutHandlers
+): boolean {
+  // Special cases that don't follow the normal sequence pattern
+  if (key === 'escape') {
+    vim.setMode('normal');
+    return true;
+  }
+
+  if (['tab', 'enter', 'delete', 'backspace'].includes(key)) {
+    // Map special keys to vim commands (must match useCommands vimCommandMap)
+    const specialKeyMap: Record<string, string> = {
+      'tab': 'tab',
+      'enter': 'enter',
+      'delete': 'delete',
+      'backspace': 'backspace'
+    };
+
+    const commandName = specialKeyMap[key];
+    if (commandName) {
+      commands.executeVimCommand(commandName);
+      return true;
+    }
+  }
+
+  // Handle key sequences using command system
+  const currentBuffer = vim.commandBuffer;
+  const testSequence = currentBuffer + key;
+  const result = commands.parseVimSequence(testSequence);
+
+  if (result.isComplete && result.command) {
+    // Complete command - execute and clear buffer
+    handlers.closeAttachmentAndLinkLists();
+    commands.executeVimCommand(result.command);
+    vim.clearCommandBuffer();
+    return true;
+  } else if (result.isPartial) {
+    // Partial command - add to buffer and wait for more keys
+    vim.appendToCommandBuffer(key);
+    return true;
+  } else if (result.shouldClear) {
+    // Invalid sequence - clear buffer
+    vim.clearCommandBuffer();
+    // Don't return true here - let the key be processed normally
+  }
+
+  // For single-key commands, try to execute directly
+  const singleKeyResult = commands.parseVimSequence(key);
+  if (singleKeyResult.isComplete && singleKeyResult.command) {
+    handlers.closeAttachmentAndLinkLists();
+    commands.executeVimCommand(singleKeyResult.command);
+    return true;
+  }
+
+  return false;
+}
+
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
-  
+
+  // Initialize command system
+  const commands = useCommands({
+    selectedNodeId: handlers.selectedNodeId,
+    editingNodeId: handlers.editingNodeId,
+    vim,
+    handlers: {
+      updateNode: handlers.updateNode,
+      deleteNode: handlers.deleteNode,
+      centerNodeInView: handlers.centerNodeInView,
+      findNodeById: handlers.findNodeById,
+      startEditWithCursorAtStart: handlers.startEditWithCursorAtStart,
+      startEditWithCursorAtEnd: handlers.startEditWithCursorAtEnd,
+      navigateToDirection: handlers.navigateToDirection,
+      addChildNode: handlers.addChildNode,
+      addSiblingNode: handlers.addSiblingNode,
+      copyNode: handlers.copyNode,
+      pasteNode: handlers.pasteNode,
+      undo: handlers.undo,
+      redo: handlers.redo,
+      onMarkdownNodeType: handlers.onMarkdownNodeType,
+    }
+  });
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       // Vimium対策: キーボードイベントを早期に捕獲
@@ -79,7 +167,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vimium競合対策: vimキーの場合は即座に preventDefault
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'm', 'z', 'd', 'c', 'w'];
+        const vimKeys = commands.getVimKeys();
         if (vimKeys.includes(key.toLowerCase())) {
           event.preventDefault();
           event.stopPropagation();
@@ -87,139 +175,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         }
       }
 
-      // Vim mode handling
+      // Vim mode handling - delegated to command system
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        // Handle key sequence for commands like 'zz', 'za', and 'dd'
-        const currentBuffer = vim.commandBuffer;
-        const newBuffer = currentBuffer + key.toLowerCase();
-
-        if (['z', 'd', 'c'].includes(key.toLowerCase()) ||
-            (key.toLowerCase() === 'a' && currentBuffer === 'z') ||
-            (key.toLowerCase() === 'i' && currentBuffer === 'c') ||
-            (key.toLowerCase() === 'w' && currentBuffer === 'ci')) {
-          vim.appendToCommandBuffer(key.toLowerCase());
-
-          // Check for complete commands
-          if (newBuffer === 'zz') {
-            // Execute center command
-            if (handlers.centerNodeInView && handlers.selectedNodeId) {
-              handlers.centerNodeInView(handlers.selectedNodeId, false);
-            }
-            vim.clearCommandBuffer();
-            return;
-          } else if (newBuffer === 'za') {
-            // Execute toggle collapse command
-            if (handlers.selectedNodeId) {
-              const selectedNode = handlers.findNodeById(handlers.selectedNodeId);
-              if (selectedNode && selectedNode.children && selectedNode.children.length > 0) {
-                handlers.updateNode(handlers.selectedNodeId, { collapsed: !selectedNode.collapsed });
-              }
-            }
-            vim.clearCommandBuffer();
-            return;
-          } else if (newBuffer === 'dd') {
-            // Execute delete command
-            if (handlers.selectedNodeId) {
-              handlers.deleteNode(handlers.selectedNodeId);
-            }
-            vim.clearCommandBuffer();
-            return;
-          } else if (newBuffer === 'ciw') {
-            // Execute change in word command (clear text and enter insert mode)
-            if (handlers.selectedNodeId) {
-              vim.setMode('insert');
-              handlers.updateNode(handlers.selectedNodeId, { text: '' });
-              setTimeout(() => {
-                handlers.startEditWithCursorAtStart(handlers.selectedNodeId!);
-              }, 10);
-            }
-            vim.clearCommandBuffer();
-            return;
-          }
-
-          // If we reach here, it's a partial command, continue waiting
+        const handled = handleVimKeySequence(key.toLowerCase(), vim, commands, handlers);
+        if (handled) {
           return;
-        }
-
-        // Clear command buffer if we press any other key
-        if (vim.commandBuffer.length > 0 &&
-            !['z', 'd', 'c'].includes(key.toLowerCase()) &&
-            !(key.toLowerCase() === 'a' && vim.commandBuffer === 'z') &&
-            !(key.toLowerCase() === 'i' && vim.commandBuffer === 'c') &&
-            !(key.toLowerCase() === 'w' && vim.commandBuffer === 'ci')) {
-          vim.clearCommandBuffer();
-        }
-
-        switch (key.toLowerCase()) {
-          case 'h': // Left
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('left');
-            return;
-          case 'j': // Down
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('down');
-            return;
-          case 'k': // Up
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('up');
-            return;
-          case 'l': // Right
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('right');
-            return;
-          case 'i': // Insert mode (cursor at start)
-            vim.setMode('insert');
-            if (handlers.selectedNodeId) {
-              handlers.startEditWithCursorAtStart(handlers.selectedNodeId);
-            }
-            return;
-          case 'a': // Insert mode (cursor at end)
-            vim.setMode('insert');
-            if (handlers.selectedNodeId) {
-              handlers.startEditWithCursorAtEnd(handlers.selectedNodeId);
-            }
-            return;
-          case 'o': // New child node and edit
-            vim.setMode('insert');
-            if (handlers.selectedNodeId) {
-              handlers.addChildNode(handlers.selectedNodeId, '', true);
-            }
-            return;
-          case 'escape':
-            event.preventDefault();
-            vim.setMode('normal');
-            return;
-          case 'tab':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.addChildNode(handlers.selectedNodeId, '', true);
-            }
-            return;
-          case 'enter':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.addSiblingNode(handlers.selectedNodeId, '', true);
-            }
-            return;
-          case 'delete':
-          case 'backspace':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.deleteNode(handlers.selectedNodeId);
-            }
-            return;
-          case 'm': // Change heading to list (one-way only)
-            event.preventDefault();
-            if (handlers.selectedNodeId && handlers.onMarkdownNodeType) {
-              const selectedNode = handlers.findNodeById(handlers.selectedNodeId);
-              if (selectedNode?.markdownMeta?.type === 'heading') {
-                handlers.onMarkdownNodeType(handlers.selectedNodeId, 'unordered-list');
-              }
-            }
-            return;
-          default:
-            // For non-vim keys in vim mode, allow normal handling to continue
-            break;
         }
       }
 
@@ -254,7 +214,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       if (!isModifier && handlers.selectedNodeId) {
         // Skip if vim is enabled and this is a vim key that was already handled
         if (vim && vim.isEnabled && vim.mode === 'normal') {
-          const vimKeys = ['h', 'j', 'k', 'l', 'i', 'a', 'o', 'escape', 'tab', 'enter', 'm', 'z', 'd', 'c', 'w'];
+          const vimKeys = [...commands.getVimKeys(), 'escape', 'tab', 'enter'];
           if (vimKeys.includes(key.toLowerCase())) {
             // This key was already handled by vim mode, skip standard handling
             return;

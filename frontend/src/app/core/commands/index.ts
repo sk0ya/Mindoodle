@@ -23,6 +23,15 @@ export {
   generateSuggestions
 } from './parser';
 
+// Vim sequence parser
+export {
+  parseVimSequence,
+  isValidVimKey,
+  getVimKeys,
+  canSequenceContinue
+} from './vimSequenceParser';
+export type { VimSequenceResult } from './vimSequenceParser';
+
 // Registry implementation
 export {
   CommandRegistryImpl,
@@ -43,12 +52,19 @@ export {
   insertCommand,
   appendCommand,
   openCommand,
+  addChildCommand,
+  addSiblingCommand,
+  convertNodeCommand,
   navigateCommand,
   upCommand,
   downCommand,
   leftCommand,
   rightCommand
-} from './commands';
+} from './commands/index';
+
+// Direct imports for internal usage
+import { getCommandRegistry as getRegistry } from './registry';
+import { registerAllCommands as registerAll } from './commands/index';
 
 // React hooks
 export {
@@ -59,8 +75,8 @@ export type { UseCommandsReturn } from './useCommands';
 
 // Convenience functions for direct usage
 export function createCommandSystem() {
-  const registry = getCommandRegistry();
-  registerAllCommands(registry);
+  const registry = getRegistry();
+  registerAll(registry);
   return registry;
 }
 

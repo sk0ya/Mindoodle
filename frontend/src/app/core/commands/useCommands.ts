@@ -3,7 +3,7 @@
  * React hook for integrating the command system with the mindmap application
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useMemo } from 'react';
 import type {
   CommandContext,
   CommandResult,
@@ -12,7 +12,8 @@ import type {
 } from './types';
 import { parseCommand, validateCommand, generateSuggestions } from './parser';
 import { getCommandRegistry } from './registry';
-import { commands, registerAllCommands } from './commands';
+import { registerAllCommands } from './commands/index';
+import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import type { VimModeHook } from '../hooks/useVimMode';
 
 interface UseCommandsProps {
@@ -33,6 +34,7 @@ interface UseCommandsProps {
     pasteNode: (parentId: string) => Promise<void>;
     undo: () => void;
     redo: () => void;
+    onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   };
 }
 
@@ -44,6 +46,8 @@ export interface UseCommandsReturn {
   getHelp: (commandName?: string) => string;
   isValidCommand: (commandName: string) => boolean;
   executeVimCommand: (vimKey: string) => Promise<CommandResult>;
+  parseVimSequence: (sequence: string) => VimSequenceResult;
+  getVimKeys: () => string[];
 }
 
 /**
@@ -153,7 +157,12 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'h': 'left',
       'j': 'down',
       'k': 'up',
-      'l': 'right'
+      'l': 'right',
+      'tab': 'add-child',
+      'enter': 'add-sibling',
+      'm': 'convert',
+      'delete': 'delete',
+      'backspace': 'delete'
     };
 
     const commandName = vimCommandMap[vimKey];
@@ -187,6 +196,16 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     return registry.get(commandName) !== undefined;
   }, [registry]);
 
+  // Parse vim sequence using vim sequence parser
+  const parseVimSequenceCallback = useCallback((sequence: string): VimSequenceResult => {
+    return parseVimSequence(sequence);
+  }, []);
+
+  // Get vim keys that should prevent default behavior
+  const getVimKeysCallback = useCallback((): string[] => {
+    return getVimKeys();
+  }, []);
+
   return {
     execute,
     parse,
@@ -194,7 +213,9 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     getSuggestions,
     getHelp,
     isValidCommand,
-    executeVimCommand
+    executeVimCommand,
+    parseVimSequence: parseVimSequenceCallback,
+    getVimKeys: getVimKeysCallback
   };
 }
 
