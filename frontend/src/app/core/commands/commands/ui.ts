@@ -66,10 +66,10 @@ export const closePanelsCommand: Command = {
 // Start editing current node
 export const startEditCommand: Command = {
   name: 'start-edit',
-  aliases: ['edit-start', 'edit'],
+  aliases: ['edit-start'],
   description: 'Start editing the selected node',
   category: 'editing',
-  examples: ['start-edit', 'edit', 'start-edit node-123'],
+  examples: ['start-edit', 'edit-start', 'start-edit node-123'],
   args: [
     {
       name: 'nodeId',

@@ -73,10 +73,10 @@ export const navigateCommand: Command = {
 // Individual direction commands for convenience
 export const upCommand: Command = {
   name: 'up',
-  aliases: ['k', 'u'],
+  aliases: ['k'],
   description: 'Navigate up to the previous sibling node',
   category: 'navigation',
-  examples: ['up', 'k', 'u'],
+  examples: ['up', 'k'],
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'up' });
   }
@@ -106,10 +106,10 @@ export const leftCommand: Command = {
 
 export const rightCommand: Command = {
   name: 'right',
-  aliases: ['l', 'child'],
+  aliases: ['l'],
   description: 'Navigate right to the first child node',
   category: 'navigation',
-  examples: ['right', 'l', 'child'],
+  examples: ['right', 'l'],
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'right' });
   }

@@ -8,10 +8,10 @@ import type { Command, CommandContext, CommandResult } from '../types';
 // Import mindmap command
 export const importMindmapCommand: Command = {
   name: 'import',
-  aliases: ['load', 'open'],
+  aliases: ['load'],
   description: 'Import a mindmap from file',
   category: 'utility',
-  examples: ['import', 'load', 'open'],
+  examples: ['import', 'load'],
   args: [
     {
       name: 'format',
