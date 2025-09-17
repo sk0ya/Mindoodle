@@ -17,6 +17,7 @@ const VIM_COMMAND_PATTERNS = {
   'zz': { keys: ['z', 'z'], command: 'zz' },
   'za': { keys: ['z', 'a'], command: 'za' },
   'dd': { keys: ['d', 'd'], command: 'dd' },
+  'yy': { keys: ['y', 'y'], command: 'yy' },
   'ciw': { keys: ['c', 'i', 'w'], command: 'ciw' },
 
   // Single-key commands

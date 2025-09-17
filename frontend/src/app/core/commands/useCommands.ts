@@ -179,6 +179,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     const vimCommandMap: Record<string, string> = {
       'zz': 'center',
       'dd': 'delete',
+      'yy': 'copy',
       'za': 'toggle',
       'ciw': 'edit',
       'i': 'insert',
