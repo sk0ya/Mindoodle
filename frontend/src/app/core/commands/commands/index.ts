@@ -43,6 +43,7 @@ import {
   zoomOutCommand,
   zoomResetCommand,
   selectRootNodeCommand,
+  selectCenterNodeCommand,
   scrollUpCommand,
   scrollDownCommand
 } from './navigation';
@@ -105,6 +106,7 @@ export const commands = [
   zoomOutCommand,
   zoomResetCommand,
   selectRootNodeCommand,
+  selectCenterNodeCommand,
   scrollUpCommand,
   scrollDownCommand,
 
@@ -156,6 +158,7 @@ export {
   zoomOutCommand,
   zoomResetCommand,
   selectRootNodeCommand,
+  selectCenterNodeCommand,
   scrollUpCommand,
   scrollDownCommand,
   // Mindmap commands

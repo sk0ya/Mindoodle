@@ -194,6 +194,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'tab': 'add-child',
       'enter': 'add-sibling',
       'm': 'convert',
+      'M': 'select-center',
       'delete': 'delete',
       'backspace': 'delete'
     };

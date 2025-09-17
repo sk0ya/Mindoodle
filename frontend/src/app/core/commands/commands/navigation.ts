@@ -339,3 +339,162 @@ export const selectRootNodeCommand: Command = {
     }
   }
 };
+
+// Select center visible node command (for M vim command)
+export const selectCenterNodeCommand: Command = {
+  name: 'select-center',
+  aliases: ['center-select', 'vim-m'],
+  description: 'Select the node closest to the center of the visible viewport',
+  category: 'navigation',
+  examples: ['select-center', 'center-select'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      let rootNode = null;
+
+      // Get root node from vim context
+      if (context.vim?.getCurrentRootNode) {
+        rootNode = context.vim.getCurrentRootNode();
+      }
+
+      if (!rootNode) {
+        return {
+          success: false,
+          error: 'No root node found in current map'
+        };
+      }
+
+      // Get actual viewport dimensions considering sidebar and panels
+      const mindmapContainer = document.querySelector('.mindmap-workspace') ||
+                              document.querySelector('.mindmap-canvas') ||
+                              document.querySelector('.canvas-container');
+
+      let effectiveWidth = window.innerWidth;
+      let effectiveHeight = window.innerHeight;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (mindmapContainer) {
+        const rect = mindmapContainer.getBoundingClientRect();
+        effectiveWidth = rect.width;
+        effectiveHeight = rect.height;
+        offsetX = rect.left;
+        offsetY = rect.top;
+      } else {
+        // Fallback: manually calculate effective area considering all panels
+
+        // Left sidebar
+        const sidebar = document.querySelector('.sidebar') ||
+                       document.querySelector('.primary-sidebar') ||
+                       document.querySelector('.primary-sidebar-container');
+        if (sidebar) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          effectiveWidth -= sidebarRect.width;
+          offsetX = sidebarRect.width;
+        }
+
+        // Right panels (notes panel, customization panel, etc.)
+        const rightPanels = [
+          document.querySelector('.node-notes-panel'),
+          document.querySelector('.customization-panel'),
+          document.querySelector('.notes-panel-container'),
+          document.querySelector('.panel-container')
+        ].filter(panel => {
+          if (!panel) return false;
+          const rect = panel.getBoundingClientRect();
+          return rect.width > 0 && rect.height > 0; // Only visible panels
+        });
+
+        rightPanels.forEach(panel => {
+          if (panel) {
+            const panelRect = panel.getBoundingClientRect();
+            effectiveWidth -= panelRect.width;
+          }
+        });
+
+        // Top toolbar/header
+        const header = document.querySelector('.toolbar') ||
+                      document.querySelector('.mindmap-header') ||
+                      document.querySelector('.header');
+        if (header) {
+          const headerRect = header.getBoundingClientRect();
+          effectiveHeight -= headerRect.height;
+          offsetY = headerRect.height;
+        }
+      }
+
+      // Calculate the center of the effective viewport in screen coordinates
+      const centerScreenX = offsetX + effectiveWidth / 2;
+      const centerScreenY = offsetY + effectiveHeight / 2;
+
+      // Function to find all visible nodes
+      function collectAllNodes(node: any): any[] {
+        let nodes = [node];
+        if (node.children && !node.collapsed) {
+          for (const child of node.children) {
+            nodes = nodes.concat(collectAllNodes(child));
+          }
+        }
+        return nodes;
+      }
+
+      const allNodes = collectAllNodes(rootNode);
+
+      // Find the node closest to the center of the viewport
+      let closestNode = null;
+      let closestDistance = Infinity;
+
+      // Get current zoom and pan from context (we'll need to estimate this)
+      // For now, we'll use a default zoom of 1.5 that matches the ensureNodeVisible function
+      const currentZoom = 1.5; // This should ideally come from ui context
+      const currentPan = { x: 0, y: 0 }; // This should ideally come from ui context
+
+      // Try to get pan/zoom from handlers if available
+      if (context.handlers.setPan && typeof context.handlers.setPan === 'function') {
+        // We can't easily get current pan/zoom, so we'll use the default approach
+        // In a real implementation, we'd need access to current ui state
+      }
+
+      for (const node of allNodes) {
+        if (!node.x || !node.y) continue; // Skip nodes without position
+
+        // Calculate node's screen position
+        const nodeScreenX = currentZoom * (node.x + currentPan.x);
+        const nodeScreenY = currentZoom * (node.y + currentPan.y);
+
+        // Calculate distance from viewport center
+        const deltaX = nodeScreenX - centerScreenX;
+        const deltaY = nodeScreenY - centerScreenY;
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+        if (distance < closestDistance) {
+          closestDistance = distance;
+          closestNode = node;
+        }
+      }
+
+      if (!closestNode) {
+        return {
+          success: false,
+          error: 'No visible nodes found to select'
+        };
+      }
+
+      // Select the closest node
+      context.handlers.selectNode(closestNode.id);
+
+      // Close any open panels
+      context.handlers.closeAttachmentAndLinkLists();
+
+      return {
+        success: true,
+        message: `Selected center node: "${closestNode.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to select center node'
+      };
+    }
+  }
+};

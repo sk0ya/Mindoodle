@@ -130,7 +130,7 @@ export function useShortcutHandlers(args: Args) {
 
       // Helper function to ensure node is visible without centering
       function ensureNodeVisible(nodeId: string) {
-        const node = findNodeById(data.rootNode, nodeId);
+        const node = data?.rootNode ? findNodeById(data.rootNode, nodeId) : null;
         if (!node || !setPan) return;
 
         // Get actual viewport dimensions considering sidebar and panels

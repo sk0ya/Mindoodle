@@ -264,7 +264,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             'Backspace': 'backspace'
           };
 
-          const normalizedKey = specialKeyMap[key] || key.toLowerCase();
+          // Preserve case for letters to support uppercase commands like 'M'
+          const normalizedKey = specialKeyMap[key] || key;
 
           // Prevent browser shortcuts for vim keys
           const vimKeys = commands.getVimKeys();

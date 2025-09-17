@@ -31,6 +31,7 @@ const VIM_COMMAND_PATTERNS = {
   'o': { keys: ['o'], command: 'o' },
   'p': { keys: ['p'], command: 'p' },
   'm': { keys: ['m'], command: 'm' },
+  'M': { keys: ['M'], command: 'M' },
 } as const;
 
 // Generate all possible partial sequences
@@ -53,7 +54,8 @@ const PARTIAL_SEQUENCES = generatePartialSequences();
  * Parse a vim key sequence and determine the result
  */
 export function parseVimSequence(sequence: string): VimSequenceResult {
-  const normalizedSequence = sequence.toLowerCase().trim();
+  // Don't normalize case to preserve uppercase commands like 'M'
+  const normalizedSequence = sequence.trim();
 
   // Check for complete commands
   for (const [key, pattern] of Object.entries(VIM_COMMAND_PATTERNS)) {
@@ -86,7 +88,8 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
  * Check if a key can be part of a vim sequence
  */
 export function isValidVimKey(key: string): boolean {
-  const normalizedKey = key.toLowerCase();
+  // Don't normalize case to preserve uppercase commands like 'M'
+  const normalizedKey = key;
 
   // Check if this key starts any command or continues any partial sequence
   for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
@@ -123,7 +126,8 @@ export function getVimKeys(): string[] {
  * Check if a sequence can potentially become a valid command
  */
 export function canSequenceContinue(sequence: string, newKey: string): boolean {
-  const testSequence = sequence + newKey.toLowerCase();
+  // Don't normalize case to preserve uppercase commands like 'M'
+  const testSequence = sequence + newKey;
   const result = parseVimSequence(testSequence);
 
   return result.isComplete || result.isPartial;
