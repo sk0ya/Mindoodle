@@ -562,17 +562,19 @@ export class MarkdownImporter {
     const { node, siblings } = context;
     const nodeIndex = siblings.findIndex(n => n.id === targetNodeId);
 
-    // 1. 見出し子がいる場合は変換不可
+    // 条件1: 変換対象の子ノードに見出しノードがいない
     if (node.children && node.children.some(child => child.markdownMeta?.type === 'heading')) {
-      return { canConvert: false, reason: '見出し子ノードがあるため変換できません' };
+      return { canConvert: false, reason: '子ノードに見出しがあるため変換できません' };
     }
 
-    // 2. 兄弟に見出しがいる場合は変換不可
-    const hasHeadingSiblings = siblings.some((sibling, index) =>
-      index !== nodeIndex && sibling.markdownMeta?.type === 'heading'
+    // 条件2: 兄弟ノードのうち、兄に見出しノードがいない（弟は関係ない）
+    const elderSiblings = siblings.slice(0, nodeIndex);
+    const hasElderHeadings = elderSiblings.some(sibling => 
+      sibling.markdownMeta?.type === 'heading'
     );
-    if (hasHeadingSiblings) {
-      return { canConvert: false, reason: '見出し兄弟ノードがあるため変換できません' };
+    
+    if (hasElderHeadings) {
+      return { canConvert: false, reason: '兄に見出しノードがあるため変換できません' };
     }
 
     return { canConvert: true };
@@ -603,16 +605,24 @@ export class MarkdownImporter {
     const context = findNodeWithContext(nodes);
     if (!context) return { canConvert: false, reason: 'ノードが見つかりません' };
 
-    const { node } = context;
-    // 1. リストノード以外は変換不可
-    if (!node.markdownMeta || (node.markdownMeta.type !== 'unordered-list' && node.markdownMeta.type !== 'ordered-list')) {
-      return { canConvert: false, reason: 'リストノードのみ見出しに変換できます' };
+    const { parent, siblings } = context;
+    const nodeIndex = siblings.findIndex(n => n.id === targetNodeId);
+
+    // リストノード以外からの変換も許可（制約緩和）
+    
+    // 条件1: 兄弟ノードのうち、弟にリストノードがいない（兄ノードは関係ない）
+    const youngerSiblings = siblings.slice(nodeIndex + 1);
+    const hasYoungerLists = youngerSiblings.some(sibling => 
+      sibling.markdownMeta?.type === 'unordered-list' || sibling.markdownMeta?.type === 'ordered-list'
+    );
+    
+    if (hasYoungerLists) {
+      return { canConvert: false, reason: '弟にリストノードがあるため変換できません' };
     }
 
-    // 2. リスト子がいる場合は変換不可（マインドマップの親子関係を保護）
-    if (node.children && node.children.some(child => 
-      child.markdownMeta?.type === 'unordered-list' || child.markdownMeta?.type === 'ordered-list')) {
-      return { canConvert: false, reason: 'リスト子ノードがあるため変換できません' };
+    // 条件2: 親ノードがリストノードでない
+    if (parent && (parent.markdownMeta?.type === 'unordered-list' || parent.markdownMeta?.type === 'ordered-list')) {
+      return { canConvert: false, reason: '親ノードがリストノードのため変換できません' };
     }
 
     return { canConvert: true };
@@ -646,7 +656,7 @@ export class MarkdownImporter {
       }
     }
     
-    const processNode = (nodeList: MindMapNode[]): MindMapNode[] => {
+    const processNode = (nodeList: MindMapNode[], parentNode?: MindMapNode): MindMapNode[] => {
       return nodeList.map(node => {
         if (node.id === nodeId) {
           if (!node.markdownMeta) {
@@ -665,32 +675,56 @@ export class MarkdownImporter {
           newText = newText.replace(/^[\s]*\d+\.\s*/, ''); // 順序ありリストマーカー削除
 
           if (newType === 'heading') {
-            // リスト → 見出しに変更
+            // リスト → 見出しに変更（賢いレベル設定）
+            let targetLevel = 1;
+            
+            // 親ノードが見出しの場合、その子レベルとして設定
+            if (parentNode && parentNode.markdownMeta?.type === 'heading') {
+              targetLevel = Math.min((parentNode.markdownMeta.level || 1) + 1, 6);
+            } else if (currentMeta.level) {
+              // 既存のレベルを維持
+              targetLevel = Math.min(currentMeta.level, 6);
+            }
+            
             newMeta = {
               type: 'heading',
-              level: Math.min(currentMeta.level || 1, 6), // 最大レベル6
-              originalFormat: '#'.repeat(Math.min(currentMeta.level || 1, 6)),
+              level: targetLevel,
+              originalFormat: '#'.repeat(targetLevel),
               indentLevel: 0,
               lineNumber: currentMeta.lineNumber
             };
             // マーカーはNodeEditorで表示されるので、textには追加しない
           } else if (newType === 'unordered-list') {
             // 見出し/順序ありリスト → 順序なしリスト
+            let targetLevel = currentMeta.level || 1;
+            
+            // 親ノードがリストの場合、適切なインデントレベルを設定
+            if (parentNode && (parentNode.markdownMeta?.type === 'unordered-list' || parentNode.markdownMeta?.type === 'ordered-list')) {
+              targetLevel = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
+            }
+            
             newMeta = {
               type: 'unordered-list',
-              level: currentMeta.level || 1,
+              level: targetLevel,
               originalFormat: '-',
-              indentLevel: currentMeta.indentLevel || 0,
+              indentLevel: Math.max(targetLevel - 1, 0),
               lineNumber: currentMeta.lineNumber
             };
             // マーカーはNodeEditorで表示されるので、textには追加しない
           } else if (newType === 'ordered-list') {
             // 見出し/順序なしリスト → 順序ありリスト
+            let targetLevel = currentMeta.level || 1;
+            
+            // 親ノードがリストの場合、適切なインデントレベルを設定
+            if (parentNode && (parentNode.markdownMeta?.type === 'unordered-list' || parentNode.markdownMeta?.type === 'ordered-list')) {
+              targetLevel = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
+            }
+            
             newMeta = {
               type: 'ordered-list',
-              level: currentMeta.level || 1,
+              level: targetLevel,
               originalFormat: '1.',
-              indentLevel: currentMeta.indentLevel || 0,
+              indentLevel: Math.max(targetLevel - 1, 0),
               lineNumber: currentMeta.lineNumber
             };
             // マーカーはNodeEditorで表示されるので、textには追加しない
@@ -707,7 +741,7 @@ export class MarkdownImporter {
         if (node.children && node.children.length > 0) {
           return {
             ...node,
-            children: processNode(node.children)
+            children: processNode(node.children, node)
           };
         }
 
