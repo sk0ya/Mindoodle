@@ -11,7 +11,7 @@ import type {
   ExecuteOptions
 } from './types';
 import { parseCommand, validateCommand, generateSuggestions } from './parser';
-import { getCommandRegistry } from './registry';
+import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from './commands/index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import type { VimModeHook } from '../hooks/useVimMode';
@@ -86,17 +86,11 @@ export interface UseCommandsReturn {
 export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   const { selectedNodeId, editingNodeId, vim, handlers } = props;
 
-  // Initialize command registry
+  // Initialize command registry (local instance, not global)
   const registry = useMemo(() => {
-    const reg = getCommandRegistry();
+    const reg = new CommandRegistryImpl();
 
-    // Register all commands if not already registered
-    try {
-      registerAllCommands(reg);
-    } catch (error) {
-      // Commands might already be registered, which is fine
-      console.debug('Commands already registered:', error);
-    }
+    registerAllCommands(reg);
 
     return reg;
   }, []);

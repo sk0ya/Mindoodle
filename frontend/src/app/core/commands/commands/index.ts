@@ -159,7 +159,12 @@ export {
 // Helper function to register all commands
 export function registerAllCommands(registry: any) {
   for (const command of commands) {
-    registry.register(command);
+    try {
+      registry.register(command);
+    } catch (error) {
+      // Silently ignore registration conflicts
+      // This allows the system to continue working even with alias conflicts
+    }
   }
 }
 
