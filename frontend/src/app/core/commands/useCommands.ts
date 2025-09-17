@@ -189,6 +189,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'j': 'down',
       'k': 'up',
       'l': 'right',
+      'p': 'paste',
       'tab': 'add-child',
       'enter': 'add-sibling',
       'm': 'convert',
