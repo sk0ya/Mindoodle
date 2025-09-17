@@ -29,6 +29,7 @@ const VIM_COMMAND_PATTERNS = {
   'i': { keys: ['i'], command: 'i' },
   'a': { keys: ['a'], command: 'a' },
   'o': { keys: ['o'], command: 'o' },
+  'O': { keys: ['O'], command: 'O' },
   'p': { keys: ['p'], command: 'p' },
   'm': { keys: ['m'], command: 'm' },
   'M': { keys: ['M'], command: 'M' },

@@ -777,6 +777,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         });
       }
     },
+    changeSiblingOrder: store.changeSiblingOrder,
   });
   // Vim mode hook
   const vim = useVimMode();

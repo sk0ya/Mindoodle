@@ -32,6 +32,7 @@ interface Args {
   pasteImageFromClipboard: (nodeId: string) => Promise<void>;
   pasteNodeFromClipboard: (parentId: string) => Promise<void>;
   changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
 }
 
 export function useShortcutHandlers(args: Args) {
@@ -42,7 +43,7 @@ export function useShortcutHandlers(args: Args) {
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
     undo, redo, canUndo, canRedo, selectNode, setPan, applyAutoLayout,
-    pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType,
+    pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType, changeSiblingOrder,
   } = args;
 
   return useMemo(() => ({
@@ -264,6 +265,7 @@ export function useShortcutHandlers(args: Args) {
     findNodeById: (nodeId: string) => data?.rootNode ? findNodeById(data.rootNode, nodeId) : null,
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
     onMarkdownNodeType: changeNodeType,
+    changeSiblingOrder,
     centerNodeInView,
   }), [
     data, ui, store, logger, showNotification,
@@ -272,6 +274,6 @@ export function useShortcutHandlers(args: Args) {
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
     undo, redo, canUndo, canRedo, selectNode, setPan, applyAutoLayout,
-    pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType,
+    pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType, changeSiblingOrder,
   ]);
 }

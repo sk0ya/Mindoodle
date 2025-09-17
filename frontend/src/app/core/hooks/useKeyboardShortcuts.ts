@@ -22,6 +22,7 @@ interface KeyboardShortcutHandlers {
   updateNode: (_id: string, _updates: Partial<MindMapNode>) => void;
   addChildNode: (_parentId: string, _text?: string, _startEditing?: boolean) => Promise<string | null>;
   addSiblingNode: (_nodeId: string, _text?: string, _startEditing?: boolean) => Promise<string | null>;
+  changeSiblingOrder?: (_draggedNodeId: string, _targetNodeId: string, _insertBefore?: boolean) => void;
   deleteNode: (_id: string) => void;
   undo: () => void;
   redo: () => void;
@@ -175,6 +176,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       // Structure operations
       addChildNode: handlers.addChildNode,
       addSiblingNode: handlers.addSiblingNode,
+      changeSiblingOrder: handlers.changeSiblingOrder,
 
       // Clipboard operations
       copyNode: handlers.copyNode,

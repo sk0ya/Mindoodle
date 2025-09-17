@@ -7,7 +7,7 @@ import { centerCommand } from './center';
 import { deleteCommand } from './delete';
 import { toggleCommand } from './toggle';
 import { editCommand } from './edit';
-import { insertCommand, appendCommand, openCommand } from './insert';
+import { insertCommand, appendCommand, openCommand, openAboveCommand } from './insert';
 import { addChildCommand, addSiblingCommand, convertNodeCommand } from './structure';
 import {
   navigateCommand,
@@ -70,6 +70,7 @@ export const commands = [
   insertCommand,
   appendCommand,
   openCommand,
+  openAboveCommand,
 
   // Structure commands
   addChildCommand,
@@ -129,6 +130,7 @@ export {
   insertCommand,
   appendCommand,
   openCommand,
+  openAboveCommand,
   addChildCommand,
   addSiblingCommand,
   convertNodeCommand,

@@ -125,50 +125,50 @@ export const appendCommand: Command = {
   }
 };
 
-// Open new line and insert (vim 'o')
+// Open new line and insert (vim 'o') - Create younger sibling
 export const openCommand: Command = {
   name: 'open',
-  aliases: ['o', 'new-child'],
-  description: 'Create new child node and start editing (vim o)',
+  aliases: ['o', 'add-younger-sibling'],
+  description: 'Create new younger sibling node and start editing (vim o)',
   category: 'editing',
   examples: [
     'open',
     'o',
     'open node-123',
-    'new-child --text "Initial text"'
+    'add-younger-sibling --text "Initial text"'
   ],
   args: [
     {
-      name: 'parentId',
+      name: 'nodeId',
       type: 'node-id',
       required: false,
-      description: 'Parent node ID (uses selected node if not specified)'
+      description: 'Reference node ID (uses selected node if not specified)'
     },
     {
       name: 'text',
       type: 'string',
       required: false,
       default: '',
-      description: 'Initial text for the new child node'
+      description: 'Initial text for the new sibling node'
     }
   ],
 
   async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const parentId = args.parentId || context.selectedNodeId;
+    const nodeId = args.nodeId || context.selectedNodeId;
     const initialText = args.text || '';
 
-    if (!parentId) {
+    if (!nodeId) {
       return {
         success: false,
-        error: 'No node selected and no parent ID provided'
+        error: 'No node selected and no node ID provided'
       };
     }
 
-    const parentNode = context.handlers.findNodeById(parentId);
-    if (!parentNode) {
+    const referenceNode = context.handlers.findNodeById(nodeId);
+    if (!referenceNode) {
       return {
         success: false,
-        error: `Parent node ${parentId} not found`
+        error: `Reference node ${nodeId} not found`
       };
     }
 
@@ -178,24 +178,111 @@ export const openCommand: Command = {
         context.vim.setMode('insert');
       }
 
-      // Create new child node and start editing
-      const newNodeId = await context.handlers.addChildNode(parentId, initialText, true);
+      // Create new sibling node after the current node and start editing
+      const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true);
 
       if (!newNodeId) {
         return {
           success: false,
-          error: 'Failed to create new child node'
+          error: 'Failed to create new sibling node'
         };
       }
 
       return {
         success: true,
-        message: `Created new child node under "${parentNode.text}" and started editing`
+        message: `Created new sibling node after "${referenceNode.text}" and started editing`
       };
     } catch (error) {
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to open new child node'
+        error: error instanceof Error ? error.message : 'Failed to open new sibling node'
+      };
+    }
+  }
+};
+
+// Open new line above and insert (vim 'O') - Create elder sibling
+export const openAboveCommand: Command = {
+  name: 'open-above',
+  aliases: ['O', 'add-elder-sibling'],
+  description: 'Create new elder sibling node and start editing (vim O)',
+  category: 'editing',
+  examples: [
+    'open-above',
+    'O',
+    'open-above node-123',
+    'add-elder-sibling --text "Initial text"'
+  ],
+  args: [
+    {
+      name: 'nodeId',
+      type: 'node-id',
+      required: false,
+      description: 'Reference node ID (uses selected node if not specified)'
+    },
+    {
+      name: 'text',
+      type: 'string',
+      required: false,
+      default: '',
+      description: 'Initial text for the new sibling node'
+    }
+  ],
+
+  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
+    const nodeId = args.nodeId || context.selectedNodeId;
+    const initialText = args.text || '';
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected and no node ID provided'
+      };
+    }
+
+    const referenceNode = context.handlers.findNodeById(nodeId);
+    if (!referenceNode) {
+      return {
+        success: false,
+        error: `Reference node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // Set vim mode to insert if vim is enabled
+      if (context.vim && context.vim.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      // Create a new sibling node after the current node first (without auto-edit)
+      const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, false);
+
+      if (!newNodeId) {
+        return {
+          success: false,
+          error: 'Failed to create new sibling node'
+        };
+      }
+
+      // Now reorder the new node to be before the current node using changeSiblingOrder
+      if (context.handlers.changeSiblingOrder) {
+        console.log('🔄 Reordering elder sibling:', { newNodeId, nodeId, insertBefore: true });
+        context.handlers.changeSiblingOrder(newNodeId, nodeId, true); // insertBefore = true
+      } else {
+        console.error('❌ changeSiblingOrder handler not available');
+      }
+
+      // Start editing the new node after reordering
+      context.handlers.startEdit(newNodeId);
+
+      return {
+        success: true,
+        message: `Created new elder sibling node before "${referenceNode.text}" and started editing`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to open new sibling node above'
       };
     }
   }

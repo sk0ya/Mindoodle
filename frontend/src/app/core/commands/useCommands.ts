@@ -40,6 +40,7 @@ interface UseCommandsProps {
     // Structure operations
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
+    changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
 
     // Clipboard operations
     copyNode: (nodeId: string) => void;
@@ -186,6 +187,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'i': 'insert',
       'a': 'append',
       'o': 'open',
+      'O': 'open-above',
       'h': 'left',
       'j': 'down',
       'k': 'up',
