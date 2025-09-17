@@ -29,7 +29,7 @@ export interface NodeSlice {
   // CRUD operations
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   addChildNode: (parentId: string, text?: string) => string | undefined;
-  addSiblingNode: (nodeId: string, text?: string) => string | undefined;
+  addSiblingNode: (nodeId: string, text?: string, insertAfter?: boolean) => string | undefined;
   deleteNode: (nodeId: string) => void;
   moveNode: (nodeId: string, newParentId: string) => void;
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
@@ -240,7 +240,7 @@ export const createNodeSlice: StateCreator<
     return newNodeId;
   },
 
-  addSiblingNode: (nodeId: string, text: string = 'New Node') => {
+  addSiblingNode: (nodeId: string, text: string = 'New Node', insertAfter: boolean = true) => {
     let newNodeId: string | undefined;
     
     set((state) => {
@@ -318,7 +318,7 @@ export const createNodeSlice: StateCreator<
           }
 
           // Add sibling node first to establish parent-child relationship
-          state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, true);
+          state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, insertAfter);
           
           // 兄弟ノードはブランチベースの色割り当て
           const color = getBranchColor(newNode.id, state.normalizedData);

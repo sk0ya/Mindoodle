@@ -254,26 +254,15 @@ export const openAboveCommand: Command = {
         context.vim.setMode('insert');
       }
 
-      // Create a new sibling node after the current node first (without auto-edit)
-      const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, false);
+      // Create a new elder sibling node before the current node (insertAfter: false)
+      const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true, false);
 
       if (!newNodeId) {
         return {
           success: false,
-          error: 'Failed to create new sibling node'
+          error: 'Failed to create new elder sibling node'
         };
       }
-
-      // Now reorder the new node to be before the current node using changeSiblingOrder
-      if (context.handlers.changeSiblingOrder) {
-        console.log('🔄 Reordering elder sibling:', { newNodeId, nodeId, insertBefore: true });
-        context.handlers.changeSiblingOrder(newNodeId, nodeId, true); // insertBefore = true
-      } else {
-        console.error('❌ changeSiblingOrder handler not available');
-      }
-
-      // Start editing the new node after reordering
-      context.handlers.startEdit(newNodeId);
 
       return {
         success: true,

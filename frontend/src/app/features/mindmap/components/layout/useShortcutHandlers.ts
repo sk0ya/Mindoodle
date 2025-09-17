@@ -68,9 +68,9 @@ export function useShortcutHandlers(args: Args) {
         return null;
       }
     },
-    addSiblingNode: async (nodeId: string, text?: string, autoEdit?: boolean) => {
+    addSiblingNode: async (nodeId: string, text?: string, autoEdit?: boolean, insertAfter?: boolean) => {
       try {
-        const newNodeId = store.addSiblingNode(nodeId, text);
+        const newNodeId = store.addSiblingNode(nodeId, text, insertAfter);
         if (autoEdit && newNodeId) setTimeout(() => startEditing(newNodeId), 50);
         return newNodeId || null;
       } catch (error) {

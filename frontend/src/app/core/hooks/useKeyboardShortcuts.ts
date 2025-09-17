@@ -21,7 +21,7 @@ interface KeyboardShortcutHandlers {
   editText: string;
   updateNode: (_id: string, _updates: Partial<MindMapNode>) => void;
   addChildNode: (_parentId: string, _text?: string, _startEditing?: boolean) => Promise<string | null>;
-  addSiblingNode: (_nodeId: string, _text?: string, _startEditing?: boolean) => Promise<string | null>;
+  addSiblingNode: (_nodeId: string, _text?: string, _startEditing?: boolean, _insertAfter?: boolean) => Promise<string | null>;
   changeSiblingOrder?: (_draggedNodeId: string, _targetNodeId: string, _insertBefore?: boolean) => void;
   deleteNode: (_id: string) => void;
   undo: () => void;

@@ -42,7 +42,7 @@ export interface CommandContext {
 
     // Structure operations
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
-    addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
+    addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;
     changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
 
     // Clipboard operations
