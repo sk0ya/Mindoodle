@@ -3,8 +3,8 @@
  * Handles all keyboard interactions for efficient mindmap navigation and editing
  */
 
-import { useEffect } from 'react';
 import type { MindMapNode } from '@shared/types';
+import { useEffect } from 'react';
 import type { VimModeHook } from './useVimMode';
 import { useCommands } from '../commands';
 import type { UseCommandsReturn } from '../commands/useCommands';
@@ -46,67 +46,105 @@ interface KeyboardShortcutHandlers {
 }
 
 /**
- * Handle vim key sequences using command system delegation
+ * Handle standard shortcuts (when vim is disabled)
  */
-function handleVimKeySequence(
-  key: string,
-  vim: VimModeHook,
+function handleStandardShortcut(
+  event: KeyboardEvent,
   commands: UseCommandsReturn,
   handlers: KeyboardShortcutHandlers
 ): boolean {
-  // Special cases that don't follow the normal sequence pattern
-  if (key === 'escape') {
-    vim.setMode('normal');
-    return true;
-  }
+  const { key, ctrlKey, metaKey, shiftKey } = event;
+  const isModifier = ctrlKey || metaKey;
 
-  if (['tab', 'enter', 'delete', 'backspace'].includes(key)) {
-    // Map special keys to vim commands (must match useCommands vimCommandMap)
-    const specialKeyMap: Record<string, string> = {
-      'tab': 'tab',
-      'enter': 'enter',
-      'delete': 'delete',
-      'backspace': 'backspace'
-    };
-
-    const commandName = specialKeyMap[key];
-    if (commandName) {
-      commands.executeVimCommand(commandName);
+  // Arrow keys
+  if (!isModifier && handlers.selectedNodeId) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+      event.preventDefault();
+      const direction = key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right';
+      commands.execute(`arrow-navigate --direction ${direction}`);
       return true;
     }
   }
 
-  // Handle key sequences using command system
-  const currentBuffer = vim.commandBuffer;
-  const testSequence = currentBuffer + key;
-  const result = commands.parseVimSequence(testSequence);
-
-  if (result.isComplete && result.command) {
-    // Complete command - execute and clear buffer
-    handlers.closeAttachmentAndLinkLists();
-    commands.executeVimCommand(result.command);
-    vim.clearCommandBuffer();
-    return true;
-  } else if (result.isPartial) {
-    // Partial command - add to buffer and wait for more keys
-    vim.appendToCommandBuffer(key);
-    return true;
-  } else if (result.shouldClear) {
-    // Invalid sequence - clear buffer
-    vim.clearCommandBuffer();
-    // Don't return true here - let the key be processed normally
-  }
-
-  // For single-key commands, try to execute directly
-  const singleKeyResult = commands.parseVimSequence(key);
-  if (singleKeyResult.isComplete && singleKeyResult.command) {
-    handlers.closeAttachmentAndLinkLists();
-    commands.executeVimCommand(singleKeyResult.command);
-    return true;
+  // Modifier shortcuts
+  if (isModifier && handlers.selectedNodeId) {
+    switch (key.toLowerCase()) {
+      case 'c':
+        event.preventDefault();
+        commands.execute('copy');
+        return true;
+      case 'v':
+        event.preventDefault();
+        commands.execute('paste');
+        return true;
+      case 'z':
+        event.preventDefault();
+        if (shiftKey) {
+          commands.execute('redo');
+        } else {
+          commands.execute('undo');
+        }
+        return true;
+      case 'y':
+        event.preventDefault();
+        commands.execute('redo');
+        return true;
+    }
   }
 
   return false;
 }
+
+/**
+ * Handle non-vim shortcuts even in vim mode (arrows, modifiers)
+ */
+function handleNonVimShortcut(
+  event: KeyboardEvent,
+  commands: UseCommandsReturn,
+  handlers: KeyboardShortcutHandlers
+): boolean {
+  const { key, ctrlKey, metaKey, shiftKey } = event;
+  const isModifier = ctrlKey || metaKey;
+
+  // Arrow keys work in vim mode too
+  if (!isModifier && handlers.selectedNodeId) {
+    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+      event.preventDefault();
+      const direction = key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right';
+      commands.execute(`arrow-navigate --direction ${direction}`);
+      return true;
+    }
+  }
+
+  // Modifier shortcuts work in vim mode too
+  if (isModifier && handlers.selectedNodeId) {
+    switch (key.toLowerCase()) {
+      case 'c':
+        event.preventDefault();
+        commands.execute('copy');
+        return true;
+      case 'v':
+        event.preventDefault();
+        commands.execute('paste');
+        return true;
+      case 'z':
+        event.preventDefault();
+        if (shiftKey) {
+          commands.execute('redo');
+        } else {
+          commands.execute('undo');
+        }
+        return true;
+      case 'y':
+        event.preventDefault();
+        commands.execute('redo');
+        return true;
+    }
+  }
+
+  return false;
+}
+
 
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
 
@@ -165,14 +203,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      // Vimium対策: キーボードイベントを早期に捕獲
-      // Don't handle shortcuts when editing text
+      // Check if in text input
       const target = event.target as HTMLElement;
       const isInTextInput = target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.contentEditable === 'true';
-
-      // Check if we're in Monaco Editor (markdown editor)
       const isInMonacoEditor = target.closest('.monaco-editor') !== null;
 
       if (isInTextInput || isInMonacoEditor) {
@@ -180,188 +215,100 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         if (handlers.editingNodeId && !isInMonacoEditor) {
           if (event.key === 'Enter') {
             event.preventDefault();
-            handlers.finishEdit(handlers.editingNodeId, handlers.editText);
-            if (vim && vim.isEnabled) vim.setMode('normal');
+            handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
+              if (vim && vim.isEnabled) vim.setMode('normal');
+            });
+            return;
           } else if (event.key === 'Escape') {
             event.preventDefault();
-            handlers.finishEdit(handlers.editingNodeId, handlers.editText);
-            if (vim && vim.isEnabled) vim.setMode('normal');
+            handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
+              if (vim && vim.isEnabled) vim.setMode('normal');
+            });
+            return;
           }
         }
         // For Monaco Editor or other text inputs, let them handle their own keys
         return;
       }
 
-      const { key, ctrlKey, metaKey, shiftKey } = event;
+      const { key, ctrlKey, metaKey } = event;
       const isModifier = ctrlKey || metaKey;
 
-      // Vimium競合対策: vimキーの場合は即座に preventDefault
+      // Vim mode handling through command system
       if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
+        // Map special keys to lowercase
+        const specialKeyMap: Record<string, string> = {
+          'Tab': 'tab',
+          'Enter': 'enter',
+          'Delete': 'delete',
+          'Backspace': 'backspace'
+        };
+
+        const normalizedKey = specialKeyMap[key] || key.toLowerCase();
+
+        // Prevent browser shortcuts for vim keys
         const vimKeys = commands.getVimKeys();
-        if (vimKeys.includes(key.toLowerCase())) {
+        if (vimKeys.includes(normalizedKey)) {
           event.preventDefault();
           event.stopPropagation();
-          event.stopImmediatePropagation();
         }
-      }
 
-      // Vim mode handling - delegated to command system
-      if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
-        const handled = handleVimKeySequence(key.toLowerCase(), vim, commands, handlers);
-        if (handled) {
+        // Handle special keys directly
+        if (['tab', 'enter', 'delete', 'backspace'].includes(normalizedKey)) {
+          console.log('Debug: Executing special vim key:', normalizedKey);
+          handlers.closeAttachmentAndLinkLists();
+          commands.executeVimCommand(normalizedKey);
+          return;
+        }
+
+        // Handle vim sequences through command system
+        const currentBuffer = vim.commandBuffer;
+        const testSequence = currentBuffer + normalizedKey;
+        const result = commands.parseVimSequence(testSequence);
+
+        if (result.isComplete && result.command) {
+          // Complete command - execute and clear buffer
+          handlers.closeAttachmentAndLinkLists();
+          commands.executeVimCommand(result.command);
+          vim.clearCommandBuffer();
+          return;
+        } else if (result.isPartial) {
+          // Partial command - add to buffer and wait for more keys
+          vim.appendToCommandBuffer(normalizedKey);
+          return;
+        } else if (result.shouldClear) {
+          // Invalid sequence - clear buffer
+          vim.clearCommandBuffer();
+        }
+
+        // Try single-key commands
+        const singleKeyResult = commands.parseVimSequence(normalizedKey);
+        if (singleKeyResult.isComplete && singleKeyResult.command) {
+          handlers.closeAttachmentAndLinkLists();
+          commands.executeVimCommand(singleKeyResult.command);
           return;
         }
       }
 
-
-      // Arrow key navigation (works in both vim and normal mode)
-      if (!isModifier && handlers.selectedNodeId) {
-        switch (key) {
-          case 'ArrowUp':
-            event.preventDefault();
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('up');
-            return;
-          case 'ArrowDown':
-            event.preventDefault();
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('down');
-            return;
-          case 'ArrowLeft':
-            event.preventDefault();
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('left');
-            return;
-          case 'ArrowRight':
-            event.preventDefault();
-            handlers.closeAttachmentAndLinkLists();
-            handlers.navigateToDirection('right');
-            return;
+      // Handle non-vim shortcuts through command system
+      if (!vim || !vim.isEnabled || vim.mode !== 'normal') {
+        // Standard keyboard shortcuts when vim is disabled
+        if (handleStandardShortcut(event, commands, handlers)) {
+          return;
         }
-      }
-
-      // Standard navigation shortcuts (when vim is disabled OR for non-vim keys when vim is enabled)
-      if (!isModifier && handlers.selectedNodeId) {
-        // Skip if vim is enabled and this is a vim key that was already handled
-        if (vim && vim.isEnabled && vim.mode === 'normal') {
-          const vimKeys = [...commands.getVimKeys(), 'escape', 'tab', 'enter'];
-          if (vimKeys.includes(key.toLowerCase())) {
-            // This key was already handled by vim mode, skip standard handling
-            return;
-          }
+      } else {
+        // Even in vim mode, handle certain shortcuts like arrows and modifiers
+        if (handleNonVimShortcut(event, commands, handlers)) {
+          return;
         }
-        switch (key) {
-          case ' ': // Space
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.startEdit(handlers.selectedNodeId);
-            }
-            break;
-          case 'F2': // F2
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.startEditWithCursorAtEnd(handlers.selectedNodeId);
-            }
-            break;
-          case 'Tab':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.addChildNode(handlers.selectedNodeId, '', true);
-            }
-            break;
-          case 'Enter':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.addSiblingNode(handlers.selectedNodeId, '', true);
-            }
-            break;
-          case 'Delete':
-          case 'Backspace':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.deleteNode(handlers.selectedNodeId);
-            }
-            break;
-        }
-      }
-
-      // Application shortcuts with modifiers
-      if (isModifier) {
-        switch (key.toLowerCase()) {
-          case 's':
-            event.preventDefault();
-            // Auto-save is handled by the system
-            break;
-          case 'z':
-            event.preventDefault();
-            if (shiftKey && handlers.canRedo) {
-              handlers.redo();
-            } else if (!shiftKey && handlers.canUndo) {
-              handlers.undo();
-            }
-            break;
-          case 'y':
-            event.preventDefault();
-            if (handlers.canRedo) {
-              handlers.redo();
-            }
-            break;
-          case 'c':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              handlers.copyNode(handlers.selectedNodeId);
-            }
-            break;
-          case 'v':
-            event.preventDefault();
-            if (handlers.selectedNodeId) {
-              // まずシステムクリップボードから画像を確認
-              handlers.pasteImageFromClipboard(handlers.selectedNodeId).catch(async () => {
-                // 画像がない場合は通常のノードペースト（MindMeister形式も含む）
-                if (handlers.selectedNodeId) {
-                  await handlers.pasteNode(handlers.selectedNodeId);
-                }
-              });
-            }
-            break;
-          case 'm':
-            event.preventDefault();
-            if (handlers.selectedNodeId && handlers.onMarkdownNodeType) {
-              const selectedNode = handlers.findNodeById(handlers.selectedNodeId);
-              if (selectedNode?.markdownMeta?.type === 'heading') {
-                handlers.onMarkdownNodeType(handlers.selectedNodeId, 'unordered-list');
-              }
-            }
-            break;
-        }
-      }
-
-      // Function keys and special shortcuts
-      switch (key) {
-        case 'F1':
-          event.preventDefault();
-          handlers.setShowKeyboardHelper(!handlers.showKeyboardHelper);
-          break;
-        case 'Escape':
-          event.preventDefault();
-          // Close any open panels
-          if (handlers.showMapList) handlers.setShowMapList(false);
-          if (handlers.showLocalStorage) handlers.setShowLocalStorage(false);
-          if (handlers.showTutorial) handlers.setShowTutorial(false);
-          if (handlers.showKeyboardHelper) handlers.setShowKeyboardHelper(false);
-          // 添付ファイル・リンク一覧を閉じる
-          handlers.closeAttachmentAndLinkLists();
-          break;
       }
     };
 
-    // Vimium対策: captureフェーズでイベントを捕獲
     document.addEventListener('keydown', handleKeyDown, true);
-
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
     };
-  }, [handlers, vim]);
+  }, [handlers, vim, commands]);
 };
 
 export default useKeyboardShortcuts;

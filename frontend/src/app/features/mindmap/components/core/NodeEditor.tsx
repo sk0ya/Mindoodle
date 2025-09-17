@@ -187,10 +187,26 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
               } else if (markdownMeta.type === 'ordered-list') {
                 marker = '1.';
               }
+              // 見出しレベルに応じたスタイリング
+              let textStyle = {};
+              const markerStyle = { fill: "#888", fontWeight: "500" };
+
+              if (markdownMeta.type === 'heading') {
+                textStyle = {
+                  fontWeight: "600"
+                  // フォントサイズは変更せず、太字のみ適用
+                };
+              } else if (markdownMeta.type === 'unordered-list' || markdownMeta.type === 'ordered-list') {
+                textStyle = {
+                  fontWeight: "400"
+                  // fillを指定しない（親のtext要素の色を継承）
+                };
+              }
+
               return (
                 <>
-                  <tspan fill="#888" fontWeight="500">{marker}</tspan>
-                  <tspan dx="0.3em">{node.text}</tspan>
+                  <tspan {...markerStyle}>{marker}</tspan>
+                  <tspan dx="0.3em" {...textStyle}>{node.text}</tspan>
                 </>
               );
             }

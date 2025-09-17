@@ -186,14 +186,13 @@ export const convertNodeCommand: Command = {
       name: 'type',
       type: 'string',
       required: false,
-      default: 'unordered-list',
       description: 'Target type: heading, unordered-list, ordered-list'
     }
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
     const nodeId = args.nodeId || context.selectedNodeId;
-    const targetType = args.type as 'heading' | 'unordered-list' | 'ordered-list';
+    let targetType = args.type as 'heading' | 'unordered-list' | 'ordered-list';
 
     if (!nodeId) {
       return {
@@ -218,12 +217,18 @@ export const convertNodeCommand: Command = {
       };
     }
 
-    // For vim 'm' behavior: only convert headings to lists
-    if (args._0 === 'm' || !args.type) {
-      if (node.markdownMeta?.type !== 'heading') {
+    // For vim 'm' behavior: toggle between heading and list when no specific type is provided
+    if (!args.type) {
+      if (node.markdownMeta?.type === 'heading') {
+        // 見出し → リスト
+        targetType = 'unordered-list';
+      } else if (node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list') {
+        // リスト → 見出し
+        targetType = 'heading';
+      } else {
         return {
           success: false,
-          error: 'Can only convert heading nodes to lists'
+          error: 'Can only convert between heading and list nodes'
         };
       }
     }

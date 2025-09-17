@@ -578,6 +578,46 @@ export class MarkdownImporter {
     return { canConvert: true };
   }
 
+  static canSafelyConvertToHeading(
+    nodes: MindMapNode[],
+    targetNodeId: string
+  ): { canConvert: boolean; reason?: string } {
+    const findNodeWithContext = (nodeList: MindMapNode[], parentNode?: MindMapNode): { node: MindMapNode; parent?: MindMapNode; siblings: MindMapNode[] } | null => {
+      for (let i = 0; i < nodeList.length; i++) {
+        const node = nodeList[i];
+        if (node.id === targetNodeId) {
+          return {
+            node,
+            parent: parentNode,
+            siblings: nodeList
+          };
+        }
+        if (node.children && node.children.length > 0) {
+          const found = findNodeWithContext(node.children, node);
+          if (found) return found;
+        }
+      }
+      return null;
+    };
+
+    const context = findNodeWithContext(nodes);
+    if (!context) return { canConvert: false, reason: 'ノードが見つかりません' };
+
+    const { node } = context;
+    // 1. リストノード以外は変換不可
+    if (!node.markdownMeta || (node.markdownMeta.type !== 'unordered-list' && node.markdownMeta.type !== 'ordered-list')) {
+      return { canConvert: false, reason: 'リストノードのみ見出しに変換できます' };
+    }
+
+    // 2. リスト子がいる場合は変換不可（マインドマップの親子関係を保護）
+    if (node.children && node.children.some(child => 
+      child.markdownMeta?.type === 'unordered-list' || child.markdownMeta?.type === 'ordered-list')) {
+      return { canConvert: false, reason: 'リスト子ノードがあるため変換できません' };
+    }
+
+    return { canConvert: true };
+  }
+
   /**
    * ノードタイプを変更（見出し ↔ リスト）
    */
@@ -595,11 +635,34 @@ export class MarkdownImporter {
         throw new Error(safetyCheck.reason);
       }
     }
+    
+    // リスト→見出しの変換時も安全性をチェック
+    if (newType === 'heading') {
+      const safetyCheck = this.canSafelyConvertToHeading(nodes, nodeId);
+      if (!safetyCheck.canConvert) {
+        console.warn('変換できません:', safetyCheck.reason);
+        // エラーをthrowして上位で処理
+        throw new Error(safetyCheck.reason);
+      }
+    }
+    
     const processNode = (nodeList: MindMapNode[]): MindMapNode[] => {
       return nodeList.map(node => {
+        if (node.id === nodeId) {
+          if (!node.markdownMeta) {
+            return node;
+          }
+        }
+
         if (node.id === nodeId && node.markdownMeta) {
           const currentMeta = node.markdownMeta;
           let newMeta = { ...currentMeta };
+          let newText = node.text;
+
+          // まず既存のマーカーをすべて削除
+          newText = newText.replace(/^#+\s*/, ''); // 見出しマーカー削除
+          newText = newText.replace(/^[\s]*[-*+]\s*/, ''); // リストマーカー削除
+          newText = newText.replace(/^[\s]*\d+\.\s*/, ''); // 順序ありリストマーカー削除
 
           if (newType === 'heading') {
             // リスト → 見出しに変更
@@ -610,6 +673,7 @@ export class MarkdownImporter {
               indentLevel: 0,
               lineNumber: currentMeta.lineNumber
             };
+            // マーカーはNodeEditorで表示されるので、textには追加しない
           } else if (newType === 'unordered-list') {
             // 見出し/順序ありリスト → 順序なしリスト
             newMeta = {
@@ -619,6 +683,7 @@ export class MarkdownImporter {
               indentLevel: currentMeta.indentLevel || 0,
               lineNumber: currentMeta.lineNumber
             };
+            // マーカーはNodeEditorで表示されるので、textには追加しない
           } else if (newType === 'ordered-list') {
             // 見出し/順序なしリスト → 順序ありリスト
             newMeta = {
@@ -628,12 +693,15 @@ export class MarkdownImporter {
               indentLevel: currentMeta.indentLevel || 0,
               lineNumber: currentMeta.lineNumber
             };
+            // マーカーはNodeEditorで表示されるので、textには追加しない
           }
 
-          return {
+          const updatedNode = {
             ...node,
+            text: newText,
             markdownMeta: newMeta
           };
+          return updatedNode;
         }
 
         if (node.children && node.children.length > 0) {
