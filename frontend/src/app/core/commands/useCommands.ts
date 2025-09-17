@@ -172,7 +172,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   const executeVimCommand = useCallback(async (vimKey: string): Promise<CommandResult> => {
     const vimCommandMap: Record<string, string> = {
       'zz': 'center',
-      'dd': 'delete',
+      'dd': 'cut',
       'yy': 'copy',
       'za': 'toggle',
       'ciw': 'edit',

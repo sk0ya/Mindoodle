@@ -191,3 +191,68 @@ export const pasteCommand: Command = {
     }
   }
 };
+// Cut command (equivalent to vim 'dd' - copy then delete)
+export const cutCommand: Command = {
+  name: 'cut',
+  aliases: ['dd', 'cut-node'],
+  description: 'Cut the selected node (copy then delete)',
+  category: 'editing',
+  examples: [
+    'cut',
+    'dd',
+    'cut node-123'
+  ],
+  args: [
+    {
+      name: 'nodeId',
+      type: 'node-id',
+      required: false,
+      description: 'Node ID to cut (uses selected node if not specified)'
+    }
+  ],
+
+  execute(context: CommandContext, args: Record<string, any>): CommandResult {
+    const nodeId = args.nodeId || context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected and no node ID provided'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    // Check if this is the root node
+    if (node.id === 'root') {
+      return {
+        success: false,
+        error: 'Cannot cut the root node'
+      };
+    }
+
+    try {
+      // First copy the node to clipboard
+      context.handlers.copyNode(nodeId);
+      
+      // Then delete the node
+      context.handlers.deleteNode(nodeId);
+      
+      return {
+        success: true,
+        message: `Cut node "${node.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to cut node'
+      };
+    }
+  }
+};

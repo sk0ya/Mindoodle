@@ -23,7 +23,8 @@ import {
   redoCommand,
   saveCommand,
   copyCommand,
-  pasteCommand
+  pasteCommand,
+  cutCommand
 } from './application';
 
 import {
@@ -84,6 +85,7 @@ export const commands = [
   saveCommand,
   copyCommand,
   pasteCommand,
+  cutCommand,
 
   // UI commands
   helpCommand,
@@ -133,6 +135,7 @@ export {
   saveCommand,
   copyCommand,
   pasteCommand,
+  cutCommand,
   // UI commands
   helpCommand,
   closePanelsCommand,
