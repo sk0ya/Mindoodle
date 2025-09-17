@@ -30,6 +30,7 @@ interface UseCommandsProps {
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
     selectNode: (nodeId: string | null) => void;
+    setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 
     // Editing
     startEdit: (nodeId: string) => void;
@@ -179,6 +180,8 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'yy': 'copy',
       'za': 'toggle',
       'gg': 'select-root',
+      'ctrl-u': 'scroll-up',
+      'ctrl-d': 'scroll-down',
       'ciw': 'edit',
       'i': 'insert',
       'a': 'append',

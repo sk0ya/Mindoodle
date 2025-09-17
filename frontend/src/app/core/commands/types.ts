@@ -33,6 +33,7 @@ export interface CommandContext {
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
     selectNode: (nodeId: string | null) => void;
+    setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 
     // Editing
     startEdit: (nodeId: string) => void;

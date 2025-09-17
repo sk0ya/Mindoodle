@@ -212,6 +212,85 @@ export const zoomResetCommand: Command = {
 };
 
 // Select root node command (for gg vim command)
+// Pan up command (for Ctrl+U vim command)
+export const scrollUpCommand: Command = {
+  name: 'scroll-up',
+  aliases: ['ctrl-u'],
+  description: 'Pan the mindmap view up',
+  category: 'navigation',
+  examples: ['scroll-up', 'ctrl-u'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      // Use the existing setPan functionality from the handlers
+      if (context.handlers.setPan && typeof context.handlers.setPan === 'function') {
+        const panAmount = 100; // logical units to pan up
+
+        // Pan up by moving the view upward (increase y coordinate)
+        context.handlers.setPan((prev: { x: number; y: number }) => ({
+          x: prev.x,
+          y: prev.y + panAmount
+        }));
+
+        return {
+          success: true,
+          message: 'Panned view up'
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Pan functionality not available'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to pan up'
+      };
+    }
+  }
+};
+
+// Pan down command (for Ctrl+D vim command)
+export const scrollDownCommand: Command = {
+  name: 'scroll-down',
+  aliases: ['ctrl-d'],
+  description: 'Pan the mindmap view down',
+  category: 'navigation',
+  examples: ['scroll-down', 'ctrl-d'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      // Use the existing setPan functionality from the handlers
+      if (context.handlers.setPan && typeof context.handlers.setPan === 'function') {
+        const panAmount = 100; // logical units to pan down
+
+        // Pan down by moving the view downward (decrease y coordinate)
+        context.handlers.setPan((prev: { x: number; y: number }) => ({
+          x: prev.x,
+          y: prev.y - panAmount
+        }));
+
+        return {
+          success: true,
+          message: 'Panned view down'
+        };
+      } else {
+        return {
+          success: false,
+          error: 'Pan functionality not available'
+        };
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to pan down'
+      };
+    }
+  }
+};
+
+// Select root node command (for gg vim command)
 export const selectRootNodeCommand: Command = {
   name: 'select-root',
   aliases: ['root', 'go-root', 'gg'],

@@ -27,6 +27,7 @@ interface Args {
   canUndo: boolean;
   canRedo: boolean;
   selectNode: (id: string) => void;
+  setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   applyAutoLayout?: () => void;
   pasteImageFromClipboard: (nodeId: string) => Promise<void>;
   pasteNodeFromClipboard: (parentId: string) => Promise<void>;
@@ -40,7 +41,7 @@ export function useShortcutHandlers(args: Args) {
     selectedNodeId, editingNodeId, editText, setEditText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
-    undo, redo, canUndo, canRedo, selectNode, applyAutoLayout,
+    undo, redo, canUndo, canRedo, selectNode, setPan, applyAutoLayout,
     pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType,
   } = args;
 
@@ -82,6 +83,7 @@ export function useShortcutHandlers(args: Args) {
     canUndo,
     canRedo,
     selectNode,
+    setPan,
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => {
       if (!selectedNodeId || !data?.rootNode) return;
       const currentNode = findNodeById(data.rootNode, selectedNodeId);
@@ -164,7 +166,7 @@ export function useShortcutHandlers(args: Args) {
     selectedNodeId, editingNodeId, editText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
-    undo, redo, canUndo, canRedo, selectNode, applyAutoLayout,
+    undo, redo, canUndo, canRedo, selectNode, setPan, applyAutoLayout,
     pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType,
   ]);
 }

@@ -29,6 +29,7 @@ interface KeyboardShortcutHandlers {
   canRedo: boolean;
   navigateToDirection: (_direction: 'up' | 'down' | 'left' | 'right') => void;
   selectNode: (_nodeId: string | null) => void;
+  setPan?: (_pan: { x: number; y: number } | ((_prev: { x: number; y: number }) => { x: number; y: number })) => void;
   showMapList: boolean;
   setShowMapList: (_show: boolean) => void;
   showLocalStorage: boolean;
@@ -164,6 +165,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       centerNodeInView: handlers.centerNodeInView,
       navigateToDirection: handlers.navigateToDirection,
       selectNode: handlers.selectNode,
+      setPan: handlers.setPan,
 
       // Editing
       startEdit: handlers.startEdit,
@@ -237,58 +239,75 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       const isModifier = ctrlKey || metaKey;
 
       // Vim mode handling through command system
-      if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier) {
-        // Map special keys to lowercase
-        const specialKeyMap: Record<string, string> = {
-          'Tab': 'tab',
-          'Enter': 'enter',
-          'Delete': 'delete',
-          'Backspace': 'backspace'
-        };
-
-        const normalizedKey = specialKeyMap[key] || key.toLowerCase();
-
-        // Prevent browser shortcuts for vim keys
-        const vimKeys = commands.getVimKeys();
-        if (vimKeys.includes(normalizedKey)) {
-          event.preventDefault();
-          event.stopPropagation();
+      if (vim && vim.isEnabled && vim.mode === 'normal') {
+        // Handle Ctrl+U and Ctrl+D scroll commands
+        if (isModifier) {
+          if (key.toLowerCase() === 'u' && ctrlKey) {
+            event.preventDefault();
+            commands.executeVimCommand('ctrl-u');
+            return;
+          } else if (key.toLowerCase() === 'd' && ctrlKey) {
+            event.preventDefault();
+            commands.executeVimCommand('ctrl-d');
+            return;
+          }
+          // Fall through to regular modifier handling
         }
 
-        // Handle special keys directly
-        if (['tab', 'enter', 'delete', 'backspace'].includes(normalizedKey)) {
-          console.log('Debug: Executing special vim key:', normalizedKey);
-          handlers.closeAttachmentAndLinkLists();
-          commands.executeVimCommand(normalizedKey);
-          return;
-        }
+        // Regular vim commands (non-modifier keys)
+        if (!isModifier) {
+          // Map special keys to lowercase
+          const specialKeyMap: Record<string, string> = {
+            'Tab': 'tab',
+            'Enter': 'enter',
+            'Delete': 'delete',
+            'Backspace': 'backspace'
+          };
 
-        // Handle vim sequences through command system
-        const currentBuffer = vim.commandBuffer;
-        const testSequence = currentBuffer + normalizedKey;
-        const result = commands.parseVimSequence(testSequence);
+          const normalizedKey = specialKeyMap[key] || key.toLowerCase();
 
-        if (result.isComplete && result.command) {
-          // Complete command - execute and clear buffer
-          handlers.closeAttachmentAndLinkLists();
-          commands.executeVimCommand(result.command);
-          vim.clearCommandBuffer();
-          return;
-        } else if (result.isPartial) {
-          // Partial command - add to buffer and wait for more keys
-          vim.appendToCommandBuffer(normalizedKey);
-          return;
-        } else if (result.shouldClear) {
-          // Invalid sequence - clear buffer
-          vim.clearCommandBuffer();
-        }
+          // Prevent browser shortcuts for vim keys
+          const vimKeys = commands.getVimKeys();
+          if (vimKeys.includes(normalizedKey)) {
+            event.preventDefault();
+            event.stopPropagation();
+          }
 
-        // Try single-key commands
-        const singleKeyResult = commands.parseVimSequence(normalizedKey);
-        if (singleKeyResult.isComplete && singleKeyResult.command) {
-          handlers.closeAttachmentAndLinkLists();
-          commands.executeVimCommand(singleKeyResult.command);
-          return;
+          // Handle special keys directly
+          if (['tab', 'enter', 'delete', 'backspace'].includes(normalizedKey)) {
+            console.log('Debug: Executing special vim key:', normalizedKey);
+            handlers.closeAttachmentAndLinkLists();
+            commands.executeVimCommand(normalizedKey);
+            return;
+          }
+
+          // Handle vim sequences through command system
+          const currentBuffer = vim.commandBuffer;
+          const testSequence = currentBuffer + normalizedKey;
+          const result = commands.parseVimSequence(testSequence);
+
+          if (result.isComplete && result.command) {
+            // Complete command - execute and clear buffer
+            handlers.closeAttachmentAndLinkLists();
+            commands.executeVimCommand(result.command);
+            vim.clearCommandBuffer();
+            return;
+          } else if (result.isPartial) {
+            // Partial command - add to buffer and wait for more keys
+            vim.appendToCommandBuffer(normalizedKey);
+            return;
+          } else if (result.shouldClear) {
+            // Invalid sequence - clear buffer
+            vim.clearCommandBuffer();
+          }
+
+          // Try single-key commands
+          const singleKeyResult = commands.parseVimSequence(normalizedKey);
+          if (singleKeyResult.isComplete && singleKeyResult.command) {
+            handlers.closeAttachmentAndLinkLists();
+            commands.executeVimCommand(singleKeyResult.command);
+            return;
+          }
         }
       }
 

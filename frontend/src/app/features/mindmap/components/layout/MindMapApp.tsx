@@ -732,6 +732,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     canUndo,
     canRedo,
     selectNode,
+    setPan,
     applyAutoLayout,
     pasteImageFromClipboard: async (nodeId: string) => {
       const { readClipboardImageAsFile } = await import('../../../../shared/utils/clipboard');
