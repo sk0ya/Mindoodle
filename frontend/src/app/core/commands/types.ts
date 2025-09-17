@@ -32,6 +32,7 @@ export interface CommandContext {
     // Navigation
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
+    selectNode: (nodeId: string | null) => void;
 
     // Editing
     startEdit: (nodeId: string) => void;

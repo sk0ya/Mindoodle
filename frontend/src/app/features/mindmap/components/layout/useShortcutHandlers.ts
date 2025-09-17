@@ -81,6 +81,7 @@ export function useShortcutHandlers(args: Args) {
     redo,
     canUndo,
     canRedo,
+    selectNode,
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => {
       if (!selectedNodeId || !data?.rootNode) return;
       const currentNode = findNodeById(data.rootNode, selectedNodeId);

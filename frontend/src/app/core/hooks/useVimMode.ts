@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
+import type { MindMapNode } from '@shared/types';
 
 export type VimMode = 'normal' | 'insert' | 'visual' | 'command';
 
@@ -18,6 +19,7 @@ interface VimActions {
   executeCommand: (command: string) => void;
   appendToCommandBuffer: (char: string) => void;
   clearCommandBuffer: () => void;
+  getCurrentRootNode: () => MindMapNode | null;
 }
 
 export interface VimModeHook extends VimState, VimActions {}
@@ -68,10 +70,15 @@ export const useVimMode = (): VimModeHook => {
   }, []);
 
   const clearCommandBuffer = useCallback(() => {
-    setState(prev => ({ 
-      ...prev, 
-      commandBuffer: '' 
+    setState(prev => ({
+      ...prev,
+      commandBuffer: ''
     }));
+  }, []);
+
+  const getCurrentRootNode = useCallback((): MindMapNode | null => {
+    const { data } = useMindMapStore.getState();
+    return data?.rootNodes?.[0] || null;
   }, []);
 
   return {
@@ -83,6 +90,7 @@ export const useVimMode = (): VimModeHook => {
     toggle,
     executeCommand,
     appendToCommandBuffer,
-    clearCommandBuffer
+    clearCommandBuffer,
+    getCurrentRootNode
   };
 };

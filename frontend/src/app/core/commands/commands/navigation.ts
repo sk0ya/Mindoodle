@@ -210,3 +210,53 @@ export const zoomResetCommand: Command = {
     }
   }
 };
+
+// Select root node command (for gg vim command)
+export const selectRootNodeCommand: Command = {
+  name: 'select-root',
+  aliases: ['root', 'go-root', 'gg'],
+  description: 'Select and center the root node',
+  category: 'navigation',
+  examples: ['select-root', 'root', 'gg'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      let rootNode = null;
+
+      // Try to get root node from vim context first
+      if (context.vim?.getCurrentRootNode) {
+        rootNode = context.vim.getCurrentRootNode();
+      }
+
+      // If no root node found or no vim context, this is still a failure
+      // The vim context should always be available and have the root node
+      if (!rootNode || !rootNode.id) {
+        return {
+          success: false,
+          error: 'No root node found in current map'
+        };
+      }
+
+      // Select the root node
+      context.handlers.selectNode(rootNode.id);
+
+      // Center the root node in view with animation
+      if (context.handlers.centerNodeInView) {
+        context.handlers.centerNodeInView(rootNode.id, true);
+      }
+
+      // Close any open panels
+      context.handlers.closeAttachmentAndLinkLists();
+
+      return {
+        success: true,
+        message: `Selected root node: "${rootNode.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to select root node'
+      };
+    }
+  }
+};

@@ -28,6 +28,7 @@ interface KeyboardShortcutHandlers {
   canUndo: boolean;
   canRedo: boolean;
   navigateToDirection: (_direction: 'up' | 'down' | 'left' | 'right') => void;
+  selectNode: (_nodeId: string | null) => void;
   showMapList: boolean;
   setShowMapList: (_show: boolean) => void;
   showLocalStorage: boolean;
@@ -162,6 +163,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       // Navigation
       centerNodeInView: handlers.centerNodeInView,
       navigateToDirection: handlers.navigateToDirection,
+      selectNode: handlers.selectNode,
 
       // Editing
       startEdit: handlers.startEdit,
@@ -235,7 +237,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       const isModifier = ctrlKey || metaKey;
 
       // Vim mode handling through command system
-      if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier && handlers.selectedNodeId) {
+      if (vim && vim.isEnabled && vim.mode === 'normal' && !isModifier) {
         // Map special keys to lowercase
         const specialKeyMap: Record<string, string> = {
           'Tab': 'tab',

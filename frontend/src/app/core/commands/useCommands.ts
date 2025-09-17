@@ -29,6 +29,7 @@ interface UseCommandsProps {
     // Navigation
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
+    selectNode: (nodeId: string | null) => void;
 
     // Editing
     startEdit: (nodeId: string) => void;
@@ -170,11 +171,14 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
 
   // Execute vim-specific commands
   const executeVimCommand = useCallback(async (vimKey: string): Promise<CommandResult> => {
+    console.log('executeVimCommand called with:', vimKey);
+
     const vimCommandMap: Record<string, string> = {
       'zz': 'center',
       'dd': 'cut',
       'yy': 'copy',
       'za': 'toggle',
+      'gg': 'select-root',
       'ciw': 'edit',
       'i': 'insert',
       'a': 'append',
@@ -192,14 +196,19 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     };
 
     const commandName = vimCommandMap[vimKey];
+    console.log('Mapped command name:', commandName);
+
     if (!commandName) {
+      console.error('Unknown vim command:', vimKey);
       return {
         success: false,
         error: `Unknown vim command: ${vimKey}`
       };
     }
 
-    return execute(commandName);
+    const result = await execute(commandName);
+    console.log('Command execution result:', result);
+    return result;
   }, [execute]);
 
   // Get available command names

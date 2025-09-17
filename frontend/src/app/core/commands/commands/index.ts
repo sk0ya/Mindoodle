@@ -41,7 +41,8 @@ import {
   findNodeCommand,
   zoomInCommand,
   zoomOutCommand,
-  zoomResetCommand
+  zoomResetCommand,
+  selectRootNodeCommand
 } from './navigation';
 
 import {
@@ -101,6 +102,7 @@ export const commands = [
   zoomInCommand,
   zoomOutCommand,
   zoomResetCommand,
+  selectRootNodeCommand,
 
   // Mindmap commands
   importMindmapCommand,
@@ -149,6 +151,7 @@ export {
   zoomInCommand,
   zoomOutCommand,
   zoomResetCommand,
+  selectRootNodeCommand,
   // Mindmap commands
   importMindmapCommand,
   exportMindmapCommand,
