@@ -122,7 +122,112 @@ export function useShortcutHandlers(args: Args) {
         }
       }
       if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(selectedNodeId, direction, data.rootNode);
-      if (nextNodeId) selectNode(nextNodeId);
+      if (nextNodeId) {
+        selectNode(nextNodeId);
+        // Ensure the newly selected node is visible (but don't center it)
+        ensureNodeVisible(nextNodeId);
+      }
+
+      // Helper function to ensure node is visible without centering
+      function ensureNodeVisible(nodeId: string) {
+        const node = findNodeById(data.rootNode, nodeId);
+        if (!node || !setPan) return;
+
+        // Get actual viewport dimensions considering sidebar and panels
+        const mindmapContainer = document.querySelector('.mindmap-workspace') ||
+                                document.querySelector('.mindmap-canvas') ||
+                                document.querySelector('.canvas-container');
+
+        let effectiveWidth = window.innerWidth;
+        let effectiveHeight = window.innerHeight;
+        let offsetX = 0;
+        let offsetY = 0;
+
+        if (mindmapContainer) {
+          const rect = mindmapContainer.getBoundingClientRect();
+          effectiveWidth = rect.width;
+          effectiveHeight = rect.height;
+          offsetX = rect.left;
+          offsetY = rect.top;
+        } else {
+          // Fallback: manually calculate effective area considering all panels
+
+          // Left sidebar
+          const sidebar = document.querySelector('.sidebar') ||
+                         document.querySelector('.primary-sidebar') ||
+                         document.querySelector('.primary-sidebar-container');
+          if (sidebar) {
+            const sidebarRect = sidebar.getBoundingClientRect();
+            effectiveWidth -= sidebarRect.width;
+            offsetX = sidebarRect.width;
+          }
+
+          // Right panels (notes panel, customization panel, etc.)
+          const rightPanels = [
+            document.querySelector('.node-notes-panel'),
+            document.querySelector('.customization-panel'),
+            document.querySelector('.notes-panel-container'),
+            document.querySelector('.panel-container')
+          ].filter(panel => {
+            if (!panel) return false;
+            const rect = panel.getBoundingClientRect();
+            return rect.width > 0 && rect.height > 0; // Only visible panels
+          });
+
+          rightPanels.forEach(panel => {
+            if (panel) {
+              const panelRect = panel.getBoundingClientRect();
+              effectiveWidth -= panelRect.width;
+            }
+          });
+
+          // Top toolbar/header
+          const header = document.querySelector('.toolbar') ||
+                        document.querySelector('.mindmap-header') ||
+                        document.querySelector('.header');
+          if (header) {
+            const headerRect = header.getBoundingClientRect();
+            effectiveHeight -= headerRect.height;
+            offsetY = headerRect.height;
+          }
+        }
+
+        const currentZoom = ui.zoom * 1.5; // Match the transform scale from CanvasRenderer
+        const currentPan = ui.pan;
+
+        // Calculate node's screen position relative to the effective viewport
+        const nodeScreenX = currentZoom * (node.x + currentPan.x) - offsetX;
+        const nodeScreenY = currentZoom * (node.y + currentPan.y) - offsetY;
+
+        // Define margins to keep node away from edges
+        const margin = 100;
+
+        // Check if node is outside effective viewport bounds
+        const isOutsideLeft = nodeScreenX < margin;
+        const isOutsideRight = nodeScreenX > effectiveWidth - margin;
+        const isOutsideTop = nodeScreenY < margin;
+        const isOutsideBottom = nodeScreenY > effectiveHeight - margin;
+
+        if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
+          // Calculate minimal pan adjustment needed
+          let newPanX = currentPan.x;
+          let newPanY = currentPan.y;
+
+          if (isOutsideLeft) {
+            newPanX = (margin + offsetX - currentZoom * node.x) / currentZoom;
+          } else if (isOutsideRight) {
+            newPanX = (effectiveWidth - margin + offsetX - currentZoom * node.x) / currentZoom;
+          }
+
+          if (isOutsideTop) {
+            newPanY = (margin + offsetY - currentZoom * node.y) / currentZoom;
+          } else if (isOutsideBottom) {
+            newPanY = (effectiveHeight - margin + offsetY - currentZoom * node.y) / currentZoom;
+          }
+
+          setPan({ x: newPanX, y: newPanY });
+        }
+      }
     },
     showMapList: ui.showMapList,
     setShowMapList: (show: boolean) => store.setShowMapList(show),
