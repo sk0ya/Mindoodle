@@ -78,8 +78,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         )}
         
         {onCenterRootNode && (
-          <ShortcutTooltip description="ルートノードを中央に表示">
-            <button 
+          <ShortcutTooltip description="ルートノードを左端中央に表示">
+            <button
               className="toolbar-btn center-root"
               onClick={onCenterRootNode}
             >

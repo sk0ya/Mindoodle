@@ -602,11 +602,30 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
         const viewportWidth = window.innerWidth;
         const viewportHeight = window.innerHeight;
-        const viewportCenterX = viewportWidth / 2;
+        // サイドバーとアクティビティバーの表示状態を確認して実効的な幅を計算
+        const sidebarElement = document.querySelector('.primary-sidebar') as HTMLElement;
+        const activityBarElement = document.querySelector('.activity-bar') as HTMLElement;
+
+        const isSidebarVisible = sidebarElement &&
+          getComputedStyle(sidebarElement).display !== 'none' &&
+          !sidebarElement.classList.contains('collapsed') &&
+          sidebarElement.getBoundingClientRect().left >= 0;
+
+        const isActivityBarVisible = activityBarElement &&
+          getComputedStyle(activityBarElement).display !== 'none' &&
+          activityBarElement.getBoundingClientRect().left >= 0;
+
+        const effectiveSidebarWidth = isSidebarVisible ? 280 : 0;
+        const effectiveActivityBarWidth = isActivityBarVisible ? 48 : 0;
+        const totalLeftPanelWidth = effectiveSidebarWidth + effectiveActivityBarWidth;
+
+
+        const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
+        const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * 0.2); // マップエリアの左寄り（20%位置）
         const viewportCenterY = viewportHeight / 2;
         const currentZoom = ui.zoom * 1.5;
 
-        const newPanX = viewportCenterX / currentZoom - nodeX;
+        const newPanX = leftCenterX / currentZoom - nodeX;
         const newPanY = viewportCenterY / currentZoom - nodeY;
 
         setPan({ x: newPanX, y: newPanY });
@@ -614,10 +633,30 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       return;
     }
 
-    // ビューポートの中心座標を計算
+    // ビューポート座標を計算（サイドバーを考慮した左端中央）
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
-    const viewportCenterX = viewportWidth / 2;
+    // サイドバーとアクティビティバーの表示状態を確認して実効的な幅を計算
+    const sidebarElement = document.querySelector('.primary-sidebar') as HTMLElement;
+    const activityBarElement = document.querySelector('.activity-bar') as HTMLElement;
+
+    const isSidebarVisible = sidebarElement &&
+      getComputedStyle(sidebarElement).display !== 'none' &&
+      !sidebarElement.classList.contains('collapsed') &&
+      sidebarElement.getBoundingClientRect().left >= 0;
+
+    const isActivityBarVisible = activityBarElement &&
+      getComputedStyle(activityBarElement).display !== 'none' &&
+      activityBarElement.getBoundingClientRect().left >= 0;
+
+    const effectiveSidebarWidth = isSidebarVisible ? 280 : 0;
+    const effectiveActivityBarWidth = isActivityBarVisible ? 48 : 0;
+    const totalLeftPanelWidth = effectiveSidebarWidth + effectiveActivityBarWidth;
+
+
+    const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
+    // マップエリアの左寄り（20%位置）に配置してルートノードが左端になるように
+    const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * 0.2);
     const viewportCenterY = viewportHeight / 2;
 
     // ノードの現在の座標
@@ -628,9 +667,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     const currentZoom = ui.zoom * 1.5;
 
     // SVGの transform="scale(s) translate(tx, ty)" の場合、
-    // 最終座標は s * (x + tx) となるため、中央に配置するには：
-    // centerX = currentZoom * (nodeX + panX) → panX = centerX/currentZoom - nodeX
-    const newPanX = viewportCenterX / currentZoom - nodeX;
+    // 最終座標は s * (x + tx) となるため、左端中央に配置するには：
+    // leftCenterX = currentZoom * (nodeX + panX) → panX = leftCenterX/currentZoom - nodeX
+    const newPanX = leftCenterX / currentZoom - nodeX;
     const newPanY = viewportCenterY / currentZoom - nodeY;
 
     if (animate) {
@@ -669,7 +708,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [data, ui.zoom, ui.pan, setPan]);
 
-  // ルートノードを中央に表示するハンドラー
+  // ルートノードを左端中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
     if (data?.rootNodes?.[0]) {
       centerNodeInView(data.rootNodes[0].id, false);
