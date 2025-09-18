@@ -24,9 +24,6 @@ interface MarkdownEditorProps {
   // Cursor sync hooks
   onCursorLineChange?: (line: number) => void;
   onFocusChange?: (focused: boolean) => void;
-  // External override text to apply imperatively (to reduce flicker)
-  externalOverride?: string;
-  allowExternalOverride?: boolean;
 }
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({ 
@@ -38,8 +35,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   autoFocus = false,
   readOnly = false,
   onResize,
-  onCursorLineChange, onFocusChange,
-  externalOverride, allowExternalOverride = false
+  onCursorLineChange, onFocusChange
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
@@ -47,24 +43,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   // Tracks whether Vim is currently enabled on the Monaco instance
   const [isVimEnabled, setIsVimEnabled] = useState(false);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
-  const [internalValue, setInternalValue] = useState(value);
+  // Editor is controlled by `value`; no internal mirror state is needed
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings } = useMindMapStore();
-
-  // Initialize internal value on first mount and when prop changes (for preview)
-  useEffect(() => {
-    if (value !== internalValue) {
-      setInternalValue(value);
-    }
-  }, [value]);
 
   // Debounced onChange handler
   const handleEditorChange = useCallback((newValue: string) => {
     if (ignoreExternalChangeRef.current) {
       return; // ignore programmatic updates from nodes->markdown
     }
-    setInternalValue(newValue);
-
     // Clear existing timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -79,13 +66,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   // Convert markdown to HTML (memoized for performance)
   const previewHtml = useMemo((): string => {
     try {
-      const result = marked.parse(internalValue || '');
+      const result = marked.parse(value || '');
       return typeof result === 'string' ? result : '';
     } catch (error) {
       logger.warn('Markdown parsing error:', error);
       return '<p>マークダウンの解析でエラーが発生しました</p>';
     }
-  }, [internalValue]);
+  }, [value]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -322,24 +309,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     handleEditorChange(newValue ?? '');
   }, [handleEditorChange]);
 
-  // Imperatively apply external override to the editor without re-mounting
-  useEffect(() => {
-    const ed = editorRef.current;
-    const model = ed?.getModel();
-    if (!ed || !model) return;
-    if (!allowExternalOverride) return;
-    const newText = externalOverride ?? '';
-    const currentText = model.getValue();
-    if (newText === currentText) return;
-    const view = ed.saveViewState();
-    ignoreExternalChangeRef.current = true;
-    model.setValue(newText);
-    if (view) ed.restoreViewState(view);
-    setInternalValue(newText);
-    // Clear ignore flag on next frame so user edits are captured
-    const tid = setTimeout(() => { ignoreExternalChangeRef.current = false; }, 0);
-    return () => clearTimeout(tid);
-  }, [externalOverride, allowExternalOverride]);
+  // Remove imperative override; rely on `value` prop to update editor content
 
   // External cursor sync intentionally removed per request
 
@@ -512,7 +482,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               height={EDITOR_HEIGHT}
               width={EDITOR_WIDTH}
               defaultLanguage={EDITOR_LANGUAGE}
-              defaultValue={internalValue}
+              value={value}
               onChange={memoizedHandleEditorChange}
               onMount={handleEditorDidMount}
               theme={editorTheme}
@@ -525,7 +495,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         {(mode === 'preview' || mode === 'split') && (
           <div className="preview-pane">
             <div className="preview-content">
-              {internalValue.trim() ? (
+              {value.trim() ? (
                 <div
                   className="markdown-preview"
                   dangerouslySetInnerHTML={{ __html: previewHtml }}

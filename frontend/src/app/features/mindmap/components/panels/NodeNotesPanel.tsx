@@ -186,8 +186,6 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
             onResize={handleResize}
             onCursorLineChange={handleCursorLineChange}
             onFocusChange={setEditorFocused}
-            externalOverride={mapMarkdown}
-            allowExternalOverride={true}
           />
         )}
       </div>

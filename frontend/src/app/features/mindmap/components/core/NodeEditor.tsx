@@ -123,12 +123,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     // 既存のタイマーをクリア
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
+      blurTimeoutRef.current = null;
     }
 
     // 最新の入力値を取得
     const currentValue = e.target ? e.target.value : editText;
 
-    // 編集完了処理を実行
+    // 編集完了処理を実行（余計なフォーカス判定は行わない）
     onFinishEdit(node.id, currentValue);
   }, [node.id, editText, onFinishEdit, blurTimeoutRef]);
 

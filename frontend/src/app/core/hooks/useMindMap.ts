@@ -121,20 +121,85 @@ export const useMindMap = (
         lineToNodeIdRef.current = lineToNode;
         nodeIdToLineRef.current = nodeToLine;
 
-        // Apply node updates only when source is the editor (replace to match stream)
+        // Apply node updates only when source is the editor.
+        // Prefer partial updates (text/note only) to avoid full rerender flicker.
         if (source === 'editor' && dataHook.data) {
-          const now = new Date().toISOString();
           const safeRootNodes = Array.isArray(parsed?.rootNodes) ? parsed.rootNodes : [];
 
-          const updatedData = { ...dataHook.data, rootNodes: safeRootNodes, updatedAt: now };
-          dataHook.setData(updatedData);
+          // Flatten helper (pre-order) to compare markdown structure
+          type FlatItem = {
+            id?: string; // only for existing tree
+            text: string;
+            note?: string;
+            t?: string; // type
+            lvl?: number; // level
+            ind?: number; // indent level
+          };
+          const flatten = (nodes: any[], out: FlatItem[] = []): FlatItem[] => {
+            for (const n of nodes || []) {
+              const mm = n?.markdownMeta || {};
+              out.push({
+                id: n?.id,
+                text: String(n?.text ?? ''),
+                note: n?.note,
+                t: mm?.type,
+                lvl: typeof mm?.level === 'number' ? mm.level : undefined,
+                ind: typeof mm?.indentLevel === 'number' ? mm.indentLevel : undefined,
+              });
+              if (n?.children?.length) flatten(n.children, out);
+            }
+            return out;
+          };
+
+          const prevFlat = flatten(dataHook.data.rootNodes || []);
+          const nextFlat = flatten(safeRootNodes);
+
+          const sameStructure = (() => {
+            if (prevFlat.length !== nextFlat.length) return false;
+            for (let i = 0; i < prevFlat.length; i++) {
+              const a = prevFlat[i];
+              const b = nextFlat[i];
+              if (a.t !== b.t) return false;
+              if (a.lvl !== b.lvl) return false;
+              // treat undefined and 0 differently only if types are lists
+              if ((a.t === 'unordered-list' || a.t === 'ordered-list')) {
+                const ia = typeof a.ind === 'number' ? a.ind : 0;
+                const ib = typeof b.ind === 'number' ? b.ind : 0;
+                if (ia !== ib) return false;
+              }
+            }
+            return true;
+          })();
+
+          if (sameStructure) {
+            // Update only changed text/note fields
+            for (let i = 0; i < prevFlat.length; i++) {
+              const a = prevFlat[i];
+              const b = nextFlat[i];
+              if (!a.id) continue;
+              const updates: any = {};
+              if (a.text !== b.text) updates.text = b.text;
+              // Only update note when it actually changes; undefined vs '' normalization
+              const aNote = a.note ?? '';
+              const bNote = b.note ?? '';
+              if (aNote !== bNote) updates.note = b.note ?? '';
+              if (Object.keys(updates).length) {
+                dataHook.updateNode(a.id, updates);
+              }
+            }
+          } else {
+            // Fallback to full replacement only when structure changed
+            const now = new Date().toISOString();
+            const updatedData = { ...dataHook.data, rootNodes: safeRootNodes, updatedAt: now };
+            dataHook.setData(updatedData);
+          }
         }
       } catch (error) {
         logger.warn('Markdown parse failed; keeping existing nodes');
       }
     });
     return () => { try { unsub(); } catch (_e) { /* ignore */ void 0; } };
-  }, [subscribeMd, dataHook.setData]);
+  }, [subscribeMd, dataHook.setData, dataHook.updateNode, dataHook.data?.rootNodes]);
 
   // Removed global CustomEvent echo path to avoid race/rollback
 
