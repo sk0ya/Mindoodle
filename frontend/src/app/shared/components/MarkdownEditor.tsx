@@ -42,6 +42,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   externalOverride, allowExternalOverride = false
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
   const ignoreExternalChangeRef = useRef(false);
   // Tracks whether Vim is currently enabled on the Monaco instance
   const [isVimEnabled, setIsVimEnabled] = useState(false);
@@ -88,6 +89,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
+    monacoRef.current = monaco as unknown as typeof import('monaco-editor');
 
     // Configure editor settings
     editor.updateOptions({
@@ -141,8 +143,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       // Dynamically import monaco-vim for Vim mode support
       const { initVimMode } = await import('monaco-vim');
 
-      // Initialize Vim mode with focus restriction
-      const vimMode = initVimMode(editor, document.getElementById('vim-statusbar'));
+      // Initialize Vim mode (status bar element optional)
+      const vimMode = initVimMode(editor);
 
       // Prevent vim mode from interfering with global key events
       // We'll add a global event listener to prevent vim mode from capturing
@@ -389,7 +391,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     const apply = async () => {
       if (!editorRef.current) return;
       if (settings.vimMode && !isVimEnabled) {
-        const monaco = await import('monaco-editor');
+        const monaco = monacoRef.current || (await import('monaco-editor'));
         await enableVimMode(editorRef.current, monaco);
         setIsVimEnabled(true);
       } else if (!settings.vimMode && isVimEnabled) {
