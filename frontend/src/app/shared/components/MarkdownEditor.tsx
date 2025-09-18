@@ -123,14 +123,21 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       const line = e.position.lineNumber;
       onCursorLineChange?.(line);
     });
-    editor.onDidFocusEditorText?.(() => onFocusChange?.(true));
-    editor.onDidBlurEditorText?.(() => onFocusChange?.(false));
-
-    // Enable Vim mode based on settings
-    if (settings.vimMode) {
-      enableVimMode(editor, monaco);
-      setIsVimEnabled(true);
-    }
+    editor.onDidFocusEditorText?.(() => {
+      onFocusChange?.(true);
+      // Enable Vim only when editor has focus and setting is on
+      if (settings.vimMode && !isVimEnabled) {
+        enableVimMode(editor, monaco);
+        setIsVimEnabled(true);
+      }
+    });
+    editor.onDidBlurEditorText?.(() => {
+      onFocusChange?.(false);
+      // Disable Vim when focus leaves the editor so app shortcuts work
+      if (isVimEnabled) {
+        disableVimMode();
+      }
+    });
 
     // Auto-focus when mounted (only if autoFocus is enabled)
     if (autoFocus) {
@@ -145,31 +152,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
       // Initialize Vim mode (status bar element optional)
       const vimMode = initVimMode(editor);
-
-      // Prevent vim mode from interfering with global key events
-      // We'll add a global event listener to prevent vim mode from capturing
-      // keys when the editor doesn't have focus
-      const editorDom = editor.getDomNode();
-      let globalKeyListener: ((e: KeyboardEvent) => void) | null = null;
-
-      if (editorDom) {
-        globalKeyListener = (e: KeyboardEvent) => {
-          const activeElement = document.activeElement;
-          const editorContainer = editorDom.closest('.monaco-editor');
-
-          // If focus is outside the editor container, ensure vim doesn't interfere
-          if (!activeElement || !editorContainer || !editorContainer.contains(activeElement)) {
-            // Stop vim from processing this event by preventing it from reaching vim's listeners
-            e.stopImmediatePropagation();
-          }
-        };
-
-        // Add the listener in capture phase to intercept before vim mode processes it
-        document.addEventListener('keydown', globalKeyListener, true);
-
-        // Store the listener for cleanup
-        (editor as any)._vimModeGlobalListener = globalKeyListener;
-      }
 
       // Add Vim commands
       vimMode.defineEx('write', 'w', () => {
@@ -294,17 +276,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const disableVimMode = useCallback(() => {
     if (!editorRef.current) return;
     const vimMode = (editorRef.current as any)._vimMode;
-    const globalListener = (editorRef.current as any)._vimModeGlobalListener;
 
     if (vimMode) {
       vimMode.dispose();
       delete (editorRef.current as any)._vimMode;
     }
 
-    if (globalListener) {
-      document.removeEventListener('keydown', globalListener, true);
-      delete (editorRef.current as any)._vimModeGlobalListener;
-    }
 
     const commandIds = (editorRef.current as any)._vimModeCommandIds;
     if (commandIds) {
@@ -390,7 +367,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   useEffect(() => {
     const apply = async () => {
       if (!editorRef.current) return;
-      if (settings.vimMode && !isVimEnabled) {
+      // Only enable when setting is on AND editor has focus
+      const hasFocus = editorRef.current.hasTextFocus?.() ?? false;
+      if (settings.vimMode && hasFocus && !isVimEnabled) {
         const monaco = monacoRef.current || (await import('monaco-editor'));
         await enableVimMode(editorRef.current, monaco);
         setIsVimEnabled(true);
