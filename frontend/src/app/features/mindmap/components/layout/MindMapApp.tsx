@@ -337,12 +337,37 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // 相対パス画像を読み込む関数
   const onLoadRelativeImage = useCallback(async (relativePath: string): Promise<string | null> => {
     try {
-      if (typeof (mindMap as any).readImageAsDataURL === 'function') {
-        const workspaceId = data?.mapIdentifier?.workspaceId;
-        return await (mindMap as any).readImageAsDataURL(relativePath, workspaceId);
+      if (typeof (mindMap as any).readImageAsDataURL !== 'function') {
+        return null;
       }
 
-      return null;
+      const workspaceId = data?.mapIdentifier?.workspaceId;
+      const currentMapId = data?.mapIdentifier?.mapId || '';
+
+      // Resolve relativePath against current map directory
+      const resolvePath = (baseFilePath: string, rel: string): string => {
+        // absolute-like path inside workspace
+        if (/^\//.test(rel)) {
+          return rel.replace(/^\//, '');
+        }
+        // get base directory of current map
+        const baseDir = baseFilePath.includes('/') ? baseFilePath.replace(/\/[^/]*$/, '') : '';
+        const baseSegs = baseDir ? baseDir.split('/') : [];
+        const relSegs = rel.replace(/^\.\//, '').split('/');
+        const out: string[] = [...baseSegs];
+        for (const seg of relSegs) {
+          if (!seg || seg === '.') continue;
+          if (seg === '..') {
+            if (out.length > 0) out.pop();
+          } else {
+            out.push(seg);
+          }
+        }
+        return out.join('/');
+      };
+
+      const resolvedPath = resolvePath(currentMapId, relativePath);
+      return await (mindMap as any).readImageAsDataURL(resolvedPath, workspaceId);
     } catch (error) {
       console.warn('Failed to load relative image:', relativePath, error);
       return null;
