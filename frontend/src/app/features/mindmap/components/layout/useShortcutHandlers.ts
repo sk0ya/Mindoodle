@@ -103,10 +103,44 @@ export function useShortcutHandlers(args: Args) {
         }
         case 'right': {
           const firstChild = getFirstVisibleChild(currentNode);
-          if (firstChild) nextNodeId = firstChild.id;
+          if (firstChild) {
+            // 子ノードの中から親ノードのY座標に最も近いものを選択
+            const children = currentNode.children || [];
+            if (children.length > 1) {
+              let closestChild = children[0];
+              let minDistance = Math.abs(children[0].y - currentNode.y);
+
+              for (let i = 1; i < children.length; i++) {
+                const distance = Math.abs(children[i].y - currentNode.y);
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestChild = children[i];
+                }
+              }
+              nextNodeId = closestChild.id;
+            } else {
+              nextNodeId = firstChild.id;
+            }
+          }
           else if (currentNode.children?.length && currentNode.collapsed) {
             updateNode(selectedNodeId, { collapsed: false });
-            nextNodeId = currentNode.children[0].id;
+            // 展開時も中央に近い子ノードを選択
+            const children = currentNode.children;
+            if (children.length > 1) {
+              let closestChild = children[0];
+              let minDistance = Math.abs(children[0].y - currentNode.y);
+
+              for (let i = 1; i < children.length; i++) {
+                const distance = Math.abs(children[i].y - currentNode.y);
+                if (distance < minDistance) {
+                  minDistance = distance;
+                  closestChild = children[i];
+                }
+              }
+              nextNodeId = closestChild.id;
+            } else {
+              nextNodeId = children[0].id;
+            }
           }
           break;
         }
