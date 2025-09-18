@@ -1,6 +1,6 @@
 import React from 'react';
 import NodeNotesPanel from '../panels/NodeNotesPanel';
-import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeInRoots } from '../../../../shared/utils/nodeTreeUtils';
 import type { MindMapNode, MapIdentifier, MindMapData } from '@shared/types';
 
 type Props = {
@@ -27,19 +27,7 @@ const NodeNotesPanelContainer: React.FC<Props> = ({
   // Search for the selected node in all root nodes
   const selectedNode = React.useMemo(() => {
     if (!dataRoot || !selectedNodeId) return null;
-
-    const rootNodes = dataRoot.rootNodes || [];
-
-    // Search through all root nodes, not just the first one
-    for (const rootNode of rootNodes) {
-      const found = findNodeById(rootNode, selectedNodeId);
-      if (found) {
-        return found;
-      }
-    }
-
-
-    return null;
+    return findNodeInRoots(dataRoot.rootNodes || [], selectedNodeId);
   }, [dataRoot, selectedNodeId]);
   // Clean onUpdateNode wrapper
   const wrappedOnUpdateNode = React.useCallback((id: string, updates: Partial<MindMapNode>) => {

@@ -1,7 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
 import { useVimMode } from '../../../../core/hooks/useVimMode';
-import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeById, findNodeInRoots } from '../../../../shared/utils/nodeTreeUtils';
+import { relPathBetweenMapIds } from '../../../../shared/utils/mapPath';
+import { nodeToMarkdown } from '../../../../shared/utils/markdownExport';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
 import MindMapHeader from './MindMapHeader';
@@ -494,27 +496,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       let label = 'リンク';
       let href = '';
 
-      // Helper to compute relative path idA -> idB
-      const toRelPath = (fromId: string, toId: string): string => {
-        const fromSegs = (fromId.split('/') as string[]);
-        fromSegs.pop(); // remove filename component
-        const toSegs = toId.split('/');
-        let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
-        const up = new Array(fromSegs.length - i).fill('..');
-        const down = toSegs.slice(i);
-        const joined = [...up, ...down].join('/');
-        return joined.length ? `${joined}.md` : `${toId.split('/').pop()}.md`;
-      };
+      
 
       // Determine label and href
       if (targetMapId === currentMapId) {
         if (linkData.targetNodeId) {
-          const rootNodes = data.rootNodes || [];
-          let targetNode = null;
-          for (const rootNode of rootNodes) {
-            targetNode = findNodeById(rootNode, linkData.targetNodeId);
-            if (targetNode) break;
-          }
+          const targetNode = findNodeInRoots(data.rootNodes || [], linkData.targetNodeId);
           if (targetNode) {
             label = targetNode.text || 'リンク';
             // Use saved anchor if available, otherwise compute it
@@ -541,12 +528,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               label = targetNode.text || targetMap.title || 'リンク';
               // Use saved anchor if available, otherwise compute it
               const anchor = linkData.targetAnchor || computeAnchorForNode(targetMap.rootNodes?.[0], targetNode.id);
-              const rel = toRelPath(currentMapId, targetMap.mapIdentifier.mapId);
+              const rel = relPathBetweenMapIds(currentMapId, targetMap.mapIdentifier.mapId);
               href = anchor ? `${rel}#${encodeURIComponent(anchor)}` : rel;
             }
           } else {
             label = targetMap.title || 'リンク';
-            const rel = toRelPath(currentMapId, targetMap.mapIdentifier.mapId);
+            const rel = relPathBetweenMapIds(currentMapId, targetMap.mapIdentifier.mapId);
             href = rel;
           }
         }
@@ -583,17 +570,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
     // ルートノードの場合は最適化（検索を省略）
     const rootNodes = data.rootNodes || [];
-    let targetNode = null;
-
-    if (rootNodes.length > 0 && rootNodes[0].id === nodeId) {
-      targetNode = rootNodes[0];
-    } else {
-      // その他のノードは検索
-      for (const rootNode of rootNodes) {
-        targetNode = findNodeById(rootNode, nodeId);
-        if (targetNode) break;
-      }
-    }
+    let targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
+      ? rootNodes[0]
+      : findNodeInRoots(rootNodes, nodeId);
     if (!targetNode) {
       if (fallbackCoords) {
         // フォールバック座標を使用してセンタリング
@@ -981,14 +960,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             // 内部クリップボードに保存
             store.setClipboard(node);
             // システムクリップボードにMarkdownで書き出し
-            const toMd = (n: MindMapNode, level = 0): string => {
-              const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-              let md = `${prefix}${n.text}\n`;
-              if (n.note?.trim()) md += `${n.note}\n`;
-              n.children?.forEach(c => { md += toMd(c, level + 1); });
-              return md;
-            };
-            navigator.clipboard?.writeText?.(toMd(node)).catch(() => {});
+            navigator.clipboard?.writeText?.(nodeToMarkdown(node)).catch(() => {});
             showNotification('success', `「${node.text}」をコピーしました`);
           },
           onPasteNode: async (parentId: string) => {
@@ -1138,22 +1110,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           handleContextMenuClose();
         }}
         onCopyNode={(nodeId) => {
-          const rootNodes = data?.rootNodes || [];
-          let nodeToFind = null;
-          for (const rootNode of rootNodes) {
-            nodeToFind = findNodeById(rootNode, nodeId);
-            if (nodeToFind) break;
-          }
+          const nodeToFind = findNodeInRoots(data?.rootNodes || [], nodeId);
           if (!nodeToFind) return;
           store.setClipboard(nodeToFind);
-          const toMd = (node: MindMapNode, level = 0): string => {
-            const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-            let md = `${prefix}${node.text}\n`;
-            if (node.note?.trim()) md += `${node.note}\n`;
-            node.children?.forEach(child => { md += toMd(child, level + 1); });
-            return md;
-          };
-          const markdownText = toMd(nodeToFind);
+          const markdownText = nodeToMarkdown(nodeToFind);
           navigator.clipboard?.writeText?.(markdownText).catch(() => {});
           showNotification('success', `「${nodeToFind.text}」をコピーしました`);
         }}

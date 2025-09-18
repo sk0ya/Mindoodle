@@ -1,6 +1,6 @@
 import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
 import { generateLinkId } from './idGenerator';
-import { findNodeById } from './nodeTreeUtils';
+import { findNodeInRoots } from './nodeTreeUtils';
 
 // ノードにリンクを追加する関数
 export const addLinkToNode = (
@@ -149,11 +149,7 @@ export const getLinkTargetInfo = (
   let targetNode: MindMapNode | null = null;
   
   if (isCurrentMap && link.targetNodeId) {
-    const rootNodes = currentData.rootNodes || [];
-    for (const rootNode of rootNodes) {
-      targetNode = findNodeById(rootNode, link.targetNodeId);
-      if (targetNode) break;
-    }
+    targetNode = findNodeInRoots(currentData.rootNodes || [], link.targetNodeId);
   }
 
   const canNavigate = isCurrentMap && (targetNode !== null || !link.targetNodeId);

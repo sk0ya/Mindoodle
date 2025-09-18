@@ -1,7 +1,7 @@
 import React from 'react';
 import { logger } from '../../../../shared/utils/logger';
 import { validateFile } from '../../../../shared/types/dataTypes';
-import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeInRoots } from '../../../../shared/utils/nodeTreeUtils';
 import type { MindMapData, MindMapNode, FileAttachment } from '@shared/types';
 import type { StorageConfig } from '../../../../core/storage/types';
 
@@ -95,12 +95,7 @@ export const useFileOperationsManager = ({
         );
         
         // ノードにファイルを添付
-        const rootNodes = data?.rootNodes || [];
-        let node = null;
-        for (const rootNode of rootNodes) {
-          node = findNodeById(rootNode, nodeId);
-          if (node) break;
-        }
+        const node = findNodeInRoots(data?.rootNodes || [], nodeId);
         if (node) {
           logger.info('📎 Attaching file to node...', {
             nodeId,
@@ -213,17 +208,12 @@ export const useFileOperationsManager = ({
         throw new Error('マインドマップデータが利用できません');
       }
 
-      const rootNodes = data.rootNodes || [];
-      let node = null;
-      for (const rootNode of rootNodes) {
-        node = findNodeById(rootNode, nodeId);
-        if (node) break;
-      }
+      const node = findNodeInRoots(data.rootNodes || [], nodeId);
       if (!node || !node.attachments) {
         throw new Error('ノードまたは添付ファイルが見つかりません');
       }
 
-      const fileToDelete = node.attachments.find(file => file.id === fileId);
+      const fileToDelete = (node.attachments as FileAttachment[]).find((file: FileAttachment) => file.id === fileId);
       if (!fileToDelete) {
         throw new Error('削除するファイルが見つかりません');
       }
@@ -248,7 +238,7 @@ export const useFileOperationsManager = ({
       }
 
       // ノードから添付ファイルを削除
-      const updatedAttachments = node.attachments.filter(file => file.id !== fileId);
+      const updatedAttachments = (node.attachments as FileAttachment[]).filter((file: FileAttachment) => file.id !== fileId);
       const updatedNode = {
         ...node,
         attachments: updatedAttachments

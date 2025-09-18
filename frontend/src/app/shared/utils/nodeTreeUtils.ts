@@ -1,4 +1,5 @@
 import { MindMapNode } from '../types/dataTypes';
+import type { MindMapData } from '../types/dataTypes';
 
 export function findNodeById(rootNode: MindMapNode, nodeId: string): MindMapNode | null {
   if (rootNode.id === nodeId) return rootNode;
@@ -93,4 +94,18 @@ export function getFirstVisibleChild(node: MindMapNode): MindMapNode | null {
 export function isRootNode(rootNode: MindMapNode, nodeId: string): boolean {
   if (rootNode.id === nodeId) return true;
   return findParentNode(rootNode, nodeId) === null;
+}
+
+export function findNodeInRoots(roots: MindMapNode[] | undefined, nodeId: string): MindMapNode | null {
+  const list = roots || [];
+  for (const r of list) {
+    const found = findNodeById(r, nodeId);
+    if (found) return found;
+  }
+  return null;
+}
+
+export function findNodeInData(data: { rootNodes?: MindMapNode[] } | MindMapData | null | undefined, nodeId: string): MindMapNode | null {
+  if (!data) return null;
+  return findNodeInRoots((data as any).rootNodes, nodeId);
 }
