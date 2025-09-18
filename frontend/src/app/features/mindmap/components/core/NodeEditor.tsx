@@ -39,7 +39,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onLinkNavigate: _onLinkNavigate
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { settings, data } = useMindMapStore();
+  const { settings, data, ui } = useMindMapStore();
 
   // リンククリック時の処理
   const handleLinkClick = useCallback((e: React.MouseEvent) => {
@@ -384,8 +384,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     ? iconLayout2.totalWidth + TEXT_ICON_SPACING2 + RIGHT_MARGIN2
     : 0;
   // テキスト表示時は中央を左にずらしているため、編集ボックスも同様に左へオフセット
-  const editX = Math.round((nodeLeftX + 4) - iconBlockWidth2 / 2);
-  const editWidth = Math.max(20, Math.round((nodeWidth - 8) - iconBlockWidth2));
+  const rawEditX = (nodeLeftX + 4) - iconBlockWidth2 / 2;
+  const rawEditWidth = Math.max(20, (nodeWidth - 8) - iconBlockWidth2);
+  // SVGグループにscale(zoom*1.5)がかかっているため、スケール後にピクセル境界へスナップ
+  const scale = (ui?.zoom || 1) * 1.5;
+  const alignToScale = (v: number) => (scale > 0 ? Math.round(v * scale) / scale : v);
+  const editX = alignToScale(rawEditX);
+  const editWidth = Math.max(20, alignToScale(rawEditWidth));
 
   return (
     <foreignObject
