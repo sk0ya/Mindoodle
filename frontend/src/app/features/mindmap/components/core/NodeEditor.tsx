@@ -400,7 +400,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           color: settings.theme === 'dark' ? 'var(--text-primary)' : 'black',
           outline: 'none',
           borderRadius: '4px',
-          padding: '0 4px',
+          padding: '0 6px',
           boxSizing: 'border-box'
         }}
       />
