@@ -576,7 +576,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   };
 
   // ノードを画面中央に移動する関数（最適化済み）
-  const centerNodeInView = useCallback((nodeId: string, animate = false) => {
+  const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number }) => {
     if (!data) return;
 
     // ルートノードの場合は最適化（検索を省略）
@@ -592,7 +592,25 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         if (targetNode) break;
       }
     }
-    if (!targetNode) return;
+    if (!targetNode) {
+      if (fallbackCoords) {
+        // フォールバック座標を使用してセンタリング
+        const nodeX = fallbackCoords.x;
+        const nodeY = fallbackCoords.y;
+
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        const viewportCenterX = viewportWidth / 2;
+        const viewportCenterY = viewportHeight / 2;
+        const currentZoom = ui.zoom * 1.5;
+
+        const newPanX = viewportCenterX / currentZoom - nodeX;
+        const newPanY = viewportCenterY / currentZoom - nodeY;
+
+        setPan({ x: newPanX, y: newPanY });
+      }
+      return;
+    }
 
     // ビューポートの中心座標を計算
     const viewportWidth = window.innerWidth;
@@ -656,38 +674,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     }
   }, [data?.rootNodes, centerNodeInView]);
 
-  // マップが切り替わった時の前のマップIDを記録
-  const [prevMapId, setPrevMapId] = React.useState<string | null>(null);
-
-  // マップが初期化された時やマップ切り替え時にルートノードを選択し中央に表示（非同期化）
-  React.useEffect(() => {
-    const currentMapId = data?.mapIdentifier?.mapId;
-
-    if (data?.rootNodes?.[0] && currentMapId) {
-      const rootNodeId = data.rootNodes[0].id;
-
-      // マップが切り替わった場合のみ処理を実行
-      const mapChanged = currentMapId !== prevMapId;
-
-      if (mapChanged) {
-        // 即座にノード選択
-        selectNode(rootNodeId);
-
-        // 中央移動処理を非同期で実行（ユーザー操作をブロックしない）
-        setTimeout(() => {
-          // さらに非同期で中央移動を実行（UIスレッドを開放）
-          requestIdleCallback(() => {
-            centerNodeInView(rootNodeId, false);
-          }, { timeout: 200 });
-        }, 50); // より短い遅延
-      }
-
-      // 現在のマップIDを記録
-      if (currentMapId !== prevMapId) {
-        setPrevMapId(currentMapId);
-      }
-    }
-  }, [data?.rootNodes, data?.mapIdentifier?.mapId, selectedNodeId, selectNode, centerNodeInView, prevMapId]);
 
   // Simplified link navigation via utility
   const handleLinkNavigate2 = async (link: NodeLink) => {
@@ -700,6 +686,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       centerNodeInView,
       notify: showNotification,
       getCurrentRootNode: () => useMindMapStore.getState().data?.rootNodes?.[0] || null,
+      getAllRootNodes: () => useMindMapStore.getState().data?.rootNodes || null,
       resolveAnchorToNode,
     });
   };

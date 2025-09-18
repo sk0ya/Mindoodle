@@ -197,6 +197,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onToggleAttachmentList={onToggleAttachmentList}
                 onToggleLinkList={onToggleLinkList}
                 onLoadRelativeImage={onLoadRelativeImage}
+                onLinkNavigate={onLinkNavigate}
               />
             ))}
           </g>

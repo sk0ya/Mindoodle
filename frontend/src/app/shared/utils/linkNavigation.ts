@@ -16,15 +16,25 @@ function findNodeByTextLoose(root: MindMapNode, targetText: string): MindMapNode
   return null;
 }
 
+function findNodeByTextInMultipleRoots(roots: MindMapNode[], targetText: string): MindMapNode | null {
+  if (!roots || !targetText) return null;
+  for (const root of roots) {
+    const found = findNodeByTextLoose(root, targetText);
+    if (found) return found;
+  }
+  return null;
+}
+
 interface Ctx {
   currentMapId: string | null | undefined;
   dataRoot: MindMapNode | null | undefined;
   selectMapById: (id: MapIdentifier) => Promise<boolean> | boolean;
   currentWorkspaceId: string | null | undefined;
   selectNode: (id: string) => void;
-  centerNodeInView: (id: string, animate?: boolean) => void;
+  centerNodeInView: (id: string, animate?: boolean, fallbackCoords?: { x: number; y: number }) => void;
   notify: (type: 'success'|'error'|'info'|'warning', message: string) => void;
   getCurrentRootNode: () => MindMapNode | null | undefined;
+  getAllRootNodes?: () => MindMapNode[] | null | undefined;
   resolveAnchorToNode?: (root: MindMapNode, anchor: string) => MindMapNode | null;
 }
 
@@ -39,18 +49,28 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
       if (!ok) { notify('error', `マップ "${link.targetMapId}" が見つかりません`); return; }
       notify('success', `マップ "${link.targetMapId}" に移動しました`);
       if (link.targetNodeId) {
-        setTimeout(() => {
-          const root = getCurrentRootNode();
-          if (!root) return;
-          const tn = link.targetNodeId!;
-          if (tn.startsWith('text:')) {
-            const targetText = tn.slice(5);
-            const node = findNodeByTextLoose(root, targetText);
-            if (node) { selectNode(node.id); setTimeout(() => centerNodeInView(node.id), 100); }
-          } else {
-            selectNode(tn); setTimeout(() => centerNodeInView(tn), 100);
+        // 複数ルートノード対応
+        const allRoots = ctx.getAllRootNodes?.() || [];
+        const singleRoot = getCurrentRootNode();
+        const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
+
+        if (roots.length === 0) return;
+
+        const tn = link.targetNodeId!;
+        if (tn.startsWith('text:')) {
+          const targetText = tn.slice(5);
+          const node = findNodeByTextInMultipleRoots(roots, targetText);
+          if (node) {
+            selectNode(node.id);
+            // ノードの座標を保存してからセンタリング
+            const nodeCoords = { x: node.x || 0, y: node.y || 0 };
+            // 即座にセンタリング実行
+            centerNodeInView(node.id, true, nodeCoords);
           }
-        }, 500);
+        } else {
+          selectNode(tn);
+          centerNodeInView(tn);
+        }
       }
       return;
     }
@@ -61,13 +81,15 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
         const targetText = tn.slice(5);
         const node = findNodeByTextLoose(dataRoot, targetText);
         if (node) {
-          selectNode(node.id); setTimeout(() => centerNodeInView(node.id), 50);
+          selectNode(node.id);
+          centerNodeInView(node.id);
           notify('success', `ノード "${node.text}" に移動しました`);
         } else {
           notify('error', `ノード "${targetText}" が見つかりません`);
         }
       } else {
-        selectNode(tn); setTimeout(() => centerNodeInView(tn), 50);
+        selectNode(tn);
+        centerNodeInView(tn);
         notify('success', `ノードに移動しました`);
       }
       return;

@@ -220,8 +220,26 @@ export function calculateNodeSize(
     }
   }
   
+  // マークダウンリンク検出関数
+  const isMarkdownLink = (text: string): boolean => {
+    const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
+    return markdownLinkPattern.test(text);
+  };
+
+  // マークダウンリンクから表示テキストを抽出
+  const getDisplayTextFromMarkdownLink = (text: string): string => {
+    const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
+    return match ? match[1] : text;
+  };
+
   // 編集中は editText の長さ、非編集時は表示用の長さを使用
-  const effectiveText = isEditing && editText !== undefined ? editText : node.text;
+  let effectiveText: string;
+  if (isEditing && editText !== undefined) {
+    effectiveText = editText;
+  } else {
+    // 非編集時：マークダウンリンクの場合は表示テキストのみ使用
+    effectiveText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
+  }
   
   // フォント設定を取得
   const fontSize = globalFontSize || node.fontSize || 14;
@@ -238,7 +256,7 @@ export function calculateNodeSize(
     actualTextWidth = Math.max(measuredWidth, minWidth);
   } else {
     // 非編集時は実際のテキスト幅を計算（マーカーを含む）
-    let displayText = node.text;
+    let displayText = effectiveText;
 
     // マーカーがある場合は追加
     if (node.markdownMeta) {
@@ -250,7 +268,7 @@ export function calculateNodeSize(
       } else if (node.markdownMeta.type === 'ordered-list') {
         marker = '1. ';
       }
-      displayText = marker + node.text;
+      displayText = marker + effectiveText;
     }
 
     const measuredWidth = measureTextWidth(displayText, fontSize, fontFamily, fontWeight, fontStyle);

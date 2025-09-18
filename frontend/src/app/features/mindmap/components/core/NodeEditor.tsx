@@ -3,7 +3,7 @@ import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { calculateIconLayout } from '../../../../shared/utils/nodeUtils';
 import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '../../../../shared/utils/markdownLinkUtils';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, NodeLink } from '@shared/types';
 
 interface NodeEditorProps {
   node: MindMapNode;
@@ -19,6 +19,7 @@ interface NodeEditorProps {
   onSelectNode?: (nodeId: string | null) => void;
   onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
+  onLinkNavigate?: (link: NodeLink) => void;
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -34,7 +35,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   isSelected = false,
   onSelectNode,
   onToggleAttachmentList: _onToggleAttachmentList,
-  onToggleLinkList
+  onToggleLinkList,
+  onLinkNavigate: _onLinkNavigate
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { settings, data } = useMindMapStore();
@@ -43,20 +45,39 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const handleLinkClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
-    
+
     // ノードが選択されていない場合は選択してからリンク一覧を表示
     if (!isSelected && onSelectNode) {
       onSelectNode(node.id);
     }
-    
+
     // リンク一覧をトグル（選択状態に関わらず）
     if (onToggleLinkList) {
       onToggleLinkList(node.id);
     }
   }, [isSelected, onSelectNode, onToggleLinkList, node.id]);
 
+  // マークダウンリンクパターンを検出する関数
+  const isMarkdownLink = (text: string): boolean => {
+    const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
+    return markdownLinkPattern.test(text);
+  };
 
-  // 添付ファイルUIは無効化中（クリックハンドラ未使用）
+  // URLパターンを検出する関数
+  const isUrl = (text: string): boolean => {
+    const urlPattern = /^https?:\/\/[^\s]+$/;
+    return urlPattern.test(text);
+  };
+
+  // マークダウンリンクからリンク情報を抽出
+  const parseMarkdownLink = (text: string) => {
+    const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
+    if (match) {
+      return { label: match[1], href: match[2] };
+    }
+    return null;
+  };
+
 
   // 編集モードになった時に確実にフォーカスを設定
   useEffect(() => {
@@ -65,7 +86,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
-          
+
           // 編集モードに応じてカーソル位置を制御
           const editingMode = useMindMapStore.getState().editingMode;
           if (editingMode === 'cursor-at-end') {
@@ -102,10 +123,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
     }
-    
+
     // 最新の入力値を取得
     const currentValue = e.target ? e.target.value : editText;
-    
+
     // 編集完了処理を実行
     onFinishEdit(node.id, currentValue);
   }, [node.id, editText, onFinishEdit, blurTimeoutRef]);
@@ -145,7 +166,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     const hasAnyMarkdownLinks = (internalLinks.length + externalLinks.length) > 0;
     const hasLinks = hasAnyMarkdownLinks;
     const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
-    
+
     // アイコンレイアウトを計算してテキスト位置を調整
     const iconLayout = calculateIconLayout(node, nodeWidth);
     // リンクアイコンの分だけテキストを少し左に寄せる（中央基準の見た目ずれ回避）
@@ -155,7 +176,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       ? iconLayout.totalWidth + TEXT_ICON_SPACING + RIGHT_MARGIN
       : 0;
     const textX = node.x - iconBlockWidth / 2;
-    
+
+    // ノードテキストがリンク形式かどうかをチェック
+    const isNodeTextMarkdownLink = isMarkdownLink(node.text);
+    const isNodeTextUrl = isUrl(node.text);
+    const isAnyLink = isNodeTextMarkdownLink || isNodeTextUrl;
+
+    // マークダウンリンクの表示テキストを取得
+    const getDisplayText = () => {
+      if (isNodeTextMarkdownLink) {
+        const linkInfo = parseMarkdownLink(node.text);
+        return linkInfo ? linkInfo.label : node.text;
+      }
+      return node.text;
+    };
+
+    const displayText = getDisplayText();
+
     return (
       <>
         <text
@@ -168,8 +205,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           fontWeight={node.fontWeight || 'normal'}
           fontStyle={node.fontStyle || 'normal'}
           fontFamily={settings.fontFamily || 'system-ui'}
-          style={{ 
-            pointerEvents: 'none', 
+          style={{
+            pointerEvents: 'none',
             userSelect: 'none'
           }}
         >
@@ -188,36 +225,60 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 marker = '1.';
               }
               // 見出しレベルに応じたスタイリング
-              let textStyle = {};
+              let textStyle: any = {};
               const markerStyle = { fill: "#888", fontWeight: "500" };
 
               if (markdownMeta.type === 'heading') {
                 textStyle = {
-                  fontWeight: "600"
-                  // フォントサイズは変更せず、太字のみ適用
+                  fontWeight: "600",
+                  // リンクの場合のみアンダーライン追加
+                  ...(isAnyLink ? {
+                    fill: settings.theme === 'dark' ? '#60a5fa' : '#2563eb',
+                    textDecoration: 'underline'
+                  } : {})
                 };
               } else if (markdownMeta.type === 'unordered-list' || markdownMeta.type === 'ordered-list') {
                 textStyle = {
-                  fontWeight: "400"
-                  // fillを指定しない（親のtext要素の色を継承）
+                  fontWeight: "400",
+                  // リンクの場合のみアンダーライン追加
+                  ...(isAnyLink ? {
+                    fill: settings.theme === 'dark' ? '#60a5fa' : '#2563eb',
+                    textDecoration: 'underline'
+                  } : {})
                 };
               }
 
               return (
                 <>
                   <tspan {...markerStyle}>{marker}</tspan>
-                  <tspan dx="0.3em" {...textStyle}>{node.text}</tspan>
+                  <tspan
+                    dx="0.3em"
+                    {...textStyle}
+                  >
+                    {displayText}
+                  </tspan>
                 </>
               );
             }
-            return node.text;
+            // マークダウンマーカーがない場合
+            return (
+              <tspan
+                {...(isAnyLink ? {
+                  fill: settings.theme === 'dark' ? '#60a5fa' : '#2563eb',
+                  textDecoration: 'underline'
+                } : {})}
+              >
+                {displayText}
+              </tspan>
+            );
           })()}
         </text>
-        
+
+
         {/* アイコン表示エリア（添付ファイルとリンク） */}
         {(() => {
           if (!hasAttachments && !hasLinks) return null;
-          
+
           return (
             <g>
               {/* 添付ファイルアイコン */}
@@ -237,21 +298,21 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                     strokeWidth="1"
                     rx="8"
                     ry="8"
-                    style={{ 
+                    style={{
                       filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1))',
                       cursor: 'pointer'
                     }}
                     onClick={handleLinkClick}
                   />
-                  
+
                   {/* Lucide リンクアイコン */}
                   <foreignObject
                     x={node.x + iconLayout.linkIcon.x + 2}
                     y={textY + iconLayout.linkIcon.y + 2}
                     width="10"
                     height="10"
-                    style={{ 
-                      pointerEvents: 'none', 
+                    style={{
+                      pointerEvents: 'none',
                       userSelect: 'none'
                     }}
                   >
@@ -259,7 +320,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                       <Link size={9} />
                     </div>
                   </foreignObject>
-                  
+
                   {/* リンク数 */}
                   <text
                     x={node.x + iconLayout.linkIcon.x + 20}
@@ -268,8 +329,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                     fill="#333"
                     fontSize="10px"
                     fontWeight="600"
-                    style={{ 
-                      pointerEvents: 'none', 
+                    style={{
+                      pointerEvents: 'none',
                       userSelect: 'none'
                     }}
                   >
@@ -310,12 +371,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
   const actualImageHeight = getActualImageHeight();
   const editY = hasImage ? node.y + actualImageHeight / 2 - 10 : node.y - 10;
-  
+
   return (
-    <foreignObject 
-      x={nodeLeftX + 4} 
-      y={editY} 
-      width={nodeWidth - 8} 
+    <foreignObject
+      x={nodeLeftX + 4}
+      y={editY}
+      width={nodeWidth - 8}
       height="20"
     >
       <input
@@ -345,6 +406,25 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       />
     </foreignObject>
   );
+};
+
+// リンク判定関数をexport
+export const isMarkdownLink = (text: string): boolean => {
+  const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
+  return markdownLinkPattern.test(text);
+};
+
+export const isUrl = (text: string): boolean => {
+  const urlPattern = /^https?:\/\/[^\s]+$/;
+  return urlPattern.test(text);
+};
+
+export const parseMarkdownLink = (text: string) => {
+  const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
+  if (match) {
+    return { label: match[1], href: match[2] };
+  }
+  return null;
 };
 
 export default memo(NodeEditor);
