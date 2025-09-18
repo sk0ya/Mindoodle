@@ -956,27 +956,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             showNotification('success', `「${node.text}」をコピーしました`);
           },
           onPasteNode: async (parentId: string) => {
-            // MindMeister形式 → 内部クリップボードの順に貼り付け
-            try {
-              if (navigator.clipboard && navigator.clipboard.readText) {
-                const clipboardText = await navigator.clipboard.readText();
-                const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('../../../../shared/utils/mindMeisterParser');
-                if (clipboardText && isMindMeisterFormat(clipboardText)) {
-                  const parsedNode = parseMindMeisterMarkdown(clipboardText);
-                  if (parsedNode) {
-                    const { pasteNodeTree } = await import('../../../../shared/utils/pasteTree');
-                    const newId = pasteNodeTree(parsedNode, parentId, store.addChildNode, updateNode);
-                    if (newId) { showNotification('success', `「${parsedNode.text}」をMindMeisterから貼り付けました`); selectNode(newId); }
-                    return;
-                  }
-                }
-              }
-            } catch {}
-            const clip = ui.clipboard;
-            if (!clip) { showNotification('warning', 'コピーされたノードがありません'); return; }
-            const { pasteNodeTree } = await import('../../../../shared/utils/pasteTree');
-            const newId = pasteNodeTree(clip, parentId, store.addChildNode, updateNode);
-            if (newId) { showNotification('success', `「${clip.text}」を貼り付けました`); selectNode(newId); }
+            const { pasteFromClipboard } = await import('../../../../shared/utils/clipboardPaste');
+            await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
           },
           onShowCustomization: (node: MindMapNode) => {
             selectNode(node.id);
@@ -1110,40 +1091,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           showNotification('success', `「${nodeToFind.text}」をコピーしました`);
         }}
         onPasteNode={async (parentId: string) => {
-          try {
-            if (navigator.clipboard && navigator.clipboard.readText) {
-              const clipboardText = await navigator.clipboard.readText();
-              const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('../../../../shared/utils/mindMeisterParser');
-              if (clipboardText && isMindMeisterFormat(clipboardText)) {
-                const parsedNode = parseMindMeisterMarkdown(clipboardText);
-                if (parsedNode) {
-                  const paste = (n: MindMapNode, parent: string): string | undefined => {
-                    const newId = store.addChildNode(parent, n.text);
-                    if (newId) {
-                      updateNode(newId, { fontSize: n.fontSize, fontWeight: n.fontWeight, color: n.color, collapsed: false, attachments: n.attachments || [], note: n.note });
-                      n.children?.forEach(c => paste(c, newId));
-                    }
-                    return newId;
-                  };
-                  const newId = paste(parsedNode, parentId);
-                  if (newId) { showNotification('success', `「${parsedNode.text}」をMindMeisterから貼り付けました`); selectNode(newId); }
-                  return;
-                }
-              }
-            }
-          } catch {}
-          const clipboardNode = ui.clipboard;
-          if (!clipboardNode) { showNotification('warning', 'コピーされたノードがありません'); return; }
-          const paste = (n: MindMapNode, parent: string): string | undefined => {
-            const newId = store.addChildNode(parent, n.text);
-            if (newId) {
-              updateNode(newId, { fontSize: n.fontSize, fontWeight: n.fontWeight, color: n.color, collapsed: false, attachments: n.attachments || [] });
-              n.children?.forEach(c => paste(c, newId));
-            }
-            return newId;
-          };
-          const newId = paste(clipboardNode, parentId);
-          if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
+          const { pasteFromClipboard } = await import('../../../../shared/utils/clipboardPaste');
+          await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
           handleContextMenuClose();
         }}
         onMarkdownNodeType={(nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
