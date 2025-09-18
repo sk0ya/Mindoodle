@@ -305,9 +305,11 @@ const Node: React.FC<NodeProps> = ({
 
       let href = calculateRelativePath(currentMapId, targetPath);
 
-      // Add .md extension if target is a markdown file
-      if (targetPath.endsWith('.md') || !isExplorerPath) {
-        href += '.md';
+      // Add .md extension if target is a markdown file or map-id (but not for images)
+      if (!(isExplorerPath && /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(targetPath))) {
+        if (targetPath.endsWith('.md') || !isExplorerPath) {
+          href += '.md';
+        }
       }
 
       // If same file, just use the filename
@@ -317,7 +319,12 @@ const Node: React.FC<NodeProps> = ({
 
       const currentNote = (node as any).note || '';
       const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
-      const appended = `${currentNote}${prefix}[${mapTitle}](${href})\n`;
+      const content = (isExplorerPath && /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(targetPath))
+        ? `![${mapTitle}](${href})
+`
+        : `[${mapTitle}](${href})
+`;
+      const appended = `${currentNote}${prefix}${content}`;
       onUpdateNode(node.id, { note: appended });
       if (onAutoLayout) {
         setTimeout(() => { onAutoLayout(); }, 0);
