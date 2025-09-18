@@ -366,35 +366,37 @@ export const createNodeSlice: StateCreator<
       if (!state.normalizedData) return;
       
       try {
-        // Before deleting, find the next node to select
-        if (state.selectedNodeId === nodeId) {
-          const parentId = state.normalizedData.parentMap[nodeId];
-          if (parentId) {
-            const siblings = state.normalizedData.childrenMap[parentId] || [];
-            const currentIndex = siblings.indexOf(nodeId);
-            
-            if (currentIndex !== -1) {
-              // Try next sibling first
-              if (currentIndex < siblings.length - 1) {
-                nextNodeToSelect = siblings[currentIndex + 1];
-              }
-              // If no next sibling, try previous sibling
-              else if (currentIndex > 0) {
-                nextNodeToSelect = siblings[currentIndex - 1];
-              }
-              // If no siblings, select parent (unless it's root)
-              else if (parentId !== 'root') {
-                nextNodeToSelect = parentId;
-              }
-              // If parent is root and no siblings, keep null
+        // Before deleting, find the next node to select based on the node being removed
+        const parentId = state.normalizedData.parentMap[nodeId];
+        if (parentId) {
+          const siblings = state.normalizedData.childrenMap[parentId] || [];
+          const currentIndex = siblings.indexOf(nodeId);
+
+          if (currentIndex !== -1) {
+            // Prefer next sibling
+            if (currentIndex < siblings.length - 1) {
+              nextNodeToSelect = siblings[currentIndex + 1];
+            }
+            // Fallback to previous sibling
+            else if (currentIndex > 0) {
+              nextNodeToSelect = siblings[currentIndex - 1];
+            }
+            // If no siblings remain, fallback to parent (unless parent is the artificial 'root')
+            else if (parentId !== 'root') {
+              nextNodeToSelect = parentId;
             }
           }
         }
         
         state.normalizedData = deleteNormalizedNode(state.normalizedData, nodeId);
         
-        // Set new selection
-        if (state.selectedNodeId === nodeId) {
+        // Set new selection: if the deleted node was selected, or nothing is selected, choose a reasonable next
+        if (state.selectedNodeId === nodeId || !state.selectedNodeId) {
+          // If our precomputed next is still null, try pick first available root node
+          if (!nextNodeToSelect) {
+            const roots = state.normalizedData.childrenMap['root'] || [];
+            nextNodeToSelect = roots.length > 0 ? roots[0] : null;
+          }
           state.selectedNodeId = nextNodeToSelect;
         }
         if (state.editingNodeId === nodeId) {
