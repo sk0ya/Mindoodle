@@ -443,6 +443,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     };
   }, [disableVimMode]);
 
+  // Disable Vim when clicking outside the editor to restore app shortcuts
+  useEffect(() => {
+    const handleDocumentMouseDown = (e: MouseEvent) => {
+      if (!editorRef.current) return;
+      const dom = editorRef.current.getDomNode();
+      if (!dom) return;
+      const target = e.target as Node | null;
+      if (target && !dom.contains(target)) {
+        if (isVimEnabled) {
+          disableVimMode();
+        }
+      }
+    };
+    document.addEventListener('mousedown', handleDocumentMouseDown, true);
+    return () => {
+      document.removeEventListener('mousedown', handleDocumentMouseDown, true);
+    };
+  }, [isVimEnabled, disableVimMode]);
+
   return (
     <div className={`markdown-editor ${className}`}>
       <div className="editor-toolbar">
