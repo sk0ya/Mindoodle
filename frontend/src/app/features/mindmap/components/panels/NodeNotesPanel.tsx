@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X, FileText, Loader } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
@@ -88,7 +88,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   }, [resizeCounter]);
 
   // Constants to prevent re-renders
-  const EDITOR_HEIGHT = "calc(100vh - 140px)";
+  // Editor height is managed by inner component; keep container flexible
   const EDITOR_CLASS_NAME = "node-editor";
 
   // Handle resize functionality
@@ -166,26 +166,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         className={`resize-handle ${isResizing ? 'resizing' : ''}`}
         onMouseDown={handleResizeStart}
       />
-      <div className="panel-header">
-        <div className="panel-title-section">
-          <h3 className="panel-title">
-            <FileText size={18} />
-            マークダウン
-          </h3>
-        </div>
-        <div className="panel-controls">
-          {onClose && (
-            <button
-              type="button"
-              onClick={onClose}
-              className="close-button"
-              title="閉じる (Esc)"
-            >
-              <X size={20} />
-            </button>
-          )}
-        </div>
-      </div>
+      {/* Header removed per request: no title icon/text or close button */}
 
       <div className="editor-container">
         {loadingMapMd ? (
@@ -199,7 +180,6 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
           <MarkdownEditor
             value={mapMarkdown}
             onChange={handleMapMarkdownChange}
-            height={EDITOR_HEIGHT}
             className={EDITOR_CLASS_NAME}
             autoFocus={false}
             readOnly={false}
@@ -249,54 +229,7 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       background: var(--accent-color);
     }
 
-    .panel-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 16px 20px;
-      border-bottom: 1px solid var(--border-color);
-      background: var(--bg-secondary);
-      flex-shrink: 0;
-    }
-
-    .panel-title-section {
-      display: flex;
-      flex-direction: column;
-      gap: 4px;
-    }
-
-    .panel-title {
-      margin: 0;
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text-primary);
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .panel-controls {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .close-button {
-      background: none;
-      border: none;
-      font-size: 20px;
-      line-height: 1;
-      color: var(--text-secondary);
-      cursor: pointer;
-      padding: 4px;
-      border-radius: 4px;
-      transition: all 0.2s;
-    }
-
-    .close-button:hover {
-      background: var(--hover-color);
-      color: var(--text-primary);
-    }
+    /* Header styles removed */
 
     .editor-container {
       flex: 1;
@@ -364,13 +297,7 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
         display: none;
       }
 
-      .panel-header {
-        padding: 12px 16px;
-      }
-
-      .panel-title {
-        font-size: 14px;
-      }
+      /* Header responsive styles removed */
     }
   `;
 }

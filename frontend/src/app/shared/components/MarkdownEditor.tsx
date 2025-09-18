@@ -18,7 +18,6 @@ interface MarkdownEditorProps {
   onSave?: () => void;
   className?: string;
   height?: string;
-  vimMode?: boolean;
   autoFocus?: boolean;
   readOnly?: boolean;
   onResize?: () => void;
@@ -36,7 +35,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   onSave,
   className = '',
   height: _height = '400px',
-  vimMode = false,
   autoFocus = false,
   readOnly = false,
   onResize,
@@ -45,7 +43,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const ignoreExternalChangeRef = useRef(false);
-  const [isVimEnabled, setIsVimEnabled] = useState(vimMode);
+  // Tracks whether Vim is currently enabled on the Monaco instance
+  const [isVimEnabled, setIsVimEnabled] = useState(false);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
   const [internalValue, setInternalValue] = useState(value);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -125,9 +124,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     editor.onDidFocusEditorText?.(() => onFocusChange?.(true));
     editor.onDidBlurEditorText?.(() => onFocusChange?.(false));
 
-    // Enable Vim mode if requested
-    if (isVimEnabled) {
+    // Enable Vim mode based on settings
+    if (settings.vimMode) {
       enableVimMode(editor, monaco);
+      setIsVimEnabled(true);
     }
 
     // Auto-focus when mounted (only if autoFocus is enabled)
@@ -289,39 +289,28 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   };
 
-  const toggleVimMode = useCallback(async () => {
+  const disableVimMode = useCallback(() => {
     if (!editorRef.current) return;
+    const vimMode = (editorRef.current as any)._vimMode;
+    const globalListener = (editorRef.current as any)._vimModeGlobalListener;
 
-    if (isVimEnabled) {
-      // Disable Vim mode
-      const vimMode = (editorRef.current as any)._vimMode;
-      const globalListener = (editorRef.current as any)._vimModeGlobalListener;
-
-      if (vimMode) {
-        vimMode.dispose();
-        delete (editorRef.current as any)._vimMode;
-      }
-
-      // Remove global key listener
-      if (globalListener) {
-        document.removeEventListener('keydown', globalListener, true);
-        delete (editorRef.current as any)._vimModeGlobalListener;
-      }
-
-      // Clean up command IDs if they exist
-      const commandIds = (editorRef.current as any)._vimModeCommandIds;
-      if (commandIds) {
-        delete (editorRef.current as any)._vimModeCommandIds;
-      }
-
-      setIsVimEnabled(false);
-    } else {
-      // Enable Vim mode
-      const monaco = await import('monaco-editor');
-      await enableVimMode(editorRef.current, monaco);
-      setIsVimEnabled(true);
+    if (vimMode) {
+      vimMode.dispose();
+      delete (editorRef.current as any)._vimMode;
     }
-  }, [isVimEnabled]);
+
+    if (globalListener) {
+      document.removeEventListener('keydown', globalListener, true);
+      delete (editorRef.current as any)._vimModeGlobalListener;
+    }
+
+    const commandIds = (editorRef.current as any)._vimModeCommandIds;
+    if (commandIds) {
+      delete (editorRef.current as any)._vimModeCommandIds;
+    }
+
+    setIsVimEnabled(false);
+  }, []);
 
   // Memoized mode change handlers
   const setEditMode = useCallback(() => setMode('edit'), []);
@@ -395,6 +384,21 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   }, [settings.theme, settings.fontSize, settings.fontFamily]);
 
+  // React to settings.vimMode changes
+  useEffect(() => {
+    const apply = async () => {
+      if (!editorRef.current) return;
+      if (settings.vimMode && !isVimEnabled) {
+        const monaco = await import('monaco-editor');
+        await enableVimMode(editorRef.current, monaco);
+        setIsVimEnabled(true);
+      } else if (!settings.vimMode && isVimEnabled) {
+        disableVimMode();
+      }
+    };
+    apply();
+  }, [settings.vimMode, isVimEnabled, disableVimMode]);
+
   // Handle external resize events
   useEffect(() => {
     if (onResize && editorRef.current) {
@@ -452,20 +456,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       }
       // Cleanup Vim mode on unmount
       if (editorRef.current) {
-        const vimMode = (editorRef.current as any)._vimMode;
-        const globalListener = (editorRef.current as any)._vimModeGlobalListener;
-
-        if (vimMode) {
-          vimMode.dispose();
-        }
-
-        // Remove global key listener
-        if (globalListener) {
-          document.removeEventListener('keydown', globalListener, true);
-        }
+        // Disable and cleanup Vim if enabled
+        disableVimMode();
       }
     };
-  }, []);
+  }, [disableVimMode]);
 
   return (
     <div className={`markdown-editor ${className}`}>
@@ -497,14 +492,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               <SplitSquareHorizontal size={16} /> 分割
             </button>
           </div>
-          <button
-            type="button"
-            onClick={toggleVimMode}
-            className={`vim-toggle ${isVimEnabled ? 'active' : ''}`}
-            title="Toggle Vim Mode"
-          >
-            Vim: {isVimEnabled ? 'ON' : 'OFF'}
-          </button>
           {onSave && (
             <button
               type="button"
@@ -617,27 +604,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           color: white;
         }
 
-        .vim-toggle {
-          background: var(--bg-primary);
-          border: 1px solid var(--border-color);
-          color: var(--text-primary);
-          padding: 4px 8px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          transition: all 0.2s;
-        }
-
-        .vim-toggle:hover {
-          background: var(--hover-color);
-          border-color: var(--border-color);
-        }
-
-        .vim-toggle.active {
-          background: #10b981;
-          border-color: #10b981;
-          color: white;
-        }
+        
 
         .save-button {
           background: var(--accent-color);
