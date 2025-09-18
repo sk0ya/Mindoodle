@@ -373,11 +373,25 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const actualImageHeight = getActualImageHeight();
   const editY = hasImage ? node.y + actualImageHeight / 2 - 10 : node.y - 10;
 
+  // リンクアイコン分のレイアウト調整（非編集時と同等のオフセットを適用）
+  const internalLinks2 = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNodes?.[0]) || [];
+  const externalLinks2 = extractExternalLinksFromMarkdown(node.note) || [];
+  const hasAnyMarkdownLinks2 = (internalLinks2.length + externalLinks2.length) > 0;
+  const iconLayout2 = calculateIconLayout(node, nodeWidth);
+  const TEXT_ICON_SPACING2 = 6;
+  const RIGHT_MARGIN2 = 2;
+  const iconBlockWidth2 = hasAnyMarkdownLinks2 && iconLayout2.totalWidth > 0
+    ? iconLayout2.totalWidth + TEXT_ICON_SPACING2 + RIGHT_MARGIN2
+    : 0;
+  // テキスト表示時は中央を左にずらしているため、編集ボックスも同様に左へオフセット
+  const editX = Math.round((nodeLeftX + 4) - iconBlockWidth2 / 2);
+  const editWidth = Math.max(20, Math.round((nodeWidth - 8) - iconBlockWidth2));
+
   return (
     <foreignObject
-      x={nodeLeftX + 4}
+      x={editX}
       y={editY}
-      width={nodeWidth - 8}
+      width={editWidth}
       height="20"
     >
       <input
