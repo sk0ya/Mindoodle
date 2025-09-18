@@ -19,7 +19,17 @@ export interface NormalizedMindMapData {
 /**
  * 従来の階層構造を正規化構造に変換
  */
-export function normalizeTreeData(rootNodes: MindMapNode[]): NormalizedData {
+export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): NormalizedData {
+  // 防御的プログラミング: rootNodesが無効な場合は空の構造を返す
+  if (!Array.isArray(rootNodes) || rootNodes.length === 0) {
+    return {
+      nodes: {},
+      rootNodeIds: [],
+      parentMap: {},
+      childrenMap: {}
+    };
+  }
+
   const nodes: Record<string, MindMapNode> = {};
   const parentMap: Record<string, string> = {};
   const childrenMap: Record<string, string[]> = {};

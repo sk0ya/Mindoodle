@@ -30,6 +30,7 @@ export const useMindMap = (
   const uiHook = useMindMapUI();
   const actionsHook = useMindMapActions();
   const persistenceHook = useMindMapPersistence(storageConfig);
+  // const { mergeWithExistingNodes } = useMarkdownSync();
 
   // 各種データ処理を分離されたhookで管理
   useInitialDataLoad(isAppReady, {
@@ -98,10 +99,10 @@ export const useMindMap = (
   // Keep this effect lightweight; heavy parsing only on 'editor' source
   useEffect(() => {
     const unsub = subscribeMd(async (markdown, source) => {
-      if (!dataHook.data) return;
       try {
         const parsed = MarkdownImporter.parseMarkdownToNodes(markdown);
-        // Build line<->node maps from merged nodes (ids preserved, line numbers from parsed via merge)
+
+        // Build line<->node maps from parsed nodes
         const lineToNode: Record<number, string> = {};
         const nodeToLine: Record<string, number> = {};
         const walk = (nodes: any[]) => {
@@ -121,16 +122,19 @@ export const useMindMap = (
         nodeIdToLineRef.current = nodeToLine;
 
         // Apply node updates only when source is the editor (replace to match stream)
-        if (source === 'editor') {
+        if (source === 'editor' && dataHook.data) {
           const now = new Date().toISOString();
-          dataHook.setData({ ...dataHook.data, rootNodes: parsed.rootNodes || [], updatedAt: now });
+          const safeRootNodes = Array.isArray(parsed?.rootNodes) ? parsed.rootNodes : [];
+
+          const updatedData = { ...dataHook.data, rootNodes: safeRootNodes, updatedAt: now };
+          dataHook.setData(updatedData);
         }
-      } catch (_e) {
+      } catch (error) {
         logger.warn('Markdown parse failed; keeping existing nodes');
       }
     });
     return () => { try { unsub(); } catch (_e) { /* ignore */ void 0; } };
-  }, [subscribeMd, dataHook.data]);
+  }, [subscribeMd, dataHook.setData]);
 
   // Removed global CustomEvent echo path to avoid race/rollback
 

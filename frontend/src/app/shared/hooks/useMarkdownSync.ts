@@ -39,7 +39,7 @@ export const useMarkdownSync = () => {
   }, []);
 
   /**
-   * マークダウンからノード構造を再構築
+   * マークダウンからノード構造を再構築（差分更新版）
    */
   const rebuildFromMarkdown = useCallback((
     markdownText: string,
@@ -51,11 +51,18 @@ export const useMarkdownSync = () => {
       horizontalSpacing?: number;
       verticalSpacing?: number;
       applyMarkdownStyling?: boolean;
+      currentNodes?: MindMapNode[]; // 既存ノードの情報
+      preservePositions?: boolean; // 位置情報を保持するかどうか
     }
   ) => {
     try {
       const { rootNodes } = MarkdownImporter.parseMarkdownToNodes(markdownText, options);
       let finalNodes = rootNodes;
+
+      // 既存ノードがある場合は差分更新を試行
+      if (options?.currentNodes && options?.preservePositions) {
+        finalNodes = mergeWithExistingNodes(rootNodes, options.currentNodes);
+      }
 
       // マークダウン由来のスタイリングを適用
       if (options?.applyMarkdownStyling !== false) {
@@ -72,6 +79,71 @@ export const useMarkdownSync = () => {
       }
       return { success: false, error: errorMessage };
     }
+  }, []);
+
+  /**
+   * 既存ノードと新しいノードをマージして差分更新
+   */
+  const mergeWithExistingNodes = useCallback((
+    newNodes: MindMapNode[],
+    existingNodes: MindMapNode[]
+  ): MindMapNode[] => {
+    // 既存ノードをテキストベースでマップ化
+    const existingNodeMap = new Map<string, MindMapNode>();
+    
+    const mapNodes = (nodes: MindMapNode[]) => {
+      nodes.forEach(node => {
+        existingNodeMap.set(node.text, node);
+        if (node.children) {
+          mapNodes(node.children);
+        }
+      });
+    };
+    
+    mapNodes(existingNodes);
+
+    // 新しいノードに既存の位置情報やIDを適用
+    const mergeNodeData = (nodes: MindMapNode[]): MindMapNode[] => {
+      return nodes.map(newNode => {
+        const existingNode = existingNodeMap.get(newNode.text);
+        
+        if (existingNode) {
+          // 既存ノードが見つかった場合、位置情報とIDを保持
+          const mergedNode: MindMapNode = {
+            ...newNode,
+            id: existingNode.id,
+            x: existingNode.x,
+            y: existingNode.y,
+            // その他の編集可能な属性も保持
+            color: existingNode.color || newNode.color,
+            fontSize: existingNode.fontSize || newNode.fontSize,
+            fontWeight: existingNode.fontWeight || newNode.fontWeight,
+            fontFamily: existingNode.fontFamily || newNode.fontFamily,
+            fontStyle: existingNode.fontStyle || newNode.fontStyle,
+            note: existingNode.note || newNode.note,
+            attachments: existingNode.attachments || newNode.attachments,
+            links: existingNode.links || newNode.links,
+            collapsed: existingNode.collapsed || newNode.collapsed,
+          };
+
+          // 子ノードも再帰的にマージ
+          if (newNode.children) {
+            mergedNode.children = mergeNodeData(newNode.children);
+          }
+
+          return mergedNode;
+        } else {
+          // 新しいノードの場合はそのまま使用（子ノードも処理）
+          const processedNode = { ...newNode };
+          if (newNode.children) {
+            processedNode.children = mergeNodeData(newNode.children);
+          }
+          return processedNode;
+        }
+      });
+    };
+
+    return mergeNodeData(newNodes);
   }, []);
 
   /**
@@ -325,6 +397,7 @@ export const useMarkdownSync = () => {
     addChildNodeWithMarkdownMeta,
     changeNodeIndent,
     changeNodeType,
-    changeListType
+    changeListType,
+    mergeWithExistingNodes
   };
-};
+};;
