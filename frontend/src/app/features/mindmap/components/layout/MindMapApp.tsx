@@ -517,7 +517,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           }
           if (targetNode) {
             label = targetNode.text || 'リンク';
-            const anchor = computeAnchorForNode(data.rootNodes?.[0], targetNode.id) || label;
+            // Use saved anchor if available, otherwise compute it
+            const anchor = linkData.targetAnchor || computeAnchorForNode(data.rootNodes?.[0], targetNode.id) || label;
             href = `#${anchor}`;
           }
         } else {
@@ -538,7 +539,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             }
             if (targetNode) {
               label = targetNode.text || targetMap.title || 'リンク';
-              const anchor = computeAnchorForNode(targetMap.rootNodes?.[0], targetNode.id);
+              // Use saved anchor if available, otherwise compute it
+              const anchor = linkData.targetAnchor || computeAnchorForNode(targetMap.rootNodes?.[0], targetNode.id);
               const rel = toRelPath(currentMapId, targetMap.mapIdentifier.mapId);
               href = anchor ? `${rel}#${encodeURIComponent(anchor)}` : rel;
             }
@@ -561,7 +563,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       logger.error('Link save error:', error);
       handleError(error as Error, 'リンク操作', 'リンクの保存');
     }
-  };
+  };;
 
   const handleDeleteLink = async (linkId: string) => {
     if (!linkModalNodeId) return;

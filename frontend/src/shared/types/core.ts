@@ -128,6 +128,7 @@ export interface NodeLink {
   id: string;
   targetMapId?: string; // ID of target mindmap
   targetNodeId?: string; // ID of target node (optional, for root if not specified)
+  targetAnchor?: string; // Anchor text for the target node (for duplicate node names)
   createdAt: string;
   updatedAt: string;
 }

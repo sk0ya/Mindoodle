@@ -11,6 +11,7 @@ export const addLinkToNode = (
     id: linkData.id || generateLinkId(),
     targetMapId: linkData.targetMapId,
     targetNodeId: linkData.targetNodeId,
+    targetAnchor: linkData.targetAnchor,
     createdAt: linkData.createdAt || new Date().toISOString(),
     updatedAt: new Date().toISOString()
   };
@@ -19,7 +20,7 @@ export const addLinkToNode = (
     ...node,
     links: [...(node.links || []), newLink]
   };
-};
+};;
 
 // ノードのリンクを更新する関数
 export const updateLinkInNode = (

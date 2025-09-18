@@ -187,10 +187,22 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   const handleSave = useCallback(() => {
     if (mode === 'markdown') {
       if (!selectedMapId) return; // 必須
+      
+      // アンカー情報を計算
+      let targetAnchor: string | undefined = undefined;
+      if (selectedNodeId) {
+        const nodes = availableNodes();
+        const selectedNode = nodes.find(n => n.id === selectedNodeId);
+        if (selectedNode) {
+          targetAnchor = selectedNode.anchorText;
+        }
+      }
+      
       const linkData: Partial<NodeLink> = {
         ...(link?.id && { id: link.id }),
         targetMapId: selectedMapId,
         targetNodeId: selectedNodeId || undefined,
+        targetAnchor,
         createdAt: link?.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -203,7 +215,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     const label = selectedFilePath.split('/').pop() || selectedFilePath;
     onSaveFileLink(selectedFilePath, label);
     onClose();
-  }, [mode, selectedMapId, selectedNodeId, link, onSave, onClose, selectedFilePath, onSaveFileLink]);
+  }, [mode, selectedMapId, selectedNodeId, link, onSave, onClose, selectedFilePath, onSaveFileLink, availableNodes]);;
 
   const handleDelete = useCallback(() => {
     if (link?.id && onDelete) {
