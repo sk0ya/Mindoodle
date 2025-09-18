@@ -12,7 +12,7 @@ import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
 import MindMapLinkOverlays from './MindMapLinkOverlays';
-import NodeNotesPanelContainer from './NodeNotesPanelContainer';
+import MarkdownPanelContainer from './NodeNotesPanelContainer';
 // Outline mode removed
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import { useNotification } from '../../../../shared/hooks/useNotification';
@@ -927,14 +927,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             />
 
           {ui.showNotesPanel && (
-            <NodeNotesPanelContainer
-              dataRoot={data}
-              selectedNodeId={selectedNodeId}
-              onUpdateNode={updateNode}
+            <MarkdownPanelContainer
               onClose={() => store.setShowNotesPanel(false)}
               currentMapIdentifier={data ? data.mapIdentifier : null}
               getMapMarkdown={(mindMap as any).getMapMarkdown}
-              saveMapMarkdown={(mindMap as any).saveMapMarkdown}
               setAutoSaveEnabled={(mindMap as any).setAutoSaveEnabled}
               onMapMarkdownInput={(mindMap as any).onMapMarkdownInput}
               subscribeMarkdownFromNodes={(mindMap as any).subscribeMarkdownFromNodes}

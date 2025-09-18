@@ -1,17 +1,13 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { X } from 'lucide-react';
+import { X, FileText, Loader } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
-import type { MindMapNode, MapIdentifier } from '@shared/types';
+import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
-// Using Monaco-based MarkdownEditor for both note and map markdown views
 
-interface NodeNotesPanelProps {
-  selectedNode: MindMapNode | null;
-  onUpdateNode: (id: string, updates: Partial<MindMapNode>) => void;
+interface MarkdownPanelProps {
   onClose?: () => void;
   currentMapIdentifier?: MapIdentifier | null;
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
-  saveMapMarkdown?: (id: MapIdentifier, markdown: string) => Promise<void>;
   setAutoSaveEnabled?: (enabled: boolean) => void;
   onMapMarkdownInput?: (markdown: string) => void;
   subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
@@ -20,64 +16,35 @@ interface NodeNotesPanelProps {
   onSelectNode?: (nodeId: string) => void;
 }
 
-const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
-  selectedNode,
-  onUpdateNode,
+const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   onClose,
   currentMapIdentifier,
   getMapMarkdown,
-  saveMapMarkdown,
   setAutoSaveEnabled,
   onMapMarkdownInput,
   subscribeMarkdownFromNodes,
   getNodeIdByMarkdownLine,
   onSelectNode
 }) => {
-  const [noteValue, setNoteValue] = useState('');
-  const [isDirty, setIsDirty] = useState(false);
   const [panelWidth, setPanelWidth] = useState(600); // Default width
   const [isResizing, setIsResizing] = useState(false);
-  const saveDataRef = useRef({ selectedNode, noteValue, isDirty, onUpdateNode });
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const [tab, setTab] = useState<'note' | 'map-md'>('note');
   const [mapMarkdown, setMapMarkdown] = useState<string>('');
   const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
-  const [mapMarkdownDirty, setMapMarkdownDirty] = useState<boolean>(false);
   const [resizeCounter, setResizeCounter] = useState<number>(0);
   const [, setEditorFocused] = useState<boolean>(false);
-  // nodesMarkdownForDiff is supplied by container to avoid heavy work here
 
-  // Update ref when values change
-  useEffect(() => {
-    saveDataRef.current = { selectedNode, noteValue, isDirty, onUpdateNode };
-  });
-
-  // Load note when selected node changes
-  useEffect(() => {
-    if (selectedNode) {
-      const note = selectedNode.note || '';
-      setNoteValue(note);
-      setIsDirty(false);
-    } else {
-      setNoteValue('');
-      setIsDirty(false);
-    }
-  }, [selectedNode]);
-
-  // Load map markdown only when switching to map tab and map changes, not while editing
+  // Load map markdown when component mounts or map changes
   const lastLoadedMapIdRef = useRef<string | null>(null);
   useEffect(() => {
-    if (tab !== 'map-md') return;
     if (!currentMapIdentifier || !getMapMarkdown) return;
-    if (mapMarkdownDirty) return; // do not overwrite local edits
     if (lastLoadedMapIdRef.current === currentMapIdentifier.mapId) return;
 
     setLoadingMapMd(true);
     getMapMarkdown(currentMapIdentifier)
       .then(text => {
         setMapMarkdown(text || '');
-        setMapMarkdownDirty(false);
         lastLoadedMapIdRef.current = currentMapIdentifier.mapId;
       })
       .catch(error => {
@@ -87,31 +54,23 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
       .finally(() => {
         setLoadingMapMd(false);
       });
-  }, [tab, currentMapIdentifier]);
-
-  // Handle note changes
-  const handleNoteChange = useCallback((value: string) => {
-    setNoteValue(value);
-    setIsDirty(true);
-  }, []);
+  }, [currentMapIdentifier, getMapMarkdown]);
 
   // Handle map markdown changes
   const handleMapMarkdownChange = useCallback((value: string) => {
     setMapMarkdown(value);
-    setMapMarkdownDirty(true);
     // Push to live markdown stream if provided
     if (onMapMarkdownInput) {
       onMapMarkdownInput(value);
     }
-  }, []);
+  }, [onMapMarkdownInput]);
 
-  // Receive-side sync: when nodes change and we are on markdown tab, update editor unless user has unsaved edits
+  // Receive-side sync: when nodes change, update editor
   useEffect(() => {
     if (!subscribeMarkdownFromNodes) return;
     const unsub = subscribeMarkdownFromNodes((text: string) => {
       if (text === mapMarkdown) return; // no actual change
       setMapMarkdown(text || '');
-      setMapMarkdownDirty(false);
     });
     return () => { try { unsub(); } catch (_e) { /* ignore */ } };
   }, [subscribeMarkdownFromNodes, mapMarkdown]);
@@ -123,20 +82,6 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     if (nodeId) onSelectNode(nodeId);
   }, [getNodeIdByMarkdownLine, onSelectNode]);
 
-  // (Removed unused loadMapMarkdown helper; loading is handled in an effect)
-
-  // Save map markdown
-  const handleSaveMapMarkdown = useCallback(async () => {
-    if (currentMapIdentifier && mapMarkdownDirty && saveMapMarkdown) {
-      try {
-        await saveMapMarkdown(currentMapIdentifier, mapMarkdown);
-        setMapMarkdownDirty(false);
-      } catch (error) {
-        console.error('Failed to save map markdown:', error);
-      }
-    }
-  }, [currentMapIdentifier, mapMarkdown, mapMarkdownDirty, saveMapMarkdown]);
-
   // Memoized resize trigger function
   const handleResize = useCallback(() => {
     return resizeCounter;
@@ -146,33 +91,15 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   const EDITOR_HEIGHT = "calc(100vh - 140px)";
   const EDITOR_CLASS_NAME = "node-editor";
 
-  // Save note
-  const handleSave = useCallback(() => {
-    if (selectedNode && isDirty && noteValue !== (selectedNode.note || '')) {
-      onUpdateNode(selectedNode.id, { note: noteValue });
-      setIsDirty(false);
-    }
-  }, [selectedNode?.id, selectedNode?.note, noteValue, isDirty, onUpdateNode]);
-
-  // Auto-save on blur or when component unmounts  
-  useEffect(() => {
-    return () => {
-      const { selectedNode: node, noteValue: value, isDirty: dirty, onUpdateNode: updateFn } = saveDataRef.current;
-      if (node && dirty && value !== (node.note || '')) {
-        updateFn(node.id, { note: value });
-      }
-    };
-  }, []);
-
   // Handle resize functionality
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setIsResizing(true);
-    
+
     const startX = e.clientX;
     const startWidth = panelWidth;
     let currentWidth = startWidth;
-    
+
     const handleMouseMove = (e: MouseEvent) => {
       const deltaX = startX - e.clientX; // Reverse direction for left panel
       currentWidth = Math.max(300, Math.min(1200, startWidth + deltaX));
@@ -180,7 +107,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
       // Trigger Monaco Editor layout update
       setResizeCounter(prev => prev + 1);
     };
-    
+
     const handleMouseUp = () => {
       setIsResizing(false);
       document.removeEventListener('mousemove', handleMouseMove);
@@ -192,7 +119,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
         setResizeCounter(prev => prev + 1);
       }, 50);
     };
-    
+
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }, [panelWidth]);
@@ -213,121 +140,44 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && onClose) {
         e.preventDefault();
-        handleSave();
         onClose();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [handleSave, onClose]);
+  }, [onClose]);
 
-  // Disable auto-save when editing map markdown tab is active; re-enable otherwise
+  // Disable auto-save when editing map markdown; re-enable otherwise
   useEffect(() => {
     if (!setAutoSaveEnabled) return;
-    const enabled = tab !== 'map-md';
-    setAutoSaveEnabled(enabled);
+    setAutoSaveEnabled(false);
     return () => { setAutoSaveEnabled(true); };
-  }, [tab, setAutoSaveEnabled]);
-
-  // When no node is selected, still allow viewing map markdown tab
-  if (!selectedNode) {
-    return (
-      <div 
-        ref={panelRef}
-        className="node-notes-panel" 
-        style={{ width: `${panelWidth}px` }}
-      >
-        <div 
-          ref={resizeHandleRef}
-          className={`resize-handle ${isResizing ? 'resizing' : ''}`}
-          onMouseDown={handleResizeStart}
-        />
-        <div className="panel-header">
-          <h3 className="panel-title">📝 ノート / 📄 マップMD</h3>
-          <div className="panel-controls">
-            <div className="note-tabs" role="tablist" aria-label="Notes tabs">
-              <button type="button" className={`note-tab ${tab === 'note' ? 'active' : ''}`} onClick={() => setTab('note')} role="tab" aria-selected={tab === 'note'}>ノート</button>
-              <button type="button" className={`note-tab ${tab === 'map-md' ? 'active' : ''}`} onClick={() => setTab('map-md')} role="tab" aria-selected={tab === 'map-md'}>マークダウン</button>
-            </div>
-            {onClose && (
-              <button
-                type="button"
-                onClick={onClose}
-                className="close-button"
-                title="閉じる (Esc)"
-              >
-                <X size={20} />
-              </button>
-            )}
-          </div>
-        </div>
-        {tab === 'map-md' ? (
-          <div className="editor-container">
-            {loadingMapMd ? (
-              <div className="preview-empty"><div className="preview-empty-icon">⏳</div><div className="preview-empty-message">読み込み中...</div></div>
-            ) : (
-              <MarkdownEditor
-                value={mapMarkdown}
-                onChange={handleMapMarkdownChange}
-                onSave={handleSaveMapMarkdown}
-                height={EDITOR_HEIGHT}
-                className={EDITOR_CLASS_NAME}
-                autoFocus={false}
-                readOnly={false}
-                onResize={handleResize}
-                onCursorLineChange={handleCursorLineChange}
-                onFocusChange={setEditorFocused}
-                externalOverride={mapMarkdown}
-                allowExternalOverride={true}
-              />
-            )}
-          </div>
-        ) : (
-          <div className="empty-state">
-            <div className="empty-icon">📄</div>
-            <div className="empty-message">ノードを選択してください</div>
-            <div className="empty-description">選択したノードにマークダウン形式のノートを追加できます</div>
-          </div>
-        )}
-        <style>{getStyles(panelWidth, isResizing)}</style>
-      </div>
-    );
-  }
+  }, [setAutoSaveEnabled]);
 
   return (
-    <div 
+    <div
       ref={panelRef}
-      className="node-notes-panel" 
+      className="markdown-panel"
       style={{ width: `${panelWidth}px` }}
     >
-      <div 
+      <div
         ref={resizeHandleRef}
         className={`resize-handle ${isResizing ? 'resizing' : ''}`}
         onMouseDown={handleResizeStart}
       />
       <div className="panel-header">
         <div className="panel-title-section">
-          <h3 className="panel-title">📝 ノート / 📄 マップMD</h3>
-          {tab === 'note' && (
-            <div className="node-info">
-              <span className="node-name">{selectedNode.text}</span>
-              {isDirty && <span className="dirty-indicator">●</span>}
-            </div>
-          )}
+          <h3 className="panel-title">
+            <FileText size={18} />
+            マークダウン
+          </h3>
         </div>
         <div className="panel-controls">
-          <div className="note-tabs" role="tablist" aria-label="Notes tabs">
-            <button type="button" className={`note-tab ${tab === 'note' ? 'active' : ''}`} onClick={() => setTab('note')} role="tab" aria-selected={tab === 'note'}>ノート</button>
-            <button type="button" className={`note-tab ${tab === 'map-md' ? 'active' : ''}`} onClick={() => setTab('map-md')} role="tab" aria-selected={tab === 'map-md'}>マークダウン</button>
-          </div>
           {onClose && (
             <button
               type="button"
-              onClick={() => {
-                handleSave();
-                onClose();
-              }}
+              onClick={onClose}
               className="close-button"
               title="閉じる (Esc)"
             >
@@ -337,66 +187,31 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
         </div>
       </div>
 
-      {tab === 'note' ? (
-        <div className="editor-container">
+      <div className="editor-container">
+        {loadingMapMd ? (
+          <div className="preview-empty">
+            <div className="preview-empty-icon">
+              <Loader size={48} className="animate-spin" />
+            </div>
+            <div className="preview-empty-message">読み込み中...</div>
+          </div>
+        ) : (
           <MarkdownEditor
-            value={noteValue}
-            onChange={handleNoteChange}
-            onSave={handleSave}
+            value={mapMarkdown}
+            onChange={handleMapMarkdownChange}
             height={EDITOR_HEIGHT}
             className={EDITOR_CLASS_NAME}
             autoFocus={false}
+            readOnly={false}
             onResize={handleResize}
+            onCursorLineChange={handleCursorLineChange}
+            onFocusChange={setEditorFocused}
+            externalOverride={mapMarkdown}
+            allowExternalOverride={true}
           />
-        </div>
-      ) : (
-        <div className="editor-container">
-          {loadingMapMd ? (
-            <div className="preview-empty"><div className="preview-empty-icon">⏳</div><div className="preview-empty-message">読み込み中...</div></div>
-          ) : (
-            <MarkdownEditor
-              value={mapMarkdown}
-              onChange={handleMapMarkdownChange}
-              onSave={handleSaveMapMarkdown}
-              height={EDITOR_HEIGHT}
-              className={EDITOR_CLASS_NAME}
-              autoFocus={false}
-              readOnly={false}
-              onResize={handleResize}
-              onCursorLineChange={handleCursorLineChange}
-              onFocusChange={setEditorFocused}
-              externalOverride={mapMarkdown}
-              allowExternalOverride={true}
-            />
-          )}
-        </div>
-      )}
+        )}
+      </div>
 
-      {tab === 'note' && isDirty && (
-        <div className="save-status">
-          <span className="unsaved-changes">未保存の変更があります</span>
-          <button
-            type="button"
-            onClick={handleSave}
-            className="save-button"
-          >
-            保存
-          </button>
-        </div>
-      )}
-
-      {tab === 'map-md' && mapMarkdownDirty && (
-        <div className="save-status">
-          <span className="unsaved-changes">未保存の変更があります</span>
-          <button
-            type="button"
-            onClick={handleSaveMapMarkdown}
-            className="save-button"
-          >
-            保存
-          </button>
-        </div>
-      )}
 
       <style>{getStyles(panelWidth, isResizing)}</style>
     </div>
@@ -405,7 +220,7 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
 
 function getStyles(_panelWidth: number, isResizing: boolean) {
   return `
-    .node-notes-panel {
+    .markdown-panel {
       display: flex;
       flex-direction: column;
       height: 100%;
@@ -460,30 +275,11 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       gap: 8px;
     }
 
-    .node-info {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .node-name {
-      font-size: 14px;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    .dirty-indicator {
-      color: #ef4444;
-      font-size: 18px;
-      line-height: 1;
-    }
-
     .panel-controls {
       display: flex;
       align-items: center;
       gap: 12px;
     }
-
 
     .close-button {
       background: none;
@@ -501,18 +297,6 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       background: var(--hover-color);
       color: var(--text-primary);
     }
-
-    .note-tabs { display: inline-flex; gap: 6px; margin-right: 8px; }
-    .note-tab { 
-      background: var(--bg-secondary);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      padding: 4px 8px;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .note-tab.active { background: var(--bg-primary); border-color: var(--accent); }
 
     .editor-container {
       flex: 1;
@@ -535,7 +319,7 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       height: 100%;
     }
 
-    .empty-state {
+    .preview-empty {
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -545,60 +329,34 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       padding: 40px;
     }
 
-    .empty-icon {
-      font-size: 48px;
+    .preview-empty-icon {
       margin-bottom: 16px;
       opacity: 0.6;
+      color: var(--text-secondary);
     }
 
-    .empty-message {
+    .animate-spin {
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      from {
+        transform: rotate(0deg);
+      }
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .preview-empty-message {
       font-size: 18px;
       font-weight: 600;
       color: var(--text-primary);
       margin-bottom: 8px;
     }
 
-    .empty-description {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-    }
-
-    .save-status {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 12px 20px;
-      background: var(--bg-secondary);
-      border-top: 1px solid var(--border-color);
-      flex-shrink: 0;
-    }
-
-    .unsaved-changes {
-      font-size: 14px;
-      color: var(--text-secondary);
-      font-weight: 500;
-    }
-
-    .save-button {
-      background: var(--accent-color);
-      color: white;
-      border: none;
-      padding: 6px 12px;
-      border-radius: 4px;
-      font-size: 14px;
-      font-weight: 500;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-
-    .save-button:hover {
-      background: var(--accent-color);
-      opacity: 0.8;
-    }
-
     @media (max-width: 768px) {
-      .node-notes-panel {
+      .markdown-panel {
         width: 100vw !important;
       }
 
@@ -613,25 +371,8 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       .panel-title {
         font-size: 14px;
       }
-
-      .node-name {
-        font-size: 12px;
-      }
-
-      .empty-state {
-        padding: 20px;
-        height: 200px;
-      }
-
-      .empty-icon {
-        font-size: 36px;
-      }
-
-      .empty-message {
-        font-size: 16px;
-      }
     }
   `;
 }
 
-export default React.memo(NodeNotesPanel);
+export default React.memo(MarkdownPanel);

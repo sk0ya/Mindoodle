@@ -2,6 +2,7 @@ import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { Editor, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { marked } from 'marked';
+import { PenTool, Eye, SplitSquareHorizontal, FileText } from 'lucide-react';
 import { useMindMapStore } from '../../core/store/mindMapStore';
 import { logger } from '../utils/logger';
 
@@ -477,7 +478,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               className={`mode-toggle ${mode === 'edit' ? 'active' : ''}`}
               title="編集モード"
             >
-              📝 編集
+              <PenTool size={16} /> 編集
             </button>
             <button
               type="button"
@@ -485,7 +486,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               className={`mode-toggle ${mode === 'preview' ? 'active' : ''}`}
               title="プレビューモード"
             >
-              👁️ プレビュー
+              <Eye size={16} /> プレビュー
             </button>
             <button
               type="button"
@@ -493,7 +494,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               className={`mode-toggle ${mode === 'split' ? 'active' : ''}`}
               title="分割表示モード"
             >
-              🔄 分割
+              <SplitSquareHorizontal size={16} /> 分割
             </button>
           </div>
           <button
@@ -544,7 +545,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
                 />
               ) : (
                 <div className="preview-empty">
-                  <div className="preview-empty-icon">📄</div>
+                  <div className="preview-empty-icon">
+                    <FileText size={48} />
+                  </div>
                   <div className="preview-empty-message">プレビューするマークダウンテキストを入力してください</div>
                 </div>
               )}
@@ -836,9 +839,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         }
 
         .preview-empty-icon {
-          font-size: 48px;
           margin-bottom: 16px;
           opacity: 0.6;
+          color: var(--text-secondary);
         }
 
         .preview-empty-message {
