@@ -291,8 +291,9 @@ export function calculateNodeSize(
   }
   
   // パディングを追加（左右に余白を持たせる）
-  // テキスト左右の合計パディング（シンプルに一定幅）
-  const H_PADDING = 6; // px (左右合計) できるだけタイトに
+  // 編集時はinputにpadding(左右各10px) + border(各1px)があり、foreignObject自体にも内側余白(-8)を設けているため
+  // コンテンツ幅 >= 実測テキスト幅 となるように実質的な左右合計パディングを広めに確保する
+  const H_PADDING = isEditing ? 34 : 6; // 編集時は合計約30px + 余裕4px、非編集時は従来の6px
   const textBasedWidth = Math.max(actualTextWidth + H_PADDING, Math.max(fontSize * 2, 24));
   
   // ノードの高さは最小限に（フォントサイズ + 少しの上下パディング）
