@@ -8,6 +8,8 @@ export interface DataState {
   editingNodeId: string | null;
   editText: string;
   editingMode: 'select-all' | 'cursor-at-end' | 'cursor-at-start' | null;
+  // Keep track of the node that triggered an insert (o/O/Enter/Tab) so we can restore selection on cancel
+  lastSelectionBeforeInsert?: string | null;
 }
 
 // Node Operations interface
@@ -63,4 +65,5 @@ export interface NodeSlice extends NodeActions {
   editingNodeId: string | null;
   editText: string;
   editingMode: 'select-all' | 'cursor-at-end' | 'cursor-at-start' | null;
+  lastSelectionBeforeInsert?: string | null;
 }

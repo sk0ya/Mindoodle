@@ -173,7 +173,6 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
 
   // Execute vim-specific commands
   const executeVimCommand = useCallback(async (vimKey: string): Promise<CommandResult> => {
-    console.log('executeVimCommand called with:', vimKey);
 
     const vimCommandMap: Record<string, string> = {
       'zz': 'center',
@@ -202,7 +201,6 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     };
 
     const commandName = vimCommandMap[vimKey];
-    console.log('Mapped command name:', commandName);
 
     if (!commandName) {
       console.error('Unknown vim command:', vimKey);
@@ -213,7 +211,6 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     }
 
     const result = await execute(commandName);
-    console.log('Command execution result:', result);
     return result;
   }, [execute]);
 

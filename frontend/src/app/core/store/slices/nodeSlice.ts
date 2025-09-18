@@ -207,6 +207,8 @@ export const createNodeSlice: StateCreator<
         newNode.color = color;
         state.normalizedData.nodes[newNode.id] = { ...newNode };
         
+        // Remember previous selection to restore on cancel/empty edit
+        state.lastSelectionBeforeInsert = parentId;
         // Select the new node
         state.selectedNodeId = newNode.id;
         
@@ -326,6 +328,8 @@ export const createNodeSlice: StateCreator<
           state.normalizedData.nodes[newNode.id] = { ...newNode };
         }
         
+        // Remember previous selection to restore on cancel/empty edit
+        state.lastSelectionBeforeInsert = nodeId;
         // 新しいノードを選択
         state.selectedNodeId = newNode.id;
         
@@ -536,23 +540,24 @@ export const createNodeSlice: StateCreator<
       // Delete the empty node
       get().deleteNode(nodeId);
       
-      // Select parent node if it exists and is not root
-      if (parentId && parentId !== 'root') {
-        set((state) => {
-          state.selectedNodeId = parentId;
-        });
-      } else if (parentId === 'root') {
-        // If parent is root, select root
-        set((state) => {
-          state.selectedNodeId = 'root';
-        });
-      }
-      
-      // Clear editing state
+      // Prefer restoring selection to the node that triggered the insert (o/O/Enter/Tab)
+      const { normalizedData: nd2 } = get();
       set((state) => {
+        const fallbackRef = state.lastSelectionBeforeInsert || null;
+        // Clear editing state
         state.editingNodeId = null;
         state.editText = '';
         state.editingMode = null;
+        // Compute selection
+        if (fallbackRef && nd2 && nd2.nodes[fallbackRef]) {
+          state.selectedNodeId = fallbackRef;
+        } else if (parentId && parentId !== 'root') {
+          state.selectedNodeId = parentId;
+        } else if (parentId === 'root') {
+          state.selectedNodeId = 'root';
+        }
+        // Clear the fallback reference once used
+        state.lastSelectionBeforeInsert = null;
       });
       
       return;
@@ -565,6 +570,8 @@ export const createNodeSlice: StateCreator<
       state.editingMode = null;
       // Keep node selected after editing
       state.selectedNodeId = nodeId;
+      // Clear any pending fallback reference on successful edit
+      state.lastSelectionBeforeInsert = null;
     });
     
     // Update the node text
