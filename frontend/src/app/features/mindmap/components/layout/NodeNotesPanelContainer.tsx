@@ -12,6 +12,10 @@ type Props = {
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
   saveMapMarkdown?: (id: MapIdentifier, markdown: string) => Promise<void>;
   setAutoSaveEnabled?: (enabled: boolean) => void;
+  onMapMarkdownInput?: (markdown: string) => void;
+  subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
+  getNodeIdByMarkdownLine?: (line: number) => string | null;
+  onSelectNode?: (nodeId: string) => void;
 };
 
 const NodeNotesPanelContainer: React.FC<Props> = ({
@@ -23,6 +27,10 @@ const NodeNotesPanelContainer: React.FC<Props> = ({
   getMapMarkdown,
   saveMapMarkdown,
   setAutoSaveEnabled,
+  onMapMarkdownInput,
+  subscribeMarkdownFromNodes,
+  getNodeIdByMarkdownLine,
+  onSelectNode,
 }) => {
   // Search for the selected node in all root nodes
   const selectedNode = React.useMemo(() => {
@@ -43,6 +51,10 @@ const NodeNotesPanelContainer: React.FC<Props> = ({
       getMapMarkdown={getMapMarkdown}
       saveMapMarkdown={saveMapMarkdown}
       setAutoSaveEnabled={setAutoSaveEnabled}
+      onMapMarkdownInput={onMapMarkdownInput}
+      subscribeMarkdownFromNodes={subscribeMarkdownFromNodes}
+      getNodeIdByMarkdownLine={getNodeIdByMarkdownLine}
+      onSelectNode={onSelectNode}
     />
   );
 };

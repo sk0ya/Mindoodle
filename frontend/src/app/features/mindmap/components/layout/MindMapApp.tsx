@@ -936,6 +936,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               getMapMarkdown={(mindMap as any).getMapMarkdown}
               saveMapMarkdown={(mindMap as any).saveMapMarkdown}
               setAutoSaveEnabled={(mindMap as any).setAutoSaveEnabled}
+              onMapMarkdownInput={(mindMap as any).onMapMarkdownInput}
+              subscribeMarkdownFromNodes={(mindMap as any).subscribeMarkdownFromNodes}
+              getNodeIdByMarkdownLine={(mindMap as any).getNodeIdByMarkdownLine}
+              onSelectNode={selectNode}
             />
           )}
         </div>

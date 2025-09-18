@@ -13,9 +13,12 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private rootHandle: DirHandle | null = null;
   // Multi-workspace: list of persisted directory handles
   private workspaces: Array<{ id: string; name: string; handle: DirHandle }> = [];
-  private saveTargets: Map<string, { dir: DirHandle, fileName: string, isRoot: boolean, baseHeadingLevel?: number, headingLevelByText?: Record<string, number> } > = new Map();
+  private saveTargets: Map<string, { dir: DirHandle, fileName: string, isRoot: boolean, baseHeadingLevel?: number, headingLevelByText?: Record<string, number>, fileHandle?: FileHandle } > = new Map();
   private permissionWarned = false;
   private allMaps: MindMapData[] = [];
+  // Write coordination
+  private saveLocks: Map<string, Promise<void>> = new Map();
+  private lastSavedContent: Map<string, string> = new Map();
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -155,18 +158,42 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       targetDir = await this.getOrCreateDirectory(targetDir, categoryPart);
     }
     
-    // ファイルに保存
+    // ファイルに保存（シリアライズ + 差分スキップ + 短命ストリーム）
     const markdown = this.buildMarkdownDocument(data);
-    
-    console.log('✅ Saving directly to file:', fileName, 'in directory:', categoryParts.join('/') || '(root)');
-    await this.writeTextFile(targetDir, fileName, markdown);
-    
-    // saveTargetsにも記録（後続の処理のため）
-    const stKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
-    this.saveTargets.set(stKey, { dir: targetDir, fileName, isRoot: categoryParts.length === 0 });
-    this.saveTargets.set(data.mapIdentifier.mapId, { dir: targetDir, fileName, isRoot: categoryParts.length === 0 });
-    
-    logger.debug('💾 MarkdownFolderAdapter: Saved file', fileName);
+    const saveKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
+
+    // 差分スキップ
+    const last = this.lastSavedContent.get(saveKey);
+    if (last === markdown) {
+      logger.debug('💾 MarkdownFolderAdapter: Skipped save (no changes) for', fileName);
+      return;
+    }
+
+    const run = async () => {
+      console.log('✅ Saving directly to file:', fileName, 'in directory:', categoryParts.join('/') || '(root)');
+      // 可能なら既存のファイルハンドルを使用
+      let cached = this.saveTargets.get(saveKey) || this.saveTargets.get(data.mapIdentifier.mapId);
+      let fileHandle: FileHandle | null = cached?.fileHandle ?? null;
+      if (!fileHandle) {
+        fileHandle = await (targetDir as any).getFileHandle?.(fileName, { create: true })
+          ?? await (targetDir as any).getFileHandle(fileName, { create: true });
+      }
+      const writable = await (fileHandle as any).createWritable();
+      await writable.write(markdown);
+      await writable.close();
+
+      // キャッシュ更新
+      const entry = { dir: targetDir, fileName, isRoot: categoryParts.length === 0, fileHandle } as any;
+      this.saveTargets.set(saveKey, entry);
+      this.saveTargets.set(data.mapIdentifier.mapId, entry);
+      this.lastSavedContent.set(saveKey, markdown);
+      logger.debug('💾 MarkdownFolderAdapter: Saved file', fileName);
+    };
+
+    const prev = this.saveLocks.get(saveKey) || Promise.resolve();
+    const next = prev.then(run).catch(() => {}).finally(() => {});
+    this.saveLocks.set(saveKey, next);
+    await next;
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -365,35 +392,57 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return;
     }
 
-    // 1) Try saveTargets first (most reliable)
-    const mapId = id.mapId;
-    const target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
-    if (target) {
-      try {
-        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName)
-          ?? await (target.dir as any).getFileHandle(target.fileName);
-        const writable = await fh.createWritable();
-        await writable.write(markdown);
-        await writable.close();
-        logger.debug(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
-        return;
-      } catch (e) {
-        logger.warn('Failed to save via saveTargets, trying path resolution:', e);
-      }
+    const saveKey = `${id.workspaceId || '__default__'}::${id.mapId}`;
+    if (this.lastSavedContent.get(saveKey) === markdown) {
+      logger.debug('💾 MarkdownFolderAdapter: Skipped markdown save (no changes) for', id.mapId);
+      return;
     }
 
-    // 2) Resolve in specified workspace
-    const parts = (mapId || '').split('/').filter(Boolean);
-    if (parts.length === 0) throw new Error('Invalid mapId');
-    const base = parts.pop() as string;
-    const ws = this.workspaces.find(w => w.id === id.workspaceId);
-    if (!ws) throw new Error('Workspace not found for save');
-    let dir: DirHandle = ws.handle as any;
-    for (const p of parts) {
-      dir = await this.getOrCreateDirectory(dir, p);
-    }
-    const fileName = `${base}.md`;
-    await this.writeTextFile(dir, fileName, markdown);
+    const doSave = async () => {
+      const mapId = id.mapId;
+      // 1) Try saveTargets first (most reliable)
+      let target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
+      let dir: DirHandle | null = null;
+      let fileName: string | null = null;
+      let fileHandle: FileHandle | null = null;
+      if (target) {
+        dir = target.dir;
+        fileName = target.fileName;
+        fileHandle = target.fileHandle ?? null;
+      } else {
+        // 2) Resolve in specified workspace
+        const parts = (mapId || '').split('/').filter(Boolean);
+        if (parts.length === 0) throw new Error('Invalid mapId');
+        const base = parts.pop() as string;
+        const ws = this.workspaces.find(w => w.id === id.workspaceId);
+        if (!ws) throw new Error('Workspace not found for save');
+        dir = ws.handle as any;
+        for (const p of parts) {
+          dir = await this.getOrCreateDirectory(dir, p);
+        }
+        fileName = `${base}.md`;
+      }
+      if (!dir || !fileName) return;
+
+      if (!fileHandle) {
+        fileHandle = await (dir as any).getFileHandle?.(fileName, { create: true })
+          ?? await (dir as any).getFileHandle(fileName, { create: true });
+      }
+      const writable = await (fileHandle as any).createWritable();
+      await writable.write(markdown);
+      await writable.close();
+
+      const entry = { dir, fileName, isRoot: false, fileHandle } as any;
+      this.saveTargets.set(saveKey, entry);
+      this.saveTargets.set(id.mapId, entry);
+      this.lastSavedContent.set(saveKey, markdown);
+      logger.debug(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
+    };
+
+    const prev = this.saveLocks.get(saveKey) || Promise.resolve();
+    const next = prev.then(doSave).catch(() => {}).finally(() => {});
+    this.saveLocks.set(saveKey, next);
+    await next;
   }
 
   async createFolder(relativePath: string): Promise<void> {

@@ -21,9 +21,15 @@ interface MarkdownEditorProps {
   autoFocus?: boolean;
   readOnly?: boolean;
   onResize?: () => void;
+  // Cursor sync hooks
+  onCursorLineChange?: (line: number) => void;
+  onFocusChange?: (focused: boolean) => void;
+  // External override text to apply imperatively (to reduce flicker)
+  externalOverride?: string;
+  allowExternalOverride?: boolean;
 }
 
-export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({ 
   value,
   onChange,
   onSave,
@@ -32,16 +38,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   vimMode = false,
   autoFocus = false,
   readOnly = false,
-  onResize
+  onResize,
+  onCursorLineChange, onFocusChange,
+  externalOverride, allowExternalOverride = false
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const ignoreExternalChangeRef = useRef(false);
   const [isVimEnabled, setIsVimEnabled] = useState(vimMode);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
   const [internalValue, setInternalValue] = useState(value);
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings } = useMindMapStore();
 
-  // Keep internal value in sync when external value changes (e.g., map switch or initial load)
+  // Initialize internal value on first mount and when prop changes (for preview)
   useEffect(() => {
     if (value !== internalValue) {
       setInternalValue(value);
@@ -50,6 +59,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
   // Debounced onChange handler
   const handleEditorChange = useCallback((newValue: string) => {
+    if (ignoreExternalChangeRef.current) {
+      return; // ignore programmatic updates from nodes->markdown
+    }
     setInternalValue(newValue);
 
     // Clear existing timeout
@@ -103,6 +115,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       onSave?.();
     });
+
+    // Cursor and focus listeners
+    editor.onDidChangeCursorPosition((e) => {
+      const line = e.position.lineNumber;
+      onCursorLineChange?.(line);
+    });
+    editor.onDidFocusEditorText?.(() => onFocusChange?.(true));
+    editor.onDidBlurEditorText?.(() => onFocusChange?.(false));
 
     // Enable Vim mode if requested
     if (isVimEnabled) {
@@ -333,6 +353,27 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     handleEditorChange(newValue ?? '');
   }, [handleEditorChange]);
 
+  // Imperatively apply external override to the editor without re-mounting
+  useEffect(() => {
+    const ed = editorRef.current;
+    const model = ed?.getModel();
+    if (!ed || !model) return;
+    if (!allowExternalOverride) return;
+    const newText = externalOverride ?? '';
+    const currentText = model.getValue();
+    if (newText === currentText) return;
+    const view = ed.saveViewState();
+    ignoreExternalChangeRef.current = true;
+    model.setValue(newText);
+    if (view) ed.restoreViewState(view);
+    setInternalValue(newText);
+    // Clear ignore flag on next frame so user edits are captured
+    const tid = setTimeout(() => { ignoreExternalChangeRef.current = false; }, 0);
+    return () => clearTimeout(tid);
+  }, [externalOverride, allowExternalOverride]);
+
+  // External cursor sync intentionally removed per request
+
 
   // Update theme and font settings when settings change
   useEffect(() => {
@@ -483,7 +524,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               height={EDITOR_HEIGHT}
               width={EDITOR_WIDTH}
               defaultLanguage={EDITOR_LANGUAGE}
-              value={internalValue}
+              defaultValue={internalValue}
               onChange={memoizedHandleEditorChange}
               onMount={handleEditorDidMount}
               theme={editorTheme}

@@ -54,7 +54,9 @@ export function useShortcutHandlers(args: Args) {
     startEditWithCursorAtEnd: startEditingWithCursorAtEnd,
     startEditWithCursorAtStart: startEditingWithCursorAtStart,
     finishEdit: async (nodeId: string, text?: string) => {
-      if (text !== undefined) finishEditing(nodeId, text);
+      // Ensure we commit the current input if caller passes undefined
+      const value = (text !== undefined) ? text : editText;
+      finishEditing(nodeId, value);
     },
     editText,
     updateNode,

@@ -13,6 +13,11 @@ interface NodeNotesPanelProps {
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
   saveMapMarkdown?: (id: MapIdentifier, markdown: string) => Promise<void>;
   setAutoSaveEnabled?: (enabled: boolean) => void;
+  onMapMarkdownInput?: (markdown: string) => void;
+  subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
+  // Cursor mapping helpers
+  getNodeIdByMarkdownLine?: (line: number) => string | null;
+  onSelectNode?: (nodeId: string) => void;
 }
 
 const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
@@ -22,7 +27,11 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   currentMapIdentifier,
   getMapMarkdown,
   saveMapMarkdown,
-  setAutoSaveEnabled
+  setAutoSaveEnabled,
+  onMapMarkdownInput,
+  subscribeMarkdownFromNodes,
+  getNodeIdByMarkdownLine,
+  onSelectNode
 }) => {
   const [noteValue, setNoteValue] = useState('');
   const [isDirty, setIsDirty] = useState(false);
@@ -36,6 +45,8 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
   const [mapMarkdownDirty, setMapMarkdownDirty] = useState<boolean>(false);
   const [resizeCounter, setResizeCounter] = useState<number>(0);
+  const [, setEditorFocused] = useState<boolean>(false);
+  // nodesMarkdownForDiff is supplied by container to avoid heavy work here
 
   // Update ref when values change
   useEffect(() => {
@@ -88,7 +99,29 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
   const handleMapMarkdownChange = useCallback((value: string) => {
     setMapMarkdown(value);
     setMapMarkdownDirty(true);
+    // Push to live markdown stream if provided
+    if (onMapMarkdownInput) {
+      onMapMarkdownInput(value);
+    }
   }, []);
+
+  // Receive-side sync: when nodes change and we are on markdown tab, update editor unless user has unsaved edits
+  useEffect(() => {
+    if (!subscribeMarkdownFromNodes) return;
+    const unsub = subscribeMarkdownFromNodes((text: string) => {
+      if (text === mapMarkdown) return; // no actual change
+      setMapMarkdown(text || '');
+      setMapMarkdownDirty(false);
+    });
+    return () => { try { unsub(); } catch (_e) { /* ignore */ } };
+  }, [subscribeMarkdownFromNodes, mapMarkdown]);
+
+  // Cursor sync only from editor to mindmap selection (one-way)
+  const handleCursorLineChange = useCallback((line: number) => {
+    if (!getNodeIdByMarkdownLine || !onSelectNode) return;
+    const nodeId = getNodeIdByMarkdownLine(line);
+    if (nodeId) onSelectNode(nodeId);
+  }, [getNodeIdByMarkdownLine, onSelectNode]);
 
   // (Removed unused loadMapMarkdown helper; loading is handled in an effect)
 
@@ -243,6 +276,10 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
                 autoFocus={false}
                 readOnly={false}
                 onResize={handleResize}
+                onCursorLineChange={handleCursorLineChange}
+                onFocusChange={setEditorFocused}
+                externalOverride={mapMarkdown}
+                allowExternalOverride={true}
               />
             )}
           </div>
@@ -326,6 +363,10 @@ const NodeNotesPanel: React.FC<NodeNotesPanelProps> = ({
               autoFocus={false}
               readOnly={false}
               onResize={handleResize}
+              onCursorLineChange={handleCursorLineChange}
+              onFocusChange={setEditorFocused}
+              externalOverride={mapMarkdown}
+              allowExternalOverride={true}
             />
           )}
         </div>

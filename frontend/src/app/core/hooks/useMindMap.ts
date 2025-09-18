@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '../../shared/utils/markdownImporter';
@@ -12,6 +12,7 @@ import { useAutoSave } from './useAutoSave';
 import { logger } from '../../shared/utils/logger';
 import type { StorageConfig } from '../storage/types';
 import type { MindMapData } from '@shared/types';
+import { useMarkdownStream } from './useMarkdownStream';
 
 /**
  * 統合MindMapHook - 新しいアーキテクチャ
@@ -58,18 +59,80 @@ export const useMindMap = (
   });
 
   // 自動保存機能
-  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [, setAutoSaveEnabled] = useState(true);
+
+  // Unify save route via markdown stream; keep manual save by flushing through adapter
+  const adapterForStream: any = (persistenceHook as any).storageAdapter || null;
+  const currentId = dataHook.data?.mapIdentifier || null;
+  const forceSaveThroughStream = useCallback(async (_data: MindMapData) => {
+    try {
+      if (!adapterForStream || !currentId) return;
+      const md = MarkdownImporter.convertNodesToMarkdown((_data.rootNodes || []));
+      await (adapterForStream.saveMapMarkdown?.(currentId, md));
+    } catch {
+      // ignore
+    }
+  }, [adapterForStream, currentId]);
 
   const { saveManually } = useAutoSave(
     dataHook.data,
-    {
-      saveData: persistenceHook.saveData
-    },
-    {
-      enabled: autoSaveEnabled
-    },
-    { autoSave: false, autoSaveInterval: 300 }
+    { saveData: forceSaveThroughStream },
+    { enabled: false },
+    { autoSave: false, autoSaveInterval: 150 }
   );
+
+  // Markdown stream for sync between nodes and raw markdown
+  const { setFromEditor, setFromNodes, subscribe: subscribeMd } = useMarkdownStream(adapterForStream, currentId, { debounceMs: 200 });
+  const lineToNodeIdRef = useRef<Record<number, string>>({});
+  const nodeIdToLineRef = useRef<Record<string, number>>({});
+
+  // Nodes -> markdown: only on confirmed updates (updatedAt changes)
+  useEffect(() => {
+    try {
+      const md = MarkdownImporter.convertNodesToMarkdown(dataHook.data?.rootNodes || []);
+      setFromNodes(md);
+    } catch { /* ignore */ }
+  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
+
+  // When markdown changes from editor, rebuild nodes (md -> nodes)
+  // Keep this effect lightweight; heavy parsing only on 'editor' source
+  useEffect(() => {
+    const unsub = subscribeMd(async (markdown, source) => {
+      if (!dataHook.data) return;
+      try {
+        const parsed = MarkdownImporter.parseMarkdownToNodes(markdown);
+        // Build line<->node maps from merged nodes (ids preserved, line numbers from parsed via merge)
+        const lineToNode: Record<number, string> = {};
+        const nodeToLine: Record<string, number> = {};
+        const walk = (nodes: any[]) => {
+          for (const n of nodes || []) {
+            const ln = n?.markdownMeta?.lineNumber;
+            // Normalize to 1-based editor line numbers
+            if (typeof ln === 'number' && ln >= 0 && typeof n?.id === 'string') {
+              const line1 = ln + 1;
+              lineToNode[line1] = n.id;
+              nodeToLine[n.id] = line1;
+            }
+            if (n?.children?.length) walk(n.children);
+          }
+        };
+        walk(parsed.rootNodes || []);
+        lineToNodeIdRef.current = lineToNode;
+        nodeIdToLineRef.current = nodeToLine;
+
+        // Apply node updates only when source is the editor (replace to match stream)
+        if (source === 'editor') {
+          const now = new Date().toISOString();
+          dataHook.setData({ ...dataHook.data, rootNodes: parsed.rootNodes || [], updatedAt: now });
+        }
+      } catch (_e) {
+        logger.warn('Markdown parse failed; keeping existing nodes');
+      }
+    });
+    return () => { try { unsub(); } catch (_e) { /* ignore */ void 0; } };
+  }, [subscribeMd, dataHook.data]);
+
+  // Removed global CustomEvent echo path to avoid race/rollback
 
   // Folder selection helper to ensure we operate on the same adapter instance
   const selectRootFolder = useCallback(async (): Promise<boolean> => {
@@ -414,6 +477,21 @@ export const useMindMap = (
     getMapMarkdown,
     getMapLastModified,
     saveMapMarkdown,
+    subscribeMarkdownFromNodes: (cb: (text: string) => void) => subscribeMd((text: string, source: any) => { if (source === 'nodes') cb(text); }),
+    // live markdown input -> stream
+    onMapMarkdownInput: (text: string) => setFromEditor(text),
+    // mapping helper (editor -> node only)
+    getNodeIdByMarkdownLine: (line: number): string | null => {
+      const map = lineToNodeIdRef.current || {};
+      if (map[line]) return map[line];
+      // pick nearest previous line mapped
+      let bestLine = 0;
+      for (const k of Object.keys(map)) {
+        const ln = parseInt(k, 10);
+        if (ln <= line && ln > bestLine) bestLine = ln;
+      }
+      return bestLine ? map[bestLine] : null;
+    },
     // autosave control
     setAutoSaveEnabled: (enabled: boolean) => setAutoSaveEnabled(enabled)
   };

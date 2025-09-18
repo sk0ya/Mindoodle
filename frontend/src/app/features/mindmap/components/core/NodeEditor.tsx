@@ -113,7 +113,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         clearTimeout(blurTimeoutRef.current);
         blurTimeoutRef.current = null;
       }
-      onFinishEdit(node.id, node.text);
+      // Use the latest input value, not stale node.text
+      onFinishEdit(node.id, editText);
     }
     // Tab/EnterはuseKeyboardShortcutsで統一処理
   }, [node.id, node.text, onFinishEdit, blurTimeoutRef]);
