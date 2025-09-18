@@ -138,6 +138,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
     <div className="mindmap-canvas-container">
       <svg
         ref={svgRef}
+        tabIndex={0}
         width="100%"
         height="calc(100vh)"
         onMouseDown={onMouseDown}

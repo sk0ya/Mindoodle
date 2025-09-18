@@ -151,6 +151,8 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   const combinedHandleMouseDown = useCallback((e: React.MouseEvent) => {
     handleCanvasMouseDown(e);
     handleMouseDown(e);
+    // Ensure focus moves to SVG so app-level shortcuts receive key events
+    try { svgRef.current?.focus?.(); } catch (_) {}
   }, [handleCanvasMouseDown, handleMouseDown]);
 
   return (

@@ -451,9 +451,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       if (!dom) return;
       const target = e.target as Node | null;
       if (target && !dom.contains(target)) {
-        if (isVimEnabled) {
-          disableVimMode();
-        }
+        // Explicitly blur Monaco to move focus away so global shortcuts work
+        try { (editorRef.current as any).blur?.(); } catch (_) {}
+        if (isVimEnabled) disableVimMode();
       }
     };
     document.addEventListener('mousedown', handleDocumentMouseDown, true);
