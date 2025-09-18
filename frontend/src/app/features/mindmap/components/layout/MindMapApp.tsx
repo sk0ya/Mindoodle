@@ -945,15 +945,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         ui={ui}
         selectedNodeId={selectedNodeId}
         nodeOperations={{
-          findNode: (nodeId: string) => {
-            const rootNodes = data?.rootNodes || [];
-            let targetNode = null;
-            for (const rootNode of rootNodes) {
-              targetNode = findNodeById(rootNode, nodeId);
-              if (targetNode) break;
-            }
-            return targetNode;
-          },
+          findNode: (nodeId: string) => findNodeInRoots(data?.rootNodes || [], nodeId),
           onDeleteNode: deleteNode,
           onUpdateNode: updateNode,
           onCopyNode: (node: MindMapNode) => {
