@@ -393,7 +393,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           height: '100%',
           border: '1px solid #ccc',
           background: settings.theme === 'dark' ? 'var(--bg-primary)' : 'white',
-          textAlign: 'center',
+          // 左端でのグリフの切れ防止のため左寄せ + 余白を少し広くする
+          textAlign: 'left',
           fontSize: settings.fontSize || node.fontSize || '14px',
           fontWeight: node.fontWeight || 'normal',
           fontStyle: node.fontStyle || 'normal',
@@ -401,7 +402,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           color: settings.theme === 'dark' ? 'var(--text-primary)' : 'black',
           outline: 'none',
           borderRadius: '4px',
-          padding: '0 6px',
+          padding: '0 10px',
           boxSizing: 'border-box'
         }}
       />
