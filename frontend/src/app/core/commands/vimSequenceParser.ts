@@ -114,8 +114,6 @@ export function getVimKeys(): string[] {
   }
 
   // Add special keys (must match useCommands vimCommandMap)
-  keys.add('tab');
-  keys.add('enter');
   keys.add('delete');
   keys.add('backspace');
   keys.add('escape');

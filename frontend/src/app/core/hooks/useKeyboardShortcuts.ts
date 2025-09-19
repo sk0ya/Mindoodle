@@ -318,8 +318,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         if (!isModifier) {
           // Map special keys to lowercase
           const specialKeyMap: Record<string, string> = {
-            'Tab': 'tab',
-            'Enter': 'enter',
+            // Handle only delete/backspace as Vim special keys; let Tab/Enter fall through to standard shortcuts
             'Delete': 'delete',
             'Backspace': 'backspace'
           };
@@ -335,7 +334,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
 
           // Handle special keys directly
-          if (['tab', 'enter', 'delete', 'backspace'].includes(normalizedKey)) {
+          if (['delete', 'backspace'].includes(normalizedKey)) {
             logger.debug('Debug: Executing special vim key:', normalizedKey);
             handlers.closeAttachmentAndLinkLists();
             commands.executeVimCommand(normalizedKey);
