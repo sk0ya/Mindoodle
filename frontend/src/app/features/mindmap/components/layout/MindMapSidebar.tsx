@@ -93,12 +93,33 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
 
   // Keep explorer selection in sync with current map (when switching via keyboard etc.)
-  React.useEffect(() => {
-    if (currentMapId && currentWorkspaceId) {
-      const path = `/ws_${currentWorkspaceId}/${currentMapId}.md`;
-      setExplorerSelectedPath(path);
+  // Helper to check if a path exists in explorer tree
+  const explorerHasPath = React.useCallback((tree: any, target: string): boolean => {
+    if (!tree) return false;
+    if (tree.path === target) return true;
+    if (Array.isArray(tree.children)) {
+      for (const child of tree.children) {
+        if (explorerHasPath(child, target)) return true;
+      }
     }
-  }, [currentMapId, currentWorkspaceId]);
+    return false;
+  }, []);
+
+  React.useEffect(() => {
+    if (!currentMapId) return;
+    // Try both workspace-prefixed path and root path, pick the one that exists in explorerTree
+    const candidates: string[] = [];
+    if (currentWorkspaceId) {
+      candidates.push(`/ws_${currentWorkspaceId}/${currentMapId}.md`);
+    }
+    candidates.push(`/${currentMapId}.md`);
+
+    let chosen: string | null = null;
+    for (const p of candidates) {
+      if (explorerHasPath(explorerTree, p)) { chosen = p; break; }
+    }
+    setExplorerSelectedPath(chosen || candidates[0]);
+  }, [currentMapId, currentWorkspaceId, explorerTree, explorerHasPath]);
 
   // イベントハンドラー
   const handleStartRename = useCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
