@@ -317,12 +317,26 @@ export function useShortcutHandlers(args: Args) {
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
         if (!Array.isArray(maps) || maps.length === 0) return;
-        const idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
-        const nextIdx = idx <= 0 ? maps.length - 1 : idx - 1;
-        const target = maps[nextIdx];
-        if (target?.mapIdentifier?.mapId) {
-          const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: target.mapIdentifier.mapId, workspaceId: target.mapIdentifier.workspaceId } });
-          window.dispatchEvent(ev);
+
+        const isEmpty = (m: any): boolean => {
+          try {
+            const roots = m?.rootNodes || [];
+            if (!Array.isArray(roots) || roots.length === 0) return true;
+            const onlyRoot = roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
+            return onlyRoot;
+          } catch { return false; }
+        };
+
+        let idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
+        if (idx < 0) idx = 0;
+        for (let step = 0; step < maps.length; step++) {
+          idx = idx <= 0 ? maps.length - 1 : idx - 1;
+          const cand = maps[idx];
+          if (!isEmpty(cand)) {
+            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapIdentifier.mapId, workspaceId: cand.mapIdentifier.workspaceId } });
+            window.dispatchEvent(ev);
+            break;
+          }
         }
       } catch {}
     },
@@ -331,12 +345,26 @@ export function useShortcutHandlers(args: Args) {
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
         if (!Array.isArray(maps) || maps.length === 0) return;
-        const idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
-        const nextIdx = idx >= maps.length - 1 ? 0 : idx + 1;
-        const target = maps[nextIdx];
-        if (target?.mapIdentifier?.mapId) {
-          const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: target.mapIdentifier.mapId, workspaceId: target.mapIdentifier.workspaceId } });
-          window.dispatchEvent(ev);
+
+        const isEmpty = (m: any): boolean => {
+          try {
+            const roots = m?.rootNodes || [];
+            if (!Array.isArray(roots) || roots.length === 0) return true;
+            const onlyRoot = roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
+            return onlyRoot;
+          } catch { return false; }
+        };
+
+        let idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
+        if (idx < 0) idx = 0;
+        for (let step = 0; step < maps.length; step++) {
+          idx = idx >= maps.length - 1 ? 0 : idx + 1;
+          const cand = maps[idx];
+          if (!isEmpty(cand)) {
+            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapIdentifier.mapId, workspaceId: cand.mapIdentifier.workspaceId } });
+            window.dispatchEvent(ev);
+            break;
+          }
         }
       } catch {}
     },
