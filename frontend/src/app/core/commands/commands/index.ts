@@ -3,7 +3,7 @@
  * Exports all available commands for registration
  */
 
-import { centerCommand } from './center';
+import { centerCommand, centerLeftCommand } from './center';
 import { deleteCommand } from './delete';
 import { toggleCommand, expandCommand, collapseCommand, expandAllCommand, collapseAllCommand } from './toggle';
 import { editCommand, insertCommand as insertEditCommand, appendCommand as appendEditCommand, appendEndCommand, insertBeginningCommand } from './edit';
@@ -66,6 +66,7 @@ import {
 export const commands = [
   // Core vim commands
   centerCommand,
+  centerLeftCommand,
   deleteCommand,
   toggleCommand,
   expandCommand,
@@ -142,6 +143,7 @@ export const commands = [
 // Export individual commands for direct access
 export {
   centerCommand,
+  centerLeftCommand,
   deleteCommand,
   toggleCommand,
   expandCommand,

@@ -666,8 +666,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   };
 
   // ノードを画面中央に移動する関数（最適化済み）
-  const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number }) => {
+  const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
     if (!data) return;
+
+    // Check if this is a left-center mode request
+    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left';
 
     // ルートノードの場合は最適化（検索を省略）
     const rootNodes = data.rootNodes || [];
@@ -675,7 +678,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       ? rootNodes[0]
       : findNodeInRoots(rootNodes, nodeId);
     if (!targetNode) {
-      if (fallbackCoords) {
+      if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
         // フォールバック座標を使用してセンタリング
         const nodeX = fallbackCoords.x;
         const nodeY = fallbackCoords.y;
@@ -701,7 +704,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
 
         const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
-        const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * 0.2); // マップエリアの左寄り（20%位置）
+        const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
+        const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * positionRatio);
         const viewportCenterY = viewportHeight / 2;
         const currentZoom = ui.zoom * 1.5;
 
@@ -735,8 +739,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
 
     const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
-    // マップエリアの左寄り（20%位置）に配置してルートノードが左端になるように
-    const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * 0.2);
+    // マップエリアの位置を決定（左寄りモードまたは中央モード）
+    const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
+    const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * positionRatio);
     const viewportCenterY = viewportHeight / 2;
 
     // ノードの現在の座標

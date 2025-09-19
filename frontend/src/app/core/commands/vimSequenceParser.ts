@@ -15,6 +15,7 @@ export interface VimSequenceResult {
 const VIM_COMMAND_PATTERNS = {
   // Multi-key commands
   'zz': { keys: ['z', 'z'], command: 'zz' },
+  'zt': { keys: ['z', 't'], command: 'zt' },
   'za': { keys: ['z', 'a'], command: 'za' },
   'zo': { keys: ['z', 'o'], command: 'zo' },
   'zc': { keys: ['z', 'c'], command: 'zc' },
