@@ -37,7 +37,7 @@ export const useMindMapActions = () => {
 
     // マップ選択
     selectMap: useCallback((mapData: MindMapData) => {
-      try { console.info('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title); } catch {}
+      logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
       store.setData(mapData);
       try {
         // 自動整列を適用

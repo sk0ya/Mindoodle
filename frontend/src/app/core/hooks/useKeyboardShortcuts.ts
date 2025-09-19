@@ -5,6 +5,7 @@
 
 import type { MindMapNode } from '@shared/types';
 import { useEffect } from 'react';
+import { logger } from '../../shared/utils/logger';
 import type { VimModeHook } from './useVimMode';
 import { useCommands } from '../commands';
 import type { UseCommandsReturn } from '../commands/useCommands';
@@ -286,7 +287,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
           // Handle special keys directly
           if (['tab', 'enter', 'delete', 'backspace'].includes(normalizedKey)) {
-            console.log('Debug: Executing special vim key:', normalizedKey);
+            logger.debug('Debug: Executing special vim key:', normalizedKey);
             handlers.closeAttachmentAndLinkLists();
             commands.executeVimCommand(normalizedKey);
             return;

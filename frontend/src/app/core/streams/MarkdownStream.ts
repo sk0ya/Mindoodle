@@ -15,6 +15,8 @@ export interface MarkdownStreamOptions {
  * - Notify subscribers on changes
  * - Flush changes to sinks with debounce; serialize to avoid races
  */
+import { logger } from '../../shared/utils/logger';
+
 export class MarkdownStream {
   private content = '';
   private lastFlushed = '';
@@ -57,7 +59,7 @@ export class MarkdownStream {
   }
 
   private notify(markdown: string, source: MarkdownSource): void {
-    console.log('📢 MarkdownStream.notify', { source, length: markdown.length, subscribers: this.subscribers.size });
+    logger.debug('📢 MarkdownStream.notify', { source, length: markdown.length, subscribers: this.subscribers.size });
     for (const cb of Array.from(this.subscribers)) {
       try { cb(markdown, source); } catch (_e) { /* ignore subscriber error */ void 0; }
     }
