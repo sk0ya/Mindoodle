@@ -80,7 +80,7 @@ export const startEditCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -129,7 +129,7 @@ export const startEditEndCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -185,8 +185,8 @@ export const markdownConvertCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const targetType = args.type || 'unordered-list';
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const targetType = (args as any)['type'] || 'unordered-list';
 
     if (!nodeId) {
       return {

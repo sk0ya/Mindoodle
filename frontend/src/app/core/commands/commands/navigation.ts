@@ -22,7 +22,7 @@ export const arrowNavigateCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const direction = args.direction;
+    const direction = (args as any)['direction'];
 
     if (!context.selectedNodeId) {
       return {
@@ -72,7 +72,7 @@ export const selectNodeCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId;
+    const nodeId = (args as any)['nodeId'];
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
@@ -122,8 +122,8 @@ export const findNodeCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const searchText = args.text;
-    const exactMatch = args.exact;
+    const searchText = (args as any)['text'];
+    const exactMatch = (args as any)['exact'];
 
     try {
       // This would require implementing a search function

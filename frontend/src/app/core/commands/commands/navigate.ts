@@ -30,7 +30,7 @@ export const navigateCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const directionInput = args.direction || args._0; // Support positional arg
+    const directionInput = (args as any)['direction'] || (args as any)['_0']; // Support positional arg
 
     if (!directionInput) {
       return {

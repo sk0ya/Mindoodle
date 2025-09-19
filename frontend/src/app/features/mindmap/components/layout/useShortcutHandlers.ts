@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots } from '../../../../shared/utils/nodeTreeUtils';
+import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { findNodeBySpatialDirection } from '../../../../shared/utils/navigation';
 import type { MindMapNode } from '@shared/types';
 
@@ -88,8 +89,11 @@ export function useShortcutHandlers(args: Args) {
     selectNode,
     setPan,
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => {
-      if (!selectedNodeId || !data?.rootNode) return;
-      const currentNode = findNodeById(data.rootNode, selectedNodeId);
+      if (!selectedNodeId) return;
+      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const currentRoot = roots.find(r => !!findNodeById(r, selectedNodeId)) || roots[0];
+      if (!currentRoot) return;
+      const currentNode = findNodeById(currentRoot, selectedNodeId);
       if (!currentNode) return;
       let nextNodeId: string | null = null;
       switch (direction) {
@@ -148,7 +152,7 @@ export function useShortcutHandlers(args: Args) {
         }
         case 'up':
         case 'down': {
-          const { siblings, currentIndex } = getSiblingNodes(data.rootNode, selectedNodeId);
+          const { siblings, currentIndex } = getSiblingNodes(currentRoot, selectedNodeId);
           if (siblings.length > 1 && currentIndex !== -1) {
             let targetIndex = -1;
             if (direction === 'up' && currentIndex > 0) targetIndex = currentIndex - 1;
@@ -158,7 +162,7 @@ export function useShortcutHandlers(args: Args) {
           break;
         }
       }
-      if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(selectedNodeId, direction, data.rootNode);
+      if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(selectedNodeId, direction, currentRoot);
       if (nextNodeId) {
         selectNode(nextNodeId);
         // Ensure the newly selected node is visible (but don't center it)
@@ -167,7 +171,8 @@ export function useShortcutHandlers(args: Args) {
 
       // Helper function to ensure node is visible without centering
       function ensureNodeVisible(nodeId: string) {
-        const node = data?.rootNode ? findNodeById(data.rootNode, nodeId) : null;
+        const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+        const node = findNodeInRoots(roots, nodeId);
         if (!node || !setPan) return;
 
         // Get actual viewport dimensions considering sidebar and panels
@@ -298,7 +303,10 @@ export function useShortcutHandlers(args: Args) {
       await pasteNodeFromClipboard(parentId);
     },
     pasteImageFromClipboard,
-    findNodeById: (nodeId: string) => data?.rootNode ? findNodeById(data.rootNode, nodeId) : null,
+    findNodeById: (nodeId: string) => {
+      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      return findNodeInRoots(roots, nodeId);
+    },
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,

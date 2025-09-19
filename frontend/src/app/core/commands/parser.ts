@@ -24,14 +24,14 @@ export function parseCommand(input: string): ParseResult {
 
   try {
     const tokens = tokenize(trimmed);
-    if (tokens.length === 0) {
+    if (!Array.isArray(tokens) || tokens.length === 0) {
       return {
         success: false,
         error: 'No valid tokens found'
       };
     }
 
-    const commandName = tokens[0];
+    const commandName = tokens[0]!;
     const args = parseArguments(tokens.slice(1));
 
     const parsedCommand: ParsedCommand = {
@@ -172,13 +172,15 @@ function parseArguments(tokens: string[]): Record<string, any> {
 
   while (i < tokens.length) {
     const token = tokens[i];
+    if (token === undefined) { i++; continue; }
 
     if (token.startsWith('--')) {
       // Named argument
       const argName = token.slice(2);
-      if (i + 1 < tokens.length && !tokens[i + 1].startsWith('--')) {
+      const next = tokens[i + 1];
+      if (i + 1 < tokens.length && next !== undefined && !next.startsWith('--')) {
         // Has value
-        args[argName] = parseValue(tokens[i + 1]);
+        args[argName] = parseValue(next);
         i += 2;
       } else {
         // Boolean flag

@@ -42,9 +42,9 @@ export const addChildCommand: Command = {
   ],
 
   async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const parentId = args.parentId || context.selectedNodeId;
-    const text = args.text || '';
-    const startEdit = args.edit ?? true;
+    const parentId = (args as any)['parentId'] || context.selectedNodeId;
+    const text = (args as any)['text'] || '';
+    const startEdit = (args as any)['edit'] ?? true;
 
     if (!parentId) {
       return {
@@ -121,9 +121,9 @@ export const addSiblingCommand: Command = {
   ],
 
   async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const text = args.text || '';
-    const startEdit = args.edit ?? true;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const text = (args as any)['text'] || '';
+    const startEdit = (args as any)['edit'] ?? true;
 
     if (!nodeId) {
       return {
@@ -191,8 +191,8 @@ export const convertNodeCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    let targetType = args.type as 'heading' | 'unordered-list' | 'ordered-list';
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    let targetType = (args as any)['type'] as 'heading' | 'unordered-list' | 'ordered-list';
 
     if (!nodeId) {
       return {
@@ -226,10 +226,8 @@ export const convertNodeCommand: Command = {
         // リスト → 見出し
         targetType = 'heading';
       } else {
-        return {
-          success: false,
-          error: 'Can only convert between heading and list nodes'
-        };
+        // メタデータが無い/不明な場合は「見出し扱い」としてリストへ変換
+        targetType = 'unordered-list';
       }
     }
 

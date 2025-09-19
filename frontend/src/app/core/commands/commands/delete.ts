@@ -33,8 +33,8 @@ export const deleteCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const skipConfirm = args.confirm;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const skipConfirm = (args as any)['confirm'];
 
     if (!nodeId) {
       return {

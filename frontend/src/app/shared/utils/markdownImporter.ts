@@ -634,36 +634,41 @@ export class MarkdownImporter {
     nodeId: string,
     newType: 'heading' | 'unordered-list' | 'ordered-list'
   ): MindMapNode[] {
-    // 見出し→リストの変換時は安全性をチェック
-    if (newType === 'unordered-list' || newType === 'ordered-list') {
-      const safetyCheck = this.canSafelyConvertToList(nodes, nodeId);
-      if (!safetyCheck.canConvert) {
-        console.warn('変換できません:', safetyCheck.reason);
-        // エラーをthrowして上位で処理
-        throw new Error(safetyCheck.reason);
+    // 対象ノードのメタ存在を確認
+    const findTarget = (list: MindMapNode[]): MindMapNode | null => {
+      for (const n of list) {
+        if (n.id === nodeId) return n;
+        if (n.children) {
+          const found = findTarget(n.children);
+          if (found) return found;
+        }
       }
-    }
-    
-    // リスト→見出しの変換時も安全性をチェック
-    if (newType === 'heading') {
-      const safetyCheck = this.canSafelyConvertToHeading(nodes, nodeId);
-      if (!safetyCheck.canConvert) {
-        console.warn('変換できません:', safetyCheck.reason);
-        // エラーをthrowして上位で処理
-        throw new Error(safetyCheck.reason);
+      return null;
+    };
+    const targetNode = findTarget(nodes);
+
+    // 見出し→リスト／リスト→見出しの変換時、安全性チェック
+    // メタが無いノードは安全性チェックをスキップ（新規作成ノード想定）
+    if (targetNode?.markdownMeta) {
+      if (newType === 'unordered-list' || newType === 'ordered-list') {
+        const safetyCheck = this.canSafelyConvertToList(nodes, nodeId);
+        if (!safetyCheck.canConvert) {
+          throw new Error(safetyCheck.reason);
+        }
+      }
+      if (newType === 'heading') {
+        const safetyCheck = this.canSafelyConvertToHeading(nodes, nodeId);
+        if (!safetyCheck.canConvert) {
+          throw new Error(safetyCheck.reason);
+        }
       }
     }
     
     const processNode = (nodeList: MindMapNode[], parentNode?: MindMapNode): MindMapNode[] => {
       return nodeList.map(node => {
         if (node.id === nodeId) {
-          if (!node.markdownMeta) {
-            return node;
-          }
-        }
-
-        if (node.id === nodeId && node.markdownMeta) {
-          const currentMeta = node.markdownMeta;
+          const fallbackMeta = { type: 'heading' as const, level: 1, originalFormat: '#', indentLevel: 0, lineNumber: node.markdownMeta?.lineNumber ?? 0 };
+          const currentMeta = node.markdownMeta || fallbackMeta;
           let newMeta = { ...currentMeta };
           let newText = node.text;
 

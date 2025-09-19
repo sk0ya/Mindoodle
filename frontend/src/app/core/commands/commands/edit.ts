@@ -47,10 +47,10 @@ export const editCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const newText = args.text;
-    const keepText = args['keep-text'] ?? false;
-    const cursorPosition = args.cursor || 'start';
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const newText = (args as any)['text'];
+    const keepText = (args as any)['keep-text'] ?? false;
+    const cursorPosition = (args as any)['cursor'] || 'start';
 
     if (!nodeId) {
       return {

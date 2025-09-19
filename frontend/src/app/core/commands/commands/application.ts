@@ -101,7 +101,7 @@ export const copyCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -150,7 +150,7 @@ export const pasteCommand: Command = {
   ],
 
   async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const targetId = args.targetId || context.selectedNodeId;
+    const targetId = (args as any)['targetId'] || context.selectedNodeId;
 
     if (!targetId) {
       return {
@@ -212,7 +212,7 @@ export const cutCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {

@@ -32,8 +32,8 @@ export const toggleCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const forceState = args.expand;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const forceState = (args as any)['expand'];
 
     if (!nodeId) {
       return {

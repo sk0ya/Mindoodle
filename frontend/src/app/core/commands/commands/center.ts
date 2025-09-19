@@ -32,8 +32,8 @@ export const centerCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const animate = args.animate ?? false;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const animate = (args as any)['animate'] ?? false;
 
     if (!nodeId) {
       return {

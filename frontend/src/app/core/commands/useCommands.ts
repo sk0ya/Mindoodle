@@ -99,12 +99,19 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   }, []);
 
   // Create command context
-  const context = useMemo((): CommandContext => ({
-    selectedNodeId,
-    editingNodeId,
-    vim,
-    handlers
-  }), [selectedNodeId, editingNodeId, vim, handlers]);
+  const context = useMemo((): CommandContext => {
+    // Strip undefineds from handlers to satisfy exactOptionalPropertyTypes
+    const cleanHandlers = Object.entries(handlers).reduce((acc, [k, v]) => {
+      if (v !== undefined) (acc as any)[k] = v;
+      return acc;
+    }, {} as Partial<CommandContext['handlers']>) as CommandContext['handlers'];
+
+    const base = { selectedNodeId, editingNodeId, handlers: cleanHandlers } as CommandContext;
+    if (vim !== undefined) {
+      (base as any).vim = vim;
+    }
+    return base;
+  }, [selectedNodeId, editingNodeId, vim, handlers]);
 
   // Parse command string
   const parse = useCallback((commandString: string): ParseResult => {

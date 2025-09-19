@@ -13,6 +13,7 @@
     "serve": "serve -s dist",
     "type-check": "tsc --noEmit",
     "type-check:strict": "tsc --noEmit -p tsconfig.strict.json",
+    "type-check:strict:vim": "tsc --noEmit -p tsconfig.strict.vim.json",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts'",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts' --fix",
     "scan:unsafe": "node scripts/detect-unsafe-patterns.js",

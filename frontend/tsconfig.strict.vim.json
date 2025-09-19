@@ -1,7 +1,6 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    /* 最大限厳格な型チェック - キー領域に限定して実施 */
     "exactOptionalPropertyTypes": true,
     "noUncheckedIndexedAccess": true,
     "strictPropertyInitialization": true,
@@ -9,10 +8,15 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
+    "src/vite-env.d.ts",
     "src/app/core/commands/**/*",
+    "src/app/core/commands/index.ts",
+    "src/app/core/commands/useCommands.ts",
+    "src/app/core/commands/vimSequenceParser.ts",
     "src/app/core/hooks/useKeyboardShortcuts.ts",
     "src/app/core/hooks/useVimMode.ts",
     "src/app/features/mindmap/components/layout/useShortcutHandlers.ts",
-    "src/app/shared/utils/markdownImporter.ts"
+    "src/app/shared/utils/nodeTreeUtils.ts"
   ]
 }
+

@@ -23,7 +23,7 @@ export const importMindmapCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const format = args.format;
+    const format = (args as any)['format'];
 
     try {
       // This would trigger file import dialog or process
@@ -64,8 +64,8 @@ export const exportMindmapCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const format = args.format;
-    const filename = args.filename;
+    const format = (args as any)['format'];
+    const filename = (args as any)['filename'];
 
     try {
       // This would trigger export process
@@ -104,7 +104,7 @@ export const newMindmapCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const title = args.title;
+    const title = (args as any)['title'];
 
     try {
       // This would create a new mindmap
@@ -139,7 +139,7 @@ export const clearMindmapCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const skipConfirm = args.confirm;
+    const skipConfirm = (args as any)['confirm'];
 
     if (!skipConfirm) {
       return {
@@ -205,7 +205,7 @@ export const autoLayoutCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const algorithm = args.algorithm;
+    const algorithm = (args as any)['algorithm'];
 
     try {
       // This would apply auto-layout
@@ -239,7 +239,7 @@ export const themeCommand: Command = {
   ],
 
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const themeName = args.themeName;
+    const themeName = (args as any)['themeName'];
 
     try {
       // This would change the theme

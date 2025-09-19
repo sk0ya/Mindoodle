@@ -26,7 +26,7 @@ export const insertCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -86,7 +86,7 @@ export const appendCommand: Command = {
   ],
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = args.nodeId || context.selectedNodeId;
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -154,8 +154,8 @@ export const openCommand: Command = {
   ],
 
   async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const initialText = args.text || '';
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const initialText = (args as any)['text'] || '';
 
     if (!nodeId) {
       return {
@@ -230,8 +230,8 @@ export const openAboveCommand: Command = {
   ],
 
   async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = args.nodeId || context.selectedNodeId;
-    const initialText = args.text || '';
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const initialText = (args as any)['text'] || '';
 
     if (!nodeId) {
       return {
