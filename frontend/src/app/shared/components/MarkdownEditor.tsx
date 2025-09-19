@@ -324,6 +324,29 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   // External cursor sync intentionally removed per request
 
 
+  // Apply external value changes to editor model without disrupting user typing
+  useEffect(() => {
+    const ed = editorRef.current;
+    if (!ed) return;
+    try {
+      const current = ed.getValue();
+      const next = value || '';
+      if (current !== next) {
+        // Avoid triggering onChange for this programmatic update
+        ignoreExternalChangeRef.current = true;
+        const hasFocus = ed.hasTextFocus?.() ?? false;
+        const selection = hasFocus ? ed.getSelection() : null;
+        ed.setValue(next);
+        // Try to restore selection when focused
+        if (hasFocus && selection) {
+          try { ed.setSelection(selection); } catch {}
+        }
+        // Release flag on next macrotask to let Monaco settle
+        setTimeout(() => { ignoreExternalChangeRef.current = false; }, 0);
+      }
+    } catch {}
+  }, [value]);
+
   // Update theme and font settings when settings change
   useEffect(() => {
     if (editorRef.current) {
@@ -492,7 +515,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               height={EDITOR_HEIGHT}
               width={EDITOR_WIDTH}
               defaultLanguage={EDITOR_LANGUAGE}
-              value={value}
+              defaultValue={value}
               onChange={memoizedHandleEditorChange}
               onMount={handleEditorDidMount}
               theme={editorTheme}
