@@ -105,17 +105,19 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       onSave?.();
     });
 
+    // Do not intercept keystrokes here; editor must handle raw input as-is.
+
     // Cursor and focus listeners
     editor.onDidChangeCursorPosition((e) => {
       const line = e.position.lineNumber;
       onCursorLineChange?.(line);
     });
-    editor.onDidFocusEditorText?.(() => {
+    editor.onDidFocusEditorText?.(async () => {
       onFocusChange?.(true);
       // Enable Vim only when editor has focus and setting is on
       if (settings.vimMode && !isVimEnabled) {
-        enableVimMode(editor, monaco);
-        setIsVimEnabled(true);
+        const ok = await enableVimMode(editor, monaco);
+        if (ok) setIsVimEnabled(true);
       }
     });
     editor.onDidBlurEditorText?.(() => {
@@ -132,18 +134,24 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   };
 
-  const enableVimMode = async (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')) => {
+  const enableVimMode = async (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')): Promise<boolean> => {
     try {
       // Dynamically import monaco-vim for Vim mode support
-      const { initVimMode } = await import('monaco-vim');
+      const mod: any = await import('monaco-vim');
+      const init: any = mod?.initVimMode || mod?.default || mod;
+      if (typeof init !== 'function') {
+        throw new Error('monaco-vim init function not found');
+      }
 
       // Initialize Vim mode (status bar element optional)
-      const vimMode = initVimMode(editor);
+      const vimMode = init(editor);
 
-      // Add Vim commands
-      vimMode.defineEx('write', 'w', () => {
-        onSave?.();
-      });
+      // Add Vim commands if available in this version
+      try {
+        if (vimMode && typeof (vimMode as any).defineEx === 'function') {
+          (vimMode as any).defineEx('write', 'w', () => { onSave?.(); });
+        }
+      } catch {}
 
       // Preserve important Monaco keyboard shortcuts that should work in vim mode
       // These commands will be available regardless of vim mode state
@@ -254,9 +262,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       // Store vim mode instance and command IDs for cleanup
       (editor as any)._vimMode = vimMode;
       (editor as any)._vimModeCommandIds = commandIds;
+      return true;
     } catch (error) {
       logger.warn('Vim mode not available:', error);
       setIsVimEnabled(false);
+      return false;
     }
   };
 
@@ -341,8 +351,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       const hasFocus = editorRef.current.hasTextFocus?.() ?? false;
       if (settings.vimMode && hasFocus && !isVimEnabled) {
         const monaco = monacoRef.current || (await import('monaco-editor'));
-        await enableVimMode(editorRef.current, monaco);
-        setIsVimEnabled(true);
+        const ok = await enableVimMode(editorRef.current, monaco);
+        if (ok) setIsVimEnabled(true);
       } else if (!settings.vimMode && isVimEnabled) {
         disableVimMode();
       }

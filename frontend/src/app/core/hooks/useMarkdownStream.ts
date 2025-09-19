@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import type { StorageAdapter } from '../storage/types';
 import { MarkdownStream, createLocalSink, type MarkdownSource } from '../streams/MarkdownStream';
@@ -31,18 +31,24 @@ export const useMarkdownStream = (
       }
     });
     stream.replaceSinks([localSink]);
-  }, [adapter, id, stream]);
+  }, [adapter, id]);
 
   // Load initial markdown for this map
   useEffect(() => {
     let cancelled = false;
+    const lastLoadedRef = { value: '' };
+
     const load = async () => {
       if (!id || !adapter) return;
       try {
         if (typeof (adapter as any).getMapMarkdown === 'function') {
           const text: string | null = await (adapter as any).getMapMarkdown(id);
           if (!cancelled && typeof text === 'string') {
-            stream.setMarkdown(text, 'external');
+            // Only set if content actually changed
+            if (text !== lastLoadedRef.value) {
+              lastLoadedRef.value = text;
+              stream.setMarkdown(text, 'external');
+            }
           }
         }
       } catch {
@@ -51,14 +57,20 @@ export const useMarkdownStream = (
     };
     void load();
     return () => { cancelled = true; };
-  }, [adapter, id, stream]);
+  }, [adapter, id]);
+
+  // Stabilize function references to prevent infinite re-subscriptions
+  const setFromEditor = useCallback((text: string) => stream.setMarkdown(text, 'editor' as MarkdownSource), [stream]);
+  const setFromNodes = useCallback((text: string) => stream.setMarkdown(text, 'nodes' as MarkdownSource), [stream]);
+  const getMarkdown = useCallback(() => stream.getMarkdown(), [stream]);
+  const subscribe = useCallback((cb: (markdown: string, source: MarkdownSource) => void) => stream.subscribe(cb), [stream]);
 
   return {
     stream,
-    setFromEditor: (text: string) => stream.setMarkdown(text, 'editor' as MarkdownSource),
-    setFromNodes: (text: string) => stream.setMarkdown(text, 'nodes' as MarkdownSource),
-    getMarkdown: () => stream.getMarkdown(),
-    subscribe: (cb: (markdown: string, source: MarkdownSource) => void) => stream.subscribe(cb)
+    setFromEditor,
+    setFromNodes,
+    getMarkdown,
+    subscribe
   };
 };
 

@@ -209,6 +209,14 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      // Strong guard: if Monaco markdown editor has focus, do not handle anything here (including Vim)
+      try {
+        const activeEl = (document.activeElement as HTMLElement | null);
+        const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
+        if (monacoFocused) {
+          return; // let markdown editor fully handle keys
+        }
+      } catch {}
       // Check if in text input
       const target = event.target as HTMLElement;
       const isInTextInput = target.tagName === 'INPUT' ||

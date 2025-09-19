@@ -355,11 +355,9 @@ export class MarkdownImporter {
         lines.push(finalLine);
       }
       
-      // ノートがある場合は追加
-      if (node.note && node.note.trim()) {
-        lines.push('');
+      // ノートがある場合は追加（不要な空行なし・trimしない: 意図した空白を保持）
+      if (node.note != null && node.note !== '') {
         lines.push(node.note);
-        lines.push('');
       }
       
       // 子ノードを処理

@@ -33,6 +33,7 @@ export class MarkdownStream {
   setMarkdown(markdown: string, source: MarkdownSource = 'external'): void {
     if (typeof markdown !== 'string') return;
     if (markdown === this.content) return; // no-op
+
     this.content = markdown;
     this.notify(markdown, source);
     this.scheduleFlush();
@@ -48,14 +49,15 @@ export class MarkdownStream {
 
   subscribe(cb: (markdown: string, source: MarkdownSource) => void): () => void {
     this.subscribers.add(cb);
-    // Emit current state immediately for convenience
-    if (this.content) {
-      try { cb(this.content, 'external'); } catch (_e) { /* ignore subscriber error */ void 0; }
-    }
-    return () => { this.subscribers.delete(cb); };
+    // Don't emit initial content to prevent feedback loops
+    // Initial content will be loaded via proper load mechanism in useMarkdownStream
+    return () => {
+      this.subscribers.delete(cb);
+    };
   }
 
   private notify(markdown: string, source: MarkdownSource): void {
+    console.log('📢 MarkdownStream.notify', { source, length: markdown.length, subscribers: this.subscribers.size });
     for (const cb of Array.from(this.subscribers)) {
       try { cb(markdown, source); } catch (_e) { /* ignore subscriber error */ void 0; }
     }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '../../shared/utils/markdownImporter';
@@ -62,18 +62,33 @@ export const useMindMap = (
   // 自動保存機能
   const [, setAutoSaveEnabled] = useState(true);
 
-  // Unify save route via markdown stream; keep manual save by flushing through adapter
-  const adapterForStream: any = (persistenceHook as any).storageAdapter || null;
-  const currentId = dataHook.data?.mapIdentifier || null;
+  // Stabilize adapter reference - persistenceHook likely returns new references
+  const stableAdapter = useMemo(() => {
+    const adapter = (persistenceHook as any).storageAdapter || null;
+    return adapter;
+  }, [persistenceHook.storageAdapter]);
+
+  // Stabilize currentId to prevent unnecessary stream recreation
+  const mapIdentifierWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
+  const mapIdentifierMapId = dataHook.data?.mapIdentifier?.mapId;
+
+  const currentId = useMemo(() => {
+    if (!mapIdentifierWorkspaceId || !mapIdentifierMapId) return null;
+    // Create stable reference based on actual values, not object identity
+    return {
+      workspaceId: mapIdentifierWorkspaceId,
+      mapId: mapIdentifierMapId
+    };
+  }, [mapIdentifierWorkspaceId, mapIdentifierMapId]);
   const forceSaveThroughStream = useCallback(async (_data: MindMapData) => {
     try {
-      if (!adapterForStream || !currentId) return;
+      if (!stableAdapter || !currentId) return;
       const md = MarkdownImporter.convertNodesToMarkdown((_data.rootNodes || []));
-      await (adapterForStream.saveMapMarkdown?.(currentId, md));
+      await (stableAdapter.saveMapMarkdown?.(currentId, md));
     } catch {
       // ignore
     }
-  }, [adapterForStream, currentId]);
+  }, [stableAdapter, currentId]);
 
   const { saveManually } = useAutoSave(
     dataHook.data,
@@ -83,23 +98,95 @@ export const useMindMap = (
   );
 
   // Markdown stream for sync between nodes and raw markdown
-  const { setFromEditor, setFromNodes, subscribe: subscribeMd } = useMarkdownStream(adapterForStream, currentId, { debounceMs: 200 });
+  const markdownStreamHook = useMarkdownStream(stableAdapter, currentId, { debounceMs: 200 });
+
+  // Stabilize the destructured functions to prevent infinite re-subscriptions
+  const stableMarkdownFunctions = useMemo(() => {
+    return {
+      setFromEditor: markdownStreamHook.setFromEditor,
+      setFromNodes: markdownStreamHook.setFromNodes,
+      subscribe: markdownStreamHook.subscribe
+    };
+  }, [markdownStreamHook.setFromEditor, markdownStreamHook.setFromNodes, markdownStreamHook.subscribe]);
+
+  const { setFromEditor, setFromNodes, subscribe: subscribeMd } = stableMarkdownFunctions;
   const lineToNodeIdRef = useRef<Record<number, string>>({});
   const nodeIdToLineRef = useRef<Record<string, number>>({});
+
+  // Track last markdown sent to prevent loops
+  const lastSentMarkdownRef = useRef<string>('');
+
+  // Keep latest subscribeMd reference to avoid useEffect dependency issues
+  const subscribeMdRef = useRef(subscribeMd);
+  subscribeMdRef.current = subscribeMd;
+
+  // Keep latest data and mutators to avoid stale closures in subscription callback
+  const dataRef = useRef(dataHook.data);
+  useEffect(() => { dataRef.current = dataHook.data; }, [dataHook.data]);
+  const setDataRef = useRef(dataHook.setData);
+  useEffect(() => { setDataRef.current = dataHook.setData; }, [dataHook.setData]);
+  const updateNodeRef = useRef(dataHook.updateNode);
+  useEffect(() => { updateNodeRef.current = dataHook.updateNode; }, [dataHook.updateNode]);
+
+  // Timer to prevent nodes->markdown sync after editor changes
+  const skipNodeToMarkdownSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Nodes -> markdown: only on confirmed updates (updatedAt changes)
   useEffect(() => {
     try {
+      // Skip if we recently processed an editor change
+      if (skipNodeToMarkdownSyncTimer.current) {
+        console.log('⏭️ Skipping nodes->markdown sync (editor change in progress)');
+        return;
+      }
+
       const md = MarkdownImporter.convertNodesToMarkdown(dataHook.data?.rootNodes || []);
-      setFromNodes(md);
-    } catch { /* ignore */ }
-  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
+
+      // Debug: Compare in detail
+      const lastMd = lastSentMarkdownRef.current;
+      const isChanged = md !== lastMd;
+
+      console.log('🔍 Nodes->Markdown comparison', {
+        changed: isChanged,
+        newLength: md.length,
+        lastLength: lastMd.length,
+        newHash: md.slice(0, 50) + '...',
+        lastHash: lastMd.slice(0, 50) + '...',
+        trigger: dataHook.data?.updatedAt
+      });
+
+      // Only send if markdown actually changed
+      if (isChanged) {
+        console.log('📝 Nodes -> Markdown: sending update');
+        lastSentMarkdownRef.current = md;
+        setFromNodes(md);
+      } else {
+        console.log('⏸️ Nodes -> Markdown: no change, skipping');
+      }
+    } catch (e) {
+      console.error('❌ Nodes->Markdown conversion error:', e);
+    }
+  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId]);
 
   // When markdown changes from editor, rebuild nodes (md -> nodes)
   // Keep this effect lightweight; heavy parsing only on 'editor' source
   useEffect(() => {
-    const unsub = subscribeMd(async (markdown, source) => {
+    const unsub = subscribeMdRef.current(async (markdown, source) => {
+      console.log('📨 useMindMap received markdown', {
+        source,
+        length: markdown.length,
+        hash: markdown.slice(0, 50) + '...',
+        dataUpdatedAt: dataRef.current?.updatedAt
+      });
       try {
+        // If content comes from external load, treat it as the canonical baseline
+        if (source === 'external') {
+          // Align last-sent baseline to avoid redundant nodes->markdown echo
+          lastSentMarkdownRef.current = markdown;
+        }
+
+        // Immediate reflection: let the parser decide how to handle incomplete structures.
+
         const parsed = MarkdownImporter.parseMarkdownToNodes(markdown);
 
         // Build line<->node maps from parsed nodes
@@ -122,8 +209,19 @@ export const useMindMap = (
         nodeIdToLineRef.current = nodeToLine;
 
         // Apply node updates only when source is the editor.
-        // Prefer partial updates (text/note only) to avoid full rerender flicker.
-        if (source === 'editor' && dataHook.data) {
+        // Ignore 'nodes' source to prevent feedback loops (nodes->markdown->nodes)
+        // Ignore 'external' source from initial load unless it's actually different
+        const currentData = dataRef.current;
+        if (source === 'editor' && currentData) {
+          console.log('🖊️ Processing editor change');
+          // Clear existing timer and set new one to skip nodes->markdown sync for short period
+          if (skipNodeToMarkdownSyncTimer.current) {
+            clearTimeout(skipNodeToMarkdownSyncTimer.current);
+          }
+          skipNodeToMarkdownSyncTimer.current = setTimeout(() => {
+            skipNodeToMarkdownSyncTimer.current = null;
+            console.log('✅ Editor change window closed, nodes->markdown sync re-enabled');
+          }, 300); // 300ms window to allow for rapid typing
           const safeRootNodes = Array.isArray(parsed?.rootNodes) ? parsed.rootNodes : [];
 
           // Flatten helper (pre-order) to compare markdown structure
@@ -151,7 +249,7 @@ export const useMindMap = (
             return out;
           };
 
-          const prevFlat = flatten(dataHook.data.rootNodes || []);
+          const prevFlat = flatten(currentData.rootNodes || []);
           const nextFlat = flatten(safeRootNodes);
 
           const sameStructure = (() => {
@@ -184,14 +282,15 @@ export const useMindMap = (
               const bNote = b.note ?? '';
               if (aNote !== bNote) updates.note = b.note ?? '';
               if (Object.keys(updates).length) {
-                dataHook.updateNode(a.id, updates);
+                updateNodeRef.current(a.id, updates);
               }
             }
           } else {
-            // Fallback to full replacement only when structure changed
+            // Structure changed: replace and auto-layout
             const now = new Date().toISOString();
-            const updatedData = { ...dataHook.data, rootNodes: safeRootNodes, updatedAt: now };
-            dataHook.setData(updatedData);
+            const updatedData = { ...currentData, rootNodes: safeRootNodes, updatedAt: now } as any;
+            setDataRef.current(updatedData);
+            try { dataHook.applyAutoLayout?.(); } catch { /* ignore */ }
           }
         }
       } catch (error) {
@@ -199,7 +298,7 @@ export const useMindMap = (
       }
     });
     return () => { try { unsub(); } catch (_e) { /* ignore */ void 0; } };
-  }, [subscribeMd, dataHook.setData, dataHook.updateNode, dataHook.data?.rootNodes]);
+  }, [markdownStreamHook.stream]);
 
   // Removed global CustomEvent echo path to avoid race/rollback
 

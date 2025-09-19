@@ -33,7 +33,8 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   const [mapMarkdown, setMapMarkdown] = useState<string>('');
   const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
   const [resizeCounter, setResizeCounter] = useState<number>(0);
-  const [, setEditorFocused] = useState<boolean>(false);
+  const [editorFocused, setEditorFocused] = useState<boolean>(false);
+  const pendingNodesTextRef = useRef<string | null>(null);
 
   // Load map markdown when component mounts or map changes
   const lastLoadedMapIdRef = useRef<string | null>(null);
@@ -65,15 +66,30 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     }
   }, [onMapMarkdownInput]);
 
-  // Receive-side sync: when nodes change, update editor
+  // Receive-side sync: when nodes change, update editor only if not focused
   useEffect(() => {
     if (!subscribeMarkdownFromNodes) return;
     const unsub = subscribeMarkdownFromNodes((text: string) => {
-      if (text === mapMarkdown) return; // no actual change
-      setMapMarkdown(text || '');
+      // While editing, never override the user's input. Queue it instead.
+      if (editorFocused) {
+        pendingNodesTextRef.current = text || '';
+        return;
+      }
+      if (text !== mapMarkdown) {
+        setMapMarkdown(text || '');
+      }
     });
     return () => { try { unsub(); } catch (_e) { /* ignore */ } };
-  }, [subscribeMarkdownFromNodes, mapMarkdown]);
+  }, [subscribeMarkdownFromNodes, mapMarkdown, editorFocused]);
+
+  // When editing ends, if there is a queued nodes text, apply it once
+  useEffect(() => {
+    if (editorFocused) return;
+    if (pendingNodesTextRef.current != null && pendingNodesTextRef.current !== mapMarkdown) {
+      setMapMarkdown(pendingNodesTextRef.current);
+    }
+    pendingNodesTextRef.current = null;
+  }, [editorFocused, mapMarkdown]);
 
   // Cursor sync only from editor to mindmap selection (one-way)
   const handleCursorLineChange = useCallback((line: number) => {
