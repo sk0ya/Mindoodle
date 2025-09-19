@@ -291,15 +291,24 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vim mode handling through command system
       if (vim && vim.isEnabled && vim.mode === 'normal') {
-        // Handle Ctrl+U and Ctrl+D scroll commands
+        // Handle Ctrl+U and Ctrl+D scroll commands, and map switching Ctrl+P/N
         if (isModifier) {
-          if (key.toLowerCase() === 'u' && ctrlKey) {
+          const lower = key.toLowerCase();
+          if (lower === 'u' && ctrlKey) {
             event.preventDefault();
             commands.executeVimCommand('ctrl-u');
             return;
-          } else if (key.toLowerCase() === 'd' && ctrlKey) {
+          } else if (lower === 'd' && ctrlKey) {
             event.preventDefault();
             commands.executeVimCommand('ctrl-d');
+            return;
+          } else if (lower === 'p' && ctrlKey && handlers.switchToPrevMap) {
+            event.preventDefault();
+            handlers.switchToPrevMap();
+            return;
+          } else if (lower === 'n' && ctrlKey && handlers.switchToNextMap) {
+            event.preventDefault();
+            handlers.switchToNextMap();
             return;
           }
           // Fall through to regular modifier handling
