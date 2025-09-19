@@ -183,13 +183,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
   // Expose map list and selector for keyboard shortcuts (Ctrl+P/N)
+  const explorerTree = (mindMap as any).explorerTree || null;
   React.useEffect(() => {
     try {
       (window as any).mindoodleAllMaps = allMindMaps || [];
       (window as any).mindoodleCurrentMapId = currentMapId || null;
       // Build ordered list of maps based on explorer tree (visual order)
       const ordered: Array<{ mapId: string; workspaceId: string | undefined }> = [];
-      const tree: any = (mindMap as any).explorerTree || null;
+      const tree: any = explorerTree;
       const visit = (node: any) => {
         if (!node) return;
         if (node.type === 'folder') {
@@ -226,7 +227,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         } catch {}
       };
     } catch {}
-  }, [allMindMaps, currentMapId, selectMapById]);
+  }, [allMindMaps, currentMapId, selectMapById, explorerTree]);
 
   // Now that mindMap is initialized, define folder selection handler
   const handleSelectFolder = React.useCallback(async () => {

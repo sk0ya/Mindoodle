@@ -334,7 +334,8 @@ export function useShortcutHandlers(args: Args) {
           idx = idx <= 0 ? order.length - 1 : idx - 1;
           const cand = order[idx];
           const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
-          if (mapData && !isEmpty(mapData)) {
+          // If we don't have map data loaded, assume non-empty to allow navigation
+          if (!mapData || !isEmpty(mapData)) {
             const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId } });
             window.dispatchEvent(ev);
             break;
@@ -364,7 +365,7 @@ export function useShortcutHandlers(args: Args) {
           idx = idx >= order.length - 1 ? 0 : idx + 1;
           const cand = order[idx];
           const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
-          if (mapData && !isEmpty(mapData)) {
+          if (!mapData || !isEmpty(mapData)) {
             const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId } });
             window.dispatchEvent(ev);
             break;
