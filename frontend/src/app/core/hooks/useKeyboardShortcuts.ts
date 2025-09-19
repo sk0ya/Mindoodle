@@ -383,6 +383,10 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         if (handleNonVimShortcut(event, commands, handlers)) {
           return;
         }
+        // Also allow standard shortcuts (e.g., Tab/Enter) to run in Vim mode
+        if (handleStandardShortcut(event, commands, handlers)) {
+          return;
+        }
       }
     };
 
