@@ -86,6 +86,12 @@ function handleStandardShortcut(
       commands.execute('add-sibling');
       return true;
     }
+    if (key === 'Delete' || key === 'Backspace') {
+      event.preventDefault();
+      handlers.closeAttachmentAndLinkLists();
+      commands.execute('delete');
+      return true;
+    }
   }
 
   // Modifier shortcuts
@@ -317,11 +323,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         // Regular vim commands (non-modifier keys)
         if (!isModifier) {
           // Map special keys to lowercase
-          const specialKeyMap: Record<string, string> = {
-            // Handle only delete/backspace as Vim special keys; let Tab/Enter fall through to standard shortcuts
-            'Delete': 'delete',
-            'Backspace': 'backspace'
-          };
+          // No special keys handled by Vim here; let standard handler manage Tab/Enter/Delete/Backspace
+          const specialKeyMap: Record<string, string> = {};
 
           // Preserve case for letters to support uppercase commands like 'M'
           const normalizedKey = specialKeyMap[key] || key;
@@ -334,12 +337,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
 
           // Handle special keys directly
-          if (['delete', 'backspace'].includes(normalizedKey)) {
-            logger.debug('Debug: Executing special vim key:', normalizedKey);
-            handlers.closeAttachmentAndLinkLists();
-            commands.executeVimCommand(normalizedKey);
-            return;
-          }
+          // No direct special key handling; fall through to sequence handling / standard shortcuts
 
           // Handle vim sequences through command system
           const currentBuffer = vim.commandBuffer;
