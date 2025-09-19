@@ -28,12 +28,7 @@ export const useInitialDataLoad = (
         const initialData = await dependencies.loadInitialData();
         dependencies.setData(initialData);
         logger.debug('Initial data loaded:', initialData.title);
-        // Auto layout after initial load
-        try {
-          dependencies.applyAutoLayout?.();
-        } catch (e) {
-          logger.warn('Auto layout after initial load failed:', e);
-        }
+        // Note: Do not auto layout on initial load to avoid unnecessary reflows
       } catch (error) {
         logger.error('Failed to load initial data:', error);
       }
