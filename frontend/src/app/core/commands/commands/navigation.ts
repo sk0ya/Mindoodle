@@ -4,6 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../types';
+import { useMindMapStore } from '../../store/mindMapStore';
 
 // Arrow navigation command
 export const arrowNavigateCommand: Command = {
@@ -300,21 +301,14 @@ export const selectRootNodeCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      let rootNode = null;
-
-      // Try to get root node from vim context first
-      if (context.vim?.getCurrentRootNode) {
-        rootNode = context.vim.getCurrentRootNode();
-      }
-
-      // If no root node found or no vim context, this is still a failure
-      // The vim context should always be available and have the root node
-      if (!rootNode || !rootNode.id) {
+      const roots = (useMindMapStore.getState() as any)?.data?.rootNodes || [];
+      if (!roots || roots.length === 0) {
         return {
           success: false,
-          error: 'No root node found in current map'
+          error: 'No root nodes found in current map'
         };
       }
+      const rootNode = roots[0];
 
       // Select the root node
       context.handlers.selectNode(rootNode.id);
@@ -509,33 +503,21 @@ export const selectBottomNodeCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      let rootNode = null as any;
-      if (context.vim?.getCurrentRootNode) {
-        rootNode = context.vim.getCurrentRootNode();
+      const roots = (useMindMapStore.getState() as any)?.data?.rootNodes || [];
+      if (!roots || roots.length === 0) {
+        return { success: false, error: 'No root nodes found in current map' };
       }
-      if (!rootNode) {
-        return { success: false, error: 'No root node found in current map' };
+      // Start from the bottom-most root (last in order)
+      const rootNode = roots[roots.length - 1];
+
+      // Pick the deepest descendant by always choosing the last child until leaf
+      let bottom = rootNode as any;
+      while (bottom && Array.isArray(bottom.children) && bottom.children.length > 0) {
+        bottom = bottom.children[bottom.children.length - 1];
       }
 
-      // Collect all visible nodes (skip children of collapsed nodes)
-      function collectVisible(node: any): any[] {
-        const list = [node];
-        if (node.children && !node.collapsed) {
-          for (const c of node.children) list.push(...collectVisible(c));
-        }
-        return list;
-      }
-      const nodes = collectVisible(rootNode);
-      if (nodes.length === 0) {
+      if (!bottom || !bottom.id) {
         return { success: false, error: 'No nodes to select' };
-      }
-
-      // Find node with maximum y (lowest)
-      let bottom = nodes[0];
-      for (const n of nodes) {
-        const ny = typeof n.y === 'number' ? n.y : 0;
-        const by = typeof bottom.y === 'number' ? bottom.y : 0;
-        if (ny > by) bottom = n;
       }
 
       context.handlers.selectNode(bottom.id);
