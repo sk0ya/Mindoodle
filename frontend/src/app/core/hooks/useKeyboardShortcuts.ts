@@ -292,7 +292,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
-      const { key, ctrlKey, metaKey } = event;
+      const { key, ctrlKey, metaKey, altKey } = event;
       const isModifier = ctrlKey || metaKey;
 
       // Vim mode handling through command system
@@ -316,8 +316,30 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             event.preventDefault();
             handlers.switchToNextMap();
             return;
+          } else if (lower === '[' && (ctrlKey || metaKey) && handlers.switchToPrevMap) {
+            event.preventDefault();
+            handlers.switchToPrevMap();
+            return;
+          } else if (lower === ']' && (ctrlKey || metaKey) && handlers.switchToNextMap) {
+            event.preventDefault();
+            handlers.switchToNextMap();
+            return;
           }
           // Fall through to regular modifier handling
+        }
+
+        // Alt-based fallback for browsers that block Ctrl+N
+        if (altKey && !ctrlKey && !metaKey) {
+          const lower = key.toLowerCase();
+          if (lower === 'p' && handlers.switchToPrevMap) {
+            event.preventDefault();
+            handlers.switchToPrevMap();
+            return;
+          } else if (lower === 'n' && handlers.switchToNextMap) {
+            event.preventDefault();
+            handlers.switchToNextMap();
+            return;
+          }
         }
 
         // Regular vim commands (non-modifier keys)
