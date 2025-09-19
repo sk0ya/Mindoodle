@@ -77,8 +77,21 @@ export const useVimMode = (): VimModeHook => {
   }, []);
 
   const getCurrentRootNode = useCallback((): MindMapNode | null => {
-    const { data } = useMindMapStore.getState();
-    return data?.rootNodes?.[0] || null;
+    const { data, selectedNodeId } = useMindMapStore.getState() as any;
+    const roots: MindMapNode[] = data?.rootNodes || [];
+    if (roots.length === 0) return null;
+    if (selectedNodeId) {
+      for (const r of roots) {
+        const stack: MindMapNode[] = [r];
+        while (stack.length) {
+          const n = stack.pop()!;
+          if (!n) continue;
+          if (n.id === selectedNodeId) return r;
+          if (n.children?.length) stack.push(...n.children);
+        }
+      }
+    }
+    return roots[0] || null;
   }, []);
 
   return {

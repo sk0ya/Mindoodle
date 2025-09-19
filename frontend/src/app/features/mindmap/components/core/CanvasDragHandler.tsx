@@ -18,7 +18,7 @@ interface CanvasDragHandlerProps {
   svgRef: React.RefObject<SVGSVGElement>;
   onChangeParent?: (nodeId: string, newParentId: string) => void;
   onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
-  rootNode: MindMapNode;
+  rootNodes: MindMapNode[];
 }
 
 export const useCanvasDragHandler = ({
@@ -28,7 +28,7 @@ export const useCanvasDragHandler = ({
   svgRef,
   onChangeParent,
   onChangeSiblingOrder,
-  rootNode
+  rootNodes
 }: CanvasDragHandlerProps) => {
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
@@ -87,7 +87,11 @@ export const useCanvasDragHandler = ({
         }
         return null;
       };
-      return findParentRecursive(rootNode);
+      for (const root of rootNodes) {
+        const found = findParentRecursive(root);
+        if (found) return found;
+      }
+      return null;
     };
 
     const draggedParent = dragState.draggedNodeId ? findParent(dragState.draggedNodeId) : null;
@@ -126,7 +130,7 @@ export const useCanvasDragHandler = ({
 
 
     return { node: targetNode, position, action };
-  }, [allNodes, zoom, pan, dragState.draggedNodeId, svgRef, rootNode]);
+  }, [allNodes, zoom, pan, dragState.draggedNodeId, svgRef, rootNodes]);
 
   // ドラッグ開始時の処理
   const handleDragStart = useCallback((nodeId: string, _e: React.MouseEvent | React.TouchEvent) => {

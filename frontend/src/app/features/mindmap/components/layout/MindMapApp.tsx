@@ -714,23 +714,36 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // ルートノードを左端中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
-    if (data?.rootNodes?.[0]) {
-      centerNodeInView(data.rootNodes[0].id, false);
+    const roots = data?.rootNodes || [];
+    if (roots.length === 0) return;
+    if (selectedNodeId) {
+      const root = roots.find(r => !!findNodeById(r, selectedNodeId)) || roots[0];
+      centerNodeInView(root.id, false);
+    } else {
+      centerNodeInView(roots[0].id, false);
     }
-  }, [data?.rootNodes, centerNodeInView]);
+  }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
 
 
   // Simplified link navigation via utility
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
       currentMapId,
-      dataRoot: data?.rootNodes?.[0],
+      dataRoot: null,
       selectMapById,
       currentWorkspaceId: (data as any)?.mapIdentifier?.workspaceId as string,
       selectNode,
       centerNodeInView,
       notify: showNotification,
-      getCurrentRootNode: () => useMindMapStore.getState().data?.rootNodes?.[0] || null,
+      getCurrentRootNode: () => {
+        const st = useMindMapStore.getState();
+        const roots = st.data?.rootNodes || [];
+        const sel = st.selectedNodeId;
+        if (sel) {
+          return roots.find(r => !!findNodeById(r, sel)) || roots[0] || null;
+        }
+        return roots[0] || null;
+      },
       getAllRootNodes: () => useMindMapStore.getState().data?.rootNodes || null,
       resolveAnchorToNode,
     });
@@ -743,7 +756,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     if (text !== undefined) finishEditing(nodeId, text);
   };
   const shortcutHandlers = useShortcutHandlers({
-    data: data ? { rootNode: data.rootNodes?.[0] } : null,
+    data: null,
     ui,
     store,
     logger,

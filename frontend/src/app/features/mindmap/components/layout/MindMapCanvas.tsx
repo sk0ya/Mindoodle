@@ -111,7 +111,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     svgRef,
     onChangeParent,
     onChangeSiblingOrder,
-    rootNode: rootNodes.length > 0 ? rootNodes[0] : { id: 'temp', text: '', x: 0, y: 0, children: [] } // Pass first root for compatibility
+    rootNodes
   });
 
   // ビューポートハンドラーを使用

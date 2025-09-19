@@ -75,24 +75,31 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
       return;
     }
 
-    if (link.targetNodeId && dataRoot) {
+    if (link.targetNodeId) {
       const tn = link.targetNodeId;
       if (tn.startsWith('text:')) {
         const targetText = tn.slice(5);
-        const node = findNodeByTextLoose(dataRoot, targetText);
-        if (node) {
-          selectNode(node.id);
-          centerNodeInView(node.id);
-          notify('success', `ノード "${node.text}" に移動しました`);
-        } else {
-          notify('error', `ノード "${targetText}" が見つかりません`);
+        // 複数ルート対応: getAllRootNodes があればそちらを優先
+        const allRoots = ctx.getAllRootNodes?.() || [];
+        const singleRoot = dataRoot || getCurrentRootNode() || null;
+        const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
+        if (roots.length > 0) {
+          const node = findNodeByTextInMultipleRoots(roots as MindMapNode[], targetText);
+          if (node) {
+            selectNode(node.id);
+            centerNodeInView(node.id);
+            notify('success', `ノード "${node.text}" に移動しました`);
+            return;
+          }
         }
+        notify('error', `ノード "${targetText}" が見つかりません`);
+        return;
       } else {
         selectNode(tn);
         centerNodeInView(tn);
         notify('success', `ノードに移動しました`);
+        return;
       }
-      return;
     }
 
     notify('info', 'リンク先が指定されていません');
