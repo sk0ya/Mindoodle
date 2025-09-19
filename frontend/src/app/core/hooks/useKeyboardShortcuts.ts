@@ -47,6 +47,9 @@ interface KeyboardShortcutHandlers {
   closeAttachmentAndLinkLists: () => void;
   onMarkdownNodeType?: (_nodeId: string, _newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
+  // Map switching (optional)
+  switchToPrevMap?: () => void;
+  switchToNextMap?: () => void;
 }
 
 /**
@@ -86,7 +89,29 @@ function handleStandardShortcut(
   }
 
   // Modifier shortcuts
-  if (isModifier && handlers.selectedNodeId) {
+  if (isModifier) {
+    // Map switching: Ctrl+P (prev), Ctrl+N (next)
+    switch (key.toLowerCase()) {
+      case 'p':
+        if (handlers.switchToPrevMap) {
+          event.preventDefault();
+          handlers.switchToPrevMap();
+          return true;
+        }
+        break;
+      case 'n':
+        if (handlers.switchToNextMap) {
+          event.preventDefault();
+          handlers.switchToNextMap();
+          return true;
+        }
+        break;
+    }
+
+    // Node-related modifier shortcuts require a selection
+    if (!handlers.selectedNodeId) {
+      return false;
+    }
     switch (key.toLowerCase()) {
       case 'c':
         event.preventDefault();

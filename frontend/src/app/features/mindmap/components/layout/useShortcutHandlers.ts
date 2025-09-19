@@ -311,6 +311,31 @@ export function useShortcutHandlers(args: Args) {
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,
     centerNodeInView,
+    // Map switching helpers for global shortcuts (Ctrl+P/N)
+    switchToPrevMap: () => {
+      try {
+        const maps = (window as any).mindoodleAllMaps || [];
+        const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
+        const selectMapById = (window as any).mindoodleSelectMapById as (id: string) => void;
+        if (!Array.isArray(maps) || maps.length === 0 || typeof selectMapById !== 'function') return;
+        const idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
+        const nextIdx = idx <= 0 ? maps.length - 1 : idx - 1;
+        const target = maps[nextIdx];
+        if (target?.mapIdentifier?.mapId) selectMapById(target.mapIdentifier.mapId);
+      } catch {}
+    },
+    switchToNextMap: () => {
+      try {
+        const maps = (window as any).mindoodleAllMaps || [];
+        const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
+        const selectMapById = (window as any).mindoodleSelectMapById as (id: string) => void;
+        if (!Array.isArray(maps) || maps.length === 0 || typeof selectMapById !== 'function') return;
+        const idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
+        const nextIdx = idx >= maps.length - 1 ? 0 : idx + 1;
+        const target = maps[nextIdx];
+        if (target?.mapIdentifier?.mapId) selectMapById(target.mapIdentifier.mapId);
+      } catch {}
+    },
   }), [
     data, ui, store, logger, showNotification,
     centerNodeInView,

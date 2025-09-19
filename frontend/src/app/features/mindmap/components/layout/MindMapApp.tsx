@@ -182,6 +182,20 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     (window as any).mindoodleRemoveWorkspace = async (id: string) => { try { await (removeWorkspace as any)?.(id); await (mindMap as any).refreshMapList?.(); } catch {} };
   }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
+  // Expose map list and selector for keyboard shortcuts (Ctrl+P/N)
+  React.useEffect(() => {
+    try {
+      (window as any).mindoodleAllMaps = allMindMaps || [];
+      (window as any).mindoodleCurrentMapId = currentMapId || null;
+      (window as any).mindoodleSelectMapById = (mapId: string) => {
+        try {
+          const target = (allMindMaps || []).find(m => m?.mapIdentifier?.mapId === mapId);
+          if (target) selectMapById(target.mapIdentifier);
+        } catch {}
+      };
+    } catch {}
+  }, [allMindMaps, currentMapId, selectMapById]);
+
   // Now that mindMap is initialized, define folder selection handler
   const handleSelectFolder = React.useCallback(async () => {
     try {
