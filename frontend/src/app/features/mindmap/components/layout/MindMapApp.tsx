@@ -798,14 +798,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
           const newData = { ...data, rootNodes: updatedNodes };
           store.setData(newData);
-
-          // 強制的に再レンダリングをトリガーしてマーカーを即座に更新
+          // 選択状態は維持しつつ再描画。明示的な selectNode(null) は行わない
           setTimeout(() => {
-            selectNode(null);
-            setTimeout(() => {
-              selectNode(nodeId);
-            }, 1);
-          }, 1);
+            selectNode(nodeId);
+          }, 0);
         });
       }
     },
