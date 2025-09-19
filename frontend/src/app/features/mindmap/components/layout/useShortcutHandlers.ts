@@ -98,8 +98,8 @@ export function useShortcutHandlers(args: Args) {
       let nextNodeId: string | null = null;
       switch (direction) {
         case 'left': {
-          // Move to parent node
-          const stack: MindMapNode[] = [data.rootNode];
+          // Move to parent node (start from current root, not nullable data)
+          const stack: MindMapNode[] = currentRoot ? [currentRoot] as MindMapNode[] : [];
           while (stack.length) {
             const node = stack.pop()!;
             if (node.children?.some(c => c.id === selectedNodeId)) { nextNodeId = node.id; break; }
