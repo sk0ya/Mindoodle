@@ -188,11 +188,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       (window as any).mindoodleAllMaps = allMindMaps || [];
       (window as any).mindoodleCurrentMapId = currentMapId || null;
       // Debounced selector to avoid heavy reflows when switching rapidly
-      (window as any).__mindoodleMapSwitchTimer && clearTimeout((window as any).__mindoodleMapSwitchTimer);
       (window as any).mindoodleSelectMapById = (mapId: string) => {
         try {
-          // Skip if selecting the same map
-          if (currentMapId === mapId) return;
+          // Skip if selecting the same map (use latest reflected on window to avoid stale closure)
+          const curr: string | null = (window as any).mindoodleCurrentMapId || null;
+          if (curr === mapId) return;
           const target = (allMindMaps || []).find(m => m?.mapIdentifier?.mapId === mapId);
           if (!target) return;
           const pendingKey = `pending:${target.mapIdentifier.workspaceId}:${target.mapIdentifier.mapId}`;
