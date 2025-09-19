@@ -38,13 +38,8 @@ export const useMindMapActions = () => {
     // マップ選択
     selectMap: useCallback((mapData: MindMapData) => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
+      // ここではオートレイアウトを実行しない（連打時の負荷・揺れ対策）
       store.setData(mapData);
-      try {
-        // 自動整列を適用
-        store.applyAutoLayout();
-      } catch (e) {
-        logger.warn('Auto layout on map select failed:', e);
-      }
       logger.debug('Selected map:', mapData.title);
     }, [store]),
 
