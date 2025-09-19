@@ -421,11 +421,8 @@ export const useMindMap = (
       const mapId = target.mapId;
       const workspaceId = target.workspaceId;
 
-      const targetMap = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === workspaceId);
-      if (targetMap) {
-        actionsHook.selectMap(targetMap);
-        return true;
-      }
+      // Do NOT trust cached allMindMaps content; always try to load fresh content
+      // (cached list may be stale vs on-disk / stream-saved markdown)
 
       // Fallback: try to load markdown by id via adapter and parse
       // 重複実行を防ぐため、既に実行中の場合はスキップ
@@ -446,15 +443,18 @@ export const useMindMap = (
         const text: string | null = await (adapter.getMapMarkdown?.(target));
         if (!text) {
           delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+          // ファイルがない場合はキャッシュも使わない（データが存在しない）
+          logger.warn('⚠️ No file found for map:', mapId);
           return false;
         }
 
         // 再度チェック：他の処理で既にリストに追加されている可能性
+        // ただし、キャッシュされたデータではなく、常にファイルから最新データを読み込む
         const existingMap = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === workspaceId);
         if (existingMap) {
-          actionsHook.selectMap(existingMap);
-          delete (window as any).__selectMapFallbackInProgress[fallbackKey];
-          return true;
+          // キャッシュデータを使わず、ファイルから読み込んだ最新データを使用
+          logger.debug('🔄 Found cached map but using fresh file data instead', { mapId, cached: existingMap.updatedAt });
+          // continue to use file data instead of cached data
         }
         
         // allMindMapsから同じタイトルのマップを検索して、正しいmapIdentifierを取得
@@ -494,6 +494,9 @@ export const useMindMap = (
 
           if (stillNotExists) {
             await persistenceHook.addMapToList(parsed);
+          } else {
+            // Update list with fresh content so subsequent switches use current data
+            await persistenceHook.updateMapInList(parsed);
           }
         } catch (e) {
           logger.error('Failed to add map to list:', e);

@@ -13,8 +13,7 @@ import {
   addSiblingNormalizedNode,
   addRootSiblingNode,
   moveNormalizedNode,
-  changeSiblingOrderNormalized,
-  denormalizeTreeData
+  changeSiblingOrderNormalized
 } from '../../data';
 import { createNewNode } from '../../../shared/types/dataTypes';
 import { COLORS, LAYOUT } from '../../../shared';
@@ -50,18 +49,6 @@ export interface NodeSlice {
   deleteNodeLink: (nodeId: string, linkId: string) => void;
 }
 
-// Helper function to sync normalized data back to tree structure with multiple root nodes only
-const syncNormalizedDataToTree = (state: any) => {
-  if (!state.normalizedData || !state.data) return;
-
-  const newRootNodes = denormalizeTreeData(state.normalizedData);
-
-  state.data = {
-    ...state.data,
-    rootNodes: newRootNodes,
-    updatedAt: new Date().toISOString()
-  };
-};
 export const createNodeSlice: StateCreator<
   MindMapStore,
   [["zustand/immer", never]],
@@ -88,13 +75,13 @@ export const createNodeSlice: StateCreator<
       
       try {
         state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, updates);
-        
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('updateNode error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
   },
 
   addChildNode: (parentId: string, text: string = 'New Node') => {
@@ -211,13 +198,13 @@ export const createNodeSlice: StateCreator<
         state.lastSelectionBeforeInsert = parentId;
         // Select the new node
         state.selectedNodeId = newNode.id;
-        
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('addChildNode error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -332,13 +319,13 @@ export const createNodeSlice: StateCreator<
         state.lastSelectionBeforeInsert = nodeId;
         // 新しいノードを選択
         state.selectedNodeId = newNode.id;
-        
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('addSiblingNode error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -407,13 +394,13 @@ export const createNodeSlice: StateCreator<
           state.editingNodeId = null;
           state.editText = '';
         }
-        
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('deleteNode error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -436,13 +423,13 @@ export const createNodeSlice: StateCreator<
       
       try {
         state.normalizedData = moveNormalizedNode(state.normalizedData, nodeId, newParentId);
-        
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('moveNode error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -468,14 +455,15 @@ export const createNodeSlice: StateCreator<
         const hasChanged = JSON.stringify(originalData.childrenMap) !== JSON.stringify(state.normalizedData.childrenMap);
         logger.debug('🔄 変更チェック:', { hasChanged });
         
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
         logger.debug('🔄 データ更新完了');
         logger.debug('✅ changeSiblingOrder完了');
       } catch (error) {
         logger.error('❌ changeSiblingOrder error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -625,13 +613,13 @@ export const createNodeSlice: StateCreator<
         state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, { 
           collapsed: newCollapsedState 
         });
-        
-        // Sync back to tree structure with multiple root nodes support
-        syncNormalizedDataToTree(state);
       } catch (error) {
         logger.error('toggleNodeCollapse error:', error);
       }
     });
+    
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
