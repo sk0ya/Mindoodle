@@ -435,7 +435,36 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     const handler = async (e: any) => {
       const id = e?.detail?.mapId as string | undefined;
       const ws = e?.detail?.workspaceId as string;
-      if (id && typeof selectMapById === 'function') {
+      const source = e?.detail?.source as string | undefined;
+      const direction = e?.detail?.direction as ('prev' | 'next' | undefined);
+      if (!id || typeof selectMapById !== 'function') return;
+
+      const ordered: Array<{ mapId: string; workspaceId?: string }> = (window as any).mindoodleOrderedMaps || [];
+      const dirStep = direction === 'prev' ? -1 : 1;
+
+      const trySelect = async (mapId: string, workspaceId?: string): Promise<boolean> => {
+        const ok = await selectMapById({ mapId, workspaceId: workspaceId as any });
+        if (!ok) return false;
+        // Allow state to settle
+        await Promise.resolve();
+        const current = useMindMapStore.getState().data;
+        const roots = current?.rootNodes || [];
+        const empty = !Array.isArray(roots) || roots.length === 0 || (roots.length === 1 && (!roots[0].children || roots[0].children.length === 0));
+        return !empty;
+      };
+
+      if (source === 'keyboard' && (direction === 'prev' || direction === 'next') && Array.isArray(ordered) && ordered.length > 0) {
+        // Start from requested id and skip empties following the direction
+        let idx = ordered.findIndex(o => o.mapId === id);
+        if (idx < 0) idx = 0;
+        for (let step = 0; step < ordered.length; step++) {
+          const i = (idx + (dirStep * step) + ordered.length) % ordered.length;
+          const cand = ordered[i];
+          const ok = await trySelect(cand.mapId, cand.workspaceId);
+          if (ok) break;
+        }
+      } else {
+        // Default behavior
         await selectMapById({ mapId: id, workspaceId: ws });
       }
     };
