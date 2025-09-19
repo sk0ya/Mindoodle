@@ -333,7 +333,9 @@ export function getNodeLeftX(node: MindMapNode, nodeWidth: number): number {
 }
 
 export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode, nodeSize: NodeSize, globalFontSize?: number) {
-  const isOnRight = node.x > rootNode.x;
+  // ルートノード自身の場合は常に右側に配置
+  const isRootNodeItself = node.id === rootNode.id;
+  const isOnRight = isRootNodeItself ? true : node.x > rootNode.x;
   
   // フォントサイズとノードサイズに応じた動的なマージン調整
   const fontSize = globalFontSize || 14;
