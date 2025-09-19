@@ -63,7 +63,12 @@ export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): Normali
     nodes,
     rootNodeIds: rootNodes.map(node => node.id),
     parentMap,
-    childrenMap
+    childrenMap: {
+      ...childrenMap,
+      // 便宜上の仮想ルートを用意して、ルート一覧を保持しておく
+      // これにより、削除や選択のフォールバックが簡単になる
+      ['root']: rootNodes.map(node => node.id)
+    }
   };
 }
 
@@ -130,12 +135,15 @@ export function deleteNormalizedNode(
   normalizedData: NormalizedData,
   nodeId: string
 ): NormalizedData {
-  if (normalizedData.rootNodeIds.includes(nodeId)) {
-    throw new Error('Cannot delete root node');
-  }
-
-  const parentId = normalizedData.parentMap[nodeId];
-  if (!parentId) {
+  const isRoot = normalizedData.rootNodeIds.includes(nodeId);
+  let parentId = normalizedData.parentMap[nodeId];
+  if (isRoot) {
+    // ルートノードは親がいないので、仮想親 'root' を使う
+    if (normalizedData.rootNodeIds.length <= 1) {
+      throw new Error('Cannot delete the last root node');
+    }
+    parentId = 'root';
+  } else if (!parentId) {
     throw new Error(`Parent not found for node: ${nodeId}`);
   }
 
@@ -162,14 +170,21 @@ export function deleteNormalizedNode(
     delete newChildrenMap[id];
   });
 
-  // 親の子リストから削除
-  newChildrenMap[parentId] = newChildrenMap[parentId].filter(id => id !== nodeId);
+  // 親の子リストから削除（仮想親 'root' を含む）
+  const parentChildren = newChildrenMap[parentId] || [];
+  newChildrenMap[parentId] = parentChildren.filter(id => id !== nodeId);
+
+  // ルート配列からも削除
+  const newRootIds = isRoot
+    ? normalizedData.rootNodeIds.filter(id => id !== nodeId)
+    : normalizedData.rootNodeIds;
 
   return {
     ...normalizedData,
     nodes: newNodes,
     parentMap: newParentMap,
-    childrenMap: newChildrenMap
+    childrenMap: newChildrenMap,
+    rootNodeIds: newRootIds
   };
 }
 
