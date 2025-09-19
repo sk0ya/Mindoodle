@@ -118,6 +118,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       const line = e.position.lineNumber;
       onCursorLineChange?.(line);
     });
+    // Focus gained in text input area
     editor.onDidFocusEditorText?.(async () => {
       onFocusChange?.(true);
       isTextFocusedRef.current = true;
@@ -127,10 +128,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         if (ok) setIsVimEnabled(true);
       }
     });
+
+    // Treat text blur as leaving the editor (original behavior)
     editor.onDidBlurEditorText?.(() => {
       onFocusChange?.(false);
       isTextFocusedRef.current = false;
-      // Disable Vim when focus leaves the editor so app shortcuts work
+      // Disable Vim when focus leaves editor so app shortcuts work
       if (isVimEnabled) {
         disableVimMode();
       }

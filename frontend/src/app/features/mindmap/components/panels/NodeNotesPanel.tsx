@@ -151,18 +151,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     }
   }, []);
 
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && onClose) {
-        e.preventDefault();
-        onClose();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  // Do not close this panel with ESC at all (no global handler here)
 
   // Disable auto-save when editing map markdown; re-enable otherwise
   useEffect(() => {
