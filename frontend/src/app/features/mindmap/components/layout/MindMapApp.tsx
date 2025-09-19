@@ -1098,6 +1098,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         visible={contextMenu.visible}
         position={contextMenu.position}
         dataRoot={data?.rootNodes?.[0] || null}
+        dataRoots={data?.rootNodes || []}
         nodeId={contextMenu.nodeId}
         onDelete={deleteNode}
         onCustomize={(node) => {

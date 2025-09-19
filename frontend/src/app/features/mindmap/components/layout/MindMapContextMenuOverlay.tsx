@@ -1,12 +1,13 @@
 import React from 'react';
 import ContextMenu from '../../../../shared/components/ui/ContextMenu';
-import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeById, findNodeInRoots } from '../../../../shared/utils/nodeTreeUtils';
 import type { MindMapNode } from '@shared/types';
 
 type Props = {
   visible: boolean;
   position: { x: number; y: number };
   dataRoot: MindMapNode | null;
+  dataRoots?: MindMapNode[];
   onDelete: (nodeId: string) => void;
   onCustomize: (node: MindMapNode) => void;
   onAddLink: (nodeId: string) => void;
@@ -22,6 +23,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   visible,
   position,
   dataRoot,
+  dataRoots,
   onDelete,
   onCustomize,
   onAddLink,
@@ -32,8 +34,12 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onClose,
   nodeId,
 }) => {
-  if (!visible || !nodeId || !dataRoot) return null;
-  const selectedNode = findNodeById(dataRoot, nodeId);
+  const roots = (dataRoots && dataRoots.length > 0)
+    ? dataRoots
+    : (dataRoot ? [dataRoot] : []);
+  if (!visible || !nodeId || roots.length === 0) return null;
+  const selectedNode = findNodeInRoots(roots, nodeId);
+  if (!selectedNode) return null;
   return (
     <ContextMenu
       visible={visible}
@@ -52,4 +58,3 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
 };
 
 export default MindMapContextMenuOverlay;
-
