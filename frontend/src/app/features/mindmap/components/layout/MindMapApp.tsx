@@ -810,6 +810,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // Vim mode hook
   const vim = useVimMode();
 
+  // Ensure Vim mode returns to normal when editing ends (e.g., blur)
+  React.useEffect(() => {
+    if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal') {
+      vim.setMode('normal');
+    }
+  }, [vim, editingNodeId]);
+
   useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
 
