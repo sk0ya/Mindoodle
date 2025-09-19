@@ -19,6 +19,8 @@ const VIM_COMMAND_PATTERNS = {
   'dd': { keys: ['d', 'd'], command: 'dd' },
   'yy': { keys: ['y', 'y'], command: 'yy' },
   'gg': { keys: ['g', 'g'], command: 'gg' },
+  'gt': { keys: ['g', 't'], command: 'gt' },
+  'gT': { keys: ['g', 'T'], command: 'gT' },
   'ciw': { keys: ['c', 'i', 'w'], command: 'ciw' },
 
   // Single-key commands
@@ -34,6 +36,8 @@ const VIM_COMMAND_PATTERNS = {
   'm': { keys: ['m'], command: 'm' },
   'M': { keys: ['M'], command: 'M' },
   'G': { keys: ['G'], command: 'G' },
+  't': { keys: ['t'], command: 't' },
+  'T': { keys: ['T'], command: 'T' },
 } as const;
 
 // Generate all possible partial sequences

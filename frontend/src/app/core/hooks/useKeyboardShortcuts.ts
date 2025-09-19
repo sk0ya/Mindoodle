@@ -203,54 +203,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     editingNodeId: handlers.editingNodeId,
     vim,
     handlers: {
-      // Node operations
-      updateNode: handlers.updateNode,
-      deleteNode: handlers.deleteNode,
-      findNodeById: handlers.findNodeById,
-
-      // Navigation
-      centerNodeInView: handlers.centerNodeInView,
-      navigateToDirection: handlers.navigateToDirection,
-      selectNode: handlers.selectNode,
-      setPan: handlers.setPan,
-
-      // Editing
-      startEdit: handlers.startEdit,
-      startEditWithCursorAtStart: handlers.startEditWithCursorAtStart,
-      startEditWithCursorAtEnd: handlers.startEditWithCursorAtEnd,
-
-      // Structure operations
-      addChildNode: handlers.addChildNode,
-      addSiblingNode: handlers.addSiblingNode,
-      changeSiblingOrder: handlers.changeSiblingOrder,
-
-      // Clipboard operations
-      copyNode: handlers.copyNode,
-      pasteNode: handlers.pasteNode,
-      pasteImageFromClipboard: handlers.pasteImageFromClipboard,
-
-      // Undo/Redo
-      undo: handlers.undo,
-      redo: handlers.redo,
-      canUndo: handlers.canUndo,
-      canRedo: handlers.canRedo,
-
-      // UI state management
-      showKeyboardHelper: handlers.showKeyboardHelper,
-      setShowKeyboardHelper: handlers.setShowKeyboardHelper,
-      showMapList: handlers.showMapList,
-      setShowMapList: handlers.setShowMapList,
-      showLocalStorage: handlers.showLocalStorage,
-      setShowLocalStorage: handlers.setShowLocalStorage,
-      showTutorial: handlers.showTutorial,
-      setShowTutorial: handlers.setShowTutorial,
-
-      // UI operations
-      closeAttachmentAndLinkLists: handlers.closeAttachmentAndLinkLists,
-
-      // Markdown operations
-      onMarkdownNodeType: handlers.onMarkdownNodeType,
-    }
+      ...handlers,
+      // Map switching operations
+      switchToNextMap: (handlers as any).switchToNextMap,
+      switchToPrevMap: (handlers as any).switchToPrevMap,
+    } as any
   });
 
   useEffect(() => {
@@ -343,6 +300,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
         // Regular vim commands (non-modifier keys)
         if (!isModifier) {
+          // Skip modifier keys themselves
+          if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(key)) {
+            return;
+          }
+
           // Map special keys to lowercase
           // No special keys handled by Vim here; let standard handler manage Tab/Enter/Delete/Backspace
           const specialKeyMap: Record<string, string> = {};

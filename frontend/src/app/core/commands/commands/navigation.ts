@@ -531,3 +531,51 @@ export const selectBottomNodeCommand: Command = {
     }
   }
 };
+
+/**
+ * Command to switch to next map (vim-style gt)
+ * Uses existing switchToNextMap functionality
+ */
+export const nextMapCommand: Command = {
+  name: 'next-map',
+  description: 'Switch to the next map in the workspace (vim gt)',
+  category: 'navigation',
+  execute: async (context: CommandContext) => {
+    try {
+      // Use the existing switchToNextMap functionality
+      const handlers = (context as any).handlers;
+      if (handlers && handlers.switchToNextMap) {
+        handlers.switchToNextMap();
+        return { success: true, message: 'Switched to next map' };
+      }
+
+      return { success: false, error: 'Map switching not available' };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to switch to next map' };
+    }
+  }
+};
+
+/**
+ * Command to switch to previous map (vim-style gT)
+ * Uses existing switchToPrevMap functionality
+ */
+export const prevMapCommand: Command = {
+  name: 'prev-map',
+  description: 'Switch to the previous map in the workspace (vim gT)',
+  category: 'navigation',
+  execute: async (context: CommandContext) => {
+    try {
+      // Use the existing switchToPrevMap functionality
+      const handlers = (context as any).handlers;
+      if (handlers && handlers.switchToPrevMap) {
+        handlers.switchToPrevMap();
+        return { success: true, message: 'Switched to previous map' };
+      }
+
+      return { success: false, error: 'Map switching not available' };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to switch to previous map' };
+    }
+  }
+};

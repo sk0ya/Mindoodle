@@ -71,6 +71,10 @@ export interface CommandContext {
 
     // Markdown operations
     onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+
+    // Map switching operations
+    switchToNextMap?: () => void;
+    switchToPrevMap?: () => void;
   };
 }
 

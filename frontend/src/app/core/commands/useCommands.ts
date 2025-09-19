@@ -187,6 +187,8 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'yy': 'copy',
       'za': 'toggle',
       'gg': 'select-root',
+      'gt': 'next-map',
+      'gT': 'prev-map',
       'ctrl-u': 'scroll-up',
       'ctrl-d': 'scroll-down',
       'ciw': 'edit',
