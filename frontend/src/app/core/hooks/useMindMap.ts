@@ -13,6 +13,7 @@ import { logger } from '../../shared/utils/logger';
 import type { StorageConfig } from '../storage/types';
 import type { MindMapData } from '@shared/types';
 import { useMarkdownStream } from './useMarkdownStream';
+import { emitStatus } from '../../shared/hooks/useStatusBar';
 
 /**
  * 統合MindMapHook - 新しいアーキテクチャ
@@ -501,7 +502,12 @@ export const useMindMap = (
         delete (window as any).__selectMapFallbackInProgress[fallbackKey];
         return true;
       } catch (e) {
-        logger.error('Fallback error:', e);
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/構造要素が見つかりません|見出しが見つかりません/.test(msg)) {
+          try { emitStatus('warning', msg, 6000); } catch {}
+        } else {
+          logger.error('Fallback error:', e);
+        }
         delete (window as any).__selectMapFallbackInProgress[fallbackKey];
         return false;
       }

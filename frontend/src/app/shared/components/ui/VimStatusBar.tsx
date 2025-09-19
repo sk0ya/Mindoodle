@@ -1,12 +1,10 @@
 import React from 'react';
 import { useVimMode } from '../../../core/hooks/useVimMode';
+import { useStatusBar } from '../../hooks/useStatusBar';
 
 const VimStatusBar: React.FC = () => {
   const vim = useVimMode();
-
-  if (!vim.isEnabled) {
-    return null;
-  }
+  const { state: status } = useStatusBar();
 
   const getModeColor = () => {
     switch (vim.mode) {
@@ -40,23 +38,32 @@ const VimStatusBar: React.FC = () => {
 
   return (
     <div className="vim-status-bar">
-      <div 
-        className="vim-mode-indicator"
-        style={{ backgroundColor: getModeColor() }}
-      >
-        {getModeText()}
-      </div>
-      {vim.commandBuffer && (
+      {vim.isEnabled ? (
+        <div
+          className="vim-mode-indicator"
+          style={{ backgroundColor: getModeColor() }}
+        >
+          {getModeText()}
+        </div>
+      ) : (
+        <div className="vim-mode-indicator vim-off">STATUS</div>
+      )}
+
+      {vim.isEnabled && vim.commandBuffer && (
         <div className="vim-command-buffer">
           :{vim.commandBuffer}
         </div>
       )}
-      {vim.lastCommand && (
+      {vim.isEnabled && vim.lastCommand && (
         <div className="vim-last-command">
           Last: {vim.lastCommand}
         </div>
       )}
-      
+
+      <div className={`vim-status-message ${status.type}`}>
+        {status.message || ''}
+      </div>
+
       <style>{`
         .vim-status-bar {
           position: fixed;
@@ -84,6 +91,12 @@ const VimStatusBar: React.FC = () => {
           text-transform: uppercase;
         }
 
+        .vim-mode-indicator.vim-off {
+          background: var(--bg-tertiary);
+          color: var(--text-secondary);
+          border: 1px solid var(--border-color);
+        }
+
         .vim-command-buffer {
           color: var(--text-primary);
           background: var(--bg-tertiary);
@@ -97,6 +110,19 @@ const VimStatusBar: React.FC = () => {
           font-size: 10px;
           opacity: 0.7;
         }
+
+        .vim-status-message {
+          margin-left: auto;
+          min-height: 16px;
+          display: flex;
+          align-items: center;
+          color: var(--text-secondary);
+        }
+        .vim-status-message.success { color: #10b981; }
+        .vim-status-message.error { color: #ef4444; }
+        .vim-status-message.warning { color: #f59e0b; }
+        .vim-status-message.info { color: #3b82f6; }
+        .vim-status-message.neutral { color: var(--text-secondary); }
 
         /* Add padding to body when vim status bar is shown */
         body:has(.vim-status-bar) {

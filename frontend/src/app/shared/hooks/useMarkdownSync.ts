@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { MarkdownImporter } from '../utils/markdownImporter';
 import { type MindMapNode } from '../types/dataTypes';
+import { emitStatus } from './useStatusBar';
 
 /**
  * マークダウンとノード構造の同期を管理するフック
@@ -34,6 +35,7 @@ export const useMarkdownSync = () => {
       return { success: true, updatedNodes, updatedMarkdown };
     } catch (error) {
       console.error('マークダウン同期エラー:', error);
+      try { emitStatus('error', 'マークダウンの同期に失敗しました', 5000); } catch {}
       return { success: false, error };
     }
   }, []);
@@ -77,6 +79,13 @@ export const useMarkdownSync = () => {
       if (onError) {
         onError(errorMessage);
       }
+      try {
+        if (/構造要素が見つかりません|見出しが見つかりません/.test(errorMessage)) {
+          emitStatus('warning', errorMessage, 6000);
+        } else {
+          emitStatus('error', `マークダウンの解析に失敗しました: ${errorMessage}`, 6000);
+        }
+      } catch {}
       return { success: false, error: errorMessage };
     }
   }, []);
@@ -154,6 +163,7 @@ export const useMarkdownSync = () => {
       return MarkdownImporter.convertNodesToMarkdown(nodes);
     } catch (error) {
       console.error('マークダウン生成エラー:', error);
+      try { emitStatus('warning', 'マークダウンの生成に失敗しました', 4000); } catch {}
       return '';
     }
   }, []);

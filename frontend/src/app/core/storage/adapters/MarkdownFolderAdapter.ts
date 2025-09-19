@@ -2,6 +2,7 @@ import type { MindMapData } from '@shared/types';
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
+import { emitStatus } from '../../../shared/hooks/useStatusBar';
 import { MarkdownImporter } from '../../../shared/utils/markdownImporter';
 import { createInitialData } from '../../../shared/types/dataTypes';
 
@@ -28,6 +29,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // Do not open picker here; must be a user gesture.
     if (typeof (window as any)?.showDirectoryPicker !== 'function') {
       logger.warn('File System Access API is not available in this environment');
+      try { emitStatus('info', 'この環境ではフォルダアクセス機能が利用できません', 6000); } catch {}
     }
     // Try to restore workspaces (multi) or legacy root (single)
     try {
@@ -211,6 +213,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (perm !== 'granted') {
         if (!this.permissionWarned) {
           logger.warn('MarkdownFolderAdapter: Workspace permission not granted');
+          try { emitStatus('warning', 'ワークスペースの権限がありません。フォルダを選び直してください', 6000); } catch {}
           this.permissionWarned = true;
         }
         continue;
@@ -557,14 +560,18 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if ((e as any)?.name === 'NotReadableError' || /NotReadable/i.test(String(tag))) {
         if (!this.permissionWarned) {
           logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
+          try { emitStatus('warning', 'ファイルの読み取り権限がありません。フォルダを選び直してください', 6000); } catch {}
           this.permissionWarned = true;
         } else {
           logger.debug('MarkdownFolderAdapter: Skipping unreadable file:', name);
         }
-      } else if (errorMessage.includes('見出しが見つかりません')) {
-        logger.warn(`MarkdownFolderAdapter: File "${name}" has no headings and cannot be imported as a mindmap`);
+      } else if (errorMessage.includes('見出しが見つかりません') || errorMessage.includes('構造要素が見つかりません')) {
+        const msg = errorMessage || `「${name}」は見出しやリストがないためマインドマップとして開けません`;
+        // コンソールへの警告出力は抑制し、ユーザーにはステータスバーで通知
+        try { emitStatus('warning', msg, 6000); } catch {}
       } else {
         logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
+        try { emitStatus('error', `「${name}」の読み込みに失敗しました`, 6000); } catch {}
       }
       return null;
     }
