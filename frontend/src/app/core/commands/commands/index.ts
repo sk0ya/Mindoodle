@@ -48,7 +48,8 @@ import {
   scrollUpCommand,
   scrollDownCommand,
   nextMapCommand,
-  prevMapCommand
+  prevMapCommand,
+  selectCurrentRootCommand
 } from './navigation';
 
 import {
@@ -126,6 +127,7 @@ export const commands = [
   scrollDownCommand,
   nextMapCommand,
   prevMapCommand,
+  selectCurrentRootCommand,
 
   // Mindmap commands
   importMindmapCommand,
@@ -190,6 +192,7 @@ export {
   scrollDownCommand,
   nextMapCommand,
   prevMapCommand,
+  selectCurrentRootCommand,
   // Mindmap commands
   importMindmapCommand,
   exportMindmapCommand,

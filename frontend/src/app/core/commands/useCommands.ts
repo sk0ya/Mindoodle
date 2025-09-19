@@ -212,6 +212,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'm': 'convert',
       'M': 'select-center',
       'G': 'select-bottom',
+      '0': 'select-current-root',
       'delete': 'delete',
       'backspace': 'delete'
     };

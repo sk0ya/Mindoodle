@@ -579,3 +579,95 @@ export const prevMapCommand: Command = {
     }
   }
 };
+
+/**
+ * Command to select the root node of current selected node (vim '0')
+ * Finds and selects the root node that contains the currently selected node
+ */
+export const selectCurrentRootCommand: Command = {
+  name: 'select-current-root',
+  aliases: ['0', 'current-root'],
+  description: 'Select the root node of the currently selected node',
+  category: 'navigation',
+  examples: ['select-current-root', '0'],
+
+  execute(context: CommandContext): CommandResult {
+    const selectedNodeId = context.selectedNodeId;
+
+    if (!selectedNodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    try {
+      const state = useMindMapStore.getState() as any;
+      const rootNodes = state?.data?.rootNodes || [];
+
+      if (rootNodes.length === 0) {
+        return {
+          success: false,
+          error: 'No root nodes found in current map'
+        };
+      }
+
+      // Find the root node that contains the selected node
+      function findRootNodeForNode(nodeId: string, nodes: any[]): any | null {
+        for (const node of nodes) {
+          if (node.id === nodeId) {
+            return node;
+          }
+          if (node.children && node.children.length > 0) {
+            const found = findRootNodeForNode(nodeId, node.children);
+            if (found) {
+              return node; // Return the root node, not the found child
+            }
+          }
+        }
+        return null;
+      }
+
+      // Check if the selected node is already a root node
+      const isAlreadyRoot = rootNodes.some((root: any) => root.id === selectedNodeId);
+
+      if (isAlreadyRoot) {
+        return {
+          success: true,
+          message: 'Already at root node'
+        };
+      }
+
+      // Find which root node contains the selected node
+      const containingRootNode = findRootNodeForNode(selectedNodeId, rootNodes);
+
+      if (!containingRootNode) {
+        return {
+          success: false,
+          error: 'Could not find root node for selected node'
+        };
+      }
+
+      // Select the root node
+      context.handlers.selectNode(containingRootNode.id);
+
+      // Center the root node in view with animation
+      if (context.handlers.centerNodeInView) {
+        context.handlers.centerNodeInView(containingRootNode.id, true);
+      }
+
+      // Close any open panels
+      context.handlers.closeAttachmentAndLinkLists();
+
+      return {
+        success: true,
+        message: `Selected root node: "${containingRootNode.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to select current root node'
+      };
+    }
+  }
+};

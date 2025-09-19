@@ -44,6 +44,7 @@ const VIM_COMMAND_PATTERNS = {
   'G': { keys: ['G'], command: 'G' },
   't': { keys: ['t'], command: 't' },
   'T': { keys: ['T'], command: 'T' },
+  '0': { keys: ['0'], command: '0' },
 } as const;
 
 // Generate all possible partial sequences
