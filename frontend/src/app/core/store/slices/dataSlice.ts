@@ -26,18 +26,12 @@ export const createDataSlice: StateCreator<
   editText: '',
   editingMode: null,
 
-  // Set data and normalize
+  // Set data and normalize (no history push here)
   setData: (data: MindMapData) => {
     set((state) => {
       state.data = data;
       // Only use rootNodes array
       state.normalizedData = normalizeTreeData(data.rootNodes);
-      
-      // Add to history if not already there
-      if (state.history.length === 0 || state.history[state.historyIndex] !== data) {
-        state.history = [...state.history.slice(0, state.historyIndex + 1), data];
-        state.historyIndex = state.history.length - 1;
-      }
     });
   },
 
@@ -216,7 +210,7 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
       
-      // Optimized state update using requestAnimationFrame for smoother UI
+      // Optimized state update using requestAnimationFrame for smoother UI (no history push)
       requestAnimationFrame(() => {
         set((draft) => {
           if (draft.data) {
@@ -230,14 +224,6 @@ export const createDataSlice: StateCreator<
               draft.normalizedData = normalizeTreeData(layoutedRootNodes);
             } catch (normalizeError) {
               logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
-            }
-            
-            // Add to history
-            try {
-              draft.history = [...draft.history.slice(0, draft.historyIndex + 1), draft.data];
-              draft.historyIndex = draft.history.length - 1;
-            } catch (historyError) {
-              logger.error('❌ Auto layout: Failed to update history:', historyError);
             }
           }
         });
