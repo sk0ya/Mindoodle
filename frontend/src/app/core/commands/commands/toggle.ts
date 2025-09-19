@@ -4,6 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../types';
+import { useMindMapStore } from '../../store/mindMapStore';
 
 export const toggleCommand: Command = {
   name: 'toggle',
@@ -213,8 +214,7 @@ export const expandAllCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      // Import store to get all nodes
-      const { useMindMapStore } = require('../../store/mindMapStore');
+      // Get all nodes from store
       const state = useMindMapStore.getState() as any;
       const rootNodes = state?.data?.rootNodes || [];
 
@@ -268,8 +268,7 @@ export const collapseAllCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      // Import store to get all nodes
-      const { useMindMapStore } = require('../../store/mindMapStore');
+      // Get all nodes from store
       const state = useMindMapStore.getState() as any;
       const rootNodes = state?.data?.rootNodes || [];
 
