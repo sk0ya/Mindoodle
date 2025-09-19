@@ -187,10 +187,27 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     try {
       (window as any).mindoodleAllMaps = allMindMaps || [];
       (window as any).mindoodleCurrentMapId = currentMapId || null;
+      // Debounced selector to avoid heavy reflows when switching rapidly
+      (window as any).__mindoodleMapSwitchTimer && clearTimeout((window as any).__mindoodleMapSwitchTimer);
       (window as any).mindoodleSelectMapById = (mapId: string) => {
         try {
+          // Skip if selecting the same map
+          if (currentMapId === mapId) return;
           const target = (allMindMaps || []).find(m => m?.mapIdentifier?.mapId === mapId);
-          if (target) selectMapById(target.mapIdentifier);
+          if (!target) return;
+          const pendingKey = `pending:${target.mapIdentifier.workspaceId}:${target.mapIdentifier.mapId}`;
+          (window as any).__mindoodlePendingMapKey = pendingKey;
+          if ((window as any).__mindoodleMapSwitchTimer) {
+            clearTimeout((window as any).__mindoodleMapSwitchTimer);
+          }
+          (window as any).__mindoodleMapSwitchTimer = setTimeout(() => {
+            try {
+              // Ensure latest pending is still this target
+              if ((window as any).__mindoodlePendingMapKey === pendingKey) {
+                selectMapById(target.mapIdentifier);
+              }
+            } catch {}
+          }, 150);
         } catch {}
       };
     } catch {}
