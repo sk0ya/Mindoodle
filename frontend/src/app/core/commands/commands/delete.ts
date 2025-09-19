@@ -7,12 +7,11 @@ import type { Command, CommandContext, CommandResult } from '../types';
 
 export const deleteCommand: Command = {
   name: 'delete',
-  aliases: ['dd', 'delete-node', 'remove'],
+  aliases: ['delete-node', 'remove'],
   description: 'Delete the selected node',
   category: 'editing',
   examples: [
     'delete',
-    'dd',
     'delete node-123',
     'delete --confirm'
   ],

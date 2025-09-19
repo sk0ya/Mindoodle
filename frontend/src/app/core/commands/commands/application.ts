@@ -137,7 +137,7 @@ export const copyCommand: Command = {
 export const pasteCommand: Command = {
   name: 'paste',
   aliases: ['v'],
-  description: 'Paste copied content or images',
+  description: 'Paste copied node as child',
   category: 'editing',
   examples: ['paste', 'v', 'paste node-123'],
   args: [
@@ -168,26 +168,17 @@ export const pasteCommand: Command = {
     }
 
     try {
-      // First try to paste image from clipboard
-      await context.handlers.pasteImageFromClipboard(targetId);
+      // Try to paste node content as child node (vim-like behavior)
+      await context.handlers.pasteNode(targetId);
       return {
         success: true,
-        message: `Pasted image into "${targetNode.text}"`
+        message: `Pasted as child of "${targetNode.text}"`
       };
-    } catch {
-      // If no image, try to paste node content
-      try {
-        await context.handlers.pasteNode(targetId);
-        return {
-          success: true,
-          message: `Pasted content into "${targetNode.text}"`
-        };
-      } catch (error) {
-        return {
-          success: false,
-          error: error instanceof Error ? error.message : 'Failed to paste'
-        };
-      }
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to paste'
+      };
     }
   }
 };
