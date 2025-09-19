@@ -83,3 +83,229 @@ export const toggleCommand: Command = {
     }
   }
 };
+
+/**
+ * Expand Command (vim 'zo')
+ * Expand the selected node's children
+ */
+export const expandCommand: Command = {
+  name: 'expand',
+  aliases: ['zo', 'open-fold'],
+  description: 'Expand the selected node to show its children',
+  category: 'structure',
+  examples: ['expand', 'zo'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    if (!node.children || node.children.length === 0) {
+      return {
+        success: false,
+        error: `Node "${node.text}" has no children to expand`
+      };
+    }
+
+    if (!node.collapsed) {
+      return {
+        success: true,
+        message: `Node "${node.text}" is already expanded`
+      };
+    }
+
+    try {
+      context.handlers.updateNode(nodeId, { collapsed: false });
+      return {
+        success: true,
+        message: `Expanded node "${node.text}" (${node.children.length} children)`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to expand node'
+      };
+    }
+  }
+};
+
+/**
+ * Collapse Command (vim 'zc')
+ * Collapse the selected node's children
+ */
+export const collapseCommand: Command = {
+  name: 'collapse',
+  aliases: ['zc', 'close-fold'],
+  description: 'Collapse the selected node to hide its children',
+  category: 'structure',
+  examples: ['collapse', 'zc'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    if (!node.children || node.children.length === 0) {
+      return {
+        success: false,
+        error: `Node "${node.text}" has no children to collapse`
+      };
+    }
+
+    if (node.collapsed) {
+      return {
+        success: true,
+        message: `Node "${node.text}" is already collapsed`
+      };
+    }
+
+    try {
+      context.handlers.updateNode(nodeId, { collapsed: true });
+      return {
+        success: true,
+        message: `Collapsed node "${node.text}" (${node.children.length} children)`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to collapse node'
+      };
+    }
+  }
+};
+
+/**
+ * Expand All Command (vim 'zR')
+ * Expand all nodes in the mindmap
+ */
+export const expandAllCommand: Command = {
+  name: 'expand-all',
+  aliases: ['zR', 'open-all-folds'],
+  description: 'Expand all nodes in the mindmap',
+  category: 'structure',
+  examples: ['expand-all', 'zR'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      // Import store to get all nodes
+      const { useMindMapStore } = require('../../store/mindMapStore');
+      const state = useMindMapStore.getState() as any;
+      const rootNodes = state?.data?.rootNodes || [];
+
+      if (rootNodes.length === 0) {
+        return {
+          success: false,
+          error: 'No nodes found in current mindmap'
+        };
+      }
+
+      let expandedCount = 0;
+
+      // Recursive function to expand all nodes
+      function expandAllNodes(nodes: any[]): void {
+        for (const node of nodes) {
+          if (node.children && node.children.length > 0 && node.collapsed) {
+            context.handlers.updateNode(node.id, { collapsed: false });
+            expandedCount++;
+          }
+          if (node.children) {
+            expandAllNodes(node.children);
+          }
+        }
+      }
+
+      expandAllNodes(rootNodes);
+
+      return {
+        success: true,
+        message: `Expanded all nodes (${expandedCount} nodes were collapsed)`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to expand all nodes'
+      };
+    }
+  }
+};
+
+/**
+ * Collapse All Command (vim 'zM')
+ * Collapse all nodes in the mindmap
+ */
+export const collapseAllCommand: Command = {
+  name: 'collapse-all',
+  aliases: ['zM', 'close-all-folds'],
+  description: 'Collapse all nodes in the mindmap',
+  category: 'structure',
+  examples: ['collapse-all', 'zM'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      // Import store to get all nodes
+      const { useMindMapStore } = require('../../store/mindMapStore');
+      const state = useMindMapStore.getState() as any;
+      const rootNodes = state?.data?.rootNodes || [];
+
+      if (rootNodes.length === 0) {
+        return {
+          success: false,
+          error: 'No nodes found in current mindmap'
+        };
+      }
+
+      let collapsedCount = 0;
+
+      // Recursive function to collapse all nodes
+      function collapseAllNodes(nodes: any[]): void {
+        for (const node of nodes) {
+          if (node.children && node.children.length > 0 && !node.collapsed) {
+            context.handlers.updateNode(node.id, { collapsed: true });
+            collapsedCount++;
+          }
+          if (node.children) {
+            collapseAllNodes(node.children);
+          }
+        }
+      }
+
+      collapseAllNodes(rootNodes);
+
+      return {
+        success: true,
+        message: `Collapsed all nodes (${collapsedCount} nodes were expanded)`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to collapse all nodes'
+      };
+    }
+  }
+};

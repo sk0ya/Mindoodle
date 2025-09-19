@@ -16,6 +16,10 @@ const VIM_COMMAND_PATTERNS = {
   // Multi-key commands
   'zz': { keys: ['z', 'z'], command: 'zz' },
   'za': { keys: ['z', 'a'], command: 'za' },
+  'zo': { keys: ['z', 'o'], command: 'zo' },
+  'zc': { keys: ['z', 'c'], command: 'zc' },
+  'zR': { keys: ['z', 'R'], command: 'zR' },
+  'zM': { keys: ['z', 'M'], command: 'zM' },
   'dd': { keys: ['d', 'd'], command: 'dd' },
   'yy': { keys: ['y', 'y'], command: 'yy' },
   'gg': { keys: ['g', 'g'], command: 'gg' },
