@@ -316,24 +316,28 @@ export function useShortcutHandlers(args: Args) {
       try {
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
-        const selectMapById = (window as any).mindoodleSelectMapById as (id: string) => void;
-        if (!Array.isArray(maps) || maps.length === 0 || typeof selectMapById !== 'function') return;
+        if (!Array.isArray(maps) || maps.length === 0) return;
         const idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
         const nextIdx = idx <= 0 ? maps.length - 1 : idx - 1;
         const target = maps[nextIdx];
-        if (target?.mapIdentifier?.mapId) selectMapById(target.mapIdentifier.mapId);
+        if (target?.mapIdentifier?.mapId) {
+          const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: target.mapIdentifier.mapId, workspaceId: target.mapIdentifier.workspaceId } });
+          window.dispatchEvent(ev);
+        }
       } catch {}
     },
     switchToNextMap: () => {
       try {
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
-        const selectMapById = (window as any).mindoodleSelectMapById as (id: string) => void;
-        if (!Array.isArray(maps) || maps.length === 0 || typeof selectMapById !== 'function') return;
+        if (!Array.isArray(maps) || maps.length === 0) return;
         const idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
         const nextIdx = idx >= maps.length - 1 ? 0 : idx + 1;
         const target = maps[nextIdx];
-        if (target?.mapIdentifier?.mapId) selectMapById(target.mapIdentifier.mapId);
+        if (target?.mapIdentifier?.mapId) {
+          const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: target.mapIdentifier.mapId, workspaceId: target.mapIdentifier.workspaceId } });
+          window.dispatchEvent(ev);
+        }
       } catch {}
     },
   }), [
