@@ -68,6 +68,21 @@ function handleStandardShortcut(
       commands.execute(`arrow-navigate --direction ${direction}`);
       return true;
     }
+
+    // Core editing shortcuts when Vim is disabled
+    if (key === 'Tab') {
+      // Prevent browser focus change
+      event.preventDefault();
+      handlers.closeAttachmentAndLinkLists();
+      commands.execute('add-child');
+      return true;
+    }
+    if (key === 'Enter') {
+      event.preventDefault();
+      handlers.closeAttachmentAndLinkLists();
+      commands.execute('add-sibling');
+      return true;
+    }
   }
 
   // Modifier shortcuts
