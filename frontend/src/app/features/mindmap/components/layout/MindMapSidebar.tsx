@@ -121,6 +121,21 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     setExplorerSelectedPath(chosen || candidates[0]);
   }, [currentMapId, currentWorkspaceId, explorerTree, explorerHasPath]);
 
+  // Keep explorer highlight in sync when switching maps via global events (Ctrl+P/N etc.)
+  React.useEffect(() => {
+    const handler = (e: any) => {
+      try {
+        const mapId: string | undefined = e?.detail?.mapId;
+        const workspaceId: string | undefined = e?.detail?.workspaceId;
+        if (!mapId) return;
+        const path = workspaceId ? `/ws_${workspaceId}/${mapId}.md` : `/${mapId}.md`;
+        setExplorerSelectedPath(path);
+      } catch {}
+    };
+    window.addEventListener('mindoodle:selectMapById', handler as EventListener);
+    return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
+  }, []);
+
   // イベントハンドラー
   const handleStartRename = useCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
     setEditingMapId(mapIdentifier.mapId);

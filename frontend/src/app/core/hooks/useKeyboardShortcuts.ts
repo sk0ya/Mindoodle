@@ -5,7 +5,6 @@
 
 import type { MindMapNode } from '@shared/types';
 import { useEffect } from 'react';
-import { logger } from '../../shared/utils/logger';
 import type { VimModeHook } from './useVimMode';
 import { useCommands } from '../commands';
 import type { UseCommandsReturn } from '../commands/useCommands';

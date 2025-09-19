@@ -5,6 +5,7 @@ import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
 
 interface MarkdownPanelProps {
+  // onClose is intentionally not used; kept in type for compatibility
   onClose?: () => void;
   currentMapIdentifier?: MapIdentifier | null;
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
@@ -17,7 +18,6 @@ interface MarkdownPanelProps {
 }
 
 const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
-  onClose,
   currentMapIdentifier,
   getMapMarkdown,
   setAutoSaveEnabled,
