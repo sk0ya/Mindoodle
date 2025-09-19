@@ -137,7 +137,7 @@ export const useMindMap = (
     try {
       // Skip if we recently processed an editor change
       if (skipNodeToMarkdownSyncTimer.current) {
-        console.log('⏭️ Skipping nodes->markdown sync (editor change in progress)');
+        logger.debug('⏭️ Skipping nodes->markdown sync (editor change in progress)');
         return;
       }
 
@@ -147,7 +147,7 @@ export const useMindMap = (
       const lastMd = lastSentMarkdownRef.current;
       const isChanged = md !== lastMd;
 
-      console.log('🔍 Nodes->Markdown comparison', {
+      logger.debug('🔍 Nodes->Markdown comparison', {
         changed: isChanged,
         newLength: md.length,
         lastLength: lastMd.length,
@@ -158,11 +158,11 @@ export const useMindMap = (
 
       // Only send if markdown actually changed
       if (isChanged) {
-        console.log('📝 Nodes -> Markdown: sending update');
+        logger.debug('📝 Nodes -> Markdown: sending update');
         lastSentMarkdownRef.current = md;
         setFromNodes(md);
       } else {
-        console.log('⏸️ Nodes -> Markdown: no change, skipping');
+        logger.debug('⏸️ Nodes -> Markdown: no change, skipping');
       }
     } catch (e) {
       console.error('❌ Nodes->Markdown conversion error:', e);
@@ -173,7 +173,7 @@ export const useMindMap = (
   // Keep this effect lightweight; heavy parsing only on 'editor' source
   useEffect(() => {
     const unsub = subscribeMdRef.current(async (markdown, source) => {
-      console.log('📨 useMindMap received markdown', {
+      logger.debug('📨 useMindMap received markdown', {
         source,
         length: markdown.length,
         hash: markdown.slice(0, 50) + '...',
