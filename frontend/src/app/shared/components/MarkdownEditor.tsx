@@ -77,6 +77,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco as unknown as typeof import('monaco-editor');
+    // Track text focus to avoid emitting cursor events from programmatic updates
+    const isTextFocusedRef = { current: false } as { current: boolean };
 
     // Configure editor settings
     editor.updateOptions({
@@ -109,11 +111,16 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
     // Cursor and focus listeners
     editor.onDidChangeCursorPosition((e) => {
+      // Avoid syncing selection if editor doesn't have focus
+      // or while we are applying programmatic changes
+      const hasFocus = editor.hasTextFocus?.() ?? false;
+      if (!hasFocus || ignoreExternalChangeRef.current) return;
       const line = e.position.lineNumber;
       onCursorLineChange?.(line);
     });
     editor.onDidFocusEditorText?.(async () => {
       onFocusChange?.(true);
+      isTextFocusedRef.current = true;
       // Enable Vim only when editor has focus and setting is on
       if (settings.vimMode && !isVimEnabled) {
         const ok = await enableVimMode(editor, monaco);
@@ -122,6 +129,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     });
     editor.onDidBlurEditorText?.(() => {
       onFocusChange?.(false);
+      isTextFocusedRef.current = false;
       // Disable Vim when focus leaves the editor so app shortcuts work
       if (isVimEnabled) {
         disableVimMode();
