@@ -159,6 +159,17 @@ export function useShortcutHandlers(args: Args) {
             else if (direction === 'down' && currentIndex < siblings.length - 1) targetIndex = currentIndex + 1;
             if (targetIndex !== -1) nextNodeId = siblings[targetIndex].id;
           }
+          // If no intra-root sibling, allow crossing to adjacent root node
+          if (!nextNodeId) {
+            const rootIndex = roots.findIndex(r => r.id === currentRoot.id);
+            if (rootIndex !== -1) {
+              if (direction === 'down' && rootIndex < roots.length - 1) {
+                nextNodeId = roots[rootIndex + 1].id;
+              } else if (direction === 'up' && rootIndex > 0) {
+                nextNodeId = roots[rootIndex - 1].id;
+              }
+            }
+          }
           break;
         }
       }
