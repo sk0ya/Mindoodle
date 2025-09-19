@@ -150,7 +150,8 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           border: `2px solid var(--border-color)`,
           borderRadius: '12px',
           userSelect: 'none',
-          transition: 'all 0.2s ease'
+          // Avoid animating transforms during pan to prevent jank
+          transition: 'border-color 0.2s ease'
         }}
       >
         <g transform={`scale(${zoom * 1.5}) translate(${pan?.x || 0}, ${pan?.y || 0})`}>

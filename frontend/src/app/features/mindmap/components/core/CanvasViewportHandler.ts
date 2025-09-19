@@ -25,6 +25,9 @@ export const useCanvasViewportHandler = ({
   const isPanningRef = useRef(false);
   const isPanReadyRef = useRef(false); // パン準備状態（マウスダウン済み）
   const lastPanPointRef = useRef({ x: 0, y: 0 });
+  // Throttle pan updates with requestAnimationFrame
+  const rafIdRef = useRef<number | null>(null);
+  const accumDeltaRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
   // ズーム処理
   const handleWheel = useCallback((e: React.WheelEvent) => {
@@ -70,11 +73,19 @@ export const useCanvasViewportHandler = ({
         isPanningRef.current = true;
       }
       
-      setPan(prev => ({
-        x: prev.x + deltaX / (zoom * 1.5),
-        y: prev.y + deltaY / (zoom * 1.5)
-      }));
-      
+      // Accumulate deltas and schedule a single update per frame
+      accumDeltaRef.current.dx += deltaX / (zoom * 1.5);
+      accumDeltaRef.current.dy += deltaY / (zoom * 1.5);
+
+      if (rafIdRef.current === null) {
+        rafIdRef.current = window.requestAnimationFrame(() => {
+          const { dx, dy } = accumDeltaRef.current;
+          accumDeltaRef.current = { dx: 0, dy: 0 };
+          rafIdRef.current = null;
+          setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
+        });
+      }
+
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };
     }
   }, [isDragging, zoom, setPan]);
@@ -85,6 +96,11 @@ export const useCanvasViewportHandler = ({
     if (!isDragging) {
       isPanningRef.current = false;
       isPanReadyRef.current = false;
+      if (rafIdRef.current !== null) {
+        cancelAnimationFrame(rafIdRef.current);
+        rafIdRef.current = null;
+        accumDeltaRef.current = { dx: 0, dy: 0 };
+      }
     }
   }, [isDragging]);
 
