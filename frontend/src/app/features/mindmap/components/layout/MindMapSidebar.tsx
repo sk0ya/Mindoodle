@@ -105,36 +105,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     return false;
   }, []);
 
-  React.useEffect(() => {
-    if (!currentMapId) return;
-    // Try both workspace-prefixed path and root path, pick the one that exists in explorerTree
-    const candidates: string[] = [];
-    if (currentWorkspaceId) {
-      candidates.push(`/ws_${currentWorkspaceId}/${currentMapId}.md`);
-    }
-    candidates.push(`/${currentMapId}.md`);
-
-    let chosen: string | null = null;
-    for (const p of candidates) {
-      if (explorerHasPath(explorerTree, p)) { chosen = p; break; }
-    }
-    setExplorerSelectedPath(chosen || candidates[0]);
-  }, [currentMapId, currentWorkspaceId, explorerTree, explorerHasPath]);
-
-  // Keep explorer highlight in sync when switching maps via global events (Ctrl+P/N etc.)
-  React.useEffect(() => {
-    const handler = (e: any) => {
-      try {
-        const mapId: string | undefined = e?.detail?.mapId;
-        const workspaceId: string | undefined = e?.detail?.workspaceId;
-        if (!mapId) return;
-        const path = workspaceId ? `/ws_${workspaceId}/${mapId}.md` : `/${mapId}.md`;
-        setExplorerSelectedPath(path);
-      } catch {}
-    };
-    window.addEventListener('mindoodle:selectMapById', handler as EventListener);
-    return () => window.removeEventListener('mindoodle:selectMapById', handler as EventListener);
-  }, []);
+  // Note: Do not synthesize paths for selection; highlighting is handled by mapIdentifier match in ExplorerView
 
   // イベントハンドラー
   const handleStartRename = useCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
@@ -725,6 +696,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             onSelectPath={setExplorerSelectedPath}
             collapsed={explorerCollapsed}
             onTogglePath={(path: string) => setExplorerCollapsed(prev => ({ ...prev, [path]: !prev[path] }))}
+            currentMapId={currentMapId || null}
+            currentWorkspaceId={currentWorkspaceId || null}
             onContextMenu={(e, path, type) => {
               e.preventDefault();
               setContextMenu({
@@ -806,7 +779,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath }) => {
+const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void, currentMapId?: string | null, currentWorkspaceId?: string | null }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath, currentMapId = null, currentWorkspaceId = null }) => {
   const toggle = (path: string) => onTogglePath && onTogglePath(path);
   const [dragOverPath, setDragOverPath] = React.useState<string | null>(null);
 
@@ -853,6 +826,9 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
     const isMd = !!item.isMarkdown;
     const workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
     const mapId = isMd ? item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '') : null;
+    const idMatch = isMd && mapId && currentMapId === mapId && (
+      currentWorkspaceId ? (workspaceId === currentWorkspaceId) : true
+    );
     const onClick = () => {
       if (isMd && mapId) {
         const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } });
@@ -861,7 +837,7 @@ const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null,
       if (onSelectPath) onSelectPath(item.path);
     };
     return (
-      <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${selectedPath === item.path ? 'selected' : ''}`}
+      <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${(idMatch || selectedPath === item.path) ? 'selected' : ''}`}
         key={item.path}
         onClick={onClick}
         onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
