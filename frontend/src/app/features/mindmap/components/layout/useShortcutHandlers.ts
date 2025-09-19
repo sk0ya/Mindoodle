@@ -313,35 +313,41 @@ export function useShortcutHandlers(args: Args) {
     pasteNode: async (parentId: string) => {
       // Get the node from store clipboard
       console.log('pasteNode: checking clipboard');
-      const storeState = store.getState();
-      console.log('pasteNode: store state ui.clipboard', storeState.ui.clipboard);
-      const clipboardNode = storeState.ui.clipboard;
-      if (!clipboardNode) {
-        console.error('pasteNode: no clipboard node');
-        showNotification('warning', 'コピーされたノードがありません');
-        return;
-      }
+      try {
+        const storeState = useMindMapStore.getState();
+        console.log('pasteNode: store state ui.clipboard', storeState.ui.clipboard);
+        const clipboardNode = storeState.ui.clipboard;
 
-      console.log('pasteNode: pasting node', clipboardNode, 'into parent', parentId);
-      // Paste the node tree
-      const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
-        const newNodeId = store.addChildNode(parent, nodeToAdd.text);
-        console.log('pasteNode: created child node', newNodeId, 'with text', nodeToAdd.text);
-        if (newNodeId) {
-          if (nodeToAdd.note) updateNode(newNodeId, { note: nodeToAdd.note });
-          if (nodeToAdd.children?.length) {
-            nodeToAdd.children.forEach(child => paste(child, newNodeId));
-          }
+        if (!clipboardNode) {
+          console.error('pasteNode: no clipboard node');
+          showNotification('warning', 'コピーされたノードがありません');
+          return;
         }
-        return newNodeId;
-      };
 
-      const newNodeId = paste(clipboardNode, parentId);
-      if (newNodeId) {
-        selectNode(newNodeId);
-        showNotification('success', `「${clipboardNode.text}」を貼り付けました`);
-      } else {
-        console.error('pasteNode: failed to create new node');
+        console.log('pasteNode: pasting node', clipboardNode, 'into parent', parentId);
+        // Paste the node tree
+        const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
+          const newNodeId = store.addChildNode(parent, nodeToAdd.text);
+          console.log('pasteNode: created child node', newNodeId, 'with text', nodeToAdd.text);
+          if (newNodeId) {
+            if (nodeToAdd.note) updateNode(newNodeId, { note: nodeToAdd.note });
+            if (nodeToAdd.children?.length) {
+              nodeToAdd.children.forEach(child => paste(child, newNodeId));
+            }
+          }
+          return newNodeId;
+        };
+
+        const newNodeId = paste(clipboardNode, parentId);
+        if (newNodeId) {
+          selectNode(newNodeId);
+          showNotification('success', `「${clipboardNode.text}」を貼り付けました`);
+        } else {
+          console.error('pasteNode: failed to create new node');
+        }
+      } catch (error) {
+        console.error('pasteNode: error accessing store', error);
+        showNotification('error', 'ペースト中にエラーが発生しました');
       }
     },
     pasteImageFromClipboard,
