@@ -6,7 +6,7 @@
 import { centerCommand } from './center';
 import { deleteCommand } from './delete';
 import { toggleCommand } from './toggle';
-import { editCommand } from './edit';
+import { editCommand, insertCommand as insertEditCommand, appendCommand as appendEditCommand, appendEndCommand, insertBeginningCommand } from './edit';
 import { insertCommand, appendCommand, openCommand, openAboveCommand } from './insert';
 import { addChildCommand, addSiblingCommand, convertNodeCommand } from './structure';
 import {
@@ -68,6 +68,12 @@ export const commands = [
   deleteCommand,
   toggleCommand,
   editCommand,
+
+  // Vim editing commands
+  insertEditCommand,
+  appendEditCommand,
+  appendEndCommand,
+  insertBeginningCommand,
 
   // Insert mode commands
   insertCommand,
@@ -133,6 +139,10 @@ export {
   deleteCommand,
   toggleCommand,
   editCommand,
+  insertEditCommand,
+  appendEditCommand,
+  appendEndCommand,
+  insertBeginningCommand,
   insertCommand,
   appendCommand,
   openCommand,

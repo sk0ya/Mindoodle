@@ -105,3 +105,199 @@ export const editCommand: Command = {
     }
   }
 };
+
+/**
+ * Insert Command (vim 'i')
+ * Start editing at current cursor position
+ */
+export const insertCommand: Command = {
+  name: 'insert',
+  aliases: ['i'],
+  description: 'Start editing the selected node',
+  category: 'editing',
+  examples: ['insert', 'i'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // Set vim mode to insert if vim is enabled
+      if (context.vim && context.vim.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      // Start editing
+      context.handlers.startEdit(nodeId);
+
+      return {
+        success: true,
+        message: `Started editing node "${node.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to start editing'
+      };
+    }
+  }
+};
+
+/**
+ * Append Command (vim 'a')
+ * Create child node and start editing
+ */
+export const appendCommand: Command = {
+  name: 'append',
+  aliases: ['a'],
+  description: 'Create a child node and start editing',
+  category: 'editing',
+  examples: ['append', 'a'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    try {
+      // Set vim mode to insert if vim is enabled
+      if (context.vim && context.vim.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      // Create child node and start editing
+      context.handlers.addChildNode(nodeId, '', true);
+
+      return {
+        success: true,
+        message: 'Created child node and started editing'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to create child node'
+      };
+    }
+  }
+};
+
+/**
+ * Append End Command (vim 'A')
+ * Start editing at the end of the current node text
+ */
+export const appendEndCommand: Command = {
+  name: 'append-end',
+  aliases: ['A'],
+  description: 'Start editing at the end of the node text',
+  category: 'editing',
+  examples: ['append-end', 'A'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // Set vim mode to insert if vim is enabled
+      if (context.vim && context.vim.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      // Start editing with cursor at end
+      context.handlers.startEditWithCursorAtEnd(nodeId);
+
+      return {
+        success: true,
+        message: `Started editing node "${node.text}" with cursor at end`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to start editing at end'
+      };
+    }
+  }
+};
+
+/**
+ * Insert Beginning Command (vim 'I')
+ * Start editing at the beginning of the current node text
+ */
+export const insertBeginningCommand: Command = {
+  name: 'insert-beginning',
+  aliases: ['I'],
+  description: 'Start editing at the beginning of the node text',
+  category: 'editing',
+  examples: ['insert-beginning', 'I'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // Set vim mode to insert if vim is enabled
+      if (context.vim && context.vim.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      // Start editing with cursor at start
+      context.handlers.startEditWithCursorAtStart(nodeId);
+
+      return {
+        success: true,
+        message: `Started editing node "${node.text}" with cursor at beginning`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to start editing at beginning'
+      };
+    }
+  }
+};

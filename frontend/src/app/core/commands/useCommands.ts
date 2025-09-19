@@ -194,6 +194,8 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'ciw': 'edit',
       'i': 'insert',
       'a': 'append',
+      'A': 'append-end',
+      'I': 'insert-beginning',
       'o': 'open',
       'O': 'open-above',
       'h': 'left',
