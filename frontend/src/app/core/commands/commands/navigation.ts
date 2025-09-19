@@ -498,3 +498,54 @@ export const selectCenterNodeCommand: Command = {
     }
   }
 };
+
+// Select bottom-most visible node command (for Vim 'G')
+export const selectBottomNodeCommand: Command = {
+  name: 'select-bottom',
+  aliases: ['vim-G', 'G'],
+  description: 'Select the visible node positioned lowest in the map',
+  category: 'navigation',
+  examples: ['select-bottom', 'G'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      let rootNode = null as any;
+      if (context.vim?.getCurrentRootNode) {
+        rootNode = context.vim.getCurrentRootNode();
+      }
+      if (!rootNode) {
+        return { success: false, error: 'No root node found in current map' };
+      }
+
+      // Collect all visible nodes (skip children of collapsed nodes)
+      function collectVisible(node: any): any[] {
+        const list = [node];
+        if (node.children && !node.collapsed) {
+          for (const c of node.children) list.push(...collectVisible(c));
+        }
+        return list;
+      }
+      const nodes = collectVisible(rootNode);
+      if (nodes.length === 0) {
+        return { success: false, error: 'No nodes to select' };
+      }
+
+      // Find node with maximum y (lowest)
+      let bottom = nodes[0];
+      for (const n of nodes) {
+        const ny = typeof n.y === 'number' ? n.y : 0;
+        const by = typeof bottom.y === 'number' ? bottom.y : 0;
+        if (ny > by) bottom = n;
+      }
+
+      context.handlers.selectNode(bottom.id);
+      context.handlers.closeAttachmentAndLinkLists();
+      if (context.handlers.centerNodeInView) {
+        context.handlers.centerNodeInView(bottom.id, true);
+      }
+      return { success: true, message: `Selected bottom node: "${bottom.text}"` };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Failed to select bottom node' };
+    }
+  }
+};

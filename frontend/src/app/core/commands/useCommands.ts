@@ -203,6 +203,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'enter': 'add-sibling',
       'm': 'convert',
       'M': 'select-center',
+      'G': 'select-bottom',
       'delete': 'delete',
       'backspace': 'delete'
     };
