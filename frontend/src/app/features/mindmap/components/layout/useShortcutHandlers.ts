@@ -314,9 +314,10 @@ export function useShortcutHandlers(args: Args) {
     // Map switching helpers for global shortcuts (Ctrl+P/N)
     switchToPrevMap: () => {
       try {
+        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId?: string }> || [];
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
-        if (!Array.isArray(maps) || maps.length === 0) return;
+        if (!Array.isArray(order) || order.length === 0) return;
 
         const isEmpty = (m: any): boolean => {
           try {
@@ -327,13 +328,14 @@ export function useShortcutHandlers(args: Args) {
           } catch { return false; }
         };
 
-        let idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
+        let idx = order.findIndex((o: any) => o?.mapId === currentId);
         if (idx < 0) idx = 0;
-        for (let step = 0; step < maps.length; step++) {
-          idx = idx <= 0 ? maps.length - 1 : idx - 1;
-          const cand = maps[idx];
-          if (!isEmpty(cand)) {
-            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapIdentifier.mapId, workspaceId: cand.mapIdentifier.workspaceId } });
+        for (let step = 0; step < order.length; step++) {
+          idx = idx <= 0 ? order.length - 1 : idx - 1;
+          const cand = order[idx];
+          const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
+          if (mapData && !isEmpty(mapData)) {
+            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId } });
             window.dispatchEvent(ev);
             break;
           }
@@ -342,9 +344,10 @@ export function useShortcutHandlers(args: Args) {
     },
     switchToNextMap: () => {
       try {
+        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId?: string }> || [];
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
-        if (!Array.isArray(maps) || maps.length === 0) return;
+        if (!Array.isArray(order) || order.length === 0) return;
 
         const isEmpty = (m: any): boolean => {
           try {
@@ -355,13 +358,14 @@ export function useShortcutHandlers(args: Args) {
           } catch { return false; }
         };
 
-        let idx = maps.findIndex((m: any) => m?.mapIdentifier?.mapId === currentId);
+        let idx = order.findIndex((o: any) => o?.mapId === currentId);
         if (idx < 0) idx = 0;
-        for (let step = 0; step < maps.length; step++) {
-          idx = idx >= maps.length - 1 ? 0 : idx + 1;
-          const cand = maps[idx];
-          if (!isEmpty(cand)) {
-            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapIdentifier.mapId, workspaceId: cand.mapIdentifier.workspaceId } });
+        for (let step = 0; step < order.length; step++) {
+          idx = idx >= order.length - 1 ? 0 : idx + 1;
+          const cand = order[idx];
+          const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
+          if (mapData && !isEmpty(mapData)) {
+            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId } });
             window.dispatchEvent(ev);
             break;
           }

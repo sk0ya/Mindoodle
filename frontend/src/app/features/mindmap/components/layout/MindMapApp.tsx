@@ -187,6 +187,21 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     try {
       (window as any).mindoodleAllMaps = allMindMaps || [];
       (window as any).mindoodleCurrentMapId = currentMapId || null;
+      // Build ordered list of maps based on explorer tree (visual order)
+      const ordered: Array<{ mapId: string; workspaceId: string | undefined }> = [];
+      const tree: any = (mindMap as any).explorerTree || null;
+      const visit = (node: any) => {
+        if (!node) return;
+        if (node.type === 'folder') {
+          (node.children || []).forEach((c: any) => visit(c));
+        } else if (node.type === 'file' && node.isMarkdown && typeof node.path === 'string') {
+          const workspaceId = node.path.startsWith('/ws_') ? node.path.split('/')[1] : undefined;
+          const mapId = node.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
+          if (mapId) ordered.push({ mapId, workspaceId });
+        }
+      };
+      visit(tree);
+      (window as any).mindoodleOrderedMaps = ordered; // array of { mapId, workspaceId }
       // Debounced selector to avoid heavy reflows when switching rapidly
       (window as any).mindoodleSelectMapById = (mapId: string) => {
         try {
