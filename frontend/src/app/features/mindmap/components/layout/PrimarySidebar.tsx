@@ -13,6 +13,7 @@ interface PrimarySidebarProps {
   // Maps view props
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
+  currentWorkspaceId?: string | null;
   onSelectMap?: (id: MapIdentifier) => void;
   onCreateMap?: (title: string, category?: string) => void;
   onDeleteMap?: (id: MapIdentifier) => void;
@@ -44,6 +45,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   // Maps props
   mindMaps = [],
   currentMapId,
+  currentWorkspaceId,
   onSelectMap,
   onCreateMap,
   onDeleteMap,
@@ -78,6 +80,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
           <MindMapSidebar
             mindMaps={mindMaps}
             currentMapId={currentMapId || null}
+            currentWorkspaceId={currentWorkspaceId || null}
             onSelectMap={onSelectMap || (() => {})}
             onCreateMap={onCreateMap || (() => {})}
             onDeleteMap={onDeleteMap || (() => {})}

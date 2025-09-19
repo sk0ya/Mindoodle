@@ -59,6 +59,7 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       isVisible={activeView !== null}
       mindMaps={allMindMaps}
       currentMapId={currentMapId}
+      currentWorkspaceId={currentMapData?.mapIdentifier?.workspaceId || null}
       onSelectMap={onSelectMap}
       onCreateMap={onCreateMap}
       onDeleteMap={onDeleteMap}

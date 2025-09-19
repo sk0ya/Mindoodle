@@ -14,6 +14,7 @@ import type { ExplorerItem } from '../../../../core/storage/types';
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
   currentMapId: string | null;
+  currentWorkspaceId?: string | null;
   onSelectMap: (id: MapIdentifier) => void;
   onCreateMap: (title: string, category?: string) => void;
   onDeleteMap: (id: MapIdentifier) => void;
@@ -32,7 +33,8 @@ interface MindMapSidebarProps {
 
 const MindMapSidebar: React.FC<MindMapSidebarProps> = ({ 
   mindMaps, 
-  currentMapId, 
+  currentMapId,
+  currentWorkspaceId,
   onSelectMap, 
   onCreateMap, 
   onDeleteMap,
@@ -89,6 +91,14 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     mapData: null
   });
   const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
+
+  // Keep explorer selection in sync with current map (when switching via keyboard etc.)
+  React.useEffect(() => {
+    if (currentMapId && currentWorkspaceId) {
+      const path = `/ws_${currentWorkspaceId}/${currentMapId}.md`;
+      setExplorerSelectedPath(path);
+    }
+  }, [currentMapId, currentWorkspaceId]);
 
   // イベントハンドラー
   const handleStartRename = useCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
