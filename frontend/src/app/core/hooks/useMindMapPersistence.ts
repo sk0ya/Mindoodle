@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import { createInitialData } from '../../shared/types/dataTypes';
 import type { StorageAdapter, StorageConfig, ExplorerItem } from '../storage/types';
 import { createStorageAdapter } from '../storage/StorageAdapterFactory';
@@ -83,14 +82,14 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   const { waitForInitialization } = useInitializationWaiter();
 
   // 初期データ読み込み
-  const loadInitialData = useCallback(async (defaultWorkspaceId: string = DEFAULT_WORKSPACE_ID): Promise<MindMapData> => {
+  const loadInitialData = useCallback(async (): Promise<MindMapData> => {
     if (!isInitialized || !storageAdapter) {
       await waitForInitialization(() => isInitialized && !!storageAdapter);
     }
 
     if (!storageAdapter) {
       logger.warn('Storage adapter not available, creating default data');
-      const mapIdentifier = { mapId: `map_${Date.now()}`, workspaceId: defaultWorkspaceId };
+      const mapIdentifier = { mapId: ``, workspaceId: '' };
       return createInitialData(mapIdentifier);
     }
 
@@ -110,7 +109,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
     
     // デフォルトデータを作成して返す
-    const mapIdentifier = { mapId: `map_${Date.now()}`, workspaceId: defaultWorkspaceId };
+    const mapIdentifier = { mapId: ``, workspaceId: '' };
     const initialData = createInitialData(mapIdentifier);
     logger.debug('Created initial data:', initialData.title);
     return initialData;

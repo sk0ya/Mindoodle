@@ -1,6 +1,5 @@
 import { cloneDeep } from '../utils/lodash-utils';
 import type { MapIdentifier } from '@shared/types';
-import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import { COORDINATES, LAYOUT, TYPOGRAPHY, COLORS, DEFAULTS, STORAGE, VALIDATION } from '../constants/index';
 import { logger } from '../utils/logger';
 import { generateNodeId } from '../utils/idGenerator';
@@ -314,7 +313,7 @@ export const assignColorsToExistingNodes = (mindMapData: MindMapData): MindMapDa
   // rootNodes配列が存在しない場合の対応
   if (!mindMapData || !mindMapData.rootNodes || mindMapData.rootNodes.length === 0) {
     logger.warn('Invalid mindmap data or missing rootNodes:', mindMapData);
-    return mindMapData || createInitialData({ mapId: 'temp', workspaceId: DEFAULT_WORKSPACE_ID });
+    return mindMapData;
   }
   
   // 🔧 重要: 完全なディープクローンを作成してオブジェクト参照の共有を防止

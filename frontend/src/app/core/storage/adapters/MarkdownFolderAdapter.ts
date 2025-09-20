@@ -1,5 +1,4 @@
 import type { MindMapData } from '@shared/types';
-import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
 import { emitStatus } from '../../../shared/hooks/useStatusBar';
@@ -88,7 +87,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
     if (this.workspaces.length === 0 && !this.rootHandle) {
       // No folder selected yet; return an initial in-memory map.
-      const mapIdentifier = { mapId: `map_${Date.now()}`, workspaceId: DEFAULT_WORKSPACE_ID };
+      const mapIdentifier = { mapId: ``, workspaceId: '' };
     return createInitialData(mapIdentifier);
     }
 
@@ -119,8 +118,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       logger.error('❌ MarkdownFolderAdapter: Failed to load initial data', e);
     }
 
-    const mapIdentifier = { mapId: `map_${Date.now()}`, workspaceId: DEFAULT_WORKSPACE_ID };
-    return createInitialData(mapIdentifier);
+    return createInitialData({ mapId: ``, workspaceId: '' });
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -415,7 +413,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
-  private async loadMapFromFile(fileHandle: FileHandle, dirForSave: DirHandle, categoryPath: string, workspaceId?: string): Promise<MindMapData | null> {
+  private async loadMapFromFile(fileHandle: FileHandle, dirForSave: DirHandle, categoryPath: string, workspaceId: string): Promise<MindMapData | null> {
     try {
       const file = await fileHandle.getFile();
       const text = await file.text();
@@ -440,7 +438,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         createdAt: fileLastModified,
         updatedAt: fileLastModified,
         settings: { autoSave: true, autoLayout: true },
-        mapIdentifier: { mapId, workspaceId: workspaceId || DEFAULT_WORKSPACE_ID }
+        mapIdentifier: { mapId, workspaceId  }
       };
       
       // Record save target with both keys to ensure consistency
