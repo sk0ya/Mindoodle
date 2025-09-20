@@ -123,81 +123,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     return createInitialData(mapIdentifier);
   }
 
-  async saveData(data: MindMapData): Promise<void> {
-    console.log('🔍 saveData called for:', data.mapIdentifier.mapId, data.title);
-    
-    if (!this._isInitialized) {
-      await this.initialize();
-    }
-    const wsHandle = (data as any).mapIdentifier?.workspaceId
-      ? (this.workspaces.find(w => w.id === (data as any).mapIdentifier.workspaceId)?.handle || null)
-      : (this.workspaces[0]?.handle || this.rootHandle);
-    if (!wsHandle) {
-      logger.warn('MarkdownFolderAdapter: No folder selected; skipping save');
-      return;
-    }
-
-    // mapIdentifier.mapIdから直接ファイルパスを決定
-    const mapId = data.mapIdentifier.mapId;
-    console.log('📁 Resolving file path from mapId:', mapId);
-    
-    // mapIdの構造: category/filename または filename
-    const parts = (mapId || '').split('/').filter(Boolean);
-    if (parts.length === 0) {
-      console.log('❌ Invalid mapId, cannot determine file path');
-      return;
-    }
-    
-    const fileName = parts[parts.length - 1] + '.md';
-    const categoryParts = parts.slice(0, -1);
-    
-    console.log('📂 Category parts:', categoryParts);
-    console.log('📄 File name:', fileName);
-    
-    // ディレクトリを辿る
-    let targetDir: DirHandle = wsHandle;
-    for (const categoryPart of categoryParts) {
-      targetDir = await this.getOrCreateDirectory(targetDir, categoryPart);
-    }
-    
-    // ファイルに保存（シリアライズ + 差分スキップ + 短命ストリーム）
-    const markdown = this.buildMarkdownDocument(data);
-    const saveKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
-
-    // 差分スキップ
-    const last = this.lastSavedContent.get(saveKey);
-    if (last === markdown) {
-      logger.debug('💾 MarkdownFolderAdapter: Skipped save (no changes) for', fileName);
-      return;
-    }
-
-    const run = async () => {
-      console.log('✅ Saving directly to file:', fileName, 'in directory:', categoryParts.join('/') || '(root)');
-      // 可能なら既存のファイルハンドルを使用
-      let cached = this.saveTargets.get(saveKey) || this.saveTargets.get(data.mapIdentifier.mapId);
-      let fileHandle: FileHandle | null = cached?.fileHandle ?? null;
-      if (!fileHandle) {
-        fileHandle = await (targetDir as any).getFileHandle?.(fileName, { create: true })
-          ?? await (targetDir as any).getFileHandle(fileName, { create: true });
-      }
-      const writable = await (fileHandle as any).createWritable();
-      await writable.write(markdown);
-      await writable.close();
-
-      // キャッシュ更新
-      const entry = { dir: targetDir, fileName, isRoot: categoryParts.length === 0, fileHandle } as any;
-      this.saveTargets.set(saveKey, entry);
-      this.saveTargets.set(data.mapIdentifier.mapId, entry);
-      this.lastSavedContent.set(saveKey, markdown);
-      logger.debug('💾 MarkdownFolderAdapter: Saved file', fileName);
-    };
-
-    const prev = this.saveLocks.get(saveKey) || Promise.resolve();
-    const next = prev.then(run).catch(() => {}).finally(() => {});
-    this.saveLocks.set(saveKey, next);
-    await next;
-  }
-
   async loadAllMaps(): Promise<MindMapData[]> {
     console.log('🗄️ MarkdownFolderAdapter.loadAllMaps called');
     if (!this._isInitialized) {
@@ -251,25 +176,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     return maps;
   }
 
-  // Minimal Markdown exporter (replaces exportUtils usage)
-  // Minimal Markdown exporter (replaces exportUtils usage)
-  // Minimal Markdown exporter (replaces exportUtils usage)
-  // Minimal Markdown exporter (replaces exportUtils usage)
-  // Minimal Markdown exporter (replaces exportUtils usage)
-  // Minimal Markdown exporter (replaces exportUtils usage)
-  private buildMarkdownDocument(data: MindMapData): string {
-    console.log('🔍 buildMarkdownDocument called - using MarkdownImporter.convertNodesToMarkdown');
-
-    // Use the proper markdown conversion logic that respects node types
-    return MarkdownImporter.convertNodesToMarkdown(data.rootNodes || []);
-  }
-
-  async saveAllMaps(maps: MindMapData[]): Promise<void> {
-    for (const map of maps) {
-      await this.saveData(map);
-    }
-  }
-
   async addMapToList(newMap: MindMapData): Promise<void> {
     // Initialize allMaps if not done yet
     if (!this.allMaps) {
@@ -288,9 +194,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       // Add new entry
       this.allMaps.push(newMap);
     }
-    
-    // Don't call saveData here - only add to the in-memory list
-    // Actual saving should be done explicitly by the user or through other means
   }
 
   async removeMapFromList(id: { mapId: string; workspaceId?: string }): Promise<void> {
@@ -298,8 +201,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     logger.warn('MarkdownFolderAdapter: removeMapFromList not implemented', { id });
   }
 
-  async updateMapInList(map: MindMapData): Promise<void> {
-    await this.saveData(map);
+  async updateMapInList(_map: MindMapData): Promise<void> {
   }
 
   cleanup(): void {
@@ -547,7 +449,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       // Set with plain mapId (legacy compatibility)
       this.saveTargets.set(data.mapIdentifier.mapId, saveTarget);
       
-      // Set with composite key (matches saveData lookup)
+      // Set with composite key
       const compositeKey = `${data.mapIdentifier.workspaceId || '__default__'}::${data.mapIdentifier.mapId}`;
       this.saveTargets.set(compositeKey, saveTarget);
       

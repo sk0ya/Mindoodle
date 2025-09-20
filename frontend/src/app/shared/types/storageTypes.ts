@@ -23,12 +23,10 @@ export interface FileUploadResult {
 export interface MapPersistenceOperations {
   // Map CRUD
   loadInitialData: () => Promise<void>;
-  saveData: (data: MindMapData) => Promise<void>;
   
   // Map list management
   refreshMapList: () => Promise<void>;
   addMapToList: (mapData: MindMapData) => Promise<void>;
-  updateMapInList: (mapData: MindMapData) => Promise<void>;
   removeMapFromList: (id: MapIdentifier) => Promise<void>;
   
   // File operations

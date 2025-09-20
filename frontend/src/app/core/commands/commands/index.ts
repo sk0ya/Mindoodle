@@ -21,7 +21,6 @@ import {
 import {
   undoCommand,
   redoCommand,
-  saveCommand,
   copyCommand,
   pasteCommand,
   cutCommand
@@ -102,7 +101,6 @@ export const commands = [
   // Application commands
   undoCommand,
   redoCommand,
-  saveCommand,
   copyCommand,
   pasteCommand,
   cutCommand,
@@ -170,7 +168,6 @@ export {
   // Application commands
   undoCommand,
   redoCommand,
-  saveCommand,
   copyCommand,
   pasteCommand,
   cutCommand,

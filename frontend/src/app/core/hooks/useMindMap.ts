@@ -8,7 +8,6 @@ import { useMindMapPersistence } from './useMindMapPersistence';
 import { useInitialDataLoad } from './useInitialDataLoad';
 import { useDataReset } from './useDataReset';
 import { useStorageConfigChange } from './useStorageConfigChange';
-import { useAutoSave } from './useAutoSave';
 import { logger } from '../../shared/utils/logger';
 import type { StorageConfig } from '../storage/types';
 import type { MindMapData } from '@shared/types';
@@ -81,22 +80,6 @@ export const useMindMap = (
       mapId: mapIdentifierMapId
     };
   }, [mapIdentifierWorkspaceId, mapIdentifierMapId]);
-  const forceSaveThroughStream = useCallback(async (_data: MindMapData) => {
-    try {
-      if (!stableAdapter || !currentId) return;
-      const md = MarkdownImporter.convertNodesToMarkdown((_data.rootNodes || []));
-      await (stableAdapter.saveMapMarkdown?.(currentId, md));
-    } catch {
-      // ignore
-    }
-  }, [stableAdapter, currentId]);
-
-  const { saveManually } = useAutoSave(
-    dataHook.data,
-    { saveData: forceSaveThroughStream },
-    { enabled: false },
-    { autoSave: false, autoSaveInterval: 150 }
-  );
 
   // Markdown stream for sync between nodes and raw markdown
   const markdownStreamHook = useMarkdownStream(stableAdapter, currentId, { debounceMs: 200 });
@@ -457,17 +440,7 @@ export const useMindMap = (
           // continue to use file data instead of cached data
         }
         
-        // allMindMapsから同じタイトルのマップを検索して、正しいmapIdentifierを取得
-        const existingMapByTitle = persistenceHook.allMindMaps.find(map => 
-          map.title === mapId && map.mapIdentifier.workspaceId === workspaceId
-        );
-        
         let actualMapId = mapId;
-        if (existingMapByTitle) {
-          // 既存のマップが見つかった場合、そのmapIdentifierを使用
-          actualMapId = existingMapByTitle.mapIdentifier.mapId;
-          console.log('🔄 Found existing map by title. Using mapId:', actualMapId, 'instead of requested:', mapId);
-        }
         
         const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
         const parts = (actualMapId || '').split('/').filter(Boolean);
@@ -495,8 +468,6 @@ export const useMindMap = (
           if (stillNotExists) {
             await persistenceHook.addMapToList(parsed);
           } else {
-            // Update list with fresh content so subsequent switches use current data
-            await persistenceHook.updateMapInList(parsed);
           }
         } catch (e) {
           logger.error('Failed to add map to list:', e);
@@ -533,15 +504,6 @@ export const useMindMap = (
       }
       
       // マップリストを常に更新（全マップ中から該当するマップを探して更新）
-      const mapToUpdate = persistenceHook.allMindMaps.find(map => map.mapIdentifier.mapId === mapId && map.mapIdentifier.workspaceId === target.workspaceId);
-      if (mapToUpdate) {
-        const updatedMap = {
-          ...mapToUpdate,
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        await persistenceHook.updateMapInList(updatedMap);
-      }
     }, [actionsHook, dataHook, persistenceHook]),
 
     addImportedMapToList: useCallback(async (mapData: MindMapData): Promise<void> => {
@@ -608,9 +570,6 @@ export const useMindMap = (
     setData: dataHook.setData,
     applyAutoLayout: dataHook.applyAutoLayout,
     
-    // 手動保存
-    saveCurrentMap: saveManually,
-
     // UI操作
     setZoom: uiHook.setZoom,
     setPan: uiHook.setPan,
@@ -636,8 +595,6 @@ export const useMindMap = (
     ...fileOperations,
 
     // 永続化の一部を表に出す（同一アダプターをUIから利用するため）
-    updateMapInList: persistenceHook.updateMapInList,
-    refreshMapList: persistenceHook.refreshMapList,
     selectRootFolder,
     getSelectedFolderLabel,
     createFolder,

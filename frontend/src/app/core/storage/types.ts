@@ -19,14 +19,11 @@ export interface StorageAdapter {
   
   // 基本操作
   loadInitialData(): Promise<MindMapData>;
-  saveData(data: MindMapData): Promise<void>;
   
   // マップ管理
   loadAllMaps(): Promise<MindMapData[]>;
-  saveAllMaps(maps: MindMapData[]): Promise<void>;
   addMapToList(map: MindMapData): Promise<void>;
   removeMapFromList(id: MapIdentifier): Promise<void>;
-  updateMapInList(map: MindMapData): Promise<void>;
   
   // File system operations (optional)
   createFolder?(relativePath: string): Promise<void>;

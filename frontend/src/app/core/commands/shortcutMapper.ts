@@ -48,7 +48,6 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'Backspace', command: 'delete', category: 'editing', description: 'Delete node' },
 
   // Application shortcuts (with modifiers)
-  { key: 's', modifiers: { ctrl: true }, command: 'save', category: 'application', description: 'Save (Ctrl+S)' },
   { key: 'z', modifiers: { ctrl: true }, command: 'undo', category: 'application', description: 'Undo (Ctrl+Z)' },
   { key: 'z', modifiers: { ctrl: true, shift: true }, command: 'redo', category: 'application', description: 'Redo (Ctrl+Shift+Z)' },
   { key: 'y', modifiers: { ctrl: true }, command: 'redo', category: 'application', description: 'Redo (Ctrl+Y)' },

@@ -267,18 +267,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       
       logger.debug(`Batch updating ${updatedMaps.length} maps`);
       
-      // 各マップを並列更新（非同期処理を並列実行）
-      await Promise.all(
-        updatedMaps.map(async (updatedMap) => {
-          if (updatedMap) {
-            logger.debug(`Updating map "${(updatedMap as any).title}" to "${(updatedMap as any).category}"`);
-            if (typeof (mindMap as any).updateMapInList === 'function') {
-              await (mindMap as any).updateMapInList(updatedMap);
-            }
-          }
-        })
-      );
-      
       // 成功後にマップリストを強制更新してUIを即座に反映
       if (typeof (mindMap as any).refreshMapList === 'function') {
         await (mindMap as any).refreshMapList();

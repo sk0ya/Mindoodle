@@ -1,6 +1,6 @@
 /**
  * Application Commands
- * Core application-level operations (undo, redo, save, copy, paste)
+ * Core application-level operations (undo, redo, copy, paste)
  */
 
 import type { Command, CommandContext, CommandResult } from '../types';
@@ -64,23 +64,6 @@ export const redoCommand: Command = {
         error: error instanceof Error ? error.message : 'Failed to redo'
       };
     }
-  }
-};
-
-// Save command (currently auto-save)
-export const saveCommand: Command = {
-  name: 'save',
-  aliases: ['s'],
-  description: 'Save the mindmap (auto-save is enabled)',
-  category: 'utility',
-  examples: ['save', 's'],
-
-  execute(): CommandResult {
-    // Auto-save is handled by the system
-    return {
-      success: true,
-      message: 'Auto-save is enabled - mindmap is already saved'
-    };
   }
 };
 

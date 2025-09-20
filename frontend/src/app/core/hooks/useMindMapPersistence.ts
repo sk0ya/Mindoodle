@@ -116,18 +116,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     return initialData;
   }, [isInitialized, storageAdapter, config.mode, waitForInitialization]);
 
-  // データ保存
-  const saveData = useCallback(async (data: MindMapData): Promise<void> => {
-    if (!isInitialized || !storageAdapter) return;
-    
-    try {
-      await storageAdapter.saveData(data);
-      logger.debug(`Data saved successfully to ${config.mode} storage`);
-    } catch (saveError) {
-      logger.error(`Failed to save data to ${config.mode} storage:`, saveError);
-    }
-  }, [isInitialized, storageAdapter, config.mode]);
-
   // 全マップ読み込み
   const loadAllMaps = useCallback(async (): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
@@ -193,18 +181,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, storageAdapter]);
 
-  // 全マップ保存
-  const saveAllMaps = useCallback(async (maps: MindMapData[]): Promise<void> => {
-    if (!isInitialized || !storageAdapter) return;
-    
-    try {
-      await storageAdapter.saveAllMaps(maps);
-      logger.debug(`Saved ${maps.length} maps to ${config.mode} storage`);
-    } catch (saveError) {
-      logger.error(`Failed to save maps to ${config.mode} storage:`, saveError);
-    }
-  }, [isInitialized, storageAdapter, config.mode]);
-
   // マップをリストに追加
   const addMapToList = useCallback(async (newMap: MindMapData): Promise<void> => {
     if (!isInitialized || !storageAdapter) return;
@@ -243,30 +219,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, storageAdapter, config.mode]);
 
-  // マップをリストで更新
-  const updateMapInList = useCallback(async (updatedMap: MindMapData): Promise<void> => {
-    if (!isInitialized || !storageAdapter) return;
-    
-    try {
-      await storageAdapter.updateMapInList(updatedMap);
-      setAllMindMaps(prevMaps => 
-        prevMaps.map(map => map.mapIdentifier.mapId === updatedMap.mapIdentifier.mapId ? updatedMap : map)
-      );
-      logger.debug(`Updated map in list (${config.mode}):`, updatedMap.title);
-    } catch (updateError) {
-      logger.error(`Failed to update map in list (${config.mode}):`, updateError);
-    }
-  }, [isInitialized, storageAdapter, config.mode]);
-
-  // 初期化完了時に軽量データのみ読み込み
-  useEffect(() => {
-    if (isInitialized && storageAdapter) {
-      // Skip loadAllMaps - maps will be loaded on-demand when selected
-      loadExplorerTree();
-      loadWorkspaces();
-    }
-  }, [isInitialized, storageAdapter, loadExplorerTree, loadWorkspaces]);
-
 
   // マップ一覧を強制リフレッシュする関数
   const refreshMapList = useCallback(async () => {
@@ -295,13 +247,10 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     
     // 操作
     loadInitialData,
-    saveData,
     loadAllMaps,
     refreshMapList,
-    saveAllMaps,
     addMapToList,
     removeMapFromList,
-    updateMapInList,
     createFolder,
     
     // ストレージアダプター（高度な使用のため）
