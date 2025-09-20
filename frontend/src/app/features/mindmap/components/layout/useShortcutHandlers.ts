@@ -366,7 +366,7 @@ export function useShortcutHandlers(args: Args) {
     // Map switching helpers for global shortcuts (Ctrl+P/N)
     switchToPrevMap: () => {
       try {
-        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId?: string }> || [];
+        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId: string }> || [];
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
         if (!Array.isArray(order) || order.length === 0) return;
@@ -397,7 +397,7 @@ export function useShortcutHandlers(args: Args) {
     },
     switchToNextMap: () => {
       try {
-        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId?: string }> || [];
+        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId: string }> || [];
         const maps = (window as any).mindoodleAllMaps || [];
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
         if (!Array.isArray(order) || order.length === 0) return;

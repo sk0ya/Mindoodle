@@ -14,7 +14,7 @@ import type { ExplorerItem } from '../../../../core/storage/types';
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
   currentMapId: string | null;
-  currentWorkspaceId?: string | null;
+  currentWorkspaceId: string | null;
   onSelectMap: (id: MapIdentifier) => void;
   onCreateMap: (title: string, category?: string) => void;
   onDeleteMap: (id: MapIdentifier) => void;
@@ -779,7 +779,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void, currentMapId?: string | null, currentWorkspaceId?: string | null }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath, currentMapId = null, currentWorkspaceId = null }) => {
+const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void, currentMapId?: string | null, currentWorkspaceId: string | null }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath, currentMapId = null, currentWorkspaceId = null }) => {
   const toggle = (path: string) => onTogglePath && onTogglePath(path);
   const [dragOverPath, setDragOverPath] = React.useState<string | null>(null);
 

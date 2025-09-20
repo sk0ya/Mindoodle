@@ -428,10 +428,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       const direction = e?.detail?.direction as ('prev' | 'next' | undefined);
       if (!id || typeof selectMapById !== 'function') return;
 
-      const ordered: Array<{ mapId: string; workspaceId?: string }> = (window as any).mindoodleOrderedMaps || [];
+      const ordered: Array<{ mapId: string; workspaceId: string }> = (window as any).mindoodleOrderedMaps || [];
       const dirStep = direction === 'prev' ? -1 : 1;
 
-      const trySelect = async (mapId: string, workspaceId?: string): Promise<boolean> => {
+      const trySelect = async (mapId: string, workspaceId: string): Promise<boolean> => {
         const ok = await selectMapById({ mapId, workspaceId: workspaceId as any });
         if (!ok) return false;
         // Allow state to settle

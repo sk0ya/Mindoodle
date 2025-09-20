@@ -47,13 +47,12 @@ export const useMindMap = (
     loadInitialData: persistenceHook.loadInitialData,
     refreshMapList: persistenceHook.refreshMapList,
     applyAutoLayout: dataHook.applyAutoLayout,
-    currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId
+    currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId,
   });
 
   useStorageConfigChange(storageConfig, {
     setData: dataHook.setData,
     isInitialized: persistenceHook.isInitialized,
-    loadInitialData: persistenceHook.loadInitialData,
     refreshMapList: persistenceHook.refreshMapList,
     applyAutoLayout: dataHook.applyAutoLayout,
     currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId
@@ -335,7 +334,7 @@ export const useMindMap = (
     }
   }, [persistenceHook]);
 
-  const readImageAsDataURL = useCallback(async (relativePath: string, workspaceId?: string): Promise<string | null> => {
+  const readImageAsDataURL = useCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && typeof adapter.readImageAsDataURL === 'function') {
       return await adapter.readImageAsDataURL(relativePath, workspaceId);

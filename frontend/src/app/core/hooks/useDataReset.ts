@@ -1,6 +1,5 @@
 import { useEffect, useRef } from 'react';
 import { logger } from '../../shared/utils/logger';
-import { executeDataReload } from '../utils/reloadData';
 import type { MindMapData } from '@shared/types';
 
 interface DataResetDependencies {
@@ -9,7 +8,7 @@ interface DataResetDependencies {
   loadInitialData: () => Promise<MindMapData>;
   refreshMapList: () => Promise<void>;
   applyAutoLayout?: () => void;
-  currentWorkspaceId?: string;
+  currentWorkspaceId?: string | null;
 }
 
 /**
@@ -30,13 +29,9 @@ export const useDataReset = (
     if (currentResetKey !== prevResetKey) {
       logger.info('Reset key changed, forcing data reload:', currentResetKey);
 
-      const executeReset = async () => {
-        await executeDataReload(dependencies, 'dataReset');
-      };
 
       if (dependencies.isInitialized) {
         logger.info('Persistence initialized, executing reload immediately');
-        executeReset();
         pendingResetKeyRef.current = null;
       } else {
         logger.info('Waiting for persistence initialization before reload...');
@@ -51,14 +46,6 @@ export const useDataReset = (
       currentResetKey === pendingResetKeyRef.current
     ) {
       logger.info('Executing delayed reload for resetKey:', pendingResetKeyRef.current);
-      
-      executeDataReload(dependencies, 'dataReset-delayed')
-        .then(() => {
-          logger.info('Delayed reset completed');
-        })
-        .catch(error => {
-          logger.error('Failed to execute delayed reset:', error);
-        });
       
       pendingResetKeyRef.current = null;
     }

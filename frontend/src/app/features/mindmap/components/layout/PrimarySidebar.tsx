@@ -13,7 +13,7 @@ interface PrimarySidebarProps {
   // Maps view props
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
-  currentWorkspaceId?: string | null;
+  currentWorkspaceId: string;
   onSelectMap?: (id: MapIdentifier) => void;
   onCreateMap?: (title: string, category?: string) => void;
   onDeleteMap?: (id: MapIdentifier) => void;
