@@ -37,7 +37,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         reason: !prevConfig ? 'first-init' : modeChanged ? 'mode-changed' : 'auth-changed'
       });
       
-      // 初期化状態をリセット
       setIsInitialized(false);
       setAllMindMaps([]);
       
@@ -115,43 +114,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     return initialData;
   }, [isInitialized, storageAdapter, config.mode, waitForInitialization]);
 
-  // 全マップ読み込み
-  const loadAllMaps = useCallback(async (): Promise<void> => {
-    if (!isInitialized || !storageAdapter) return;
-
-    try {
-      const savedMaps = await storageAdapter.loadAllMaps();
-
-      if (savedMaps && savedMaps.length > 0) {
-        // Avoid unnecessary state updates if list is unchanged
-        setAllMindMaps(prev => {
-          const sameLength = prev.length === savedMaps.length;
-          if (sameLength) {
-            let same = true;
-            for (let i = 0; i < prev.length; i++) {
-              const a = prev[i];
-              const b = savedMaps[i];
-              if (a.mapIdentifier.mapId !== b.mapIdentifier.mapId || a.updatedAt !== b.updatedAt || a.title !== b.title || a.category !== b.category) {
-                same = false; break;
-              }
-            }
-            if (same) {
-              return prev;
-            }
-          }
-          return savedMaps;
-        });
-        logger.debug(`Loaded ${savedMaps.length} maps from ${config.mode} storage`);
-      } else {
-        logger.debug(`No saved maps found in ${config.mode} storage`);
-        setAllMindMaps(prev => (prev.length === 0 ? prev : []));
-      }
-    } catch (loadError) {
-      logger.error(`Failed to load maps from ${config.mode} storage:`, loadError);
-      setAllMindMaps([]);
-    }
-  }, [isInitialized, storageAdapter, config.mode]);
-
   // エクスプローラーツリー読み込み
   const loadExplorerTree = useCallback(async (): Promise<void> => {
     if (!isInitialized || !storageAdapter || typeof storageAdapter.getExplorerTree !== 'function') {
@@ -169,16 +131,40 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   // Workspaces management
   const loadWorkspaces = useCallback(async (): Promise<void> => {
     if (!isInitialized || !storageAdapter || typeof storageAdapter.listWorkspaces !== 'function') {
-      setWorkspaces([]);
+      // Don't clear workspaces during initialization - preserve existing ones
+      // Only clear on first mount when there are no workspaces
+      setWorkspaces(prev => prev.length > 0 ? prev : []);
       return;
     }
     try {
       const ws = await storageAdapter.listWorkspaces();
       setWorkspaces(ws);
-    } catch {
-      setWorkspaces([]);
+    } catch (error) {
+      // Don't clear workspaces on error - preserve existing ones
+      // This prevents workspaces from disappearing when permissions are lost
+      logger.warn('Failed to load workspaces, preserving existing list:', error);
     }
   }, [isInitialized, storageAdapter]);
+
+  // マップ一覧を強制リフレッシュする関数
+  const refreshMapList = useCallback(async () => {
+    if (storageAdapter) {
+      // Only refresh explorer tree for periodic updates - much lighter than loading all maps
+      await loadExplorerTree();
+      await loadWorkspaces();
+    }
+  }, [storageAdapter, loadExplorerTree, loadWorkspaces]);
+
+  // 初期化完了時にワークスペースとマップを読み込む
+  useEffect(() => {
+    if (isInitialized && storageAdapter) {
+      const initializeData = async () => {
+        await loadWorkspaces();
+        await refreshMapList();
+      };
+      initializeData();
+    }
+  }, [isInitialized, storageAdapter, loadWorkspaces, refreshMapList]);
 
   // マップをリストに追加
   const addMapToList = useCallback(async (newMap: MindMapData): Promise<void> => {
@@ -218,16 +204,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, storageAdapter, config.mode]);
 
-
-  // マップ一覧を強制リフレッシュする関数
-  const refreshMapList = useCallback(async () => {
-    if (storageAdapter) {
-      // Only refresh explorer tree for periodic updates - much lighter than loading all maps
-      await loadExplorerTree();
-      await loadWorkspaces();
-    }
-  }, [storageAdapter, loadExplorerTree, loadWorkspaces]);
-
   // Create folder wrapper
   const createFolder = useCallback(async (relativePath: string): Promise<void> => {
     if (!isInitialized || !storageAdapter || typeof storageAdapter.createFolder !== 'function') return;
@@ -246,7 +222,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     
     // 操作
     loadInitialData,
-    loadAllMaps,
     refreshMapList,
     addMapToList,
     removeMapFromList,
