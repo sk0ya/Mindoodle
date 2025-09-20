@@ -637,8 +637,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           label: '削除',
           icon: <Trash2 size={14} />,
           onClick: () => {
-            if (targetPath && window.confirm(`フォルダ「${targetPath}」を削除しますか？（中身も削除されます）`)) {
-              window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
+            if (targetPath) {
+              // Display name should exclude workspace ID for user-friendly message
+              const displayPath = extractCategory(targetPath) || targetPath;
+              if (window.confirm(`フォルダ「${displayPath}」を削除しますか？（中身も削除されます）`)) {
+                window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
+              }
             }
           }
         }
@@ -689,8 +693,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           label: '削除',
           icon: <Trash2 size={14} />,
           onClick: () => {
-            if (targetPath && window.confirm(`ファイル「${targetPath}」を削除しますか？`)) {
-              window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
+            if (targetPath) {
+              // Display only filename for user-friendly message
+              const fileName = targetPath.split('/').pop() || targetPath;
+              if (window.confirm(`ファイル「${fileName}」を削除しますか？`)) {
+                window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
+              }
             }
           }
         },

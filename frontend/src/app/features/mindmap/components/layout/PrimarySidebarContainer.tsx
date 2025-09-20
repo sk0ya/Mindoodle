@@ -53,18 +53,6 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     onMapSwitch,
   } = props;
 
-  // サイドバーで表示されているworkspaceIdを決定
-  const sidebarWorkspaceId = React.useMemo(() => {
-    if (workspaces && workspaces.length > 0) {
-      // workspacesがある場合、最初のワークスペースのID
-      return workspaces[0].id;
-    }
-    // 既存のマップから推定（workspaceIdのみ取得）
-    if (allMindMaps && allMindMaps.length > 0) {
-      return allMindMaps[0].mapIdentifier.workspaceId;
-    }
-    return 'default';
-  }, [workspaces, allMindMaps]);
 
   // onCreateMapをラップして適切なworkspaceIdを渡す
   const handleCreateMap = React.useCallback((title: string, workspaceId: string, category?: string) => {

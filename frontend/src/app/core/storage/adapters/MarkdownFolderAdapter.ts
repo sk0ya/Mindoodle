@@ -122,31 +122,46 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
-    console.log('🗄️ MarkdownFolderAdapter.loadAllMaps called');
+    console.log('📄️ MarkdownFolderAdapter.loadAllMaps called');
     if (!this._isInitialized) {
       await this.initialize();
     }
-    if (this.workspaces.length === 0 && !this.rootHandle) return [];
+    if (this.workspaces.length === 0 && !this.rootHandle) {
+      console.log('📄️ No workspaces or root handle available');
+      return [];
+    }
 
     const maps: MindMapData[] = [];
-    console.log('🗄️ Starting to load maps...');
+    console.log('📄️ Starting to load maps...');
+    console.log('📄️ Available workspaces:', this.workspaces.length);
     const targets = this.workspaces.length > 0 ? this.workspaces.map(w => ({ handle: w.handle, id: w.id, name: w.name })) : [{ handle: this.rootHandle as any, id: '__default__', name: (this.rootHandle as any)?.name || '' }];
+    
     for (const t of targets) {
-      const perm = await this.queryPermission(t.handle as any, 'readwrite');
-      if (perm !== 'granted') {
+      console.log(`📄️ Processing workspace: ${t.name} (${t.id})`);
+      
+      // Try to ensure permission - if it fails, show the workspace but skip loading
+      const hasPermission = await this.ensurePermission(t.handle as any, 'readwrite');
+      console.log(`📄️ Permission check for ${t.name}: ${hasPermission}`);
+      
+      if (!hasPermission) {
+        console.warn(`📄️ No permission for workspace ${t.name}, skipping map loading`);
         if (!this.permissionWarned) {
-          logger.warn('MarkdownFolderAdapter: Workspace permission not granted');
-          try { emitStatus('warning', 'ワークスペースの権限がありません。フォルダを選び直してください', 6000); } catch {}
+          logger.warn('MarkdownFolderAdapter: Workspace permission not granted for:', t.name);
+          try { emitStatus('warning', `ワークスペース「${t.name}」の権限がありません。フォルダを選び直してください`, 6000); } catch {}
           this.permissionWarned = true;
         }
         continue;
       }
+      
+      console.log(`📄️ Loading maps from workspace: ${t.name}`);
       try {
+        let workspaceMapsCount = 0;
         for await (const fileHandle of this.iterateMarkdownFiles(t.handle as any)) {
           try {
             const data = await this.loadMapFromFile(fileHandle, t.handle as any, '', t.id);
             if (data) {
-              console.log('🗄️ Loading map from file:', data.mapIdentifier.mapId, data.title);
+              workspaceMapsCount++;
+              console.log('📄️ Loading map from file:', data.mapIdentifier.mapId, data.title);
               // Check for duplicates
               const existing = maps.find(m =>
                 m.mapIdentifier.mapId === data.mapIdentifier.mapId &&
@@ -158,19 +173,29 @@ export class MarkdownFolderAdapter implements StorageAdapter {
                 maps.push(data);
               }
             }
-          } catch {}
+          } catch (e) {
+            console.warn('📄️ Failed to load individual map file:', e);
+          }
         }
+        console.log(`📄️ Loaded ${workspaceMapsCount} maps from workspace ${t.name} root`);
       } catch (e) {
+        console.warn('📄️ Error scanning workspace root:', e);
         logger.debug('MarkdownFolderAdapter: Root-level scan transient error', (e as any)?.name || (e as any)?.message || e);
       }
-      for await (const entry of (t.handle as any).values?.() || this.iterateEntries(t.handle)) {
-        if (entry.kind === 'directory') {
-          await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle as any }, entry, entry.name ?? '', maps);
+      
+      try {
+        for await (const entry of (t.handle as any).values?.() || this.iterateEntries(t.handle)) {
+          if (entry.kind === 'directory') {
+            console.log(`📄️ Scanning directory: ${entry.name}`);
+            await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle as any }, entry, entry.name ?? '', maps);
+          }
         }
+      } catch (e) {
+        console.warn('📄️ Error scanning workspace subdirectories:', e);
       }
     }
-    console.log('🗄️ MarkdownFolderAdapter.loadAllMaps finished. Total maps:', maps.length);
-    console.log('🗄️ Final map list:', maps.map(m => `${m.mapIdentifier.mapId}: ${m.title}`));
+    console.log('📄️ MarkdownFolderAdapter.loadAllMaps finished. Total maps:', maps.length);
+    console.log('📄️ Final map list:', maps.map(m => `${m.mapIdentifier.mapId}: ${m.title}`));
     return maps;
   }
 
@@ -605,15 +630,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       cursorReq.onerror = () => reject(cursorReq.error);
     });
     db.close();
-    // Now outside of IDB transaction, check permissions and populate
+    // Now outside of IDB transaction, add all workspaces regardless of permission status
+    // Permission will be checked when actually accessing the workspace
     for (const { id, rec } of items) {
       if (!rec) continue;
       const handle = rec.handle as DirHandle;
-      const perm = await this.queryPermission(handle, 'readwrite');
-      if (perm === 'granted') {
-        const name = (handle as any)?.name || rec.name || 'workspace';
-        this.workspaces.push({ id, name, handle });
-      }
+      // Always add workspace to list - don't filter by permission here
+      const name = (handle as any)?.name || rec.name || 'workspace';
+      this.workspaces.push({ id, name, handle });
     }
   }
 
@@ -643,17 +667,39 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   private async resolveParentDirAndName(path: string): Promise<{ dir: DirHandle; name: string } | null> {
-    const baseHandle = this.workspaces[0]?.handle || this.rootHandle;
-    if (!baseHandle) return null;
     const parts = (path || '').split('/').filter(Boolean);
     if (parts.length === 0) return null;
-    const name = parts.pop() as string;
+
+    let baseHandle: DirHandle | null = null;
+    let pathParts = parts;
+
+    // Check if the path starts with a workspace ID (ws_*)
+    if (parts.length > 0 && parts[0].startsWith('ws_')) {
+      const workspaceId = parts[0];
+      const workspace = this.workspaces.find(ws => ws.id === workspaceId);
+      if (workspace?.handle) {
+        baseHandle = workspace.handle as any;
+        pathParts = parts.slice(1); // Remove workspace ID from path
+      }
+    }
+
+    // If no workspace-specific path or workspace not found, use the first available workspace or root
+    if (!baseHandle) {
+      baseHandle = this.workspaces[0]?.handle || this.rootHandle;
+    }
+
+    if (!baseHandle) return null;
+    if (pathParts.length === 0) return null;
+
+    const name = pathParts.pop() as string;
     let dir: DirHandle = baseHandle as any;
-    for (const part of parts) {
+
+    for (const part of pathParts) {
       const next = await this.getExistingDirectory(dir, part);
       if (!next) return null;
       dir = next;
     }
+
     return { dir, name };
   }
 
@@ -744,16 +790,23 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (this.workspaces.length > 0) {
       const root: ExplorerItem = { type: 'folder', name: 'workspaces', path: '', children: [] };
       for (const ws of this.workspaces) {
-        const perm = await this.queryPermission(ws.handle as any, 'readwrite');
+        const hasPermission = await this.ensurePermission(ws.handle as any, 'readwrite');
         const node: ExplorerItem = { type: 'folder', name: ws.name, path: `/${ws.id}`, children: [] };
-      if (perm === 'granted') node.children = await this.buildExplorerItems(ws.handle as any, `/${ws.id}`);
-      root.children?.push(node);
+        if (hasPermission) {
+          node.children = await this.buildExplorerItems(ws.handle as any, `/${ws.id}`);
+        } else {
+          // Show workspace but mark as inaccessible
+          node.children = [];
+          // Optional: Add a visual indicator that permission is needed
+          node.name = `${ws.name} (権限が必要)`;
+        }
+        root.children?.push(node);
+      }
+      return root;
     }
-    return root;
-  }
     // Fallback to legacy single root
-    const perm = await this.queryPermission(this.rootHandle as any, 'readwrite');
-    if (perm !== 'granted') {
+    const hasPermission = await this.ensurePermission(this.rootHandle as any, 'readwrite');
+    if (!hasPermission) {
       if (!this.permissionWarned) {
         logger.warn('MarkdownFolderAdapter: Root folder permission is not granted. Please reselect the folder.');
         this.permissionWarned = true;
@@ -978,6 +1031,44 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return 'granted';
     } catch {
       return 'denied';
+    }
+  }
+
+  private async requestPermission(handle: any, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
+    try {
+      if (typeof handle.requestPermission === 'function') {
+        return await handle.requestPermission({ mode });
+      }
+      // Fallback: assume granted if methods exist
+      return 'granted';
+    } catch {
+      return 'denied';
+    }
+  }
+
+  private async ensurePermission(handle: any, mode: 'read' | 'readwrite' = 'readwrite'): Promise<boolean> {
+    try {
+      console.log('🔐 Checking permission for handle:', handle?.name || 'unknown');
+      const currentPerm = await this.queryPermission(handle, mode);
+      console.log('🔐 Current permission status:', currentPerm);
+      
+      if (currentPerm === 'granted') {
+        console.log('🔐 Permission already granted');
+        return true;
+      }
+      
+      if (currentPerm === 'prompt') {
+        console.log('🔐 Permission prompt available, requesting...');
+        const requested = await this.requestPermission(handle, mode);
+        console.log('🔐 Permission request result:', requested);
+        return requested === 'granted';
+      }
+      
+      console.log('🔐 Permission denied, no prompt available');
+      return false;
+    } catch (error) {
+      console.warn('🔐 Permission check failed:', error);
+      return false;
     }
   }
 
