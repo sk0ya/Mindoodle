@@ -15,7 +15,7 @@ interface PrimarySidebarProps {
   currentMapId?: string | null;
   currentWorkspaceId: string;
   onSelectMap?: (id: MapIdentifier) => void;
-  onCreateMap?: (title: string, category?: string) => void;
+  onCreateMap?: (title: string, workspaceId: string, category?: string) => void;
   onDeleteMap?: (id: MapIdentifier) => void;
   onRenameMap?: (id: MapIdentifier, newTitle: string) => void;
   onChangeCategory?: (id: MapIdentifier, category: string) => void;

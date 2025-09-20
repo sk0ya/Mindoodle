@@ -287,21 +287,27 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   // Save raw markdown text for a map by id
   async saveMapMarkdown(id: { mapId: string; workspaceId: string }, markdown: string): Promise<void> {
+    console.log('saveMapMarkdown: Starting save for', id, 'markdown length:', markdown.length);
+    
     if (!this._isInitialized) {
+      console.log('saveMapMarkdown: Not initialized, calling initialize()');
       await this.initialize();
     }
     if (this.workspaces.length === 0 && !this.rootHandle) {
+      console.warn('saveMapMarkdown: No folder selected; skipping markdown save');
       logger.warn('MarkdownFolderAdapter: No folder selected; skipping markdown save');
       return;
     }
 
     const saveKey = `${id.workspaceId || '__default__'}::${id.mapId}`;
     if (this.lastSavedContent.get(saveKey) === markdown) {
-      logger.debug('💾 MarkdownFolderAdapter: Skipped markdown save (no changes) for', id.mapId);
+      console.log('saveMapMarkdown: Skipped - no changes');
+      logger.debug('📾 MarkdownFolderAdapter: Skipped markdown save (no changes) for', id.mapId);
       return;
     }
 
     const doSave = async () => {
+      console.log('saveMapMarkdown: Starting doSave() for', id.mapId);
       const mapId = id.mapId;
       // 1) Try saveTargets first (most reliable)
       let target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
@@ -309,48 +315,93 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       let fileName: string | null = null;
       let fileHandle: FileHandle | null = null;
       if (target) {
+        console.log('saveMapMarkdown: Using existing target', target);
         dir = target.dir;
         fileName = target.fileName;
         fileHandle = target.fileHandle ?? null;
       } else {
+        console.log('saveMapMarkdown: Creating new target for', mapId);
         // 2) Resolve in specified workspace
         const parts = (mapId || '').split('/').filter(Boolean);
-        if (parts.length === 0) throw new Error('Invalid mapId');
+        if (parts.length === 0) {
+          console.error('saveMapMarkdown: Invalid mapId');
+          throw new Error('Invalid mapId');
+        }
         const base = parts.pop() as string;
+        console.log('saveMapMarkdown: Looking for workspace', id.workspaceId);
+        console.log('saveMapMarkdown: Available workspaces:', this.workspaces.map(w => w.id));
         const ws = this.workspaces.find(w => w.id === id.workspaceId);
-        if (!ws) throw new Error('Workspace not found for save');
+        if (!ws) {
+          console.error('saveMapMarkdown: Workspace not found for save', id.workspaceId);
+          throw new Error('Workspace not found for save');
+        }
+        console.log('saveMapMarkdown: Found workspace', ws.id);
         dir = ws.handle as any;
         for (const p of parts) {
+          console.log('saveMapMarkdown: Creating directory', p);
           dir = await this.getOrCreateDirectory(dir, p);
         }
         fileName = `${base}.md`;
+        console.log('saveMapMarkdown: Will create file', fileName);
       }
-      if (!dir || !fileName) return;
+      if (!dir || !fileName) {
+        console.error('saveMapMarkdown: Missing dir or fileName', { dir: !!dir, fileName });
+        return;
+      }
 
       if (!fileHandle) {
-        fileHandle = await (dir as any).getFileHandle?.(fileName, { create: true })
-          ?? await (dir as any).getFileHandle(fileName, { create: true });
+        console.log('saveMapMarkdown: Getting file handle for', fileName);
+        try {
+          fileHandle = await (dir as any).getFileHandle?.(fileName, { create: true })
+            ?? await (dir as any).getFileHandle(fileName, { create: true });
+          console.log('saveMapMarkdown: Got file handle');
+        } catch (error) {
+          console.error('saveMapMarkdown: Failed to get file handle:', error);
+          throw error;
+        }
       }
-      const writable = await (fileHandle as any).createWritable();
-      await writable.write(markdown);
-      await writable.close();
+      
+      console.log('saveMapMarkdown: Creating writable stream');
+      try {
+        const writable = await (fileHandle as any).createWritable();
+        await writable.write(markdown);
+        await writable.close();
+        console.log('saveMapMarkdown: Successfully wrote file');
+      } catch (error) {
+        console.error('saveMapMarkdown: Failed to write file:', error);
+        throw error;
+      }
 
       const entry = { dir, fileName, isRoot: false, fileHandle } as any;
       this.saveTargets.set(saveKey, entry);
       this.saveTargets.set(id.mapId, entry);
       this.lastSavedContent.set(saveKey, markdown);
+      console.log('saveMapMarkdown: Saved entry to cache');
       logger.debug(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
     };
 
     const prev = this.saveLocks.get(saveKey) || Promise.resolve();
-    const next = prev.then(doSave).catch(() => {}).finally(() => {});
+    const next = prev.then(doSave).catch((error) => {
+      console.error('saveMapMarkdown: Save failed:', error);
+      throw error;
+    }).finally(() => {});
     this.saveLocks.set(saveKey, next);
     await next;
+    console.log('saveMapMarkdown: Completed save for', id.mapId);
   }
 
-  async createFolder(relativePath: string): Promise<void> {
-    if (!this.rootHandle) throw new Error('No root folder selected');
-    let dir: DirHandle = this.rootHandle as any;
+  async createFolder(relativePath: string, workspaceId?: string): Promise<void> {
+    // Get the appropriate workspace handle
+    const wsHandle = workspaceId
+      ? this.workspaces.find(w => w.id === workspaceId)?.handle
+      : (this.workspaces[0]?.handle || this.rootHandle);
+
+    if (!wsHandle) {
+      throw new Error(`No workspace found for ID: ${workspaceId || 'default'}`);
+    }
+
+
+    let dir: DirHandle = wsHandle as any;
     const parts = (relativePath || '').split('/').filter(Boolean);
     for (const part of parts) {
       dir = await this.getOrCreateDirectory(dir, part);

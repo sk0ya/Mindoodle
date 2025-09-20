@@ -10,7 +10,7 @@ type Props = {
   allMindMaps: any[];
   currentMapId: string | null;
   onSelectMap: (id: MapIdentifier) => void;
-  onCreateMap: (title: string, category?: string) => Promise<string>;
+  onCreateMap: (title: string, workspaceId: string, category?: string) => Promise<string>;
   onDeleteMap: (id: MapIdentifier) => Promise<void>;
   onRenameMap: (id: MapIdentifier, title: string) => Promise<void> | void;
   onChangeCategory: (id: MapIdentifier, category: string) => Promise<void> | void;
@@ -53,6 +53,24 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     onMapSwitch,
   } = props;
 
+  // サイドバーで表示されているworkspaceIdを決定
+  const sidebarWorkspaceId = React.useMemo(() => {
+    if (workspaces && workspaces.length > 0) {
+      // workspacesがある場合、最初のワークスペースのID
+      return workspaces[0].id;
+    }
+    // 既存のマップから推定（workspaceIdのみ取得）
+    if (allMindMaps && allMindMaps.length > 0) {
+      return allMindMaps[0].mapIdentifier.workspaceId;
+    }
+    return 'default';
+  }, [workspaces, allMindMaps]);
+
+  // onCreateMapをラップして適切なworkspaceIdを渡す
+  const handleCreateMap = React.useCallback((title: string, workspaceId: string, category?: string) => {
+    return onCreateMap(title, workspaceId, category);
+  }, [onCreateMap]);
+
   return (
     <PrimarySidebar
       activeView={activeView}
@@ -61,7 +79,7 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       currentMapId={currentMapId}
       currentWorkspaceId={currentMapData?.mapIdentifier?.workspaceId || null}
       onSelectMap={onSelectMap}
-      onCreateMap={onCreateMap}
+      onCreateMap={handleCreateMap}
       onDeleteMap={onDeleteMap}
       onRenameMap={onRenameMap}
       onChangeCategory={onChangeCategory}

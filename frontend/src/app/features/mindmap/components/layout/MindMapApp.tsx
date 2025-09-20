@@ -939,7 +939,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onSelectMap={async (id) => {
           await selectMapById(id);
         }}
-        onCreateMap={(title: string, category?: string) => createAndSelectMap(title, data?.mapIdentifier.workspaceId, category)}
+        onCreateMap={(title: string, workspaceId: string, category?: string) => {
+          return createAndSelectMap(title, workspaceId, category);
+        }}
         onDeleteMap={deleteMap}
         onRenameMap={(id, title) => updateMapMetadata(id, { title })}
         onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
@@ -959,7 +961,16 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         explorerTree={(mindMap as any).explorerTree || null}
         onCreateFolder={async (path: string) => {
           if (typeof (mindMap as any).createFolder === 'function') {
-            await (mindMap as any).createFolder(path);
+            // フルパスからworkspaceIdと相対パスを分離
+            const wsMatch = path.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+            if (wsMatch) {
+              const workspaceId = wsMatch[1];
+              const relativePath = wsMatch[2] || '';
+              await (mindMap as any).createFolder(relativePath, workspaceId);
+            } else {
+              // フォールバック: 相対パスとして処理
+              await (mindMap as any).createFolder(path);
+            }
           }
         }}
         currentMapData={data}

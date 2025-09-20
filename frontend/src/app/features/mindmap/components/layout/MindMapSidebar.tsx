@@ -16,7 +16,7 @@ interface MindMapSidebarProps {
   currentMapId: string | null;
   currentWorkspaceId: string | null;
   onSelectMap: (id: MapIdentifier) => void;
-  onCreateMap: (title: string, category?: string) => void;
+  onCreateMap: (title: string, workspaceId: string, category?: string) => void;
   onDeleteMap: (id: MapIdentifier) => void;
   onRenameMap: (id: MapIdentifier, newTitle: string) => void;
   onChangeCategory: (id: MapIdentifier, category: string) => void;
@@ -173,9 +173,33 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     // eslint-disable-next-line no-alert
     const newFolderName = window.prompt(`新しいフォルダ名を入力してください${parentInfo}:`, '');
     if (newFolderName && newFolderName.trim()) {
-      const newFolderPath = createChildFolderPath(parentPath, newFolderName.trim());
+      // parentPathからworkspaceIdを抽出
+      let workspaceId: string;
+      let cleanParentPath: string | null = null;
+
+      if (parentPath) {
+        const wsMatch = parentPath.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+        if (wsMatch) {
+          workspaceId = wsMatch[1];
+          cleanParentPath = wsMatch[2] || null;
+        } else {
+          // ワークスペース情報が含まれていない場合、現在のワークスペースを使用
+          workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'default');
+          cleanParentPath = parentPath;
+        }
+      } else {
+        // parentPathがnullの場合、適切なワークスペースを決定
+        workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'default');
+      }
+
+      const newFolderPath = createChildFolderPath(cleanParentPath, newFolderName.trim());
+
+
       if (onCreateFolder) {
-        Promise.resolve(onCreateFolder(newFolderPath)).catch(() => {});
+        // onCreateFolderを修正してworkspaceIdを受け取れるようにする必要がある
+        // 現在は暫定的にフルパスで渡す
+        const fullPath = `/${workspaceId}/${newFolderPath}`;
+        Promise.resolve(onCreateFolder(fullPath)).catch(() => {});
       } else {
         // フォールバック: UIのみ更新
         setEmptyFolders(prev => new Set([...prev, newFolderPath]));
@@ -186,14 +210,53 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         });
       }
     }
-  }, [onCreateFolder]);
+  }, [onCreateFolder, currentWorkspaceId, mindMaps]);
+
+  // workspaceIdを除去してcategoryを作成するヘルパー関数
+  const extractCategory = useCallback((fullPath: string | null): string | undefined => {
+    if (!fullPath) return undefined;
+
+    // workspaceIdのパターンにマッチするかチェック
+    const wsMatch = fullPath.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+    if (wsMatch) {
+      const [, , categoryPart] = wsMatch;
+      return categoryPart || undefined;
+    }
+
+    // workspaceIdパターンでない場合はそのまま返す
+    return fullPath || undefined;
+  }, []);
 
   const handleCreateMap = useCallback((parentPath: string | null) => {
-    const parentInfo = parentPath ? ` (${parentPath} 内)` : '';
+    const category = extractCategory(parentPath);
+    const displayPath = category || 'ルート';
+    const parentInfo = category ? ` (${displayPath} 内)` : '';
+
     // eslint-disable-next-line no-alert
     const mapName = window.prompt(`新しいマインドマップの名前を入力してください${parentInfo}:`, '新しいマインドマップ');
     if (mapName && mapName.trim()) {
-      onCreateMap(mapName.trim(), parentPath || undefined);
+      console.log('handleCreateMap: Original parentPath:', parentPath);
+      console.log('handleCreateMap: Extracted category:', category);
+
+      // parentPathからworkspaceIdを抽出
+      const wsMatch = parentPath?.match(/^\/?(ws_[^/]+)/);
+      let workspaceId = wsMatch ? wsMatch[1] : null;
+
+      // parentPathがnullの場合、現在のワークスペースまたは利用可能な最初のワークスペースを使用
+      if (!workspaceId) {
+        if (currentWorkspaceId) {
+          workspaceId = currentWorkspaceId;
+        } else if (mindMaps.length > 0) {
+          // 既存のマップから最初のワークスペースIDを取得
+          workspaceId = mindMaps[0].mapIdentifier.workspaceId;
+        } else {
+          workspaceId = 'default';
+        }
+      }
+
+      console.log('handleCreateMap: Extracted workspaceId:', workspaceId, 'from parentPath:', parentPath);
+
+      onCreateMap(mapName.trim(), workspaceId, category);
       
       // マップが作成されたフォルダを空フォルダリストから削除
       if (parentPath) {
@@ -204,7 +267,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         });
       }
     }
-  }, [onCreateMap, setEmptyFolders]);
+  }, [onCreateMap, setEmptyFolders, extractCategory, currentWorkspaceId, mindMaps]);
 
   // 新しいボタン用のハンドラー
   const handleAddMap = useCallback(() => {

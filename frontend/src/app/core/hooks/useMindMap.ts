@@ -302,10 +302,10 @@ export const useMindMap = (
     return false;
   }, [persistenceHook]);
 
-  const createFolder = useCallback(async (relativePath: string): Promise<void> => {
+  const createFolder = useCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && typeof adapter.createFolder === 'function') {
-      await adapter.createFolder(relativePath);
+      await adapter.createFolder(relativePath, workspaceId);
       await persistenceHook.refreshMapList();
     }
   }, [persistenceHook]);
@@ -393,10 +393,74 @@ export const useMindMap = (
   // マップ管理の高レベル操作（非同期対応）
   const mapOperations = {
     createAndSelectMap: useCallback(async (title: string, workspaceId: string, category?: string): Promise<string> => {
-      const newMap = actionsHook.createMap(title, workspaceId, category);
-      await persistenceHook.addMapToList(newMap);
-      actionsHook.selectMap(newMap);
-      return newMap.mapIdentifier.mapId;
+      // workspaceIdの検証
+      if (!workspaceId) {
+        console.error('createAndSelectMap: workspaceId is required');
+        throw new Error('workspaceId is required for creating a map');
+      }
+
+      // mapIdentifierをcategory、titleから作成（workspaceIdは含めない）
+      const mapId = category ? `${category}/${title}` : title;
+      const mapIdentifier: MapIdentifier = { mapId, workspaceId };
+
+      // adapterを通じてファイルを作成
+      const adapter = persistenceHook.storageAdapter;
+      if (!adapter) {
+        console.error('createAndSelectMap: No storage adapter available');
+        throw new Error('Storage adapter is not available');
+      }
+
+      if (adapter.saveMapMarkdown) {
+        const initialMarkdown = `# ${title}\n\n`;
+        try {
+          await adapter.saveMapMarkdown(mapIdentifier, initialMarkdown);
+          await persistenceHook.refreshMapList();
+        } catch (error) {
+          console.error('createAndSelectMap: Failed to save markdown file:', error);
+          throw error;
+        }
+      } else {
+        console.warn('createAndSelectMap: saveMapMarkdown not available on adapter');
+      }
+
+      console.log('createAndSelectMap: Adding map to list...');
+      // map一覧を更新
+      
+      console.log('createAndSelectMap: Loading and selecting created map...');
+
+      // 作成したファイルからマップをロードして選択
+      try {
+        const adapter: any = (persistenceHook as any).storageAdapter;
+        const loadedMarkdown = await adapter.getMapMarkdown(mapIdentifier);
+
+        if (loadedMarkdown) {
+          const parseResult = MarkdownImporter.parseMarkdownToNodes(loadedMarkdown);
+
+          // selectMapByIdと同じロジックでcategoryを抽出
+          const actualMapId = mapIdentifier.mapId;
+          const parts = (actualMapId || '').split('/').filter(Boolean);
+          const extractedCategory = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
+
+          const now = new Date().toISOString();
+
+          const loadedMapData: MindMapData = {
+            title: title,
+            category: extractedCategory || undefined,
+            rootNodes: parseResult.rootNodes,
+            createdAt: now,
+            updatedAt: now,
+            settings: { autoSave: true, autoLayout: true },
+            mapIdentifier: { mapId: actualMapId, workspaceId: mapIdentifier.workspaceId }
+          };
+
+          actionsHook.selectMap(loadedMapData);
+        }
+      } catch (error) {
+        console.error('createAndSelectMap: Failed to load created map:', error);
+      }
+      
+      console.log('createAndSelectMap: Successfully created map:', mapIdentifier.mapId);
+      return mapIdentifier.mapId;
     }, [actionsHook, persistenceHook]),
 
     selectMapById: useCallback(async (target: MapIdentifier): Promise<boolean> => {
