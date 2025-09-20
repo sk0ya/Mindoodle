@@ -16,4 +16,7 @@ export const LAYOUT = {
   // グリッド
   GRID_SIZE: 20,
   SNAP_THRESHOLD: 10,
+
+  // UI要素の高さ
+  TOOLBAR_HEIGHT: 60, // ツールバーの高さ
 };

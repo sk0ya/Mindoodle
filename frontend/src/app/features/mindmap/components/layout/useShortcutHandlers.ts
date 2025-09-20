@@ -243,6 +243,9 @@ export function useShortcutHandlers(args: Args) {
             effectiveHeight -= headerRect.height;
             offsetY = headerRect.height;
           }
+
+          // Bottom VimStatusBar (outline) - 24px height
+          effectiveHeight -= 24;
         }
 
         const currentZoom = ui.zoom * 1.5; // Match the transform scale from CanvasRenderer
@@ -254,11 +257,12 @@ export function useShortcutHandlers(args: Args) {
 
         // Define margins to keep node away from edges
         const margin = 100;
+        const topMargin = 20; // Smaller margin for top to avoid excessive spacing
 
         // Check if node is outside effective viewport bounds
         const isOutsideLeft = nodeScreenX < margin;
         const isOutsideRight = nodeScreenX > effectiveWidth - margin;
-        const isOutsideTop = nodeScreenY < margin;
+        const isOutsideTop = nodeScreenY < topMargin;
         const isOutsideBottom = nodeScreenY > effectiveHeight - margin;
 
         if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
@@ -273,7 +277,7 @@ export function useShortcutHandlers(args: Args) {
           }
 
           if (isOutsideTop) {
-            newPanY = (margin + offsetY - currentZoom * node.y) / currentZoom;
+            newPanY = (topMargin + offsetY - currentZoom * node.y) / currentZoom;
           } else if (isOutsideBottom) {
             newPanY = (effectiveHeight - margin + offsetY - currentZoom * node.y) / currentZoom;
           }

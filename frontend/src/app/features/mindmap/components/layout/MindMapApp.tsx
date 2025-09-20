@@ -39,6 +39,7 @@ import type { StorageConfig } from '../../../../core/storage/types';
 // Login modal moved into MindMapOverlays
 
 import { useShortcutHandlers } from './useShortcutHandlers';
+import { LAYOUT } from '../../../../shared/constants/layout';
 
 interface MindMapAppProps {
   storageMode?: 'local' | 'markdown';
@@ -694,7 +695,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
         const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
         const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * positionRatio);
-        const viewportCenterY = viewportHeight / 2;
+        const availableHeight = viewportHeight - LAYOUT.TOOLBAR_HEIGHT - 24; // VimStatusBar height
+        const viewportCenterY = LAYOUT.TOOLBAR_HEIGHT + (availableHeight / 2);
         const currentZoom = ui.zoom * 1.5;
 
         const newPanX = leftCenterX / currentZoom - nodeX;
@@ -730,7 +732,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     // マップエリアの位置を決定（左寄りモードまたは中央モード）
     const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
     const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * positionRatio);
-    const viewportCenterY = viewportHeight / 2;
+    const availableHeight = viewportHeight - LAYOUT.TOOLBAR_HEIGHT - 24; // VimStatusBar height
+    const viewportCenterY = LAYOUT.TOOLBAR_HEIGHT + (availableHeight / 2);
 
     // ノードの現在の座標
     const nodeX = targetNode.x || 0;

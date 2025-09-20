@@ -1,20 +1,22 @@
 import React from 'react';
+import { LAYOUT } from '../../../../shared/constants/layout';
 
 const SidebarStyles: React.FC = () => (
   <style>{`
     .mindmap-sidebar {
       width: 280px;
-      height: calc(100vh - 60px);
+      height: calc(100vh - ${LAYOUT.TOOLBAR_HEIGHT}px);
       background: #ffffff;
       border-right: 1px solid rgba(148, 163, 184, 0.2);
       display: flex;
       flex-direction: column;
       position: fixed;
       left: 48px;
-      top: 60px;
+      top: ${LAYOUT.TOOLBAR_HEIGHT}px;
       z-index: 100;
       overflow: hidden;
       box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.05);
+      padding-bottom: 24px;
     }
 
     [data-theme="dark"] .mindmap-sidebar {
@@ -25,16 +27,16 @@ const SidebarStyles: React.FC = () => (
 
     .mindmap-sidebar.collapsed {
       width: 50px;
-      height: calc(100vh - 60px);
+      height: calc(100vh - ${LAYOUT.TOOLBAR_HEIGHT}px);
       background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
       border-right: 2px solid #dee2e6;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px 8px;
+      padding: 16px 8px 40px 8px;
       position: fixed;
       left: 0;
-      top: 60px;
+      top: ${LAYOUT.TOOLBAR_HEIGHT}px;
       z-index: 100;
       overflow: hidden;
     }
@@ -56,6 +58,7 @@ const SidebarStyles: React.FC = () => (
       z-index: 100 !important;
       width: 100% !important;
       overflow: visible !important;
+      flex-shrink: 0 !important;
     }
 
     [data-theme="dark"] .sidebar-header {
@@ -383,7 +386,7 @@ const SidebarStyles: React.FC = () => (
       flex: 1;
       overflow-y: auto;
       position: relative;
-      min-height: 200px;
+      min-height: 0;
     }
 
     .maps-content-wrapper.drag-over-root {

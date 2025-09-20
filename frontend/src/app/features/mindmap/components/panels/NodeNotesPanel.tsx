@@ -211,6 +211,7 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       border-left: 1px solid var(--border-color);
       position: relative;
       user-select: ${isResizing ? 'none' : 'auto'};
+      padding-bottom: 24px;
     }
 
     .resize-handle {

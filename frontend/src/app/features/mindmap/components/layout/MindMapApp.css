@@ -27,7 +27,7 @@
 .main-layout {
   display: flex;
   flex: 1;
-  height: calc(100vh - 60px); /* ツールバーの高さを除く */
+  height: 100%;
 }
 
 .sidebar-container {
@@ -67,7 +67,7 @@
   position: relative;
   z-index: 1;
   transition: margin-left 0.3s ease;
-  padding: 0;
+  padding: 0 0 24px 0;
   margin: 0;
   height: 100%;
 }
