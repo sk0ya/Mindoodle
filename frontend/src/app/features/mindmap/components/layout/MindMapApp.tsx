@@ -790,9 +790,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     if (roots.length === 0) return;
     if (selectedNodeId) {
       const root = roots.find(r => !!findNodeById(r, selectedNodeId)) || roots[0];
-      centerNodeInView(root.id, false);
+      centerNodeInView(root.id, false, { mode: 'left' });
     } else {
-      centerNodeInView(roots[0].id, false);
+      centerNodeInView(roots[0].id, false, { mode: 'left' });
     }
   }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
 
@@ -922,9 +922,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     <div 
       className="mindmap-app"
       tabIndex={0}
-      onFocus={() => {
-        // Vimium対策: アプリケーションにフォーカス時にフォーカス状態を維持
-      }}
       style={{ outline: 'none' }}
     >
       <ActivityBar
