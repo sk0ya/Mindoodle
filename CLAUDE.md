@@ -21,6 +21,78 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 **Mindoodle** is a local-first, markdown-based mind mapping application built with React + TypeScript + Vite.
 
 ### Directory Structure
+
+**Target Migration Structure:**
+```
+frontend/
+├── public/                       # 静的ファイル（favicon, manifest, icons）
+│   ├── favicon.svg
+│   ├── favicon.ico
+│   ├── manifest.json
+│   └── ...
+├── src/
+│   ├── app/                      # アプリケーションのコア（データ層・サービス）
+│   │   ├── core/
+│   │   │   ├── commands/
+│   │   │   ├── data/
+│   │   │   ├── hooks/
+│   │   │   ├── services/
+│   │   │   ├── storage/
+│   │   │   ├── store/
+│   │   │   ├── streams/
+│   │   │   └── utils/
+│   │   └── index.ts
+│   │
+│   ├── features/                 # 機能単位（mindmap, etc.）
+│   │   └── mindmap/
+│   │       ├── components/
+│   │       │   ├── Canvas/       # Canvas 関連を集約
+│   │       │   ├── Node/         # Node 関連を集約
+│   │       │   └── Shared/       # Mindmap専用共有UI
+│   │       ├── layout/
+│   │       ├── modals/
+│   │       ├── panels/
+│   │       └── index.ts
+│   │
+│   ├── shared/                   # 全体で使える共通処理
+│   │   ├── components/
+│   │   │   ├── ErrorBoundary.tsx
+│   │   │   ├── MarkdownEditor.tsx
+│   │   │   └── ui/               # Toolbar, ContextMenu など共通UI
+│   │   ├── hooks/                # 共通Hooks（useBooleanState等）
+│   │   ├── utils/                # 共通ユーティリティ
+│   │   │   ├── arrayUtils.ts
+│   │   │   ├── stringUtils.ts
+│   │   │   └── ...
+│   │   ├── markdown/             # Markdown関連を集約
+│   │   │   ├── markdownExport.ts
+│   │   │   ├── markdownImporter.ts
+│   │   │   ├── markdownLinkUtils.ts
+│   │   │   └── markdownNodeMerge.ts
+│   │   ├── storage/              # Storage関連を集約
+│   │   │   ├── LocalStorageAdapter.ts
+│   │   │   ├── FileSystemAdapter.ts
+│   │   │   └── StorageAdapterFactory.ts
+│   │   ├── constants/            # 定数類を一本化
+│   │   │   ├── colors.ts
+│   │   │   ├── layout.ts
+│   │   │   ├── typography.ts
+│   │   │   └── index.ts
+│   │   ├── types/                # 型定義
+│   │   └── styles/               # 共通スタイル
+│   │
+│   ├── index.tsx                 # エントリーポイント
+│   ├── main.tsx
+│   ├── index.css
+│   └── vite-env.d.ts
+│
+├── tsconfig.json
+├── tsconfig.node.json
+├── vite.config.js
+└── package.json
+```
+
+**Current Structure Overview:**
 - **Root:** `frontend/` contains the entire React application
 - **Source:** `frontend/src/` with modular architecture:
   - `src/app/` — Main application modules with re-exports in `index.ts`
