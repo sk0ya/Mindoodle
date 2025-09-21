@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { ChevronUp, ChevronDown, Check, HardDrive } from 'lucide-react';
 import { ShortcutTooltip } from '../KeyboardShortcutHelper';
+import { useBooleanState } from '../../../hooks/useBooleanState';
 
 interface StorageModeSwitchProps {
   currentMode: 'local' | 'markdown';
@@ -16,13 +17,13 @@ const StorageModeSwitch: React.FC<StorageModeSwitchProps> = ({
   currentMode,
   onModeChange
 }) => {
-  const [isOpen, setIsOpen] = useState(false);
+  const { value: isOpen, setFalse: closeDropdown, toggle } = useBooleanState();
 
   const currentModeInfo = STORAGE_MODES.find(mode => mode.id === currentMode);
 
   const handleModeSelect = (mode: 'local' | 'markdown') => {
     onModeChange(mode);
-    setIsOpen(false);
+    closeDropdown();
   };
 
   return (
@@ -30,7 +31,7 @@ const StorageModeSwitch: React.FC<StorageModeSwitchProps> = ({
       <ShortcutTooltip description={`現在のモード: ${currentModeInfo?.label} - ${currentModeInfo?.description}`}>
         <button
           className="storage-mode-button"
-          onClick={() => setIsOpen(!isOpen)}
+          onClick={toggle}
         >
           <span className="storage-mode-icon">{currentModeInfo?.icon}</span>
           <span className="storage-mode-label">{currentModeInfo?.label}</span>

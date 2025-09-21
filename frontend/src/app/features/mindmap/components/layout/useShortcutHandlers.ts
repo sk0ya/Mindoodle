@@ -298,10 +298,10 @@ export function useShortcutHandlers(args: Args) {
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) {
-        console.error('copyNode: node not found', nodeId);
+        logger.error('copyNode: node not found', nodeId);
         return;
       }
-      console.log('copyNode: setting clipboard', node);
+      logger.debug('copyNode: setting clipboard', node);
       store.setClipboard(node);
       const convertToMd = (n: MindMapNode, level = 0): string => {
         const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
@@ -316,23 +316,23 @@ export function useShortcutHandlers(args: Args) {
     },
     pasteNode: async (parentId: string) => {
       // Get the node from store clipboard
-      console.log('pasteNode: checking clipboard');
+      logger.debug('pasteNode: checking clipboard');
       try {
         const storeState = useMindMapStore.getState();
-        console.log('pasteNode: store state ui.clipboard', storeState.ui.clipboard);
+        logger.debug('pasteNode: store state ui.clipboard', storeState.ui.clipboard);
         const clipboardNode = storeState.ui.clipboard;
 
         if (!clipboardNode) {
-          console.error('pasteNode: no clipboard node');
+          logger.error('pasteNode: no clipboard node');
           showNotification('warning', 'コピーされたノードがありません');
           return;
         }
 
-        console.log('pasteNode: pasting node', clipboardNode, 'into parent', parentId);
+        logger.debug('pasteNode: pasting node', clipboardNode, 'into parent', parentId);
         // Paste the node tree
         const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
           const newNodeId = store.addChildNode(parent, nodeToAdd.text);
-          console.log('pasteNode: created child node', newNodeId, 'with text', nodeToAdd.text);
+          logger.debug('pasteNode: created child node', newNodeId, 'with text', nodeToAdd.text);
           if (newNodeId) {
             if (nodeToAdd.note) updateNode(newNodeId, { note: nodeToAdd.note });
             if (nodeToAdd.children?.length) {

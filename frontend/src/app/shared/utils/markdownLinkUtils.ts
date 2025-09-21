@@ -1,4 +1,5 @@
 import type { NodeLink } from '@shared/types';
+import { generateUrlId } from './idGenerator';
 
 // Extract NodeLink objects from markdown note content.
 // Supported href patterns:
@@ -229,7 +230,7 @@ export function extractExternalLinksFromMarkdown(note: string | undefined): Exte
     const key = `${label}|${href}`;
     if (!seen.has(key)) {
       seen.add(key);
-      results.push({ id: `url|${results.length}|${Date.now()}`, href, label });
+      results.push({ id: generateUrlId(), href, label });
     }
   }
 

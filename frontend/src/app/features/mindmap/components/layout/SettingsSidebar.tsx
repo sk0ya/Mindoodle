@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Moon, Sun, Keyboard, HardDrive, Trash2, Ruler, TriangleAlert } from 'lucide-react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { useDataCleanup, type DataCleanupStats } from '../../../../core/hooks/useDataCleanup';
+import { useBooleanState } from '../../../../shared/hooks/useBooleanState';
 
 interface SettingsSidebarProps {
   // 既存のprops（後方互換性のため保持）
@@ -21,7 +22,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const { settings, updateSetting } = useMindMapStore();
   const { clearAllData, getDataStats, isClearing, error } = useDataCleanup();
   const [dataStats, setDataStats] = useState<DataCleanupStats | null>(null);
-  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const { value: showConfirmDialog, setTrue: openConfirmDialog, setFalse: closeConfirmDialog } = useBooleanState();
 
   const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
@@ -35,13 +36,13 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   // データクリーンアップの実行
   const handleClearData = async () => {
     if (!showConfirmDialog) {
-      setShowConfirmDialog(true);
+      openConfirmDialog();
       return;
     }
 
     try {
       await clearAllData();
-      setShowConfirmDialog(false);
+      closeConfirmDialog();
       // 統計を更新
       const newStats = await getDataStats();
       setDataStats(newStats);
@@ -234,7 +235,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                   </button>
                   <button 
                     className="cleanup-button cleanup-button-cancel"
-                    onClick={() => setShowConfirmDialog(false)}
+                    onClick={closeConfirmDialog}
                     disabled={isClearing}
                   >
                     キャンセル

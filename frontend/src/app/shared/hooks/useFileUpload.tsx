@@ -2,6 +2,7 @@ import React, { createContext, useContext, useCallback, useState, ReactNode } fr
 import { X } from 'lucide-react';
 import { useNotification } from './useNotification';
 import { logger } from '../utils/logger';
+import { generateUploadKey } from '../utils/idGenerator';
 
 export interface UploadProgress {
   id: string;
@@ -266,7 +267,7 @@ export const useFileUpload = (): FileUploadContextType => {
 
 // ファイルアップロード用のヘルパー関数
 export const createUploadId = (fileName: string): string => {
-  return `upload_${Date.now()}_${fileName.replace(/[^a-zA-Z0-9]/g, '_')}`;
+  return generateUploadKey('upload', fileName);
 };
 
 // プログレス計算用のヘルパー関数

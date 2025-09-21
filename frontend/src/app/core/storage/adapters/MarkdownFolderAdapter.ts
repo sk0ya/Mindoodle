@@ -4,6 +4,7 @@ import { logger } from '../../../shared/utils/logger';
 import { emitStatus } from '../../../shared/hooks/useStatusBar';
 import { MarkdownImporter } from '../../../shared/utils/markdownImporter';
 import { createInitialData } from '../../../shared/types/dataTypes';
+import { generateWorkspaceId, generateTimestampedFilename } from '../../../shared/utils/idGenerator';
 
 type DirHandle = any; // File System Access API types (browser only)
 type FileHandle = any;
@@ -122,26 +123,26 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
-    console.log('📄️ MarkdownFolderAdapter.loadAllMaps called');
+    logger.debug('📄️ MarkdownFolderAdapter.loadAllMaps called');
     if (!this._isInitialized) {
       await this.initialize();
     }
     if (this.workspaces.length === 0 && !this.rootHandle) {
-      console.log('📄️ No workspaces or root handle available');
+      logger.debug('📄️ No workspaces or root handle available');
       return [];
     }
 
     const maps: MindMapData[] = [];
-    console.log('📄️ Starting to load maps...');
-    console.log('📄️ Available workspaces:', this.workspaces.length);
+    logger.debug('📄️ Starting to load maps...');
+    logger.debug('📄️ Available workspaces:', this.workspaces.length);
     const targets = this.workspaces.length > 0 ? this.workspaces.map(w => ({ handle: w.handle, id: w.id, name: w.name })) : [{ handle: this.rootHandle as any, id: '__default__', name: (this.rootHandle as any)?.name || '' }];
     
     for (const t of targets) {
-      console.log(`📄️ Processing workspace: ${t.name} (${t.id})`);
+      logger.debug(`📄️ Processing workspace: ${t.name} (${t.id})`);
       
       // Try to ensure permission - if it fails, show the workspace but skip loading
       const hasPermission = await this.ensurePermission(t.handle as any, 'readwrite');
-      console.log(`📄️ Permission check for ${t.name}: ${hasPermission}`);
+      logger.debug(`📄️ Permission check for ${t.name}: ${hasPermission}`);
       
       if (!hasPermission) {
         console.warn(`📄️ No permission for workspace ${t.name}, skipping map loading`);
@@ -153,7 +154,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         continue;
       }
       
-      console.log(`📄️ Loading maps from workspace: ${t.name}`);
+      logger.debug(`📄️ Loading maps from workspace: ${t.name}`);
       try {
         let workspaceMapsCount = 0;
         for await (const fileHandle of this.iterateMarkdownFiles(t.handle as any)) {
@@ -161,14 +162,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
             const data = await this.loadMapFromFile(fileHandle, t.handle as any, '', t.id);
             if (data) {
               workspaceMapsCount++;
-              console.log('📄️ Loading map from file:', data.mapIdentifier.mapId, data.title);
+              logger.debug('📄️ Loading map from file:', data.mapIdentifier.mapId, data.title);
               // Check for duplicates
               const existing = maps.find(m =>
                 m.mapIdentifier.mapId === data.mapIdentifier.mapId &&
                 m.mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
               );
               if (existing) {
-                console.log('⚠️ Duplicate map found, skipping:', data.mapIdentifier.mapId);
+                logger.warn('⚠️ Duplicate map found, skipping:', data.mapIdentifier.mapId);
               } else {
                 maps.push(data);
               }
@@ -177,7 +178,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
             console.warn('📄️ Failed to load individual map file:', e);
           }
         }
-        console.log(`📄️ Loaded ${workspaceMapsCount} maps from workspace ${t.name} root`);
+        logger.debug(`📄️ Loaded ${workspaceMapsCount} maps from workspace ${t.name} root`);
       } catch (e) {
         console.warn('📄️ Error scanning workspace root:', e);
         logger.debug('MarkdownFolderAdapter: Root-level scan transient error', (e as any)?.name || (e as any)?.message || e);
@@ -186,7 +187,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       try {
         for await (const entry of (t.handle as any).values?.() || this.iterateEntries(t.handle)) {
           if (entry.kind === 'directory') {
-            console.log(`📄️ Scanning directory: ${entry.name}`);
+            logger.debug(`📄️ Scanning directory: ${entry.name}`);
             await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle as any }, entry, entry.name ?? '', maps);
           }
         }
@@ -194,8 +195,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         console.warn('📄️ Error scanning workspace subdirectories:', e);
       }
     }
-    console.log('📄️ MarkdownFolderAdapter.loadAllMaps finished. Total maps:', maps.length);
-    console.log('📄️ Final map list:', maps.map(m => `${m.mapIdentifier.mapId}: ${m.title}`));
+    logger.debug('📄️ MarkdownFolderAdapter.loadAllMaps finished. Total maps:', maps.length);
+    logger.debug('📄️ Final map list:', maps.map(m => `${m.mapIdentifier.mapId}: ${m.title}`));
     return maps;
   }
 
@@ -312,10 +313,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   // Save raw markdown text for a map by id
   async saveMapMarkdown(id: { mapId: string; workspaceId: string }, markdown: string): Promise<void> {
-    console.log('saveMapMarkdown: Starting save for', id, 'markdown length:', markdown.length);
+    logger.debug('saveMapMarkdown: Starting save for', id, 'markdown length:', markdown.length);
     
     if (!this._isInitialized) {
-      console.log('saveMapMarkdown: Not initialized, calling initialize()');
+      logger.debug('saveMapMarkdown: Not initialized, calling initialize()');
       await this.initialize();
     }
     if (this.workspaces.length === 0 && !this.rootHandle) {
@@ -326,13 +327,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
     const saveKey = `${id.workspaceId || '__default__'}::${id.mapId}`;
     if (this.lastSavedContent.get(saveKey) === markdown) {
-      console.log('saveMapMarkdown: Skipped - no changes');
+      logger.debug('saveMapMarkdown: Skipped - no changes');
       logger.debug('📾 MarkdownFolderAdapter: Skipped markdown save (no changes) for', id.mapId);
       return;
     }
 
     const doSave = async () => {
-      console.log('saveMapMarkdown: Starting doSave() for', id.mapId);
+      logger.debug('saveMapMarkdown: Starting doSave() for', id.mapId);
       const mapId = id.mapId;
       // 1) Try saveTargets first (most reliable)
       let target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
@@ -340,12 +341,12 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       let fileName: string | null = null;
       let fileHandle: FileHandle | null = null;
       if (target) {
-        console.log('saveMapMarkdown: Using existing target', target);
+        logger.debug('saveMapMarkdown: Using existing target', target);
         dir = target.dir;
         fileName = target.fileName;
         fileHandle = target.fileHandle ?? null;
       } else {
-        console.log('saveMapMarkdown: Creating new target for', mapId);
+        logger.debug('saveMapMarkdown: Creating new target for', mapId);
         // 2) Resolve in specified workspace
         const parts = (mapId || '').split('/').filter(Boolean);
         if (parts.length === 0) {
@@ -353,21 +354,21 @@ export class MarkdownFolderAdapter implements StorageAdapter {
           throw new Error('Invalid mapId');
         }
         const base = parts.pop() as string;
-        console.log('saveMapMarkdown: Looking for workspace', id.workspaceId);
-        console.log('saveMapMarkdown: Available workspaces:', this.workspaces.map(w => w.id));
+        logger.debug('saveMapMarkdown: Looking for workspace', id.workspaceId);
+        logger.debug('saveMapMarkdown: Available workspaces:', this.workspaces.map(w => w.id));
         const ws = this.workspaces.find(w => w.id === id.workspaceId);
         if (!ws) {
           console.error('saveMapMarkdown: Workspace not found for save', id.workspaceId);
           throw new Error('Workspace not found for save');
         }
-        console.log('saveMapMarkdown: Found workspace', ws.id);
+        logger.debug('saveMapMarkdown: Found workspace', ws.id);
         dir = ws.handle as any;
         for (const p of parts) {
-          console.log('saveMapMarkdown: Creating directory', p);
+          logger.debug('saveMapMarkdown: Creating directory', p);
           dir = await this.getOrCreateDirectory(dir, p);
         }
         fileName = `${base}.md`;
-        console.log('saveMapMarkdown: Will create file', fileName);
+        logger.debug('saveMapMarkdown: Will create file', fileName);
       }
       if (!dir || !fileName) {
         console.error('saveMapMarkdown: Missing dir or fileName', { dir: !!dir, fileName });
@@ -375,23 +376,23 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
 
       if (!fileHandle) {
-        console.log('saveMapMarkdown: Getting file handle for', fileName);
+        logger.debug('saveMapMarkdown: Getting file handle for', fileName);
         try {
           fileHandle = await (dir as any).getFileHandle?.(fileName, { create: true })
             ?? await (dir as any).getFileHandle(fileName, { create: true });
-          console.log('saveMapMarkdown: Got file handle');
+          logger.debug('saveMapMarkdown: Got file handle');
         } catch (error) {
           console.error('saveMapMarkdown: Failed to get file handle:', error);
           throw error;
         }
       }
       
-      console.log('saveMapMarkdown: Creating writable stream');
+      logger.debug('saveMapMarkdown: Creating writable stream');
       try {
         const writable = await (fileHandle as any).createWritable();
         await writable.write(markdown);
         await writable.close();
-        console.log('saveMapMarkdown: Successfully wrote file');
+        logger.debug('saveMapMarkdown: Successfully wrote file');
       } catch (error) {
         console.error('saveMapMarkdown: Failed to write file:', error);
         throw error;
@@ -401,7 +402,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       this.saveTargets.set(saveKey, entry);
       this.saveTargets.set(id.mapId, entry);
       this.lastSavedContent.set(saveKey, markdown);
-      console.log('saveMapMarkdown: Saved entry to cache');
+      logger.debug('saveMapMarkdown: Saved entry to cache');
       logger.debug(`📝 MarkdownFolderAdapter: Saved markdown for ${mapId}`);
     };
 
@@ -412,7 +413,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }).finally(() => {});
     this.saveLocks.set(saveKey, next);
     await next;
-    console.log('saveMapMarkdown: Completed save for', id.mapId);
+    logger.debug('saveMapMarkdown: Completed save for', id.mapId);
   }
 
   async createFolder(relativePath: string, workspaceId?: string): Promise<void> {
@@ -467,14 +468,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       try {
         const data = await this.loadMapFromFile(fh, dir, categoryPath, ws.id);
         if (data) {
-          console.log('🗄️ collectMapsForWorkspace - Loading map:', data.mapIdentifier.mapId, data.title);
+          logger.debug('🗄️ collectMapsForWorkspace - Loading map:', data.mapIdentifier.mapId, data.title);
           // Check for duplicates
           const existing = out.find(m =>
             m.mapIdentifier.mapId === data.mapIdentifier.mapId &&
             m.mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
           );
           if (existing) {
-            console.log('⚠️ Duplicate map found in collectMapsForWorkspace, skipping:', data.mapIdentifier.mapId);
+            logger.warn('⚠️ Duplicate map found in collectMapsForWorkspace, skipping:', data.mapIdentifier.mapId);
           } else {
             out.push(data);
           }
@@ -594,7 +595,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     });
   }
 
-  private generateWorkspaceId(): string { return `ws_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
+  private generateWorkspaceId(): string { return generateWorkspaceId(); }
 
   private async persistWorkspace(ws: { id: string; name: string; handle: DirHandle }): Promise<void> {
     const db = await this.openDb();
@@ -1048,23 +1049,23 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private async ensurePermission(handle: any, mode: 'read' | 'readwrite' = 'readwrite'): Promise<boolean> {
     try {
-      console.log('🔐 Checking permission for handle:', handle?.name || 'unknown');
+      logger.debug('🔐 Checking permission for handle:', handle?.name || 'unknown');
       const currentPerm = await this.queryPermission(handle, mode);
-      console.log('🔐 Current permission status:', currentPerm);
+      logger.debug('🔐 Current permission status:', currentPerm);
       
       if (currentPerm === 'granted') {
-        console.log('🔐 Permission already granted');
+        logger.debug('🔐 Permission already granted');
         return true;
       }
       
       if (currentPerm === 'prompt') {
-        console.log('🔐 Permission prompt available, requesting...');
+        logger.debug('🔐 Permission prompt available, requesting...');
         const requested = await this.requestPermission(handle, mode);
-        console.log('🔐 Permission request result:', requested);
+        logger.debug('🔐 Permission request result:', requested);
         return requested === 'granted';
       }
       
-      console.log('🔐 Permission denied, no prompt available');
+      logger.debug('🔐 Permission denied, no prompt available');
       return false;
     } catch (error) {
       console.warn('🔐 Permission check failed:', error);
@@ -1154,7 +1155,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (!(await exists(candidate))) return candidate;
       i++;
     }
-    return `${base}-${Date.now()}${ext}`;
+    return generateTimestampedFilename(base, ext);
   }
 
   private async ensureUniqueFolderName(dir: DirHandle, desired: string): Promise<string> {
@@ -1166,6 +1167,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (!(await exists(candidate))) return candidate;
       i++;
     }
-    return `${desired}-${Date.now()}`;
+    return generateTimestampedFilename(desired);
   }
 }

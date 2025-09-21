@@ -1,6 +1,7 @@
 import { logger } from '../../../../shared/utils/logger';
 import { validateFile } from '../../../../shared/types/dataTypes';
 import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
+import { generateUploadKey, generateFileIdWithName } from '../../../../shared/utils/idGenerator';
 import type { FileAttachment } from '@shared/types';
 
 type Params = {
@@ -28,7 +29,7 @@ export function useFileHandlers({
       return;
     }
 
-    const uploadKey = `${nodeId}_${file.name}_${Date.now()}`;
+    const uploadKey = generateUploadKey(nodeId, file.name);
     try {
       await handleAsyncError((async () => {
         const fileAttachment = await retryableUpload(uploadKey, file.name, async (): Promise<FileAttachment> => {
@@ -41,7 +42,7 @@ export function useFileHandlers({
               reader.readAsDataURL(file);
             });
             return {
-              id: `file_${Date.now()}_${Math.random().toString(36).slice(2)}`,
+              id: generateFileIdWithName(file.name),
               name: file.name,
               type: file.type,
               size: file.size,

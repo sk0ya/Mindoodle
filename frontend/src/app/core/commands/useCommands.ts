@@ -14,6 +14,7 @@ import { parseCommand, validateCommand, generateSuggestions } from './parser';
 import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from './commands/index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
+import { logger } from '../../shared/utils/logger';
 import type { VimModeHook } from '../hooks/useVimMode';
 
 interface UseCommandsProps {
@@ -166,7 +167,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       const result = await command.execute(context, validationResult.command.args);
 
       if (options.verbose && result.success) {
-        console.log(`Command executed: ${commandString}`, result);
+        logger.debug(`Command executed: ${commandString}`, result);
       }
 
       return result;

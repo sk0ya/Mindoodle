@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import type { NodeLink } from '@shared/types';
 import { useModal } from './useModal';
+import { useBooleanState } from './useBooleanState';
 
 interface UseModalStateReturn {
   // Export/Import modals
@@ -46,11 +47,11 @@ export const useModalState = (): UseModalStateReturn => {
   const exportModal = useModal();
   const importModal = useModal();
   // loginModalは削除されました
-  
+
   // Link-related states (keeping complex state as-is for now)
   const [editingLink, setEditingLink] = useState<NodeLink | null>(null);
   const [linkModalNodeId, setLinkModalNodeId] = useState<string | null>(null);
-  const [showLinkActionMenu, setShowLinkActionMenu] = useState(false);
+  const linkActionMenu = useBooleanState();
   const [linkActionMenuData, setLinkActionMenuData] = useState<{
     link: NodeLink;
     position: { x: number; y: number };
@@ -87,8 +88,8 @@ export const useModalState = (): UseModalStateReturn => {
     setEditingLink,
     linkModalNodeId,
     setLinkModalNodeId,
-    showLinkActionMenu,
-    setShowLinkActionMenu,
+    showLinkActionMenu: linkActionMenu.value,
+    setShowLinkActionMenu: linkActionMenu.setValue,
     linkActionMenuData,
     setLinkActionMenuData,
     contextMenu,

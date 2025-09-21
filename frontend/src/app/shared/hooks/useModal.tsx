@@ -1,14 +1,13 @@
 import { useState, useCallback } from 'react';
+import { useBooleanState } from './useBooleanState';
 
 /**
  * 単一モーダルの状態管理フック
  */
 export const useModal = (initialOpen = false) => {
-  const [isOpen, setIsOpen] = useState(initialOpen);
-
-  const open = useCallback(() => setIsOpen(true), []);
-  const close = useCallback(() => setIsOpen(false), []);
-  const toggle = useCallback(() => setIsOpen(prev => !prev), []);
+  const { value: isOpen, setTrue: open, setFalse: close, toggle } = useBooleanState({ 
+    initialValue: initialOpen 
+  });
 
   return {
     isOpen,

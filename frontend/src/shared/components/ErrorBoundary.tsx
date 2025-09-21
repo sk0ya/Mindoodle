@@ -6,6 +6,7 @@
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { isDevelopment } from '../utils/env';
 import { logger } from '../../app/shared/utils/logger';
+import { generateErrorId } from '../../app/shared/utils/idGenerator';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -25,7 +26,7 @@ interface ErrorBoundaryState {
 // Error reporting service
 class ErrorReporter {
   static reportError(error: Error, errorInfo: ErrorInfo, level: string = 'component'): string {
-    const errorId = `err_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const errorId = generateErrorId();
     
     const errorReport = {
       id: errorId,

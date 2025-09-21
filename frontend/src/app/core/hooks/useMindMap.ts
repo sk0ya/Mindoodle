@@ -196,14 +196,14 @@ export const useMindMap = (
         // Ignore 'external' source from initial load unless it's actually different
         const currentData = dataRef.current;
         if (source === 'editor' && currentData) {
-          console.log('🖊️ Processing editor change');
+          logger.debug('🖊️ Processing editor change');
           // Clear existing timer and set new one to skip nodes->markdown sync for short period
           if (skipNodeToMarkdownSyncTimer.current) {
             clearTimeout(skipNodeToMarkdownSyncTimer.current);
           }
           skipNodeToMarkdownSyncTimer.current = setTimeout(() => {
             skipNodeToMarkdownSyncTimer.current = null;
-            console.log('✅ Editor change window closed, nodes->markdown sync re-enabled');
+            logger.debug('✅ Editor change window closed, nodes->markdown sync re-enabled');
           }, 300); // 300ms window to allow for rapid typing
           const safeRootNodes = Array.isArray(parsed?.rootNodes) ? parsed.rootNodes : [];
 
@@ -423,10 +423,10 @@ export const useMindMap = (
         console.warn('createAndSelectMap: saveMapMarkdown not available on adapter');
       }
 
-      console.log('createAndSelectMap: Adding map to list...');
+      logger.debug('createAndSelectMap: Adding map to list...');
       // map一覧を更新
       
-      console.log('createAndSelectMap: Loading and selecting created map...');
+      logger.debug('createAndSelectMap: Loading and selecting created map...');
 
       // 作成したファイルからマップをロードして選択
       try {
@@ -459,7 +459,7 @@ export const useMindMap = (
         console.error('createAndSelectMap: Failed to load created map:', error);
       }
       
-      console.log('createAndSelectMap: Successfully created map:', mapIdentifier.mapId);
+      logger.debug('createAndSelectMap: Successfully created map:', mapIdentifier.mapId);
       return mapIdentifier.mapId;
     }, [actionsHook, persistenceHook]),
 

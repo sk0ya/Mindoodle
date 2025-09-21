@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { createInitialData } from '../../shared/types/dataTypes';
+import { generateMapId } from '../../shared/utils/idGenerator';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { logger } from '../../shared/utils/logger';
 
@@ -49,7 +50,7 @@ export const useMindMapActions = () => {
       if (currentData) {
         logger.debug('Deleting map:', currentData.title);
         // 新しい空のマップを作成
-        const mapId = `map_${Date.now()}`;
+        const mapId = generateMapId();
         const mapIdentifier = {
           mapId,
           workspaceId
