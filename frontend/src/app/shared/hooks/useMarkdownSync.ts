@@ -52,7 +52,6 @@ export const useMarkdownSync = () => {
       startY?: number;
       horizontalSpacing?: number;
       verticalSpacing?: number;
-      applyMarkdownStyling?: boolean;
       currentNodes?: MindMapNode[]; // 既存ノードの情報
       preservePositions?: boolean; // 位置情報を保持するかどうか
     }
@@ -64,11 +63,6 @@ export const useMarkdownSync = () => {
       // 既存ノードがある場合は差分更新を試行
       if (options?.currentNodes && options?.preservePositions) {
         finalNodes = mergeWithExistingNodes(rootNodes, options.currentNodes);
-      }
-
-      // マークダウン由来のスタイリングを適用
-      if (options?.applyMarkdownStyling !== false) {
-        finalNodes = MarkdownImporter.applyMarkdownStyling(finalNodes);
       }
 
       onNodesUpdate(finalNodes);
