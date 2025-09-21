@@ -3,8 +3,8 @@ import type { NormalizedData } from '../../data/normalizedStore';
 import type { AISlice } from './aiSlice';
 import type { SettingsSlice } from './settingsSlice';
 import type { UISlice } from './uiSlice';
-import type { UIState } from '../../../shared/types/uiTypes';
-import type { DataState as NodeDataState } from '../../../shared/types/nodeTypes';
+import type { UIState } from '@shared/types/uiTypes';
+import type { DataState as NodeDataState } from '@shared/types/nodeTypes';
 
 // Re-export for backward compatibility
 export type { UIState };

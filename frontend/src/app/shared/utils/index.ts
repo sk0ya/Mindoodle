@@ -9,4 +9,4 @@ export * from './arrayUtils';
 export * from './stringUtils';
 export * from './hookUtils';
 export * from './typeUtils';
-export * from '../../../shared/utils/env';
+export * from './env';

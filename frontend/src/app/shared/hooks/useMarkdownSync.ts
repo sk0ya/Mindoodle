@@ -187,7 +187,7 @@ export const useMarkdownSync = () => {
   const setNodeMarkdownMeta = useCallback((
     nodes: MindMapNode[],
     nodeId: string,
-    markdownMeta: import('../../../shared/types/core').MarkdownNodeMeta,
+    markdownMeta: import('@shared/types').MarkdownNodeMeta,
     onNodesUpdate: (nodes: MindMapNode[]) => void
   ) => {
     const updateNodeMeta = (nodeList: MindMapNode[]): MindMapNode[] => {
@@ -238,7 +238,7 @@ export const useMarkdownSync = () => {
 
     // 兄弟ノードと親ノードのマークダウンメタデータに基づいて子ノードのメタデータを設定
     if (parentNode.markdownMeta || (parentNode.children && parentNode.children.length > 0)) {
-      let newNodeMeta: import('../../../shared/types/core').MarkdownNodeMeta;
+      let newNodeMeta: import('@shared/types').MarkdownNodeMeta;
 
       // まず兄弟ノードの最後のノードのmeta情報を確認
       const lastSibling = parentNode.children && parentNode.children.length > 0

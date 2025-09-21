@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { createInitialData } from '../../shared/types/dataTypes';
+import { createInitialData } from '@shared/types/dataTypes';
 import type { StorageAdapter, StorageConfig, ExplorerItem } from '../storage/types';
 import { createStorageAdapter } from '../storage/StorageAdapterFactory';
 import { logger } from '../../shared/utils/logger';

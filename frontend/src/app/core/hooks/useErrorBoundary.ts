@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { logger } from '../../shared/utils/logger';
-import { type Result, tryCatchAsync, isFailure } from '../../shared/types/result';
+import { type Result, tryCatchAsync, isFailure } from '@shared/types/result';
 
 export interface ErrorBoundaryOptions {
   onError?: (_error: Error) => void;

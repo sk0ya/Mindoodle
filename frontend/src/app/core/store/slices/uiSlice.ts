@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { Position, MindMapNode } from '@shared/types';
 import type { MindMapStore } from './types';
-import type { UIState, UIActions } from '../../../shared/types/uiTypes';
+import type { UIState, UIActions } from '@shared/types/uiTypes';
 
 export interface UISlice extends UIActions {
   ui: UIState;

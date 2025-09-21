@@ -3,7 +3,7 @@
  * This file re-exports shared types for backward compatibility
  */
 
-// Import all types from shared system
+// Import all types from unified core
 export type {
   MindMapNode,
   MindMapData,
@@ -18,12 +18,22 @@ export type {
   MapEvent,
   AppError,
   MindMapHookReturn,
-} from '@shared/types';
-
-// Import local types
-export type {
+  NodeId,
+  MapId,
+  FileId,
+  UserId,
+  NodeLink,
   Position,
   Theme,
+  StorageMode,
+  SyncStatus,
+  ConnectionStatus,
+  MapIdentifier,
+  MarkdownNodeMeta
+} from './_core_unified';
+
+// Import local types (avoiding duplicates)
+export type {
   MindMapHookDependency,
   FileHandlersDependency,
   MapHandlersDependency,
@@ -39,18 +49,28 @@ export {
   STORAGE_CONSTANTS,
   VALIDATION_CONSTANTS,
   KEYBOARD_SHORTCUTS,
-  PERFORMANCE_CONSTANTS
-} from '@shared/types';
+  PERFORMANCE_CONSTANTS,
+  ERROR_CONSTANTS,
+  UI_CONSTANTS
+} from './_constants_unified';
 
-// Re-export type guards
+// Re-export type guards and factories
 export {
   isValidMindMapNode,
   isValidMindMapData,
-} from '@shared/types';
+  DEFAULT_WORKSPACE_ID,
+  createNodeId,
+  createMapId,
+  createFileId,
+  createUserId,
+  isNodeId,
+  isMapId,
+  isFileId,
+  isUserId
+} from './_core_unified';
 
-// Export new type safety modules (consolidated into dataTypes)
-export type { NodeId, MapId, FileId } from './dataTypes';
-export { isNodeId, isMapId, isFileId, createNodeId, createMapId, createFileId } from './dataTypes';
+// Export dataTypes specific items (only non-conflicting ones)
+// Note: NodeId, MapId, FileId are already exported from _core_unified, so skip them here
 
 export type { Result } from './result';
 export { Success, Failure, isSuccess, isFailure, map, flatMap, match, collect, tryCatch, tryCatchAsync } from './result';

@@ -5,8 +5,8 @@
 
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { isDevelopment } from '../utils/env';
-import { logger } from '../../app/shared/utils/logger';
-import { generateErrorId } from '../../app/shared/utils/idGenerator';
+import { logger } from '../utils/logger';
+import { generateErrorId } from '../utils/idGenerator';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;

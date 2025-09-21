@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { getOllamaService } from '../services/ollamaService';
 import { logger } from '../../shared/utils/logger';
-import type { MindMapNode } from '../../../shared/types';
+import type { MindMapNode } from '@shared/types';
 
 /**
  * AI機能を管理するカスタムフック

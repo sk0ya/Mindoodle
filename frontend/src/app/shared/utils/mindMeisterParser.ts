@@ -2,7 +2,7 @@
  * MindMeisterのマークダウン形式をパースしてノード構造に変換するユーティリティ
  */
 
-import { MindMapNode } from '../../shared/types';
+import { MindMapNode } from '@shared/types';
 import { generateId } from './idGenerator';
 
 interface ParsedNode {

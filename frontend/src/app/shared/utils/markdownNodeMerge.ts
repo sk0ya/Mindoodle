@@ -1,5 +1,5 @@
 import type { MindMapNode } from '@shared/types';
-import { createNewNode, calculateNodePosition } from '../../shared/types/dataTypes';
+import { createNewNode, calculateNodePosition } from '../types/dataTypes';
 
 function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMapNode {
   return {

@@ -3,7 +3,7 @@ import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
 import { statusMessages } from '../../../shared/utils/safeEmitStatus';
 import { MarkdownImporter } from '../../../shared/utils/markdownImporter';
-import { createInitialData } from '../../../shared/types/dataTypes';
+import { createInitialData } from '@shared/types/dataTypes';
 import { generateWorkspaceId, generateTimestampedFilename } from '../../../shared/utils/idGenerator';
 
 type DirHandle = any; // File System Access API types (browser only)

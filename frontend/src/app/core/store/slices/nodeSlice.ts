@@ -15,7 +15,7 @@ import {
   moveNormalizedNode,
   changeSiblingOrderNormalized
 } from '../../data';
-import { createNewNode } from '../../../shared/types/dataTypes';
+import { createNewNode } from '@shared/types/dataTypes';
 import { COLORS, LAYOUT } from '../../../shared';
 import { getBranchColor } from '../../../shared/utils/nodeUtils';
 import type { MindMapStore } from './types';
