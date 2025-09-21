@@ -23,7 +23,7 @@ interface ErrorHandlerProviderProps {
 }
 
 // エラーの種類を判定する関数
-const getErrorType = (error: Error): 'network' | 'validation' | 'auth' | 'storage' | 'unknown' => {
+const getErrorType = (error: Error): 'network' | 'validation' | 'storage' | 'unknown' => {
   const message = error.message.toLowerCase();
   
   if (message.includes('fetch') || message.includes('network') || message.includes('failed to fetch')) {
@@ -31,9 +31,6 @@ const getErrorType = (error: Error): 'network' | 'validation' | 'auth' | 'storag
   }
   if (message.includes('validation') || message.includes('invalid') || message.includes('required')) {
     return 'validation';
-  }
-  if (message.includes('auth') || message.includes('unauthorized') || message.includes('forbidden')) {
-    return 'auth';
   }
   if (message.includes('storage') || message.includes('indexeddb') || message.includes('localstorage')) {
     return 'storage';
@@ -51,8 +48,6 @@ const generateUserFriendlyMessage = (error: Error, context?: string, action?: st
       return 'ネットワーク接続に問題があります。インターネット接続を確認してください。';
     case 'validation':
       return '入力内容に問題があります。入力値を確認してください。';
-    case 'auth':
-      return '認証に失敗しました。ログインし直してください。';
     case 'storage':
       return 'データの保存に失敗しました。ブラウザの容量を確認してください。';
     default:

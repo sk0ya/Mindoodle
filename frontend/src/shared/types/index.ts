@@ -8,7 +8,6 @@ import type {
   MindMapNode,
   MindMapData,
   FileAttachment,
-  AuthUser
 } from './core';
 
 // Core type definitions
@@ -23,8 +22,6 @@ export type {
   MindMapSettings,
   FileAttachment,
   NodeLink,
-  AuthUser,
-  AuthState,
   UIState,
   CloudStorageState,
   Position,
@@ -41,7 +38,6 @@ export type {
   MapEvent,
   AppError,
   MindMapHookReturn,
-  AuthHookReturn
 } from './core';
 
 // Export branded type utilities and constants
@@ -65,7 +61,6 @@ export {
   DEFAULT_VALUES,
   STORAGE_CONSTANTS,
   VALIDATION_CONSTANTS,
-  API_CONSTANTS,
   KEYBOARD_SHORTCUTS,
   PERFORMANCE_CONSTANTS,
   ERROR_CONSTANTS,
@@ -131,14 +126,5 @@ export const isValidFileAttachment = (obj: unknown): obj is FileAttachment => {
     typeof file.type === 'string' &&
     typeof file.size === 'number' &&
     typeof file.isImage === 'boolean'
-  );
-};
-
-export const isValidAuthUser = (obj: unknown): obj is AuthUser => {
-  if (!obj || typeof obj !== 'object') return false;
-  const user = obj as Record<string, unknown>;
-  return (
-    typeof user.id === 'string' &&
-    typeof user.email === 'string'
   );
 };

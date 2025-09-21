@@ -34,7 +34,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     // 設定が実際に変更された場合のみ再初期化
     if (!prevConfig || modeChanged ) {
       logger.debug(`(Re)initializing ${config.mode} storage adapter`, {
-        reason: !prevConfig ? 'first-init' : modeChanged ? 'mode-changed' : 'auth-changed'
+        reason: !prevConfig ? 'first-init' :  'mode-changed'
       });
       
       setIsInitialized(false);

@@ -25,10 +25,9 @@ export const useStorageConfigChange = (
     const prevConfig = prevStorageConfigRef.current;
 
     const modeChanged = currentConfig?.mode !== prevConfig?.mode;
-    const authChanged = false; // 認証は削除されました
 
 
-    if (modeChanged || authChanged) {
+    if (modeChanged) {
       logger.info('Storage config changed, reloading data', {
         prevMode: prevConfig?.mode,
         newMode: currentConfig?.mode

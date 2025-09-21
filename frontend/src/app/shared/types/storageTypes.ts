@@ -38,7 +38,6 @@ export interface MapPersistenceOperations {
 // Storage configuration
 export interface StorageConfiguration {
   mode: 'local' | 'cloud';
-  authAdapter?: any;
   settings?: {
     autoSave?: boolean;
     syncInterval?: number;

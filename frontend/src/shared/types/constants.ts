@@ -110,8 +110,6 @@ export const STORAGE_CONSTANTS = {
     MINDMAPS: 'mindflow_mindmaps',
     CURRENT_MAP: 'mindflow_current_map',
     APP_SETTINGS: 'mindflow_app_settings',
-    AUTH_TOKEN: 'auth_token',
-    AUTH_USER: 'auth_user',
     STORAGE_MODE: 'mindflow_storage_mode'
   },
   COMPRESSION: {
@@ -141,21 +139,6 @@ export const VALIDATION_CONSTANTS = {
   }
 } as const;
 
-// API configuration
-export const API_CONSTANTS = {
-  BASE_URL: import.meta.env.VITE_API_BASE_URL || 'https://mindflow-api-production.shigekazukoya.workers.dev',
-  ENDPOINTS: {
-    AUTH: '/api/auth',
-    MINDMAPS: '/api/mindmaps',
-    FILES: '/api/files',
-    HEALTH: '/api/health'
-  },
-  TIMEOUTS: {
-    DEFAULT: 10000,
-    UPLOAD: 30000,
-    AUTH: 15000
-  }
-} as const;
 
 // Keyboard shortcuts
 export const KEYBOARD_SHORTCUTS = {

@@ -133,25 +133,6 @@ export interface NodeLink {
   updatedAt: string;
 }
 
-
-// Authentication types
-export interface AuthUser {
-  id: string;
-  email: string;
-  displayName?: string;
-  name?: string;
-  avatar?: string;
-  createdAt?: string;
-  lastLoginAt?: string;
-}
-
-export interface AuthState {
-  isAuthenticated: boolean;
-  user: AuthUser | null;
-  isLoading: boolean;
-  error: string | null;
-}
-
 // UI State types
 export interface UIState {
   selectedNodeId: string | null;
@@ -264,13 +245,4 @@ export interface MindMapHookReturn {
   startEdit: (nodeId: string) => void;
   finishEdit: (nodeId?: string, text?: string) => void;
   updateTitle: (title: string) => void;
-}
-
-export interface AuthHookReturn {
-  authState: AuthState;
-  login: (email: string) => Promise<{ success: boolean; error?: string }>;
-  verifyToken: (token: string) => Promise<{ success: boolean; error?: string }>;
-  logout: () => void;
-  getAuthToken: () => string | null;
-  getAuthHeaders: () => { [key: string]: string };
 }

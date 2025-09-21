@@ -39,8 +39,6 @@ class Logger {
       maskedData = maskedData.replace(/(\?|&)token=[\w-]+/gi, '$1token=[MASKED]');
       // Mask API keys
       maskedData = maskedData.replace(/([aA]pi[_-]?[kK]ey|apikey)[:=]\s*[\w-]+/gi, '$1=[MASKED]');
-      // Mask authorization headers
-      maskedData = maskedData.replace(/(authorization|x-api-key):\s*[\w-]+/gi, '$1: [MASKED]');
       return maskedData;
     } else if (typeof data === 'object' && data !== null) {
       const masked = Array.isArray(data) ? [...data] as unknown[] : { ...data as Record<string, unknown> };
@@ -52,7 +50,6 @@ class Logger {
       const maskedRecord = masked as Record<string, unknown>;
       for (const key in maskedRecord) {
         if (key.toLowerCase().includes('token') || 
-            key.toLowerCase().includes('auth') || 
             key.toLowerCase().includes('key') ||
             key.toLowerCase().includes('password') ||
             key.toLowerCase().includes('secret')) {

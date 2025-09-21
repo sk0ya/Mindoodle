@@ -37,8 +37,6 @@ class ErrorReporter {
       componentStack: errorInfo.componentStack,
       userAgent: navigator.userAgent,
       url: window.location.href,
-      userId: sessionStorage.getItem('auth_user') ? 
-        JSON.parse(sessionStorage.getItem('auth_user') || '{}').id : 'anonymous'
     };
 
     // Log error report
