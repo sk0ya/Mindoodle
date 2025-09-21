@@ -1,4 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
+import { isNodeElement } from '@shared/handlers';
 
 interface ViewportState {
   zoom: number;
@@ -44,12 +45,9 @@ export const useCanvasViewportHandler = ({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // ノード要素（rect, circle, foreignObject）以外をクリックした場合にパンを開始
     const target = e.target as Element;
-    const isNodeElement = target.tagName === 'rect' || 
-                         target.tagName === 'circle' || 
-                         target.tagName === 'foreignObject' ||
-                         target.closest('foreignObject');
-    
-    if (!isNodeElement) {
+    const isNode = isNodeElement(target);
+
+    if (!isNode) {
       isPanReadyRef.current = true;
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };
       e.preventDefault();

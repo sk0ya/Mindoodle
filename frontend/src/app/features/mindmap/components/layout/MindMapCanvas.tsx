@@ -126,7 +126,8 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     editText,
     onSelectNode,
     onFinishEdit,
-    getIsPanning
+    getIsPanning,
+    svgRef
   });
 
   // ドラッグハンドラーのアダプター（Node.tsxとの互換性維持）
