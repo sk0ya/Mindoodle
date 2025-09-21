@@ -33,9 +33,6 @@ export const STORAGE_KEYS = {
   // UI preferences
   NOTES_PANEL_WIDTH: 'mindflow_notes_panel_width',
   
-  // Device & security
-  DEVICE_FINGERPRINT: 'mindflow_device_fingerprint',
-  
   // Cleanup tracking
   LAST_CLEANUP: 'mindflow_last_cleanup',
 
