@@ -21,11 +21,9 @@ import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/ut
 import { navigateLink } from '../../../../shared/utils/linkNavigation';
 import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
 import { useGlobalErrorHandlers } from '../../../../shared/hooks/useGlobalErrorHandlers';
-import { useRetryableUpload } from '../../../../shared/hooks/useRetryableUpload';
 import { useAI } from '../../../../core/hooks/useAI';
 import { useTheme } from '../../../../shared/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
-import { useFileHandlers } from './useFileHandlers';
 import MindMapProviders from './MindMapProviders';
 import { logger } from '../../../../shared/utils/logger';
 import MindMapOverlays from './MindMapOverlays';
@@ -54,13 +52,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 }) => {
   
   const { showNotification } = useNotification();
-  const { handleError, handleAsyncError } = useErrorHandler();
+  const { handleError } = useErrorHandler();
   const markdownSync = useMarkdownSync();
-  const { retryableUpload } = useRetryableUpload({
-    maxRetries: 3,
-    retryDelay: 2000, // 2秒
-    backoffMultiplier: 1.5, // 1.5倍ずつ増加
-  });
   
   // Settings store for initialization
   const { loadSettingsFromStorage } = useMindMapStore();
@@ -142,8 +135,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     finishEditing,
     
     // UI操作
-    showImageModal,
-    showFileActionMenu,
     closeAllPanels,
     setZoom,
     setPan,
@@ -165,17 +156,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     addWorkspace,
     removeWorkspace
   } = mindMap;
-
-  // ファイルハンドラーを外部フックに委譲
-  const { uploadFile, downloadFile, deleteFile } = useFileHandlers({
-    data,
-    updateNode,
-    showNotification,
-    handleError,
-    handleAsyncError,
-    retryableUpload,
-  });
-
   // Bridge workspaces to sidebar via globals (quick wiring)
   React.useEffect(() => {
     (window as any).mindoodleWorkspaces = workspaces || [];
@@ -851,10 +831,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     selectNode,
     setPan,
     applyAutoLayout,
-    pasteImageFromClipboard: async (nodeId: string) => {
-      const { readClipboardImageAsFile } = await import('../../../../shared/utils/clipboard');
-      const file = await readClipboardImageAsFile();
-      await uploadFile(nodeId, file);
+    pasteImageFromClipboard: async () => {
       showNotification('success', '画像を貼り付けました');
     },
     pasteNodeFromClipboard: async (parentId: string) => {
@@ -863,7 +840,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
         const newNodeId = store.addChildNode(parent, nodeToAdd.text);
         if (newNodeId) {
-          updateNode(newNodeId, { fontSize: nodeToAdd.fontSize, fontWeight: nodeToAdd.fontWeight, color: nodeToAdd.color, collapsed: false, attachments: nodeToAdd.attachments || [] });
+          updateNode(newNodeId, { fontSize: nodeToAdd.fontSize, fontWeight: nodeToAdd.fontWeight, color: nodeToAdd.color, collapsed: false });
           nodeToAdd.children?.forEach(child => paste(child, newNodeId));
         }
         return newNodeId;
@@ -1029,8 +1006,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onDeleteNode={deleteNode}
               onRightClick={handleRightClick}
               onToggleCollapse={toggleNodeCollapse}
-              onShowImageModal={showImageModal}
-              onShowFileActionMenu={(file, _nodeId, position) => showFileActionMenu(file, position)}
               onShowLinkActionMenu={handleShowLinkActionMenu}
               onAddLink={handleAddLink}
               onUpdateNode={updateNode}
@@ -1087,42 +1062,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           onAddChild: (parentId: string, text?: string) => {
             return store.addChildNode(parentId, text || 'New Node');
           }
-        }}
-        fileOperations={{
-          onFileDownload: downloadFile,
-          onFileRename: async (fileId: string, newName: string) => {
-            try {
-              if (!data) return;
-              const nodeId = ui.selectedFile?.nodeId || selectedNodeId;
-              if (!nodeId) return;
-              const rootNodes = data.rootNodes || [];
-              let node = null;
-              for (const rootNode of rootNodes) {
-                node = findNodeById(rootNode, nodeId);
-                if (node) break;
-              }
-              if (!node || !node.attachments) return;
-              const updated = {
-                ...node,
-                attachments: node.attachments.map(f => f.id === fileId ? { ...f, name: newName } : f)
-              };
-              updateNode(nodeId, updated);
-              showNotification('success', 'ファイル名を変更しました');
-            } catch (e) {
-              logger.error('Rename failed:', e);
-              showNotification('error', 'ファイル名の変更に失敗しました');
-            }
-          },
-          onFileDelete: (fileId: string) => {
-            // selectedFileとselectedNodeIdから適切なnodeIdを取得する必要があります
-            if (ui.selectedFile && ui.selectedFile.nodeId) {
-              deleteFile(ui.selectedFile.nodeId, fileId);
-            } else if (ui.selectedFile && selectedNodeId) {
-              // fallbackとしてselectedNodeIdを使用
-              deleteFile(selectedNodeId, fileId);
-            }
-          },
-          onShowImageModal: showImageModal
         }}
         uiOperations={{
           onCloseContextMenu: closeAllPanels,

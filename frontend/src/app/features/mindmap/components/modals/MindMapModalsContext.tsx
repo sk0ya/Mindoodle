@@ -4,7 +4,7 @@
  */
 
 import React, { createContext, useContext, ReactNode } from 'react';
-import type { MindMapNode, FileAttachment } from '../../../../shared';
+import type { MindMapNode} from '../../../../shared';
 
 // UI状態の型定義
 export interface MindMapUIState {
@@ -15,8 +15,6 @@ export interface MindMapUIState {
   contextMenuPosition: { x: number; y: number };
   customizationPosition: { x: number; y: number };
   fileMenuPosition: { x: number; y: number };
-  selectedImage: FileAttachment | null;
-  selectedFile: FileAttachment | null;
   clipboard: MindMapNode | null;
 }
 
@@ -33,10 +31,8 @@ export interface NodeOperations {
 
 // ファイル操作関数の型定義
 export interface FileOperations {
-  onFileDownload: (file: FileAttachment) => void;
   onFileRename: (fileId: string, newName: string) => void;
   onFileDelete: (fileId: string) => void;
-  onShowImageModal: (file: FileAttachment) => void;
 }
 
 // UI操作関数の型定義
@@ -52,7 +48,6 @@ export interface MindMapModalsContextValue {
   ui: MindMapUIState;
   selectedNodeId: string | null;
   nodeOperations: NodeOperations;
-  fileOperations: FileOperations;
   uiOperations: UIOperations;
 }
 
@@ -65,7 +60,6 @@ export interface MindMapModalsProviderProps {
   ui: MindMapUIState;
   selectedNodeId: string | null;
   nodeOperations: NodeOperations;
-  fileOperations: FileOperations;
   uiOperations: UIOperations;
 }
 
@@ -77,14 +71,12 @@ export const MindMapModalsProvider: React.FC<MindMapModalsProviderProps> = ({
   ui,
   selectedNodeId,
   nodeOperations,
-  fileOperations,
   uiOperations
 }) => {
   const contextValue: MindMapModalsContextValue = {
     ui,
     selectedNodeId,
     nodeOperations,
-    fileOperations,
     uiOperations
   };
 
@@ -112,11 +104,6 @@ export const useMindMapModals = (): MindMapModalsContextValue => {
 export const useNodeOperations = (): NodeOperations => {
   const { nodeOperations } = useMindMapModals();
   return nodeOperations;
-};
-
-export const useFileOperations = (): FileOperations => {
-  const { fileOperations } = useMindMapModals();
-  return fileOperations;
 };
 
 export const useUIOperations = (): UIOperations => {

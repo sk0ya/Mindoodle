@@ -3,7 +3,6 @@
 export { default as Node } from './Node';
 export { default as NodeRenderer } from './NodeRenderer';
 export { default as NodeEditor } from './NodeEditor';
-export { default as NodeAttachments } from './NodeAttachments';
 export { useNodeDragHandler } from './NodeDragHandler';
 
 // Canvas関連

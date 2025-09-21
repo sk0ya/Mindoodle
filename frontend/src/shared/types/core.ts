@@ -37,7 +37,6 @@ export interface MindMapNode {
   
   // Functional properties  
   collapsed?: boolean;
-  attachments?: FileAttachment[];
   links?: NodeLink[];
   
   // Image display properties
@@ -91,36 +90,6 @@ export interface MindMapSettings {
   snapToGrid?: boolean;
   showGrid?: boolean;
   animationEnabled?: boolean;
-}
-
-// File attachment interface with support for both local and cloud storage
-export interface FileAttachment {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  isImage: boolean;
-  createdAt: string;
-  
-  // Data storage (for local mode)
-  data?: string; // Base64 encoded data
-  dataURL?: string; // For backward compatibility
-  
-  // Cloud storage (for cloud mode)
-  downloadUrl?: string;
-  storagePath?: string;
-  thumbnailUrl?: string;
-  r2FileId?: string;
-  isR2Storage?: boolean;
-  
-  // Common optimization fields
-  isOptimized?: boolean;
-  originalSize?: number;
-  optimizedSize?: number;
-  compressionRatio?: string;
-  optimizedType?: string;
-  thumbnail?: string;
-  nodeId?: string;
 }
 
 // Node link interface for linking to other mindmaps or nodes

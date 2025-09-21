@@ -1,14 +1,12 @@
 import React, { memo, useState } from 'react';
 import { ContextMenu } from '../../../../shared';
 import NodeCustomizationPanel from '../panels/NodeCustomizationPanel';
-import { ImageModal, FileActionMenu } from '../../../files';
 import AIGenerationModal from './AIGenerationModal';
 import {
   MindMapModalsProvider,
   useMindMapModals,
   useSelectedNode,
   useNodeOperations,
-  useFileOperations,
   useUIOperations,
   useMindMapUI,
   type MindMapModalsProviderProps
@@ -109,44 +107,6 @@ const ContextMenuModal: React.FC<{ onAIGenerate: (node: MindMapNode) => void }> 
 };
 
 /**
- * 画像モーダルコンポーネント
- */
-const ImageModalComponent: React.FC = () => {
-  const ui = useMindMapUI();
-  const { onCloseImageModal } = useUIOperations();
-
-  return (
-    <ImageModal
-      isOpen={ui.showImageModal}
-      image={ui.selectedImage}
-      onClose={onCloseImageModal}
-    />
-  );
-};
-
-/**
- * ファイルアクションメニューコンポーネント
- */
-const FileActionMenuComponent: React.FC = () => {
-  const ui = useMindMapUI();
-  const { onFileDownload, onFileRename, onFileDelete, onShowImageModal } = useFileOperations();
-  const { onCloseFileActionMenu } = useUIOperations();
-
-  return (
-    <FileActionMenu
-      isOpen={ui.showFileActionMenu}
-      file={ui.selectedFile}
-      position={ui.fileMenuPosition}
-      onClose={onCloseFileActionMenu}
-      onDownload={onFileDownload}
-      onRename={onFileRename}
-      onDelete={onFileDelete}
-      onView={onShowImageModal}
-    />
-  );
-};
-
-/**
  * AI生成モーダルコンポーネント
  */
 const AIGenerationModalComponent: React.FC<{ 
@@ -182,8 +142,6 @@ const MindMapModalsInternal: React.FC = () => {
     <>
       <CustomizationPanelModal />
       <ContextMenuModal onAIGenerate={handleAIGenerate} />
-      <ImageModalComponent />
-      <FileActionMenuComponent />
       <AIGenerationModalComponent
         showAIModal={showAIModal}
         aiTargetNode={aiTargetNode}

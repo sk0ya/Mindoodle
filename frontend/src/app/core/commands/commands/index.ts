@@ -52,8 +52,6 @@ import {
 } from './navigation';
 
 import {
-  importMindmapCommand,
-  exportMindmapCommand,
   newMindmapCommand,
   clearMindmapCommand,
   statsCommand,
@@ -129,8 +127,6 @@ export const commands = [
   selectCurrentRootCommand,
 
   // Mindmap commands
-  importMindmapCommand,
-  exportMindmapCommand,
   newMindmapCommand,
   clearMindmapCommand,
   statsCommand,
@@ -193,8 +189,6 @@ export {
   prevMapCommand,
   selectCurrentRootCommand,
   // Mindmap commands
-  importMindmapCommand,
-  exportMindmapCommand,
   newMindmapCommand,
   clearMindmapCommand,
   statsCommand,

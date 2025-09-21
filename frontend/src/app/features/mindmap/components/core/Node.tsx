@@ -1,12 +1,11 @@
 import React, { useRef, useState, useCallback, useEffect, memo } from 'react';
 import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
 import NodeEditor, { isMarkdownLink, isUrl, parseMarkdownLink } from './NodeEditor';
-import NodeAttachments from './NodeAttachments';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX } from '../../../../shared/utils/nodeUtils';
 import { stopEventPropagation } from '../../../../shared/utils/eventUtils';
 import { getLastPathSegment, getParentPath, splitPath } from '../../../../shared/utils/stringUtils';
-import type { MindMapNode, FileAttachment, NodeLink } from '@shared/types';
+import type { MindMapNode, NodeLink } from '@shared/types';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 
 interface NodeProps {
@@ -24,8 +23,6 @@ interface NodeProps {
   onDragMove?: (x: number, y: number) => void;
   onDragEnd?: (nodeId: string, x: number, y: number) => void;
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
-  onShowImageModal: (file: FileAttachment) => void;
-  onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onUpdateNode?: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
@@ -56,19 +53,15 @@ const Node: React.FC<NodeProps> = ({
   onDragMove,
   onDragEnd,
   onRightClick,
-  onShowImageModal,
-  onShowFileActionMenu,
   onUpdateNode,
   onAutoLayout,
   editText,
   setEditText,
   zoom,
-  pan,
   svgRef,
   globalFontSize,
   onToggleAttachmentList,
   onToggleLinkList,
-  onLoadRelativeImage,
   onLinkNavigate
 }) => {
   const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
@@ -372,25 +365,6 @@ const Node: React.FC<NodeProps> = ({
         onDrop={handleDrop}
       />
 
-      {/* Removed HTML overlay to avoid blocking clicks; rely on SVG rect handlers */}
-      
-      {/* 2. 添付ファイル（画像とアイコン） */}
-      <NodeAttachments
-        node={node}
-        svgRef={svgRef}
-        zoom={zoom}
-        pan={pan}
-        isSelected={isSelected}
-        onSelectNode={onSelect}
-        onShowImageModal={onShowImageModal}
-        onShowFileActionMenu={onShowFileActionMenu}
-        onUpdateNode={onUpdateNode}
-        onAutoLayout={onAutoLayout}
-        nodeHeight={nodeHeight}
-        onLoadRelativeImage={onLoadRelativeImage}
-      />
-
-
       {/* 3. テキスト */}
       <NodeEditor
         node={node}
@@ -438,11 +412,6 @@ export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
       prevProps.node.collapsed !== nextProps.node.collapsed ||
       prevProps.node.customImageWidth !== nextProps.node.customImageWidth ||
       prevProps.node.customImageHeight !== nextProps.node.customImageHeight) {
-    return false;
-  }
-
-  // 添付ファイルが変わった場合は再レンダリング
-  if (JSON.stringify(prevProps.node.attachments) !== JSON.stringify(nextProps.node.attachments)) {
     return false;
   }
 

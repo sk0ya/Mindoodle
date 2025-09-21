@@ -128,7 +128,6 @@ function calculateTextWidthFallback(text: string): number {
  * ノードのアイコンレイアウトを計算
  */
 export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconLayout {
-  const hasAttachments = node.attachments && node.attachments.length > 0;
   const noteStr = (node as any)?.note as string | undefined;
   const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0);
   
@@ -142,19 +141,13 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
   let attachmentIcon: { x: number; y: number } | undefined;
   let linkIcon: { x: number; y: number } | undefined;
   
-  if (hasAttachments && hasLinks) {
+  if (hasLinks) {
     // 両方ある場合: 添付ファイル + スペース + リンク
     totalWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH;
     const startX = nodeWidth / 2 - totalWidth - RIGHT_MARGIN;
     
     attachmentIcon = { x: startX, y: -ICON_HEIGHT / 2 };
     linkIcon = { x: startX + ICON_WIDTH + ICON_SPACING, y: -ICON_HEIGHT / 2 };
-  } else if (hasAttachments) {
-    // 添付ファイルのみ
-    totalWidth = ICON_WIDTH;
-    const startX = nodeWidth / 2 - totalWidth - RIGHT_MARGIN;
-    
-    attachmentIcon = { x: startX, y: -ICON_HEIGHT / 2 };
   } else if (hasLinks) {
     // リンクのみ
     totalWidth = ICON_WIDTH;

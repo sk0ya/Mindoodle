@@ -641,7 +641,6 @@ export const useMindMap = (
     closeAllPanels: uiHook.closeAllPanels,
     toggleSidebar: uiHook.toggleSidebar,
     setSidebarCollapsed: uiHook.setSidebarCollapsed,
-    showImageModal: uiHook.showImageModal,
     hideImageModal: uiHook.hideImageModal,
     showCustomization: uiHook.showCustomization,
     showFileActionMenu: uiHook.showFileActionMenu,

@@ -58,12 +58,10 @@ import type {
   MindMapNode as SharedMindMapNode, 
   MindMapData as SharedMindMapData,
   MindMapSettings as SharedMindMapSettings,
-  FileAttachment as SharedFileAttachment,
 } from '@shared/types';
 
 // Re-export shared types for compatibility
 export type MindMapNode = SharedMindMapNode;
-export type FileAttachment = SharedFileAttachment;
 export type MindMapSettings = SharedMindMapSettings;
 export type MindMapData = SharedMindMapData;
 // Position type definition
@@ -98,7 +96,7 @@ export interface FileHandlersDependency {
   handleFileDownload: (nodeId: string, fileId: string) => Promise<void>;
   handleFileRename: (nodeId: string, fileId: string, newName: string) => Promise<void>;
   handleShowImageModal: (image: { url: string; alt: string }) => void;
-  handleShowFileActionMenu: (file: FileAttachment, position: Position) => void;
+  handleShowFileActionMenu: (position: Position) => void;
 }
 
 export interface MapHandlersDependency {
@@ -115,8 +113,6 @@ export interface UIStateDependency {
   handleShowNodeMapLinks: (node: MindMapNode, position: Position) => void;
 }
 
-// Image and File Types for UI state - simplified to use FileAttachment
-export type ImageFile = FileAttachment;
 
 // カラーパレット（定数ファイルから参照）
 export const NODE_COLORS = COLORS.NODE_COLORS;
@@ -146,7 +142,6 @@ export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => 
     fontSize: TYPOGRAPHY.DEFAULT_FONT_SIZE,
     fontWeight: TYPOGRAPHY.DEFAULT_FONT_WEIGHT,
     children: [],
-    attachments: [],
   }],
   settings: {
     autoSave: DEFAULTS.AUTO_SAVE,
@@ -171,7 +166,6 @@ export const createNewNode = (
     fontWeight: TYPOGRAPHY.DEFAULT_FONT_WEIGHT,
     color: NODE_COLORS[0],
     children: [],
-    attachments: [], // ファイル添付用
   };
 
   // 新規ノードは親がマークダウンノードの場合のみメタデータを設定
@@ -219,89 +213,6 @@ export const STORAGE_KEYS = {
   SETTINGS: 'appSettings',
   SYNC_QUEUE: 'mindflow_sync_queue',
   LAST_SYNC_TIME: 'mindflow_last_sync_time'
-};
-
-// ファイル関連のユーティリティ
-export const isImageFile = (file: File): boolean => {
-  return Boolean(file && file.type && file.type.startsWith('image/'));
-};
-
-export const getFileIcon = (file: File): string => {
-  if (isImageFile(file)) {
-    // SVGファイルの場合は専用のアイコンを表示
-    if (file.type === 'image/svg+xml') {
-      return '🎨';
-    }
-    return '🖼️';
-  }
-  
-  switch (file.type) {
-    case 'text/plain':
-      return '📄';
-    case 'application/pdf':
-      return '📕';
-    case 'application/json':
-      return '📋';
-    default:
-      return '📎';
-  }
-};
-
-export const readFileAsDataURL = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => resolve(e.target?.result as string);
-    reader.onerror = (e) => reject(e);
-    reader.readAsDataURL(file);
-  });
-};
-
-// ファイルアップロード関連の型定義
-export interface UploadedFileInfo {
-  id?: string;
-  downloadUrl?: string;
-  storagePath?: string;
-  thumbnailUrl?: string;
-  uploadedAt?: string;
-}
-
-export interface FileOptimizationInfo {
-  isR2Storage?: boolean;
-  nodeId?: string;
-  isOptimized?: boolean;
-  originalSize?: number;
-  optimizedSize?: number;
-  compressionRatio?: string;
-  optimizedType?: string;
-}
-
-export const createFileAttachment = (
-  file: File, 
-  dataURL: string | null = null, 
-  uploadedFileInfo: UploadedFileInfo | null = null, 
-  optimizationInfo: FileOptimizationInfo | null = null
-): FileAttachment => {
-  return {
-    id: uploadedFileInfo?.id || generateNodeId(),
-    name: file.name,
-    type: file.type,
-    size: file.size,
-    dataURL: dataURL || undefined, // レガシー対応
-    downloadUrl: uploadedFileInfo?.downloadUrl, // R2からのダウンロードURL
-    storagePath: uploadedFileInfo?.storagePath, // R2のストレージパス
-    thumbnailUrl: uploadedFileInfo?.thumbnailUrl, // サムネイルURL
-    r2FileId: uploadedFileInfo?.id, // R2ファイルID（ダウンロード用）
-    isR2Storage: optimizationInfo?.isR2Storage || false,
-    nodeId: optimizationInfo?.nodeId, // ファイルが添付されているノードID
-    isImage: isImageFile(file),
-    createdAt: uploadedFileInfo?.uploadedAt || new Date().toISOString(),
-    // 最適化情報
-    isOptimized: optimizationInfo?.isOptimized || false,
-    originalSize: optimizationInfo?.originalSize || file.size,
-    optimizedSize: optimizationInfo?.optimizedSize || file.size,
-    compressionRatio: optimizationInfo?.compressionRatio || '0',
-    optimizedType: optimizationInfo?.optimizedType || file.type
-  };
 };
 
 // 既存のノードに色を自動割り当てする

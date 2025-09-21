@@ -130,7 +130,6 @@ export const useMarkdownSync = () => {
             fontFamily: existingNode.fontFamily || newNode.fontFamily,
             fontStyle: existingNode.fontStyle || newNode.fontStyle,
             note: existingNode.note || newNode.note,
-            attachments: existingNode.attachments || newNode.attachments,
             links: existingNode.links || newNode.links,
             collapsed: existingNode.collapsed || newNode.collapsed,
           };

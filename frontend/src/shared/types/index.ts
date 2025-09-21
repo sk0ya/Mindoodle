@@ -7,7 +7,6 @@
 import type {
   MindMapNode,
   MindMapData,
-  FileAttachment,
 } from './core';
 
 // Core type definitions
@@ -20,7 +19,6 @@ export type {
   MindMapData,
   MapIdentifier,
   MindMapSettings,
-  FileAttachment,
   NodeLink,
   UIState,
   CloudStorageState,
@@ -114,17 +112,5 @@ export const isValidMindMapData = (obj: unknown): obj is MindMapData => {
     typeof data.settings === 'object' &&
     typeof (data.settings as Record<string, unknown>).autoSave === 'boolean' &&
     typeof (data.settings as Record<string, unknown>).autoLayout === 'boolean'
-  );
-};
-
-export const isValidFileAttachment = (obj: unknown): obj is FileAttachment => {
-  if (!obj || typeof obj !== 'object') return false;
-  const file = obj as Record<string, unknown>;
-  return (
-    typeof file.id === 'string' &&
-    typeof file.name === 'string' &&
-    typeof file.type === 'string' &&
-    typeof file.size === 'number' &&
-    typeof file.isImage === 'boolean'
   );
 };

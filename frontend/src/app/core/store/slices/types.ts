@@ -1,11 +1,10 @@
-import type { MindMapData, MindMapNode, Position, FileAttachment, NodeLink } from '@shared/types';
+import type { MindMapData, MindMapNode, Position, NodeLink } from '@shared/types';
 import type { NormalizedData } from '../../data/normalizedStore';
 import type { AISlice } from './aiSlice';
 import type { SettingsSlice } from './settingsSlice';
 import type { UISlice } from './uiSlice';
 import type { UIState } from '../../../shared/types/uiTypes';
 import type { DataState as NodeDataState } from '../../../shared/types/nodeTypes';
-import type { ImageFile } from '../../../shared/types';
 
 // Re-export for backward compatibility
 export type { UIState };
@@ -77,8 +76,6 @@ export interface MindMapStore extends DataState, HistoryState, AISlice, Settings
   setShowTutorial: (show: boolean) => void;
   setShowNotesPanel: (show: boolean) => void;
   toggleNotesPanel: () => void;
-  setSelectedImage: (image: ImageFile | null) => void;
-  setSelectedFile: (file: FileAttachment | null) => void;
   setFileMenuPosition: (position: Position) => void;
   setShowImageModal: (show: boolean) => void;
   setShowFileActionMenu: (show: boolean) => void;

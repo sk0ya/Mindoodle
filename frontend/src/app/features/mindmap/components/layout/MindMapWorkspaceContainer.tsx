@@ -1,6 +1,6 @@
 import React from 'react';
 import MindMapWorkspace from './MindMapWorkspace';
-import type { FileAttachment, NodeLink, Position } from '@shared/types';
+import type { NodeLink, Position } from '@shared/types';
 
 type Props = {
   data: any;
@@ -18,8 +18,6 @@ type Props = {
   onDeleteNode: (nodeId: string) => void;
   onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onShowImageModal: (file: FileAttachment) => void;
-  onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: any) => void;

@@ -8,7 +8,6 @@ export type {
   MindMapNode,
   MindMapData,
   MindMapSettings,
-  FileAttachment,
   UIState,
   ValidationResult,
   StorageStats,
@@ -29,7 +28,6 @@ export type {
   FileHandlersDependency,
   MapHandlersDependency,
   UIStateDependency,
-  ImageFile,
 } from './dataTypes';
 
 // Re-export constants for convenience
@@ -48,7 +46,6 @@ export {
 export {
   isValidMindMapNode,
   isValidMindMapData,
-  isValidFileAttachment,
 } from '@shared/types';
 
 // Export new type safety modules (consolidated into dataTypes)

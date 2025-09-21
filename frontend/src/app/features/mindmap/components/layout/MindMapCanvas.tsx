@@ -3,7 +3,7 @@ import CanvasRenderer from '../core/CanvasRenderer';
 import { useCanvasDragHandler } from '../core/CanvasDragHandler';
 import { useCanvasViewportHandler } from '../core/CanvasViewportHandler';
 import { useCanvasEventHandler } from '../core/CanvasEventHandler';
-import type { MindMapData, MindMapNode, FileAttachment, NodeLink } from '@shared/types';
+import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
 interface MindMapCanvasProps {
   data: MindMapData;
@@ -22,8 +22,6 @@ interface MindMapCanvasProps {
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onNavigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
-  onShowImageModal: (file: FileAttachment) => void;
-  onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
@@ -64,8 +62,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onDeleteNode,
     onRightClick,
     onToggleCollapse,
-    onShowImageModal,
-    onShowFileActionMenu,
     onShowLinkActionMenu,
     onUpdateNode,
     onAutoLayout,
@@ -180,8 +176,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
       onDeleteNode={onDeleteNode}
       onRightClick={onRightClick}
       onToggleCollapse={onToggleCollapse}
-      onShowImageModal={onShowImageModal}
-      onShowFileActionMenu={onShowFileActionMenu}
       onShowLinkActionMenu={onShowLinkActionMenu}
       onUpdateNode={onUpdateNode}
       onAutoLayout={onAutoLayout}

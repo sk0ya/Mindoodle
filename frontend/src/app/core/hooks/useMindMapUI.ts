@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
-import type { MindMapNode, Position, FileAttachment } from '@shared/types';
-import type { ImageFile } from '../../shared/types';
+import type { MindMapNode, Position } from '@shared/types';
 
 /**
  * UI状態管理に特化したHook
@@ -18,10 +17,8 @@ export const useMindMapUI = () => {
     setSidebarCollapsed,
     setShowNotesPanel,
     toggleNotesPanel,
-    setSelectedImage,
     setShowImageModal,
     showCustomization,
-    setSelectedFile,
     setFileMenuPosition,
     setShowFileActionMenu,
     ui
@@ -72,12 +69,6 @@ export const useMindMapUI = () => {
       toggleNotesPanel();
     }, [toggleNotesPanel]),
 
-    // モーダル制御
-    showImageModal: useCallback((image: ImageFile) => {
-      setSelectedImage(image);
-      setShowImageModal(true);
-    }, [setSelectedImage, setShowImageModal]),
-
     hideImageModal: useCallback(() => {
       setShowImageModal(false);
     }, [setShowImageModal]),
@@ -89,11 +80,10 @@ export const useMindMapUI = () => {
 
 
     // ファイルアクションメニュー
-    showFileActionMenu: useCallback((fileAttachment: FileAttachment, position: Position) => {
-      setSelectedFile(fileAttachment);
+    showFileActionMenu: useCallback((position: Position) => {
       setFileMenuPosition(position);
       setShowFileActionMenu(true);
-    }, [setSelectedFile, setFileMenuPosition, setShowFileActionMenu]),
+    }, [setFileMenuPosition, setShowFileActionMenu]),
 
     hideFileActionMenu: useCallback(() => {
       setShowFileActionMenu(false);

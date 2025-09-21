@@ -13,7 +13,6 @@ export function pasteNodeTree(
     fontWeight: source.fontWeight,
     color: source.color,
     collapsed: false,
-    attachments: source.attachments || [],
     note: source.note,
   });
   source.children?.forEach((child) => pasteNodeTree(child, newId, addChild, updateNode));

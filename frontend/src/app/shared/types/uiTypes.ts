@@ -1,5 +1,4 @@
-import type { Position, FileAttachment, MindMapNode } from '@shared/types';
-import type { ImageFile } from './dataTypes';
+import type { Position, MindMapNode } from '@shared/types';
 
 // UI State types
 export interface UIState {
@@ -21,8 +20,6 @@ export interface UIState {
   
   
   // File and image states
-  selectedImage: ImageFile | null;
-  selectedFile: FileAttachment | null;
   fileMenuPosition: Position;
   showImageModal: boolean;
   showFileActionMenu: boolean;
@@ -77,8 +74,6 @@ export interface UIActions {
   
   
   // File and Image Management
-  setSelectedImage: (image: ImageFile | null) => void;
-  setSelectedFile: (file: FileAttachment | null) => void;
   setFileMenuPosition: (position: Position) => void;
   setShowImageModal: (show: boolean) => void;
   setShowFileActionMenu: (show: boolean) => void;

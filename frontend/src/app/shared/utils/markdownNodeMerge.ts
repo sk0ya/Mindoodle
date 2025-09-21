@@ -15,7 +15,6 @@ function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMa
     fontStyle: source.fontStyle,
     color: source.color,
     collapsed: source.collapsed,
-    attachments: source.attachments,
     links: source.links,
     customImageWidth: source.customImageWidth,
     customImageHeight: source.customImageHeight,

@@ -4,7 +4,7 @@ import { Node } from '../..';
 import SelectedNodeLinkList from './SelectedNodeLinkList';
 import { calculateNodeSize } from '../../../../shared/utils/nodeUtils';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
-import type { FileAttachment, MindMapData, MindMapNode, NodeLink } from '@shared/types';
+import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
 interface DragState {
   isDragging: boolean;
@@ -41,8 +41,6 @@ interface CanvasRendererProps {
   onDeleteNode: (nodeId: string) => void;
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onShowImageModal: (file: FileAttachment) => void;
-  onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
@@ -89,8 +87,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onDeleteNode,
   onRightClick,
   onToggleCollapse,
-  onShowImageModal,
-  onShowFileActionMenu,
   onShowLinkActionMenu,
   onUpdateNode,
   onAutoLayout,
@@ -187,8 +183,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onRightClick={onRightClick}
                 editText={editText}
                 setEditText={setEditText}
-                onShowImageModal={onShowImageModal}
-                onShowFileActionMenu={onShowFileActionMenu}
                 onShowLinkActionMenu={onShowLinkActionMenu}
                 onUpdateNode={onUpdateNode}
                 onAutoLayout={onAutoLayout}

@@ -1,6 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { Position, FileAttachment, MindMapNode } from '@shared/types';
-import type { ImageFile } from '../../../shared/types';
+import type { Position, MindMapNode } from '@shared/types';
 import type { MindMapStore } from './types';
 import type { UIState, UIActions } from '../../../shared/types/uiTypes';
 
@@ -129,17 +128,6 @@ export const createUISlice: StateCreator<
   // Outline view removed; related actions deleted
 
   // File and Image Management Actions
-  setSelectedImage: (image: ImageFile | null) => {
-    set((state) => {
-      state.ui.selectedImage = image;
-    });
-  },
-
-  setSelectedFile: (file: FileAttachment | null) => {
-    set((state) => {
-      state.ui.selectedFile = file;
-    });
-  },
 
   setFileMenuPosition: (position: Position) => {
     set((state) => {

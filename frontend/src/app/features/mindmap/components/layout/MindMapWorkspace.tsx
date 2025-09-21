@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
 import { ErrorBoundary } from '@shared/components/ErrorBoundary';
 import MindMapCanvas from './MindMapCanvas';
-import type { MindMapData, Position, FileAttachment, NodeLink } from '@shared/types';
+import type { MindMapData, Position, NodeLink } from '@shared/types';
 
 interface MindMapWorkspaceProps {
   data: MindMapData;
@@ -19,8 +19,6 @@ interface MindMapWorkspaceProps {
   onDeleteNode: (nodeId: string) => void;
   onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onShowImageModal: (file: FileAttachment) => void;
-  onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<import('@shared/types').MindMapNode>) => void;
@@ -60,8 +58,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onDeleteNode,
   onRightClick,
   onToggleCollapse,
-  onShowImageModal,
-  onShowFileActionMenu,
   onShowLinkActionMenu,
   onAddLink,
   onUpdateNode,
@@ -97,8 +93,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onRightClick={onRightClick}
         onToggleCollapse={onToggleCollapse}
         onNavigateToDirection={(_direction: 'up' | 'down' | 'left' | 'right') => {}}
-        onShowImageModal={onShowImageModal}
-        onShowFileActionMenu={onShowFileActionMenu}
         onShowLinkActionMenu={onShowLinkActionMenu}
         onAddLink={onAddLink}
         onUpdateNode={onUpdateNode}
