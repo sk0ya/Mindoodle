@@ -467,6 +467,7 @@ export const useMindMap = (
       const mapId = target.mapId;
       const workspaceId = target.workspaceId;
 
+
       // Do NOT trust cached allMindMaps content; always try to load fresh content
       // (cached list may be stale vs on-disk / stream-saved markdown)
 

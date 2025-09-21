@@ -71,8 +71,13 @@ const MapItemList: React.FC<MapItemListProps> = ({
 
   // ダブルクリック防止のためのデバウンス
   const handleMapClick = useCallback((mapIdentifier: MapIdentifier) => {
+    // 同じマップが既に選択されている場合は早期リターン
+    if (currentMapId === mapIdentifier.mapId) {
+      console.log('🔄 Same map clicked, skipping:', mapIdentifier.mapId);
+      return;
+    }
     onSelectMap(mapIdentifier);
-  }, [onSelectMap]);
+  }, [onSelectMap, currentMapId]);
 
   return (
     <>

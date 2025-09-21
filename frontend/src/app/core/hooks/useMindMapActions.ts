@@ -39,8 +39,20 @@ export const useMindMapActions = () => {
     // マップ選択
     selectMap: useCallback((mapData: MindMapData) => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
-      // ここではオートレイアウトを実行しない（連打時の負荷・揺れ対策）
       store.setData(mapData);
+
+      // マップ開時に自動整列が有効な場合は適用（非同期で実行して連打の負荷を軽減）
+      if (mapData.settings?.autoLayout) {
+        setTimeout(() => {
+          logger.debug('🎯 Applying auto layout on map open');
+          if (typeof store.applyAutoLayout === 'function') {
+            store.applyAutoLayout();
+          } else {
+            logger.error('❌ applyAutoLayout function not found');
+          }
+        }, 100); // 100msの遅延でレンダリング完了後に実行
+      }
+
       logger.debug('Selected map:', mapData.title);
     }, [store]),
 

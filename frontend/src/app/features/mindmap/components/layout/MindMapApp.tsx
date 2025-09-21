@@ -914,6 +914,22 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
         onSelectMap={async (id) => {
+          // デバッグログを追加
+          logger.debug('🖱️ Map clicked:', {
+            clickedMapId: id.mapId,
+            clickedWorkspaceId: id.workspaceId,
+            currentMapId,
+            currentWorkspaceId: data?.mapIdentifier?.workspaceId,
+            isMapIdSame: currentMapId === id.mapId,
+            isWorkspaceIdSame: data?.mapIdentifier?.workspaceId === id.workspaceId
+          });
+
+          // 同じマップが既に選択されている場合は早期リターン
+          if (currentMapId === id.mapId &&
+              data?.mapIdentifier?.workspaceId === id.workspaceId) {
+            logger.debug('🔄 Same map already selected, skipping:', id.mapId);
+            return;
+          }
           await selectMapById(id);
         }}
         onCreateMap={(title: string, workspaceId: string, category?: string) => {

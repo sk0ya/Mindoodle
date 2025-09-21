@@ -982,6 +982,12 @@ const ExplorerView: React.FC<{
 
     const handleClick = () => {
       if (isMarkdown && mapId) {
+        // 同じマップが既に選択されている場合は早期リターン
+        if (currentMapId === mapId &&
+            currentWorkspaceId === workspaceId) {
+          console.log('🔄 Same explorer map clicked, skipping:', mapId);
+          return;
+        }
         window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
           detail: { mapId, workspaceId }
         }));
