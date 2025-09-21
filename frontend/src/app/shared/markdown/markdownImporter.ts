@@ -1,5 +1,5 @@
 import { type MindMapNode, createNewNode } from '../types/dataTypes';
-import { logger } from './logger';
+import { logger } from '../utils/logger';
 
 const DEBUG_MD = true; // 一時的にデバッグ有効
 // const DEBUG_MD =

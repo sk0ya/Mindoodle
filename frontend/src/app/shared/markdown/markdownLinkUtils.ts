@@ -1,5 +1,5 @@
 import type { NodeLink } from '@shared/types';
-import { generateUrlId } from './idGenerator';
+import { generateUrlId } from '../utils/idGenerator';
 
 // Extract NodeLink objects from markdown note content.
 // Supported href patterns:

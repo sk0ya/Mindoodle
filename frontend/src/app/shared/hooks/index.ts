@@ -1,4 +1,4 @@
-export { useMarkdownSync } from './useMarkdownSync';
+export { useMarkdownSync } from '../markdown/useMarkdownSync';
 export {
   useBooleanState,
   useBooleanToggle,

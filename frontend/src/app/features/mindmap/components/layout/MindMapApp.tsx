@@ -16,8 +16,8 @@ import MarkdownPanelContainer from './NodeNotesPanelContainer';
 // Outline mode removed
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import { useNotification } from '../../../../shared/hooks/useNotification';
-import { useMarkdownSync } from '../../../../shared/hooks/useMarkdownSync';
-import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
+import { useMarkdownSync } from '../../../../shared/hooks';
+import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/markdown/markdownLinkUtils';
 import { navigateLink } from '../../../../shared/utils/linkNavigation';
 import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
 import { useGlobalErrorHandlers } from '../../../../shared/hooks/useGlobalErrorHandlers';

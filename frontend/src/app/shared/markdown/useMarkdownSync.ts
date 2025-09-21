@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { MarkdownImporter } from '../utils/markdownImporter';
+import { MarkdownImporter } from './markdownImporter';
 import { type MindMapNode } from '../types/dataTypes';
 import { statusMessages } from '../utils/safeEmitStatus';
 

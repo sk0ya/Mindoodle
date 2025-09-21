@@ -2,7 +2,7 @@ import React, { memo, useCallback, useMemo } from 'react';
 import { Link, ExternalLink } from 'lucide-react';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { calculateLinkListHeight } from '../../../../shared/utils/listHeightUtils';
-import { extractAllMarkdownLinksDetailed, resolveHrefToMapTarget, resolveAnchorToNode } from '../../../../shared/utils/markdownLinkUtils';
+import { extractAllMarkdownLinksDetailed, resolveHrefToMapTarget, resolveAnchorToNode } from '../../../../shared/markdown/markdownLinkUtils';
 
 interface SelectedNodeLinkListProps {
   node: MindMapNode;
