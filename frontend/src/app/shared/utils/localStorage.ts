@@ -143,20 +143,6 @@ export class LocalStorageManager {
   }
   
   /**
-   * localStorageが利用可能かチェック
-   */
-  isAvailable(): boolean {
-    try {
-      const testKey = '__test_localStorage__';
-      localStorage.setItem(testKey, 'test');
-      localStorage.removeItem(testKey);
-      return true;
-    } catch {
-      return false;
-    }
-  }
-  
-  /**
    * 指定されたプレフィックスで始まるキーをすべて取得
    */
   getKeysWithPrefix(prefix: string): string[] {
