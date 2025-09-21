@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
-import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown } from 'lucide-react';
+import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import CategoryGroup from './CategoryGroup';
 import SidebarCollapsed from './SidebarCollapsed';
@@ -9,7 +9,24 @@ import type { MindMapData, MapIdentifier } from '@shared/types';
 import { createChildFolderPath } from '../../../../shared/utils/folderUtils';
 import { logger } from '../../../../shared/utils/logger';
 import { useDragAndDrop } from '../../../../shared/hooks/useDragAndDrop';
+import { highlightSearchTerm } from '../../../../shared/utils/highlightUtils';
 import type { ExplorerItem } from '../../../../core/storage/types';
+
+interface NodeViewProps {
+  item: ExplorerItem;
+  searchTerm?: string;
+  collapsed?: Record<string, boolean>;
+  onTogglePath?: (path: string) => void;
+  onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void;
+  currentMapId?: string | null;
+  currentWorkspaceId?: string | null;
+  dragOverPath?: string | null;
+  setDragOverPath?: (path: string | null) => void;
+  editingMapId?: string | null;
+  editingTitle?: string;
+  onCancelRename?: () => void;
+  onEditingTitleChange?: (title: string) => void;
+}
 
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
@@ -90,7 +107,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     targetType: null,
     mapData: null
   });
-  const [explorerSelectedPath, setExplorerSelectedPath] = useState<string | null>(null);
 
   // Keep explorer selection in sync with current map (when switching via keyboard etc.)
   // Helper to check if a path exists in explorer tree
@@ -403,10 +419,18 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const { filteredMaps, groupedMaps, visibleFolders } = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     
-    // マップのタイトルまたはカテゴリ名で検索
+    // マップのタイトルまたはカテゴリ名で検索（workspaceフォルダは除外）
     const filtered = mindMaps.filter(map => {
       const titleMatch = map.title.toLowerCase().includes(searchLower);
-      const categoryMatch = map.category && map.category.toLowerCase().includes(searchLower);
+
+      // カテゴリ名での検索（workspaceフォルダ部分は除外）
+      let categoryMatch = false;
+      if (map.category) {
+        // workspaceフォルダ部分を除外したカテゴリパスを取得
+        const cleanCategory = extractCategory(map.category) || map.category;
+        categoryMatch = cleanCategory.toLowerCase().includes(searchLower);
+      }
+
       return titleMatch || categoryMatch;
     });
 
@@ -446,11 +470,13 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         }
       });
       
-      // フォルダ名が検索条件にマッチするフォルダも追加
+      // フォルダ名が検索条件にマッチするフォルダも追加（workspaceフォルダは除外）
       Array.from(emptyFolders).forEach(folder => {
-        if (folder.toLowerCase().includes(searchLower)) {
+        // workspaceフォルダ部分を除外したパスを取得
+        const cleanFolderPath = extractCategory(folder) || folder;
+        if (cleanFolderPath && cleanFolderPath.toLowerCase().includes(searchLower)) {
           foldersToShow.add(folder);
-          
+
           // その親フォルダも追加
           const parts = folder.split('/');
           for (let i = 1; i < parts.length; i++) {
@@ -761,14 +787,17 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
       {explorerTree ? (
         <div className="maps-content-wrapper">
-          <ExplorerView 
+          <ExplorerView
             tree={explorerTree}
-            selectedPath={explorerSelectedPath}
-            onSelectPath={setExplorerSelectedPath}
+            searchTerm={searchTerm}
             collapsed={explorerCollapsed}
             onTogglePath={(path: string) => setExplorerCollapsed(prev => ({ ...prev, [path]: !prev[path] }))}
-            currentMapId={currentMapId || null}
-            currentWorkspaceId={currentWorkspaceId || null}
+            currentMapId={currentMapId}
+            currentWorkspaceId={currentWorkspaceId}
+            editingMapId={editingMapId}
+            editingTitle={editingTitle}
+            onCancelRename={handleCancelRename}
+            onEditingTitleChange={setEditingTitle}
             onContextMenu={(e, path, type) => {
               e.preventDefault();
               setContextMenu({
@@ -850,107 +879,331 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   );
 };
 
-const ExplorerView: React.FC<{ tree: ExplorerItem, selectedPath?: string | null, onSelectPath?: (p: string) => void, onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void, collapsed?: Record<string, boolean>, onTogglePath?: (path: string) => void, currentMapId?: string | null, currentWorkspaceId: string | null }> = ({ tree, selectedPath, onSelectPath, onContextMenu, collapsed = {}, onTogglePath, currentMapId = null, currentWorkspaceId = null }) => {
+const ExplorerView: React.FC<{
+  tree: ExplorerItem,
+  searchTerm?: string,
+  collapsed?: Record<string, boolean>,
+  onTogglePath?: (path: string) => void,
+  onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void,
+  currentMapId?: string | null,
+  currentWorkspaceId?: string | null,
+  editingMapId?: string | null,
+  editingTitle?: string,
+  onCancelRename?: () => void,
+  onEditingTitleChange?: (title: string) => void
+}> = ({ tree, searchTerm = '', collapsed = {}, onTogglePath, onContextMenu, currentMapId = null, currentWorkspaceId = null, editingMapId = null, editingTitle = '', onCancelRename, onEditingTitleChange }) => {
   const toggle = (path: string) => onTogglePath && onTogglePath(path);
   const [dragOverPath, setDragOverPath] = React.useState<string | null>(null);
 
-  const NodeView: React.FC<{ item: ExplorerItem }> = ({ item }) => {
+  // Helper function to extract category path excluding workspace folder
+  const extractCategoryFromPath = (path: string): string => {
+    if (!path) return '';
+    const wsMatch = path.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+    if (wsMatch) {
+      return wsMatch[2] || '';
+    }
+    return path;
+  };
+
+  // Helper function to filter tree based on search term while preserving structure
+  const filterTree = (item: ExplorerItem, searchLower: string): ExplorerItem | null => {
+    if (!searchTerm) return item;
+
+    const isFile = item.type === 'file';
+
+    // For files: check filename (excluding workspace folder)
+    let fileMatches = false;
+    if (isFile) {
+      const filename = item.name || '';
+      fileMatches = filename.toLowerCase().includes(searchLower);
+    }
+
+    // For folders: check folder name (excluding workspace folder)
+    let folderMatches = false;
     if (item.type === 'folder') {
-      const isCollapsed = collapsed[item.path] ?? false;
+      const cleanFolderName = extractCategoryFromPath(item.path);
+      const folderName = item.name || '';
+      // Only search in the folder name itself, not workspace prefixes
+      folderMatches = folderName.toLowerCase().includes(searchLower) || cleanFolderName.toLowerCase().includes(searchLower);
+    }
+
+    // Filter children recursively
+    let filteredChildren: ExplorerItem[] = [];
+    if (item.children) {
+      filteredChildren = item.children
+        .map(child => filterTree(child, searchLower))
+        .filter((child): child is ExplorerItem => child !== null);
+    }
+
+    // Include this item if:
+    // 1. It matches the search term directly
+    // 2. It has children that match (to preserve tree structure)
+    const shouldInclude = fileMatches || folderMatches || filteredChildren.length > 0;
+
+    if (shouldInclude) {
+      return {
+        ...item,
+        children: filteredChildren
+      };
+    }
+
+    return null;
+  };
+
+  // Apply search filtering
+  const filteredTree = searchTerm ? filterTree(tree, searchTerm.toLowerCase()) : tree;
+
+  const NodeView: React.FC<NodeViewProps> = ({
+    item,
+    searchTerm,
+    collapsed = {},
+    onTogglePath,
+    onContextMenu,
+    currentMapId = null,
+    currentWorkspaceId = null,
+    dragOverPath = null,
+    setDragOverPath,
+    editingMapId = null,
+    editingTitle = '',
+    onCancelRename,
+    onEditingTitleChange
+  }) => {
+    const isFile = item.type === 'file';
+    const isMarkdown = isFile && item.isMarkdown;
+    const isCollapsed = collapsed[item.path] || false;
+
+    // Map ID extraction and matching
+    const workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
+    const mapId = isMarkdown ? item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '') : null;
+    const isActive = isMarkdown && mapId && currentMapId === mapId && (
+      currentWorkspaceId ? (workspaceId === currentWorkspaceId) : true
+    );
+
+    const handleClick = () => {
+      if (isMarkdown && mapId) {
+        window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
+          detail: { mapId, workspaceId }
+        }));
+      }
+    };
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+      e.preventDefault();
+      if (onContextMenu) {
+        onContextMenu(e, item.path, isFile ? 'explorer-file' : 'explorer-folder');
+      }
+    };
+
+    const handleDragStart = (e: React.DragEvent) => {
+      if (isMarkdown) {
+        // For moving files within explorer (folder structure)
+        e.dataTransfer.setData('mindoodle/path', item.path);
+
+        // For dragging maps to mindmap nodes (original functionality)
+        if (mapId && workspaceId) {
+          e.dataTransfer.setData('mindoodle/mapId', mapId);
+          e.dataTransfer.setData('mindoodle/workspaceId', workspaceId);
+          e.dataTransfer.setData('text/plain', item.name || '');
+        }
+
+        e.dataTransfer.effectAllowed = 'move';
+      }
+    };
+
+    const handleDragOver = (e: React.DragEvent) => {
+      if (item.type === 'folder') {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+        if (setDragOverPath) {
+          setDragOverPath(item.path);
+        }
+      }
+    };
+
+    const handleDragLeave = () => {
+      if (setDragOverPath) {
+        setDragOverPath(null);
+      }
+    };
+
+    const handleDrop = (e: React.DragEvent) => {
+      if (item.type === 'folder') {
+        try {
+          e.preventDefault();
+          const sourcePath = e.dataTransfer.getData('mindoodle/path');
+          if (sourcePath && sourcePath !== item.path) {
+            window.dispatchEvent(new CustomEvent('mindoodle:moveItem', {
+              detail: { sourcePath, targetFolderPath: item.path }
+            }));
+          }
+        } finally {
+          if (setDragOverPath) {
+            setDragOverPath(null);
+          }
+        }
+      }
+    };
+
+    const handleToggle = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (onTogglePath) {
+        onTogglePath(item.path);
+      }
+    };
+
+    if (item.type === 'folder') {
       return (
-        <div className="explorer-folder" key={item.path}>
-          <div className={`category-header ${selectedPath === item.path ? 'selected' : ''} ${dragOverPath === item.path ? 'drag-over' : ''}`}
-            onClick={() => onSelectPath && onSelectPath(item.path)}
-            onDoubleClick={(e) => { e.preventDefault(); toggle(item.path); }}
-            onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-folder')}
-            onDragOver={(e) => { e.preventDefault(); setDragOverPath(item.path); }}
-            onDragLeave={() => setDragOverPath(null)}
-            onDrop={(e) => {
-              try {
-                e.preventDefault();
-                const dt = e.dataTransfer;
-                const src = dt ? dt.getData('mindoodle/path') : '';
-                if (src) {
-                  window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: item.path } }));
-                }
-              } finally {
-                setDragOverPath(null);
-              }
-            }}
+        <div className={`explorer-folder ${dragOverPath === item.path ? 'drag-over' : ''}`}>
+          <div
+            className="folder-header"
+            onClick={handleToggle}
+            onContextMenu={handleContextMenu}
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
           >
-            <span className="category-expand-icon" onClick={(e) => { e.stopPropagation(); toggle(item.path); }}>
+            <span className="category-expand-icon">
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
             </span>
-            <span className="category-folder-icon">{isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />}</span>
-            <span className="category-name">{item.name || '(root)'}</span>
+            <span className="category-folder-icon">
+              {isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />}
+            </span>
+            <span className="category-name">
+              {searchTerm ? highlightSearchTerm(item.name || '(root)', searchTerm) : (item.name || '(root)')}
+            </span>
           </div>
-          {!isCollapsed && item.children && (
-            <div style={{ marginLeft: 16 }}>
-              {item.children.map(child => (
-                <NodeView key={child.path} item={child} />
+          {!isCollapsed && item.children && item.children.length > 0 && (
+            <div className="folder-content" style={{ marginLeft: 16 }}>
+              {item.children.map((child, index) => (
+                <NodeView
+                  key={child.path || index}
+                  item={child}
+                  searchTerm={searchTerm}
+                  collapsed={collapsed}
+                  onTogglePath={onTogglePath}
+                  onContextMenu={onContextMenu}
+                  currentMapId={currentMapId}
+                  currentWorkspaceId={currentWorkspaceId}
+                  dragOverPath={dragOverPath}
+                  setDragOverPath={setDragOverPath}
+                  editingMapId={editingMapId}
+                  editingTitle={editingTitle}
+                  onCancelRename={onCancelRename}
+                  onEditingTitleChange={onEditingTitleChange}
+                />
               ))}
             </div>
           )}
         </div>
       );
     }
-    const isMd = !!item.isMarkdown;
-    const workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
-    const mapId = isMd ? item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '') : null;
-    const idMatch = isMd && mapId && currentMapId === mapId && (
-      currentWorkspaceId ? (workspaceId === currentWorkspaceId) : true
-    );
-    const onClick = () => {
-      if (isMd && mapId) {
-        const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } });
-        window.dispatchEvent(ev);
-      }
-      if (onSelectPath) onSelectPath(item.path);
-    };
+
     return (
-      <div className={`explorer-file ${isMd ? 'is-md' : 'is-file'} ${(idMatch || selectedPath === item.path) ? 'selected' : ''}`}
-        key={item.path}
-        onClick={onClick}
-        onContextMenu={(e) => onContextMenu && onContextMenu(e, item.path, 'explorer-file')}
-        draggable={true}
-        onDragStart={(e) => {
-          // Convert absolute path to workspace-relative path
-          const workspaceRelativePath = item.path.startsWith('/ws_') ? item.path.replace(/^\/ws_[^/]+\//, '') : item.path;
-          e.dataTransfer.setData('mindoodle/path', workspaceRelativePath);
-          e.dataTransfer.setData('mindoodle/is-md', isMd ? '1' : '0');
-          // Allow copy/link operations to be dropped on nodes
-          e.dataTransfer.effectAllowed = 'copyLink';
+      <div
+        className={`explorer-file ${isMarkdown ? 'markdown-file' : ''} ${isActive ? 'current' : ''}`}
+        onClick={handleClick}
+        onContextMenu={handleContextMenu}
+        onDragStart={handleDragStart}
+        draggable={isMarkdown}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '6px',
+          padding: '4px 8px',
+          cursor: 'pointer',
+          border: isActive ? '1px solid #007acc' : '1px solid transparent',
+          background: isActive ? 'rgba(0, 122, 204, 0.1)' : 'transparent',
+          borderRadius: '4px',
+          color: isActive ? '#007acc' : 'inherit'
         }}
-        style={{ cursor: 'pointer' }}>
-        <span className="file-icon">{isMd ? <BookOpen size={14} /> : <Workflow size={14} />}</span>
-        <span className="file-name">{item.name}</span>
+      >
+        <FileText className="file-icon" size={16} />
+        {isMarkdown && editingMapId === mapId ? (
+          <input
+            type="text"
+            value={editingTitle}
+            onChange={(e) => onEditingTitleChange && onEditingTitleChange(e.target.value)}
+            onBlur={onCancelRename}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                // Send rename event
+                const newTitle = editingTitle.trim();
+                if (newTitle && newTitle !== item.name) {
+                  window.dispatchEvent(new CustomEvent('mindoodle:renameMap', {
+                    detail: { mapId, newTitle }
+                  }));
+                }
+                if (onEditingTitleChange) onEditingTitleChange('');
+              } else if (e.key === 'Escape') {
+                if (onCancelRename) onCancelRename();
+              }
+            }}
+            autoFocus
+            style={{
+              background: 'transparent',
+              border: 'none',
+              outline: 'none',
+              color: 'inherit',
+              flex: 1,
+              fontSize: 'inherit'
+            }}
+          />
+        ) : (
+          <span className="file-name">
+            {searchTerm ? highlightSearchTerm(item.name || '', searchTerm) : item.name}
+          </span>
+        )}
       </div>
     );
   };
 
-  const isSyntheticWorkspacesRoot = tree.name === 'workspaces' && !tree.path;
+  // Return null if no filtered tree
+  if (!filteredTree) {
+    return (
+      <div className="no-results">
+        <span>No results found</span>
+      </div>
+    );
+  }
+
   return (
-    <div className="explorer-root"
-      onDragOver={(e) => { e.preventDefault(); setDragOverPath(''); }}
-      onDrop={(e) => { 
-        try {
-          e.preventDefault(); 
-          const dt = e.dataTransfer; 
-          const src = dt ? dt.getData('mindoodle/path') : ''; 
-          if (src) window.dispatchEvent(new CustomEvent('mindoodle:moveItem', { detail: { sourcePath: src, targetFolderPath: '' } })); 
-        } finally {
-          setDragOverPath(null); 
-        }
-      }}
-    >
-      {isSyntheticWorkspacesRoot ? (
-        <div>
-          {(tree.children || []).map(child => (
-            <NodeView key={child.path} item={child} />
-          ))}
-        </div>
+    <div>
+      {filteredTree.children && filteredTree.children.length > 0 ? (
+        filteredTree.children.map((child, index) => (
+          <NodeView
+            key={child.path || index}
+            item={child}
+            searchTerm={searchTerm}
+            collapsed={collapsed}
+            onTogglePath={toggle}
+            onContextMenu={onContextMenu}
+            currentMapId={currentMapId}
+            currentWorkspaceId={currentWorkspaceId}
+            dragOverPath={dragOverPath}
+            setDragOverPath={setDragOverPath}
+            editingMapId={editingMapId}
+            editingTitle={editingTitle}
+            onCancelRename={onCancelRename}
+            onEditingTitleChange={onEditingTitleChange}
+          />
+        ))
       ) : (
-        <NodeView key={tree.path || '__root__'} item={tree} />
+        <NodeView
+          item={filteredTree}
+          searchTerm={searchTerm}
+          collapsed={collapsed}
+          onTogglePath={toggle}
+          onContextMenu={onContextMenu}
+          currentMapId={currentMapId}
+          currentWorkspaceId={currentWorkspaceId}
+          dragOverPath={dragOverPath}
+          setDragOverPath={setDragOverPath}
+          editingMapId={editingMapId}
+          editingTitle={editingTitle}
+          onCancelRename={onCancelRename}
+          onEditingTitleChange={onEditingTitleChange}
+        />
       )}
     </div>
   );
