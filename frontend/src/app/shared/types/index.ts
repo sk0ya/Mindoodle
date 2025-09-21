@@ -40,19 +40,8 @@ export type {
   UIStateDependency,
 } from './dataTypes';
 
-// Re-export constants for convenience
-export {
-  FILE_CONSTANTS,
-  LAYOUT_CONSTANTS,
-  TYPOGRAPHY_CONSTANTS,
-  DEFAULT_VALUES,
-  STORAGE_CONSTANTS,
-  VALIDATION_CONSTANTS,
-  KEYBOARD_SHORTCUTS,
-  PERFORMANCE_CONSTANTS,
-  ERROR_CONSTANTS,
-  UI_CONSTANTS
-} from './_constants_unified';
+// Constants are now exported from the unified constants file
+// Use: import { COLORS, LAYOUT, TYPOGRAPHY, etc. } from '@shared/constants'
 
 // Re-export type guards and factories
 export {

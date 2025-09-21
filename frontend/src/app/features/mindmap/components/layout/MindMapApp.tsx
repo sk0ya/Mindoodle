@@ -37,7 +37,7 @@ import type { StorageConfig } from '../../../../core/storage/types';
 // Login modal moved into MindMapOverlays
 
 import { useShortcutHandlers } from './useShortcutHandlers';
-import { LAYOUT } from '../../../../shared/constants/layout';
+import { LAYOUT } from '../../../../shared/constants';
 
 interface MindMapAppProps {
   storageMode?: 'local' | 'markdown';
