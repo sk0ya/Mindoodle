@@ -20,7 +20,6 @@ export function generateId(type: IdType = 'node'): string {
 }
 
 export const generateNodeId = () => generateId('node');
-export const generateMapId = () => generateId('map');
 export const generateLinkId = () => generateId('link');
 export const generateNotificationId = () => generateId('notification');
 export const generateUploadId = () => generateId('upload');

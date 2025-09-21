@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { createInitialData } from '../../shared/types/dataTypes';
-import { generateMapId } from '../../shared/utils/idGenerator';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { logger } from '../../shared/utils/logger';
 import { safeJsonParse } from '../../shared/utils/safeJson';
@@ -46,18 +45,10 @@ export const useMindMapActions = () => {
     }, [store]),
 
     // マップ削除（データから）
-    deleteMapData: useCallback((workspaceId: string) => {
+    deleteMapData: useCallback(() => {
       const currentData = store.data;
       if (currentData) {
         logger.debug('Deleting map:', currentData.title);
-        // 新しい空のマップを作成
-        const mapId = generateMapId();
-        const mapIdentifier = {
-          mapId,
-          workspaceId
-        };
-        const newMap = createInitialData(mapIdentifier);
-        store.setData(newMap);
       }
     }, [store]),
 
