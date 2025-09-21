@@ -5,6 +5,7 @@ export interface DeviceFingerprint {
   deviceId: string;
   fingerprint: string;
   confidence: number;
+  createdAt: string;
   components: {
     screen: string;
     timezone: string;
@@ -56,6 +57,7 @@ export async function generateDeviceFingerprint(): Promise<DeviceFingerprint> {
     deviceId,
     fingerprint,
     confidence,
+    createdAt: new Date().toISOString(),
     components
   };
 }
@@ -134,10 +136,10 @@ export async function getStoredDeviceFingerprint(): Promise<DeviceFingerprint | 
     // Lazy load to avoid circular dependencies
     const { getLocalStorage, STORAGE_KEYS } = await import('./localStorage');
     const result = getLocalStorage<DeviceFingerprint>(STORAGE_KEYS.DEVICE_FINGERPRINT);
-    const stored = result.success && result.data ? JSON.stringify(result.data) : null;
-    if (!stored) return null;
-    
-    const parsed = JSON.parse(stored);
+
+    if (!result.success || !result.data) return null;
+
+    const parsed = result.data;
     
     // 30日より古い場合は無効とする
     const thirtyDaysAgo = new Date();

@@ -4,6 +4,7 @@
  */
 
 import { logger } from './logger';
+import { safeJsonParse, safeJsonStringify } from './safeJson';
 
 /**
  * localStorage操作の結果型
@@ -61,7 +62,12 @@ export class LocalStorageManager {
    */
   setItem<T>(key: StorageKey, value: T): LocalStorageResult<T> {
     try {
-      const serialized = JSON.stringify(value);
+      const stringifyResult = safeJsonStringify(value);
+      if (!stringifyResult.success) {
+        logger.error(`❌ LocalStorage: JSON変換失敗`, { key, error: stringifyResult.error });
+        return { success: false, error: stringifyResult.error! };
+      }
+      const serialized = stringifyResult.data!;
       localStorage.setItem(key, serialized);
       
       logger.debug(`💾 LocalStorage: 保存成功`, { key, type: typeof value });
@@ -88,7 +94,12 @@ export class LocalStorageManager {
         };
       }
       
-      const parsed = JSON.parse(item) as T;
+      const parseResult = safeJsonParse<T>(item);
+      if (!parseResult.success) {
+        logger.error(`❌ LocalStorage: JSON解析失敗`, { key, error: parseResult.error });
+        return { success: false, error: parseResult.error!, data: defaultValue };
+      }
+      const parsed = parseResult.data!;
       logger.debug(`📋 LocalStorage: 取得成功`, { key, type: typeof parsed });
       return { success: true, data: parsed };
     } catch (error) {

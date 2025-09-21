@@ -1,7 +1,7 @@
 import type { MindMapData } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '../../../shared/utils/logger';
-import { emitStatus } from '../../../shared/hooks/useStatusBar';
+import { statusMessages } from '../../../shared/utils/safeEmitStatus';
 import { MarkdownImporter } from '../../../shared/utils/markdownImporter';
 import { createInitialData } from '../../../shared/types/dataTypes';
 import { generateWorkspaceId, generateTimestampedFilename } from '../../../shared/utils/idGenerator';
@@ -29,7 +29,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     // Do not open picker here; must be a user gesture.
     if (typeof (window as any)?.showDirectoryPicker !== 'function') {
       logger.warn('File System Access API is not available in this environment');
-      try { emitStatus('info', 'この環境ではフォルダアクセス機能が利用できません', 6000); } catch {}
+      statusMessages.folderAccessUnavailable();
     }
     // Try to restore workspaces (multi) or legacy root (single)
     try {
@@ -148,7 +148,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         console.warn(`📄️ No permission for workspace ${t.name}, skipping map loading`);
         if (!this.permissionWarned) {
           logger.warn('MarkdownFolderAdapter: Workspace permission not granted for:', t.name);
-          try { emitStatus('warning', `ワークスペース「${t.name}」の権限がありません。フォルダを選び直してください`, 6000); } catch {}
+          statusMessages.workspacePermissionDenied(t.name);
           this.permissionWarned = true;
         }
         continue;
@@ -537,7 +537,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if ((e as any)?.name === 'NotReadableError' || /NotReadable/i.test(String(tag))) {
         if (!this.permissionWarned) {
           logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
-          try { emitStatus('warning', 'ファイルの読み取り権限がありません。フォルダを選び直してください', 6000); } catch {}
+          statusMessages.fileReadPermissionDenied();
           this.permissionWarned = true;
         } else {
           logger.debug('MarkdownFolderAdapter: Skipping unreadable file:', name);
@@ -545,10 +545,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       } else if (errorMessage.includes('見出しが見つかりません') || errorMessage.includes('構造要素が見つかりません')) {
         const msg = errorMessage || `「${name}」は見出しやリストがないためマインドマップとして開けません`;
         // コンソールへの警告出力は抑制し、ユーザーにはステータスバーで通知
-        try { emitStatus('warning', msg, 6000); } catch {}
+        statusMessages.customWarning(msg);
       } else {
         logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
-        try { emitStatus('error', `「${name}」の読み込みに失敗しました`, 6000); } catch {}
+        statusMessages.fileReadFailed(name);
       }
       return null;
     }

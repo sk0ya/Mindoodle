@@ -4,6 +4,7 @@ import { createInitialData } from '../../shared/types/dataTypes';
 import { generateMapId } from '../../shared/utils/idGenerator';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { logger } from '../../shared/utils/logger';
+import { safeJsonParse } from '../../shared/utils/safeJson';
 
 /**
  * 高レベルアクションに特化したHook
@@ -127,7 +128,12 @@ export const useMindMapActions = () => {
 
     importData: useCallback((jsonData: string): boolean => {
       try {
-        const parsedData = JSON.parse(jsonData);
+        const parseResult = safeJsonParse(jsonData);
+        if (!parseResult.success) {
+          logger.error('Failed to parse import data:', parseResult.error);
+          return false;
+        }
+        const parsedData = parseResult.data;
         
         // データの妥当性検証
         if (!parsedData || typeof parsedData !== 'object') {
