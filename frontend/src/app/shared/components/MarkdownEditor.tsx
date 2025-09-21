@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { PenTool, Eye, SplitSquareHorizontal, FileText } from 'lucide-react';
 import { useMindMapStore } from '../../core/store/mindMapStore';
 import { logger } from '../utils/logger';
+import { useModeSetters } from '../utils/hookUtils';
 
 // Constants to prevent re-renders
 const EDITOR_HEIGHT = "100%";
@@ -300,9 +301,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   }, []);
 
   // Memoized mode change handlers
-  const setEditMode = useCallback(() => setMode('edit'), []);
-  const setPreviewMode = useCallback(() => setMode('preview'), []);
-  const setSplitMode = useCallback(() => setMode('split'), []);
+  const { setEditMode, setPreviewMode, setSplitMode } = useModeSetters(setMode, ['edit', 'preview', 'split']);
 
   // Memoized Monaco Editor props to prevent re-renders
   const editorTheme = useMemo(() =>

@@ -5,6 +5,7 @@ import NodeAttachments from './NodeAttachments';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX } from '../../../../shared/utils/nodeUtils';
 import { stopEventPropagation } from '../../../../shared/utils/eventUtils';
+import { getLastPathSegment, getParentPath, splitPath } from '../../../../shared/utils/stringUtils';
 import type { MindMapNode, FileAttachment, NodeLink } from '@shared/types';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 
@@ -243,8 +244,8 @@ const Node: React.FC<NodeProps> = ({
     const path = isExplorerPath ? e.dataTransfer.getData('mindoodle/path') : '';
     const mapId = isMapId ? e.dataTransfer.getData('text/map-id') : (path.endsWith('.md') ? path.replace(/\.md$/i, '') : '');
     const mapTitle = isMapId
-      ? (e.dataTransfer.getData('text/map-title') || mapId.split('/').pop() || 'リンク')
-      : (path.split('/').pop() || 'リンク');
+      ? (e.dataTransfer.getData('text/map-title') || getLastPathSegment(mapId) || 'リンク')
+      : (getLastPathSegment(path) || 'リンク');
 
     try {
       // Get current map id from store - this is the path of current map file
@@ -261,11 +262,11 @@ const Node: React.FC<NodeProps> = ({
         const toPath = to.replace(/\.md$/i, '');
 
         // Get directory path for from (current map directory)
-        const fromDir = fromPath.includes('/') ? fromPath.split('/').slice(0, -1).join('/') : '';
+        const fromDir = getParentPath(fromPath);
         // Get directory path for to (target file directory)
-        const toDir = toPath.includes('/') ? toPath.split('/').slice(0, -1).join('/') : '';
+        const toDir = getParentPath(toPath);
         // Get filename for to
-        const toFile = toPath.split('/').pop() || toPath;
+        const toFile = getLastPathSegment(toPath) || toPath;
 
         // If both are in the same directory, just return the filename
         if (fromDir === toDir) {
@@ -273,8 +274,8 @@ const Node: React.FC<NodeProps> = ({
         }
 
         // Split directory paths into segments
-        const fromSegments = fromDir ? fromDir.split('/') : [];
-        const toDirSegments = toDir ? toDir.split('/') : [];
+        const fromSegments = splitPath(fromDir);
+        const toDirSegments = splitPath(toDir);
 
         // Find common base path
         let commonLength = 0;
@@ -312,7 +313,7 @@ const Node: React.FC<NodeProps> = ({
 
       // If same file, just use the filename
       if (href === '.md') {
-        href = targetPath.split('/').pop() || 'file.md';
+        href = getLastPathSegment(targetPath) || 'file.md';
       }
 
       const currentNote = (node as any).note || '';

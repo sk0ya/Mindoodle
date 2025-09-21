@@ -10,6 +10,7 @@ import { createChildFolderPath } from '../../../../shared/utils/folderUtils';
 import { logger } from '../../../../shared/utils/logger';
 import { useDragAndDrop } from '../../../../shared/hooks/useDragAndDrop';
 import { highlightSearchTerm } from '../../../../shared/utils/highlightUtils';
+import { getLastPathSegment, splitPath } from '../../../../shared/utils/stringUtils';
 import type { ExplorerItem } from '../../../../core/storage/types';
 
 interface NodeViewProps {
@@ -377,12 +378,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
   // フォルダのリネームハンドラー
   const handleRenameFolder = useCallback((oldPath: string) => {
-    const currentName = oldPath.split('/').pop() || oldPath;
+    const currentName = getLastPathSegment(oldPath) || oldPath;
     // eslint-disable-next-line no-alert
     const newName = window.prompt(`フォルダ名を変更:`, currentName);
     
     if (newName && newName.trim() && newName.trim() !== currentName) {
-      const pathParts = oldPath.split('/');
+      const pathParts = splitPath(oldPath);
       pathParts[pathParts.length - 1] = newName.trim();
       const newPath = pathParts.join('/');
       
