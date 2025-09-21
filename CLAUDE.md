@@ -22,7 +22,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ### Directory Structure
 
-**Target Migration Structure:**
+**Current Directory Structure:**
 ```
 frontend/
 ├── public/                       # 静的ファイル（favicon, manifest, icons）
@@ -32,59 +32,85 @@ frontend/
 │   └── ...
 ├── src/
 │   ├── app/                      # アプリケーションのコア（データ層・サービス）
-│   │   ├── core/
-│   │   │   ├── commands/
-│   │   │   ├── data/
-│   │   │   ├── hooks/
-│   │   │   ├── services/
-│   │   │   ├── storage/
-│   │   │   ├── store/
-│   │   │   ├── streams/
-│   │   │   └── utils/
+│   │   ├── core/                 # コアアーキテクチャ
+│   │   │   ├── commands/         # コマンドシステム
+│   │   │   ├── data/             # データ管理
+│   │   │   ├── hooks/            # コアHooks
+│   │   │   ├── services/         # サービス層
+│   │   │   ├── storage/          # ストレージ管理
+│   │   │   ├── store/            # Zustand状態管理
+│   │   │   ├── streams/          # データストリーム
+│   │   │   └── utils/            # コアユーティリティ
+│   │   │
+│   │   ├── features/             # 機能単位（mindmap, etc.）
+│   │   │   └── mindmap/
+│   │   │       ├── components/
+│   │   │       │   ├── Canvas/   # Canvas関連コンポーネント
+│   │   │       │   │   ├── CanvasRenderer.tsx
+│   │   │       │   │   ├── CanvasConnections.tsx
+│   │   │       │   │   ├── CanvasDragGuide.tsx
+│   │   │       │   │   ├── CanvasDragHandler.tsx
+│   │   │       │   │   ├── CanvasEventHandler.ts
+│   │   │       │   │   ├── CanvasViewportHandler.ts
+│   │   │       │   │   └── index.ts
+│   │   │       │   ├── Node/     # Node関連コンポーネント
+│   │   │       │   │   ├── Node.tsx
+│   │   │       │   │   ├── NodeRenderer.tsx
+│   │   │       │   │   ├── NodeEditor.tsx
+│   │   │       │   │   ├── NodeDragHandler.tsx
+│   │   │       │   │   └── index.ts
+│   │   │       │   ├── Shared/   # Mindmap専用共有UI
+│   │   │       │   │   ├── SelectedNodeLinkList.tsx
+│   │   │       │   │   └── index.ts
+│   │   │       │   ├── layout/   # レイアウトコンポーネント
+│   │   │       │   ├── modals/   # モーダル
+│   │   │       │   ├── panels/   # パネル
+│   │   │       │   └── index.ts
+│   │   │       └── index.ts
+│   │   │
+│   │   ├── shared/               # 統合された共通処理
+│   │   │   ├── components/       # 共通コンポーネント
+│   │   │   │   ├── ErrorBoundary.tsx
+│   │   │   │   ├── MarkdownEditor.tsx
+│   │   │   │   ├── ui/           # Toolbar, ContextMenu など共通UI
+│   │   │   │   │   ├── toolbar/
+│   │   │   │   │   ├── contextmenu/
+│   │   │   │   │   ├── Toolbar.tsx
+│   │   │   │   │   ├── ContextMenu.tsx
+│   │   │   │   │   └── ...
+│   │   │   │   └── index.ts
+│   │   │   ├── hooks/            # 共通Hooks（useBooleanState等）
+│   │   │   ├── utils/            # 共通ユーティリティ
+│   │   │   │   ├── arrayUtils.ts
+│   │   │   │   ├── stringUtils.ts
+│   │   │   │   ├── nodeUtils.ts
+│   │   │   │   └── ...
+│   │   │   ├── markdown/         # Markdown関連を集約
+│   │   │   │   ├── markdownImporter.ts
+│   │   │   │   ├── markdownLinkUtils.ts
+│   │   │   │   ├── markdownNodeMerge.ts
+│   │   │   │   └── useMarkdownSync.ts
+│   │   │   ├── constants/        # 定数類を一本化
+│   │   │   │   └── index.ts
+│   │   │   ├── types/            # 型定義
+│   │   │   │   ├── nodeTypes.ts
+│   │   │   │   ├── dataTypes.ts
+│   │   │   │   ├── uiTypes.ts
+│   │   │   │   ├── storageTypes.ts
+│   │   │   │   ├── monaco-vim.d.ts
+│   │   │   │   └── index.ts
+│   │   │   ├── styles/           # 共通スタイル
+│   │   │   │   └── modalStyles.ts
+│   │   │   └── index.ts
+│   │   │
+│   │   ├── types/                # アプリケーション型定義
+│   │   │   └── extension.d.ts
 │   │   └── index.ts
 │   │
-│   ├── features/                 # 機能単位（mindmap, etc.）
-│   │   └── mindmap/
-│   │       ├── components/
-│   │       │   ├── Canvas/       # Canvas 関連を集約
-│   │       │   ├── Node/         # Node 関連を集約
-│   │       │   └── Shared/       # Mindmap専用共有UI
-│   │       ├── layout/
-│   │       ├── modals/
-│   │       ├── panels/
-│   │       └── index.ts
-│   │
-│   ├── shared/                   # 全体で使える共通処理
-│   │   ├── components/
-│   │   │   ├── ErrorBoundary.tsx
-│   │   │   ├── MarkdownEditor.tsx
-│   │   │   └── ui/               # Toolbar, ContextMenu など共通UI
-│   │   ├── hooks/                # 共通Hooks（useBooleanState等）
-│   │   ├── utils/                # 共通ユーティリティ
-│   │   │   ├── arrayUtils.ts
-│   │   │   ├── stringUtils.ts
-│   │   │   └── ...
-│   │   ├── markdown/             # Markdown関連を集約
-│   │   │   ├── markdownExport.ts
-│   │   │   ├── markdownImporter.ts
-│   │   │   ├── markdownLinkUtils.ts
-│   │   │   └── markdownNodeMerge.ts
-│   │   ├── storage/              # Storage関連を集約
-│   │   │   ├── LocalStorageAdapter.ts
-│   │   │   ├── FileSystemAdapter.ts
-│   │   │   └── StorageAdapterFactory.ts
-│   │   ├── constants/            # 定数類を一本化
-│   │   │   ├── colors.ts
-│   │   │   ├── layout.ts
-│   │   │   ├── typography.ts
-│   │   │   └── index.ts
-│   │   ├── types/                # 型定義
-│   │   └── styles/               # 共通スタイル
-│   │
-│   ├── index.tsx                 # エントリーポイント
-│   ├── main.tsx
-│   ├── index.css
-│   └── vite-env.d.ts
+│   ├── App.tsx                   # メインアプリケーションコンポーネント
+│   ├── main.tsx                  # エントリーポイント
+│   ├── index.css                 # グローバルスタイル
+│   └── vite-env.d.ts            # Vite型定義
 │
 ├── tsconfig.json
 ├── tsconfig.node.json
@@ -92,24 +118,24 @@ frontend/
 └── package.json
 ```
 
-**Current Structure Overview:**
+**Architecture Overview:**
 - **Root:** `frontend/` contains the entire React application
 - **Source:** `frontend/src/` with modular architecture:
   - `src/app/` — Main application modules with re-exports in `index.ts`
   - `src/app/core/` — Core architecture (hooks, store, services, storage, data)
-  - `src/app/features/` — Feature modules (mindmap, files)
+  - `src/app/features/` — Feature modules organized by domain
   - `src/app/shared/` — Unified shared components, utilities, types, and constants
-  - `src/types/` — Type definitions
+  - `src/app/types/` — Application-specific type definitions
 
 **Unified Shared Structure:**
-- **Removed Duplication:** `frontend/src/shared/` has been consolidated into `frontend/src/app/shared/`
-- **Path Alias Updated:** `@shared` now points to `frontend/src/app/shared`
-- **Single Source of Truth:** All shared utilities, components, and types are in one location
+- **Completed Integration:** All shared code is now consolidated into `src/app/shared/`
+- **Component Organization:** Canvas and Node components are properly separated into feature-specific directories
+- **Path Alias Cleaned:** Only `@` and `@shared` aliases remain, legacy aliases removed
+- **Single Source of Truth:** All shared utilities, components, and types are in one organized location
 
 ### Path Aliases (Vite + TypeScript)
 - `@` → `src/`
-- `@shared` → `src/app/shared/` (updated to unified location)
-- `@local` → `src/Local/` (legacy, may exist in some configs)
+- `@shared` → `src/app/shared/`
 
 ### Architecture Patterns
 - **Modular exports:** All features re-export through `src/app/index.ts`

@@ -42,10 +42,6 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@local/*": ["src/Local/*"],
-      "@local/core/*": ["src/Local/core/*"],
-      "@local/features/*": ["src/Local/features/*"],
-      "@local/shared/*": ["src/Local/shared/*"],
       "@shared/*": ["src/app/shared/*"]
     }
   },

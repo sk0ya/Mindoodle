@@ -1,7 +1,13 @@
 // MindMap Components - 階層化されたコンポーネントアーキテクチャ
 
-// Core Components - 中核機能（Node、Canvas）
-export * from './core';
+// Canvas Components - キャンバス関連機能
+export * from './Canvas';
+
+// Node Components - ノード関連機能
+export * from './Node';
+
+// Shared Components - Mindmap専用共有UI
+export * from './Shared';
 
 // Layout Components - レイアウト・構造
 export * from './layout';
