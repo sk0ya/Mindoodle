@@ -1,6 +1,6 @@
 import { cloneDeep } from '../utils/lodash-utils';
 import type { MapIdentifier } from '@shared/types';
-import { COORDINATES, LAYOUT, TYPOGRAPHY, COLORS, DEFAULTS, STORAGE, VALIDATION } from '../constants/index';
+import { COORDINATES, LAYOUT, TYPOGRAPHY, COLORS, DEFAULTS } from '../constants/index';
 import { logger } from '../utils/logger';
 import { generateNodeId } from '../utils/idGenerator';
 export { validateFile, formatFileSize } from '../utils/fileUtils';
@@ -117,10 +117,6 @@ export interface UIStateDependency {
 
 // Image and File Types for UI state - simplified to use FileAttachment
 export type ImageFile = FileAttachment;
-
-// ファイル関連の定数（定数ファイルから参照）
-export const MAX_FILE_SIZE = STORAGE.MAX_FILE_SIZE;
-export const ALLOWED_FILE_TYPES = VALIDATION.ALLOWED_FILE_TYPES;
 
 // カラーパレット（定数ファイルから参照）
 export const NODE_COLORS = COLORS.NODE_COLORS;

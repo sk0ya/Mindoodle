@@ -1,5 +1,3 @@
-// MindFlow App - モジュラーアーキテクチャ
-
 // App.tsxの動的インポート用のdefaultエクスポート
 export { default } from './features/mindmap/components/layout/MindMapApp';
 

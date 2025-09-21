@@ -26,10 +26,6 @@ export const STORAGE_KEYS = {
   // AI settings
   AI_SETTINGS: 'mindflow_ai_settings',
   
-  // Auth tokens
-  AUTH_TOKEN: 'mindflow_auth_token',
-  REFRESH_TOKEN: 'mindflow_refresh_token',
-  
   // UI preferences
   NOTES_PANEL_WIDTH: 'mindflow_notes_panel_width',
   
@@ -151,13 +147,6 @@ export class LocalStorageManager {
       }
     }
     return keys;
-  }
-  
-  /**
-   * MindFlow関連のすべてのキーを取得
-   */
-  getAllMindFlowKeys(): string[] {
-    return this.getKeysWithPrefix('mindflow_');
   }
   
   /**

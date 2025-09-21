@@ -1,9 +1,7 @@
 import { useCallback, useState } from 'react';
 import { logger } from '../../shared/utils/logger';
-import { localStorageManager } from '../../shared/utils/localStorage';
 
 export interface DataCleanupStats {
-  localStorageItems: number;
   indexedDBSize: number;
 }
 
@@ -12,32 +10,12 @@ export const useDataCleanup = () => {
   const [error, setError] = useState<string | null>(null);
 
   // ローカルストレージのクリーンアップ
-  const clearLocalStorage = useCallback(async (): Promise<void> => {
-    try {
-      setError(null);
-      
-      // MindFlow関連のキーのみクリア
-      const keysToRemove = localStorageManager.getAllMindFlowKeys();
-      keysToRemove.forEach(key => {
-        localStorageManager.removeItem(key as any); // 型安全性のため any を使用
-      });
-      
-      logger.info(`🧹 LocalStorage cleaned: ${keysToRemove.length} items removed`);
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : '不明なエラー';
-      setError(`ローカルストレージのクリアに失敗しました: ${errorMessage}`);
-      logger.error('Failed to clear localStorage:', err);
-      throw err;
-    }
-  }, []);
-
   // すべてのローカルデータをクリア
   const clearAllData = useCallback(async (): Promise<void> => {
     setIsClearing(true);
     setError(null);
     
     try {
-      await clearLocalStorage();
       
       logger.info('🧹 All local data cleared successfully');
     } catch (err) {
@@ -47,13 +25,11 @@ export const useDataCleanup = () => {
     } finally {
       setIsClearing(false);
     }
-  }, [clearLocalStorage]);
+  }, []);
 
   // データ使用量の取得
   const getDataStats = useCallback(async (): Promise<DataCleanupStats> => {
     try {
-      // ローカルストレージアイテム数
-      const localStorageItems = localStorageManager.getAllMindFlowKeys().length;
 
       let indexedDBSize = 0;
       if ('storage' in navigator && 'estimate' in navigator.storage) {
@@ -67,20 +43,17 @@ export const useDataCleanup = () => {
       }
 
       return {
-        localStorageItems,
         indexedDBSize
       };
     } catch (err) {
       logger.error('Failed to get data stats:', err);
       return {
-        localStorageItems: 0,
         indexedDBSize: 0
       };
     }
   }, []);
 
   return {
-    clearLocalStorage,
     clearAllData,
     getDataStats,
     isClearing,

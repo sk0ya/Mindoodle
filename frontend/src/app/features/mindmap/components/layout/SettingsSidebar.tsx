@@ -193,10 +193,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           {dataStats && (
             <div className="data-stats">
               <div className="data-stats-item">
-                <span className="data-stats-label">ローカルストレージ項目:</span>
-                <span className="data-stats-value">{dataStats.localStorageItems}</span>
-              </div>
-              <div className="data-stats-item">
                 <span className="data-stats-label">使用容量:</span>
                 <span className="data-stats-value">{formatBytes(dataStats.indexedDBSize)}</span>
               </div>
