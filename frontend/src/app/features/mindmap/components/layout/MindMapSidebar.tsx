@@ -1,14 +1,12 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
-import CategoryGroup from './CategoryGroup';
 import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from './SidebarStyles';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { createChildFolderPath } from '../../../../shared/utils/folderUtils';
 import { logger } from '../../../../shared/utils/logger';
-import { useDragAndDrop } from '../../../../shared/hooks/useDragAndDrop';
 import { highlightSearchTerm } from '../../../../shared/utils/highlightUtils';
 import { getLastPathSegment, splitPath } from '../../../../shared/utils/stringUtils';
 import type { ExplorerItem } from '../../../../core/storage/types';
@@ -45,7 +43,7 @@ interface MindMapSidebarProps {
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
-  explorerTree?: ExplorerItem;
+  explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
 }
 
@@ -56,9 +54,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onSelectMap, 
   onCreateMap, 
   onDeleteMap,
-  onRenameMap,
   onChangeCategory,
-  onChangeCategoryBulk,
   isCollapsed,
   onToggleCollapse,
   workspaces = [],
@@ -71,30 +67,11 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const [editingTitle, setEditingTitle] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState(new Set<string>());
-  const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   // Explorer collapsed state mapping: path -> collapsed?
   const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
   
   // Drag & Drop フック
-  const {
-    draggedMap,
-    draggedFolder,
-    dragOverCategory,
-    handleDragStart,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    handleFolderDragStart,
-    handleFolderDrop,
-    handleRootDrop
-  } = useDragAndDrop({
-    mindMaps,
-    onChangeCategory,
-    onChangeCategoryBulk,
-    setEmptyFolders,
-    setCollapsedCategories
-  });
   const [contextMenu, setContextMenu] = useState<{
     isVisible: boolean;
     position: { x: number; y: number };
@@ -130,14 +107,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     setEditingTitle(currentTitle);
   }, []);
 
-  const handleFinishRename = useCallback((mapIdentifier: MapIdentifier) => {
-    if (editingTitle.trim() && editingTitle.trim() !== '') {
-      onRenameMap(mapIdentifier, editingTitle.trim());
-    }
-    setEditingMapId(null);
-    setEditingTitle('');
-  }, [editingTitle, onRenameMap]);
-
   const handleCancelRename = useCallback(() => {
     setEditingMapId(null);
     setEditingTitle('');
@@ -157,23 +126,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
 
   // フォルダ選択ハンドラー
-  const handleFolderSelect = useCallback((folderPath: string) => {
-    setSelectedFolder(prev => prev === folderPath ? null : folderPath);
-  }, []);
 
   // コンテキストメニューハンドラー
-  const handleContextMenu = useCallback((e: React.MouseEvent, targetPath: string | null, targetType: 'folder' | 'empty' | 'map', mapData?: MindMapData) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    setContextMenu({
-      isVisible: true,
-      position: { x: e.clientX, y: e.clientY },
-      targetPath,
-      targetType,
-      mapData: mapData || null
-    });
-  }, []);
 
   const closeContextMenu = useCallback(() => {
     setContextMenu({
@@ -417,7 +371,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   }, [mindMaps, onChangeCategory, setEmptyFolders]);
 
   // フィルタリングとグループ化（階層フォルダ対応）
-  const { filteredMaps, groupedMaps, visibleFolders } = useMemo(() => {
+  const { filteredMaps } = useMemo(() => {
     const searchLower = searchTerm.toLowerCase();
     
     // マップのタイトルまたはカテゴリ名で検索（workspaceフォルダは除外）
@@ -785,7 +739,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         onExpandAll={handleExpandAll}
         onCollapseAll={handleCollapseAll}
       />
-
       {explorerTree ? (
         <div className="maps-content-wrapper">
           <ExplorerView
@@ -825,44 +778,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           </div>
         </div>
       ) : (
-        <div 
-          className={`maps-content-wrapper ${dragOverCategory === '__root__' ? 'drag-over-root' : ''}`}
-          onContextMenu={(e) => handleContextMenu(e, null, 'empty')}
-          onDragOver={(e) => {
-            e.preventDefault();
-            e.dataTransfer.dropEffect = 'move';
-            if (draggedFolder || draggedMap) {
-              handleDragOver(e, '__root__');
-            }
-          }}
-          onDragLeave={handleDragLeave}
-          onDrop={(e) => handleRootDrop(e)}
-        >
-          <CategoryGroup
-            categories={visibleFolders}
-            groupedMaps={groupedMaps}
-            collapsedCategories={collapsedCategories}
-            selectedFolder={selectedFolder}
-            currentMapId={currentMapId}
-            editingMapId={editingMapId}
-            editingTitle={editingTitle}
-            dragOverCategory={dragOverCategory}
-            searchTerm={searchTerm}
-            onToggleCategoryCollapse={toggleCategoryCollapse}
-            onFolderSelect={handleFolderSelect}
-            onContextMenu={handleContextMenu}
-            onSelectMap={onSelectMap}
-            onFinishRename={(id) => handleFinishRename(id)}
-            onCancelRename={handleCancelRename}
-            onEditingTitleChange={setEditingTitle}
-            onDragStart={handleDragStart}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            onFolderDragStart={handleFolderDragStart}
-            onFolderDrop={handleFolderDrop}
-          />
-        </div>
+        <div>No content available</div>
       )}
 
       <ContextMenu

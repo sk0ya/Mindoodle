@@ -30,7 +30,7 @@ interface PrimarySidebarProps {
   onStorageModeChange?: (mode: 'local' | 'markdown') => void;
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
-  explorerTree?: ExplorerItem | null;
+  explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
   // Current map data for export
   currentMapData?: MindMapData | null;
@@ -93,7 +93,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             workspaces={workspaces}
             onAddWorkspace={onAddWorkspace}
             onRemoveWorkspace={onRemoveWorkspace}
-            explorerTree={explorerTree || undefined}
+            explorerTree={explorerTree}
             onCreateFolder={onCreateFolder}
           />
         );
