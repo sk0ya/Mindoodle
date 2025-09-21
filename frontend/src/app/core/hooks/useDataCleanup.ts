@@ -19,7 +19,7 @@ export const useDataCleanup = () => {
       // MindFlow関連のキーのみクリア
       const keysToRemove = localStorageManager.getAllMindFlowKeys();
       keysToRemove.forEach(key => {
-        localStorage.removeItem(key);
+        localStorageManager.removeItem(key as any); // 型安全性のため any を使用
       });
       
       logger.info(`🧹 LocalStorage cleaned: ${keysToRemove.length} items removed`);

@@ -4,4 +4,6 @@ export * from './nodeUtils';
 export * from './validation';
 export * from './markdownImporter';
 export * from './localStorage';
+export * from './eventUtils';
+export * from './arrayUtils';
 export * from '../../../shared/utils/env';

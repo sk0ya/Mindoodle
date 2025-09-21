@@ -38,6 +38,9 @@ export const STORAGE_KEYS = {
   
   // Cleanup tracking
   LAST_CLEANUP: 'mindflow_last_cleanup',
+
+  // UI state
+  FOLDER_GUIDE_DISMISSED: 'mindoodle_guide_dismissed',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

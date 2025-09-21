@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, memo } from 'react';
+import React, { useEffect, memo } from 'react';
 import { MindMapNode } from '../../types';
 import MenuItems from './contextmenu/MenuItems';
 import ContextMenuStyles from './contextmenu/ContextMenuStyles';
+import { useClickOutside } from '../../utils/eventUtils';
 
 interface Position {
   x: number;
@@ -35,23 +36,8 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onMarkdownNodeType,
   onClose
 }) => {
-  const menuRef = useRef<HTMLDivElement>(null);
-
   // メニュー外クリックで閉じる
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
-
-    if (visible) {
-      document.addEventListener('mousedown', handleClickOutside);
-      return () => document.removeEventListener('mousedown', handleClickOutside);
-    }
-    
-    return undefined;
-  }, [visible, onClose]);
+  const menuRef = useClickOutside<HTMLDivElement>(onClose, visible);
 
   // ESCキーで閉じる
   useEffect(() => {

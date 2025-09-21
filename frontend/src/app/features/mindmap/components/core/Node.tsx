@@ -4,6 +4,7 @@ import NodeEditor, { isMarkdownLink, isUrl, parseMarkdownLink } from './NodeEdit
 import NodeAttachments from './NodeAttachments';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX } from '../../../../shared/utils/nodeUtils';
+import { stopEventPropagation } from '../../../../shared/utils/eventUtils';
 import type { MindMapNode, FileAttachment, NodeLink } from '@shared/types';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 
@@ -113,8 +114,7 @@ const Node: React.FC<NodeProps> = ({
   }, []);
 
   const handleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+    stopEventPropagation(e);
 
     // ドラッグが発生していない場合のみクリック処理
     if (!isDragging) {
@@ -133,8 +133,7 @@ const Node: React.FC<NodeProps> = ({
   }, [node.id, isDragging, isSelected, isEditing, onStartEdit, onSelect, node.text]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+    stopEventPropagation(e);
 
 
     // リンクの場合はリンクジャンプ処理（編集状態には移行しない）
@@ -239,8 +238,7 @@ const Node: React.FC<NodeProps> = ({
     const isExplorerPath = types.includes('mindoodle/path');
     const isMapId = types.includes('text/map-id');
     if (!isExplorerPath && !isMapId) return;
-    e.preventDefault();
-    e.stopPropagation();
+    stopEventPropagation(e);
 
     const path = isExplorerPath ? e.dataTransfer.getData('mindoodle/path') : '';
     const mapId = isMapId ? e.dataTransfer.getData('text/map-id') : (path.endsWith('.md') ? path.replace(/\.md$/i, '') : '');
@@ -335,8 +333,7 @@ const Node: React.FC<NodeProps> = ({
   }, [node.id, onUpdateNode, onAutoLayout]);
 
   const handleRightClick = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
+    stopEventPropagation(e);
     if (onRightClick) {
       onRightClick(e, node.id);
     }

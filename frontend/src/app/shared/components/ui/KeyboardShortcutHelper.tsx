@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { stopPropagationOnly } from '../../utils/eventUtils';
 import './KeyboardShortcutHelper.css';
 
 interface ShortcutItem {
@@ -86,7 +87,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
 
   return (
     <div className="shortcut-helper-overlay" onClick={onClose}>
-      <div className="shortcut-helper-panel" onClick={e => e.stopPropagation()}>
+      <div className="shortcut-helper-panel" onClick={stopPropagationOnly}>
         <div className="shortcut-helper-header">
           <h2>キーボードショートカット</h2>
           <button className="shortcut-helper-close" onClick={onClose}>
