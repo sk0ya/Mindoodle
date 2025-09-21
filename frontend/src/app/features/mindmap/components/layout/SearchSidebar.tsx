@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { searchNodes, searchMultipleMaps, getMatchPosition, type SearchResult } from '../../../../shared/utils/searchUtils';
+import { useLoadingState } from '@/app/shared/hooks';
 import './SearchSidebar.css';
 
 export type SearchScope = 'current' | 'all';
@@ -21,7 +22,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
+  const { isLoading: isSearching, startLoading: startSearching, stopLoading: stopSearching } = useLoadingState();
   const [searchScope, setSearchScope] = useState<SearchScope>('current');
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -38,7 +39,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery.trim()) {
-        setIsSearching(true);
+        startSearching();
         let results: SearchResult[] = [];
         
         if (searchScope === 'current') {
@@ -48,7 +49,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
         }
         
         setSearchResults(results);
-        setIsSearching(false);
+        stopSearching();
       } else {
         setSearchResults([]);
       }

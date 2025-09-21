@@ -4,6 +4,7 @@ import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '../../../../core/storage/types';
 import { computeAnchorForNode } from '../../../../shared/utils/markdownLinkUtils';
+import { useLoadingState } from '@/app/shared/hooks';
 
 interface MapOption {
   mapIdentifier: { mapId: string; workspaceId: string };
@@ -50,8 +51,8 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   const [mapQuery, setMapQuery] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState('');
   const [loadedMapData, setLoadedMapData] = useState<MindMapData | null>(null);
-  const [isLoadingMapData, setIsLoadingMapData] = useState(false);
-  const [isLoadingFiles, setIsLoadingFiles] = useState(false);
+  const { isLoading: isLoadingMapData, startLoading: startLoadingMapData, stopLoading: stopLoadingMapData } = useLoadingState();
+  const { isLoading: isLoadingFiles, startLoading: startLoadingFiles, stopLoading: stopLoadingFiles } = useLoadingState();
   const [fileQuery, setFileQuery] = useState('');
   const [fileList, setFileList] = useState<string[]>([]);
   const [selectedFilePath, setSelectedFilePath] = useState('');
@@ -137,7 +138,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     let cancelled = false;
     const run = async () => {
       try {
-        setIsLoadingFiles(true);
+        startLoadingFiles();
         const tree = await loadExplorerTree();
         if (cancelled || !tree) { setFileList([]); return; }
         const files: string[] = [];
@@ -152,7 +153,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         walk(tree);
         setFileList(files.sort((a,b)=>a.localeCompare(b,'ja')));
       } finally {
-        if (!cancelled) setIsLoadingFiles(false);
+        if (!cancelled) stopLoadingFiles();
       }
     };
     run();
@@ -165,7 +166,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     
     // 他のマップが選択された場合、そのデータを読み込む
     if (selectedMapId && selectedMapId !== currentMapData?.mapIdentifier.mapId && onLoadMapData) {
-      setIsLoadingMapData(true);
+      startLoadingMapData();
       onLoadMapData({ mapId: selectedMapId, workspaceId: currentMapData?.mapIdentifier.workspaceId || DEFAULT_WORKSPACE_ID })
         .then(mapData => {
           setLoadedMapData(mapData);
@@ -175,12 +176,12 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
           setLoadedMapData(null);
         })
         .finally(() => {
-          setIsLoadingMapData(false);
+          stopLoadingMapData();
         });
     } else {
       // 現在のマップまたは未選択の場合はクリア
       setLoadedMapData(null);
-      setIsLoadingMapData(false);
+      stopLoadingMapData();
     }
   }, [selectedMapId, currentMapData?.mapIdentifier.mapId, onLoadMapData]);
 

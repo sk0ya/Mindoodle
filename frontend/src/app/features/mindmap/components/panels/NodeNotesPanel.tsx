@@ -3,6 +3,7 @@ import { Loader } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
+import { useResizingState } from '@/app/shared/hooks';
 
 interface MarkdownPanelProps {
   // onClose is intentionally not used; kept in type for compatibility
@@ -27,7 +28,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   onSelectNode
 }) => {
   const [panelWidth, setPanelWidth] = useState(600); // Default width
-  const [isResizing, setIsResizing] = useState(false);
+  const { isResizing, startResizing, stopResizing } = useResizingState();
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const [mapMarkdown, setMapMarkdown] = useState<string>('');
@@ -110,7 +111,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   // Handle resize functionality
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
-    setIsResizing(true);
+    startResizing();
 
     const startX = e.clientX;
     const startWidth = panelWidth;
@@ -125,7 +126,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     };
 
     const handleMouseUp = () => {
-      setIsResizing(false);
+      stopResizing();
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
       // Save width to localStorage

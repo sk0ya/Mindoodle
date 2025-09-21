@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { logger } from '../utils/logger';
+import { useLoadingState } from './useBooleanState';
 
 interface UseModelLoaderOptions {
   getAvailableModels: () => Promise<string[]>;
@@ -22,10 +23,10 @@ export const useModelLoader = ({
   onCORSError
 }: UseModelLoaderOptions): UseModelLoaderReturn => {
   const [availableModels, setAvailableModels] = useState<string[]>([]);
-  const [isLoadingModels, setIsLoadingModels] = useState(false);
+  const { isLoading: isLoadingModels, startLoading: startLoadingModels, stopLoading: stopLoadingModels } = useLoadingState();
 
   const loadModels = useCallback(async () => {
-    setIsLoadingModels(true);
+    startLoadingModels();
     try {
       const models = await getAvailableModels();
       setAvailableModels(models);
@@ -45,7 +46,7 @@ export const useModelLoader = ({
         onCORSError(corsError);
       }
     } finally {
-      setIsLoadingModels(false);
+      stopLoadingModels();
     }
   }, [getAvailableModels, currentModel, updateModel, onCORSError]);
 

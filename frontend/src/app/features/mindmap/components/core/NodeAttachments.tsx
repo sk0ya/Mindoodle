@@ -1,5 +1,6 @@
 import React, { useCallback, memo, useState, useEffect } from 'react';
 import type { MindMapNode, FileAttachment } from '@shared/types';
+import { useResizingState, useHoverState } from '@/app/shared/hooks';
 
 interface NodeAttachmentsProps {
   node: MindMapNode;
@@ -29,9 +30,9 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   onAutoLayout,
   nodeHeight,
   onLoadRelativeImage
-}) => {  
+}) => {
   // 画像リサイズ状態管理
-  const [isResizing, setIsResizing] = useState(false);
+  const { isResizing, startResizing, stopResizing } = useResizingState();
   const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
   const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
   const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
@@ -205,7 +206,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
     
     // logger.debug('Current image size', currentDimensions);
     
-    setIsResizing(true);
+    startResizing();
     setResizeStartPos({
       x: (e.clientX - svgRect.left) / zoom - pan.x,
       y: (e.clientY - svgRect.top) / zoom - pan.y
@@ -268,7 +269,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
 
   const handleResizeEnd = useCallback(() => {
     if (isResizing) {
-      setIsResizing(false);
+      stopResizing();
       // ノート画像のサイズ指定を更新（ノート画像が表示されている場合）
       const usingNoteImages = noteImageFiles.length > 0;
       if (usingNoteImages && onUpdateNode) {
@@ -387,7 +388,7 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
   }, [isResizing, usingNoteImages, imageIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
 
   // ホバー状態でコントロール表示
-  const [isHovered, setIsHovered] = useState(false);
+  const { isHovered, handleMouseEnter, handleMouseLeave } = useHoverState();
 
   // 画像がない場合は何も描画しない（フック定義の後で判定し、Hooks規約を満たす）
   if (!currentImage) {
@@ -422,8 +423,8 @@ const NodeAttachments: React.FC<NodeAttachmentsProps> = ({
             onClick={(e) => handleImageClick(e as any, currentImage)}
             onDoubleClick={(e) => handleImageDoubleClick(e as any, currentImage)}
             onContextMenu={(e) => handleFileActionMenu(e as any, currentImage)}
-            onMouseEnter={() => setIsHovered(true)}
-            onMouseLeave={() => setIsHovered(false)}
+            onMouseEnter={handleMouseEnter}
+            onMouseLeave={handleMouseLeave}
             >
               {false ? (
                 <div>CloudImage削除済み</div>
