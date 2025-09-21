@@ -98,13 +98,17 @@ frontend/
   - `src/app/` — Main application modules with re-exports in `index.ts`
   - `src/app/core/` — Core architecture (hooks, store, services, storage, data)
   - `src/app/features/` — Feature modules (mindmap, files)
-  - `src/app/shared/` — Shared components and utilities
-  - `src/shared/` — Global shared utilities
+  - `src/app/shared/` — Unified shared components, utilities, types, and constants
   - `src/types/` — Type definitions
+
+**Unified Shared Structure:**
+- **Removed Duplication:** `frontend/src/shared/` has been consolidated into `frontend/src/app/shared/`
+- **Path Alias Updated:** `@shared` now points to `frontend/src/app/shared`
+- **Single Source of Truth:** All shared utilities, components, and types are in one location
 
 ### Path Aliases (Vite + TypeScript)
 - `@` → `src/`
-- `@shared` → `src/shared/`
+- `@shared` → `src/app/shared/` (updated to unified location)
 - `@local` → `src/Local/` (legacy, may exist in some configs)
 
 ### Architecture Patterns

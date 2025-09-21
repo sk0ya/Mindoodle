@@ -13,7 +13,7 @@ export default defineConfig({
       '@local/core': path.resolve(__dirname, './src/Local/core'),
       '@local/features': path.resolve(__dirname, './src/Local/features'),
       '@local/shared': path.resolve(__dirname, './src/Local/shared'),
-      '@shared': path.resolve(__dirname, './src/shared')
+      '@shared': path.resolve(__dirname, './src/app/shared')
     }
   },
   server: {
