@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { Position, MindMapNode } from '@shared/types';
 import type { MindMapStore } from './types';
-import type { UIState, UIActions } from '@shared/types/uiTypes';
+import type { UIState, UIActions } from '@shared/types';
 
 export interface UISlice extends UIActions {
   ui: UIState;
@@ -27,8 +27,6 @@ export const createUISlice: StateCreator<
     showLocalStoragePanel: false,
     showTutorial: false,
     showNotesPanel: false,
-    selectedImage: null,
-    selectedFile: null,
     fileMenuPosition: { x: 0, y: 0 },
     showImageModal: false,
     showFileActionMenu: false,

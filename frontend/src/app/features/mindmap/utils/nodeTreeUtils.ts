@@ -1,5 +1,4 @@
-import { MindMapNode } from '../../../shared/types/dataTypes';
-import type { MindMapData } from '../../../shared/types/dataTypes';
+import type { MindMapNode, MindMapData } from '@shared/types';
 
 export function findNodeById(rootNode: MindMapNode, nodeId: string): MindMapNode | null {
   if (rootNode.id === nodeId) return rootNode;

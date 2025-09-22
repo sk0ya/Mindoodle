@@ -9,7 +9,7 @@ import { useInitialDataLoad } from '@shared/hooks';
 import { useDataReset } from '@shared/hooks';
 import { useStorageConfigChange } from '../../file-management/hooks/useStorageConfigChange';
 import { logger } from '@shared/utils';
-import type { StorageConfig } from '../../../core/storage/types';
+import type { StorageConfig } from '@shared/types';
 import type { MindMapData } from '@shared/types';
 import { useMarkdownStream } from '../../markdown/hooks/useMarkdownStream';
 import { statusMessages } from '@shared/utils';

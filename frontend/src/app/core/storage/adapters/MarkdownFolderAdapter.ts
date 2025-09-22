@@ -1,9 +1,9 @@
 import type { MindMapData } from '@shared/types';
-import type { StorageAdapter, ExplorerItem } from '../types';
+import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
 import { logger } from '@shared/utils';
 import { statusMessages } from '@shared/utils';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
-import { createInitialData } from '@shared/types/dataTypes';
+import { createInitialData } from '@shared/types';
 import { generateWorkspaceId, generateTimestampedFilename } from '@shared/utils';
 
 type DirHandle = any; // File System Access API types (browser only)

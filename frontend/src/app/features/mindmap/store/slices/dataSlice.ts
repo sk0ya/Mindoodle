@@ -4,7 +4,8 @@ import { logger } from '@shared/utils';
 import { normalizeTreeData, denormalizeTreeData } from '../../../../core/data';
 import { autoSelectLayout } from '../../utils/autoLayout';
 import { calculateNodeSize } from '../../utils/nodeUtils';
-import type { MindMapStore, DataState } from './types';
+import type { MindMapStore } from './types';
+import type { DataState } from '@shared/types/nodeTypes';
 
 export interface DataSlice extends DataState {
   setData: (data: MindMapData) => void;

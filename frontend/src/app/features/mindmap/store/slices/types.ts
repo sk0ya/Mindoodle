@@ -3,14 +3,11 @@ import type { NormalizedData } from '../../../../core/data/normalizedStore';
 import type { AISlice } from './aiSlice';
 import type { SettingsSlice } from './settingsSlice';
 import type { UISlice } from './uiSlice';
-import type { UIState } from '@shared/types/uiTypes';
+import type { UIState } from '@shared/types/ui.types';
 import type { DataState as NodeDataState } from '@shared/types/nodeTypes';
 
 // Re-export for backward compatibility
 export type { UIState };
-export interface DataState extends NodeDataState {
-  normalizedData: NormalizedData | null;
-}
 
 // History State types
 export interface HistoryState {
@@ -19,7 +16,8 @@ export interface HistoryState {
 }
 
 // Combined Store Interface
-export interface MindMapStore extends DataState, HistoryState, AISlice, SettingsSlice, UISlice {
+export interface MindMapStore extends NodeDataState, HistoryState, AISlice, SettingsSlice, UISlice {
+  normalizedData: NormalizedData | null;
   ui: UIState;
   
   // Data Actions

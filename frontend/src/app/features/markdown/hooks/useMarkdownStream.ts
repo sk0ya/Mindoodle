@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import type { MapIdentifier } from '@shared/types';
-import type { StorageAdapter } from '../../../core/storage/types';
+import type { StorageAdapter } from '@shared/types';
 import { MarkdownStream, createLocalSink, type MarkdownSource } from '../../../core/streams/MarkdownStream';
 
 interface UseMarkdownStreamOptions {

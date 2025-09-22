@@ -9,7 +9,7 @@ import { createChildFolderPath } from '@shared/utils';
 import { logger } from '@shared/utils';
 import { highlightSearchTerm } from '@shared/utils';
 import { getLastPathSegment, splitPath } from '@shared/utils';
-import type { ExplorerItem } from '../../../../core/storage/types';
+import type { ExplorerItem } from '@shared/types';
 
 interface NodeViewProps {
   item: ExplorerItem;

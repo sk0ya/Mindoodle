@@ -32,7 +32,7 @@ import './MindMapApp.css';
 
 // Types
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
-import type { StorageConfig } from '../../../../core/storage/types';
+import type { StorageConfig } from '@shared/types';
 // Storage configurations
 // Deprecated storage configs (Mindoodle uses markdown adapter internally)
 // Login modal moved into MindMapOverlays

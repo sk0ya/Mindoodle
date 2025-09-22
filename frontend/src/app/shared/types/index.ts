@@ -41,9 +41,8 @@ export {
   DEFAULT_WORKSPACE_ID
 } from './data.types';
 
-export {
-  createInitialData
-} from './dataTypes';
+// Data factory functions
+export { createInitialData } from '../utils/dataFactory';
 
 
 // UI types
@@ -54,6 +53,15 @@ export type {
   UIActions,
   UISlice
 } from './ui.types';
+
+// Storage types
+export type {
+  StorageAdapter,
+  ExplorerItem,
+  StorageConfig,
+  StorageMode,
+  SyncStatus
+} from '../../core/types/storage.types';
 
 // Legacy compatibility - maintaining old import paths
 // These should eventually be migrated to use the new structure
@@ -102,8 +110,6 @@ export type {
   AppError,
   MindMapHookReturn,
   UserId,
-  StorageMode,
-  SyncStatus,
   ConnectionStatus,
   MarkdownNodeMeta
 } from './_core_unified';

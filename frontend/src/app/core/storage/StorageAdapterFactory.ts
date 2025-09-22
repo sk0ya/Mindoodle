@@ -1,5 +1,5 @@
 // Storage adapter factory - creates appropriate storage adapter based on configuration
-import type { StorageAdapter, StorageConfig, StorageMode, StorageAdapterFactory as IStorageAdapterFactory } from './types';
+import type { StorageAdapter, StorageConfig, StorageMode, StorageAdapterFactory as IStorageAdapterFactory } from '../types/storage.types';
 import { MarkdownFolderAdapter } from './adapters/MarkdownFolderAdapter';
 import { logger } from '@shared/utils';
 

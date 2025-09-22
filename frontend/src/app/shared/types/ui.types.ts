@@ -32,7 +32,6 @@ export interface UIState {
   clipboard: MindMapNode | null;
 
   // Icon-triggered displays
-  showAttachmentListForNode: string | null;
   showLinkListForNode: string | null;
 }
 
@@ -87,6 +86,8 @@ export interface UIActions {
   // Icon-triggered displays
   setShowLinkListForNode: (nodeId: string | null) => void;
   toggleLinkListForNode: (nodeId: string) => void;
+  closeAttachmentAndLinkLists: () => void;
+
   // Composite Actions
   closeAllPanels: () => void;
   toggleSidebar: () => void;

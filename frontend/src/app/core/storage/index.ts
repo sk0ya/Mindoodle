@@ -6,7 +6,7 @@ export type {
   SyncStatus,
   StorageEvents,
   StorageAdapterFactory as IStorageAdapterFactory
-} from './types';
+} from '../types/storage.types';
 
 // Mindoodle: only markdown folder adapter is used
 

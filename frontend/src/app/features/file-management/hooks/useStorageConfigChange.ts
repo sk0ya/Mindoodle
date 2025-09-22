@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { logger } from '@shared/utils';
-import type { StorageConfig } from '../../../core/storage/types';
+import type { StorageConfig } from '../../../core/types/storage.types';
 import type { MindMapData } from '@shared/types';
 
 interface StorageConfigChangeDependencies {
