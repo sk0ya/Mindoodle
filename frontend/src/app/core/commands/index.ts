@@ -1,57 +1,158 @@
 /**
- * Command System
- * Main entry point for the command-based operation system
+ * Command Index
+ * Exports all available commands for registration
  */
 
-// Core types and interfaces
-export type {
-  Command,
-  CommandContext,
-  CommandResult,
-  CommandArg,
-  ParsedCommand,
-  ParseResult,
-  CommandRegistry,
-  ExecuteOptions,
-  CommandArgType
-} from './types';
+import { centerCommand, centerLeftCommand } from './center';
+import { deleteCommand } from './delete';
+import { toggleCommand, expandCommand, collapseCommand, expandAllCommand, collapseAllCommand } from './toggle';
+import { editCommand, insertCommand as insertEditCommand, appendCommand as appendEditCommand, appendEndCommand, insertBeginningCommand } from './edit';
+import { insertCommand, appendCommand, openCommand, openAboveCommand } from './insert';
+import { addChildCommand, addSiblingCommand, convertNodeCommand } from './structure';
+import {
+  navigateCommand,
+  upCommand,
+  downCommand,
+  leftCommand,
+  rightCommand
+} from './navigate';
 
-// Parser functions
-export {
-  parseCommand,
-  validateCommand,
-  generateSuggestions
-} from './parser';
+// New command categories
+import {
+  undoCommand,
+  redoCommand,
+  copyCommand,
+  pasteCommand,
+  cutCommand
+} from './application';
 
-// Vim sequence parser
-export {
-  parseVimSequence,
-  isValidVimKey,
-  getVimKeys,
-  canSequenceContinue
-} from './vimSequenceParser';
-export type { VimSequenceResult } from './vimSequenceParser';
+import {
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand
+} from './ui';
 
-// Registry implementation
-export {
-  CommandRegistryImpl,
-  getCommandRegistry,
-  resetCommandRegistry
-} from './registry';
+import {
+  arrowNavigateCommand,
+  selectNodeCommand,
+  findNodeCommand,
+  zoomInCommand,
+  zoomOutCommand,
+  zoomResetCommand,
+  selectRootNodeCommand,
+  selectCenterNodeCommand,
+  selectBottomNodeCommand,
+  scrollUpCommand,
+  scrollDownCommand,
+  nextMapCommand,
+  prevMapCommand,
+  selectCurrentRootCommand
+} from './navigation';
 
-// All available commands
-export {
-  commands,
-  registerAllCommands,
-  commandCategories,
-  // Individual commands
+import {
+  newMindmapCommand,
+  clearMindmapCommand,
+  statsCommand,
+  autoLayoutCommand,
+  themeCommand
+} from './mindmap';
+
+// Export all commands
+export const commands = [
+  // Core vim commands
   centerCommand,
+  centerLeftCommand,
   deleteCommand,
   toggleCommand,
+  expandCommand,
+  collapseCommand,
+  expandAllCommand,
+  collapseAllCommand,
   editCommand,
+
+  // Vim editing commands
+  insertEditCommand,
+  appendEditCommand,
+  appendEndCommand,
+  insertBeginningCommand,
+
+  // Insert mode commands
   insertCommand,
   appendCommand,
   openCommand,
+  openAboveCommand,
+
+  // Structure commands
+  addChildCommand,
+  addSiblingCommand,
+  convertNodeCommand,
+
+  // Navigation commands
+  navigateCommand,
+  upCommand,
+  downCommand,
+  leftCommand,
+  rightCommand,
+
+  // Application commands
+  undoCommand,
+  redoCommand,
+  copyCommand,
+  pasteCommand,
+  cutCommand,
+
+  // UI commands
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand,
+
+  // Extended navigation commands
+  arrowNavigateCommand,
+  selectNodeCommand,
+  findNodeCommand,
+  zoomInCommand,
+  zoomOutCommand,
+  zoomResetCommand,
+  selectRootNodeCommand,
+  selectCenterNodeCommand,
+  selectBottomNodeCommand,
+  scrollUpCommand,
+  scrollDownCommand,
+  nextMapCommand,
+  prevMapCommand,
+  selectCurrentRootCommand,
+
+  // Mindmap commands
+  newMindmapCommand,
+  clearMindmapCommand,
+  statsCommand,
+  autoLayoutCommand,
+  themeCommand,
+];
+
+// Export individual commands for direct access
+export {
+  centerCommand,
+  centerLeftCommand,
+  deleteCommand,
+  toggleCommand,
+  expandCommand,
+  collapseCommand,
+  expandAllCommand,
+  collapseAllCommand,
+  editCommand,
+  insertEditCommand,
+  appendEditCommand,
+  appendEndCommand,
+  insertBeginningCommand,
+  insertCommand,
+  appendCommand,
+  openCommand,
+  openAboveCommand,
   addChildCommand,
   addSiblingCommand,
   convertNodeCommand,
@@ -59,26 +160,61 @@ export {
   upCommand,
   downCommand,
   leftCommand,
-  rightCommand
-} from './commands/index';
+  rightCommand,
+  // Application commands
+  undoCommand,
+  redoCommand,
+  copyCommand,
+  pasteCommand,
+  cutCommand,
+  // UI commands
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand,
+  // Extended navigation commands
+  arrowNavigateCommand,
+  selectNodeCommand,
+  findNodeCommand,
+  zoomInCommand,
+  zoomOutCommand,
+  zoomResetCommand,
+  selectRootNodeCommand,
+  selectCenterNodeCommand,
+  selectBottomNodeCommand,
+  scrollUpCommand,
+  scrollDownCommand,
+  nextMapCommand,
+  prevMapCommand,
+  selectCurrentRootCommand,
+  // Mindmap commands
+  newMindmapCommand,
+  clearMindmapCommand,
+  statsCommand,
+  autoLayoutCommand,
+  themeCommand,
+};
 
-// Direct imports for internal usage
-import { getCommandRegistry as getRegistry } from './registry';
-import { registerAllCommands as registerAll } from './commands/index';
-
-// React hooks
-export {
-  useCommands,
-  useVimCommands
-} from './useCommands';
+// Export useCommands hook
+export { useCommands } from './useCommands';
 export type { UseCommandsReturn } from './useCommands';
 
-// Convenience functions for direct usage
-export function createCommandSystem() {
-  const registry = getRegistry();
-  registerAll(registry);
-  return registry;
+// Helper function to register all commands
+export function registerAllCommands(registry: any) {
+  for (const command of commands) {
+    try {
+      registry.register(command);
+    } catch (error) {
+      // Silently ignore registration conflicts
+      // This allows the system to continue working even with alias conflicts
+    }
+  }
 }
 
-// Version info
-export const COMMAND_SYSTEM_VERSION = '1.0.0';
+// Command categories for organization
+export const commandCategories = {
+  navigation: [navigateCommand, upCommand, downCommand, leftCommand, rightCommand, centerCommand],
+  editing: [deleteCommand, editCommand, insertCommand, appendCommand, openCommand],
+  structure: [toggleCommand, addChildCommand, addSiblingCommand, convertNodeCommand],
+} as const;

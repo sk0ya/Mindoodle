@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
-import { useVimMode } from '../../../../core/hooks/useVimMode';
+import { useMindMap, useKeyboardShortcuts } from '../../../../shared/hooks';
+import { useMindMapStore } from '../../../../shared/store';
+import { useVimMode } from '../../../../shared/hooks/useVimMode';
 import { findNodeById, findNodeInRoots } from '@shared/utils';
 import { relPathBetweenMapIds } from '@shared/utils';
 import { nodeToMarkdown } from '@shared/utils';
@@ -21,7 +22,7 @@ import { resolveAnchorToNode, computeAnchorForNode } from '@shared/utils';
 import { navigateLink } from '@shared/utils';
 import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
 import { useGlobalErrorHandlers } from '../../../../shared/hooks/useGlobalErrorHandlers';
-import { useAI } from '../../../../core/hooks/useAI';
+import { useAI } from '../../../../shared/hooks/useAI';
 import { useTheme } from '../../../../shared/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';

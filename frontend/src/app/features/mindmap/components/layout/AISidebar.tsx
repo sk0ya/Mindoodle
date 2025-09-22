@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Plug, CheckCircle, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
-import { useAI } from '../../../../core/hooks/useAI';
+import { useAI } from '../../../../shared/hooks/useAI';
 import { useConnectionTest } from '../../../../shared/hooks/useConnectionTest';
 import { useModelLoader } from '../../../../shared/hooks/useModelLoader';
 

@@ -3,7 +3,7 @@ import { Editor, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { marked } from 'marked';
 import { PenTool, Eye, SplitSquareHorizontal, FileText } from 'lucide-react';
-import { useMindMapStore } from '../../core/store/mindMapStore';
+import { useMindMapStore } from '../../shared/store/mindMapStore';
 import { logger } from '../utils/logger';
 import { useModeSetters } from '../utils/hookUtils';
 

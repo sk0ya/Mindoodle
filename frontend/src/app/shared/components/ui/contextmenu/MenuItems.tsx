@@ -1,7 +1,7 @@
 import React from 'react';
 import { Bot, Palette, Copy, Clipboard, Link, Trash2, Clock, List } from 'lucide-react';
 import { MindMapNode } from '../../../types';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { useMindMapStore } from '../../../../shared/store';
 
 interface MenuItemAction {
   icon: React.ReactNode;

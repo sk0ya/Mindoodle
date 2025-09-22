@@ -1,5 +1,5 @@
 import React, { useCallback } from 'react';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { useMindMapStore } from '../../../../shared/store';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import {

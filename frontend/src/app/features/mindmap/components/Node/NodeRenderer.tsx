@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { useMindMapStore } from '../../../../shared/store';
 import type { MindMapNode } from '@shared/types';
 import {
   getBaseNodeStyles,

@@ -4,7 +4,7 @@ import CanvasDragGuide from './CanvasDragGuide';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
 import { calculateNodeSize } from '@shared/utils';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { useMindMapStore } from '../../../../shared/store';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
 interface DragState {

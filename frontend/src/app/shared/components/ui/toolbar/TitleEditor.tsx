@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useActivityLifecycle } from '../../../../core/hooks/useEditingState';
+import { useActivityLifecycle } from '../../../../shared/hooks/useEditingState';
 
 interface TitleEditorProps {
   title: string;

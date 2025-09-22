@@ -4,8 +4,8 @@ export { default } from './features/mindmap/components/layout/MindMapApp';
 // メインアプリコンポーネント
 export { MindMapApp } from './features/mindmap';
 
-// コアHookアーキテクチャ
-export * from './core/hooks';
+// 共有Hookアーキテクチャ
+export * from './shared/hooks';
 
 // フィーチャー
 export * from './features';

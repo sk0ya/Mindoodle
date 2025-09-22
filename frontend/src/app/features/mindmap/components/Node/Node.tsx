@@ -6,7 +6,7 @@ import { calculateNodeSize, getNodeLeftX } from '@shared/utils';
 import { stopEventPropagation } from '@shared/utils';
 import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { useMindMapStore } from '../../../../shared/store';
 
 interface NodeProps {
   node: MindMapNode;

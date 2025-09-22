@@ -19,6 +19,10 @@ export * from './stringUtils';
 export * from './typeUtils';
 export * from './validation';
 
+// Core utilities (migrated from core/utils)
+export * from './apiErrorHandler';
+export * from './reloadData';
+
 // Re-export from other organized directories
 export * from '../markdown';
 

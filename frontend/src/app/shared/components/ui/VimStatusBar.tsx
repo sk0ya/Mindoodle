@@ -1,5 +1,5 @@
 import React from 'react';
-import { useVimMode } from '../../../core/hooks/useVimMode';
+import { useVimMode } from '../../../shared/hooks/useVimMode';
 import { useStatusBar } from '../../hooks/useStatusBar';
 
 const VimStatusBar: React.FC = () => {

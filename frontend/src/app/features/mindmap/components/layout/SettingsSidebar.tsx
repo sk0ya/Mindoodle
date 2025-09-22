@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Moon, Sun, Keyboard, HardDrive, Trash2, Ruler, TriangleAlert } from 'lucide-react';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
-import { useDataCleanup, type DataCleanupStats } from '../../../../core/hooks/useDataCleanup';
+import { useMindMapStore } from '../../../../shared/store';
+import { useDataCleanup, type DataCleanupStats } from '../../../../shared/hooks/useDataCleanup';
 import { useBooleanState } from '../../../../shared/hooks/useBooleanState';
 
 interface SettingsSidebarProps {

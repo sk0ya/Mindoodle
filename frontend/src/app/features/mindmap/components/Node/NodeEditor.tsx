@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { Link } from 'lucide-react';
-import { useMindMapStore } from '../../../../core/store/mindMapStore';
+import { useMindMapStore } from '../../../../shared/store';
 import { calculateIconLayout } from '@shared/utils';
 import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
