@@ -7,7 +7,7 @@ import type { MindMapNode } from '@shared/types';
 import { useEffect } from 'react';
 import type { VimModeHook } from './useVimMode';
 import { useCommands } from '../../core/commands';
-import type { UseCommandsReturn } from '../../core/commands/useCommands';
+import type { UseCommandsReturn } from '../../core/commands';
 
 interface KeyboardShortcutHandlers {
   selectedNodeId: string | null;

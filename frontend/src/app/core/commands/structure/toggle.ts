@@ -3,8 +3,8 @@
  * Toggles the collapse state of a node's children (equivalent to vim 'za')
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
-import { useMindMapStore } from '../../shared/store';
+import type { Command, CommandContext, CommandResult } from '../system/types';
+import { useMindMapStore } from '../../../shared/store';
 
 export const toggleCommand: Command = {
   name: 'toggle',

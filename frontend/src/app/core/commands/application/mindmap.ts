@@ -3,7 +3,7 @@
  * High-level mindmap operations like import, export, reset
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 // New mindmap command
 export const newMindmapCommand: Command = {

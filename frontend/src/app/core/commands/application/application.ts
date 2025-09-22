@@ -3,7 +3,7 @@
  * Core application-level operations (undo, redo, copy, paste)
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 // Undo command
 export const undoCommand: Command = {

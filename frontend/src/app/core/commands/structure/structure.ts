@@ -3,7 +3,7 @@
  * Commands for creating and manipulating node structure
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 // Add child node command (vim Tab/o)
 export const addChildCommand: Command = {

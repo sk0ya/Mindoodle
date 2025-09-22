@@ -3,8 +3,8 @@
  * All node navigation and selection operations
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
-import { useMindMapStore } from '../../shared/store';
+import type { Command, CommandContext, CommandResult } from '../system/types';
+import { useMindMapStore } from '../../../shared/store';
 
 // Arrow navigation command
 export const arrowNavigateCommand: Command = {

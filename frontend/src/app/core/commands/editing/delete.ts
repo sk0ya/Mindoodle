@@ -3,7 +3,7 @@
  * Deletes the selected node (equivalent to vim 'dd')
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 export const deleteCommand: Command = {
   name: 'delete',

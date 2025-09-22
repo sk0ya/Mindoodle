@@ -3,7 +3,7 @@
  * Clears node text and starts editing (equivalent to vim 'ciw')
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 export const editCommand: Command = {
   name: 'edit',

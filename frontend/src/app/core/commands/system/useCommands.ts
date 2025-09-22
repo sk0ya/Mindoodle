@@ -12,10 +12,10 @@ import type {
 } from './types';
 import { parseCommand, validateCommand, generateSuggestions } from './parser';
 import { CommandRegistryImpl } from './registry';
-import { registerAllCommands } from './index';
+import { registerAllCommands } from '../index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import { logger } from '@shared/utils';
-import type { VimModeHook } from '../../shared/hooks/useVimMode';
+import type { VimModeHook } from '../../../shared/hooks/useVimMode';
 
 interface UseCommandsProps {
   selectedNodeId: string | null;

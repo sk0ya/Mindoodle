@@ -3,7 +3,7 @@
  * Vim-style insert mode commands (i, a, o)
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 // Insert mode at cursor start (vim 'i')
 export const insertCommand: Command = {

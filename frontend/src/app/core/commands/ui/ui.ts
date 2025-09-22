@@ -3,7 +3,7 @@
  * Interface and panel management operations
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 // Show/hide keyboard helper
 export const helpCommand: Command = {

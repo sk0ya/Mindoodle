@@ -3,38 +3,15 @@
  * Exports all available commands for registration
  */
 
-import { centerCommand, centerLeftCommand } from './center';
-import { deleteCommand } from './delete';
-import { toggleCommand, expandCommand, collapseCommand, expandAllCommand, collapseAllCommand } from './toggle';
-import { editCommand, insertCommand as insertEditCommand, appendCommand as appendEditCommand, appendEndCommand, insertBeginningCommand } from './edit';
-import { insertCommand, appendCommand, openCommand, openAboveCommand } from './insert';
-import { addChildCommand, addSiblingCommand, convertNodeCommand } from './structure';
+// Import from organized categories
 import {
+  centerCommand,
+  centerLeftCommand,
   navigateCommand,
   upCommand,
   downCommand,
   leftCommand,
-  rightCommand
-} from './navigate';
-
-// New command categories
-import {
-  undoCommand,
-  redoCommand,
-  copyCommand,
-  pasteCommand,
-  cutCommand
-} from './application';
-
-import {
-  helpCommand,
-  closePanelsCommand,
-  startEditCommand,
-  startEditEndCommand,
-  markdownConvertCommand
-} from './ui';
-
-import {
+  rightCommand,
   arrowNavigateCommand,
   selectNodeCommand,
   findNodeCommand,
@@ -52,12 +29,49 @@ import {
 } from './navigation';
 
 import {
+  deleteCommand,
+  editCommand,
+  insertCommand as insertEditCommand,
+  appendCommand as appendEditCommand,
+  appendEndCommand,
+  insertBeginningCommand,
+  insertCommand,
+  appendCommand,
+  openCommand,
+  openAboveCommand
+} from './editing';
+
+import {
+  toggleCommand,
+  expandCommand,
+  collapseCommand,
+  expandAllCommand,
+  collapseAllCommand,
+  addChildCommand,
+  addSiblingCommand,
+  convertNodeCommand
+} from './structure';
+
+import {
+  undoCommand,
+  redoCommand,
+  copyCommand,
+  pasteCommand,
+  cutCommand,
   newMindmapCommand,
   clearMindmapCommand,
   statsCommand,
   autoLayoutCommand,
   themeCommand
-} from './mindmap';
+} from './application';
+
+import {
+  helpCommand,
+  closePanelsCommand,
+  startEditCommand,
+  startEditEndCommand,
+  markdownConvertCommand
+} from './ui';
 
 // Export all commands
 export const commands = [
@@ -196,9 +210,9 @@ export {
   themeCommand,
 };
 
-// Export useCommands hook
-export { useCommands } from './useCommands';
-export type { UseCommandsReturn } from './useCommands';
+// Export system utilities
+export { useCommands } from './system';
+export type { UseCommandsReturn } from './system';
 
 // Helper function to register all commands
 export function registerAllCommands(registry: any) {

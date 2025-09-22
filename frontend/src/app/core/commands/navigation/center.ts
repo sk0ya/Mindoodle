@@ -3,7 +3,7 @@
  * Centers the selected node in the viewport (equivalent to vim 'zz')
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 export const centerCommand: Command = {
   name: 'center',

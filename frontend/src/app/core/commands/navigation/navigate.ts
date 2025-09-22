@@ -3,7 +3,7 @@
  * Navigate between nodes in different directions (equivalent to vim hjkl)
  */
 
-import type { Command, CommandContext, CommandResult } from './types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 
 export const navigateCommand: Command = {
   name: 'navigate',
