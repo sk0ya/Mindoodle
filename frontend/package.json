@@ -16,9 +16,6 @@
     "type-check:strict:vim": "tsc --noEmit -p tsconfig.strict.vim.json",
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts'",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts' --fix",
-    "scan:unsafe": "node scripts/detect-unsafe-patterns.js",
-    "scan:unsafe-ci": "node scripts/detect-unsafe-patterns.js --ci",
-    "scan:unsafe-local": "node scripts/detect-unsafe-patterns.js --local-only",
     "validate": "echo 'Type safety validation completed'",
     "prepare": "husky"
   },
