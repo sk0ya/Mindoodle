@@ -7,18 +7,6 @@ export interface StorageResult<T = void> {
   error?: string;
 }
 
-// File upload result
-export interface FileUploadResult {
-  id: string;
-  fileName: string;
-  mimeType: string;
-  fileSize: number;
-  attachmentType: 'image' | 'file';
-  downloadUrl?: string;
-  storagePath?: string;
-  uploadedAt: string;
-}
-
 // Map persistence operations
 export interface MapPersistenceOperations {
   // Map CRUD
@@ -29,10 +17,6 @@ export interface MapPersistenceOperations {
   addMapToList: (mapData: MindMapData) => Promise<void>;
   removeMapFromList: (id: MapIdentifier) => Promise<void>;
   
-  // File operations
-  uploadFile?: (id: MapIdentifier, nodeId: string, file: File) => Promise<FileUploadResult>;
-  downloadFile?: (id: MapIdentifier, nodeId: string, fileId: string) => Promise<Blob>;
-  deleteFile?: (id: MapIdentifier, nodeId: string, fileId: string) => Promise<void>;
 }
 
 // Storage configuration

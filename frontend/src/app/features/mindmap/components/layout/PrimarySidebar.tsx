@@ -107,11 +107,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             onMapSwitch={onMapSwitch}
           />
         );
-      
-      // attachments view removed
-      
-      // import/export sidebars removed
-      
       case 'ai':
         return <AISidebar />;
       

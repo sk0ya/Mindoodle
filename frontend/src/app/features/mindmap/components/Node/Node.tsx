@@ -32,7 +32,6 @@ interface NodeProps {
   pan: { x: number; y: number };
   svgRef: React.RefObject<SVGSVGElement>;
   globalFontSize?: number;
-  onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onLinkNavigate?: (link: NodeLink) => void;
@@ -60,7 +59,6 @@ const Node: React.FC<NodeProps> = ({
   zoom,
   svgRef,
   globalFontSize,
-  onToggleAttachmentList,
   onToggleLinkList,
   onLinkNavigate
 }) => {
@@ -378,7 +376,6 @@ const Node: React.FC<NodeProps> = ({
         blurTimeoutRef={blurTimeoutRef}
         isSelected={isSelected}
         onSelectNode={onSelect}
-        onToggleAttachmentList={onToggleAttachmentList}
         onToggleLinkList={onToggleLinkList}
         onLinkNavigate={onLinkNavigate}
       />

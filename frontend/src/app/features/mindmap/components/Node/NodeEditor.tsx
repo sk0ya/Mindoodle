@@ -17,7 +17,6 @@ interface NodeEditorProps {
   blurTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   isSelected?: boolean;
   onSelectNode?: (nodeId: string | null) => void;
-  onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
   onLinkNavigate?: (link: NodeLink) => void;
 }
@@ -34,7 +33,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   blurTimeoutRef,
   isSelected = false,
   onSelectNode,
-  onToggleAttachmentList: _onToggleAttachmentList,
   onToggleLinkList,
   onLinkNavigate: _onLinkNavigate
 }) => {
@@ -161,7 +159,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     };
 
     const actualImageHeight = getActualImageHeight();
-    const hasAttachments = false; // attachments removed
     // Derive links from note markdown (fallback to legacy node.links)
     const internalLinks = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNodes?.[0]) || [];
     const externalLinks = extractExternalLinksFromMarkdown(node.note) || [];
@@ -279,12 +276,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
         {/* アイコン表示エリア（添付ファイルとリンク） */}
         {(() => {
-          if (!hasAttachments && !hasLinks) return null;
+          if (!hasLinks) return null;
 
           return (
             <g>
-              {/* 添付ファイルアイコン */}
-              {/* attachments removed */}
 
               {/* リンクアイコン */}
               {hasLinks && iconLayout.linkIcon && (

@@ -85,12 +85,8 @@ export interface UIActions {
   setClipboard: (node: MindMapNode | null) => void;
 
   // Icon-triggered displays
-  setShowAttachmentListForNode: (nodeId: string | null) => void;
   setShowLinkListForNode: (nodeId: string | null) => void;
-  toggleAttachmentListForNode: (nodeId: string) => void;
   toggleLinkListForNode: (nodeId: string) => void;
-  closeAttachmentAndLinkLists: () => void;
-
   // Composite Actions
   closeAllPanels: () => void;
   toggleSidebar: () => void;

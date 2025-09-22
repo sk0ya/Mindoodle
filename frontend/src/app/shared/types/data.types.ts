@@ -11,18 +11,6 @@ export interface MapIdentifier {
   workspaceId: string;
 }
 
-// File attachment interface
-export interface FileAttachment {
-  id: string;
-  fileName: string;
-  mimeType: string;
-  fileSize: number;
-  attachmentType: 'image' | 'file';
-  downloadUrl?: string;
-  storagePath?: string;
-  uploadedAt: string;
-}
-
 // Node link interface
 export interface NodeLink {
   id: string;
@@ -61,7 +49,6 @@ export interface MindMapNode {
   color?: string;
   children: MindMapNode[];
   collapsed?: boolean;
-  files?: FileAttachment[];
   links?: NodeLink[];
   markdownMeta?: MarkdownMeta;
   note?: string;

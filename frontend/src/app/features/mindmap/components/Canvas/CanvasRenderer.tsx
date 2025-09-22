@@ -59,7 +59,6 @@ interface CanvasRendererProps {
   onDragEnd: (nodeId: string, x: number, y: number) => void;
   
   // Icon toggle handlers
-  onToggleAttachmentList?: (nodeId: string) => void;
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
@@ -97,7 +96,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onDragStart,
   onDragMove,
   onDragEnd,
-  onToggleAttachmentList,
   onToggleLinkList,
   onLoadRelativeImage
 }) => {
@@ -191,7 +189,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 pan={pan}
                 svgRef={svgRef}
                 globalFontSize={settings.fontSize}
-                onToggleAttachmentList={onToggleAttachmentList}
                 onToggleLinkList={onToggleLinkList}
                 onLoadRelativeImage={onLoadRelativeImage}
                 onLinkNavigate={onLinkNavigate}

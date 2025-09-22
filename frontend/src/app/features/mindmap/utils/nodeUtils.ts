@@ -6,10 +6,6 @@ import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../.
 // アイコンレイアウト情報
 interface IconLayout {
   totalWidth: number; // アイコン群の総幅
-  attachmentIcon?: {
-    x: number; // ノード中心からの相対X座標
-    y: number; // ノード中心からの相対Y座標
-  };
   linkIcon?: {
     x: number; // ノード中心からの相対X座標
     y: number; // ノード中心からの相対Y座標
@@ -138,7 +134,6 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
   const RIGHT_MARGIN = 2; // 右端との最小余白
   
   let totalWidth = 0;
-  let attachmentIcon: { x: number; y: number } | undefined;
   let linkIcon: { x: number; y: number } | undefined;
   
   if (hasLinks) {
@@ -146,7 +141,6 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
     totalWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH;
     const startX = nodeWidth / 2 - totalWidth - RIGHT_MARGIN;
     
-    attachmentIcon = { x: startX, y: -ICON_HEIGHT / 2 };
     linkIcon = { x: startX + ICON_WIDTH + ICON_SPACING, y: -ICON_HEIGHT / 2 };
   } else if (hasLinks) {
     // リンクのみ
@@ -158,7 +152,6 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
   
   return {
     totalWidth,
-    attachmentIcon,
     linkIcon
   };
 }
@@ -270,16 +263,15 @@ export function calculateNodeSize(
   }
   
   // アイコンレイアウトに必要な最小幅を計算
-  const hasAttachments = false; // 添付画像UIは無効化方向
   const noteStr2 = (node as any)?.note as string | undefined;
   const hasLinks = hasInternalMarkdownLinks(noteStr2) || (extractExternalLinksFromMarkdown(noteStr2).length > 0);
   const ICON_WIDTH = 32;
   const ICON_SPACING = 6;
   
   let minIconWidth = 0;
-  if (hasAttachments && hasLinks) {
+  if (hasLinks) {
     minIconWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH; // 右マージンはここでは足さない
-  } else if (hasAttachments || hasLinks) {
+  } else if (hasLinks) {
     minIconWidth = ICON_WIDTH; // 右マージンはレイアウト側で微調整
   }
   

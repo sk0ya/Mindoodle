@@ -21,7 +21,6 @@ export type {
 // Storage types
 export type {
   StorageResult,
-  FileUploadResult,
   ExplorerItem,
   StorageAdapter,
   MapPersistenceOperations,

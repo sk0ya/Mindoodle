@@ -283,7 +283,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     e.preventDefault();
     
     // リンクリストまたは添付ファイルリスト表示中は右クリックコンテキストメニューを無効化
-    if (ui.showLinkListForNode || ui.showAttachmentListForNode) {
+    if (ui.showLinkListForNode) {
       return;
     }
     
@@ -1011,8 +1011,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               setEditText={setEditText}
               onSelectNode={(nodeId) => {
                 selectNode(nodeId);
-                // ノート表示フラグが有効な場合のみノートパネルを表示
-                // ノートフラグが無効な場合はノード選択してもノートパネルを表示しない
               }}
               onStartEdit={startEditing}
               onFinishEdit={finishEditing}
@@ -1034,7 +1032,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               setZoom={setZoom}
               pan={ui.pan}
               setPan={setPan}
-              onToggleAttachmentList={store.toggleAttachmentListForNode}
               onToggleLinkList={store.toggleLinkListForNode}
               onLoadRelativeImage={onLoadRelativeImage}
             />

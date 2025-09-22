@@ -117,7 +117,7 @@ export const useModalManager = ({
     e.preventDefault();
     
     // リンクリストまたは添付ファイルリスト表示中は右クリックコンテキストメニューを無効化
-    if (ui.showLinkListForNode || ui.showAttachmentListForNode) {
+    if (ui.showLinkListForNode) {
       return;
     }
     

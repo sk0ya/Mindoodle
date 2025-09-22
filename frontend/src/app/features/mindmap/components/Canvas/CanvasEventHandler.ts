@@ -74,8 +74,8 @@ export const useCanvasEventHandler = ({
     }
     
     // ノード選択時に添付ファイル・リンク一覧を閉じる（ただし、アイコンクリックでの表示切り替えは除く）
-    const { showAttachmentListForNode, showLinkListForNode } = store.ui;
-    if (showAttachmentListForNode !== nodeId && showLinkListForNode !== nodeId) {
+    const {  showLinkListForNode } = store.ui;
+    if (showLinkListForNode !== nodeId) {
       store.closeAttachmentAndLinkLists();
     }
     

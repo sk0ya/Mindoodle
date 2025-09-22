@@ -120,9 +120,7 @@ export interface UISlice {
   setClipboard: (node: MindMapNode | null) => void;
 
   // Icon-triggered displays
-  setShowAttachmentListForNode: (nodeId: string | null) => void;
   setShowLinkListForNode: (nodeId: string | null) => void;
-  toggleAttachmentListForNode: (nodeId: string) => void;
   toggleLinkListForNode: (nodeId: string) => void;
 
   closeAllPanels: () => void;
@@ -172,7 +170,4 @@ export interface MindMapStore extends DataState, HistoryState, AISlice, Settings
   updateNormalizedData: () => void;
   syncToMindMapData: () => void;
   applyAutoLayout: () => void;
-
-  // UI Actions (詳細は UISlice から継承)
-  closeAttachmentAndLinkLists: () => void;
 }

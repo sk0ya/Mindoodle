@@ -29,7 +29,6 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
       label: '検索',
       isActive: activeView === 'search'
     },
-    // attachments/import/export removed
     {
       id: 'ai',
       icon: <Bot size={16} />,

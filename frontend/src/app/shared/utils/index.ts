@@ -30,8 +30,4 @@ export {
   setLocalStorage,
   removeLocalStorage,
   removeLocalStorageItems,
-  validateFile,
-  formatFileSize,
-  MAX_FILE_SIZE,
-  ALLOWED_FILE_TYPES
 } from '../../core/storage';

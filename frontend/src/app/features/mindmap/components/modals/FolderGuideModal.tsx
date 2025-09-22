@@ -17,11 +17,10 @@ const FolderGuideModal: React.FC<FolderGuideModalProps> = ({ isOpen, onClose, on
           <h2>フォルダベース運用ガイド</h2>
         </div>
         <div className="folder-guide-body">
-          <p>Mindoodleはフォルダ内の <code>map.md</code> を中心にデータを保存・読み込みします。</p>
+          <p>Mindoodleはフォルダ内の .md ファイルをマインドマップとして表示します</p>
           <ul>
             <li>「フォルダを選択」を押して作業用フォルダを選んでください。</li>
             <li>フォルダ直下に <code>map.md</code> を保存します。</li>
-            <li>添付ファイルは <code>attachments/ノードID/</code> 配下に配置されます。</li>
           </ul>
           <div className="folder-guide-actions">
             <button className="select-folder" onClick={async () => { await onSelectFolder(); }}> 
@@ -29,7 +28,6 @@ const FolderGuideModal: React.FC<FolderGuideModalProps> = ({ isOpen, onClose, on
             </button>
             <button className="skip" onClick={onClose}>今はスキップ</button>
           </div>
-          <p className="note">このダイアログはメニューからいつでも再度開けます。</p>
         </div>
       </div>
       <style>{`

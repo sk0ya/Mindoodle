@@ -29,12 +29,6 @@ export interface NodeOperations {
   onAddChild: (parentId: string, text?: string) => string | undefined; // 新しい子ノードのIDを返す（失敗時undefined）
 }
 
-// ファイル操作関数の型定義
-export interface FileOperations {
-  onFileRename: (fileId: string, newName: string) => void;
-  onFileDelete: (fileId: string) => void;
-}
-
 // UI操作関数の型定義
 export interface UIOperations {
   onCloseCustomizationPanel: () => void;

@@ -82,9 +82,7 @@ export interface MindMapStore extends DataState, HistoryState, AISlice, Settings
   setClipboard: (node: MindMapNode | null) => void;
   
   // Icon-triggered displays
-  setShowAttachmentListForNode: (nodeId: string | null) => void;
   setShowLinkListForNode: (nodeId: string | null) => void;
-  toggleAttachmentListForNode: (nodeId: string) => void;
   toggleLinkListForNode: (nodeId: string) => void;
   
   closeAllPanels: () => void;

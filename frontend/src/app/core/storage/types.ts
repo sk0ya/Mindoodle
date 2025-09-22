@@ -39,10 +39,6 @@ export interface StorageAdapter {
   getMapLastModified?(id: MapIdentifier): Promise<number | null>;
   saveMapMarkdown?(id: MapIdentifier, markdown: string): Promise<void>;
   
-  // ファイル操作（オプショナル - クラウドモードのみ）
-  deleteFile?(mindmapId: string, nodeId: string, fileId: string): Promise<void>;
-  downloadFile?(mindmapId: string, nodeId: string, fileId: string): Promise<Blob>;
-  
   // ライフサイクル
   initialize(): Promise<void>;
   cleanup(): void;
