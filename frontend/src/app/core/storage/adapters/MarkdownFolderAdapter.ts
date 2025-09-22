@@ -2,7 +2,7 @@ import type { MindMapData } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
 import { logger } from '@shared/utils';
 import { statusMessages } from '@shared/utils';
-import { MarkdownImporter } from '../../../features/mindmap/markdown/markdownImporter';
+import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { createInitialData } from '@shared/types/dataTypes';
 import { generateWorkspaceId, generateTimestampedFilename } from '@shared/utils';
 

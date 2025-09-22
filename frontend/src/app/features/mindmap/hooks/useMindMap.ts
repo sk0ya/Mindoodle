@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
-import { MarkdownImporter } from '../markdown/markdownImporter';
+import { MarkdownImporter } from '../../markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';

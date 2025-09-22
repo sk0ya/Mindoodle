@@ -1,7 +1,7 @@
 import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '../../../core/data/normalizedStore';
 import { COLORS } from '../../../shared/constants';
-import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../markdown/markdownLinkUtils';
+import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../../markdown/markdownLinkUtils';
 
 // アイコンレイアウト情報
 interface IconLayout {
