@@ -60,6 +60,7 @@ const Node: React.FC<NodeProps> = ({
   svgRef,
   globalFontSize,
   onToggleLinkList,
+  onLoadRelativeImage,
   onLinkNavigate
 }) => {
   const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
@@ -361,6 +362,7 @@ const Node: React.FC<NodeProps> = ({
         onContextMenu={handleRightClick}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
+        onLoadRelativeImage={onLoadRelativeImage}
       />
 
       {/* 3. テキスト */}

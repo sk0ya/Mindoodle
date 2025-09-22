@@ -1,4 +1,4 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useEffect } from 'react';
 import { useMindMapStore } from '../../store';
 import type { MindMapNode } from '@shared/types';
 import {
@@ -24,6 +24,7 @@ interface NodeRendererProps {
   onContextMenu: (e: React.MouseEvent) => void;
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
+  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 }
 
 const NodeRenderer: React.FC<NodeRendererProps> = ({
@@ -35,15 +36,71 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   isLayoutTransitioning,
   nodeWidth,
   nodeHeight,
-  imageHeight: _imageHeight,
+  imageHeight,
   onMouseDown,
   onClick,
   onDoubleClick,
   onContextMenu,
   onDragOver,
-  onDrop
+  onDrop,
+  onLoadRelativeImage
 }) => {
   const { settings } = useMindMapStore();
+
+  // State to hold resolved data URLs for relative local images
+  const [resolvedImageUrls, setResolvedImageUrls] = useState<Record<string, string>>({});
+
+  // Extract image URLs from node note
+  const extractNoteImages = (note?: string): string[] => {
+    if (!note) return [];
+    const urls: string[] = [];
+    // Combined regex that preserves source order for Markdown and HTML images
+    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>/gi;
+    let m: RegExpExecArray | null;
+    while ((m = re.exec(note)) !== null) {
+      const url = m[1] || m[2];
+      if (url) urls.push(url);
+    }
+    return urls;
+  };
+
+  // Check if a path is a relative local file path
+  const isRelativeLocalPath = (path: string): boolean => {
+    if (/^(https?:|data:|blob:)/i.test(path)) return false;
+    return path.startsWith('./') || path.startsWith('../') || (!path.includes('://') && !path.startsWith('/'));
+  };
+
+  const noteImageUrls = extractNoteImages(node.note);
+
+  // Effect to load relative local images using the adapter
+  useEffect(() => {
+    const loadRelativeImages = async () => {
+      if (!onLoadRelativeImage || noteImageUrls.length === 0) {
+        return;
+      }
+
+      const newResolvedUrls: Record<string, string> = {};
+
+      for (const imageUrl of noteImageUrls) {
+        if (isRelativeLocalPath(imageUrl) && !resolvedImageUrls[imageUrl]) {
+          try {
+            const dataUrl = await onLoadRelativeImage(imageUrl);
+            if (dataUrl) {
+              newResolvedUrls[imageUrl] = dataUrl;
+            }
+          } catch (error) {
+            console.warn('Failed to load relative image:', imageUrl, error);
+          }
+        }
+      }
+
+      if (Object.keys(newResolvedUrls).length > 0) {
+        setResolvedImageUrls(prev => ({ ...prev, ...newResolvedUrls }));
+      }
+    };
+
+    loadRelativeImages();
+  }, [noteImageUrls.join(','), onLoadRelativeImage]);
 
   // Use shared rendering utilities
   const renderingState = {
@@ -60,6 +117,28 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
 
   const nodeStyles = getBaseNodeStyles(renderingState, themeConfig, DEFAULT_ANIMATION_CONFIG);
   const backgroundFill = getBackgroundFill(themeConfig);
+
+  // Calculate image display parameters
+  const getImageDisplayUrl = (originalUrl: string): string | null => {
+    if (isRelativeLocalPath(originalUrl)) {
+      return resolvedImageUrls[originalUrl] || null;
+    }
+    return originalUrl;
+  };
+
+  // Determine if node has images and calculate layout
+  const hasImages = noteImageUrls.length > 0;
+  const displayImageUrl = hasImages ? getImageDisplayUrl(noteImageUrls[0]) : null;
+
+  // Calculate image size (use custom size if available, otherwise default)
+  const getImageSize = () => {
+    if (node.customImageWidth && node.customImageHeight) {
+      return { width: node.customImageWidth, height: node.customImageHeight };
+    }
+    return { width: 150, height: imageHeight || 105 };
+  };
+
+  const imageSize = getImageSize();
 
   return (
     <>
@@ -86,6 +165,22 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
         onDragOver={onDragOver}
         onDrop={onDrop}
       />
+
+      {/* Image display */}
+      {hasImages && displayImageUrl && (
+        <image
+          href={displayImageUrl}
+          x={node.x - imageSize.width / 2}
+          y={node.y - nodeHeight / 2 + 8}
+          width={imageSize.width}
+          height={imageSize.height}
+          preserveAspectRatio="xMidYMid meet"
+          style={{
+            pointerEvents: 'none',
+            userSelect: 'none'
+          }}
+        />
+      )}
     </>
   );
 };
