@@ -1,77 +1,77 @@
 /**
- * Local mode types - now using shared type system
- * This file re-exports shared types for backward compatibility
+ * Shared Types - 統一エクスポート
+ * アプリケーション全体で使用される共通型をエクスポート
  */
 
-// Import all types from unified core
+// Base types
 export type {
-  MindMapNode,
-  MindMapData,
-  MindMapSettings,
-  UIState,
-  ValidationResult,
-  StorageStats,
-  PerformanceMetrics,
-  KeyboardShortcut,
-  LayoutAlgorithm,
-  NodeEvent,
-  MapEvent,
-  AppError,
-  MindMapHookReturn,
+  Position,
+  Size,
+  Bounds,
   NodeId,
   MapId,
   FileId,
-  UserId,
-  NodeLink,
-  Position,
-  Theme,
-  StorageMode,
-  SyncStatus,
-  ConnectionStatus,
-  MapIdentifier,
-  MarkdownNodeMeta
-} from './_core_unified';
+  Theme
+} from './base.types';
 
-// Import local types (avoiding duplicates)
-export type {
-  MindMapHookDependency,
-  FileHandlersDependency,
-  MapHandlersDependency,
-  UIStateDependency,
-} from './dataTypes';
-
-// Constants are now exported from the unified constants file
-// Use: import { COLORS, LAYOUT, TYPOGRAPHY, etc. } from '@shared/constants'
-
-// Re-export type guards and factories
 export {
-  isValidMindMapNode,
-  isValidMindMapData,
-  DEFAULT_WORKSPACE_ID,
-  createNodeId,
-  createMapId,
-  createFileId,
-  createUserId,
   isNodeId,
   isMapId,
   isFileId,
-  isUserId
-} from './_core_unified';
+  createNodeId,
+  createMapId,
+  createFileId
+} from './base.types';
 
-// Export dataTypes specific items (only non-conflicting ones)
-// Note: NodeId, MapId, FileId are already exported from _core_unified, so skip them here
+// Data types
+export type {
+  MapIdentifier,
+  FileAttachment,
+  NodeLink,
+  MarkdownMeta,
+  MindMapNode,
+  MindMapSettings,
+  MindMapData,
+  MindMapHookDependency,
+  FileHandlersDependency,
+  MapHandlersDependency,
+  UIStateDependency
+} from './data.types';
 
+export {
+  DEFAULT_WORKSPACE_ID
+} from './data.types';
+
+
+// UI types
+export type {
+  UIState,
+  ContextMenuState,
+  ModalStates,
+  UIActions,
+  UISlice
+} from './ui.types';
+
+// Legacy compatibility - maintaining old import paths
+// These should eventually be migrated to use the new structure
+export type {
+  MindMapNode as SharedMindMapNode,
+  MindMapData as SharedMindMapData,
+  MindMapSettings as SharedMindMapSettings
+} from './data.types';
+
+// Legacy types that still exist (maintaining backward compatibility)
 export type { Result } from './result';
 export { Success, Failure, isSuccess, isFailure, map, flatMap, match, collect, tryCatch, tryCatchAsync } from './result';
 
 export type { MindFlowError } from './errors';
-export { 
-  ErrorCode, 
-  MindFlowBaseError, 
-  NodeError, 
-  MapError, 
-  FileError, 
-  StorageError, 
+export {
+  ErrorCode,
+  MindFlowBaseError,
+  NodeError,
+  MapError,
+  FileError,
+  StorageError,
   ValidationError,
   createNodeError,
   createMapError,
@@ -85,3 +85,22 @@ export {
   isValidationError,
   isMindFlowError
 } from './errors';
+
+// Legacy unified types (for backward compatibility)
+// TODO: これらは段階的に新しい型構造に移行する
+export type {
+  ValidationResult,
+  StorageStats,
+  PerformanceMetrics,
+  KeyboardShortcut,
+  LayoutAlgorithm,
+  NodeEvent,
+  MapEvent,
+  AppError,
+  MindMapHookReturn,
+  UserId,
+  StorageMode,
+  SyncStatus,
+  ConnectionStatus,
+  MarkdownNodeMeta
+} from './_core_unified';

@@ -130,7 +130,6 @@ export const THEMES: Record<string, Theme> = {
 export const createInitialData = (mapIdentifier: MapIdentifier): MindMapData => ({
   title: DEFAULTS.NEW_MAP_TITLE,
   category: '',
-  theme: 'default',
   createdAt: new Date().toISOString(),
   updatedAt: new Date().toISOString(),
   mapIdentifier,

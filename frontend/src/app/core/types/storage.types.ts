@@ -1,0 +1,151 @@
+/**
+ * Storage Types - ストレージシステムの型定義
+ */
+
+import type { MindMapData, MapIdentifier } from '@shared/types';
+
+// Storage operation results
+export interface StorageResult<T = void> {
+  success: boolean;
+  data?: T;
+  error?: string;
+}
+
+// File upload result
+export interface FileUploadResult {
+  id: string;
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  attachmentType: 'image' | 'file';
+  downloadUrl?: string;
+  storagePath?: string;
+  uploadedAt: string;
+}
+
+// Explorer item for file system operations
+export interface ExplorerItem {
+  type: 'folder' | 'file';
+  name: string;
+  path: string; // relative from root
+  children?: ExplorerItem[];
+  isMarkdown?: boolean;
+}
+
+// Storage adapter interface
+export interface StorageAdapter {
+  // 初期化状態
+  readonly isInitialized: boolean;
+
+  // 基本操作
+  loadInitialData(): Promise<MindMapData>;
+
+  // マップ管理
+  loadAllMaps(): Promise<MindMapData[]>;
+  addMapToList(map: MindMapData): Promise<void>;
+  removeMapFromList(id: MapIdentifier): Promise<void>;
+
+  // File system operations (optional)
+  createFolder?(relativePath: string): Promise<void>;
+
+  // Explorer tree (optional)
+  getExplorerTree?(): Promise<ExplorerItem>;
+  renameItem?(path: string, newName: string): Promise<void>;
+  deleteItem?(path: string): Promise<void>;
+  moveItem?(sourcePath: string, targetFolderPath: string): Promise<void>;
+
+  // Markdown helpers (optional)
+  getMapMarkdown?(id: MapIdentifier): Promise<string | null>;
+  getMapLastModified?(id: MapIdentifier): Promise<number | null>;
+  saveMapMarkdown?(id: MapIdentifier, markdown: string): Promise<void>;
+
+  // ファイル操作（オプショナル - クラウドモードのみ）
+  deleteFile?(mindmapId: string, nodeId: string, fileId: string): Promise<void>;
+  downloadFile?(mindmapId: string, nodeId: string, fileId: string): Promise<Blob>;
+
+  // ライフサイクル
+  initialize(): Promise<void>;
+  cleanup(): void;
+
+  // Workspace management (optional; markdown/local adapters)
+  listWorkspaces?(): Promise<Array<{ id: string; name: string }>>;
+  addWorkspace?(): Promise<void>;
+  removeWorkspace?(id: string): Promise<void>;
+}
+
+// Map persistence operations
+export interface MapPersistenceOperations {
+  // Map CRUD
+  loadInitialData: () => Promise<void>;
+
+  // Map list management
+  refreshMapList: () => Promise<void>;
+  addMapToList: (mapData: MindMapData) => Promise<void>;
+  removeMapFromList: (id: MapIdentifier) => Promise<void>;
+
+  // File operations
+  uploadFile?: (id: MapIdentifier, nodeId: string, file: File) => Promise<FileUploadResult>;
+  downloadFile?: (id: MapIdentifier, nodeId: string, fileId: string) => Promise<Blob>;
+  deleteFile?: (id: MapIdentifier, nodeId: string, fileId: string) => Promise<void>;
+}
+
+// Storage configuration
+export interface StorageConfiguration {
+  mode: 'local' | 'cloud';
+  settings?: {
+    autoSave?: boolean;
+    syncInterval?: number;
+    retryAttempts?: number;
+  };
+}
+
+// Storage mode type
+export type StorageMode = 'local' | 'markdown';
+
+// Sync status
+export interface SyncStatus {
+  isOnline: boolean;
+  lastSync?: Date;
+  pendingOperations: number;
+  isSyncing: boolean;
+  error?: string;
+}
+
+// Enhanced sync status
+export interface DetailedSyncStatus {
+  lastSync: Date | null;
+  isSyncing: boolean;
+  hasUnsyncedChanges: boolean;
+  lastError: Error | null;
+}
+
+// Storage state
+export interface StorageState {
+  isInitialized: boolean;
+  allMindMaps: MindMapData[];
+  syncStatus: SyncStatus;
+  configuration: StorageConfiguration;
+}
+
+// Storage configuration type
+export interface StorageConfig {
+  mode: StorageMode;
+  autoSave?: boolean;
+  syncInterval?: number;
+  retryAttempts?: number;
+  enableOfflineMode?: boolean;
+}
+
+// Storage events
+export interface StorageEvents {
+  'sync:start': () => void;
+  'sync:complete': (status: DetailedSyncStatus) => void;
+  'sync:error': (error: Error) => void;
+  'data:change': (data: MindMapData) => void;
+}
+
+// Storage adapter factory
+export interface StorageAdapterFactory {
+  create(config: StorageConfig): Promise<StorageAdapter>;
+  isSupported(mode: StorageMode): boolean;
+}

@@ -305,7 +305,7 @@ export class MarkdownImporter {
 
         if (markdownMeta.type === 'heading') {
           // 見出しの場合：levelに基づいて#の数を決定
-          prefix = '#'.repeat(markdownMeta.level) + ' ';
+          prefix = '#'.repeat(markdownMeta.level || 1) + ' ';
         } else if (markdownMeta.type === 'unordered-list') {
           // 順序なしリストの場合：インデントレベルに基づいて-を配置
           const indent = ' '.repeat(markdownMeta.indentLevel || 0);
@@ -447,9 +447,9 @@ export class MarkdownImporter {
     const markdownMeta = node.markdownMeta;
     if (markdownMeta) {
       return {
-        type: markdownMeta.type,
-        level: markdownMeta.level,
-        originalFormat: markdownMeta.originalFormat,
+        type: markdownMeta.type || 'heading',
+        level: markdownMeta.level || 1,
+        originalFormat: markdownMeta.originalFormat || '',
         canConvertToMarkdown: true
       };
     }
@@ -477,7 +477,7 @@ export class MarkdownImporter {
 
           if (meta.type === 'heading') {
             // 見出しレベルの変更
-            let newLevel = meta.level;
+            let newLevel = meta.level || 1;
 
             if (direction === 'increase' && newLevel < 6) {
               newLevel += 1;
@@ -496,7 +496,7 @@ export class MarkdownImporter {
           } else {
             // リストインデントの変更
             let newIndentLevel = meta.indentLevel || 0;
-            let newLevel = meta.level;
+            let newLevel = meta.level || 1;
 
             if (direction === 'increase') {
               newIndentLevel += 2; // 2スペース増加

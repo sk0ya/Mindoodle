@@ -510,11 +510,17 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const fileLastModified = new Date(file.lastModified).toISOString();
       const data: MindMapData = {
         title: baseName, // マップ名はファイル名に固定
-        category: categoryPath || undefined,
+        category: categoryPath || '',
         rootNodes: parseResult.rootNodes,
         createdAt: fileLastModified,
         updatedAt: fileLastModified,
-        settings: { autoSave: true, autoLayout: true },
+        settings: {
+          autoSave: true,
+          autoLayout: true,
+          snapToGrid: false,
+          showGrid: false,
+          animationEnabled: true
+        },
         mapIdentifier: { mapId, workspaceId  }
       };
       

@@ -445,11 +445,17 @@ export const useMindMap = (
 
           const loadedMapData: MindMapData = {
             title: title,
-            category: extractedCategory || undefined,
+            category: extractedCategory || '',
             rootNodes: parseResult.rootNodes,
             createdAt: now,
             updatedAt: now,
-            settings: { autoSave: true, autoLayout: true },
+            settings: {
+              autoSave: true,
+              autoLayout: true,
+              snapToGrid: false,
+              showGrid: false,
+              animationEnabled: true
+            },
             mapIdentifier: { mapId: actualMapId, workspaceId: mapIdentifier.workspaceId }
           };
 
@@ -512,11 +518,17 @@ export const useMindMap = (
         const now = new Date().toISOString();
         const parsed: MindMapData = {
           title: mapId, // UIで表示されるタイトル
-          category: category || undefined,
+          category: category || '',
           rootNodes: parseResult.rootNodes,
           createdAt: now,
           updatedAt: now,
-          settings: { autoSave: true, autoLayout: true },
+          settings: {
+            autoSave: true,
+            autoLayout: true,
+            snapToGrid: false,
+            showGrid: false,
+            animationEnabled: true
+          },
           mapIdentifier: { mapId: actualMapId, workspaceId } // 正しいファイルベースのmapId
         };
 

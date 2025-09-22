@@ -249,10 +249,10 @@ export const useMarkdownSync = () => {
         // 兄弟ノードがmarkdownMetaを持っている場合、同じタイプを継承
         const siblingMeta = lastSibling.markdownMeta;
         newNodeMeta = {
-          type: siblingMeta.type,
-          level: siblingMeta.level,
-          originalFormat: siblingMeta.originalFormat,
-          indentLevel: siblingMeta.indentLevel,
+          type: siblingMeta.type || 'heading',
+          level: siblingMeta.level || 1,
+          originalFormat: siblingMeta.originalFormat || '',
+          indentLevel: siblingMeta.indentLevel || 0,
           lineNumber: -1
         };
       } else if (parentNode.markdownMeta) {
@@ -260,7 +260,7 @@ export const useMarkdownSync = () => {
         const parentMeta = parentNode.markdownMeta;
 
         if (parentMeta.type === 'heading') {
-          const childLevel = parentMeta.level + 1;
+          const childLevel = (parentMeta.level || 1) + 1;
 
           // レベル7以上になる場合はリストに変更
           if (childLevel >= 7) {
@@ -284,9 +284,9 @@ export const useMarkdownSync = () => {
         } else {
           // リストの子は同じタイプで一段深いインデント
           newNodeMeta = {
-            type: parentMeta.type,
-            level: parentMeta.level + 1,
-            originalFormat: parentMeta.originalFormat,
+            type: parentMeta.type || 'heading',
+            level: (parentMeta.level || 1) + 1,
+            originalFormat: parentMeta.originalFormat || '',
             indentLevel: (parentMeta.indentLevel || 0) + 2, // 2スペース追加
             lineNumber: -1
           };

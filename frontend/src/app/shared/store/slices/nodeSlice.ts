@@ -147,7 +147,7 @@ export const createNodeSlice: StateCreator<
         } else if (parentNode.markdownMeta) {
           // No siblings, determine child type based on parent
           if (parentNode.markdownMeta.type === 'heading') {
-            const childLevel = parentNode.markdownMeta.level + 1;
+            const childLevel = (parentNode.markdownMeta.level || 1) + 1;
 
             // レベル7以上になる場合はリストに変更
             if (childLevel >= 7) {
@@ -172,7 +172,7 @@ export const createNodeSlice: StateCreator<
             // 親がリストの場合は同じタイプで一段深いインデント
             newNode.markdownMeta = {
               type: parentNode.markdownMeta.type,
-              level: parentNode.markdownMeta.level + 1,
+              level: (parentNode.markdownMeta.level || 1) + 1,
               originalFormat: parentNode.markdownMeta.originalFormat,
               indentLevel: (parentNode.markdownMeta.indentLevel || 0) + 2,
               lineNumber: -1
