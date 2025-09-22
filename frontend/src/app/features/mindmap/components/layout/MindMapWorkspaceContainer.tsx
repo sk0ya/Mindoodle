@@ -29,7 +29,6 @@ type Props = {
   setZoom: (zoom: number) => void;
   pan: Position;
   setPan: (pan: Position | ((prev: Position) => Position)) => void;
-  onToggleAttachmentList: (nodeId: string) => void;
   onToggleLinkList: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
 };
