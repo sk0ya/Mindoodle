@@ -34,78 +34,75 @@ frontend/
 │   ├── app/                      # アプリケーションのコア（データ層・サービス）
 │   │   ├── core/                 # コアアーキテクチャ
 │   │   │   ├── commands/         # コマンドシステム
+│   │   │   │   ├── navigation/   # ナビゲーションコマンド
+│   │   │   │   ├── structure/    # 構造操作コマンド
+│   │   │   │   ├── system/       # システムコマンド
+│   │   │   │   ├── ui/           # UIコマンド
+│   │   │   │   ├── editing/      # 編集コマンド
+│   │   │   │   └── application/  # アプリケーションコマンド
 │   │   │   ├── data/             # データ管理
-│   │   │   ├── hooks/            # コアHooks
-│   │   │   ├── services/         # サービス層
 │   │   │   ├── storage/          # ストレージ管理
-│   │   │   ├── store/            # Zustand状態管理
+│   │   │   │   └── adapters/     # ストレージアダプター
 │   │   │   ├── streams/          # データストリーム
-│   │   │   └── utils/            # コアユーティリティ
+│   │   │   └── types/            # コア型定義
 │   │   │
 │   │   ├── features/             # 機能単位（mindmap, etc.）
-│   │   │   └── mindmap/
+│   │   │   ├── mindmap/          # マインドマップ機能
+│   │   │   │   ├── handlers/     # イベントハンドラー
+│   │   │   │   ├── services/     # サービス層
+│   │   │   │   ├── hooks/        # Mindmap専用Hooks
+│   │   │   │   ├── utils/        # Mindmap専用ユーティリティ
+│   │   │   │   ├── components/
+│   │   │   │   │   ├── managers/ # マネージャーコンポーネント
+│   │   │   │   │   ├── Node/     # Node関連コンポーネント
+│   │   │   │   │   ├── Canvas/   # Canvas関連コンポーネント
+│   │   │   │   │   ├── ui/       # UI共通コンポーネント
+│   │   │   │   │   │   ├── toolbar/     # ツールバー
+│   │   │   │   │   │   └── contextmenu/ # コンテキストメニュー
+│   │   │   │   │   ├── panels/   # パネルコンポーネント
+│   │   │   │   │   ├── layout/   # レイアウトコンポーネント
+│   │   │   │   │   │   └── styles/      # レイアウト専用スタイル
+│   │   │   │   │   ├── modals/   # モーダルコンポーネント
+│   │   │   │   │   └── Shared/   # Mindmap専用共有UI
+│   │   │   │   ├── store/        # Mindmap専用ストア
+│   │   │   │   │   └── slices/   # ストアスライス
+│   │   │   │   └── types/        # Mindmap専用型定義
+│   │   │   ├── file-management/  # ファイル管理機能
+│   │   │   │   ├── services/
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── components/
+│   │   │   │   └── types/
+│   │   │   ├── ai/               # AI機能
+│   │   │   │   ├── services/
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── components/
+│   │   │   │   └── types/
+│   │   │   ├── editor/           # エディター機能
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── components/
+│   │   │   │   └── types/
+│   │   │   ├── theme/            # テーマ機能
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── components/
+│   │   │   │   └── types/
+│   │   │   └── markdown/         # Markdown機能
+│   │   │       ├── hooks/
+│   │   │       ├── utils/
 │   │   │       ├── components/
-│   │   │       │   ├── Canvas/   # Canvas関連コンポーネント
-│   │   │       │   │   ├── CanvasRenderer.tsx
-│   │   │       │   │   ├── CanvasConnections.tsx
-│   │   │       │   │   ├── CanvasDragGuide.tsx
-│   │   │       │   │   ├── CanvasDragHandler.tsx
-│   │   │       │   │   ├── CanvasEventHandler.ts
-│   │   │       │   │   ├── CanvasViewportHandler.ts
-│   │   │       │   │   └── index.ts
-│   │   │       │   ├── Node/     # Node関連コンポーネント
-│   │   │       │   │   ├── Node.tsx
-│   │   │       │   │   ├── NodeRenderer.tsx
-│   │   │       │   │   ├── NodeEditor.tsx
-│   │   │       │   │   ├── NodeDragHandler.tsx
-│   │   │       │   │   └── index.ts
-│   │   │       │   ├── Shared/   # Mindmap専用共有UI
-│   │   │       │   │   ├── SelectedNodeLinkList.tsx
-│   │   │       │   │   └── index.ts
-│   │   │       │   ├── layout/   # レイアウトコンポーネント
-│   │   │       │   ├── modals/   # モーダル
-│   │   │       │   ├── panels/   # パネル
-│   │   │       │   └── index.ts
-│   │   │       └── index.ts
+│   │   │       └── types/
 │   │   │
 │   │   ├── shared/               # 統合された共通処理
-│   │   │   ├── components/       # 共通コンポーネント
-│   │   │   │   ├── ErrorBoundary.tsx
-│   │   │   │   ├── MarkdownEditor.tsx
-│   │   │   │   ├── ui/           # Toolbar, ContextMenu など共通UI
-│   │   │   │   │   ├── toolbar/
-│   │   │   │   │   ├── contextmenu/
-│   │   │   │   │   ├── Toolbar.tsx
-│   │   │   │   │   ├── ContextMenu.tsx
-│   │   │   │   │   └── ...
-│   │   │   │   └── index.ts
+│   │   │   ├── handlers/         # 共通ハンドラー
+│   │   │   ├── services/         # 共通サービス
 │   │   │   ├── hooks/            # 共通Hooks（useBooleanState等）
 │   │   │   ├── utils/            # 共通ユーティリティ
-│   │   │   │   ├── arrayUtils.ts
-│   │   │   │   ├── stringUtils.ts
-│   │   │   │   ├── nodeUtils.ts
-│   │   │   │   └── ...
-│   │   │   ├── markdown/         # Markdown関連を集約
-│   │   │   │   ├── markdownImporter.ts
-│   │   │   │   ├── markdownLinkUtils.ts
-│   │   │   │   ├── markdownNodeMerge.ts
-│   │   │   │   └── useMarkdownSync.ts
 │   │   │   ├── constants/        # 定数類を一本化
-│   │   │   │   └── index.ts
-│   │   │   ├── types/            # 型定義
-│   │   │   │   ├── nodeTypes.ts
-│   │   │   │   ├── dataTypes.ts
-│   │   │   │   ├── uiTypes.ts
-│   │   │   │   ├── storageTypes.ts
-│   │   │   │   ├── monaco-vim.d.ts
-│   │   │   │   └── index.ts
-│   │   │   ├── styles/           # 共通スタイル
-│   │   │   │   └── modalStyles.ts
-│   │   │   └── index.ts
+│   │   │   ├── components/       # 共通コンポーネント
+│   │   │   ├── store/            # 共通ストア
+│   │   │   ├── types/            # 共通型定義
+│   │   │   └── styles/           # 共通スタイル
 │   │   │
-│   │   ├── types/                # アプリケーション型定義
-│   │   │   └── extension.d.ts
-│   │   └── index.ts
+│   │   └── types/                # アプリケーション型定義
 │   │
 │   ├── App.tsx                   # メインアプリケーションコンポーネント
 │   ├── main.tsx                  # エントリーポイント
@@ -122,16 +119,16 @@ frontend/
 - **Root:** `frontend/` contains the entire React application
 - **Source:** `frontend/src/` with modular architecture:
   - `src/app/` — Main application modules with re-exports in `index.ts`
-  - `src/app/core/` — Core architecture (hooks, store, services, storage, data)
-  - `src/app/features/` — Feature modules organized by domain
-  - `src/app/shared/` — Unified shared components, utilities, types, and constants
+  - `src/app/core/` — Core architecture (commands, data, storage, streams, types)
+  - `src/app/features/` — Feature modules organized by domain (mindmap, file-management, ai, editor, theme, markdown)
+  - `src/app/shared/` — Unified shared handlers, services, hooks, utils, components, store, types, and styles
   - `src/app/types/` — Application-specific type definitions
 
-**Unified Shared Structure:**
-- **Completed Integration:** All shared code is now consolidated into `src/app/shared/`
-- **Component Organization:** Canvas and Node components are properly separated into feature-specific directories
-- **Path Alias Cleaned:** Only `@` and `@shared` aliases remain, legacy aliases removed
-- **Single Source of Truth:** All shared utilities, components, and types are in one organized location
+**Feature-Based Organization:**
+- **Mindmap Feature:** Complete mindmap functionality with handlers, services, hooks, utils, components (Canvas, Node, UI, Layout, Modals), store, and types
+- **Additional Features:** File management, AI integration, editor, theme system, and markdown processing
+- **Component Hierarchy:** Canvas and Node components are properly separated within mindmap feature
+- **Domain Separation:** Each feature maintains its own services, hooks, components, and types
 
 ### Path Aliases (Vite + TypeScript)
 - `@` → `src/`
@@ -139,9 +136,10 @@ frontend/
 
 ### Architecture Patterns
 - **Modular exports:** All features re-export through `src/app/index.ts`
-- **Hook-based core:** State management and business logic in `src/app/core/hooks/`
-- **Feature-based organization:** Each feature (mindmap, files) has its own directory with components, hooks, types
-- **Local-first:** No network calls, all data stored locally
+- **Command-driven core:** Command system in `src/app/core/commands/` with domain-specific command categories
+- **Feature-based organization:** Each feature (mindmap, file-management, ai, editor, theme, markdown) has its own directory with services, hooks, components, store, and types
+- **Zustand store architecture:** Feature-specific stores with mindmap store using slice pattern
+- **Local-first:** No network calls, all data stored locally with multiple storage adapters
 
 ### Key Technologies
 - **Frontend:** React 18 + TypeScript 5.8 + Vite 6
