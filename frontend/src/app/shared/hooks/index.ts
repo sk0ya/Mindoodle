@@ -15,5 +15,4 @@ export { useModal } from './useModal';
 export { useModalState } from './useModalState';
 export { useModelLoader } from './useModelLoader';
 export { useNotification } from './useNotification';
-export { useRetryableUpload } from './useRetryableUpload';
 export { useStatusBar } from './useStatusBar';
