@@ -1,6 +1,6 @@
 import React from 'react';
-import ContextMenu from '../../../../shared/components/ui/ContextMenu';
-import { findNodeInRoots } from '@shared/utils';
+import ContextMenu from '../ui/ContextMenu';
+import { findNodeInRoots } from '../../utils';
 import type { MindMapNode } from '@shared/types';
 
 type Props = {

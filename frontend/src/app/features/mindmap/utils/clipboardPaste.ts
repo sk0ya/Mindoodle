@@ -11,7 +11,7 @@ export async function pasteFromClipboard(
   try {
     if (navigator.clipboard && navigator.clipboard.readText) {
       const clipboardText = await navigator.clipboard.readText();
-      const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('@shared/utils');
+      const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('../markdown');
       if (clipboardText && isMindMeisterFormat(clipboardText)) {
         const parsedNode = parseMindMeisterMarkdown(clipboardText);
         if (parsedNode) {

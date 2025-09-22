@@ -23,9 +23,6 @@ export * from './validation';
 export * from './apiErrorHandler';
 export * from './reloadData';
 
-// Re-export from other organized directories
-export * from '../markdown';
-
 // Storage utilities (avoid type conflicts)
 export {
   STORAGE_KEYS,
@@ -38,6 +35,3 @@ export {
   MAX_FILE_SIZE,
   ALLOWED_FILE_TYPES
 } from '../../core/storage';
-
-// Mindmap utilities
-export * from '../../features/mindmap/utils';

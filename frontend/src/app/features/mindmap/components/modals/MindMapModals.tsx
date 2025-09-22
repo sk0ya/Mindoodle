@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import { ContextMenu } from '../../../../shared';
+import ContextMenu from '../ui/ContextMenu';
 import NodeCustomizationPanel from '../panels/NodeCustomizationPanel';
 import AIGenerationModal from './AIGenerationModal';
 import {

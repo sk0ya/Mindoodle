@@ -3,8 +3,8 @@ import CanvasConnections from './CanvasConnections';
 import CanvasDragGuide from './CanvasDragGuide';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
-import { calculateNodeSize } from '@shared/utils';
-import { useMindMapStore } from '../../../../shared/store';
+import { calculateNodeSize } from '../../utils';
+import { useMindMapStore } from '../../store';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
 interface DragState {

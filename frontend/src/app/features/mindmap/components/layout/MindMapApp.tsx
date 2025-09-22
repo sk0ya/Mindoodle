@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts } from '../../../../shared/hooks';
-import { useMindMapStore } from '../../../../shared/store';
-import { useVimMode } from '../../../../shared/hooks/useVimMode';
-import { findNodeById, findNodeInRoots } from '@shared/utils';
+import { useMindMap, useKeyboardShortcuts } from '../../hooks';
+import { useMindMapStore } from '../../store';
+import { useVimMode } from '../../../editor/hooks/useVimMode';
+import { findNodeById, findNodeInRoots } from '../../utils';
+import { nodeToMarkdown } from '../../markdown';
 import { relPathBetweenMapIds } from '@shared/utils';
-import { nodeToMarkdown } from '@shared/utils';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
 import MindMapHeader from './MindMapHeader';
@@ -16,14 +16,14 @@ import MindMapLinkOverlays from './MindMapLinkOverlays';
 import MarkdownPanelContainer from './NodeNotesPanelContainer';
 // Outline mode removed
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
-import { useNotification } from '../../../../shared/hooks/useNotification';
-import { useMarkdownSync } from '../../../../shared/hooks';
-import { resolveAnchorToNode, computeAnchorForNode } from '@shared/utils';
-import { navigateLink } from '@shared/utils';
-import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
-import { useGlobalErrorHandlers } from '../../../../shared/hooks/useGlobalErrorHandlers';
-import { useAI } from '../../../../shared/hooks/useAI';
-import { useTheme } from '../../../../shared/hooks/useTheme';
+import { useNotification } from '@shared/hooks/useNotification';
+import { useMarkdownSync } from '../../markdown';
+import { resolveAnchorToNode, computeAnchorForNode } from '../../markdown';
+import { navigateLink } from '../../utils';
+import { useErrorHandler } from '@shared/hooks/useErrorHandler';
+import { useGlobalErrorHandlers } from '@shared/hooks/useGlobalErrorHandlers';
+import { useAI } from '../../../ai/hooks/useAI';
+import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
 import { logger } from '@shared/utils';
@@ -770,7 +770,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     const roots = data?.rootNodes || [];
     if (roots.length === 0) return;
     if (selectedNodeId) {
-      const root = roots.find(r => !!findNodeById(r, selectedNodeId)) || roots[0];
+      const root = roots.find((r: MindMapNode) => !!findNodeById(r, selectedNodeId)) || roots[0];
       centerNodeInView(root.id, false, { mode: 'left' });
     } else {
       centerNodeInView(roots[0].id, false, { mode: 'left' });

@@ -1,8 +1,8 @@
 import React from 'react';
-import { NotificationProvider } from '../../../../shared/hooks/useNotification';
-import { ErrorHandlerProvider } from '../../../../shared/hooks/useErrorHandler';
-import { FileUploadProvider } from '../../../../shared/hooks/useFileUpload';
-import { StatusBarProvider } from '../../../../shared/hooks/useStatusBar';
+import { NotificationProvider } from '@shared/hooks/useNotification';
+import { ErrorHandlerProvider } from '@shared/hooks/useErrorHandler';
+import { FileUploadProvider } from '../../../file-management/hooks/useFileUpload';
+import { StatusBarProvider } from '@shared/hooks/useStatusBar';
 
 interface MindMapProvidersProps {
   children: React.ReactNode;

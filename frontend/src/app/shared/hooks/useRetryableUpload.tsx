@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useNotification } from './useNotification';
 import { useErrorHandler } from './useErrorHandler';
-import { useFileUpload, createUploadId } from './useFileUpload';
+import { useFileUpload, createUploadId } from '../../features/file-management/hooks/useFileUpload';
 import { logger } from '../utils/logger';
 
 export interface RetryConfig {

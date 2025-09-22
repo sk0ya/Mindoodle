@@ -1,7 +1,7 @@
 import React, { memo } from 'react';
-import Connection from '../../../../shared/components/ui/Connection';
-import { calculateNodeSize, getToggleButtonPosition, getBranchColor, getNodeLeftX } from '@shared/utils';
-import { useMindMapStore } from '../../../../shared/store';
+import Connection from '../ui/Connection';
+import { calculateNodeSize, getToggleButtonPosition, getBranchColor, getNodeLeftX } from '../../utils';
+import { useMindMapStore } from '../../store';
 import type { MindMapNode, MindMapData } from '@shared/types';
 
 interface ConnectionData {

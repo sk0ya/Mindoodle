@@ -1,12 +1,12 @@
 import React, { memo } from 'react';
-import { useMindMapStore } from '../../../../shared/store';
+import { useMindMapStore } from '../../store';
 import type { MindMapNode } from '@shared/types';
 import {
   getBaseNodeStyles,
   getSelectionBorderStyles,
   getBackgroundFill,
   DEFAULT_ANIMATION_CONFIG
-} from '@shared/handlers';
+} from '../../handlers';
 
 interface NodeRendererProps {
   node: MindMapNode;

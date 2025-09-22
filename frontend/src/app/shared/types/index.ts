@@ -42,6 +42,10 @@ export {
   DEFAULT_WORKSPACE_ID
 } from './data.types';
 
+export {
+  createInitialData
+} from './dataTypes';
+
 
 // UI types
 export type {

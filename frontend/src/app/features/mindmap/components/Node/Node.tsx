@@ -2,11 +2,11 @@ import React, { useRef, useState, useCallback, useEffect, memo } from 'react';
 import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
 import NodeEditor, { isMarkdownLink, isUrl, parseMarkdownLink } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';
-import { calculateNodeSize, getNodeLeftX } from '@shared/utils';
+import { calculateNodeSize, getNodeLeftX } from '../../utils';
 import { stopEventPropagation } from '@shared/utils';
 import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
-import { useMindMapStore } from '../../../../shared/store';
+import { useMindMapStore } from '../../store';
 
 interface NodeProps {
   node: MindMapNode;

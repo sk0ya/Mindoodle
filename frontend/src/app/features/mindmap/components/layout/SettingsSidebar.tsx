@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Moon, Sun, Keyboard, HardDrive, Trash2, Ruler, TriangleAlert } from 'lucide-react';
-import { useMindMapStore } from '../../../../shared/store';
-import { useDataCleanup, type DataCleanupStats } from '../../../../shared/hooks/useDataCleanup';
-import { useBooleanState } from '../../../../shared/hooks/useBooleanState';
+import { useMindMapStore } from '../../store';
+import { useDataCleanup, type DataCleanupStats } from '@shared/hooks/useDataCleanup';
+import { useBooleanState } from '@shared/hooks/useBooleanState';
 
 interface SettingsSidebarProps {
   // 既存のprops（後方互換性のため保持）

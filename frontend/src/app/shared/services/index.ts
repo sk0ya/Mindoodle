@@ -1,4 +1,2 @@
-// Services re-exports (migrated from core/services)
-export * from './EditingStateService';
+// Generic Services only
 export * from './SyncStatusService';
-export * from './ollamaService';

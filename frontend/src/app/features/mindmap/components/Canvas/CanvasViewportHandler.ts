@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { isNodeElement } from '@shared/handlers';
+import { isNodeElement } from '../../handlers';
 
 interface ViewportState {
   zoom: number;

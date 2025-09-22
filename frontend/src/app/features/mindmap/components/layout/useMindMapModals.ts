@@ -1,4 +1,4 @@
-import { useModalState } from '../../../../shared/hooks/useModalState';
+import { useModalState } from '@shared/hooks/useModalState';
 import type { NodeLink } from '@shared/types';
 
 export function useMindMapModals() {

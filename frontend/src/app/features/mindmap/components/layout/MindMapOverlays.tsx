@@ -1,6 +1,6 @@
 import React from 'react';
-import KeyboardShortcutHelper from '../../../../shared/components/ui/KeyboardShortcutHelper';
-import VimStatusBar from '../../../../shared/components/ui/VimStatusBar';
+import KeyboardShortcutHelper from '../ui/KeyboardShortcutHelper';
+import VimStatusBar from '../ui/VimStatusBar';
 
 type Props = {
   // keyboard helper

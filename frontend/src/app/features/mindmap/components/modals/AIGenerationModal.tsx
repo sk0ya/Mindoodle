@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
-import { useAI } from '../../../../shared/hooks/useAI';
+import { useAI } from '../../../ai/hooks/useAI';
 import type { MindMapNode } from '@shared/types';
 
 interface AIGenerationModalProps {
@@ -146,7 +146,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
           {!isSettingsValid && validationErrors.length > 0 && (
             <div className="ai-errors">
               <h4>設定に問題があります:</h4>
-              {validationErrors.map((error, index) => (
+              {validationErrors.map((error: string, index: number) => (
                 <div key={index} className="ai-error">{error}</div>
               ))}
             </div>
