@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X } from 'lucide-react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { searchNodes, searchMultipleMaps, getMatchPosition, type SearchResult } from '../../../../shared/utils/searchUtils';
+import { searchNodes, searchMultipleMaps, getMatchPosition, type SearchResult } from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
 import './SearchSidebar.css';
 

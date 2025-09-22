@@ -1,8 +1,8 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
-import { calculateIconLayout } from '../../../../shared/utils/nodeUtils';
-import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '../../../../shared/markdown/markdownLinkUtils';
+import { calculateIconLayout } from '@shared/utils';
+import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
 
 interface NodeEditorProps {

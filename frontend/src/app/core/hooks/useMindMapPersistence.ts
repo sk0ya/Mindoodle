@@ -3,9 +3,9 @@ import type { MindMapData, MapIdentifier } from '@shared/types';
 import { createInitialData } from '@shared/types/dataTypes';
 import type { StorageAdapter, StorageConfig, ExplorerItem } from '../storage/types';
 import { createStorageAdapter } from '../storage/StorageAdapterFactory';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import { useInitializationWaiter } from './useInitializationWaiter';
-import { isMindMapData, validateMindMapData } from '../../shared/utils/validation';
+import { isMindMapData, validateMindMapData } from '@shared/utils';
 
 // 型検証は shared/utils/validation から import
 

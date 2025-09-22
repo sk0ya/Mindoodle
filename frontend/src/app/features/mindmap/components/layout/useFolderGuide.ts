@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '../../../../shared/utils/localStorage';
+import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
 
 const STORAGE_KEY = STORAGE_KEYS.FOLDER_GUIDE_DISMISSED;
 

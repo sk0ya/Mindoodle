@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { getOllamaService } from '../services/ollamaService';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
 
 /**

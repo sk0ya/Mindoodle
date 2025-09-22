@@ -1,5 +1,5 @@
 import type { MindMapNode } from '@shared/types';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 
 // 正規化されたデータ構造
 export interface NormalizedData {

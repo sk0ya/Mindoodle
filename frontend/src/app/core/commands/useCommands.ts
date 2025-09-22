@@ -14,7 +14,7 @@ import { parseCommand, validateCommand, generateSuggestions } from './parser';
 import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from './commands/index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import type { VimModeHook } from '../hooks/useVimMode';
 
 interface UseCommandsProps {

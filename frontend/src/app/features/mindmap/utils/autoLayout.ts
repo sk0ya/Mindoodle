@@ -1,8 +1,8 @@
 // 自動レイアウト機能のユーティリティ
-import { cloneDeep } from './lodash-utils';
-import { COORDINATES, LAYOUT } from '../constants/index';
+import { cloneDeep } from '@shared/utils';
+import { COORDINATES, LAYOUT } from '../../../shared/constants/index';
 import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from './nodeUtils';
-import type { MindMapNode } from '../types';
+import type { MindMapNode } from '../../../shared/types';
 
 // Layout options interfaces
 interface LayoutOptions {

@@ -5,10 +5,10 @@ import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from './SidebarStyles';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { createChildFolderPath } from '../../../../shared/utils/folderUtils';
-import { logger } from '../../../../shared/utils/logger';
-import { highlightSearchTerm } from '../../../../shared/utils/highlightUtils';
-import { getLastPathSegment, splitPath } from '../../../../shared/utils/stringUtils';
+import { createChildFolderPath } from '@shared/utils';
+import { logger } from '@shared/utils';
+import { highlightSearchTerm } from '@shared/utils';
+import { getLastPathSegment, splitPath } from '@shared/utils';
 import type { ExplorerItem } from '../../../../core/storage/types';
 
 interface NodeViewProps {

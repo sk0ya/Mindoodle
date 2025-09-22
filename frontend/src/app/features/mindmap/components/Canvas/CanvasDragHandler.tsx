@@ -1,6 +1,6 @@
 import React, { useCallback, useState } from 'react';
 import type { MindMapNode } from '@shared/types';
-import { logger } from '../../../../shared/utils/logger';
+import { logger } from '@shared/utils';
 
 interface DragState {
   isDragging: boolean;

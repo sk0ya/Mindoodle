@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import type { MindMapNode } from '@shared/types';
-import { logger } from '../../../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import {
   useDragHandler,
   convertScreenToSVG,

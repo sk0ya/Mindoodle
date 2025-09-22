@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader } from 'lucide-react';
 import MarkdownEditor from '../../../../shared/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
-import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../../shared/utils/localStorage';
+import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 import { useResizingState } from '@/app/shared/hooks';
 
 interface MarkdownPanelProps {

@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapData, MindMapNode } from '@shared/types';
-import { logger } from '../../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import { normalizeTreeData, denormalizeTreeData } from '../../data';
 import { autoSelectLayout, calculateNodeSize } from '../../../shared';
 import type { MindMapStore, DataState } from './types';

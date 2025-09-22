@@ -25,10 +25,10 @@ export function parseFolderPath(path: string): string[] {
 }
 
 /**
- * Get the parent path of a folder
+ * Get the parent folder path
  * e.g., "仕事/プロジェクト/開発" -> "仕事/プロジェクト"
  */
-export function getParentPath(path: string): string | null {
+export function getParentFolderPath(path: string): string | null {
   if (!path) return null;
   const segments = parseFolderPath(path);
   if (segments.length <= 1) return null;
@@ -68,7 +68,7 @@ export function buildFolderTree(categoryPaths: string[], expandedFolders: Set<st
 
   // Build tree nodes
   Array.from(allPaths).forEach(path => {
-    const parent = getParentPath(path);
+    const parent = getParentFolderPath(path);
     const name = getFolderName(path);
     const level = parseFolderPath(path).length - 1;
 

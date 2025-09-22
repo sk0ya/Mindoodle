@@ -1,7 +1,7 @@
 import React from 'react';
 import NodeLinkModal from '../modals/NodeLinkModal';
 import LinkActionMenu from '../modals/LinkActionMenu';
-import { findNodeById } from '../../../../shared/utils/nodeTreeUtils';
+import { findNodeById } from '@shared/utils';
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 
 type Props = {

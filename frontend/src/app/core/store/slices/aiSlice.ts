@@ -1,5 +1,5 @@
 import { StateCreator } from 'zustand';
-import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../shared/utils/localStorage';
+import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 
 // AI設定の状態型
 export interface AISettings {

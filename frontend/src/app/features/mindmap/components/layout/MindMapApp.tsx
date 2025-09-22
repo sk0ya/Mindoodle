@@ -1,9 +1,9 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapStore } from '../../../../core';
 import { useVimMode } from '../../../../core/hooks/useVimMode';
-import { findNodeById, findNodeInRoots } from '../../../../shared/utils/nodeTreeUtils';
-import { relPathBetweenMapIds } from '../../../../shared/utils/mapPath';
-import { nodeToMarkdown } from '../../../../shared/utils/markdownExport';
+import { findNodeById, findNodeInRoots } from '@shared/utils';
+import { relPathBetweenMapIds } from '@shared/utils';
+import { nodeToMarkdown } from '@shared/utils';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
 import MindMapHeader from './MindMapHeader';
@@ -17,15 +17,15 @@ import MarkdownPanelContainer from './NodeNotesPanelContainer';
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import { useNotification } from '../../../../shared/hooks/useNotification';
 import { useMarkdownSync } from '../../../../shared/hooks';
-import { resolveAnchorToNode, computeAnchorForNode } from '../../../../shared/markdown/markdownLinkUtils';
-import { navigateLink } from '../../../../shared/utils/linkNavigation';
+import { resolveAnchorToNode, computeAnchorForNode } from '@shared/utils';
+import { navigateLink } from '@shared/utils';
 import { useErrorHandler } from '../../../../shared/hooks/useErrorHandler';
 import { useGlobalErrorHandlers } from '../../../../shared/hooks/useGlobalErrorHandlers';
 import { useAI } from '../../../../core/hooks/useAI';
 import { useTheme } from '../../../../shared/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
-import { logger } from '../../../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import './MindMapApp.css';
 
@@ -1068,7 +1068,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             showNotification('success', `「${node.text}」をコピーしました`);
           },
           onPasteNode: async (parentId: string) => {
-            const { pasteFromClipboard } = await import('../../../../shared/utils/clipboardPaste');
+            const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
             await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
           },
           onShowCustomization: (node: MindMapNode) => {
@@ -1168,7 +1168,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           showNotification('success', `「${nodeToFind.text}」をコピーしました`);
         }}
         onPasteNode={async (parentId: string) => {
-          const { pasteFromClipboard } = await import('../../../../shared/utils/clipboardPaste');
+          const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
           await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
           handleContextMenuClose();
         }}

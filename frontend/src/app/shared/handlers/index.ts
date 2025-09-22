@@ -4,7 +4,7 @@
  */
 
 // Coordinate utilities
-export * from '../utils/canvasCoordinateUtils';
+export * from '../../features/mindmap/utils/canvasCoordinateUtils';
 
 // Base drag handler
 export * from './BaseDragHandler';

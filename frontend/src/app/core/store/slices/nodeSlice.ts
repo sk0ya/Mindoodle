@@ -1,11 +1,11 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapNode, Position, NodeLink } from '@shared/types';
-import { logger } from '../../../shared/utils/logger';
-import { 
-  addLinkToNodeInTree, 
-  updateLinkInNodeTree, 
-  removeLinkFromNodeTree 
-} from '../../../shared/utils/linkUtils';
+import { logger } from '@shared/utils';
+import {
+  addLinkToNodeInTree,
+  updateLinkInNodeTree,
+  removeLinkFromNodeTree
+} from '@shared/utils';
 import {
   updateNormalizedNode,
   deleteNormalizedNode,
@@ -17,7 +17,7 @@ import {
 } from '../../data';
 import { createNewNode } from '@shared/types/dataTypes';
 import { COLORS, LAYOUT } from '../../../shared';
-import { getBranchColor } from '../../../shared/utils/nodeUtils';
+import { getBranchColor } from '@shared/utils';
 import type { MindMapStore } from './types';
 
 export interface NodeSlice {

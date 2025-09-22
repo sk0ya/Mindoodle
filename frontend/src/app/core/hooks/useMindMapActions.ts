@@ -2,8 +2,8 @@ import { useCallback } from 'react';
 import { useMindMapStore } from '../store/mindMapStore';
 import { createInitialData } from '@shared/types/dataTypes';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { logger } from '../../shared/utils/logger';
-import { safeJsonParse } from '../../shared/utils/safeJson';
+import { logger } from '@shared/utils';
+import { safeJsonParse } from '@shared/utils';
 
 /**
  * 高レベルアクションに特化したHook

@@ -1,10 +1,10 @@
 import type { MindMapData } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../types';
-import { logger } from '../../../shared/utils/logger';
-import { statusMessages } from '../../../shared/utils/safeEmitStatus';
-import { MarkdownImporter } from '../../../shared/markdown/markdownImporter';
+import { logger } from '@shared/utils';
+import { statusMessages } from '@shared/utils';
+import { MarkdownImporter } from '@shared/utils';
 import { createInitialData } from '@shared/types/dataTypes';
-import { generateWorkspaceId, generateTimestampedFilename } from '../../../shared/utils/idGenerator';
+import { generateWorkspaceId, generateTimestampedFilename } from '@shared/utils';
 
 type DirHandle = any; // File System Access API types (browser only)
 type FileHandle = any;

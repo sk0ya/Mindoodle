@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { getClientCoordinates, calculateDistance } from '../utils/canvasCoordinateUtils';
+import { getClientCoordinates, calculateDistance } from '../../features/mindmap/utils/canvasCoordinateUtils';
 
 export interface DragState<T = any> {
   isDragging: boolean;

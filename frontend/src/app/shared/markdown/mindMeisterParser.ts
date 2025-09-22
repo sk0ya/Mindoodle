@@ -3,7 +3,7 @@
  */
 
 import { MindMapNode } from '@shared/types';
-import { generateId } from './idGenerator';
+import { generateId } from '../utils/idGenerator';
 
 interface ParsedNode {
   text: string;

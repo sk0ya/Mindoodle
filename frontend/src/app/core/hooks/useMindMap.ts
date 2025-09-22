@@ -1,18 +1,18 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
-import { MarkdownImporter } from '../../shared/markdown/markdownImporter';
+import { MarkdownImporter } from '@shared/utils';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
 import { useInitialDataLoad } from './useInitialDataLoad';
 import { useDataReset } from './useDataReset';
 import { useStorageConfigChange } from './useStorageConfigChange';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import type { StorageConfig } from '../storage/types';
 import type { MindMapData } from '@shared/types';
 import { useMarkdownStream } from './useMarkdownStream';
-import { statusMessages } from '../../shared/utils/safeEmitStatus';
+import { statusMessages } from '@shared/utils';
 
 /**
  * 統合MindMapHook - 新しいアーキテクチャ

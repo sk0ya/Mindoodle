@@ -1,5 +1,5 @@
 import React from 'react';
-import { logger } from '../../../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import type { NodeLink } from '@shared/types';
 
 interface ModalState {

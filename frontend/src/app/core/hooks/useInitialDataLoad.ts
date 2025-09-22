@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import type { MindMapData } from '@shared/types';
 
 interface InitialDataLoadDependencies {

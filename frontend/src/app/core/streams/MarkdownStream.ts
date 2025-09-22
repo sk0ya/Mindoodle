@@ -15,7 +15,7 @@ export interface MarkdownStreamOptions {
  * - Notify subscribers on changes
  * - Flush changes to sinks with debounce; serialize to avoid races
  */
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 
 export class MarkdownStream {
   private content = '';

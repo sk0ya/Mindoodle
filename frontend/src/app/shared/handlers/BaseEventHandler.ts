@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useRef } from 'react';
-import { isNodeElement, getClientCoordinates, calculateDistance } from '../utils/canvasCoordinateUtils';
+import { isNodeElement, getClientCoordinates, calculateDistance } from '../../features/mindmap/utils/canvasCoordinateUtils';
 
 export interface BaseEventState {
   isActive: boolean;

@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/types';
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '../../../../core/storage/types';
-import { computeAnchorForNode } from '../../../../shared/markdown/markdownLinkUtils';
+import { computeAnchorForNode } from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
 
 interface MapOption {

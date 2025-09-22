@@ -3,8 +3,8 @@
  * エラーハンドリング、型安全性、ログ出力を提供
  */
 
-import { logger } from './logger';
-import { safeJsonParse, safeJsonStringify } from './safeJson';
+import { logger } from '@shared/utils';
+import { safeJsonParse, safeJsonStringify } from '@shared/utils';
 
 /**
  * localStorage操作の結果型

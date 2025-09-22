@@ -1,5 +1,5 @@
 import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
-import { generateLinkId } from './idGenerator';
+import { generateId as generateLinkId } from '@shared/utils';
 import { findNodeInRoots } from './nodeTreeUtils';
 
 // ノードにリンクを追加する関数

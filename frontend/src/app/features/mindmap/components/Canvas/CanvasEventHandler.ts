@@ -1,5 +1,5 @@
 import { useCallback } from 'react';
-import { logger } from '../../../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import { useBaseEventHandler } from '@shared/handlers';
 

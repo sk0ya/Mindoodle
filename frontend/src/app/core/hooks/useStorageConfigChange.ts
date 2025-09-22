@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 import type { StorageConfig } from '../storage/types';
 import type { MindMapData } from '@shared/types';
 

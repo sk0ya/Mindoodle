@@ -3,7 +3,7 @@ import CanvasConnections from './CanvasConnections';
 import CanvasDragGuide from './CanvasDragGuide';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
-import { calculateNodeSize } from '../../../../shared/utils/nodeUtils';
+import { calculateNodeSize } from '@shared/utils';
 import { useMindMapStore } from '../../../../core/store/mindMapStore';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 

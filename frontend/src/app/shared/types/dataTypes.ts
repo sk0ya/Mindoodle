@@ -3,7 +3,7 @@ import type { MapIdentifier } from '@shared/types';
 import { COORDINATES, LAYOUT, TYPOGRAPHY, COLORS, DEFAULTS } from '../constants/index';
 import { logger } from '../utils/logger';
 import { generateNodeId } from '../utils/idGenerator';
-export { validateFile, formatFileSize } from '../utils/fileUtils';
+export { validateFile, formatFileSize } from '../../core/storage/fileUtils';
 
 // ========================================
 // BRANDED TYPES FOR TYPE SAFETY

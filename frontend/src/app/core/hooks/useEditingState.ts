@@ -1,6 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { EditingStateService, type EditingActivity } from '../services/EditingStateService';
-import { logger } from '../../shared/utils/logger';
+import { logger } from '@shared/utils';
 
 /**
  * 編集状態を管理するHook

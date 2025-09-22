@@ -1,4 +1,4 @@
-import type { MindMapNode, MapIdentifier } from '@shared/types';
+import type { MindMapNode, MapIdentifier, NodeLink } from '@shared/types';
 
 const slugify = (text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
 
@@ -38,7 +38,7 @@ interface Ctx {
   resolveAnchorToNode?: (root: MindMapNode, anchor: string) => MindMapNode | null;
 }
 
-export interface NodeLink { targetMapId?: string; targetNodeId?: string; }
+// NodeLink interface is imported from @shared/types
 
 export async function navigateLink(link: NodeLink, ctx: Ctx) {
   const { currentMapId, dataRoot, selectMapById, selectNode, centerNodeInView, notify, getCurrentRootNode } = ctx;

@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapStore } from './types';
-import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '../../../shared/utils/localStorage';
+import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 
 export interface AppSettings {
   // テーマ設定
