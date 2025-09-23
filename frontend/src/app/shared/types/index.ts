@@ -51,15 +51,6 @@ export type {
   UISlice
 } from './ui.types';
 
-// Storage types
-export type {
-  StorageAdapter,
-  ExplorerItem,
-  StorageConfig,
-  StorageMode,
-  SyncStatus
-} from '../../core/types/storage.types';
-
 // Legacy compatibility - maintaining old import paths
 // These should eventually be migrated to use the new structure
 export type {

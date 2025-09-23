@@ -31,7 +31,7 @@ import './MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
-import type { StorageConfig } from '@shared/types';
+import type { StorageConfig } from '../../../../core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
 import { LAYOUT } from '../../../../shared/constants';
