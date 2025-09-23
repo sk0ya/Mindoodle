@@ -1,52 +1,56 @@
-// Re-export all command groups - direct imports since index.ts files removed
-export * from './navigation/navigate';
-export * from './navigation/navigation';
-export * from './navigation/center';
-export * from './editing/delete';
-export { editCommand } from './editing/edit';
-export { openCommand } from './editing/insert';
-export * from './structure/structure';
-export * from './structure/toggle';
-export * from './application/application';
-export * from './application/mindmap';
-export * from './ui/ui';
+// navigation
+import * as navigationCommands from './navigation/navigate';
+import * as centerCommands from './navigation/center';
+import * as navigationUtilCommands from './navigation/navigation';
+import * as navigationIndexCommands from './navigation/index';
 
-// Export system utilities - direct imports since index.ts removed
+// editing
+import * as deleteCommands from './editing/delete';
+import * as editCommands from './editing/edit';
+import * as insertCommands from './editing/insert';
+
+// structure
+import * as structureCommands from './structure/structure';
+import * as toggleCommands from './structure/toggle';
+
+// application
+import * as applicationCommands from './application/application';
+import * as mindmapCommands from './application/mindmap';
+
+// ui
+import * as uiCommands from './ui/ui';
+
+// system
 export { useCommands } from './system/useCommands';
 export type { UseCommandsReturn } from './system/useCommands';
 
-// Import needed commands for categorization
-import {
-  navigateCommand,
-  upCommand,
-  downCommand,
-  leftCommand,
-  rightCommand,
-} from './navigation/navigate';
-import { centerCommand } from './navigation/center';
 
-import { deleteCommand } from './editing/delete';
-import { editCommand, insertCommand, appendCommand } from './editing/edit';
-import { openCommand } from './editing/insert';
-
-import { toggleCommand } from './structure/toggle';
-import {
-  addChildCommand,
-  addSiblingCommand,
-  convertNodeCommand,
-} from './structure/structure';
-
-// Command categories for organization
-export const commandCategories = {
-  navigation: [navigateCommand, upCommand, downCommand, leftCommand, rightCommand, centerCommand],
-  editing: [deleteCommand, editCommand, insertCommand, appendCommand, openCommand],
-  structure: [toggleCommand, addChildCommand, addSiblingCommand, convertNodeCommand],
+// =============================
+// Flatten all commands
+// =============================
+export const allCommandModules = {
+  navigation: { ...navigationCommands, ...centerCommands, ...navigationUtilCommands, ...navigationIndexCommands },
+  editing: { ...deleteCommands, ...editCommands, ...insertCommands },
+  structure: { ...structureCommands, ...toggleCommands },
+  application: { ...applicationCommands, ...mindmapCommands },
+  ui: uiCommands,
 } as const;
 
-// Flattened list of all commands
+// categoriesごとに配列化
+export const commandCategories = Object.fromEntries(
+  Object.entries(allCommandModules).map(([key, mod]) => [
+    key,
+    Object.values(mod),
+  ])
+) as Record<string, any[]>;
+
+// すべてまとめた配列
 export const commands = Object.values(commandCategories).flat();
 
-// Helper function to register all commands
+
+// =============================
+// Registry Helper
+// =============================
 export function registerAllCommands(registry: any) {
   for (const command of commands) {
     try {
