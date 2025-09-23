@@ -18,7 +18,7 @@ interface DragState {
 
 interface CanvasRendererProps {
   svgRef: React.RefObject<SVGSVGElement>;
-  data: MindMapData;
+  data?: MindMapData | null;
   allNodes: MindMapNode[];
   selectedNodeId: string | null;
   editingNodeId: string | null;

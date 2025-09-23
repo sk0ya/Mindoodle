@@ -5,7 +5,6 @@ import type { MindMapData } from '@shared/types';
 interface DataResetDependencies {
   setData: (_data: MindMapData) => void;
   isInitialized: boolean;
-  loadInitialData: () => Promise<MindMapData>;
   refreshMapList: () => Promise<void>;
   applyAutoLayout?: () => void;
   currentWorkspaceId?: string | null;

@@ -1,11 +1,8 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { createInitialData } from '@shared/types';
 import type { StorageAdapter, StorageConfig, ExplorerItem } from '@shared/types';
 import { createStorageAdapter } from '../../../core/storage/StorageAdapterFactory';
 import { logger } from '@shared/utils';
-import { useInitializationWaiter } from '@shared/hooks';
-import { isMindMapData, validateMindMapData } from '@shared/utils';
 
 export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' }) => {
   const [allMindMaps, setAllMindMaps] = useState<MindMapData[]>([]);
@@ -67,42 +64,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       }
     };
   }, [storageAdapter]);
-
-  const { waitForInitialization } = useInitializationWaiter();
-
-  // 初期データ読み込み
-  const loadInitialData = useCallback(async (): Promise<MindMapData> => {
-    if (!isInitialized || !storageAdapter) {
-      await waitForInitialization(() => isInitialized && !!storageAdapter);
-    }
-
-    if (!storageAdapter) {
-      logger.warn('Storage adapter not available, creating default data');
-      const mapIdentifier = { mapId: ``, workspaceId: '' };
-      return createInitialData(mapIdentifier);
-    }
-
-    try {
-      const savedData = await storageAdapter.loadInitialData();
-      if (savedData && isMindMapData(savedData)) {
-        const validation = validateMindMapData(savedData);
-        if (validation.isValid) {
-          logger.debug(`Loaded saved data from ${config.mode} storage:`, savedData.title);
-          return savedData;
-        } else {
-          logger.warn('Loaded data failed validation:', validation.errors);
-        }
-      }
-    } catch (loadError) {
-      logger.error(`Failed to load saved data from ${config.mode} storage:`, loadError);
-    }
-    
-    // デフォルトデータを作成して返す
-    const mapIdentifier = { mapId: ``, workspaceId: '' };
-    const initialData = createInitialData(mapIdentifier);
-    logger.debug('Created initial data:', initialData.title);
-    return initialData;
-  }, [isInitialized, storageAdapter, config.mode, waitForInitialization]);
 
   // エクスプローラーツリー読み込み
   const loadExplorerTree = useCallback(async (): Promise<void> => {
@@ -211,7 +172,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     workspaces,
     
     // 操作
-    loadInitialData,
     refreshMapList,
     addMapToList,
     removeMapFromList,

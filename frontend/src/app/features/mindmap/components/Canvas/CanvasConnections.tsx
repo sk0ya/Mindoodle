@@ -17,7 +17,7 @@ interface ConnectionData {
 
 interface CanvasConnectionsProps {
   allNodes: MindMapNode[];
-  data: MindMapData;
+  data?: MindMapData| null;
   onToggleCollapse: (nodeId: string) => void;
 }
 
@@ -110,7 +110,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           // 非ルートノードの場合はトグルボタン経由
           const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize);
           const rootNodeForNode = findRootNodeForNode(node.id);
-          const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data.rootNodes?.[0] || node, nodeSize, settings.fontSize);
+          const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize);
           const toggleX = togglePosition.x;
           const toggleY = togglePosition.y;
           
@@ -152,7 +152,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
         // 折りたたまれている場合
         const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize);
         const rootNodeForNode = findRootNodeForNode(node.id);
-        const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data.rootNodes?.[0] || node, nodeSize, settings.fontSize);
+        const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize);
         const toggleX = togglePosition.x;
         const toggleY = togglePosition.y;
         

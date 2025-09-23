@@ -1,6 +1,5 @@
 // Generic Hooks - Domain-agnostic utilities only
 export { useDataReset } from './useDataReset';
-export { useInitialDataLoad } from './useInitialDataLoad';
 export { useInitializationWaiter } from './useInitializationWaiter';
 export { useErrorBoundary } from './useErrorBoundary';
 export { useDataCleanup } from './useDataCleanup';

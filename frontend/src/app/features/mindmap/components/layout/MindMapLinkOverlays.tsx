@@ -1,12 +1,10 @@
 import React from 'react';
 import NodeLinkModal from '../modals/NodeLinkModal';
 import LinkActionMenu from '../modals/LinkActionMenu';
-import { findNodeById } from '../../utils';
-import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
+import type { NodeLink, MapIdentifier } from '@shared/types';
 
 type Props = {
   // data
-  dataRoot: MindMapNode;
   allMaps: Array<{ mapIdentifier: { mapId: string; workspaceId: string }; title: string }>;
   currentMapData: any;
 
@@ -18,7 +16,6 @@ type Props = {
   onSaveLink: (linkData: Partial<NodeLink>) => Promise<void> | void;
   onDeleteLink: (linkId: string) => Promise<void> | void;
   onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<any>;
-  onSaveFileLink: (filePath: string, label: string) => void;
 
   // action menu state
   showLinkActionMenu: boolean;
@@ -30,7 +27,6 @@ type Props = {
 };
 
 const MindMapLinkOverlays: React.FC<Props> = ({
-  dataRoot,
   allMaps,
   currentMapData,
   showLinkModal,
@@ -40,7 +36,6 @@ const MindMapLinkOverlays: React.FC<Props> = ({
   onSaveLink,
   onDeleteLink,
   onLoadMapData,
-  onSaveFileLink,
   showLinkActionMenu,
   linkActionMenuData,
   onCloseLinkActionMenu,
@@ -54,7 +49,6 @@ const MindMapLinkOverlays: React.FC<Props> = ({
         <NodeLinkModal
           isOpen={showLinkModal}
           onClose={onCloseLinkModal}
-          node={findNodeById(dataRoot, linkModalNodeId)!}
           link={editingLink}
           onSave={onSaveLink}
           onDelete={onDeleteLink}
@@ -62,7 +56,6 @@ const MindMapLinkOverlays: React.FC<Props> = ({
           currentMapData={currentMapData}
           onLoadMapData={onLoadMapData}
           loadExplorerTree={async () => null}
-          onSaveFileLink={onSaveFileLink}
         />
       )}
 

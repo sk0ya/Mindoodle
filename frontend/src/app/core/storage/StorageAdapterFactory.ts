@@ -22,7 +22,6 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
     logger.info('StorageAdapterFactory: Markdown folder adapter created');
     return adapter;
   }
-
 }
 
 export const defaultStorageAdapterFactory = new StorageAdapterFactory();

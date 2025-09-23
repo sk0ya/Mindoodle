@@ -3,7 +3,6 @@ import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
 import { logger } from '@shared/utils';
 import { statusMessages } from '@shared/utils';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
-import { createInitialData } from '@shared/types';
 import { generateWorkspaceId, generateTimestampedFilename } from '@shared/utils';
 
 type DirHandle = any; // File System Access API types (browser only)
@@ -80,46 +79,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     } catch {
       return null;
     }
-  }
-
-  async loadInitialData(): Promise<MindMapData> {
-    if (!this._isInitialized) {
-      await this.initialize();
-    }
-    if (this.workspaces.length === 0 && !this.rootHandle) {
-      // No folder selected yet; return an initial in-memory map.
-      const mapIdentifier = { mapId: ``, workspaceId: '' };
-    return createInitialData(mapIdentifier);
-    }
-
-    try {
-      const targets = this.workspaces.length > 0 ? this.workspaces.map(w => w.handle) : [this.rootHandle as any];
-      for (const handle of targets) {
-        // Try root-level map first (map.md or README.md)
-        const rootFileHandle = await this.getExistingFile(handle as any, 'map.md')
-          || await this.getExistingFile(handle as any, 'README.md');
-        if (rootFileHandle) {
-          const data = await this.loadMapFromFile(rootFileHandle, handle as any, '', '0');
-          if (data) return data;
-        }
-        // Try any *.md at root level
-        for await (const fileHandle of this.iterateMarkdownFiles(handle as any)) {
-          const data = await this.loadMapFromFile(fileHandle, handle as any, '', '0');
-          if (data) return data;
-        }
-        // Try to find first subfolder (recursively) containing markdown
-        for await (const entry of (handle as any).values?.() || this.iterateEntries(handle)) {
-          if (entry.kind === 'directory') {
-            const data = await this.loadMapFromDirectory(entry, entry.name ?? '');
-            if (data) return data;
-          }
-        }
-      }
-    } catch (e) {
-      logger.error('❌ MarkdownFolderAdapter: Failed to load initial data', e);
-    }
-
-    return createInitialData({ mapId: ``, workspaceId: '' });
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -433,31 +392,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       dir = await this.getOrCreateDirectory(dir, part);
     }
     // nothing else to do; folder ensured
-  }
-
-  private async loadMapFromDirectory(dir: DirHandle, categoryPath: string): Promise<MindMapData | null> {
-    try {
-      // Prefer map.md/README.md
-      let fileHandle = await this.getExistingFile(dir, 'map.md') || await this.getExistingFile(dir, 'README.md');
-      if (!fileHandle) {
-        // Fallback to the first *.md within the directory
-        for await (const fh of this.iterateMarkdownFiles(dir)) {
-          fileHandle = fh;
-          break;
-        }
-      }
-      if (!fileHandle) return null;
-
-      const data = await this.loadMapFromFile(fileHandle, dir, categoryPath, '0');
-      if (data) {
-        // Mark save target as inside this directory
-        this.saveTargets.set(data.mapIdentifier.mapId, { dir, fileName: await this.getFileName(fileHandle), isRoot: false });
-      }
-      return data;
-    } catch (e) {
-      logger.warn('MarkdownFolderAdapter: Failed to load from directory', e);
-      return null;
-    }
   }
 
   // Old variant kept for reference (unused)

@@ -22,7 +22,6 @@ interface NodeOption {
 interface NodeLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  node: MindMapNode;
   link?: NodeLink | null; // 編集時のみ
   onSave: (link: Partial<NodeLink>) => void;
   onDelete?: (linkId: string) => void;
@@ -30,13 +29,11 @@ interface NodeLinkModalProps {
   currentMapData?: MindMapData;
   onLoadMapData?: (mapIdentifier: MapIdentifier) => Promise<MindMapData | null>;
   loadExplorerTree?: () => Promise<ExplorerItem | null>;
-  onSaveFileLink?: (href: string, label: string) => void;
 }
 
 const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   isOpen,
   onClose,
-  node,
   link,
   onSave,
   onDelete,
@@ -44,7 +41,6 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   currentMapData,
   onLoadMapData,
   loadExplorerTree,
-  onSaveFileLink
 }) => {
   const [mode, setMode] = useState<'markdown' | 'files'>('markdown');
   const [selectedMapId, setSelectedMapId] = useState('');
@@ -212,11 +208,9 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       return;
     }
     // files mode
-    if (!selectedFilePath || !onSaveFileLink) return;
-    const label = selectedFilePath.split('/').pop() || selectedFilePath;
-    onSaveFileLink(selectedFilePath, label);
+    if (!selectedFilePath) return;
     onClose();
-  }, [mode, selectedMapId, selectedNodeId, link, onSave, onClose, selectedFilePath, onSaveFileLink, availableNodes]);;
+  }, [mode, selectedMapId, selectedNodeId, link, onSave, onClose, selectedFilePath, availableNodes]);;
 
   const handleDelete = useCallback(() => {
     if (link?.id && onDelete) {
@@ -366,12 +360,6 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
               </div>
             </>
           )}
-
-          <div className="current-node-info">
-            <p>
-              <strong>現在のノード:</strong> {node.text}
-            </p>
-          </div>
         </div>
 
         <div className="modal-footer">

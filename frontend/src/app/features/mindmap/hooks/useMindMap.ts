@@ -5,7 +5,6 @@ import { MarkdownImporter } from '../../markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
-import { useInitialDataLoad } from '@shared/hooks';
 import { useDataReset } from '@shared/hooks';
 import { useStorageConfigChange } from '../../file-management/hooks/useStorageConfigChange';
 import { logger } from '@shared/utils';
@@ -21,7 +20,6 @@ import { statusMessages } from '@shared/utils';
  * Single Responsibility Principleに従い、テスタブルで保守しやすい構造
  */
 export const useMindMap = (
-  isAppReady: boolean = true, 
   storageConfig?: StorageConfig,
   resetKey: number = 0
 ) => {
@@ -32,19 +30,9 @@ export const useMindMap = (
   const persistenceHook = useMindMapPersistence(storageConfig);
   // const { mergeWithExistingNodes } = useMarkdownSync();
 
-  // 各種データ処理を分離されたhookで管理
-  useInitialDataLoad(isAppReady, {
-    data: dataHook.data,
-    setData: dataHook.setData,
-    isInitialized: persistenceHook.isInitialized,
-    loadInitialData: persistenceHook.loadInitialData,
-    applyAutoLayout: dataHook.applyAutoLayout
-  });
-
   useDataReset(resetKey, {
     setData: dataHook.setData,
     isInitialized: persistenceHook.isInitialized,
-    loadInitialData: persistenceHook.loadInitialData,
     refreshMapList: persistenceHook.refreshMapList,
     applyAutoLayout: dataHook.applyAutoLayout,
     currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId,
@@ -562,15 +550,6 @@ export const useMindMap = (
         return false;
       }
     }, [persistenceHook, actionsHook]),
-
-    deleteMap: useCallback(async (id: MapIdentifier): Promise<void> => {
-      await persistenceHook.removeMapFromList(id);
-      // 現在のマップが削除された場合は新しいマップを作成
-      if (dataHook.data?.mapIdentifier.mapId === id.mapId) {
-        const newMap = actionsHook.createMap('新しいマインドマップ', id.workspaceId);
-        actionsHook.selectMap(newMap);
-      }
-    }, [persistenceHook, dataHook, actionsHook]),
 
     updateMapMetadata: useCallback(async (target: MapIdentifier, updates: { title?: string; category?: string }): Promise<void> => {
       const mapId = target.mapId;

@@ -41,9 +41,6 @@ export {
   DEFAULT_WORKSPACE_ID
 } from './data.types';
 
-// Data factory functions
-export { createInitialData } from '../utils/dataFactory';
-
 
 // UI types
 export type {

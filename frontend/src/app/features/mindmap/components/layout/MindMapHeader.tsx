@@ -3,7 +3,7 @@ import Toolbar from '../ui/Toolbar';
 import type { MindMapData } from '@shared/types';
 
 interface MindMapHeaderProps {
-  data: MindMapData;
+  data?: MindMapData |null;
   onTitleChange: (title: string) => void;
   onUndo: () => Promise<void>;
   onRedo: () => Promise<void>;
@@ -37,7 +37,7 @@ const MindMapHeader: React.FC<MindMapHeaderProps> = ({
 }) => {
   return (
     <Toolbar
-      title={data.title}
+      title={data?.title || ''}
       onTitleChange={onTitleChange}
       onUndo={onUndo}
       onRedo={onRedo}

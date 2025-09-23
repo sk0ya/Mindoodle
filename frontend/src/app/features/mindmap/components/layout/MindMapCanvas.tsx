@@ -6,7 +6,7 @@ import { useCanvasEventHandler } from '../Canvas';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
 interface MindMapCanvasProps {
-  data: MindMapData;
+  data?: MindMapData | null;
   selectedNodeId: string | null;
   editingNodeId: string | null;
   editText: string;
@@ -94,7 +94,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   };
   
   // Only use rootNodes array - no fallback to single rootNode
-  const rootNodes = data.rootNodes || [];
+  const rootNodes = data?.rootNodes || [];
 
   // Flatten all nodes from all root nodes
   const allNodes = rootNodes.flatMap(rootNode => flattenVisibleNodes(rootNode));

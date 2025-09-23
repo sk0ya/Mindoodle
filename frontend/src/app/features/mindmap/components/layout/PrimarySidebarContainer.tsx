@@ -11,7 +11,6 @@ type Props = {
   currentMapId: string | null;
   onSelectMap: (id: MapIdentifier) => void;
   onCreateMap: (title: string, workspaceId: string, category?: string) => Promise<string>;
-  onDeleteMap: (id: MapIdentifier) => Promise<void>;
   onRenameMap: (id: MapIdentifier, title: string) => Promise<void> | void;
   onChangeCategory: (id: MapIdentifier, category: string) => Promise<void> | void;
   onChangeCategoryBulk: (updates: Array<{ id: string; category: string }>) => Promise<void>;
@@ -37,7 +36,6 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     currentMapId,
     onSelectMap,
     onCreateMap,
-    onDeleteMap,
     onRenameMap,
     onChangeCategory,
     onChangeCategoryBulk,
@@ -68,7 +66,6 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       currentWorkspaceId={currentMapData?.mapIdentifier?.workspaceId || null}
       onSelectMap={onSelectMap}
       onCreateMap={handleCreateMap}
-      onDeleteMap={onDeleteMap}
       onRenameMap={onRenameMap}
       onChangeCategory={onChangeCategory}
       onChangeCategoryBulk={onChangeCategoryBulk}

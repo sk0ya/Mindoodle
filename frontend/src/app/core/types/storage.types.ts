@@ -21,9 +21,6 @@ export interface StorageAdapter {
   // 初期化状態
   readonly isInitialized: boolean;
 
-  // 基本操作
-  loadInitialData(): Promise<MindMapData>;
-
   // マップ管理
   loadAllMaps(): Promise<MindMapData[]>;
   addMapToList(map: MindMapData): Promise<void>;
@@ -55,9 +52,6 @@ export interface StorageAdapter {
 
 // Map persistence operations
 export interface MapPersistenceOperations {
-  // Map CRUD
-  loadInitialData: () => Promise<void>;
-
   // Map list management
   refreshMapList: () => Promise<void>;
   addMapToList: (mapData: MindMapData) => Promise<void>;

@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store';
-import { createInitialData } from '@shared/types';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { logger } from '@shared/utils';
 import { safeJsonParse } from '@shared/utils';
@@ -13,29 +12,6 @@ export const useMindMapActions = () => {
   const store = useMindMapStore();
 
   const mapActions = {
-    // マップ作成
-    createMap: useCallback((title: string, workspaceId: string, category?: string): MindMapData => {
-      // ファイルパスベースのmapIdを生成（カテゴリ/タイトルの形式）
-      const sanitizedTitle = title.replace(/[/\\:*?"<>|]/g, '_').trim() || 'Untitled';
-      const categoryPath = category ? category.replace(/[/\\:*?"<>|]/g, '_').trim() : '';
-      const mapId = categoryPath ? `${categoryPath}/${sanitizedTitle}` : sanitizedTitle;
-      const mapIdentifier = {
-        mapId,
-        workspaceId
-      };
-      const newMap = createInitialData(mapIdentifier);
-      newMap.title = title;
-      newMap.category = category || '';
-
-      // rootNodesの最初のノードのテキストもマップタイトルに合わせる
-      if (newMap.rootNodes && newMap.rootNodes.length > 0) {
-        newMap.rootNodes[0].text = title;
-      }
-
-      logger.debug('Created new map:', newMap);
-      return newMap;
-    }, []),
-
     // マップ選択
     selectMap: useCallback((mapData: MindMapData) => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);

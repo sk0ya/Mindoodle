@@ -68,7 +68,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   
   // グローバルエラーハンドラーの設定を簡潔に
   useGlobalErrorHandlers(handleError);
-  const [isAppReady] = useState(true);
   const [internalResetKey, setResetKey] = useState(resetKey);
   // モーダル状態管理
   const {
@@ -128,7 +127,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   }, []);
   
   // リセットキーでuseMindMapを強制リセット
-  const mindMap = useMindMap(isAppReady, storageConfig, Math.max(resetKey, internalResetKey));
+  const mindMap = useMindMap(storageConfig, Math.max(resetKey, internalResetKey));
   const { 
     data, 
     selectedNodeId, 
@@ -162,7 +161,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     // マップ操作
     createAndSelectMap,
     selectMapById,
-    deleteMap,
     updateMapMetadata,
     applyAutoLayout,
     
@@ -899,17 +897,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Outline save feature removed
 
-  if (!data) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-50">
-        <div className="text-center">
-          <div className="w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">データを読み込み中...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div 
       className="mindmap-app"
@@ -941,16 +928,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
           // 同じマップが既に選択されている場合は早期リターン
           if (currentMapId === id.mapId &&
-              data?.mapIdentifier?.workspaceId === id.workspaceId) {
+            data?.mapIdentifier?.workspaceId === id.workspaceId) {
             logger.debug('🔄 Same map already selected, skipping:', id.mapId);
             return;
           }
           await selectMapById(id);
-        }}
+        } }
         onCreateMap={(title: string, workspaceId: string, category?: string) => {
           return createAndSelectMap(title, workspaceId, category);
-        }}
-        onDeleteMap={deleteMap}
+        } }
         onRenameMap={(id, title) => updateMapMetadata(id, { title })}
         onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
@@ -962,7 +948,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           } else {
             logger.error('applyAutoLayout function not available');
           }
-        }}
+        } }
         workspaces={workspaces as any}
         onAddWorkspace={addWorkspace as any}
         onRemoveWorkspace={removeWorkspace as any}
@@ -980,11 +966,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               await (mindMap as any).createFolder(path);
             }
           }
-        }}
+        } }
         currentMapData={data}
-        onNodeSelect={(nodeId) => { selectNode(nodeId); centerNodeInView(nodeId); }}
-        onMapSwitch={async (id) => { await selectMapById(id); }}
-      />
+        onNodeSelect={(nodeId) => { selectNode(nodeId); centerNodeInView(nodeId); } }
+        onMapSwitch={async (id) => { await selectMapById(id); } } 
+              />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
         <FolderGuideModal 
@@ -1108,7 +1094,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       />
 
       <MindMapLinkOverlays
-        dataRoot={data.rootNodes?.[0]}
         allMaps={allMindMaps.map(map => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
         currentMapData={data}
         showLinkModal={showLinkModal}
@@ -1118,35 +1103,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onSaveLink={handleSaveLink}
         onDeleteLink={handleDeleteLink}
         onLoadMapData={loadMapData}
-        onSaveFileLink={(filePath: string, label: string) => {
-          try {
-            if (!linkModalNodeId) return;
-            const rootNodes = data.rootNodes || [];
-            let destNode = null;
-            for (const rootNode of rootNodes) {
-              destNode = findNodeById(rootNode, linkModalNodeId);
-              if (destNode) break;
-            }
-            if (!destNode) return;
-            const dirOf = (id: string) => { const i = id.lastIndexOf('/'); return i>=0? id.slice(0,i) : ''; };
-            const fromDir = dirOf(data.mapIdentifier.mapId);
-            const fromSegs = fromDir? fromDir.split('/') : [];
-            const toSegs = filePath.split('/');
-            let i = 0; while (i < fromSegs.length && i < toSegs.length && fromSegs[i] === toSegs[i]) i++;
-            const up = new Array(fromSegs.length - i).fill('..');
-            const down = toSegs.slice(i);
-            const rel = [...up, ...down].join('/');
-            const href = rel || filePath;
-            const currentNote = destNode.note || '';
-            const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
-            const appended = `${currentNote}${prefix}[${label}](${href})\n`;
-            store.updateNode(linkModalNodeId, { note: appended });
-            showNotification('success', 'ノートにファイルリンクを追加しました');
-          } catch (e) {
-            logger.error('Failed to append file link:', e);
-            showNotification('error', 'ファイルリンクの追加に失敗しました');
-          }
-        }}
         showLinkActionMenu={showLinkActionMenu}
         linkActionMenuData={linkActionMenuData as any}
         onCloseLinkActionMenu={handleCloseLinkActionMenu}
