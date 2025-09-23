@@ -1,6 +1,5 @@
 import React, { memo, useState } from 'react';
 import ContextMenu from '../ContextMenu';
-import NodeCustomizationPanel from '../panels/NodeCustomizationPanel';
 import AIGenerationModal from './AIGenerationModal';
 import ImageModal from './ImageModal';
 import {
@@ -89,26 +88,6 @@ const useAIModal = () => {
   };
 };
 
-/**
- * カスタマイゼーションパネルコンポーネント
- */
-const CustomizationPanelModal: React.FC = () => {
-  const ui = useMindMapUI();
-  const selectedNode = useSelectedNode();
-  const { onUpdateNode } = useNodeOperations();
-  const { onCloseCustomizationPanel } = useUIOperations();
-
-  if (!ui.showCustomizationPanel) return null;
-
-  return (
-    <NodeCustomizationPanel
-      selectedNode={selectedNode}
-      onUpdateNode={onUpdateNode}
-      onClose={onCloseCustomizationPanel}
-      position={ui.customizationPosition}
-    />
-  );
-};
 
 /**
  * コンテキストメニューコンポーネント
@@ -116,7 +95,7 @@ const CustomizationPanelModal: React.FC = () => {
 const ContextMenuModal: React.FC<{ onAIGenerate: (node: MindMapNode) => void }> = ({ onAIGenerate }) => {
   const ui = useMindMapUI();
   const selectedNode = useSelectedNode();
-  const { onDeleteNode, onShowCustomization, onCopyNode, onPasteNode } = useNodeOperations();
+  const { onDeleteNode, onCopyNode, onPasteNode } = useNodeOperations();
   const { onCloseContextMenu } = useUIOperations();
 
   if (!ui.showContextMenu) return null;
@@ -127,7 +106,6 @@ const ContextMenuModal: React.FC<{ onAIGenerate: (node: MindMapNode) => void }> 
       position={ui.contextMenuPosition}
       selectedNode={selectedNode}
       onDelete={onDeleteNode}
-      onCustomize={onShowCustomization}
       onCopy={onCopyNode}
       onPaste={onPasteNode}
       onAIGenerate={onAIGenerate}
@@ -188,7 +166,6 @@ const MindMapModalsInternal: React.FC = () => {
 
   return (
     <>
-      <CustomizationPanelModal />
       <ContextMenuModal onAIGenerate={handleAIGenerate} />
       <AIGenerationModalComponent
         showAIModal={showAIModal}

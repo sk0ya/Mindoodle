@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Palette, Copy, Clipboard, Link, Trash2, Clock, List } from 'lucide-react';
+import { Bot, Copy, Clipboard, Link, Trash2, Clock, List } from 'lucide-react';
 import { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '../../store';
 
@@ -21,7 +21,6 @@ export type MenuItem = MenuItemAction | MenuItemSeparator;
 interface MenuItemsProps {
   selectedNode: MindMapNode;
   onDelete: (nodeId: string) => void;
-  onCustomize: (node: MindMapNode) => void;
   onCopy: (node: MindMapNode) => void;
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
@@ -33,7 +32,6 @@ interface MenuItemsProps {
 const MenuItems: React.FC<MenuItemsProps> = ({
   selectedNode,
   onDelete,
-  onCustomize,
   onCopy,
   onPaste,
   onAIGenerate,
@@ -62,14 +60,6 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       disabled: isGenerating
     }] : []),
     ...(aiEnabled && onAIGenerate ? [{ type: 'separator' as const }] : []),
-    {
-      icon: <Palette size={16} />,
-      label: 'カスタマイズ',
-      action: () => {
-        onCustomize(selectedNode);
-        onClose();
-      }
-    },
     { type: 'separator' as const },
     {
       icon: <Copy size={16} />,

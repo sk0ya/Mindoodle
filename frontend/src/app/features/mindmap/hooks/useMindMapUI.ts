@@ -1,6 +1,6 @@
 import { useCallback } from 'react';
 import { useMindMapStore } from '../store';
-import type { MindMapNode, Position } from '@shared/types';
+import type { Position } from '@shared/types';
 
 /**
  * UI状態管理に特化したHook
@@ -11,14 +11,12 @@ export const useMindMapUI = () => {
     setZoom,
     setPan: storeSetPan,
     resetZoom,
-    setShowCustomizationPanel,
     closeAllPanels,
     toggleSidebar,
     setSidebarCollapsed,
     setShowNotesPanel,
     toggleNotesPanel,
     setShowImageModal,
-    showCustomization,
     setFileMenuPosition,
     setShowFileActionMenu,
     ui
@@ -43,9 +41,6 @@ export const useMindMapUI = () => {
     }, [resetZoom]),
 
     // パネル管理
-    setShowCustomizationPanel: useCallback((show: boolean) => {
-      setShowCustomizationPanel(show);
-    }, [setShowCustomizationPanel]),
 
     closeAllPanels: useCallback(() => {
       closeAllPanels();
@@ -73,10 +68,6 @@ export const useMindMapUI = () => {
       setShowImageModal(false);
     }, [setShowImageModal]),
 
-    // カスタマイズパネル
-    showCustomization: useCallback((_node: MindMapNode, position: Position) => {
-      showCustomization(position);
-    }, [showCustomization]),
 
 
     // ファイルアクションメニュー

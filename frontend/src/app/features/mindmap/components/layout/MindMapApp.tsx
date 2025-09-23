@@ -32,7 +32,6 @@ import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/
 import type { StorageConfig } from '@core/storage/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
-import { LAYOUT } from '../../../../shared/constants';
 
 interface MindMapAppProps {
   storageMode?: 'local' | 'markdown';
@@ -659,87 +658,75 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     let targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
       ? rootNodes[0]
       : findNodeInRoots(rootNodes, nodeId);
+
+    // UI状態に基づいて実際の利用可能な領域を計算
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    // 左側パネルの幅を計算（UI状態に基づく）
+    let leftPanelWidth = 48; // Activity bar is always visible (48px)
+    if (activeView && !ui.sidebarCollapsed) {
+      leftPanelWidth += 280; // Primary sidebar width when expanded and active view is selected
+    }
+
+    // 右側パネルの幅を計算（実際のDOM要素から取得）
+    let rightPanelWidth = 0;
+    if (ui.showNotesPanel) {
+      const notesPanel = document.querySelector('.markdown-panel') as HTMLElement;
+      if (notesPanel) {
+        rightPanelWidth += notesPanel.offsetWidth;
+      } else {
+        rightPanelWidth += 600; // デフォルト幅
+      }
+    }
+
+    // 実際の利用可能なマップエリアを計算
+    // ツールバーはoverlayしていないので上端は0から、下端はVimStatusBar分のみ引く
+    const effectiveBottomOffset = 35; // VimStatusBar + 余白 (25 + 10px)
+
+    const mapAreaRect = new DOMRect(
+      leftPanelWidth,
+      0, // 上端は0から
+      viewportWidth - leftPanelWidth - rightPanelWidth,
+      viewportHeight - effectiveBottomOffset
+    );
+
     if (!targetNode) {
       if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
         // フォールバック座標を使用してセンタリング
         const nodeX = fallbackCoords.x;
         const nodeY = fallbackCoords.y;
 
-        const viewportWidth = window.innerWidth;
-        const viewportHeight = window.innerHeight;
-        // サイドバーとアクティビティバーの表示状態を確認して実効的な幅を計算
-        const sidebarElement = document.querySelector('.primary-sidebar') as HTMLElement;
-        const activityBarElement = document.querySelector('.activity-bar') as HTMLElement;
-
-        const isSidebarVisible = sidebarElement &&
-          getComputedStyle(sidebarElement).display !== 'none' &&
-          !sidebarElement.classList.contains('collapsed') &&
-          sidebarElement.getBoundingClientRect().left >= 0;
-
-        const isActivityBarVisible = activityBarElement &&
-          getComputedStyle(activityBarElement).display !== 'none' &&
-          activityBarElement.getBoundingClientRect().left >= 0;
-
-        const effectiveSidebarWidth = isSidebarVisible ? 280 : 0;
-        const effectiveActivityBarWidth = isActivityBarVisible ? 48 : 0;
-        const totalLeftPanelWidth = effectiveSidebarWidth + effectiveActivityBarWidth;
-
-
-        const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
         const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
-        const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * positionRatio);
-        const availableHeight = viewportHeight - LAYOUT.TOOLBAR_HEIGHT - 24; // VimStatusBar height
-        const viewportCenterY = LAYOUT.TOOLBAR_HEIGHT + (availableHeight / 2);
+        const targetX = mapAreaRect.left + (mapAreaRect.width * positionRatio);
+        const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
         const currentZoom = ui.zoom * 1.5;
 
-        const newPanX = leftCenterX / currentZoom - nodeX;
-        const newPanY = viewportCenterY / currentZoom - nodeY;
+        const newPanX = targetX / currentZoom - nodeX;
+        const newPanY = targetY / currentZoom - nodeY;
 
         setPan({ x: newPanX, y: newPanY });
       }
       return;
     }
 
-    // ビューポート座標を計算（サイドバーを考慮した左端中央）
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-    // サイドバーとアクティビティバーの表示状態を確認して実効的な幅を計算
-    const sidebarElement = document.querySelector('.primary-sidebar') as HTMLElement;
-    const activityBarElement = document.querySelector('.activity-bar') as HTMLElement;
-
-    const isSidebarVisible = sidebarElement &&
-      getComputedStyle(sidebarElement).display !== 'none' &&
-      !sidebarElement.classList.contains('collapsed') &&
-      sidebarElement.getBoundingClientRect().left >= 0;
-
-    const isActivityBarVisible = activityBarElement &&
-      getComputedStyle(activityBarElement).display !== 'none' &&
-      activityBarElement.getBoundingClientRect().left >= 0;
-
-    const effectiveSidebarWidth = isSidebarVisible ? 280 : 0;
-    const effectiveActivityBarWidth = isActivityBarVisible ? 48 : 0;
-    const totalLeftPanelWidth = effectiveSidebarWidth + effectiveActivityBarWidth;
-
-
-    const mapAreaWidth = viewportWidth - totalLeftPanelWidth;
-    // マップエリアの位置を決定（左寄りモードまたは中央モード）
-    const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
-    const leftCenterX = totalLeftPanelWidth + (mapAreaWidth * positionRatio);
-    const availableHeight = viewportHeight - LAYOUT.TOOLBAR_HEIGHT - 24; // VimStatusBar height
-    const viewportCenterY = LAYOUT.TOOLBAR_HEIGHT + (availableHeight / 2);
-
     // ノードの現在の座標
     const nodeX = targetNode.x || 0;
     const nodeY = targetNode.y || 0;
+
+    // マップエリアの中央を計算
+    const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
+    const targetX = mapAreaRect.left + (mapAreaRect.width * positionRatio);
+    const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
 
     // 現在のズーム率を取得（SVGでは1.5倍されている）
     const currentZoom = ui.zoom * 1.5;
 
     // SVGの transform="scale(s) translate(tx, ty)" の場合、
-    // 最終座標は s * (x + tx) となるため、左端中央に配置するには：
-    // leftCenterX = currentZoom * (nodeX + panX) → panX = leftCenterX/currentZoom - nodeX
-    const newPanX = leftCenterX / currentZoom - nodeX;
-    const newPanY = viewportCenterY / currentZoom - nodeY;
+    // 最終座標は s * (x + tx) となるため、目標位置に配置するには：
+    // targetX = currentZoom * (nodeX + panX) → panX = targetX/currentZoom - nodeX
+    const newPanX = targetX / currentZoom - nodeX;
+    const newPanY = targetY / currentZoom - nodeY;
 
     if (animate) {
       // 非同期アニメーション（ユーザー操作をブロックしない）
@@ -1068,17 +1055,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
             await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
           },
-          onShowCustomization: (node: MindMapNode) => {
-            selectNode(node.id);
-            store.showCustomization({ x: ui.contextMenuPosition.x, y: ui.contextMenuPosition.y });
-          },
           onAddChild: (parentId: string, text?: string) => {
             return store.addChildNode(parentId, text || 'New Node');
           }
         }}
         uiOperations={{
           onCloseContextMenu: closeAllPanels,
-          onCloseCustomizationPanel: closeAllPanels,
           onCloseImageModal: handleCloseImageModal,
           onCloseFileActionMenu: closeAllPanels,
           onShowImageModal: handleShowImageModal
@@ -1118,11 +1100,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         dataRoots={data?.rootNodes || []}
         nodeId={contextMenu.nodeId}
         onDelete={deleteNode}
-        onCustomize={(node) => {
-          selectNode(node.id);
-          store.showCustomization({ x: contextMenu.position.x, y: contextMenu.position.y });
-          handleContextMenuClose();
-        }}
         onAddLink={(nodeId) => {
           setLinkModalNodeId(nodeId);
           setShowLinkModal(true);

@@ -103,8 +103,6 @@ export interface UISlice {
   setZoom: (zoom: number) => void;
   setPan: (pan: Position) => void;
   resetZoom: () => void;
-  setShowCustomizationPanel: (show: boolean) => void;
-  setCustomizationPosition: (position: Position) => void;
   setShowContextMenu: (show: boolean) => void;
   setContextMenuPosition: (position: Position) => void;
   setShowShortcutHelper: (show: boolean) => void;
@@ -125,7 +123,6 @@ export interface UISlice {
 
   closeAllPanels: () => void;
   toggleSidebar: () => void;
-  showCustomization: (position?: Position) => void;
 }
 
 // Combined Store Interface

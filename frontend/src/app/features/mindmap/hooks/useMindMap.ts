@@ -629,12 +629,10 @@ export const useMindMap = (
     setZoom: uiHook.setZoom,
     setPan: uiHook.setPan,
     resetZoom: uiHook.resetZoom,
-    setShowCustomizationPanel: uiHook.setShowCustomizationPanel,
     closeAllPanels: uiHook.closeAllPanels,
     toggleSidebar: uiHook.toggleSidebar,
     setSidebarCollapsed: uiHook.setSidebarCollapsed,
     hideImageModal: uiHook.hideImageModal,
-    showCustomization: uiHook.showCustomization,
     showFileActionMenu: uiHook.showFileActionMenu,
     hideFileActionMenu: uiHook.hideFileActionMenu,
 

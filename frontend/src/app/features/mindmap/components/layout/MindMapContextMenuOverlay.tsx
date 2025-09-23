@@ -9,7 +9,6 @@ type Props = {
   dataRoot: MindMapNode | null;
   dataRoots?: MindMapNode[];
   onDelete: (nodeId: string) => void;
-  onCustomize: (node: MindMapNode) => void;
   onAddLink: (nodeId: string) => void;
   onCopyNode: (nodeId: string) => void;
   onPasteNode: (parentId: string) => Promise<void>;
@@ -25,7 +24,6 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   dataRoot,
   dataRoots,
   onDelete,
-  onCustomize,
   onAddLink,
   onCopyNode,
   onPasteNode,
@@ -46,7 +44,6 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
       position={position}
       selectedNode={selectedNode}
       onDelete={onDelete}
-      onCustomize={onCustomize}
       onAddLink={onAddLink}
       onCopy={(node) => onCopyNode(node.id)}
       onPaste={onPasteNode}

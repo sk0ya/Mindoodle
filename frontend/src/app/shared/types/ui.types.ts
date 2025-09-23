@@ -12,8 +12,6 @@ export interface UIState {
   pan: Position;
 
   // Panel visibility
-  showCustomizationPanel: boolean;
-  customizationPosition: Position;
   showContextMenu: boolean;
   contextMenuPosition: Position;
   showShortcutHelper: boolean;
@@ -51,7 +49,6 @@ export interface ModalStates {
   showLinkActionMenu: boolean;
   showImageModal: boolean;
   showFileActionMenu: boolean;
-  showCustomizationPanel: boolean;
   showContextMenu: boolean;
 }
 
@@ -63,8 +60,6 @@ export interface UIActions {
   resetZoom: () => void;
 
   // Panel Management
-  setShowCustomizationPanel: (show: boolean) => void;
-  setCustomizationPosition: (position: Position) => void;
   setShowContextMenu: (show: boolean) => void;
   setContextMenuPosition: (position: Position) => void;
   setShowShortcutHelper: (show: boolean) => void;
@@ -91,7 +86,6 @@ export interface UIActions {
   // Composite Actions
   closeAllPanels: () => void;
   toggleSidebar: () => void;
-  showCustomization: (position?: Position) => void;
 }
 
 // Combined UI interface

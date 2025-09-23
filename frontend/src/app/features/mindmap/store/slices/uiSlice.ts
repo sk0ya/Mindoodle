@@ -17,8 +17,6 @@ export const createUISlice: StateCreator<
   ui: {
     zoom: 1,
     pan: { x: 0, y: 0 },
-    showCustomizationPanel: false,
-    customizationPosition: { x: 0, y: 0 },
     showContextMenu: false,
     contextMenuPosition: { x: 0, y: 0 },
     showShortcutHelper: false,
@@ -55,17 +53,6 @@ export const createUISlice: StateCreator<
   },
 
   // Panel Management Actions
-  setShowCustomizationPanel: (show: boolean) => {
-    set((state) => {
-      state.ui.showCustomizationPanel = show;
-    });
-  },
-
-  setCustomizationPosition: (position: Position) => {
-    set((state) => {
-      state.ui.customizationPosition = position;
-    });
-  },
 
   setShowContextMenu: (show: boolean) => {
     set((state) => {
@@ -173,7 +160,6 @@ export const createUISlice: StateCreator<
   // Composite Actions
   closeAllPanels: () => {
     set((state) => {
-      state.ui.showCustomizationPanel = false;
       state.ui.showContextMenu = false;
       state.ui.showShortcutHelper = false;
       state.ui.showMapList = false;
@@ -192,15 +178,5 @@ export const createUISlice: StateCreator<
     });
   },
 
-  showCustomization: (position?: Position) => {
-    set((state) => {
-      state.ui.showCustomizationPanel = true;
-      if (position) {
-        state.ui.customizationPosition = position;
-      }
-      // Close other panels
-      state.ui.showContextMenu = false;
-    });
-  },
 
 });

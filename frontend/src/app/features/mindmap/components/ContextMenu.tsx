@@ -14,7 +14,6 @@ interface ContextMenuProps {
   position: Position;
   selectedNode: MindMapNode | null;
   onDelete: (nodeId: string) => void;
-  onCustomize: (node: MindMapNode) => void;
   onCopy: (node: MindMapNode) => void;
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
@@ -28,7 +27,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   position,
   selectedNode,
   onDelete,
-  onCustomize,
   onCopy,
   onPaste,
   onAIGenerate,
@@ -71,7 +69,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       <MenuItems
         selectedNode={selectedNode}
         onDelete={onDelete}
-        onCustomize={onCustomize}
         onCopy={onCopy}
         onPaste={onPaste}
         onAIGenerate={onAIGenerate}

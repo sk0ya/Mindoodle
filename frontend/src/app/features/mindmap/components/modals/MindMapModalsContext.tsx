@@ -8,12 +8,10 @@ import type { MindMapNode} from '../../../../shared';
 
 // UI状態の型定義
 export interface MindMapUIState {
-  showCustomizationPanel: boolean;
   showContextMenu: boolean;
   showImageModal: boolean;
   showFileActionMenu: boolean;
   contextMenuPosition: { x: number; y: number };
-  customizationPosition: { x: number; y: number };
   fileMenuPosition: { x: number; y: number };
   clipboard: MindMapNode | null;
 }
@@ -25,13 +23,11 @@ export interface NodeOperations {
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onCopyNode: (node: MindMapNode) => void;
   onPasteNode: (parentId: string) => void;
-  onShowCustomization: (node: MindMapNode) => void;
   onAddChild: (parentId: string, text?: string) => string | undefined; // 新しい子ノードのIDを返す（失敗時undefined）
 }
 
 // UI操作関数の型定義
 export interface UIOperations {
-  onCloseCustomizationPanel: () => void;
   onCloseContextMenu: () => void;
   onCloseImageModal: () => void;
   onCloseFileActionMenu: () => void;
