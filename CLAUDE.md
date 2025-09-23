@@ -42,7 +42,6 @@ frontend/
 │   │   │   │   └── adapters/     # ストレージアダプター
 │   │   │   ├── services/         # コアサービス
 │   │   │   ├── streams/          # データストリーム
-│   │   │   ├── utils/            # コアユーティリティ
 │   │   │   └── types/            # コア型定義
 │   │   │
 │   │   ├── features/             # 機能単位（mindmap, etc.）
@@ -72,27 +71,20 @@ frontend/
 │   │   │   │   └── types/
 │   │   │   ├── ai/               # AI機能
 │   │   │   │   ├── services/
-│   │   │   │   ├── hooks/
-│   │   │   │   ├── components/
-│   │   │   │   └── types/
+│   │   │   │   └── hooks/
 │   │   │   ├── vim/              # Vim機能
 │   │   │   │   ├── hooks/
 │   │   │   │   └── context/
 │   │   │   ├── theme/            # テーマ機能
-│   │   │   │   ├── hooks/
-│   │   │   │   ├── components/
-│   │   │   │   └── types/
+│   │   │   │   └── hooks/
 │   │   │   ├── markdown/         # Markdown機能
 │   │   │   │   ├── services/
 │   │   │   │   ├── hooks/
-│   │   │   │   ├── utils/
-│   │   │   │   ├── components/
-│   │   │   │   └── types/
+│   │   │   │   └── components/
 │   │   │   └── files/            # ファイル機能
 │   │   │       └── components/
 │   │   │
 │   │   ├── shared/               # 統合された共通処理
-│   │   │   ├── handlers/         # 共通ハンドラー
 │   │   │   ├── hooks/            # 共通Hooks（カテゴリ別）
 │   │   │   │   ├── system/       # システム関連hooks
 │   │   │   │   ├── data/         # データ関連hooks
@@ -101,14 +93,9 @@ frontend/
 │   │   │   ├── utils/            # 共通ユーティリティ
 │   │   │   ├── constants/        # 定数類を一本化
 │   │   │   ├── components/       # 共通コンポーネント
-│   │   │   │   └── ui/           # 共通UIコンポーネント
-│   │   │   │       ├── toolbar/
-│   │   │   │       └── contextmenu/
-│   │   │   ├── store/            # 共通ストア
 │   │   │   ├── types/            # 共通型定義
 │   │   │   └── styles/           # 共通スタイル
 │   │   │       ├── ui/
-│   │   │       ├── components/
 │   │   │       └── layout/
 │   │   │
 │   │   └── types/                # アプリケーション型定義
@@ -133,7 +120,7 @@ frontend/
   - `src/app/` — Main application modules with re-exports in `index.ts`
   - `src/app/core/` — Core architecture (commands, data, storage, streams, types)
   - `src/app/features/` — Feature modules organized by domain (mindmap, file-management, ai, editor, theme, markdown)
-  - `src/app/shared/` — Unified shared handlers, services, hooks, utils, components, store, types, and styles
+  - `src/app/shared/` — Unified shared hooks, utils, components, types, and styles
   - `src/app/types/` — Application-specific type definitions
 
 **Feature-Based Organization:**
