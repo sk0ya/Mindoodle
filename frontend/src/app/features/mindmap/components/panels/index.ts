@@ -5,4 +5,4 @@ export { default as NodePresetPanel } from './NodePresetPanel';
 export { default as MarkdownPanel } from './NodeNotesPanel';
 
 // Styles
-export { default as NodeCustomizationStyles } from './NodeCustomizationStyles';
+export { default as NodeCustomizationStyles } from '../../styles/NodeCustomizationStyles';

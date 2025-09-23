@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
-import SidebarStyles from './SidebarStyles';
+import SidebarStyles from '../../styles/SidebarStyles';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { createChildFolderPath } from '@shared/utils';

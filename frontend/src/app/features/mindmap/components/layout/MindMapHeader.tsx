@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import Toolbar from '../ui/Toolbar';
+import Toolbar from '../Toolbar';
 import type { MindMapData } from '@shared/types';
 
 interface MindMapHeaderProps {

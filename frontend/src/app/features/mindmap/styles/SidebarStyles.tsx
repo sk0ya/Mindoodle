@@ -1,5 +1,5 @@
 import React from 'react';
-import { LAYOUT } from '../../../../shared/constants';
+import { LAYOUT } from '@shared/constants';
 
 const SidebarStyles: React.FC = () => (
   <style>{`

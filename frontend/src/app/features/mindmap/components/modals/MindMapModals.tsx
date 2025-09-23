@@ -1,5 +1,5 @@
 import React, { memo, useState } from 'react';
-import ContextMenu from '../ui/ContextMenu';
+import ContextMenu from '../ContextMenu';
 import NodeCustomizationPanel from '../panels/NodeCustomizationPanel';
 import AIGenerationModal from './AIGenerationModal';
 import ImageModal from './ImageModal';

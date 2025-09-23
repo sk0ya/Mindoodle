@@ -1,5 +1,5 @@
 import React from 'react';
-import { useVimMode } from '../../../vim/hooks/useVimMode';
+import { useVimMode } from '../../vim/hooks/useVimMode';
 import { useStatusBar } from '@shared/hooks';
 type Props = {
   vim: ReturnType<typeof useVimMode>;

@@ -3,7 +3,7 @@ import ToolbarLogo from './toolbar/ToolbarLogo';
 import TitleEditor from './toolbar/TitleEditor';
 import ActionButtons from './toolbar/ActionButtons';
 import StorageModeSwitch from './toolbar/StorageModeSwitch';
-import ToolbarStyles from './toolbar/ToolbarStyles';
+import ToolbarStyles from '../styles/ToolbarStyles';
 
 interface ToolbarProps {
   title: string;

@@ -4,7 +4,7 @@ import type { MindMapNode } from '@shared/types';
 import NodeFontPanel from './NodeFontPanel';
 import NodePresetPanel from './NodePresetPanel';
 import ImageResizePanel from './ImageResizePanel';
-import NodeCustomizationStyles from './NodeCustomizationStyles';
+import NodeCustomizationStyles from '../../styles/NodeCustomizationStyles';
 
 interface NodeCustomizationPanelProps {
   selectedNode: MindMapNode | null;

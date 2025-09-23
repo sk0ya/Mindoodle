@@ -1,7 +1,7 @@
 import React, { useEffect, memo } from 'react';
 import { MindMapNode } from '@shared/types';
 import MenuItems from './contextmenu/MenuItems';
-import ContextMenuStyles from './contextmenu/ContextMenuStyles';
+import ContextMenuStyles from '../styles/ContextMenuStyles';
 import { useClickOutside } from '@shared/utils';
 
 interface Position {
