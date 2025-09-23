@@ -7,13 +7,6 @@ import { logger } from '@shared/utils';
 import { useInitializationWaiter } from '@shared/hooks';
 import { isMindMapData, validateMindMapData } from '@shared/utils';
 
-// 型検証は shared/utils/validation から import
-
-
-/**
- * データ永続化に特化したHook
- * 設定可能なストレージアダプターでの保存・読み込みを担当
- */
 export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' }) => {
   const [allMindMaps, setAllMindMaps] = useState<MindMapData[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -22,16 +15,13 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   const [explorerTree, setExplorerTree] = useState<ExplorerItem | null>(null);
   const [workspaces, setWorkspaces] = useState<Array<{ id: string; name: string }>>([]);
 
-  // 前回の設定を記録して無用な再初期化を防ぐ
   const prevConfigRef = useRef<StorageConfig | null>(null);
   
-  // ストレージアダプター初期化
   useEffect(() => {
     const prevConfig = prevConfigRef.current;
     const modeChanged = prevConfig?.mode !== config.mode;
     
 
-    // 設定が実際に変更された場合のみ再初期化
     if (!prevConfig || modeChanged ) {
       logger.debug(`(Re)initializing ${config.mode} storage adapter`, {
         reason: !prevConfig ? 'first-init' :  'mode-changed'
@@ -51,7 +41,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
           }
           
           logger.debug(`Creating ${config.mode} storage adapter`);
-          const adapter = await createStorageAdapter(config);
+          const adapter = await createStorageAdapter();
           setStorageAdapter(adapter);
           setIsInitialized(true);
           logger.debug(`${config.mode} storage initialized successfully`);

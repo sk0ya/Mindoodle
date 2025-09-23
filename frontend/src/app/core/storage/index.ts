@@ -4,7 +4,6 @@ export type {
   StorageConfig,
   StorageMode,
   SyncStatus,
-  StorageEvents,
   StorageAdapterFactory as IStorageAdapterFactory
 } from '../types/storage.types';
 

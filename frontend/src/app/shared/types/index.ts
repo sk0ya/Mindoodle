@@ -33,7 +33,6 @@ export type {
   MindMapSettings,
   MindMapData,
   MindMapHookDependency,
-  FileHandlersDependency,
   MapHandlersDependency,
   UIStateDependency
 } from './data.types';

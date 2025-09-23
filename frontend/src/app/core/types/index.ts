@@ -1,9 +1,3 @@
-/**
- * Core Types - 統一エクスポート
- * システムコア機能の型定義をエクスポート
- */
-
-// Command types
 export type {
   CommandArgType,
   CommandArg,
@@ -18,18 +12,13 @@ export type {
   CommandHandlers
 } from './commands.types';
 
-// Storage types
 export type {
   StorageResult,
   ExplorerItem,
   StorageAdapter,
   MapPersistenceOperations,
-  StorageConfiguration,
   StorageMode,
   SyncStatus,
-  DetailedSyncStatus,
-  StorageState,
   StorageConfig,
-  StorageEvents,
   StorageAdapterFactory
 } from './storage.types';

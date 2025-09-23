@@ -1,9 +1,3 @@
-/**
- * Core type definitions shared across Local and Cloud modes
- * This file contains the unified type system for MindFlow application
- */
-
-// Branded types for enhanced type safety
 export type NodeId = string & { readonly __brand: 'NodeId' };
 export type MapId = string & { readonly __brand: 'MapId' };
 export type FileId = string & { readonly __brand: 'FileId' };
@@ -109,19 +103,10 @@ export interface UIState {
   showTutorial: boolean;
   showKeyboardHelper: boolean;
   showMapList: boolean;
-  showCloudStorage: boolean;
   showLayoutPanel: boolean;
   zoom: number;
   panX: number;
   panY: number;
-}
-
-// Cloud storage state
-export interface CloudStorageState {
-  isConnected: boolean;
-  isLoading: boolean;
-  error: string | null;
-  syncStatus: SyncStatus;
 }
 
 // Utility types
@@ -168,7 +153,7 @@ export interface LayoutAlgorithm {
 }
 
 // Enum-like types
-export type StorageMode = 'local' | 'cloud' | 'markdown';
+export type StorageMode = 'local' | 'markdown';
 export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
 export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
 

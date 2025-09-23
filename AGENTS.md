@@ -8,7 +8,7 @@
   - Shared utilities/components: `src/shared/**`
 - Static assets: `frontend/public/` (served at root). Build output: `frontend/dist/`.
 - Tooling/config: `frontend/{package.json, vite.config.js, eslint.config.js, tsconfig*.json}`.
-- Path aliases (Vite/TS): `@` → `src`, plus `@shared`, `@local`, `@cloud`.
+- Path aliases (Vite/TS): `@` → `src`, plus `@shared`, `@local`
 
 ## Build, Test, and Development Commands
 - Always run inside `frontend/`.

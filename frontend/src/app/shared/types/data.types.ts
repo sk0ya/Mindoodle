@@ -11,7 +11,6 @@ export interface MapIdentifier {
   workspaceId: string;
 }
 
-// File attachment interface for both local and cloud storage
 export interface FileAttachment {
   id: string;
   name: string;
@@ -24,12 +23,7 @@ export interface FileAttachment {
   data?: string; // Base64 encoded data
   dataURL?: string; // For backward compatibility
 
-  // Cloud storage (for cloud mode)
   downloadUrl?: string;
-  storagePath?: string;
-  thumbnailUrl?: string;
-  r2FileId?: string;
-  isR2Storage?: boolean;
 
   // Common optimization fields
   isOptimized?: boolean;
@@ -117,15 +111,6 @@ export interface MindMapHookDependency {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-}
-
-export interface FileHandlersDependency {
-  handleFileUpload: (nodeId: string, file: File) => Promise<void>;
-  handleRemoveFile: (nodeId: string, fileId: string) => Promise<void>;
-  handleFileDownload: (nodeId: string, fileId: string) => Promise<void>;
-  handleFileRename: (nodeId: string, fileId: string, newName: string) => Promise<void>;
-  handleShowImageModal: (image: { url: string; alt: string }) => void;
-  handleShowFileActionMenu: (position: Position) => void;
 }
 
 export interface MapHandlersDependency {

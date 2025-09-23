@@ -375,7 +375,7 @@ const Node: React.FC<NodeProps> = ({
         onShowImageModal={(file) => {
           // Convert FileAttachment to URL for onImageClick
           if (onImageClick && file) {
-            const imageUrl = file.dataURL || file.downloadUrl || file.data || '';
+            const imageUrl = file.dataURL || file.data || '';
             const altText = file.name || 'Image';
             onImageClick(imageUrl, altText);
           }
