@@ -15,7 +15,7 @@ import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from '../index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import { logger } from '@shared/utils';
-import type { VimModeHook } from '../../../features/vim/hooks/useVimMode';
+import type { VimModeHook } from '@vim/hooks/useVimMode';
 
 interface UseCommandsProps {
   selectedNodeId: string | null;

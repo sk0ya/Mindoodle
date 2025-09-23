@@ -11,6 +11,7 @@ export default defineConfig({
       '@': path.resolve(__dirname, './src'),
       '@shared': path.resolve(__dirname, './src/app/shared'),
       '@core': path.resolve(__dirname, './src/app/core'),
+      '@commands': path.resolve(__dirname, './src/app/commands'),
       '@mindmap': path.resolve(__dirname, './src/app/features/mindmap'),
       '@ai': path.resolve(__dirname, './src/app/features/ai'),
       '@file-management': path.resolve(__dirname, './src/app/features/file-management'),

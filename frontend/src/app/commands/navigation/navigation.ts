@@ -4,7 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
-import { useMindMapStore } from '../../../features/mindmap/store';
+import { useMindMapStore } from '@mindmap/store';
 
 // Arrow navigation command
 export const arrowNavigateCommand: Command = {

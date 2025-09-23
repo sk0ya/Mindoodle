@@ -4,7 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
-import { useMindMapStore } from '../../../features/mindmap/store';
+import { useMindMapStore } from '@mindmap/store';
 
 export const toggleCommand: Command = {
   name: 'toggle',
