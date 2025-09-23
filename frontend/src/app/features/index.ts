@@ -2,6 +2,6 @@
 export * from './ai';
 export * from './file-management';
 export * from './markdown';
-export * from './editor';
+export * from './vim';
 export * from './theme';
 export * from './mindmap';

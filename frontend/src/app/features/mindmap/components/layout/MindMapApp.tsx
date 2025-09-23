@@ -1,7 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts } from '../../hooks';
 import { useMindMapStore } from '../../store';
-import { useVimMode } from '../../../editor/hooks/useVimMode';
 import { findNodeById, findNodeInRoots } from '../../utils';
 import { nodeToMarkdown } from '../../../markdown';
 import { relPathBetweenMapIds } from '@shared/utils';
@@ -14,7 +13,6 @@ import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
 import MindMapLinkOverlays from './MindMapLinkOverlays';
 import MarkdownPanelContainer from './NodeNotesPanelContainer';
-// Outline mode removed
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
 import { useNotification } from '@shared/hooks/useNotification';
@@ -30,13 +28,10 @@ import MindMapProviders from './MindMapProviders';
 import { logger } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import './MindMapApp.css';
+import { useVim, VimProvider } from "../../../vim/context/vimContext";
 
-// Types
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@shared/types';
-// Storage configurations
-// Deprecated storage configs (Mindoodle uses markdown adapter internally)
-// Login modal moved into MindMapOverlays
 
 import { useShortcutHandlers } from './useShortcutHandlers';
 import { LAYOUT } from '../../../../shared/constants';
@@ -59,6 +54,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   
   // Settings store for initialization
   const { loadSettingsFromStorage } = useMindMapStore();
+  // Vim mode hook
+  const vim = useVim();
   
   // Initialize settings on mount
   React.useEffect(() => {
@@ -889,15 +886,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     },
     changeSiblingOrder: store.changeSiblingOrder,
   });
-  // Vim mode hook
-  const vim = useVimMode();
 
   // Ensure Vim mode returns to normal when editing ends (e.g., blur)
   React.useEffect(() => {
-    if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal') {
+    if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal' && vim.mode !== 'search') {
       vim.setMode('normal');
     }
-  }, [vim, editingNodeId]);
+  }, [vim.isEnabled, vim.mode, editingNodeId, vim.setMode]);
 
   useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
@@ -1109,6 +1104,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       <MindMapOverlays
         showKeyboardHelper={showKeyboardHelper}
         setShowKeyboardHelper={setShowKeyboardHelper}
+        vim={vim}
       />
 
       <MindMapLinkOverlays
@@ -1228,7 +1224,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 const MindMapApp: React.FC<MindMapAppProps> = (props) => {
   return (
     <MindMapProviders>
-      <MindMapAppContent {...props} />
+      <VimProvider>
+        <MindMapAppContent {...props} />
+      </VimProvider>
     </MindMapProviders>
   );
 };

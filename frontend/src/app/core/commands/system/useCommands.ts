@@ -15,7 +15,7 @@ import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from '../index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import { logger } from '@shared/utils';
-import type { VimModeHook } from '../../../features/editor/hooks/useVimMode';
+import type { VimModeHook } from '../../../features/vim/hooks/useVimMode';
 
 interface UseCommandsProps {
   selectedNodeId: string | null;
@@ -182,6 +182,22 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   // Execute vim-specific commands
   const executeVimCommand = useCallback(async (vimKey: string): Promise<CommandResult> => {
 
+    // Handle search commands specially
+    if (vimKey === '/' && vim) {
+      vim.startSearch();
+      return { success: true };
+    }
+
+    if (vimKey === 'n' && vim && vim.mode === 'normal') {
+      vim.nextSearchResult();
+      return { success: true };
+    }
+
+    if (vimKey === 'N' && vim && vim.mode === 'normal') {
+      vim.previousSearchResult();
+      return { success: true };
+    }
+
     const vimCommandMap: Record<string, string> = {
       'zz': 'center',
       'zt': 'center-left',
@@ -231,7 +247,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
 
     const result = await execute(commandName);
     return result;
-  }, [execute]);
+  }, [execute, vim]);
 
   // Get available command names
   const getAvailableCommands = useCallback((): string[] => {

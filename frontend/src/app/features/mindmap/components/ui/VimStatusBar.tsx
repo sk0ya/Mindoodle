@@ -1,9 +1,11 @@
 import React from 'react';
-import { useVimMode } from '../../../editor/hooks/useVimMode';
+import { useVimMode } from '../../../vim/hooks/useVimMode';
 import { useStatusBar } from '@shared/hooks';
+type Props = {
+  vim: ReturnType<typeof useVimMode>;
+};
 
-const VimStatusBar: React.FC = () => {
-  const vim = useVimMode();
+const VimStatusBar: React.FC<Props> = ({ vim }) => {
   const { state: status } = useStatusBar();
 
   const getModeColor = () => {
@@ -16,6 +18,8 @@ const VimStatusBar: React.FC = () => {
         return '#f59e0b'; // Amber
       case 'command':
         return '#ef4444'; // Red
+      case 'search':
+        return '#8b5cf6'; // Purple
       default:
         return '#6b7280'; // Gray
     }
@@ -31,6 +35,8 @@ const VimStatusBar: React.FC = () => {
         return '-- VISUAL --';
       case 'command':
         return '-- COMMAND --';
+      case 'search':
+        return '-- SEARCH --';
       default:
         return '-- VIM --';
     }
@@ -49,7 +55,17 @@ const VimStatusBar: React.FC = () => {
         <div className="vim-mode-indicator vim-off">STATUS</div>
       )}
 
-      {vim.isEnabled && vim.commandBuffer && (
+      {vim.isEnabled && vim.mode === 'search' && (
+        <div className="vim-search-input">
+          /{vim.searchQuery}
+          {vim.searchResults.length > 0 && (
+            <span className="search-results-count">
+              [{vim.currentSearchIndex + 1}/{vim.searchResults.length}]
+            </span>
+          )}
+        </div>
+      )}
+      {vim.isEnabled && vim.commandBuffer && vim.mode !== 'search' && (
         <div className="vim-command-buffer">
           :{vim.commandBuffer}
         </div>
@@ -103,6 +119,23 @@ const VimStatusBar: React.FC = () => {
           padding: 2px 6px;
           border-radius: 3px;
           border: 1px solid var(--border-color);
+        }
+
+        .vim-search-input {
+          color: var(--text-primary);
+          background: var(--bg-tertiary);
+          padding: 2px 6px;
+          border-radius: 3px;
+          border: 1px solid #8b5cf6;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+        }
+
+        .search-results-count {
+          color: var(--text-secondary);
+          font-size: 10px;
+          opacity: 0.8;
         }
 
         .vim-last-command {

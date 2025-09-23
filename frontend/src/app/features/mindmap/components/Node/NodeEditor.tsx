@@ -19,6 +19,8 @@ interface NodeEditorProps {
   onSelectNode?: (nodeId: string | null) => void;
   onToggleLinkList?: (nodeId: string) => void;
   onLinkNavigate?: (link: NodeLink) => void;
+  searchQuery: string;
+  vimEnabled: boolean;
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -34,7 +36,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   isSelected = false,
   onSelectNode,
   onToggleLinkList,
-  onLinkNavigate: _onLinkNavigate
+  onLinkNavigate: _onLinkNavigate,
+  searchQuery,
+  vimEnabled
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { settings, data, ui } = useMindMapStore();
@@ -65,6 +69,31 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const isUrl = (text: string): boolean => {
     const urlPattern = /^https?:\/\/[^\s]+$/;
     return urlPattern.test(text);
+  };
+
+  // 検索ハイライト機能
+  const renderHighlightedText = (text: string, searchQuery: string) => {
+    if (!searchQuery || !text.toLowerCase().includes(searchQuery.toLowerCase())) {
+      return text;
+    }
+
+    const parts: React.ReactNode[] = [];
+    const regex = new RegExp(`(${searchQuery.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+    const segments = text.split(regex);
+
+    segments.forEach((segment, index) => {
+      if (segment.toLowerCase() === searchQuery.toLowerCase()) {
+        parts.push(
+          <tspan key={index} fill="#ff9800" style={{ fontWeight: 'bold' }}>
+            {segment}
+          </tspan>
+        );
+      } else {
+        parts.push(segment);
+      }
+    });
+
+    return parts;
   };
 
   // マークダウンリンクからリンク情報を抽出
@@ -254,7 +283,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                     dx="0.3em"
                     {...textStyle}
                   >
-                    {displayText}
+                    {vimEnabled && searchQuery ?
+                      renderHighlightedText(displayText, searchQuery) :
+                      displayText
+                    }
                   </tspan>
                 </>
               );
@@ -267,7 +299,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   textDecoration: 'underline'
                 } : {})}
               >
-                {displayText}
+                {vimEnabled && searchQuery ?
+                  renderHighlightedText(displayText, searchQuery) :
+                  displayText
+                }
               </tspan>
             );
           })()}

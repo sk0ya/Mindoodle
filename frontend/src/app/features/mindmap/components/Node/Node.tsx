@@ -7,6 +7,7 @@ import { stopEventPropagation } from '@shared/utils';
 import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { useMindMapStore } from '../../store';
+import{useVim} from "../../../vim/context/vimContext";
 
 interface NodeProps {
   node: MindMapNode;
@@ -344,6 +345,7 @@ const Node: React.FC<NodeProps> = ({
   // 非編集時のノード幅を基準とした左端位置を計算（ノードの左端位置を固定するため）
   const baseNodeSize = calculateNodeSize(node, node.text, false, globalFontSize);
   const nodeLeftX = getNodeLeftX(node, baseNodeSize.width);
+  const vim = useVim();
 
   return (
     <g>
@@ -398,6 +400,8 @@ const Node: React.FC<NodeProps> = ({
         onSelectNode={onSelect}
         onToggleLinkList={onToggleLinkList}
         onLinkNavigate={onLinkNavigate}
+        searchQuery={vim.searchQuery}
+        vimEnabled={vim.isEnabled}
       />
 
       {/* 4. 選択枠線（最後に描画して最前面に） */}

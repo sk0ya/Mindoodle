@@ -5,7 +5,7 @@
 
 import type { MindMapNode } from '@shared/types';
 import { useEffect } from 'react';
-import type { VimModeHook } from '../../editor/hooks/useVimMode';
+import type { VimModeHook } from '../../vim/hooks/useVimMode';
 import { useCommands } from '../../../core/commands';
 import type { UseCommandsReturn } from '../../../core/commands';
 
@@ -250,6 +250,33 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       const { key, ctrlKey, metaKey, altKey } = event;
       const isModifier = ctrlKey || metaKey;
+
+      // Handle search mode
+      if (vim && vim.isEnabled && vim.mode === 'search') {
+        const { key } = event;
+
+        if (key === 'Escape') {
+          event.preventDefault();
+          vim.exitSearch();
+          return;
+        } else if (key === 'Enter') {
+          event.preventDefault();
+          vim.executeSearch();
+
+          vim.setMode('normal');
+          return;
+        } else if (key === 'Backspace') {
+          event.preventDefault();
+          const newQuery = vim.searchQuery.slice(0, -1);
+          vim.updateSearchQuery(newQuery);
+          return;
+        } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault();
+          vim.updateSearchQuery(vim.searchQuery + key);
+          return;
+        }
+        return;
+      }
 
       // Vim mode handling through command system
       if (vim && vim.isEnabled && vim.mode === 'normal') {

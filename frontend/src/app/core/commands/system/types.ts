@@ -4,7 +4,7 @@
  */
 
 import type { MindMapNode } from '@shared/types';
-import type { VimModeHook } from '../../../features/editor/hooks/useVimMode';
+import type { VimModeHook } from '../../../features/vim/hooks/useVimMode';
 
 // Command argument type definitions
 export type CommandArgType = 'string' | 'number' | 'boolean' | 'node-id';
