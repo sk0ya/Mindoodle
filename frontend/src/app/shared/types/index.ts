@@ -26,6 +26,7 @@ export {
 // Data types
 export type {
   MapIdentifier,
+  FileAttachment,
   NodeLink,
   MarkdownMeta,
   MindMapNode,

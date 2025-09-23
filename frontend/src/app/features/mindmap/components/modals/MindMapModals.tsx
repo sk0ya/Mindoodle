@@ -2,6 +2,7 @@ import React, { memo, useState } from 'react';
 import ContextMenu from '../ui/ContextMenu';
 import NodeCustomizationPanel from '../panels/NodeCustomizationPanel';
 import AIGenerationModal from './AIGenerationModal';
+import ImageModal from './ImageModal';
 import {
   MindMapModalsProvider,
   useMindMapModals,
@@ -12,6 +13,35 @@ import {
   type MindMapModalsProviderProps
 } from './MindMapModalsContext';
 import type { MindMapNode } from '../../../../shared';
+
+/**
+ * 画像モーダル管理フック
+ */
+const useImageModal = () => {
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [imageAlt, setImageAlt] = useState<string>('');
+
+  const handleShowImage = (url: string, alt?: string) => {
+    setImageUrl(url);
+    setImageAlt(alt || 'Image');
+    setShowImageModal(true);
+  };
+
+  const handleCloseImage = () => {
+    setShowImageModal(false);
+    setImageUrl(null);
+    setImageAlt('');
+  };
+
+  return {
+    showImageModal,
+    imageUrl,
+    imageAlt,
+    handleShowImage,
+    handleCloseImage
+  };
+};
 
 /**
  * AI生成モーダル管理フック
@@ -138,6 +168,24 @@ const MindMapModalsInternal: React.FC = () => {
     closeAIModal
   } = useAIModal();
 
+  const {
+    showImageModal,
+    imageUrl,
+    imageAlt,
+    handleShowImage,
+    handleCloseImage
+  } = useImageModal();
+
+  const { uiOperations } = useMindMapModals();
+
+  // Expose the image modal handler through the context
+  React.useEffect(() => {
+    if (uiOperations.onShowImageModal !== handleShowImage) {
+      // The context should provide the handler
+      // We'll connect this when the context is properly set up
+    }
+  }, [handleShowImage, uiOperations.onShowImageModal]);
+
   return (
     <>
       <CustomizationPanelModal />
@@ -147,6 +195,12 @@ const MindMapModalsInternal: React.FC = () => {
         aiTargetNode={aiTargetNode}
         onGenerationComplete={handleAIGenerationComplete}
         onClose={closeAIModal}
+      />
+      <ImageModal
+        isOpen={showImageModal}
+        imageUrl={imageUrl}
+        altText={imageAlt}
+        onClose={handleCloseImage}
       />
     </>
   );

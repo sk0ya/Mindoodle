@@ -35,6 +35,7 @@ interface NodeProps {
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onLinkNavigate?: (link: NodeLink) => void;
+  onImageClick?: (imageUrl: string, altText?: string) => void;
 }
 
 const Node: React.FC<NodeProps> = ({
@@ -61,7 +62,8 @@ const Node: React.FC<NodeProps> = ({
   globalFontSize,
   onToggleLinkList,
   onLoadRelativeImage,
-  onLinkNavigate
+  onLinkNavigate,
+  onImageClick,
 }) => {
   const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -363,6 +365,22 @@ const Node: React.FC<NodeProps> = ({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onLoadRelativeImage={onLoadRelativeImage}
+        // Original NodeAttachments props
+        svgRef={svgRef}
+        zoom={zoom}
+        pan={{ x: 0, y: 0 }} // TODO: Get actual pan from parent
+        onSelectNode={onSelect}
+        onShowImageModal={(file) => {
+          // Convert FileAttachment to URL for onImageClick
+          if (onImageClick && file) {
+            const imageUrl = file.dataURL || file.downloadUrl || file.data || '';
+            const altText = file.name || 'Image';
+            onImageClick(imageUrl, altText);
+          }
+        }}
+        onShowFileActionMenu={() => {}} // Placeholder for now
+        onUpdateNode={onUpdateNode}
+        onAutoLayout={onAutoLayout}
       />
 
       {/* 3. テキスト */}

@@ -35,6 +35,7 @@ export interface UIOperations {
   onCloseContextMenu: () => void;
   onCloseImageModal: () => void;
   onCloseFileActionMenu: () => void;
+  onShowImageModal: (imageUrl: string, altText?: string) => void;
 }
 
 // コンテキストの値の型

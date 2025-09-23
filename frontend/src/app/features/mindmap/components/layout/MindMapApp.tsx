@@ -16,6 +16,7 @@ import MindMapLinkOverlays from './MindMapLinkOverlays';
 import MarkdownPanelContainer from './NodeNotesPanelContainer';
 // Outline mode removed
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
+import ImageModal from '../modals/ImageModal';
 import { useNotification } from '@shared/hooks/useNotification';
 import { useMarkdownSync } from '../../../markdown';
 import { resolveAnchorToNode, computeAnchorForNode } from '../../../markdown';
@@ -84,6 +85,24 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     closeLinkModal,
     openLinkActionMenu, closeLinkActionMenu,
   } = useMindMapModals();
+
+  // 画像モーダル状態管理
+  const [showImageModal, setShowImageModal] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [currentImageAlt, setCurrentImageAlt] = useState<string>('');
+
+  // 画像モーダルハンドラー
+  const handleShowImageModal = useCallback((imageUrl: string, altText?: string) => {
+    setCurrentImageUrl(imageUrl);
+    setCurrentImageAlt(altText || '');
+    setShowImageModal(true);
+  }, []);
+
+  const handleCloseImageModal = useCallback(() => {
+    setShowImageModal(false);
+    setCurrentImageUrl(null);
+    setCurrentImageAlt('');
+  }, []);
   
   const store = useMindMapStore();
   
@@ -1034,6 +1053,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               setPan={setPan}
               onToggleLinkList={store.toggleLinkListForNode}
               onLoadRelativeImage={onLoadRelativeImage}
+              onImageClick={handleShowImageModal}
             />
 
           {ui.showNotesPanel && (
@@ -1080,8 +1100,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         uiOperations={{
           onCloseContextMenu: closeAllPanels,
           onCloseCustomizationPanel: closeAllPanels,
-          onCloseImageModal: closeAllPanels,
-          onCloseFileActionMenu: closeAllPanels
+          onCloseImageModal: handleCloseImageModal,
+          onCloseFileActionMenu: closeAllPanels,
+          onShowImageModal: handleShowImageModal
         }}
       />
       
@@ -1191,6 +1212,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         }}
         onAIGenerate={ai.aiSettings.enabled ? handleAIGenerate : undefined}
         onClose={handleContextMenuClose}
+      />
+
+      {/* Image Modal */}
+      <ImageModal
+        isOpen={showImageModal}
+        imageUrl={currentImageUrl}
+        altText={currentImageAlt}
+        onClose={handleCloseImageModal}
       />
     </div>
   );

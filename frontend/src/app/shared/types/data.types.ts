@@ -11,6 +11,36 @@ export interface MapIdentifier {
   workspaceId: string;
 }
 
+// File attachment interface for both local and cloud storage
+export interface FileAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  isImage: boolean;
+  createdAt: string;
+
+  // Data storage (for local mode)
+  data?: string; // Base64 encoded data
+  dataURL?: string; // For backward compatibility
+
+  // Cloud storage (for cloud mode)
+  downloadUrl?: string;
+  storagePath?: string;
+  thumbnailUrl?: string;
+  r2FileId?: string;
+  isR2Storage?: boolean;
+
+  // Common optimization fields
+  isOptimized?: boolean;
+  originalSize?: number;
+  optimizedSize?: number;
+  compressionRatio?: string;
+  optimizedType?: string;
+  thumbnail?: string;
+  nodeId?: string;
+}
+
 // Node link interface
 export interface NodeLink {
   id: string;

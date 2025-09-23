@@ -3,6 +3,7 @@ import { X } from 'lucide-react';
 import type { MindMapNode } from '@shared/types';
 import NodeFontPanel from './NodeFontPanel';
 import NodePresetPanel from './NodePresetPanel';
+import ImageResizePanel from './ImageResizePanel';
 import NodeCustomizationStyles from './NodeCustomizationStyles';
 
 interface NodeCustomizationPanelProps {
@@ -82,13 +83,19 @@ const NodeCustomizationPanel: React.FC<NodeCustomizationPanelProps> = ({
       </div>
 
       <div className="panel-content">
-        <NodeFontPanel 
+        <NodeFontPanel
           customizations={customizations}
           onCustomizationChange={handleChange}
         />
-        
-        
-        <NodePresetPanel 
+
+        {selectedNode && (
+          <ImageResizePanel
+            node={selectedNode}
+            onUpdateNode={onUpdateNode}
+          />
+        )}
+
+        <NodePresetPanel
           selectedNode={selectedNode}
           onUpdateNode={onUpdateNode}
           onCustomizationsChange={handleCustomizationsChange}

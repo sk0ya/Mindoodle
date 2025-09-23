@@ -4,7 +4,7 @@ export { useInitialDataLoad } from './useInitialDataLoad';
 export { useInitializationWaiter } from './useInitializationWaiter';
 export { useErrorBoundary } from './useErrorBoundary';
 export { useDataCleanup } from './useDataCleanup';
-export { useLoadingState, useResizingState, useBooleanState } from './useBooleanState';
+export { useLoadingState, useResizingState, useBooleanState, useHoverState } from './useBooleanState';
 
 // Generic UI Hooks
 export { useConnectionTest } from './useConnectionTest';
