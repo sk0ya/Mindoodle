@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Bot, Plug, CheckCircle, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
 import { useAI } from '../../../ai/hooks/useAI';
-import { useConnectionTest } from '@shared/hooks/useConnectionTest';
-import { useModelLoader } from '@shared/hooks/useModelLoader';
+import { useConnectionTest, useModelLoader } from '@shared/hooks';
 
 const AISidebar: React.FC = () => {
   const {

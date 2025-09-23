@@ -1,4 +1,4 @@
-import { emitStatus } from '../hooks/useStatusBar';
+import { emitStatus } from '../hooks/ui/useStatusBar';
 
 /**
  * Safe wrapper for emitStatus that won't throw errors

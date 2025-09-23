@@ -3,7 +3,7 @@ import { Search, X } from 'lucide-react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { searchNodes, searchMultipleMaps, getMatchPosition, type SearchResult } from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
-import './SearchSidebar.css';
+import '@shared/styles/layout/SearchSidebar.css';
 
 export type SearchScope = 'current' | 'all';
 

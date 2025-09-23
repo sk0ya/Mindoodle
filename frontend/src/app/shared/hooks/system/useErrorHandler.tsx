@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useCallback, ReactNode } from 'react';
-import { logger } from '../utils/logger';
-import { useNotification } from './useNotification';
+import { logger } from '../../utils/logger';
+import { useNotification } from '../ui/useNotification';
 
 export interface ErrorInfo {
   error: Error;

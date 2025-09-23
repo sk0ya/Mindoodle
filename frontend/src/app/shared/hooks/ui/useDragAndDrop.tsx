@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { MapIdentifier } from '@shared/types';
-import { logger } from '../utils/logger';
+import { logger } from '../../utils/logger';
 import type { MindMapData } from '@shared/types';
 
 interface UseDragAndDropOptions {

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { stopPropagationOnly } from '@shared/utils';
-import './KeyboardShortcutHelper.css';
+import '@shared/styles/ui/KeyboardShortcutHelper.css';
 
 interface ShortcutItem {
   keys: (string | React.ReactNode)[];

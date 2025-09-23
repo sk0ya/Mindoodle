@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
-import { logger } from '../utils/logger';
-import { useLoadingState } from './useBooleanState';
+import { logger } from '../../utils/logger';
+import { useLoadingState } from '../ui/useBooleanState';
 
 interface UseModelLoaderOptions {
   getAvailableModels: () => Promise<string[]>;

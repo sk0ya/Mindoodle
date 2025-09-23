@@ -1,17 +1,23 @@
-// Generic Hooks - Domain-agnostic utilities only
-export { useDataReset } from './useDataReset';
-export { useInitializationWaiter } from './useInitializationWaiter';
-export { useErrorBoundary } from './useErrorBoundary';
-export { useDataCleanup } from './useDataCleanup';
-export { useLoadingState, useResizingState, useBooleanState, useHoverState } from './useBooleanState';
+// Shared Hooks - Organized by category for better maintainability
 
-// Generic UI Hooks
-export { useConnectionTest } from './useConnectionTest';
-export { useDragAndDrop } from './useDragAndDrop';
-export { useErrorHandler } from './useErrorHandler';
-export { useGlobalErrorHandlers } from './useGlobalErrorHandlers';
-export { useModal } from './useModal';
-export { useModalState } from './useModalState';
-export { useModelLoader } from './useModelLoader';
-export { useNotification } from './useNotification';
-export { useStatusBar } from './useStatusBar';
+// Data Management Hooks
+export { useDataReset } from './data/useDataReset';
+export { useDataCleanup, type DataCleanupStats } from './data/useDataCleanup';
+export { useModelLoader } from './data/useModelLoader';
+
+// UI Interaction Hooks
+export { useLoadingState, useResizingState, useBooleanState, useHoverState } from './ui/useBooleanState';
+export { useDragAndDrop } from './ui/useDragAndDrop';
+export { useModal } from './ui/useModal';
+export { useModalState } from './ui/useModalState';
+export { useNotification, NotificationProvider, type NotificationType, type Notification } from './ui/useNotification';
+export { useStatusBar, StatusBarProvider } from './ui/useStatusBar';
+
+// System & Error Handling Hooks
+export { useErrorBoundary } from './system/useErrorBoundary';
+export { useErrorHandler, ErrorHandlerProvider, type ErrorInfo } from './system/useErrorHandler';
+export { useGlobalErrorHandlers } from './system/useGlobalErrorHandlers';
+export { useInitializationWaiter } from './system/useInitializationWaiter';
+
+// Network Hooks
+export { useConnectionTest } from './network/useConnectionTest';

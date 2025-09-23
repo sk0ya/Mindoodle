@@ -1,6 +1,6 @@
 import React from 'react';
 import { Workflow, Search, Bot, Settings, Keyboard } from 'lucide-react';
-import './ActivityBar.css';
+import '@shared/styles/layout/ActivityBar.css';
 
 interface ActivityBarItem {
   id: string;

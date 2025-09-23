@@ -5,7 +5,7 @@ import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/storage/types';
-import './PrimarySidebar.css';
+import '@shared/styles/layout/PrimarySidebar.css';
 
 interface PrimarySidebarProps {
   activeView: string | null;
