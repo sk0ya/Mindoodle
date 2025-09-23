@@ -26,24 +26,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ```
 frontend/
 ├── public/                       # 静的ファイル（favicon, manifest, icons）
-│   ├── favicon.svg
-│   ├── favicon.ico
-│   ├── manifest.json
-│   └── ...
 ├── src/
 │   ├── app/                      # アプリケーションのコア（データ層・サービス）
+│   │   ├── commands/             # コマンドシステム
+│   │   │   ├── navigation/       # ナビゲーションコマンド
+│   │   │   ├── structure/        # 構造操作コマンド
+│   │   │   ├── system/           # システムコマンド
+│   │   │   ├── ui/               # UIコマンド
+│   │   │   ├── editing/          # 編集コマンド
+│   │   │   └── application/      # アプリケーションコマンド
+│   │   │
 │   │   ├── core/                 # コアアーキテクチャ
-│   │   │   ├── commands/         # コマンドシステム
-│   │   │   │   ├── navigation/   # ナビゲーションコマンド
-│   │   │   │   ├── structure/    # 構造操作コマンド
-│   │   │   │   ├── system/       # システムコマンド
-│   │   │   │   ├── ui/           # UIコマンド
-│   │   │   │   ├── editing/      # 編集コマンド
-│   │   │   │   └── application/  # アプリケーションコマンド
 │   │   │   ├── data/             # データ管理
 │   │   │   ├── storage/          # ストレージ管理
 │   │   │   │   └── adapters/     # ストレージアダプター
+│   │   │   ├── services/         # コアサービス
 │   │   │   ├── streams/          # データストリーム
+│   │   │   ├── utils/            # コアユーティリティ
 │   │   │   └── types/            # コア型定義
 │   │   │
 │   │   ├── features/             # 機能単位（mindmap, etc.）
@@ -53,19 +52,18 @@ frontend/
 │   │   │   │   ├── hooks/        # Mindmap専用Hooks
 │   │   │   │   ├── utils/        # Mindmap専用ユーティリティ
 │   │   │   │   ├── components/
-│   │   │   │   │   ├── managers/ # マネージャーコンポーネント
-│   │   │   │   │   ├── Node/     # Node関連コンポーネント
-│   │   │   │   │   ├── Canvas/   # Canvas関連コンポーネント
-│   │   │   │   │   ├── ui/       # UI共通コンポーネント
-│   │   │   │   │   │   ├── toolbar/     # ツールバー
-│   │   │   │   │   │   └── contextmenu/ # コンテキストメニュー
-│   │   │   │   │   ├── panels/   # パネルコンポーネント
-│   │   │   │   │   ├── layout/   # レイアウトコンポーネント
-│   │   │   │   │   │   └── styles/      # レイアウト専用スタイル
-│   │   │   │   │   ├── modals/   # モーダルコンポーネント
-│   │   │   │   │   └── Shared/   # Mindmap専用共有UI
+│   │   │   │   │   ├── toolbar/       # ツールバーコンポーネント
+│   │   │   │   │   ├── managers/      # マネージャーコンポーネント
+│   │   │   │   │   ├── Node/          # Node関連コンポーネント
+│   │   │   │   │   ├── Canvas/        # Canvas関連コンポーネント
+│   │   │   │   │   ├── panels/        # パネルコンポーネント
+│   │   │   │   │   ├── layout/        # レイアウトコンポーネント
+│   │   │   │   │   ├── modals/        # モーダルコンポーネント
+│   │   │   │   │   ├── Shared/        # Mindmap専用共有UI
+│   │   │   │   │   └── contextmenu/   # コンテキストメニュー
 │   │   │   │   ├── store/        # Mindmap専用ストア
 │   │   │   │   │   └── slices/   # ストアスライス
+│   │   │   │   ├── styles/       # Mindmapスタイル
 │   │   │   │   └── types/        # Mindmap専用型定義
 │   │   │   ├── file-management/  # ファイル管理機能
 │   │   │   │   ├── services/
@@ -77,30 +75,41 @@ frontend/
 │   │   │   │   ├── hooks/
 │   │   │   │   ├── components/
 │   │   │   │   └── types/
-│   │   │   ├── editor/           # エディター機能
+│   │   │   ├── vim/              # Vim機能
 │   │   │   │   ├── hooks/
-│   │   │   │   ├── components/
-│   │   │   │   └── types/
+│   │   │   │   └── context/
 │   │   │   ├── theme/            # テーマ機能
 │   │   │   │   ├── hooks/
 │   │   │   │   ├── components/
 │   │   │   │   └── types/
-│   │   │   └── markdown/         # Markdown機能
-│   │   │       ├── hooks/
-│   │   │       ├── utils/
-│   │   │       ├── components/
-│   │   │       └── types/
+│   │   │   ├── markdown/         # Markdown機能
+│   │   │   │   ├── services/
+│   │   │   │   ├── hooks/
+│   │   │   │   ├── utils/
+│   │   │   │   ├── components/
+│   │   │   │   └── types/
+│   │   │   └── files/            # ファイル機能
+│   │   │       └── components/
 │   │   │
 │   │   ├── shared/               # 統合された共通処理
 │   │   │   ├── handlers/         # 共通ハンドラー
-│   │   │   ├── services/         # 共通サービス
-│   │   │   ├── hooks/            # 共通Hooks（useBooleanState等）
+│   │   │   ├── hooks/            # 共通Hooks（カテゴリ別）
+│   │   │   │   ├── system/       # システム関連hooks
+│   │   │   │   ├── data/         # データ関連hooks
+│   │   │   │   ├── ui/           # UI関連hooks
+│   │   │   │   └── network/      # ネットワーク関連hooks
 │   │   │   ├── utils/            # 共通ユーティリティ
 │   │   │   ├── constants/        # 定数類を一本化
 │   │   │   ├── components/       # 共通コンポーネント
+│   │   │   │   └── ui/           # 共通UIコンポーネント
+│   │   │   │       ├── toolbar/
+│   │   │   │       └── contextmenu/
 │   │   │   ├── store/            # 共通ストア
 │   │   │   ├── types/            # 共通型定義
 │   │   │   └── styles/           # 共通スタイル
+│   │   │       ├── ui/
+│   │   │       ├── components/
+│   │   │       └── layout/
 │   │   │
 │   │   └── types/                # アプリケーション型定義
 │   │
@@ -109,8 +118,11 @@ frontend/
 │   ├── index.css                 # グローバルスタイル
 │   └── vite-env.d.ts            # Vite型定義
 │
+├── eslint.config.js              # ESLint設定
 ├── tsconfig.json
 ├── tsconfig.node.json
+├── tsconfig.strict.json          # 厳密なTypeScript設定
+├── tsconfig.strict.vim.json      # Vim用厳密設定
 ├── vite.config.js
 └── package.json
 ```
@@ -125,10 +137,11 @@ frontend/
   - `src/app/types/` — Application-specific type definitions
 
 **Feature-Based Organization:**
-- **Mindmap Feature:** Complete mindmap functionality with handlers, services, hooks, utils, components (Canvas, Node, UI, Layout, Modals), store, and types
-- **Additional Features:** File management, AI integration, editor, theme system, and markdown processing
+- **Mindmap Feature:** Complete mindmap functionality with handlers, services, hooks, utils, components (toolbar, Canvas, Node, Layout, Modals), store, styles, and types
+- **Additional Features:** File management, AI integration, Vim mode, theme system, markdown processing, and file handling
 - **Component Hierarchy:** Canvas and Node components are properly separated within mindmap feature
 - **Domain Separation:** Each feature maintains its own services, hooks, components, and types
+- **Legacy Structure:** `src/shared/` contains legacy shared components being migrated to `src/app/shared/`
 
 ### Path Aliases (Vite + TypeScript)
 - `@` → `src/`
@@ -136,8 +149,8 @@ frontend/
 
 ### Architecture Patterns
 - **Modular exports:** All features re-export through `src/app/index.ts`
-- **Command-driven core:** Command system in `src/app/core/commands/` with domain-specific command categories
-- **Feature-based organization:** Each feature (mindmap, file-management, ai, editor, theme, markdown) has its own directory with services, hooks, components, store, and types
+- **Command-driven core:** Command system in `src/app/commands/` with domain-specific command categories
+- **Feature-based organization:** Each feature (mindmap, file-management, ai, vim, theme, markdown, files) has its own directory with services, hooks, components, store, and types
 - **Zustand store architecture:** Feature-specific stores with mindmap store using slice pattern
 - **Local-first:** No network calls, all data stored locally with multiple storage adapters
 
