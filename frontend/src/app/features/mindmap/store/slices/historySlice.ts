@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import { normalizeTreeData } from '../../../../core/data';
+import { normalizeTreeData } from '@core/data/normalizedStore';
 import type { MindMapStore, HistoryState } from './types';
 
 export interface HistorySlice extends HistoryState {

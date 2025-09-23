@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots } from '../../utils';
+import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';

@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { isNodeElement } from '../../handlers';
+import { isNodeElement } from '@mindmap/utils';
 
 interface ViewportState {
   zoom: number;

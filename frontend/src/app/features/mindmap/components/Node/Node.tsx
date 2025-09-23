@@ -2,12 +2,12 @@ import React, { useRef, useState, useCallback, useEffect, memo } from 'react';
 import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
 import NodeEditor, { isMarkdownLink, isUrl, parseMarkdownLink } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';
-import { calculateNodeSize, getNodeLeftX } from '../../utils';
+import { calculateNodeSize, getNodeLeftX } from '@mindmap/utils/nodeUtils';
 import { stopEventPropagation } from '@shared/utils';
 import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
-import { useMindMapStore } from '../../store';
-import{useVim} from "../../../vim/context/vimContext";
+import { useMindMapStore } from '@mindmap/store';
+import { useVim } from "@vim/context/vimContext";
 
 interface NodeProps {
   node: MindMapNode;

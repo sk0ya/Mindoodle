@@ -1,16 +1,7 @@
-/**
- * Shared handlers and utilities index
- * Centralized exports for common canvas and node handling functionality
- */
-
-// Coordinate utilities
-export * from '../utils/canvasCoordinateUtils';
-
-// Base drag handler
+// Handlers re-exports for @mindmap/handlers path mapping
 export * from './BaseDragHandler';
-
-// Base event handler
 export * from './BaseEventHandler';
-
-// Base renderer utilities
 export * from './BaseRenderer';
+
+// Re-export utils that are commonly used with handlers
+export { isNodeElement, convertScreenToSVG, snapToGrid } from '../utils/canvasCoordinateUtils';

@@ -1,8 +1,8 @@
-// Mindmap Hook exports
-export * from './useMindMap';
-export * from './useMindMapData';
-export * from './useMindMapActions';
-export * from './useMindMapUI';
-export * from './useMindMapPersistence';
+// Hooks re-exports for @mindmap/hooks path mapping
 export * from './useEditingState';
 export * from './useKeyboardShortcuts';
+export * from './useMindMap';
+export * from './useMindMapActions';
+export * from './useMindMapData';
+export * from './useMindMapPersistence';
+export * from './useMindMapUI';

@@ -1,16 +1,16 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
-import { MarkdownImporter } from '../../markdown/markdownImporter';
+import { MarkdownImporter } from '@markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
 import { useDataReset } from '@shared/hooks';
-import { useStorageConfigChange } from '../../file-management/hooks/useStorageConfigChange';
+import { useStorageConfigChange } from '@file-management/hooks/useStorageConfigChange';
 import { logger } from '@shared/utils';
-import type { StorageConfig } from '../../../core/types';
+import type { StorageConfig } from '@core/storage/types';
 import type { MindMapData } from '@shared/types';
-import { useMarkdownStream } from '../../markdown/hooks/useMarkdownStream';
+import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
 import { statusMessages } from '@shared/utils';
 
 /**

@@ -1,5 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
-import { useMindMapStore } from '../../store';
+import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode, FileAttachment } from '@shared/types';
 import { useResizingState, useHoverState } from '@shared/hooks';
 import {
@@ -7,7 +7,7 @@ import {
   getSelectionBorderStyles,
   getBackgroundFill,
   DEFAULT_ANIMATION_CONFIG
-} from '../../handlers';
+} from '@mindmap/handlers/BaseRenderer';
 
 interface NodeRendererProps {
   node: MindMapNode;

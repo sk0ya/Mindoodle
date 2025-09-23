@@ -23,11 +23,11 @@ export * from './validation';
 export * from './apiErrorHandler';
 export * from './reloadData';
 
-// Storage utilities (avoid type conflicts)
+// Storage utilities (avoid type conflicts) - direct import since index.ts removed
 export {
   STORAGE_KEYS,
   getLocalStorage,
   setLocalStorage,
   removeLocalStorage,
   removeLocalStorageItems,
-} from '../../core/storage';
+} from '../../core/storage/localStorage';

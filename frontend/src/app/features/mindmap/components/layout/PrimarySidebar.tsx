@@ -4,7 +4,7 @@ import SettingsSidebar from './SettingsSidebar';
 import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import type { ExplorerItem } from '../../../../core/types';
+import type { ExplorerItem } from '@core/storage/types';
 import './PrimarySidebar.css';
 
 interface PrimarySidebarProps {

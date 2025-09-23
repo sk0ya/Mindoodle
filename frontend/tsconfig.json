@@ -42,7 +42,14 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/*"],
-      "@shared/*": ["src/app/shared/*"]
+      "@shared/*": ["src/app/shared/*"],
+      "@core/*": ["src/app/core/*"],
+      "@mindmap/*": ["src/app/features/mindmap/*"],
+      "@ai/*": ["src/app/features/ai/*"],
+      "@file-management/*": ["src/app/features/file-management/*"],
+      "@markdown/*": ["src/app/features/markdown/*"],
+      "@theme/*": ["src/app/features/theme/*"],
+      "@vim/*": ["src/app/features/vim/*"]
     }
   },
   "include": ["src/**/*"],

@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { logger } from '@shared/utils';
 import { useMindMapStore } from '../../store';
-import { useBaseEventHandler } from '../../handlers';
+import { useBaseEventHandler } from '@mindmap/handlers';
 
 interface CanvasEventHandlerProps {
   editingNodeId: string | null;

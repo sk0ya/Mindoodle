@@ -1,13 +1,19 @@
-// Re-export all command groups
-export * from './navigation';
-export * from './editing';
-export * from './structure';
-export * from './application';
-export * from './ui';
+// Re-export all command groups - direct imports since index.ts files removed
+export * from './navigation/navigate';
+export * from './navigation/navigation';
+export * from './navigation/center';
+export * from './editing/delete';
+export { editCommand } from './editing/edit';
+export { openCommand } from './editing/insert';
+export * from './structure/structure';
+export * from './structure/toggle';
+export * from './application/application';
+export * from './application/mindmap';
+export * from './ui/ui';
 
-// Export system utilities
-export { useCommands } from './system';
-export type { UseCommandsReturn } from './system';
+// Export system utilities - direct imports since index.ts removed
+export { useCommands } from './system/useCommands';
+export type { UseCommandsReturn } from './system/useCommands';
 
 // Import needed commands for categorization
 import {
@@ -16,23 +22,19 @@ import {
   downCommand,
   leftCommand,
   rightCommand,
-  centerCommand,
-} from './navigation';
+} from './navigation/navigate';
+import { centerCommand } from './navigation/center';
 
-import {
-  deleteCommand,
-  editCommand,
-  insertCommand,
-  appendCommand,
-  openCommand,
-} from './editing';
+import { deleteCommand } from './editing/delete';
+import { editCommand, insertCommand, appendCommand } from './editing/edit';
+import { openCommand } from './editing/insert';
 
+import { toggleCommand } from './structure/toggle';
 import {
-  toggleCommand,
   addChildCommand,
   addSiblingCommand,
   convertNodeCommand,
-} from './structure';
+} from './structure/structure';
 
 // Command categories for organization
 export const commandCategories = {

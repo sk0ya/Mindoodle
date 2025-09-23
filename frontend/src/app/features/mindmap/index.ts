@@ -6,14 +6,29 @@ export { default as MindMapApp } from './components/layout/MindMapApp';
 // コンポーネントアーキテクチャ（階層別）
 export * from './components';
 
-// Hooks
-export * from './hooks';
+// Hooks - direct exports since index.ts removed
+export * from './hooks/useEditingState';
+export * from './hooks/useKeyboardShortcuts';
+export * from './hooks/useMindMap';
+export * from './hooks/useMindMapActions';
+export * from './hooks/useMindMapData';
+export * from './hooks/useMindMapPersistence';
+export * from './hooks/useMindMapUI';
 
 // Store
 export * from './store';
 
-// Utils
-export * from './utils';
+// Utils - direct exports since index.ts removed
+export * from './utils/autoLayout';
+export * from './utils/canvasCoordinateUtils';
+export * from './utils/clipboardPaste';
+export * from './utils/linkNavigation';
+export * from './utils/linkUtils';
+export * from './utils/nodeTreeUtils';
+export * from './utils/nodeUtils';
+export * from './utils/pasteTree';
 
-// Handlers
-export * from './handlers';
+// Handlers - direct exports since index.ts removed
+export * from './handlers/BaseDragHandler';
+export * from './handlers/BaseEventHandler';
+export * from './handlers/BaseRenderer';

@@ -85,6 +85,7 @@ export {
   isMindFlowError
 } from './errors';
 
+
 // Legacy unified types (for backward compatibility)
 // TODO: これらは段階的に新しい型構造に移行する
 export type {

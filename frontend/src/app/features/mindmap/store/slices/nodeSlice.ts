@@ -14,9 +14,9 @@ import {
   addRootSiblingNode,
   moveNormalizedNode,
   changeSiblingOrderNormalized
-} from '../../../../core/data';
+} from '@core/data/normalizedStore';
 import { generateNodeId } from '@shared/utils';
-import { COLORS, LAYOUT } from '../../../../shared';
+import { COLORS, LAYOUT } from '@shared/constants';
 import { getBranchColor } from '../../utils';
 import type { MindMapStore } from './types';
 

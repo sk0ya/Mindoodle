@@ -1,12 +1,9 @@
 import React, { useCallback } from 'react';
-import { useMindMapStore } from '../../store';
+import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
-import {
-  useDragHandler,
-  convertScreenToSVG,
-  snapToGrid
-} from '../../handlers';
+import { useDragHandler } from '@mindmap/handlers/BaseDragHandler';
+import { convertScreenToSVG, snapToGrid } from '@mindmap/handlers';
 
 interface NodeDragHandlerProps {
   node: MindMapNode;

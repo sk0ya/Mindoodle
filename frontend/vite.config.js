@@ -9,7 +9,14 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
-      '@shared': path.resolve(__dirname, './src/app/shared')
+      '@shared': path.resolve(__dirname, './src/app/shared'),
+      '@core': path.resolve(__dirname, './src/app/core'),
+      '@mindmap': path.resolve(__dirname, './src/app/features/mindmap'),
+      '@ai': path.resolve(__dirname, './src/app/features/ai'),
+      '@file-management': path.resolve(__dirname, './src/app/features/file-management'),
+      '@markdown': path.resolve(__dirname, './src/app/features/markdown'),
+      '@theme': path.resolve(__dirname, './src/app/features/theme'),
+      '@vim': path.resolve(__dirname, './src/app/features/vim')
     }
   },
   server: {

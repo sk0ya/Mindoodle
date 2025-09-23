@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts } from '../../hooks';
+import { useMindMap, useKeyboardShortcuts } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
-import { findNodeById, findNodeInRoots } from '../../utils';
+import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import { relPathBetweenMapIds } from '@shared/utils';
 import ActivityBar from './ActivityBar';
@@ -18,7 +18,7 @@ import ImageModal from '../modals/ImageModal';
 import { useNotification } from '@shared/hooks/useNotification';
 import { useMarkdownSync } from '../../../markdown';
 import { resolveAnchorToNode, computeAnchorForNode } from '../../../markdown';
-import { navigateLink } from '../../utils';
+import { navigateLink } from '@mindmap/utils';
 import { useErrorHandler } from '@shared/hooks/useErrorHandler';
 import { useGlobalErrorHandlers } from '@shared/hooks/useGlobalErrorHandlers';
 import { useAI } from '../../../ai/hooks/useAI';
@@ -31,7 +31,7 @@ import './MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
-import type { StorageConfig } from '../../../../core/types';
+import type { StorageConfig } from '@core/storage/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
 import { LAYOUT } from '../../../../shared/constants';
