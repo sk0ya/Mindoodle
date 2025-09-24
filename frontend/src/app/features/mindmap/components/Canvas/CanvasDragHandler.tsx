@@ -18,6 +18,7 @@ interface CanvasDragHandlerProps {
   svgRef: React.RefObject<SVGSVGElement>;
   onChangeParent?: (nodeId: string, newParentId: string) => void;
   onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
+  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
   rootNodes: MindMapNode[];
 }
 
@@ -28,6 +29,7 @@ export const useCanvasDragHandler = ({
   svgRef,
   onChangeParent,
   onChangeSiblingOrder,
+  onMoveNodeWithPosition,
   rootNodes
 }: CanvasDragHandlerProps) => {
   const [dragState, setDragState] = useState<DragState>({
@@ -75,27 +77,28 @@ export const useCanvasDragHandler = ({
     // 型アサーション（nullチェック後なのでclosestNodeは非null）
     const targetNode: MindMapNode = closestNode;
 
-    // ドラッグ中のノードと最も近いノードの親子関係を確認
-    const findParent = (childId: string): MindMapNode | null => {
-      const findParentRecursive = (node: MindMapNode): MindMapNode | null => {
-        if (node.children) {
-          for (const child of node.children) {
-            if (child.id === childId) return node;
-            const found = findParentRecursive(child);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-      for (const root of rootNodes) {
-        const found = findParentRecursive(root);
-        if (found) return found;
-      }
-      return null;
-    };
+    // 位置による判定を優先するため、親子関係の検索は不要
+    // const findParent = (childId: string): MindMapNode | null => {
+    //   const findParentRecursive = (node: MindMapNode): MindMapNode | null => {
+    //     if (node.children) {
+    //       for (const child of node.children) {
+    //         if (child.id === childId) return node;
+    //         const found = findParentRecursive(child);
+    //         if (found) return found;
+    //       }
+    //     }
+    //     return null;
+    //   };
+    //   for (const root of rootNodes) {
+    //     const found = findParentRecursive(root);
+    //     if (found) return found;
+    //   }
+    //   return null;
+    // };
 
-    const draggedParent = dragState.draggedNodeId ? findParent(dragState.draggedNodeId) : null;
-    const targetParent = findParent(targetNode.id);
+    // 位置による判定を優先するため、親子関係の取得は不要
+    // const draggedParent = dragState.draggedNodeId ? findParent(dragState.draggedNodeId) : null;
+    // const targetParent = findParent(targetNode.id);
 
     // ノード内での相対位置を計算（ノードの高さを40pxと仮定）
     const nodeHeight = 40;
@@ -110,8 +113,8 @@ export const useCanvasDragHandler = ({
       // Shiftキーが押されている場合は強制的に親変更
       position = 'child';
       action = 'move-parent';
-    } else if (draggedParent && targetParent && draggedParent.id === targetParent.id) {
-      // 同じ親を持つ場合：兄弟順序変更を優先
+    } else {
+      // 位置による判定を優先（親子関係に関係なく）
       if (relativeY < topThreshold) {
         position = 'before';
         action = 'reorder-sibling';
@@ -122,10 +125,6 @@ export const useCanvasDragHandler = ({
         position = 'child';
         action = 'move-parent';
       }
-    } else {
-      // 異なる親を持つ場合：常に親変更
-      position = 'child';
-      action = 'move-parent';
     }
 
 
@@ -183,25 +182,20 @@ export const useCanvasDragHandler = ({
         prevState.dropAction) {
 
         if (prevState.dropAction === 'reorder-sibling') {
-          // 兄弟順序変更
-          const insertBefore = prevState.dropPosition === 'before';
-          logger.debug('兄弟順序変更実行:', {
+          // 位置指定付き親変更を使用（before/after/child対応）
+          logger.debug('位置指定付き移動実行:', {
             draggedNodeId: prevState.draggedNodeId,
             targetNodeId: prevState.dropTargetId,
-            insertBefore,
-            dropPosition: prevState.dropPosition,
-            hasOnChangeSiblingOrder: !!onChangeSiblingOrder
+            position: prevState.dropPosition
           });
-          if (onChangeSiblingOrder) {
-            logger.debug('onChangeSiblingOrder関数を呼び出し中...');
-            try {
-              onChangeSiblingOrder(prevState.draggedNodeId, prevState.dropTargetId, insertBefore);
-              logger.debug('onChangeSiblingOrder関数呼び出し完了');
-            } catch (error) {
-              logger.error('onChangeSiblingOrder関数でエラー発生:', error);
-            }
-          } else {
-            logger.error('onChangeSiblingOrder関数が存在しません');
+
+          // 新しいmoveNodeWithPosition関数を使用
+          if (onMoveNodeWithPosition && prevState.dropPosition) {
+            onMoveNodeWithPosition(
+              prevState.draggedNodeId,
+              prevState.dropTargetId,
+              prevState.dropPosition
+            );
           }
         } else if (prevState.dropAction === 'move-parent') {
           // 親変更
@@ -224,7 +218,7 @@ export const useCanvasDragHandler = ({
         dragOffset: { x: 0, y: 0 }
       };
     });
-  }, [onChangeParent, onChangeSiblingOrder]);
+  }, [onChangeParent, onChangeSiblingOrder, onMoveNodeWithPosition]);
 
   return {
     dragState,

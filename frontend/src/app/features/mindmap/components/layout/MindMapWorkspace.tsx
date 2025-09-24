@@ -13,6 +13,7 @@ interface MindMapWorkspaceProps {
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
   onMoveNode: (nodeId: string, newParentId: string) => void;
+  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
   onChangeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
   onAddChild: (parentId: string) => void;
   onAddSibling: (nodeId: string) => void;
@@ -52,6 +53,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onStartEdit,
   onFinishEdit,
   onMoveNode,
+  onMoveNodeWithPosition,
   onChangeSiblingOrder,
   onAddChild,
   onAddSibling,
@@ -86,6 +88,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onStartEdit={onStartEdit}
         onFinishEdit={onFinishEdit}
         onChangeParent={onMoveNode}
+        onMoveNodeWithPosition={onMoveNodeWithPosition}
         onChangeSiblingOrder={onChangeSiblingOrder}
         onAddChild={onAddChild}
         onAddSibling={onAddSibling}

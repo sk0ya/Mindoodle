@@ -273,6 +273,96 @@ export function moveNormalizedNode(
 }
 
 /**
+ * 位置指定付きでノードの親を変更
+ */
+export function moveNodeWithPositionNormalized(
+  normalizedData: NormalizedData,
+  nodeId: string,
+  targetNodeId: string,
+  position: 'before' | 'after' | 'child'
+): NormalizedData {
+  if (normalizedData.rootNodeIds.includes(nodeId)) {
+    throw new Error('Cannot move root node');
+  }
+
+  const oldParentId = normalizedData.parentMap[nodeId];
+  if (!oldParentId) {
+    throw new Error(`Parent not found for node: ${nodeId}`);
+  }
+
+  if (!normalizedData.nodes[targetNodeId]) {
+    throw new Error(`Target node not found: ${targetNodeId}`);
+  }
+
+  let newParentId: string;
+  let insertionIndex: number;
+
+  if (position === 'child') {
+    // 子として追加
+    newParentId = targetNodeId;
+    insertionIndex = (normalizedData.childrenMap[newParentId] || []).length;
+  } else {
+    // 兄弟として追加（before/after）
+    newParentId = normalizedData.parentMap[targetNodeId];
+    if (!newParentId) {
+      throw new Error(`Target node has no parent: ${targetNodeId}`);
+    }
+
+    const siblings = normalizedData.childrenMap[newParentId] || [];
+    const targetIndex = siblings.indexOf(targetNodeId);
+    if (targetIndex === -1) {
+      throw new Error(`Target node not found in parent's children: ${targetNodeId}`);
+    }
+
+    insertionIndex = position === 'before' ? targetIndex : targetIndex + 1;
+  }
+
+  // 循環参照チェック: newParentIdがnodeIdの子孫かどうかを確認
+  function isDescendantOf(parentId: string, childId: string): boolean {
+    const children = normalizedData.childrenMap[parentId] || [];
+    return children.includes(childId) ||
+           children.some(child => isDescendantOf(child, childId));
+  }
+
+  if (isDescendantOf(nodeId, newParentId)) {
+    throw new Error('Cannot move node to its descendant');
+  }
+
+  // 古い親から削除
+  const oldSiblings = normalizedData.childrenMap[oldParentId] || [];
+  const newOldSiblings = oldSiblings.filter(id => id !== nodeId);
+
+  // 新しい親に追加
+  const newSiblings = [...(normalizedData.childrenMap[newParentId] || [])];
+
+  // 同じ親内での移動の場合は調整が必要
+  if (oldParentId === newParentId) {
+    const currentIndex = newSiblings.indexOf(nodeId);
+    if (currentIndex !== -1) {
+      newSiblings.splice(currentIndex, 1);
+      if (insertionIndex > currentIndex) {
+        insertionIndex--;
+      }
+    }
+  }
+
+  newSiblings.splice(insertionIndex, 0, nodeId);
+
+  return {
+    ...normalizedData,
+    parentMap: {
+      ...normalizedData.parentMap,
+      [nodeId]: newParentId
+    },
+    childrenMap: {
+      ...normalizedData.childrenMap,
+      [oldParentId]: newOldSiblings,
+      [newParentId]: newSiblings
+    }
+  };
+}
+
+/**
  * 正規化されたデータで兄弟ノードを追加 - O(1)
  */
 export function addSiblingNormalizedNode(

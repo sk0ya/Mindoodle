@@ -959,7 +959,6 @@ const ExplorerView: React.FC<{
         try {
           e.preventDefault();
           const sourcePath = e.dataTransfer.getData('mindoodle/path');
-          const sourceType = e.dataTransfer.getData('mindoodle/type');
           const sourceWorkspaceId = e.dataTransfer.getData('mindoodle/workspaceId');
 
           // Calculate target relative path

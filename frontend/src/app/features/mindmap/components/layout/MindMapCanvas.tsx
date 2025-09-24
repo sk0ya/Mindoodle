@@ -16,6 +16,7 @@ interface MindMapCanvasProps {
   onFinishEdit: (nodeId: string, text: string) => void;
   onChangeParent?: (nodeId: string, newParentId: string) => void;
   onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
+  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
   onAddChild: (parentId: string) => void;
   onAddSibling: (nodeId: string) => void;
   onDeleteNode: (nodeId: string) => void;
@@ -57,6 +58,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onFinishEdit,
     onChangeParent,
     onChangeSiblingOrder,
+    onMoveNodeWithPosition,
     onAddChild,
     onAddSibling,
     onDeleteNode,
@@ -107,6 +109,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     svgRef,
     onChangeParent,
     onChangeSiblingOrder,
+    onMoveNodeWithPosition,
     rootNodes
   });
 

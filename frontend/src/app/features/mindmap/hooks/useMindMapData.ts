@@ -27,6 +27,10 @@ export const useMindMapData = () => {
       store.moveNode(nodeId, newParentId);
     }, [store]),
 
+    moveNodeWithPosition: useCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
+      store.moveNodeWithPosition(nodeId, targetNodeId, position);
+    }, [store]),
+
     changeSiblingOrder: useCallback((draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {
       store.changeSiblingOrder(draggedNodeId, targetNodeId, insertBefore);
     }, [store]),

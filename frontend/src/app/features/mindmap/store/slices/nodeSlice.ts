@@ -13,6 +13,7 @@ import {
   addSiblingNormalizedNode,
   addRootSiblingNode,
   moveNormalizedNode,
+  moveNodeWithPositionNormalized,
   changeSiblingOrderNormalized
 } from '@core/data/normalizedStore';
 import { generateNodeId } from '@shared/utils';
@@ -42,6 +43,7 @@ export interface NodeSlice {
   addSiblingNode: (nodeId: string, text?: string, insertAfter?: boolean) => string | undefined;
   deleteNode: (nodeId: string) => void;
   moveNode: (nodeId: string, newParentId: string) => void;
+  moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
   
@@ -442,6 +444,27 @@ export const createNodeSlice: StateCreator<
     // Sync to tree structure and add to history
     get().syncToMindMapData();
     
+    // Apply auto layout if enabled
+    const { data } = get();
+    if (data?.settings?.autoLayout) {
+      get().applyAutoLayout();
+    }
+  },
+
+  moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
+    set((state) => {
+      if (!state.normalizedData) return;
+
+      try {
+        state.normalizedData = moveNodeWithPositionNormalized(state.normalizedData, nodeId, targetNodeId, position);
+      } catch (error) {
+        logger.error('moveNodeWithPosition error:', error);
+      }
+    });
+
+    // Sync to tree structure and add to history
+    get().syncToMindMapData();
+
     // Apply auto layout if enabled
     const { data } = get();
     if (data?.settings?.autoLayout) {

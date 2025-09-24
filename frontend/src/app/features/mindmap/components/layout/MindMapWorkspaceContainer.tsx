@@ -12,6 +12,7 @@ type Props = {
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
   onMoveNode: (nodeId: string, newParentId: string) => void;
+  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
   onChangeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
   onAddChild: (parentId: string) => void;
   onAddSibling: (nodeId: string) => void;

@@ -138,6 +138,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     updateNode, 
     deleteNode,
     moveNode,
+    moveNodeWithPosition,
     selectNode,
     startEditing,
     startEditingWithCursorAtEnd,
@@ -523,7 +524,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       try {
         const src = e?.detail?.sourcePath;
         const dst = e?.detail?.targetFolderPath ?? '';
-        const workspaceId = e?.detail?.workspaceId;
 
 
         if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
@@ -654,20 +654,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // ノードを画面中央に移動する関数（最適化済み）
   const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
-    // ★ DEBUG LOG: centerNodeInView が呼ばれた時のログ
-    console.log('🎯 centerNodeInView called:', {
-      nodeId,
-      animate,
-      fallbackCoords,
-      stackTrace: new Error().stack?.split('\n').slice(1, 5).join('\n')
-    });
 
     if (!data) return;
 
     // Check if this is a left-center mode request
     const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left';
 
-    console.log('🎯 centerNodeInView mode:', { isLeftMode, fallbackCoords });
 
     // ルートノードの場合は最適化（検索を省略）
     const rootNodes = data.rootNodes || [];
@@ -735,14 +727,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     const targetX = mapAreaRect.left + (mapAreaRect.width * positionRatio);
     const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
 
-    console.log('🎯 centerNodeInView calculations:', {
-      nodeX, nodeY,
-      isLeftMode,
-      positionRatio,
-      mapAreaRect: { left: mapAreaRect.left, width: mapAreaRect.width },
-      targetX, targetY,
-      leftPanelWidth: mapAreaRect.left
-    });
 
     // 現在のズーム率を取得（SVGでは1.5倍されている）
     const currentZoom = ui.zoom * 1.5;
@@ -753,10 +737,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     const newPanX = targetX / currentZoom - nodeX;
     const newPanY = targetY / currentZoom - nodeY;
 
-    console.log('🎯 centerNodeInView pan calculation:', {
-      currentZoom, newPanX, newPanY,
-      beforePan: ui.pan
-    });
 
     if (animate) {
       // 非同期アニメーション（ユーザー操作をブロックしない）
@@ -790,7 +770,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       window.setTimeout(animateStep, 0);
     } else {
       // 即座にパンを更新
-      console.log('🎯 centerNodeInView setPan called:', { x: newPanX, y: newPanY });
       setPan({ x: newPanX, y: newPanY });
     }
   }, [data, ui.zoom, ui.pan, setPan]);
@@ -1078,6 +1057,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               onStartEdit={startEditing}
               onFinishEdit={finishEditing}
               onMoveNode={moveNode}
+              onMoveNodeWithPosition={moveNodeWithPosition}
               onChangeSiblingOrder={changeSiblingOrder}
               onAddChild={(parentId) => { addNode(parentId); }}
               onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
