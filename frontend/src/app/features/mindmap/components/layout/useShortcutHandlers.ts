@@ -443,6 +443,15 @@ export function useShortcutHandlers(args: Args) {
         showNotification('error', 'ノードの移動に失敗しました');
       }
     },
+    moveNodeWithPosition: async (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
+      try {
+        store.moveNodeWithPosition(nodeId, targetNodeId, position);
+        showNotification('success', 'ノードを移動しました');
+      } catch (error) {
+        logger.error('moveNodeWithPosition error:', error);
+        showNotification('error', 'ノードの移動に失敗しました');
+      }
+    },
     findParentNode: (nodeId: string) => {
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
       for (const root of roots) {

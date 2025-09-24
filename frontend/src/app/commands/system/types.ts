@@ -46,6 +46,7 @@ export interface CommandContext {
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;
     changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
     moveNode?: (nodeId: string, newParentId: string) => Promise<void>;
+    moveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => Promise<void>;
 
     // Clipboard operations
     copyNode: (nodeId: string) => void;

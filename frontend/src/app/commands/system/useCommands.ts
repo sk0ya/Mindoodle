@@ -233,8 +233,9 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       '0': 'select-current-root',
       'delete': 'delete',
       'backspace': 'delete',
-      '>>': 'move-as-child-of-sibling'
-    };;
+      '>>': 'move-as-child-of-sibling',
+      '<<': 'move-as-next-sibling-of-parent'
+    };
 
     const commandName = vimCommandMap[vimKey];
 

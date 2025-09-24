@@ -334,3 +334,79 @@ export const moveAsChildOfSiblingCommand: Command = {
     }
   }
 };
+// Move selected node as next sibling of its parent command (vim <<)
+export const moveAsNextSiblingOfParentCommand: Command = {
+  name: 'move-as-next-sibling-of-parent',
+  aliases: ['<<'],
+  description: 'Move the selected node as the next sibling of its parent',
+  category: 'structure',
+  examples: [
+    'move-as-next-sibling-of-parent',
+    '<<'
+  ],
+  args: [
+    {
+      name: 'nodeId',
+      type: 'node-id',
+      required: false,
+      description: 'Node ID to move (uses selected node if not specified)'
+    }
+  ],
+
+  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected and no node ID provided'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // Get the parent node using findParentNode if available
+      if (!context.handlers.findParentNode) {
+        return {
+          success: false,
+          error: 'Parent node lookup is not available'
+        };
+      }
+
+      const parentNode = context.handlers.findParentNode(nodeId);
+      if (!parentNode) {
+        return {
+          success: false,
+          error: 'Cannot move root node - no parent exists'
+        };
+      }
+
+      // Use moveNodeWithPosition to position the node as 'after' its parent
+      if (!context.handlers.moveNodeWithPosition) {
+        return {
+          success: false,
+          error: 'Move node with position functionality is not available'
+        };
+      }
+
+      await context.handlers.moveNodeWithPosition(nodeId, parentNode.id, 'after');
+
+      return {
+        success: true,
+        message: `Moved "${node.text}" as next sibling of "${parentNode.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to move node'
+      };
+    }
+  }
+};
