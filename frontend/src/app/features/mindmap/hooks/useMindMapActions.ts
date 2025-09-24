@@ -17,10 +17,10 @@ export const useMindMapActions = () => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
       store.setData(mapData);
 
-      // マップ開時に自動整列が有効な場合は適用（非同期で実行して連打の負荷を軽減）
+      // マップ開時に自動整列が有効な場合は適用（一度のみ実行）
       if (mapData.settings?.autoLayout) {
         setTimeout(() => {
-          logger.debug('🎯 Applying auto layout on map open');
+          logger.debug('🎯 Applying auto layout on map open (once only)');
           if (typeof store.applyAutoLayout === 'function') {
             store.applyAutoLayout();
           } else {

@@ -22,6 +22,7 @@ export const createUISlice: StateCreator<
     showShortcutHelper: false,
     showMapList: false,
     sidebarCollapsed: false,
+    activeView: 'maps' as string | null,
     showLocalStoragePanel: false,
     showTutorial: false,
     showNotesPanel: false,
@@ -82,6 +83,12 @@ export const createUISlice: StateCreator<
   setSidebarCollapsed: (collapsed: boolean) => {
     set((state) => {
       state.ui.sidebarCollapsed = collapsed;
+    });
+  },
+
+  setActiveView: (view: string | null) => {
+    set((state) => {
+      state.ui.activeView = view;
     });
   },
 

@@ -257,11 +257,11 @@ export const useMindMap = (
               }
             }
           } else {
-            // Structure changed: replace and auto-layout
+            // Structure changed: replace (auto-layout permanently disabled to prevent loops)
             const now = new Date().toISOString();
             const updatedData = { ...currentData, rootNodes: safeRootNodes, updatedAt: now } as any;
             setDataRef.current(updatedData);
-            try { dataHook.applyAutoLayout?.(); } catch { /* ignore */ }
+            // Auto layout permanently disabled here to prevent infinite loops during markdown updates
           }
         }
       } catch (error) {

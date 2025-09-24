@@ -17,6 +17,7 @@ export interface UIState {
   showShortcutHelper: boolean;
   showMapList: boolean;
   sidebarCollapsed: boolean;
+  activeView: string | null;
   showLocalStoragePanel: boolean;
   showTutorial: boolean;
   showNotesPanel: boolean;
@@ -65,6 +66,7 @@ export interface UIActions {
   setShowShortcutHelper: (show: boolean) => void;
   setShowMapList: (show: boolean) => void;
   setSidebarCollapsed: (collapsed: boolean) => void;
+  setActiveView: (view: string | null) => void;
   setShowLocalStoragePanel: (show: boolean) => void;
   setShowTutorial: (show: boolean) => void;
   setShowNotesPanel: (show: boolean) => void;
