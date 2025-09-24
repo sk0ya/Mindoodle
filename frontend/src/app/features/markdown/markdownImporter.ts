@@ -8,7 +8,6 @@ const createNewNode = (text: string, isRoot: boolean = false): MindMapNode => {
   const calculateInitialX = () => {
     if (!isRoot) return 0; // 子ノードは後でautoLayoutで配置される
 
-    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1520;
     const leftPanelWidth = 280; // Primary sidebar
     const margin = 5; // サイドバーのすぐ右ギリギリ
 
@@ -252,55 +251,6 @@ export class MarkdownImporter {
     return rootNodes;
   }
 
-  /**
-   * 見出しの下にリスト項目を適切な階層で追加
-   */
-  private static addListItemToHeading(
-    headingNode: MindMapNode,
-    listNode: MindMapNode,
-    indentLevel: number
-  ): void {
-    if (indentLevel === 0) {
-      // インデントなし：見出しの直接の子
-      headingNode.children = headingNode.children || [];
-      headingNode.children.push(listNode);
-    } else {
-      // インデントあり：適切な親リスト項目を探す
-      const findParentListItem = (
-        children: MindMapNode[],
-        targetIndent: number
-      ): MindMapNode | null => {
-        for (let i = children.length - 1; i >= 0; i--) {
-          const child = children[i];
-          const childMeta = child.markdownMeta;
-
-          if (childMeta &&
-              (childMeta.type === 'unordered-list' || childMeta.type === 'ordered-list') &&
-              (childMeta.indentLevel || 0) < targetIndent) {
-            return child;
-          }
-
-          // 子ノードの中も探す
-          if (child.children && child.children.length > 0) {
-            const found = findParentListItem(child.children, targetIndent);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-
-      const parentListItem = findParentListItem(headingNode.children || [], indentLevel);
-
-      if (parentListItem) {
-        parentListItem.children = parentListItem.children || [];
-        parentListItem.children.push(listNode);
-      } else {
-        // 適切な親が見つからない場合は見出しの直接の子として追加
-        headingNode.children = headingNode.children || [];
-        headingNode.children.push(listNode);
-      }
-    }
-  }
 
   /**
    * ノード構造からマークダウンに逆変換

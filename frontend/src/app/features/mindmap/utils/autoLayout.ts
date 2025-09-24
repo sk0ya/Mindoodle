@@ -8,16 +8,12 @@ import type { MindMapNode } from '../../../shared/types';
  * サイドバーの状態を考慮してルートノードの適切なX座標を計算
  */
 const calculateDynamicCenterX = (sidebarCollapsed?: boolean, activeView?: string | null): number => {
-  const viewportWidth = window.innerWidth;
-
   // 左側パネルの幅を計算（UI状態に基づく）
   let leftPanelWidth = 0;
   if (activeView && !sidebarCollapsed) {
     leftPanelWidth = 280; // Primary sidebar width when expanded and active view is selected
   }
 
-  // 利用可能なマップエリア幅を計算
-  const availableMapWidth = viewportWidth - leftPanelWidth;
 
   // ルートノードを適切な位置に配置（サイドバーのすぐ右ギリギリ）
   const baseMargin = 5; // サイドバーのすぐ右ギリギリ
