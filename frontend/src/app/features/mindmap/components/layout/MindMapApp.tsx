@@ -523,6 +523,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       try {
         const src = e?.detail?.sourcePath;
         const dst = e?.detail?.targetFolderPath ?? '';
+        const workspaceId = e?.detail?.workspaceId;
+
+
         if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
           void (mindMap as any).moveItem(src, dst).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
