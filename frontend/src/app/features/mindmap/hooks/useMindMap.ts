@@ -659,6 +659,11 @@ export const useMindMap = (
     workspaces: (persistenceHook as any).workspaces || [],
     addWorkspace: (persistenceHook as any).addWorkspace,
     removeWorkspace: (persistenceHook as any).removeWorkspace,
+
+    // Storage adapter access
+    storageAdapter: persistenceHook.storageAdapter,
+    refreshMapList: persistenceHook.refreshMapList,
+
     // markdown helpers
     getMapMarkdown,
     getMapLastModified,

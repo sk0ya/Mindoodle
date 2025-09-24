@@ -502,6 +502,45 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     await writable.close();
   }
 
+  // Save image file to workspace
+  async saveImageFile(relativePath: string, imageBlob: Blob, workspaceId?: string): Promise<void> {
+    if (!this._isInitialized) {
+      await this.initialize();
+    }
+
+    // Get the appropriate workspace handle
+    const wsHandle = workspaceId
+      ? this.workspaces.find(w => w.id === workspaceId)?.handle
+      : (this.workspaces[0]?.handle || this.rootHandle);
+
+    if (!wsHandle) {
+      throw new Error(`No workspace found for ID: ${workspaceId || 'default'}`);
+    }
+
+    // Parse relative path
+    const cleanPath = relativePath.replace(/^\.\//, ''); // Remove leading ./
+    const parts = cleanPath.split('/').filter(Boolean);
+    if (parts.length === 0) {
+      throw new Error('Invalid image path');
+    }
+
+    // Navigate to/create directory structure
+    let currentDir: DirHandle = wsHandle as any;
+    const fileName = parts.pop() as string;
+
+    for (const part of parts) {
+      currentDir = await this.getOrCreateDirectory(currentDir, part);
+    }
+
+    // Create and write the image file
+    const fileHandle: FileHandle = await currentDir.getFileHandle?.(fileName, { create: true })
+      ?? await (currentDir as any).getFileHandle(fileName, { create: true });
+    
+    const writable = await fileHandle.createWritable();
+    await writable.write(imageBlob);
+    await writable.close();
+  }
+
   private async copyFileHandle(srcFileHandle: FileHandle, dstDir: DirHandle, name: string): Promise<void> {
     const dstHandle: FileHandle = await dstDir.getFileHandle?.(name, { create: true })
       ?? await (dstDir as any).getFileHandle(name, { create: true });

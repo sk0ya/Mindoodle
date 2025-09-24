@@ -18,6 +18,9 @@ export * from './hooks/useMindMapUI';
 // Store
 export * from './store';
 
+// Services
+export * from './services/imagePasteService';
+
 // Utils - direct exports since index.ts removed
 export * from './utils/autoLayout';
 export * from './utils/canvasCoordinateUtils';

@@ -323,9 +323,16 @@ export function useShortcutHandlers(args: Args) {
         const clipboardNode = storeState.ui.clipboard;
 
         if (!clipboardNode) {
-          logger.error('pasteNode: no clipboard node');
-          showNotification('warning', 'コピーされたノードがありません');
-          return;
+          logger.debug('pasteNode: no clipboard node, trying image paste');
+          // Try to paste image from clipboard instead
+          try {
+            await pasteImageFromClipboard(parentId);
+            return;
+          } catch (error) {
+            logger.debug('pasteNode: image paste failed, showing warning');
+            showNotification('warning', 'コピーされたノードや画像がありません');
+            return;
+          }
         }
 
         logger.debug('pasteNode: pasting node', clipboardNode, 'into parent', parentId);

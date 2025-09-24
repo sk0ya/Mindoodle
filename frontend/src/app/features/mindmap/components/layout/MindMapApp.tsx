@@ -27,6 +27,7 @@ import { logger } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
+import { imagePasteService } from '../../services/imagePasteService';
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/storage/types';
@@ -162,7 +163,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     redo,
     workspaces,
     addWorkspace,
-    removeWorkspace
+    removeWorkspace,
+    storageAdapter,
+    refreshMapList
   } = mindMap;
 
   // VSCode風サイドバーの状態はUIストアから取得
@@ -856,8 +859,55 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     selectNode,
     setPan,
     applyAutoLayout,
-    pasteImageFromClipboard: async () => {
-      showNotification('success', '画像を貼り付けました');
+    pasteImageFromClipboard: async (nodeId?: string) => {
+      try {
+        // Use provided nodeId or currently selected node
+        const targetNodeId = nodeId || selectedNodeId;
+        if (!targetNodeId) {
+          showNotification('warning', '画像を貼り付けるノードを選択してください');
+          return;
+        }
+
+        // Check if storage adapter is available
+        if (!storageAdapter) {
+          showNotification('error', 'ストレージが初期化されていません');
+          return;
+        }
+
+        // Find the target node
+        const targetNode = findNodeInRoots(data?.rootNodes || [], targetNodeId);
+        if (!targetNode) {
+          showNotification('error', 'ノードが見つかりません');
+          return;
+        }
+
+        // Save image and get relative path
+        const imagePath = await imagePasteService.pasteImageToNode(
+          targetNodeId,
+          storageAdapter,
+          data?.mapIdentifier?.workspaceId,
+          data?.mapIdentifier?.mapId
+        );
+
+        // Add image markdown to the end of the node's note
+        const currentNote = targetNode.note || '';
+        const imageMarkdown = `![](${imagePath})`;
+        const newNote = currentNote
+          ? `${currentNote}\n\n${imageMarkdown}`
+          : imageMarkdown;
+
+        // Update the node with new note
+        updateNode(targetNodeId, { note: newNote });
+
+        // Refresh the explorer to show the new image file
+        await refreshMapList();
+
+        showNotification('success', '画像を貼り付けました');
+      } catch (error) {
+        console.error('Failed to paste image:', error);
+        const message = error instanceof Error ? error.message : '画像の貼り付けに失敗しました';
+        showNotification('error', message);
+      }
     },
     pasteNodeFromClipboard: async (parentId: string) => {
       const clipboardNode = ui.clipboard;
