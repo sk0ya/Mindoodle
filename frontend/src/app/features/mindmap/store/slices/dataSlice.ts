@@ -7,6 +7,10 @@ import { calculateNodeSize } from '../../utils/nodeUtils';
 import type { MindMapStore } from './types';
 import type { DataState } from '@shared/types/nodeTypes';
 
+// Debounce utility for autoLayout
+let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
+const AUTOLAYOUT_DEBOUNCE_MS = 150;
+
 export interface DataSlice extends DataState {
   setData: (data: MindMapData) => void;
   updateNormalizedData: () => void;
@@ -66,8 +70,16 @@ export const createDataSlice: StateCreator<
   },
 
   applyAutoLayout: () => {
-    const state = get();
-    const rootNodes = state.data?.rootNodes || [];
+    // Clear any existing timeout to debounce rapid successive calls
+    if (autoLayoutTimeoutId) {
+      clearTimeout(autoLayoutTimeoutId);
+    }
+
+    autoLayoutTimeoutId = setTimeout(() => {
+      const state = get();
+      const rootNodes = state.data?.rootNodes || [];
+
+      logger.debug('🔄 Debounced autoLayout execution started');
     
     if (rootNodes.length === 0) {
       logger.warn('⚠️ Auto layout: No root nodes found');
@@ -239,5 +251,6 @@ export const createDataSlice: StateCreator<
       logger.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
       logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
+    }, AUTOLAYOUT_DEBOUNCE_MS);
   },
 });
