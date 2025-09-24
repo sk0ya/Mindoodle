@@ -168,10 +168,10 @@ export const zoomInCommand: Command = {
 
 export const zoomOutCommand: Command = {
   name: 'zoom-out',
-  aliases: ['zoom-', 'zo'],
+  aliases: ['zoom-'],
   description: 'Zoom out on the mindmap',
   category: 'navigation',
-  examples: ['zoom-out', 'zoom-', 'zo'],
+  examples: ['zoom-out', 'zoom-'],
 
   execute(): CommandResult {
     try {
