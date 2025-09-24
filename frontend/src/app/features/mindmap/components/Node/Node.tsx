@@ -348,7 +348,7 @@ const Node: React.FC<NodeProps> = ({
   const vim = useVim();
 
   return (
-    <g>
+    <g data-node-id={node.id}>
       {/* 1. ノード背景（最初に描画） */}
       <NodeRenderer
         node={node}

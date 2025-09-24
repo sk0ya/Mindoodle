@@ -20,6 +20,8 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
         return '#ef4444'; // Red
       case 'search':
         return '#8b5cf6'; // Purple
+      case 'jumpy':
+        return '#f97316'; // Orange
       default:
         return '#6b7280'; // Gray
     }
@@ -37,6 +39,8 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
         return '-- COMMAND --';
       case 'search':
         return '-- SEARCH --';
+      case 'jumpy':
+        return '-- JUMPY --';
       default:
         return '-- VIM --';
     }
@@ -63,6 +67,11 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
               [{vim.currentSearchIndex + 1}/{vim.searchResults.length}]
             </span>
           )}
+        </div>
+      )}
+      {vim.isEnabled && vim.mode === 'jumpy' && (
+        <div className="vim-jumpy-info">
+          {vim.jumpyBuffer ? `Jumpy: ${vim.jumpyBuffer}` : `Type label to jump to node (${vim.jumpyLabels.length} nodes available)`}
         </div>
       )}
       {vim.isEnabled && vim.commandBuffer && vim.mode !== 'search' && (
@@ -136,6 +145,15 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           color: var(--text-secondary);
           font-size: 10px;
           opacity: 0.8;
+        }
+
+        .vim-jumpy-info {
+          color: var(--text-primary);
+          background: var(--bg-tertiary);
+          padding: 2px 6px;
+          border-radius: 3px;
+          border: 1px solid #f97316;
+          font-size: 11px;
         }
 
         .vim-last-command {

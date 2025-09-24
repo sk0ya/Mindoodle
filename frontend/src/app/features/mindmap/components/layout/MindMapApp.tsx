@@ -27,6 +27,7 @@ import { logger } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
+import { JumpyLabels } from "../../../vim";
 import { imagePasteService } from '../../services/imagePasteService';
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
@@ -40,21 +41,21 @@ interface MindMapAppProps {
   resetKey?: number;
 }
 
-const MindMapAppContent: React.FC<MindMapAppProps> = ({ 
-  storageMode = 'local', 
+const MindMapAppContent: React.FC<MindMapAppProps> = ({
+  storageMode = 'local',
   onModeChange,
   resetKey = 0
 }) => {
-  
+
   const { showNotification } = useNotification();
   const { handleError } = useErrorHandler();
   const markdownSync = useMarkdownSync();
-  
+
   // Settings store for initialization
   const { loadSettingsFromStorage } = useMindMapStore();
   // Vim mode hook
   const vim = useVim();
-  
+
   // Initialize settings on mount
   React.useEffect(() => {
     loadSettingsFromStorage();
@@ -95,10 +96,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setCurrentImageUrl(null);
     setCurrentImageAlt('');
   }, []);
-  
+
   // AI functionality
   const ai = useAI();
-  
+
   // テーマ管理
   useTheme();
 
@@ -112,30 +113,30 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Handle mode changes (loginModal削除済み)
   React.useEffect(() => {
-      // ログインモーダル関連は削除されました
+    // ログインモーダル関連は削除されました
   }, [storageMode]);
-  
+
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
     return { mode: 'markdown' } as StorageConfig;
   }, []);
-  
+
   // リセットキーでuseMindMapを強制リセット
   const mindMap = useMindMap(storageConfig, Math.max(resetKey, internalResetKey));
-  const { 
-    data, 
-    selectedNodeId, 
-    editingNodeId, 
-    editText, 
-    ui, 
-    canUndo, 
-    canRedo, 
-    allMindMaps, 
+  const {
+    data,
+    selectedNodeId,
+    editingNodeId,
+    editText,
+    ui,
+    canUndo,
+    canRedo,
+    allMindMaps,
     currentMapId,
-    
+
     // 統合されたハンドラー
     addNode,
-    updateNode, 
+    updateNode,
     deleteNode,
     moveNode,
     moveNodeWithPosition,
@@ -144,7 +145,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     startEditingWithCursorAtEnd,
     startEditingWithCursorAtStart,
     finishEditing,
-    
+
     // UI操作
     closeAllPanels,
     setZoom,
@@ -152,13 +153,13 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     setEditText,
     changeSiblingOrder,
     toggleNodeCollapse,
-    
+
     // マップ操作
     createAndSelectMap,
     selectMapById,
     updateMapMetadata,
     applyAutoLayout,
-    
+
     // 履歴操作
     undo,
     redo,
@@ -175,8 +176,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // Bridge workspaces to sidebar via globals (quick wiring)
   React.useEffect(() => {
     (window as any).mindoodleWorkspaces = workspaces || [];
-    (window as any).mindoodleAddWorkspace = async () => { try { await (addWorkspace as any)?.(); await (mindMap as any).refreshMapList?.(); } catch {} };
-    (window as any).mindoodleRemoveWorkspace = async (id: string) => { try { await (removeWorkspace as any)?.(id); await (mindMap as any).refreshMapList?.(); } catch {} };
+    (window as any).mindoodleAddWorkspace = async () => { try { await (addWorkspace as any)?.(); await (mindMap as any).refreshMapList?.(); } catch { } };
+    (window as any).mindoodleRemoveWorkspace = async (id: string) => { try { await (removeWorkspace as any)?.(id); await (mindMap as any).refreshMapList?.(); } catch { } };
   }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
   // Expose map list and selector for keyboard shortcuts (Ctrl+P/N)
@@ -219,11 +220,11 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               if ((window as any).__mindoodlePendingMapKey === pendingKey) {
                 selectMapById(target.mapIdentifier);
               }
-            } catch {}
+            } catch { }
           }, 150);
-        } catch {}
+        } catch { }
       };
-    } catch {}
+    } catch { }
   }, [allMindMaps, currentMapId, selectMapById, explorerTree]);
 
   // Now that mindMap is initialized, define folder selection handler
@@ -244,31 +245,31 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   }, [mindMap, closeGuide, markDismissed]);
 
   // フォルダ移動用の一括カテゴリ更新関数
-  const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{id: string, category: string}>) => {
+  const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{ id: string, category: string }>) => {
     logger.debug('Updating multiple map categories:', mapUpdates);
-    
+
     if (mapUpdates.length === 0) return;
-    
+
     try {
       // 一括でマップ情報を更新
       const updatedMaps = mapUpdates.map(update => {
         const mapToUpdate = allMindMaps.find(map => map.mapIdentifier.mapId === update.id);
         if (!mapToUpdate) return null;
-        
+
         return {
           ...mapToUpdate,
           category: update.category,
           updatedAt: new Date().toISOString()
         };
       }).filter(Boolean);
-      
+
       logger.debug(`Batch updating ${updatedMaps.length} maps`);
-      
+
       // 成功後にマップリストを強制更新してUIを即座に反映
       if (typeof (mindMap as any).refreshMapList === 'function') {
         await (mindMap as any).refreshMapList();
       }
-      
+
       logger.debug(`Successfully batch updated ${updatedMaps.length} maps`);
     } catch (error) {
       console.error('Failed to batch update map categories:', error);
@@ -296,12 +297,12 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // Context menu handlers
   const handleRightClick = (e: React.MouseEvent, nodeId: string) => {
     e.preventDefault();
-    
+
     // リンクリストまたは添付ファイルリスト表示中は右クリックコンテキストメニューを無効化
     if (ui.showLinkListForNode) {
       return;
     }
-    
+
     setContextMenu({
       visible: true,
       position: { x: e.clientX, y: e.clientY },
@@ -321,15 +322,15 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   const handleAIGenerate = async (node: MindMapNode) => {
     // 生成開始の通知
     showNotification('info', 'AI子ノード生成中... 🤖');
-    
+
     try {
       const childTexts = await ai.generateChildNodes(node);
-      
+
       // Generate child nodes based on AI suggestions
       childTexts.forEach(text => {
         addNode(node.id, text.trim());
       });
-      
+
       showNotification('success', `✅ ${childTexts.length}個の子ノードを生成しました`);
     } catch (error) {
       logger.error('AI child node generation failed:', error);
@@ -354,7 +355,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         // 既に読み込み済みのマップデータがある場合はそれを返す
         return targetMap;
       }
-      
+
       // マップが見つからない場合
       logger.warn('指定されたマップが見つかりません:', mapIdentifier);
       showNotification('warning', '指定されたマップが見つかりません');
@@ -584,7 +585,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       let label = 'リンク';
       let href = '';
 
-      
+
 
       // Determine label and href
       if (targetMapId === currentMapId) {
@@ -929,7 +930,9 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Ensure Vim mode returns to normal when editing ends (e.g., blur)
   React.useEffect(() => {
-    if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal' && vim.mode !== 'search') {
+    if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal' && vim.mode !== 'search' &&
+      vim.mode !== 'jumpy'
+    ) {
       vim.setMode('normal');
     }
   }, [vim.isEnabled, vim.mode, editingNodeId, vim.setMode]);
@@ -940,7 +943,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // Outline save feature removed
 
   return (
-    <div 
+    <div
       className="mindmap-app"
       tabIndex={0}
       style={{ outline: 'none' }}
@@ -950,7 +953,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onViewChange={setActiveView}
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
       />
-      
+
       <PrimarySidebarContainer
         activeView={activeView}
         storageMode={storageMode}
@@ -975,10 +978,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             return;
           }
           await selectMapById(id);
-        } }
+        }}
         onCreateMap={(title: string, workspaceId: string, category?: string) => {
           return createAndSelectMap(title, workspaceId, category);
-        } }
+        }}
         onRenameMap={(id, title) => updateMapMetadata(id, { title })}
         onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
@@ -990,7 +993,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           } else {
             logger.error('applyAutoLayout function not available');
           }
-        } }
+        }}
         workspaces={workspaces as any}
         onAddWorkspace={addWorkspace as any}
         onRemoveWorkspace={removeWorkspace as any}
@@ -1008,19 +1011,19 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
               await (mindMap as any).createFolder(path);
             }
           }
-        } }
+        }}
         currentMapData={data}
-        onNodeSelect={(nodeId) => { selectNode(nodeId); } }
-        onMapSwitch={async (id) => { await selectMapById(id); } } 
-              />
+        onNodeSelect={(nodeId) => { selectNode(nodeId); }}
+        onMapSwitch={async (id) => { await selectMapById(id); }}
+      />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
-        <FolderGuideModal 
+        <FolderGuideModal
           isOpen={showFolderGuide}
           onClose={closeGuide}
           onSelectFolder={async () => { await handleSelectFolder(); markDismissed(); }}
         />
-        <MindMapHeader 
+        <MindMapHeader
           data={data}
           onTitleChange={handleTitleChange}
           onUndo={undo}
@@ -1043,42 +1046,42 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           showNotesPanel={ui.showNotesPanel}
           onCenterRootNode={handleCenterRootNode}
         />
-        
+
         <div className="workspace-container">
-          <MindMapWorkspaceContainer 
-              data={data}
-              selectedNodeId={selectedNodeId}
-              editingNodeId={editingNodeId}
-              editText={editText}
-              setEditText={setEditText}
-              onSelectNode={(nodeId) => {
-                selectNode(nodeId);
-              }}
-              onStartEdit={startEditing}
-              onFinishEdit={finishEditing}
-              onMoveNode={moveNode}
-              onMoveNodeWithPosition={moveNodeWithPosition}
-              onChangeSiblingOrder={changeSiblingOrder}
-              onAddChild={(parentId) => { addNode(parentId); }}
-              onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
-              onDeleteNode={deleteNode}
-              onRightClick={handleRightClick}
-              onToggleCollapse={toggleNodeCollapse}
-              onShowLinkActionMenu={handleShowLinkActionMenu}
-              onAddLink={handleAddLink}
-              onUpdateNode={updateNode}
-              onAutoLayout={applyAutoLayout}
-              availableMaps={allMindMaps.map(map => ({ id: map.mapIdentifier.mapId, title: map.title }))}
-              currentMapData={data}
-              onLinkNavigate={handleLinkNavigate2}
-              zoom={ui.zoom}
-              setZoom={setZoom}
-              pan={ui.pan}
-              setPan={setPan}
-              onToggleLinkList={store.toggleLinkListForNode}
-              onLoadRelativeImage={onLoadRelativeImage}
-              onImageClick={handleShowImageModal}
-            />
+          <MindMapWorkspaceContainer
+            data={data}
+            selectedNodeId={selectedNodeId}
+            editingNodeId={editingNodeId}
+            editText={editText}
+            setEditText={setEditText}
+            onSelectNode={(nodeId) => {
+              selectNode(nodeId);
+            }}
+            onStartEdit={startEditing}
+            onFinishEdit={finishEditing}
+            onMoveNode={moveNode}
+            onMoveNodeWithPosition={moveNodeWithPosition}
+            onChangeSiblingOrder={changeSiblingOrder}
+            onAddChild={(parentId) => { addNode(parentId); }}
+            onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
+            onDeleteNode={deleteNode}
+            onRightClick={handleRightClick}
+            onToggleCollapse={toggleNodeCollapse}
+            onShowLinkActionMenu={handleShowLinkActionMenu}
+            onAddLink={handleAddLink}
+            onUpdateNode={updateNode}
+            onAutoLayout={applyAutoLayout}
+            availableMaps={allMindMaps.map(map => ({ id: map.mapIdentifier.mapId, title: map.title }))}
+            currentMapData={data}
+            onLinkNavigate={handleLinkNavigate2}
+            zoom={ui.zoom}
+            setZoom={setZoom}
+            pan={ui.pan}
+            setPan={setPan}
+            onToggleLinkList={store.toggleLinkListForNode}
+            onLoadRelativeImage={onLoadRelativeImage}
+            onImageClick={handleShowImageModal}
+          />
 
           {ui.showNotesPanel && (
             <MarkdownPanelContainer
@@ -1094,8 +1097,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           )}
         </div>
       </div>
-      
-      <MindMapModals 
+
+      <MindMapModals
         ui={ui}
         selectedNodeId={selectedNodeId}
         nodeOperations={{
@@ -1106,7 +1109,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             // 内部クリップボードに保存
             store.setClipboard(node);
             // システムクリップボードにMarkdownで書き出し
-            navigator.clipboard?.writeText?.(nodeToMarkdown(node)).catch(() => {});
+            navigator.clipboard?.writeText?.(nodeToMarkdown(node)).catch(() => { });
             showNotification('success', `「${node.text}」をコピーしました`);
           },
           onPasteNode: async (parentId: string) => {
@@ -1124,12 +1127,14 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           onShowImageModal: handleShowImageModal
         }}
       />
-      
+
       <MindMapOverlays
         showKeyboardHelper={showKeyboardHelper}
         setShowKeyboardHelper={setShowKeyboardHelper}
         vim={vim}
       />
+
+      <JumpyLabels vim={vim} />
 
       <MindMapLinkOverlays
         allMaps={allMindMaps.map(map => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
@@ -1148,7 +1153,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
         onEditLink={handleEditLink}
         onDeleteLinkFromMenu={handleDeleteLink}
       />
-      
+
       {/* Outline Editor removed */}
 
       <MindMapContextMenuOverlay
@@ -1168,7 +1173,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           if (!nodeToFind) return;
           store.setClipboard(nodeToFind);
           const markdownText = nodeToMarkdown(nodeToFind);
-          navigator.clipboard?.writeText?.(markdownText).catch(() => {});
+          navigator.clipboard?.writeText?.(markdownText).catch(() => { });
           showNotification('success', `「${nodeToFind.text}」をコピーしました`);
         }}
         onPasteNode={async (parentId: string) => {

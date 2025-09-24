@@ -198,6 +198,11 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       return { success: true };
     }
 
+    if (vimKey === 's' && vim && vim.mode === 'normal') {
+      vim.startJumpy();
+      return { success: true };
+    }
+
     const vimCommandMap: Record<string, string> = {
       'zz': 'center',
       'zt': 'center-left',

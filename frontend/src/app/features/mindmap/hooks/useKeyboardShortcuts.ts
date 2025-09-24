@@ -8,6 +8,8 @@ import { useEffect } from 'react';
 import type { VimModeHook } from '../../vim/hooks/useVimMode';
 import { useCommands } from '@commands/system/useCommands';
 import type { UseCommandsReturn } from '@commands/system/useCommands';
+import { useMindMapStore } from '../store/mindMapStore';
+import { JUMP_CHARS } from '../../vim/constants';
 
 interface KeyboardShortcutHandlers {
   selectedNodeId: string | null;
@@ -274,6 +276,35 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           event.preventDefault();
           vim.updateSearchQuery(vim.searchQuery + key);
           return;
+        }
+        return;
+      }
+
+      // Handle jumpy mode
+      if (vim && vim.isEnabled && vim.mode === 'jumpy') {
+        const { key } = event;
+
+        if (key === 'Escape') {
+          event.preventDefault();
+          vim.exitJumpy();
+          return;
+        } else if (key === 'Enter' && vim.jumpyBuffer) {
+          event.preventDefault();
+          // Jump to exact match if it exists
+          const exactMatch = vim.jumpyLabels.find(jl => jl.label === vim.jumpyBuffer);
+          if (exactMatch) {
+            const { selectNode } = useMindMapStore.getState() as any;
+            selectNode(exactMatch.nodeId);
+            vim.exitJumpy();
+          }
+          return;
+        } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+          event.preventDefault();
+          // Handle jump characters
+          if (JUMP_CHARS.includes(key.toLowerCase())) {
+            vim.jumpToNode(key.toLowerCase());
+            return;
+          }
         }
         return;
       }
