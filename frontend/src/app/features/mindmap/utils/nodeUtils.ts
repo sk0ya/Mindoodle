@@ -130,23 +130,16 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
   // アイコンの基本サイズ
   const ICON_WIDTH = 22;
   const ICON_HEIGHT = 14;
-  const ICON_SPACING = 6;
   const RIGHT_MARGIN = 2; // 右端との最小余白
   
   let totalWidth = 0;
   let linkIcon: { x: number; y: number } | undefined;
   
   if (hasLinks) {
-    // 両方ある場合: 添付ファイル + スペース + リンク
-    totalWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH;
-    const startX = nodeWidth / 2 - totalWidth - RIGHT_MARGIN;
-    
-    linkIcon = { x: startX + ICON_WIDTH + ICON_SPACING, y: -ICON_HEIGHT / 2 };
-  } else if (hasLinks) {
-    // リンクのみ
+    // リンクのみ（添付ファイル機能は廃止されているため）
     totalWidth = ICON_WIDTH;
     const startX = nodeWidth / 2 - totalWidth - RIGHT_MARGIN;
-    
+
     linkIcon = { x: startX, y: -ICON_HEIGHT / 2 };
   }
   
@@ -262,17 +255,14 @@ export function calculateNodeSize(
     actualTextWidth = Math.max(measuredWidth, minWidth);
   }
   
-  // アイコンレイアウトに必要な最小幅を計算
+  // アイコンレイアウトに必要な最小幅を計算（リンクのみ、添付ファイル機能は廃止）
   const noteStr2 = (node as any)?.note as string | undefined;
   const hasLinks = hasInternalMarkdownLinks(noteStr2) || (extractExternalLinksFromMarkdown(noteStr2).length > 0);
-  const ICON_WIDTH = 32;
-  const ICON_SPACING = 6;
-  
+  const ICON_WIDTH = 22; // 実際のアイコン幅に合わせる
+
   let minIconWidth = 0;
   if (hasLinks) {
-    minIconWidth = ICON_WIDTH + ICON_SPACING + ICON_WIDTH; // 右マージンはここでは足さない
-  } else if (hasLinks) {
-    minIconWidth = ICON_WIDTH; // 右マージンはレイアウト側で微調整
+    minIconWidth = ICON_WIDTH; // リンクアイコンのみ
   }
   
   // パディングを追加（左右に余白を持たせる）
@@ -289,7 +279,7 @@ export function calculateNodeSize(
   
   if (minIconWidth > 0) {
     // アイコンがある場合：テキスト幅 + アイコン幅 + 余白を確保
-    const TEXT_ICON_SPACING = 6; // さらにタイトに
+    const TEXT_ICON_SPACING = 1; // テキストとアイコンの最小間隔
     const combinedWidth = textBasedWidth + minIconWidth + TEXT_ICON_SPACING;
     const imageBasedWidth = hasImages ? imageWidth + 10 : 0;
     finalWidth = Math.max(combinedWidth, imageBasedWidth);

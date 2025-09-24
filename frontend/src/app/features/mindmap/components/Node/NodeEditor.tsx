@@ -199,16 +199,20 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     const externalLinks = extractExternalLinksFromMarkdown(node.note) || [];
     const hasAnyMarkdownLinks = (internalLinks.length + externalLinks.length) > 0;
     const hasLinks = hasAnyMarkdownLinks;
-    const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
 
     // アイコンレイアウトを計算してテキスト位置を調整
     const iconLayout = calculateIconLayout(node, nodeWidth);
     // リンクアイコンの分だけテキストを少し左に寄せる（中央基準の見た目ずれ回避）
-    const TEXT_ICON_SPACING = 6; // nodeUtilsと整合
+    const TEXT_ICON_SPACING = 1; // テキストとアイコンの最小間隔
     const RIGHT_MARGIN = 2;
     const iconBlockWidth = hasLinks && iconLayout.totalWidth > 0
       ? iconLayout.totalWidth + TEXT_ICON_SPACING + RIGHT_MARGIN
       : 0;
+
+    // テキスト位置の統合計算
+    // Y位置: 画像がある場合は画像の下に配置、ない場合はノード中央
+    const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
+    // X位置: リンクアイコンがある場合はその分左に寄せる
     const textX = node.x - iconBlockWidth / 2;
 
     // ノードテキストがリンク形式かどうかをチェック
@@ -410,19 +414,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const actualImageHeight = getActualImageHeight();
   const editY = hasImage ? node.y + actualImageHeight / 2 - 10 : node.y - 10;
 
-  // リンクアイコン分のレイアウト調整（非編集時と同等のオフセットを適用）
-  const internalLinks2 = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNodes?.[0]) || [];
-  const externalLinks2 = extractExternalLinksFromMarkdown(node.note) || [];
-  const hasAnyMarkdownLinks2 = (internalLinks2.length + externalLinks2.length) > 0;
-  const iconLayout2 = calculateIconLayout(node, nodeWidth);
-  const TEXT_ICON_SPACING2 = 6;
-  const RIGHT_MARGIN2 = 2;
-  const iconBlockWidth2 = hasAnyMarkdownLinks2 && iconLayout2.totalWidth > 0
-    ? iconLayout2.totalWidth + TEXT_ICON_SPACING2 + RIGHT_MARGIN2
-    : 0;
-  // テキスト表示時は中央を左にずらしているため、編集ボックスも同様に左へオフセット
-  const rawEditX = (nodeLeftX + 4) - iconBlockWidth2 / 2;
-  const rawEditWidth = Math.max(20, (nodeWidth - 8) - iconBlockWidth2);
+  // 編集時は画像・リンクの有無に関係なく、常にノード中央に配置
+  const rawEditWidth = Math.max(20, nodeWidth - 8);
+  const rawEditX = nodeLeftX + 4;
   // SVGグループにscale(zoom*1.5)がかかっているため、スケール後にピクセル境界へスナップ
   const scale = (ui?.zoom || 1) * 1.5;
   const alignToScale = (v: number) => (scale > 0 ? Math.round(v * scale) / scale : v);
