@@ -160,6 +160,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     onFinishEdit(node.id, currentValue);
   }, [node.id, editText, onFinishEdit, blurTimeoutRef]);
 
+  // inputフィールドのマウスダウン・クリックイベント処理
+  const handleInputMouseEvents = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
+    // イベントの上位への伝播を停止（Nodeのクリックイベントを防ぐ）
+    e.stopPropagation();
+  }, []);
+
 
   if (!isEditing) {
     // 画像がある場合はテキストをノードの下部に表示
@@ -438,6 +444,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         onChange={(e) => setEditText(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleInputBlur}
+        onClick={handleInputMouseEvents}
+        onMouseDown={handleInputMouseEvents}
         style={{
           width: '100%',
           height: '100%',
