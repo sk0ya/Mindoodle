@@ -186,19 +186,21 @@ export class MarkdownImporter {
   /**
    * 構造要素リストからノード階層を構築
    * 見出しが親、リストがその子という正しい階層関係を構築
+   * リスト項目同士もインデントレベルに基づいて親子関係を構築
    */
   private static buildNodeHierarchy(elements: StructureElement[]): MindMapNode[] {
     const rootNodes: MindMapNode[] = [];
     const headingStack: { node: MindMapNode; level: number }[] = [];
+    const listStack: { node: MindMapNode; indentLevel: number }[] = [];
     let currentHeading: MindMapNode | null = null;
 
     for (const element of elements) {
       // Determine if this will be a root node before creating it
       const isRoot = (element.type === 'heading' && (
-        headingStack.length === 0 || 
+        headingStack.length === 0 ||
         headingStack.every(item => item.level >= element.level)
-      )) || (element.type !== 'heading' && currentHeading === null);
-      
+      )) || (element.type !== 'heading' && currentHeading === null && (element.indentLevel || 0) === 0);
+
       const newNode = createNewNode(element.text, isRoot);
       if (element.content) newNode.note = element.content;
       newNode.children = [];
@@ -214,6 +216,9 @@ export class MarkdownImporter {
 
       if (element.type === 'heading') {
         // 見出しの場合：階層に基づいて親子関係を決定
+
+        // リストスタックをクリア（見出しが変わったのでリストの階層をリセット）
+        listStack.length = 0;
 
         // より深いレベルの見出しをスタックからポップ
         while (headingStack.length > 0 && headingStack[headingStack.length - 1].level >= element.level) {
@@ -235,16 +240,36 @@ export class MarkdownImporter {
         currentHeading = newNode;
 
       } else {
-        // リスト項目の場合：現在の見出しの下に配置
+        // リスト項目の場合：インデントレベルに基づいて親子関係を決定
+        const currentIndentLevel = element.indentLevel || 0;
 
-        if (currentHeading) {
-          // 現在の見出しの子として追加
-          currentHeading.children = currentHeading.children || [];
-          currentHeading.children.push(newNode);
+        // より深いインデントレベルのリストアイテムをスタックからポップ
+        while (listStack.length > 0 && listStack[listStack.length - 1].indentLevel >= currentIndentLevel) {
+          listStack.pop();
+        }
+
+        // 親を決定
+        let parentNode: MindMapNode | null = null;
+
+        if (listStack.length > 0) {
+          // 親リストアイテムがある場合
+          parentNode = listStack[listStack.length - 1].node;
+        } else if (currentHeading) {
+          // リストスタックは空だが見出しがある場合
+          parentNode = currentHeading;
+        }
+
+        if (parentNode) {
+          // 親ノードの子として追加
+          parentNode.children = parentNode.children || [];
+          parentNode.children.push(newNode);
         } else {
-          // 現在の見出しがない場合 → ルートレベルのリスト項目として扱う
+          // 親がない場合 → ルートレベルのリスト項目として扱う
           rootNodes.push(newNode);
         }
+
+        // 現在のリストアイテムをスタックに追加
+        listStack.push({ node: newNode, indentLevel: currentIndentLevel });
       }
     }
 
@@ -266,8 +291,9 @@ export class MarkdownImporter {
       });
     }
 
-    const processNode = (node: MindMapNode, parentLevel: number = 0): void => {
+    const processNode = (node: MindMapNode, parentLevel: number = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list'): void => {
       const markdownMeta = node.markdownMeta;
+      const nodeType = markdownMeta?.type;
 
       if (DEBUG_MD) {
         logger.debug('📄 processNode', {
@@ -275,7 +301,8 @@ export class MarkdownImporter {
           text: node.text,
           hasMarkdownMeta: !!markdownMeta,
           markdownMeta: markdownMeta,
-          parentLevel: parentLevel
+          parentLevel: parentLevel,
+          parentType: parentType
         });
       }
 
@@ -288,11 +315,15 @@ export class MarkdownImporter {
           prefix = '#'.repeat(markdownMeta.level || 1) + ' ';
         } else if (markdownMeta.type === 'unordered-list') {
           // 順序なしリストの場合：インデントレベルに基づいて-を配置
-          const indent = ' '.repeat(markdownMeta.indentLevel || 0);
+          // 見出しの直下のリストはインデントレベル0から開始
+          const actualIndent = parentType === 'heading' ? 0 : (markdownMeta.indentLevel || 0);
+          const indent = ' '.repeat(actualIndent);
           prefix = indent + '- ';
         } else if (markdownMeta.type === 'ordered-list') {
           // 順序ありリストの場合：インデントレベルに基づいて番号を配置
-          const indent = ' '.repeat(markdownMeta.indentLevel || 0);
+          // 見出しの直下のリストはインデントレベル0から開始
+          const actualIndent = parentType === 'heading' ? 0 : (markdownMeta.indentLevel || 0);
+          const indent = ' '.repeat(actualIndent);
           // originalFormatから番号を取得、なければ1.を使用
           let numberFormat = '1.';
           if (markdownMeta.originalFormat && /^\d+\./.test(markdownMeta.originalFormat)) {
@@ -308,6 +339,7 @@ export class MarkdownImporter {
             type: markdownMeta.type,
             level: markdownMeta.level,
             indentLevel: markdownMeta.indentLevel,
+            actualIndent: parentType === 'heading' && (markdownMeta.type === 'unordered-list' || markdownMeta.type === 'ordered-list') ? 0 : (markdownMeta.indentLevel || 0),
             originalFormat: markdownMeta.originalFormat,
             generatedPrefix: prefix,
             finalLine: prefix + node.text
@@ -334,12 +366,12 @@ export class MarkdownImporter {
 
         lines.push(finalLine);
       }
-      
+
       // ノートがある場合は追加（不要な空行なし・trimしない: 意図した空白を保持）
       if (node.note != null && node.note !== '') {
         lines.push(node.note);
       }
-      
+
       // 子ノードを処理
       if (node.children && node.children.length > 0) {
         for (const child of node.children) {
@@ -359,7 +391,7 @@ export class MarkdownImporter {
             childParentLevel = parentLevel + 1;
           }
 
-          processNode(child, childParentLevel);
+          processNode(child, childParentLevel, nodeType);
         }
       }
     };
