@@ -245,3 +245,92 @@ export const convertNodeCommand: Command = {
     }
   }
 };
+
+// Move selected node as child of its previous sibling command (vim >>)
+export const moveAsChildOfSiblingCommand: Command = {
+  name: 'move-as-child-of-sibling',
+  aliases: ['>>'],
+  description: 'Move the selected node as a child of its previous sibling',
+  category: 'structure',
+  examples: [
+    'move-as-child-of-sibling',
+    '>>'
+  ],
+  args: [
+    {
+      name: 'nodeId',
+      type: 'node-id',
+      required: false,
+      description: 'Node ID to move (uses selected node if not specified)'
+    }
+  ],
+
+  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
+    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected and no node ID provided'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // Get the parent node using findParentNode if available
+      if (!context.handlers.findParentNode) {
+        return {
+          success: false,
+          error: 'Parent node lookup is not available'
+        };
+      }
+
+      const parentNode = context.handlers.findParentNode(nodeId);
+      if (!parentNode) {
+        return {
+          success: false,
+          error: 'Cannot move root node as child of sibling'
+        };
+      }
+
+      const siblings = parentNode.children || [];
+      const currentIndex = siblings.findIndex((sibling: any) => sibling.id === nodeId);
+      
+      if (currentIndex <= 0) {
+        return {
+          success: false,
+          error: 'No previous sibling to move under'
+        };
+      }
+
+      const previousSibling = siblings[currentIndex - 1];
+      
+      // Use the moveNode function to move the node
+      if (!context.handlers.moveNode) {
+        return {
+          success: false,
+          error: 'Move node functionality is not available'
+        };
+      }
+
+      await context.handlers.moveNode(nodeId, previousSibling.id);
+
+      return {
+        success: true,
+        message: `Moved "${node.text}" as child of "${previousSibling.text}"`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to move node'
+      };
+    }
+  }
+};

@@ -28,6 +28,7 @@ export interface CommandContext {
     updateNode: (id: string, updates: Partial<MindMapNode>) => void;
     deleteNode: (id: string) => void;
     findNodeById: (nodeId: string) => MindMapNode | null;
+    findParentNode?: (nodeId: string) => MindMapNode | null;
 
     // Navigation
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
@@ -44,6 +45,7 @@ export interface CommandContext {
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;
     changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
+    moveNode?: (nodeId: string, newParentId: string) => Promise<void>;
 
     // Clipboard operations
     copyNode: (nodeId: string) => void;

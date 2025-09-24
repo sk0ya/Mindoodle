@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots } from '@mindmap/utils';
+import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
@@ -431,6 +431,25 @@ export function useShortcutHandlers(args: Args) {
           }
         }
       } catch {}
+    },
+
+    // Node structure manipulation
+    moveNode: async (nodeId: string, newParentId: string) => {
+      try {
+        store.moveNode(nodeId, newParentId);
+        showNotification('success', 'ノードを移動しました');
+      } catch (error) {
+        logger.error('moveNode error:', error);
+        showNotification('error', 'ノードの移動に失敗しました');
+      }
+    },
+    findParentNode: (nodeId: string) => {
+      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      for (const root of roots) {
+        const parent = findParentNode(root, nodeId);
+        if (parent) return parent;
+      }
+      return null;
     },
   }), [
     data, ui, store, logger, showNotification,
