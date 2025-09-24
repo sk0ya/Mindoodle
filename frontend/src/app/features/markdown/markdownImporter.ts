@@ -2,16 +2,30 @@ import { type MindMapNode } from '@shared/types';
 import { generateNodeId } from '@shared/utils';
 import { logger } from '@shared/utils';
 
-// Helper function to create new node
-const createNewNode = (text: string): MindMapNode => ({
-  id: generateNodeId(),
-  text,
-  x: 0,
-  y: 0,
-  children: [],
-  fontSize: 14,
-  fontWeight: 'normal'
-});
+// Helper function to create new node with proper initial positioning
+const createNewNode = (text: string, isRoot: boolean = false): MindMapNode => {
+  // サイドバーを考慮した適切な初期X座標を設定
+  const calculateInitialX = () => {
+    if (!isRoot) return 0; // 子ノードは後でautoLayoutで配置される
+
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1520;
+    const leftPanelWidth = 280; // Primary sidebar
+    const margin = 5; // サイドバーのすぐ右ギリギリ
+
+
+    return leftPanelWidth + margin; // サイドバーのすぐ右側
+  };
+
+  return {
+    id: generateNodeId(),
+    text,
+    x: calculateInitialX(),
+    y: 300, // デフォルトY座標
+    children: [],
+    fontSize: 14,
+    fontWeight: 'normal'
+  };
+};
 
 const DEBUG_MD = true; // 一時的にデバッグ有効
 // const DEBUG_MD =
@@ -180,7 +194,13 @@ export class MarkdownImporter {
     let currentHeading: MindMapNode | null = null;
 
     for (const element of elements) {
-      const newNode = createNewNode(element.text);
+      // Determine if this will be a root node before creating it
+      const isRoot = (element.type === 'heading' && (
+        headingStack.length === 0 || 
+        headingStack.every(item => item.level >= element.level)
+      )) || (element.type !== 'heading' && currentHeading === null);
+      
+      const newNode = createNewNode(element.text, isRoot);
       if (element.content) newNode.note = element.content;
       newNode.children = [];
 
@@ -221,11 +241,9 @@ export class MarkdownImporter {
         if (currentHeading) {
           // 現在の見出しの子として追加
           currentHeading.children = currentHeading.children || [];
-
-          // リストのインデントレベルに基づいて親子関係を決定
-          this.addListItemToHeading(currentHeading, newNode, element.indentLevel || 0);
+          currentHeading.children.push(newNode);
         } else {
-          // 見出しがない場合はルートに追加（稀なケース）
+          // 現在の見出しがない場合 → ルートレベルのリスト項目として扱う
           rootNodes.push(newNode);
         }
       }

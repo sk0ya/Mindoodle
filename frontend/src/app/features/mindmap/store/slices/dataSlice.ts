@@ -153,7 +153,9 @@ export const createDataSlice: StateCreator<
       for (let index = 0; index < rootNodes.length; index++) {
         const rootNode = rootNodes[index];
         const layoutedNode = autoSelectLayout(rootNode, {
-          globalFontSize: state.settings.fontSize
+          globalFontSize: state.settings.fontSize,
+          sidebarCollapsed: state.ui.sidebarCollapsed,
+          activeView: state.ui.activeView
         });
 
         if (!layoutedNode) continue;

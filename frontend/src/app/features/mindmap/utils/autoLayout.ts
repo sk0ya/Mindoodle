@@ -4,6 +4,30 @@ import { COORDINATES, LAYOUT } from '../../../shared/constants/index';
 import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from './nodeUtils';
 import type { MindMapNode } from '../../../shared/types';
 
+/**
+ * サイドバーの状態を考慮してルートノードの適切なX座標を計算
+ */
+const calculateDynamicCenterX = (sidebarCollapsed?: boolean, activeView?: string | null): number => {
+  const viewportWidth = window.innerWidth;
+
+  // 左側パネルの幅を計算（UI状態に基づく）
+  let leftPanelWidth = 0;
+  if (activeView && !sidebarCollapsed) {
+    leftPanelWidth = 280; // Primary sidebar width when expanded and active view is selected
+  }
+
+  // 利用可能なマップエリア幅を計算
+  const availableMapWidth = viewportWidth - leftPanelWidth;
+
+  // ルートノードを適切な位置に配置（サイドバーのすぐ右ギリギリ）
+  const baseMargin = 5; // サイドバーのすぐ右ギリギリ
+  const position = leftPanelWidth + baseMargin;
+  const finalPosition = position;
+
+
+  return finalPosition;
+};
+
 // Layout options interfaces
 interface LayoutOptions {
   centerX?: number;
@@ -11,6 +35,9 @@ interface LayoutOptions {
   levelSpacing?: number;
   nodeSpacing?: number;
   globalFontSize?: number;
+  // UI状態を考慮したレイアウト
+  sidebarCollapsed?: boolean;
+  activeView?: string | null;
 }
 
 /**
@@ -43,8 +70,11 @@ const getChildNodeXFromRootEdge = (rootNode: MindMapNode, childNode: MindMapNode
  * 実際のノードサイズを考慮して衝突を回避
  */
 export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
+  const calculatedCenterX = calculateDynamicCenterX(options.sidebarCollapsed, options.activeView);
+
+
   const {
-    centerX = COORDINATES.DEFAULT_CENTER_X,
+    centerX = calculatedCenterX,
     centerY = COORDINATES.DEFAULT_CENTER_Y,
     levelSpacing = LAYOUT.LEVEL_SPACING,
     nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN, // 最小間隔を使用
@@ -233,6 +263,9 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       const childrenCenterY = (minY + maxY) / 2;
       newRootNode.y = childrenCenterY;
     }
+
+    // 子ノードがある場合もルートノードのX座標を設定
+    newRootNode.x = centerX;
   } else {
     // 子ノードがない場合はデフォルト位置
     newRootNode.x = centerX;
