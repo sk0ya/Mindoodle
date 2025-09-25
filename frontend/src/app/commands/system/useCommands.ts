@@ -219,10 +219,10 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'ctrl-u': 'scroll-up',
       'ctrl-d': 'scroll-down',
       'ciw': 'edit',
-      'i': 'insert',
-      'a': 'append',
+      'i': 'append',        // i: 末尾カーソル編集
+      'a': 'add-child',     // a: 子ノード追加
       'A': 'append-end',
-      'I': 'insert-beginning',
+      'I': 'insert',        // I: 先頭カーソル編集
       'o': 'open',
       'O': 'open-above',
       'h': 'left',
