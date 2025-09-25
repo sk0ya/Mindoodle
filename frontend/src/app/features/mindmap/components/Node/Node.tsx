@@ -223,8 +223,8 @@ const Node: React.FC<NodeProps> = ({
     const types = e.dataTransfer.types;
     if (types.includes('text/map-id') || types.includes('mindoodle/path')) {
       e.preventDefault();
-      // Indicate a copy drop to match effectAllowed
-      e.dataTransfer.dropEffect = 'copy';
+      // Match the effectAllowed from drag source (move)
+      e.dataTransfer.dropEffect = 'move';
     }
   }, []);
 

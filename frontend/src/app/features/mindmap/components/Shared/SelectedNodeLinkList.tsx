@@ -3,6 +3,7 @@ import { Link, ExternalLink } from 'lucide-react';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { calculateLinkListHeight } from '@shared/utils';
 import { extractAllMarkdownLinksDetailed, resolveHrefToMapTarget, resolveAnchorToNode } from '../../../markdown';
+import { useNotification } from '@shared/hooks';
 
 interface SelectedNodeLinkListProps {
   node: MindMapNode;
@@ -30,6 +31,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   availableMaps = [],
   currentMapData
 }) => {
+  const { showNotification } = useNotification();
   const handleLinkClick = useCallback((e: React.MouseEvent, link: NodeLink) => {
     // 右クリックの場合は処理しない
     if (e.button === 2) {
@@ -69,8 +71,16 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   // Build combined list preserving appearance order
   const combined = useMemo(() => {
     const parsed = extractAllMarkdownLinksDetailed(node.note);
-    const currentId = currentMapData?.id || '';
-    const ids = (availableMaps || []).map(m => m.id);
+    // Use correct current map id for resolving relative links
+    const currentId = (currentMapData as any)?.mapIdentifier?.mapId || '';
+    const idsSet = new Set<string>((availableMaps || []).map(m => m.id));
+    try {
+      const ordered = (window as any).mindoodleOrderedMaps as Array<{ mapId: string }>|undefined;
+      if (Array.isArray(ordered)) {
+        for (const it of ordered) { if (it?.mapId) idsSet.add(it.mapId); }
+      }
+    } catch {}
+    const ids = Array.from(idsSet);
 
     const slugify = (t: string) => (t || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
     const findByText = (root: any, text: string): MindMapNode | null => {
@@ -113,7 +123,12 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
       // Unresolved external
       return { kind: 'external' as const, index: p.index, label: p.label, href };
     });
-  }, [node.note, currentMapData?.id, currentMapData?.rootNode, availableMaps]);
+  }, [
+    node.note,
+    (currentMapData as any)?.mapIdentifier?.mapId,
+    currentMapData?.rootNode,
+    availableMaps
+  ]);
 
   const hasMarkdownLinks = combined.length > 0;
 
@@ -233,17 +248,39 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     };
                     if (onLinkNavigate) onLinkNavigate(nodeLink);
                   } else {
-                    // Resolve relative href to known map and jump if possible; otherwise open in new tab
+                    // Try resolve relative markdown href to a map; else open externally
                     const href = entry.href;
                     try {
-                      const base = window.location.origin;
-                      const url = href.startsWith('http') || href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('file:')
-                        ? href
-                        : new URL(href, base).toString();
-                      window.open(url, '_blank', 'noopener,noreferrer');
-                    } catch {
-                      window.open(href, '_blank', 'noopener,noreferrer');
-                    }
+                      const ids = (availableMaps || []).map(m => m.id);
+                      // Fallback: try from global ordered maps if available
+                      if (ids.length === 0) {
+                        try {
+                          const ordered = (window as any).mindoodleOrderedMaps as Array<{ mapId: string }>|undefined;
+                          if (Array.isArray(ordered)) {
+                            ordered.forEach(it => { if (it?.mapId) ids.push(it.mapId); });
+                          }
+                        } catch {}
+                      }
+                      const currentId2 = (currentMapData as any)?.mapIdentifier?.mapId || '';
+                      const target = resolveHrefToMapTarget(href, currentId2, ids);
+                      if (target && onLinkNavigate) {
+                        const nodeLink: NodeLink = {
+                          id: `map|${target.mapId}|${target.anchorText || ''}`,
+                          targetMapId: target.mapId,
+                          targetNodeId: target.anchorText ? `text:${target.anchorText}` : undefined,
+                          createdAt: new Date().toISOString(),
+                          updatedAt: new Date().toISOString()
+                        };
+                        onLinkNavigate(nodeLink);
+                        return;
+                      }
+                    } catch {}
+
+                    // Not resolvable to any known map: notify via status bar
+                    try {
+                      showNotification('warning', '対応するマップが見つかりません');
+                    } catch {}
+                    return;
                   }
                 }}
                 onContextMenu={(e) => {

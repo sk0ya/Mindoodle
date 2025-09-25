@@ -54,7 +54,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
         const singleRoot = getCurrentRootNode();
         const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
 
-        if (roots.length === 0) return;
+        if (roots.length === 0) { return; }
 
         const tn = link.targetNodeId!;
         if (tn.startsWith('text:')) {
