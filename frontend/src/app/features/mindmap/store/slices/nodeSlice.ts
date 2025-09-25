@@ -115,34 +115,10 @@ export const createNodeSlice: StateCreator<
         const childIds = state.normalizedData.childrenMap[parentId] || [];
         const childNodes = childIds.map((id: string) => state.normalizedData?.nodes[id]).filter(Boolean);
         
-        // New node position calculation
-        let newPosition: Position;
-        if (childNodes.length === 0) {
-          // First child node case
-          newPosition = {
-            x: parentNode.x + LAYOUT.LEVEL_SPACING,
-            y: parentNode.y
-          };
-        } else {
-          // When existing child nodes exist, place below the last child
-          const lastChild = childNodes[childNodes.length - 1];
-          if (lastChild) {
-            newPosition = {
-              x: lastChild.x,
-              y: lastChild.y + LAYOUT.LEVEL_SPACING * 0.6
-            };
-          } else {
-            // Fallback position
-            newPosition = {
-              x: parentNode.x + LAYOUT.LEVEL_SPACING,
-              y: parentNode.y
-            };
-          }
-        }
-        
-        // Update position first
-        newNode.x = newPosition.x;
-        newNode.y = newPosition.y;
+        // Skip initial position calculation - let autoLayout handle it
+        // This prevents the visual "jump" when autoLayout is enabled
+        newNode.x = parentNode.x;
+        newNode.y = parentNode.y;
 
         // Set markdownMeta based on siblings or parent
         if (childNodes.length > 0) {
@@ -263,14 +239,10 @@ export const createNodeSlice: StateCreator<
           newNode = createNewNode(text, currentNode, settings);
           newNodeId = newNode.id;
           
-          // ルートノード同士は横に並べて配置
-          const position: Position = {
-            x: currentNode.x + 300, // ルートノード間の距離を大きく
-            y: currentNode.y
-          };
-
-          newNode.x = position.x;
-          newNode.y = position.y;
+          // Skip initial position calculation - let autoLayout handle it
+          // This prevents the visual "jump" when autoLayout is enabled
+          newNode.x = currentNode.x;
+          newNode.y = currentNode.y;
 
           // Set markdownMeta same as current root sibling node
           if (currentNode.markdownMeta) {
@@ -299,14 +271,10 @@ export const createNodeSlice: StateCreator<
           newNode = createNewNode(text, parentNode, settings);
           newNodeId = newNode.id;
           
-          // 兄弟ノードは同じ階層レベルに配置
-          const position: Position = {
-            x: currentNode.x + 200, // 兄弟ノードは横に配置
-            y: currentNode.y + 80   // 少し下にずらす
-          };
-          
-          newNode.x = position.x;
-          newNode.y = position.y;
+          // Skip initial position calculation - let autoLayout handle it
+          // This prevents the visual "jump" when autoLayout is enabled
+          newNode.x = currentNode.x;
+          newNode.y = currentNode.y;
 
           // Set markdownMeta same as current sibling node
           if (currentNode.markdownMeta) {

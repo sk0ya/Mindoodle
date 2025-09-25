@@ -9,7 +9,7 @@ import type { DataState } from '@shared/types/nodeTypes';
 
 // Debounce utility for autoLayout
 let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
-const AUTOLAYOUT_DEBOUNCE_MS = 150;
+const AUTOLAYOUT_DEBOUNCE_MS = 50;
 
 export interface DataSlice extends DataState {
   setData: (data: MindMapData) => void;
