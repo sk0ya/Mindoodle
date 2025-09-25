@@ -253,6 +253,18 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       const { key, ctrlKey, metaKey, altKey } = event;
       const isModifier = ctrlKey || metaKey;
 
+      // Global: Toggle primary sidebar visibility (Ctrl/Cmd + B)
+      // Matches VS Code behavior: hide/show left sidebar
+      if ((ctrlKey || metaKey) && !altKey && (key === 'b' || key === 'B')) {
+        event.preventDefault();
+        try {
+          const { ui, setActiveView } = useMindMapStore.getState() as any;
+          const next = ui?.activeView ? null : 'maps';
+          setActiveView(next);
+        } catch {}
+        return;
+      }
+
       // Handle search mode
       if (vim && vim.isEnabled && vim.mode === 'search') {
         const { key } = event;
