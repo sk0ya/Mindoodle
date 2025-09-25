@@ -28,6 +28,7 @@ import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
 import { JumpyLabels } from "../../../vim";
+import VimStatusBar from "../VimStatusBar";
 import { imagePasteService } from '../../services/imagePasteService';
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
@@ -41,10 +42,14 @@ interface MindMapAppProps {
   resetKey?: number;
 }
 
-const MindMapAppContent: React.FC<MindMapAppProps> = ({
-  storageMode = 'local',
+interface MindMapAppContentProps extends MindMapAppProps {
+  mindMap: any; // mindMap instance passed from wrapper
+}
+
+const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
+  storageMode = 'local', // Used in props passed to child components
   onModeChange,
-  resetKey = 0
+  mindMap
 }) => {
 
   const { showNotification } = useNotification();
@@ -53,7 +58,8 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // Settings store for initialization
   const { loadSettingsFromStorage } = useMindMapStore();
-  // Vim mode hook
+
+  // Get vim instance from context
   const vim = useVim();
 
   // Initialize settings on mount
@@ -65,7 +71,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
   // グローバルエラーハンドラーの設定を簡潔に
   useGlobalErrorHandlers(handleError);
-  const [internalResetKey, setResetKey] = useState(resetKey);
   // モーダル状態管理
   const {
     // showLoginModal削除済み
@@ -103,10 +108,6 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // テーマ管理
   useTheme();
 
-  // Sync external resetKey with internal resetKey
-  React.useEffect(() => {
-    setResetKey(resetKey);
-  }, [resetKey]);
 
   // Folder guide modal state (extracted)
   const { showFolderGuide, closeGuide, markDismissed } = useFolderGuide();
@@ -116,13 +117,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     // ログインモーダル関連は削除されました
   }, [storageMode]);
 
-  // Create storage configuration based on selected mode
-  const storageConfig: StorageConfig = React.useMemo(() => {
-    return { mode: 'markdown' } as StorageConfig;
-  }, []);
-
-  // リセットキーでuseMindMapを強制リセット
-  const mindMap = useMindMap(storageConfig, Math.max(resetKey, internalResetKey));
+  // Destructure from the passed mindMap instance
   const {
     data,
     selectedNodeId,
@@ -207,7 +202,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
           // Skip if selecting the same map (use latest reflected on window to avoid stale closure)
           const curr: string | null = (window as any).mindoodleCurrentMapId || null;
           if (curr === mapId) return;
-          const target = (allMindMaps || []).find(m => m?.mapIdentifier?.mapId === mapId);
+          const target = (allMindMaps || []).find((m: any) => m?.mapIdentifier?.mapId === mapId);
           if (!target) return;
           const pendingKey = `pending:${target.mapIdentifier.workspaceId}:${target.mapIdentifier.mapId}`;
           (window as any).__mindoodlePendingMapKey = pendingKey;
@@ -253,7 +248,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
     try {
       // 一括でマップ情報を更新
       const updatedMaps = mapUpdates.map(update => {
-        const mapToUpdate = allMindMaps.find(map => map.mapIdentifier.mapId === update.id);
+        const mapToUpdate = allMindMaps.find((map: any) => map.mapIdentifier.mapId === update.id);
         if (!mapToUpdate) return null;
 
         return {
@@ -350,7 +345,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
 
       // 他のマップのデータを読み込む
       // 永続化フックから適切なメソッドを使用
-      const targetMap = allMindMaps.find(map => map.mapIdentifier.mapId === mapIdentifier.mapId && map.mapIdentifier.workspaceId === mapIdentifier.workspaceId);
+      const targetMap = allMindMaps.find((map: any) => map.mapIdentifier.mapId === mapIdentifier.mapId && map.mapIdentifier.workspaceId === mapIdentifier.workspaceId);
       if (targetMap) {
         // 既に読み込み済みのマップデータがある場合はそれを返す
         return targetMap;
@@ -931,7 +926,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   // Ensure Vim mode returns to normal when editing ends (e.g., blur)
   React.useEffect(() => {
     if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal' && vim.mode !== 'search' &&
-      vim.mode !== 'jumpy'
+      vim.mode !== 'jumpy' && vim.mode !== 'command'
     ) {
       vim.setMode('normal');
     }
@@ -1071,7 +1066,7 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
             onAddLink={handleAddLink}
             onUpdateNode={updateNode}
             onAutoLayout={applyAutoLayout}
-            availableMaps={allMindMaps.map(map => ({ id: map.mapIdentifier.mapId, title: map.title }))}
+            availableMaps={allMindMaps.map((map: any) => ({ id: map.mapIdentifier.mapId, title: map.title }))}
             currentMapData={data}
             onLinkNavigate={handleLinkNavigate2}
             zoom={ui.zoom}
@@ -1135,9 +1130,10 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
       />
 
       <JumpyLabels vim={vim} />
+      <VimStatusBar vim={vim} />
 
       <MindMapLinkOverlays
-        allMaps={allMindMaps.map(map => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
+        allMaps={allMindMaps.map((map: any) => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
         currentMapData={data}
         showLinkModal={showLinkModal}
         linkModalNodeId={linkModalNodeId}
@@ -1215,12 +1211,57 @@ const MindMapAppContent: React.FC<MindMapAppProps> = ({
   );
 };
 
+// Wrapper component that handles mindMap creation and VimProvider setup
+const MindMapAppWrapper: React.FC<MindMapAppProps> = (props) => {
+  const { resetKey = 0 } = props;
+  const [internalResetKey, setInternalResetKey] = useState(resetKey);
+
+  // Sync external resetKey with internal resetKey
+  React.useEffect(() => {
+    setInternalResetKey(resetKey);
+  }, [resetKey]);
+
+  // Create storage configuration based on selected mode
+  const storageConfig: StorageConfig = React.useMemo(() => {
+    return { mode: 'markdown' } as StorageConfig;
+  }, []);
+
+  // Create mindMap instance first
+  const mindMap = useMindMap(storageConfig, Math.max(resetKey, internalResetKey));
+
+  // Make Explorer's createFolder and createAndSelectMap available globally for Vim
+  React.useEffect(() => {
+    (window as any).mindoodleCreateFolder = async (path: string) => {
+      if (typeof (mindMap as any).createFolder === 'function') {
+        const wsMatch = path.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+        if (wsMatch) {
+          const workspaceId = wsMatch[1];
+          const relativePath = wsMatch[2] || '';
+          await (mindMap as any).createFolder(relativePath, workspaceId);
+        } else {
+          await (mindMap as any).createFolder(path);
+        }
+      }
+    };
+
+    (window as any).mindoodleCreateAndSelectMap = async (title: string, workspaceId: string, category?: string) => {
+      if (typeof (mindMap as any).createAndSelectMap === 'function') {
+        await (mindMap as any).createAndSelectMap(title, workspaceId, category);
+      }
+    };
+  }, [mindMap]);
+
+  return (
+    <VimProvider mindMap={mindMap}>
+      <MindMapAppContent {...props} mindMap={mindMap} />
+    </VimProvider>
+  );
+};
+
 const MindMapApp: React.FC<MindMapAppProps> = (props) => {
   return (
     <MindMapProviders>
-      <VimProvider>
-        <MindMapAppContent {...props} />
-      </VimProvider>
+      <MindMapAppWrapper {...props} />
     </MindMapProviders>
   );
 };

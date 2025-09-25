@@ -5,8 +5,8 @@ type VimContextType = ReturnType<typeof useVimMode>;
 
 const VimContext = createContext<VimContextType | null>(null);
 
-export const VimProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const vim = useVimMode();
+export const VimProvider: React.FC<{ children: React.ReactNode; mindMap?: any }> = ({ children, mindMap }) => {
+  const vim = useVimMode(mindMap);
   return <VimContext.Provider value={vim}>{children}</VimContext.Provider>;
 };
 

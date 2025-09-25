@@ -74,14 +74,24 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           {vim.jumpyBuffer ? `Jumpy: ${vim.jumpyBuffer}` : `Type label to jump to node (${vim.jumpyLabels.length} nodes available)`}
         </div>
       )}
-      {vim.isEnabled && vim.commandBuffer && vim.mode !== 'search' && (
+      {vim.isEnabled && vim.commandBuffer && vim.mode !== 'search' && vim.mode !== 'command' && (
         <div className="vim-command-buffer">
           :{vim.commandBuffer}
+        </div>
+      )}
+      {vim.isEnabled && vim.mode === 'command' && (
+        <div className="vim-command-buffer">
+          :{vim.commandLineBuffer}
         </div>
       )}
       {vim.isEnabled && vim.lastCommand && (
         <div className="vim-last-command">
           Last: {vim.lastCommand}
+        </div>
+      )}
+      {vim.isEnabled && vim.commandOutput && vim.mode === 'normal' && (
+        <div className="vim-command-output">
+          {vim.commandOutput}
         </div>
       )}
 
@@ -160,6 +170,15 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           color: var(--text-secondary);
           font-size: 10px;
           opacity: 0.7;
+        }
+
+        .vim-command-output {
+          color: var(--text-primary);
+          background: var(--bg-tertiary);
+          padding: 2px 6px;
+          border-radius: 3px;
+          border: 1px solid var(--border-color);
+          font-size: 11px;
         }
 
         .vim-status-message {

@@ -309,6 +309,36 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
+      // Handle command mode
+      if (vim && vim.isEnabled && vim.mode === 'command') {
+        if (key === 'Enter') {
+          event.preventDefault();
+          const command = vim.commandLineBuffer.trim();
+          if (command) {
+            vim.executeCommandLine(command).then(() => {
+              vim.exitCommandLine();
+            });
+          } else {
+            vim.exitCommandLine();
+          }
+          return;
+        } else if (key === 'Escape') {
+          event.preventDefault();
+          vim.exitCommandLine();
+          return;
+        } else if (key === 'Backspace') {
+          event.preventDefault();
+          const newBuffer = vim.commandLineBuffer.slice(0, -1);
+          vim.updateCommandLineBuffer(newBuffer);
+          return;
+        } else if (key.length === 1 && !ctrlKey && !metaKey && !altKey) {
+          event.preventDefault();
+          vim.updateCommandLineBuffer(vim.commandLineBuffer + key);
+          return;
+        }
+        return;
+      }
+
       // Vim mode handling through command system
       if (vim && vim.isEnabled && vim.mode === 'normal') {
         // Handle Ctrl+U and Ctrl+D scroll commands, and map switching Ctrl+P/N
@@ -398,6 +428,14 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           } else if (result.shouldClear) {
             // Invalid sequence - clear buffer
             vim.clearCommandBuffer();
+          }
+
+          // Handle colon key to enter command mode
+          if (normalizedKey === ':') {
+            event.preventDefault();
+            event.stopPropagation();
+            vim.startCommandLine();
+            return;
           }
 
           // Try single-key commands

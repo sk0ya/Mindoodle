@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import type { MindMapNode } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
@@ -10,6 +10,8 @@ interface VimState {
   isEnabled: boolean;
   lastCommand: string;
   commandBuffer: string;
+  commandLineBuffer: string;
+  commandOutput: string;
   searchQuery: string;
   searchResults: string[];
   currentSearchIndex: number;
@@ -18,33 +20,41 @@ interface VimState {
 }
 
 interface VimActions {
-  setMode: (mode: VimMode) => void;
+  setMode: (_mode: VimMode) => void;
   enable: () => void;
   disable: () => void;
   toggle: () => void;
-  executeCommand: (command: string) => void;
-  appendToCommandBuffer: (char: string) => void;
+  executeCommand: (_command: string) => void;
+  appendToCommandBuffer: (_char: string) => void;
   clearCommandBuffer: () => void;
   getCurrentRootNode: () => MindMapNode | null;
   startSearch: () => void;
-  updateSearchQuery: (query: string) => void;
+  updateSearchQuery: (_query: string) => void;
   executeSearch: () => void;
   nextSearchResult: () => void;
   previousSearchResult: () => void;
   exitSearch: () => void;
   startJumpy: () => void;
   exitJumpy: () => void;
-  jumpToNode: (label: string) => void;
+  jumpToNode: (_label: string) => void;
+  // Command line mode actions
+  startCommandLine: () => void;
+  updateCommandLineBuffer: (_buffer: string) => void;
+  executeCommandLine: (_command: string) => Promise<void>;
+  exitCommandLine: () => void;
+  setCommandOutput: (_output: string) => void;
 }
 
 export interface VimModeHook extends VimState, VimActions {}
 
-export const useVimMode = (): VimModeHook => {
+export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   const { settings, updateSetting } = useMindMapStore();
   const [state, setState] = useState<Omit<VimState, 'isEnabled'>>({
     mode: 'normal',
     lastCommand: '',
     commandBuffer: '',
+    commandLineBuffer: '',
+    commandOutput: '',
     searchQuery: '',
     searchResults: [],
     currentSearchIndex: -1,
@@ -58,11 +68,11 @@ export const useVimMode = (): VimModeHook => {
 
   const enable = useCallback(() => {
     updateSetting('vimMode', true);
-  }, [updateSetting, setMode]);
+  }, [updateSetting]);
 
   const disable = useCallback(() => {
     updateSetting('vimMode', false);
-  }, [updateSetting, setMode]);
+  }, [updateSetting]);
 
   const toggle = useCallback(() => {
     if (settings.vimMode) {
@@ -91,6 +101,153 @@ export const useVimMode = (): VimModeHook => {
     setState(prev => ({
       ...prev,
       commandBuffer: ''
+    }));
+  }, []);
+
+  // Command line mode methods
+  const startCommandLine = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      mode: 'command' as const,
+      commandLineBuffer: '',
+      commandOutput: ''
+    }));
+  }, []);
+
+  const updateCommandLineBuffer = useCallback((buffer: string) => {
+    setState(prev => ({ ...prev, commandLineBuffer: buffer }));
+  }, []);
+
+  const setCommandOutput = useCallback((output: string) => {
+    setState(prev => ({ ...prev, commandOutput: output }));
+  }, []);
+
+  const executeCommandLine = useCallback(async (command: string) => {
+    // Parse the command
+    const parts = command.trim().split(/\s+/);
+    const cmd = parts[0];
+    const args = parts.slice(1);
+
+    // Get the store state
+    const store = useMindMapStore.getState() as any;
+
+    try {
+      switch (cmd) {
+        case 'mkdir':
+        case 'newfolder': {
+          if (args.length === 0) {
+            setCommandOutput('Usage: mkdir <folder-path>');
+            break;
+          }
+
+          const folderPath = args[0];
+          const currentWorkspace = store.data?.mapIdentifier?.workspaceId;
+
+          // Use Explorer's createFolder via global function
+          const fullPath = folderPath.startsWith('/') ? folderPath : `/${currentWorkspace}/${folderPath}`;
+
+          try {
+            if (typeof (window as any).mindoodleCreateFolder === 'function') {
+              await (window as any).mindoodleCreateFolder(fullPath);
+              setCommandOutput(`Created folder: ${folderPath}`);
+            } else {
+              setCommandOutput('Error: Global createFolder not available');
+            }
+          } catch (error) {
+            setCommandOutput(`Error creating folder: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+          break;
+        }
+
+        case 'newmap':
+        case 'touch': {
+          if (args.length === 0) {
+            setCommandOutput('Usage: newmap <map-name> [folder-path]');
+            break;
+          }
+          const fullPath = args[0];
+          const workspaceId = store.data?.mapIdentifier?.workspaceId;
+
+          if (!workspaceId) {
+            setCommandOutput('Error: No workspace available');
+            break;
+          }
+
+          try {
+            if (typeof (window as any).mindoodleCreateAndSelectMap === 'function') {
+              // Extract filename from path (everything after the last '/')
+              const mapName = fullPath.includes('/') ? fullPath.split('/').pop() || fullPath : fullPath;
+              // Use the full path as category if it contains '/'
+              const actualCategory = fullPath.includes('/') ? fullPath.replace(/\/[^/]*$/, '') : '';
+
+              await (window as any).mindoodleCreateAndSelectMap(mapName, workspaceId, actualCategory);
+              setCommandOutput(`Created map: ${mapName}${actualCategory ? ` in ${actualCategory}` : ''}`);
+            } else {
+              setCommandOutput('Error: Global createAndSelectMap not available');
+            }
+          } catch (error) {
+            setCommandOutput(`Error creating map: ${error instanceof Error ? error.message : 'Unknown error'}`);
+          }
+          break;
+        }
+
+        case 'w':
+        case 'write':
+          // Save current map
+          if (store.data && store.saveMapMarkdown) {
+            const markdown = store.subscribeMarkdownFromNodes ? 
+              await new Promise<string>((resolve) => {
+                const unsub = store.subscribeMarkdownFromNodes((md: string) => {
+                  unsub();
+                  resolve(md);
+                });
+              }) : '';
+            await store.saveMapMarkdown(store.data.mapIdentifier, markdown);
+            setCommandOutput('Map saved');
+          }
+          break;
+
+        case 'pwd': {
+          // Show current workspace and map location
+          const currentMap = store.data?.mapIdentifier;
+          // Get workspaces from window global (set by MindMapApp.tsx)
+          const workspaces = (window as any).mindoodleWorkspaces || [];
+          const workspaceName = workspaces.find((w: any) => w.id === currentMap?.workspaceId)?.name || 'Unknown';
+
+          setCommandOutput(`${workspaceName}/${currentMap?.mapId || 'none'}`);
+          break;
+        }
+
+        case 'ls': {
+          // List maps in current workspace
+          const currentWs = store.data?.mapIdentifier?.workspaceId;
+          const maps = store.allMindMaps?.filter((map: any) => map.mapIdentifier.workspaceId === currentWs) || [];
+          const mapList = maps.map((map: any) => {
+            const prefix = map.mapIdentifier.mapId === store.data?.mapIdentifier?.mapId ? '*' : '';
+            return `${prefix}${map.mapIdentifier.mapId}`;
+          }).join(' ');
+          setCommandOutput(`${maps.length} maps: ${mapList || 'none'}`);
+          break;
+        }
+
+        case 'q':
+        case 'quit':
+          // Just exit command mode for now
+          break;
+
+        default:
+          setCommandOutput(`Unknown command: ${cmd}`);
+      }
+    } catch (error) {
+      setCommandOutput(`Error: ${error instanceof Error ? error.message : 'Command execution failed'}`);
+    }
+  }, [setCommandOutput]);
+
+  const exitCommandLine = useCallback(() => {
+    setState(prev => ({
+      ...prev,
+      mode: 'normal',
+      commandLineBuffer: ''
     }));
   }, []);
 
@@ -319,6 +476,13 @@ export const useVimMode = (): VimModeHook => {
     }
   }, [state.jumpyLabels, state.jumpyBuffer, exitJumpy]);
 
+  // Clear command output when mode changes away from normal
+  useEffect(() => {
+    if (state.mode !== 'normal') {
+      setState(prev => ({ ...prev, commandOutput: '' }));
+    }
+  }, [state.mode]);
+
   return useMemo(() => ({
     ...state,
     isEnabled: settings.vimMode,
@@ -338,7 +502,13 @@ export const useVimMode = (): VimModeHook => {
     exitSearch,
     startJumpy,
     exitJumpy,
-    jumpToNode
+    jumpToNode,
+    // Command line methods
+    startCommandLine,
+    updateCommandLineBuffer,
+    executeCommandLine,
+    exitCommandLine,
+    setCommandOutput
   }), [
     state,
     settings.vimMode,
@@ -358,6 +528,11 @@ export const useVimMode = (): VimModeHook => {
     exitSearch,
     startJumpy,
     exitJumpy,
-    jumpToNode
+    jumpToNode,
+    startCommandLine,
+    updateCommandLineBuffer,
+    executeCommandLine,
+    exitCommandLine,
+    setCommandOutput
   ]);
-};
+};;
