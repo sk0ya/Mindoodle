@@ -194,10 +194,7 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
         .vim-status-message.info { color: #3b82f6; }
         .vim-status-message.neutral { color: var(--text-secondary); }
 
-        /* Add padding to body when vim status bar is shown */
-        body:has(.vim-status-bar) {
-          padding-bottom: 24px;
-        }
+        /* Do not add extra body padding; scrolling logic already accounts for 24px */
       `}</style>
     </div>
   );

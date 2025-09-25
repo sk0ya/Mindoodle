@@ -49,6 +49,9 @@ export const useMindMap = (
 
   // 自動保存機能
   const [, setAutoSaveEnabled] = useState(true);
+  const setAutoSaveEnabledStable = useCallback((enabled: boolean) => {
+    setAutoSaveEnabled(enabled);
+  }, []);
 
   // Stabilize adapter reference - persistenceHook likely returns new references
   const stableAdapter = useMemo(() => {
@@ -706,6 +709,6 @@ export const useMindMap = (
       return bestLine ? map[bestLine] : null;
     },
     // autosave control
-    setAutoSaveEnabled: (enabled: boolean) => setAutoSaveEnabled(enabled)
+    setAutoSaveEnabled: setAutoSaveEnabledStable
   };
 };

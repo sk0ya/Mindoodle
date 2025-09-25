@@ -161,11 +161,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   // Do not close this panel with ESC at all (no global handler here)
 
   // Disable auto-save when editing map markdown; re-enable otherwise
-  useEffect(() => {
-    if (!setAutoSaveEnabled) return;
-    setAutoSaveEnabled(false);
-    return () => { setAutoSaveEnabled(true); };
-  }, [setAutoSaveEnabled]);
+  // Note: autosave is toggled by parent (MindMapApp) based on panel visibility
 
   return (
     <div

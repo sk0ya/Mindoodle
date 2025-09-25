@@ -646,6 +646,135 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   };
 
+  // Ensure selected node remains visible with minimal pan (no centering)
+  const ensureSelectedNodeVisible = React.useCallback(() => {
+    try {
+      const st = useMindMapStore.getState() as any;
+      const selId: string | null = st.selectedNodeId || null;
+      const mapData = st.data || null;
+      if (!selId || !mapData) return;
+      const roots = mapData.rootNodes || [];
+      const targetNode = findNodeInRoots(roots, selId);
+      if (!targetNode) return;
+
+      const mindmapContainer = document.querySelector('.mindmap-canvas-container') ||
+                               document.querySelector('.workspace-container') ||
+                               document.querySelector('.mindmap-app');
+
+      let effectiveWidth = window.innerWidth;
+      let effectiveHeight = window.innerHeight;
+      let offsetX = 0;
+      let offsetY = 0;
+
+      if (mindmapContainer) {
+        const rect = mindmapContainer.getBoundingClientRect();
+        effectiveWidth = rect.width;
+        effectiveHeight = rect.height;
+        offsetX = rect.left;
+        offsetY = rect.top;
+      } else {
+        const sidebar = document.querySelector('.sidebar') ||
+                        document.querySelector('.primary-sidebar') ||
+                        document.querySelector('.primary-sidebar-container');
+        if (sidebar) {
+          const sidebarRect = sidebar.getBoundingClientRect();
+          effectiveWidth -= sidebarRect.width;
+          offsetX = sidebarRect.width;
+        }
+
+        // Right-side markdown panel (primary right panel in this app)
+        const markdownPanel = document.querySelector('.markdown-panel') as HTMLElement | null;
+        if (markdownPanel) {
+          try {
+            const pr = markdownPanel.getBoundingClientRect();
+            effectiveWidth -= pr.width;
+          } catch {}
+        } else if (uiStore.showNotesPanel && (uiStore as any).markdownPanelWidth) {
+          // Fallback to store width if DOM not yet available
+          const w = Math.max(0, (uiStore as any).markdownPanelWidth as number);
+          effectiveWidth -= w;
+        }
+
+        const header = document.querySelector('.toolbar') ||
+                       document.querySelector('.mindmap-header') ||
+                       document.querySelector('.header');
+        if (header) {
+          const hr = header.getBoundingClientRect();
+          effectiveHeight -= hr.height;
+          offsetY = hr.height;
+        }
+
+      }
+
+      // Bottom overlays (apply regardless of container measurement):
+      // selected-node-note-panel is fixed overlay and not part of container height
+      try {
+        const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+        const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
+        effectiveHeight -= noteH;
+      } catch {}
+      // Vim status bar height
+      effectiveHeight -= 24;
+
+      const currentZoom = (st.ui?.zoom || 1) * 1.5; // Match CanvasRenderer transform
+      const currentPan = st.ui?.pan || { x: 0, y: 0 };
+
+      // Compute node size to align edges to bounds
+      const fontSize = (st.settings?.fontSize ?? 14) as number;
+      const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize);
+      const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
+      const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
+
+      // Node center in screen coords relative to effective viewport origin
+      const screenX = currentZoom * (targetNode.x + currentPan.x) - offsetX;
+      const screenY = currentZoom * (targetNode.y + currentPan.y) - offsetY;
+
+      const margin = 0;
+      const topMargin = 0; // symmetric top/bottom
+      const bottomExtra = (function() {
+        // If no note panel height (not visible), keep 6px breathing room above Vim bar
+        try {
+          const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+          const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
+          return noteH === 0 ? 6 : 0;
+        } catch { return 0; }
+      })();
+      const leftBound = margin;
+      const rightBound = effectiveWidth - margin;
+      const topBound = topMargin;
+      const bottomBound = effectiveHeight - topMargin - bottomExtra;
+
+      const isOutsideLeft = (screenX - halfW) < leftBound;
+      const isOutsideRight = (screenX + halfW) > rightBound;
+      const isOutsideTop = (screenY - halfH) < topBound;
+      const isOutsideBottom = (screenY + halfH) > bottomBound;
+
+      if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
+        let newPanX = currentPan.x;
+        let newPanY = currentPan.y;
+
+        if (isOutsideLeft) {
+          // Align node's left edge to leftBound
+          newPanX = ((leftBound + offsetX + halfW) / currentZoom) - targetNode.x;
+        } else if (isOutsideRight) {
+          // Align node's right edge to rightBound
+          newPanX = ((rightBound + offsetX - halfW) / currentZoom) - targetNode.x;
+        }
+
+        if (isOutsideTop) {
+          // Align node's top edge to topBound
+          newPanY = ((topBound + offsetY + halfH) / currentZoom) - targetNode.y;
+        } else if (isOutsideBottom) {
+          // Align node's bottom edge to bottomBound
+          newPanY = ((bottomBound + offsetY - halfH) / currentZoom) - targetNode.y;
+        }
+
+        const setPanLocal = (st.setPan || setPan);
+        setPanLocal({ x: newPanX, y: newPanY });
+      }
+    } catch {}
+  }, []);
+
   // ノードが見切れないように最小限のスクロールで可視範囲に入れる
   const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
 
@@ -762,8 +891,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
 
     // 通常モード: 最小パンで可視域に入れる（ノードサイズも考慮）
-    const margin = 16; // 可視域マージン（左右・上）
-    const bottomExtraMargin = (noteHeight > 0) ? 12 : 24; // DOM優先でノート有無を判定
+      const margin = 0; // 余白なし（上下左右）
     const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, (store as any).settings?.fontSize || 14);
     const halfW = (nodeSize?.width || 80) / 2 * currentZoom;
     const halfH = (nodeSize?.height || 24) / 2 * currentZoom;
@@ -773,15 +901,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const leftBound = mapAreaRect.left + margin;
     const rightBound = mapAreaRect.right - margin;
     const topBound = mapAreaRect.top + margin;
-    const bottomBound = mapAreaRect.bottom - (margin + bottomExtraMargin);
+    // If no note panel is visible, keep 6px breathing room above the Vim bar
+    const bottomExtra = noteHeight > 0 ? 0 : 6;
+    const bottomBound = mapAreaRect.bottom - (margin + bottomExtra);
 
     
 
     let deltaScreenX = 0;
     let deltaScreenY = 0;
-    const epsilon = 12; // しきい値のゆとり（ピクセル）
-    // ノート表示時はノート高さに比例して余白を多めに確保（最小24px）
-    const bottomPad = noteHeight > 0 ? Math.max(24, Math.round(noteHeight * 0.2)) : 0;
+    const epsilon = 0; // 余計なゆとりを排除
     // 左右
     if ((screenX - halfW) < (leftBound + epsilon)) {
       deltaScreenX = (leftBound + epsilon) - (screenX - halfW);
@@ -791,8 +919,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     // 上下
     if ((screenY - halfH) < (topBound + epsilon)) {
       deltaScreenY = (topBound + epsilon) - (screenY - halfH);
-    } else if ((screenY + halfH) > (bottomBound - epsilon - bottomPad)) {
-      deltaScreenY = (bottomBound - epsilon - bottomPad) - (screenY + halfH);
+    } else if ((screenY + halfH) > (bottomBound - epsilon)) {
+      deltaScreenY = (bottomBound - epsilon) - (screenY + halfH);
     }
 
     
@@ -854,39 +982,26 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
 
-  // Recenter selected node when panel visibility changes (right markdown / bottom notes)
+  // Keep selected node minimally visible when panels open/resize (no centering)
   React.useEffect(() => {
     if (!selectedNodeId) return;
-    const raf = () => requestAnimationFrame(() => {
-      centerNodeInView(selectedNodeId, false);
-      requestAnimationFrame(() => centerNodeInView(selectedNodeId, false));
-    });
+    const raf = () => requestAnimationFrame(() => ensureSelectedNodeVisible());
     const id = window.setTimeout(raf, 0);
     return () => { window.clearTimeout(id); };
-  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId, centerNodeInView]);
+  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId, ensureSelectedNodeVisible]);
 
   // Listen to explicit note panel resize events to keep selection visible
   React.useEffect(() => {
-    const handler = () => {
-      if (selectedNodeId) centerNodeInView(selectedNodeId, false);
-    };
+    const handler = () => { ensureSelectedNodeVisible(); };
     window.addEventListener('node-note-panel-resize', handler as EventListener);
     return () => window.removeEventListener('node-note-panel-resize', handler as EventListener);
-  }, [selectedNodeId, centerNodeInView]);
+  }, [ensureSelectedNodeVisible]);
 
-  // Also recenter when the stored height value changes (store-driven source of truth)
+  // Also adjust when the stored height value changes (store-driven source of truth)
   React.useEffect(() => {
     if (!selectedNodeId) return;
-    centerNodeInView(selectedNodeId, false);
-  }, [uiStore.nodeNotePanelHeight, selectedNodeId, centerNodeInView]);
-
-  // When selection changes (e.g., cursor navigation), ensure visibility with minimal scroll
-  React.useEffect(() => {
-    if (!selectedNodeId) return;
-    // Let DOM/layout settle before computing
-    const id = requestAnimationFrame(() => centerNodeInView(selectedNodeId, false));
-    return () => cancelAnimationFrame(id);
-  }, [selectedNodeId]);
+    ensureSelectedNodeVisible();
+  }, [uiStore.nodeNotePanelHeight, selectedNodeId, ensureSelectedNodeVisible]);
 
 
   // Simplified link navigation via utility
@@ -1028,6 +1143,18 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     },
     changeSiblingOrder: store.changeSiblingOrder,
   });
+
+  // Toggle autosave based on right markdown panel visibility to avoid feedback loops
+  const setAutoSaveFnRef = React.useRef<null | ((enabled: boolean) => void)>(null);
+  React.useEffect(() => {
+    const fn = (mindMap as any)?.setAutoSaveEnabled;
+    setAutoSaveFnRef.current = (typeof fn === 'function') ? fn : null;
+  }, [mindMap]);
+  React.useEffect(() => {
+    try {
+      setAutoSaveFnRef.current?.(!uiStore.showNotesPanel);
+    } catch {}
+  }, [uiStore.showNotesPanel]);
 
   // Ensure Vim mode returns to normal when editing ends (e.g., blur)
   React.useEffect(() => {

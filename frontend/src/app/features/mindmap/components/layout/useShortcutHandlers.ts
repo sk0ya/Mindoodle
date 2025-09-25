@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode } from '@mindmap/utils';
+import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode, calculateNodeSize } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
@@ -187,9 +187,9 @@ export function useShortcutHandlers(args: Args) {
         if (!node || !setPan) return;
 
         // Get actual viewport dimensions considering sidebar and panels
-        const mindmapContainer = document.querySelector('.mindmap-workspace') ||
-                                document.querySelector('.mindmap-canvas') ||
-                                document.querySelector('.canvas-container');
+        const mindmapContainer = document.querySelector('.mindmap-canvas-container') ||
+                                 document.querySelector('.workspace-container') ||
+                                 document.querySelector('.mindmap-app');
 
         let effectiveWidth = window.innerWidth;
         let effectiveHeight = window.innerHeight;
@@ -203,83 +203,74 @@ export function useShortcutHandlers(args: Args) {
           offsetX = rect.left;
           offsetY = rect.top;
         } else {
-          // Fallback: manually calculate effective area considering all panels
-
-          // Left sidebar
-          const sidebar = document.querySelector('.sidebar') ||
-                         document.querySelector('.primary-sidebar') ||
-                         document.querySelector('.primary-sidebar-container');
+          // Fallback: account for primary left and right panels
+          const sidebar = document.querySelector('.primary-sidebar');
           if (sidebar) {
-            const sidebarRect = sidebar.getBoundingClientRect();
-            effectiveWidth -= sidebarRect.width;
-            offsetX = sidebarRect.width;
+            const r = sidebar.getBoundingClientRect();
+            effectiveWidth -= r.width;
+            offsetX = r.width;
           }
-
-          // Right panels (notes panel, customization panel, etc.)
-          const rightPanels = [
-            document.querySelector('.node-notes-panel'),
-            document.querySelector('.customization-panel'),
-            document.querySelector('.notes-panel-container'),
-            document.querySelector('.panel-container')
-          ].filter(panel => {
-            if (!panel) return false;
-            const rect = panel.getBoundingClientRect();
-            return rect.width > 0 && rect.height > 0; // Only visible panels
-          });
-
-          rightPanels.forEach(panel => {
-            if (panel) {
-              const panelRect = panel.getBoundingClientRect();
-              effectiveWidth -= panelRect.width;
-            }
-          });
-
-          // Top toolbar/header
-          const header = document.querySelector('.toolbar') ||
-                        document.querySelector('.mindmap-header') ||
-                        document.querySelector('.header');
+          const md = document.querySelector('.markdown-panel');
+          if (md) {
+            const r = md.getBoundingClientRect();
+            effectiveWidth -= r.width;
+          }
+          const header = document.querySelector('.mindmap-header') || document.querySelector('.toolbar') || document.querySelector('.header');
           if (header) {
-            const headerRect = header.getBoundingClientRect();
-            effectiveHeight -= headerRect.height;
-            offsetY = headerRect.height;
+            const r = header.getBoundingClientRect();
+            effectiveHeight -= r.height;
+            offsetY = r.height;
           }
-
-          // Bottom VimStatusBar (outline) - 24px height
-          effectiveHeight -= 24;
         }
+
+        // Bottom overlays (fixed): subtract selected-node-note-panel + Vim bar 24px
+        let noteH = 0;
+        try {
+          const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+          noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
+          effectiveHeight -= noteH;
+        } catch {}
+        effectiveHeight -= 24;
+        // If note panel is not visible (height=0), keep a small 6px margin above Vim bar
+        const bottomExtra = noteH === 0 ? 6 : 0;
+        effectiveHeight -= bottomExtra;
 
         const currentZoom = ui.zoom * 1.5; // Match the transform scale from CanvasRenderer
         const currentPan = ui.pan;
 
-        // Calculate node's screen position relative to the effective viewport
-        const nodeScreenX = currentZoom * (node.x + currentPan.x) - offsetX;
-        const nodeScreenY = currentZoom * (node.y + currentPan.y) - offsetY;
+        // Edge-aware: use node visual bounds
+        const fontSize = (useMindMapStore.getState() as any)?.settings?.fontSize ?? 14;
+        const nodeSize = calculateNodeSize(node as any, undefined as any, false, fontSize);
+        const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
+        const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
 
-        // Define margins to keep node away from edges
-        const margin = 100;
-        const topMargin = 20; // Smaller margin for top to avoid excessive spacing
+        const screenX = currentZoom * (node.x + currentPan.x) - offsetX;
+        const screenY = currentZoom * (node.y + currentPan.y) - offsetY;
 
-        // Check if node is outside effective viewport bounds
-        const isOutsideLeft = nodeScreenX < margin;
-        const isOutsideRight = nodeScreenX > effectiveWidth - margin;
-        const isOutsideTop = nodeScreenY < topMargin;
-        const isOutsideBottom = nodeScreenY > effectiveHeight - margin;
+        const leftBound = 0;
+        const rightBound = effectiveWidth;
+        const topBound = 0;
+        const bottomBound = effectiveHeight;
+
+        const isOutsideLeft = (screenX - halfW) < leftBound;
+        const isOutsideRight = (screenX + halfW) > rightBound;
+        const isOutsideTop = (screenY - halfH) < topBound;
+        const isOutsideBottom = (screenY + halfH) > bottomBound;
 
         if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
-          // Calculate minimal pan adjustment needed
           let newPanX = currentPan.x;
           let newPanY = currentPan.y;
 
           if (isOutsideLeft) {
-            newPanX = (margin + offsetX - currentZoom * node.x) / currentZoom;
+            newPanX = ((leftBound + offsetX + halfW) / currentZoom) - node.x;
           } else if (isOutsideRight) {
-            newPanX = (effectiveWidth - margin + offsetX - currentZoom * node.x) / currentZoom;
+            newPanX = ((rightBound + offsetX - halfW) / currentZoom) - node.x;
           }
 
           if (isOutsideTop) {
-            newPanY = (topMargin + offsetY - currentZoom * node.y) / currentZoom;
+            newPanY = ((topBound + offsetY + halfH) / currentZoom) - node.y;
           } else if (isOutsideBottom) {
-            newPanY = (effectiveHeight - margin + offsetY - currentZoom * node.y) / currentZoom;
+            newPanY = ((bottomBound + offsetY - halfH) / currentZoom) - node.y;
           }
 
           setPan({ x: newPanX, y: newPanY });
