@@ -2,10 +2,9 @@ import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react'
 import { Editor, OnMount } from '@monaco-editor/react';
 import type { editor } from 'monaco-editor';
 import { marked } from 'marked';
-import { PenTool, Eye, SplitSquareHorizontal, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import { logger } from '@shared/utils';
-import { useModeSetters } from '@shared/utils';
 
 // Constants to prevent re-renders
 const EDITOR_HEIGHT = "100%";
@@ -39,8 +38,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   onCursorLineChange, onFocusChange
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const previewPaneRef = useRef<HTMLDivElement | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
   const ignoreExternalChangeRef = useRef(false);
+  const hoveredRef = useRef(false);
   // Tracks whether Vim is currently enabled on the Monaco instance
   const [isVimEnabled, setIsVimEnabled] = useState(false);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
@@ -106,6 +108,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       onSave?.();
+    });
+
+    // Cycle modes: edit -> preview -> split -> edit
+    editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
+      setMode(prev => {
+        const next = prev === 'edit' ? 'preview' : prev === 'preview' ? 'split' : 'edit';
+        if (next === 'preview') setTimeout(() => { try { previewPaneRef.current?.focus(); } catch {} }, 0);
+        return next;
+      });
     });
 
     // Do not intercept keystrokes here; editor must handle raw input as-is.
@@ -300,8 +311,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     setIsVimEnabled(false);
   }, []);
 
-  // Memoized mode change handlers
-  const { setEditMode, setPreviewMode, setSplitMode } = useModeSetters(setMode, ['edit', 'preview', 'split']);
+  // Mode change is handled via Ctrl/Cmd+L cycling and preview key handler
 
   // Memoized Monaco Editor props to prevent re-renders
   const editorTheme = useMemo(() =>
@@ -407,6 +417,26 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     return undefined;
   }, [onResize]);
 
+  // Document-level Ctrl+L routing based on hover when this editor doesn't have focus
+  useEffect(() => {
+    const onDocKeyDown = (e: KeyboardEvent) => {
+      const isCtrlL = (e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L');
+      if (!isCtrlL) return;
+      // Hover always wins: if this editor is hovered, it handles Ctrl+L exclusively
+      if (hoveredRef.current) {
+        e.preventDefault();
+        e.stopPropagation();
+        setMode(prev => {
+          const next = prev === 'edit' ? 'preview' : prev === 'preview' ? 'split' : 'edit';
+          if (next === 'preview') setTimeout(() => { try { previewPaneRef.current?.focus(); } catch {} }, 0);
+          return next;
+        });
+      }
+    };
+    document.addEventListener('keydown', onDocKeyDown, true);
+    return () => { document.removeEventListener('keydown', onDocKeyDown, true); };
+  }, []);
+
   // Expose layout method for external use and ResizeObserver
   useEffect(() => {
     const resizeHandler = () => {
@@ -476,47 +506,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   }, [isVimEnabled, disableVimMode]);
 
   return (
-    <div className={`markdown-editor ${className}`}>
-      <div className="editor-toolbar">
-        <div className="editor-controls">
-          <div className="mode-toggles">
-            <button
-              type="button"
-              onClick={setEditMode}
-              className={`mode-toggle ${mode === 'edit' ? 'active' : ''}`}
-              title="編集モード"
-            >
-              <PenTool size={16} /> 編集
-            </button>
-            <button
-              type="button"
-              onClick={setPreviewMode}
-              className={`mode-toggle ${mode === 'preview' ? 'active' : ''}`}
-              title="プレビューモード"
-            >
-              <Eye size={16} /> プレビュー
-            </button>
-            <button
-              type="button"
-              onClick={setSplitMode}
-              className={`mode-toggle ${mode === 'split' ? 'active' : ''}`}
-              title="分割表示モード"
-            >
-              <SplitSquareHorizontal size={16} /> 分割
-            </button>
-          </div>
-          {onSave && (
-            <button
-              type="button"
-              onClick={onSave}
-              className="save-button"
-              title="Save (Ctrl+S)"
-            >
-              Save
-            </button>
-          )}
-        </div>
-      </div>
+    <div
+      ref={rootRef}
+      className={`markdown-editor ${className}`}
+      onMouseEnter={() => { hoveredRef.current = true; }}
+      onMouseLeave={() => { hoveredRef.current = false; }}
+    >
       
       <div className={`editor-container mode-${mode}`}>
         {(mode === 'edit' || mode === 'split') && (
@@ -536,7 +531,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         )}
         
         {(mode === 'preview' || mode === 'split') && (
-          <div className="preview-pane">
+          <div
+            className="preview-pane"
+            tabIndex={0}
+            ref={previewPaneRef}
+            onMouseDown={() => {
+              try { previewPaneRef.current?.focus(); } catch {}
+            }}
+            onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L')) {
+                e.preventDefault();
+                setMode(prev => prev === 'preview' ? 'split' : prev === 'split' ? 'edit' : 'preview');
+              }
+            }}
+          >
             <div className="preview-content">
               {value.trim() ? (
                 <div
@@ -574,66 +582,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           background-color: var(--bg-primary);
         }
 
-        .editor-toolbar {
-          background-color: var(--bg-secondary);
-          border-bottom: 1px solid var(--border-color);
-          padding: 8px 12px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-        }
-
-        .editor-controls {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-
-        .mode-toggles {
-          display: flex;
-          gap: 4px;
-        }
-
-        .mode-toggle {
-          background: var(--bg-primary);
-          border: 1px solid var(--border-color);
-          color: var(--text-primary);
-          padding: 6px 10px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          transition: all 0.2s;
-          white-space: nowrap;
-        }
-
-        .mode-toggle:hover {
-          background: var(--hover-color);
-          border-color: var(--border-color);
-        }
-
-        .mode-toggle.active {
-          background: var(--accent-color);
-          border-color: var(--accent-color);
-          color: white;
-        }
-
-        
-
-        .save-button {
-          background: var(--accent-color);
-          border: 1px solid var(--accent-color);
-          color: white;
-          padding: 4px 12px;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 12px;
-          transition: all 0.2s;
-        }
-
-        .save-button:hover {
-          background: var(--accent-color);
-          opacity: 0.8;
-        }
+        /* Toolbar and buttons removed */
 
         .editor-container {
           flex: 1;
