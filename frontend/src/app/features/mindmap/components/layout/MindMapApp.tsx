@@ -6,7 +6,8 @@ import { nodeToMarkdown } from '../../../markdown';
 import { relPathBetweenMapIds } from '@shared/utils';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
-import MindMapHeader from './MindMapHeader';
+// Removed header; use compact top-left panel instead
+import TopLeftTitlePanel from './TopLeftTitlePanel';
 import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
 import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
@@ -404,12 +405,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   }, [mindMap, data]);
 
-  // UI用のハンドラー
-  const handleTitleChange = (title: string) => {
-    if (data) {
-      updateMapMetadata(data.mapIdentifier, { title });
-    }
-  };
+  // Title editing disabled in UI (no-op removed)
 
   // インポート/エクスポート機能は削除済み
 
@@ -679,7 +675,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
     // 実際の利用可能なマップエリアを計算
     // 上端はツールバー固定高（CSSと一致させる）
-    const TOOLBAR_HEIGHT = 60;
+    // No top toolbar anymore
+    const TOOLBAR_HEIGHT = 0;
     const topOverlay = TOOLBAR_HEIGHT;
     const VIM_HEIGHT = 24;
     const defaultNoteHeight = Math.round(window.innerHeight * 0.3);
@@ -1127,9 +1124,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           onClose={closeGuide}
           onSelectFolder={async () => { await handleSelectFolder(); markDismissed(); }}
         />
-        <MindMapHeader
-          data={data}
-          onTitleChange={handleTitleChange}
+        <TopLeftTitlePanel
+          title={data?.title || ''}
+          activeView={activeView}
+          sidebarCollapsed={uiStore.sidebarCollapsed}
           onUndo={undo}
           onRedo={redo}
           canUndo={canUndo}
@@ -1144,8 +1142,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               logger.error('applyAutoLayout function not available');
             }
           }}
-          storageMode={storageMode}
-          onStorageModeChange={onModeChange as ((mode: 'local' | 'markdown') => void) | undefined}
           onToggleNotesPanel={() => store.toggleNotesPanel()}
           showNotesPanel={uiStore.showNotesPanel}
           onToggleNodeNotePanel={() => store.toggleNodeNotePanel?.()}
