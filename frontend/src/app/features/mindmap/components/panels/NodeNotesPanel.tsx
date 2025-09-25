@@ -4,6 +4,7 @@ import MarkdownEditor from '../../../markdown/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 import { useResizingState } from '@/app/shared/hooks';
+import { useMindMapStore } from '../../store';
 
 interface MarkdownPanelProps {
   // onClose is intentionally not used; kept in type for compatibility
@@ -31,6 +32,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   const { isResizing, startResizing, stopResizing } = useResizingState();
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
+  const { setMarkdownPanelWidth } = useMindMapStore();
   const [mapMarkdown, setMapMarkdown] = useState<string>('');
   const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
   const [resizeCounter, setResizeCounter] = useState<number>(0);
@@ -123,6 +125,8 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       setPanelWidth(currentWidth);
       // Trigger Monaco Editor layout update
       setResizeCounter(prev => prev + 1);
+      // Push width into UI store for overlay computations
+      setMarkdownPanelWidth?.(currentWidth);
     };
 
     const handleMouseUp = () => {
@@ -132,9 +136,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       // Save width to localStorage
       setLocalStorage(STORAGE_KEYS.NOTES_PANEL_WIDTH, currentWidth);
       // Final Monaco Editor layout update
-      setTimeout(() => {
-        setResizeCounter(prev => prev + 1);
-      }, 50);
+      setTimeout(() => { setResizeCounter(prev => prev + 1); }, 50);
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -148,8 +150,12 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       const width = result.data;
       if (width >= 300 && width <= 1200) {
         setPanelWidth(width);
+        setMarkdownPanelWidth?.(width);
       }
     }
+    
+    // On unmount, reset width to 0
+    return () => { setMarkdownPanelWidth?.(0); };
   }, []);
 
   // Do not close this panel with ESC at all (no global handler here)

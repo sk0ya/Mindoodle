@@ -26,6 +26,9 @@ export const createUISlice: StateCreator<
     showLocalStoragePanel: false,
     showTutorial: false,
     showNotesPanel: false,
+    showNodeNotePanel: false,
+    markdownPanelWidth: 0,
+    nodeNotePanelHeight: 0,
     fileMenuPosition: { x: 0, y: 0 },
     showImageModal: false,
     showFileActionMenu: false,
@@ -116,6 +119,31 @@ export const createUISlice: StateCreator<
     });
   },
 
+  setShowNodeNotePanel: (show: boolean) => {
+    set((state) => {
+      state.ui.showNodeNotePanel = show;
+    });
+  },
+
+  toggleNodeNotePanel: () => {
+    set((state) => {
+      state.ui.showNodeNotePanel = !state.ui.showNodeNotePanel;
+    });
+  },
+
+  // Overlay dimension setters
+  setMarkdownPanelWidth: (width: number) => {
+    set((state) => {
+      state.ui.markdownPanelWidth = Math.max(0, Math.floor(width));
+    });
+  },
+
+  setNodeNotePanelHeight: (height: number) => {
+    set((state) => {
+      state.ui.nodeNotePanelHeight = Math.max(0, Math.floor(height));
+    });
+  },
+
   // Outline view removed; related actions deleted
 
   // File and Image Management Actions
@@ -164,6 +192,8 @@ export const createUISlice: StateCreator<
     });
   },
 
+  
+
   // Composite Actions
   closeAllPanels: () => {
     set((state) => {
@@ -176,6 +206,7 @@ export const createUISlice: StateCreator<
       state.ui.showTutorial = false;
       state.ui.showLinkListForNode = null;
       // Note: showNotesPanel は意図的に closeAllPanels から除外
+      // Note: showNodeNotePanel も除外（ユーザーが明示的に閉じる）
     });
   },
 

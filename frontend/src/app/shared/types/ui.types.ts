@@ -21,6 +21,11 @@ export interface UIState {
   showLocalStoragePanel: boolean;
   showTutorial: boolean;
   showNotesPanel: boolean;
+  showNodeNotePanel?: boolean;
+
+  // Overlay dimensions (virtual state, not DOM queries)
+  markdownPanelWidth?: number; // right panel width in px
+  nodeNotePanelHeight?: number; // bottom note panel height in px
 
   // File and image states
   fileMenuPosition: Position;
@@ -32,6 +37,7 @@ export interface UIState {
 
   // Icon-triggered displays
   showLinkListForNode: string | null;
+  
 }
 
 // Context menu state
@@ -71,6 +77,12 @@ export interface UIActions {
   setShowTutorial: (show: boolean) => void;
   setShowNotesPanel: (show: boolean) => void;
   toggleNotesPanel: () => void;
+  setShowNodeNotePanel?: (show: boolean) => void;
+  toggleNodeNotePanel?: () => void;
+
+  // Overlay dimension setters
+  setMarkdownPanelWidth?: (width: number) => void;
+  setNodeNotePanelHeight?: (height: number) => void;
 
   // File and Image Management
   setFileMenuPosition: (position: Position) => void;
@@ -84,6 +96,7 @@ export interface UIActions {
   setShowLinkListForNode: (nodeId: string | null) => void;
   toggleLinkListForNode: (nodeId: string) => void;
   closeAttachmentAndLinkLists: () => void;
+  
 
   // Composite Actions
   closeAllPanels: () => void;

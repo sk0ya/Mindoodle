@@ -1,5 +1,5 @@
 import React from 'react';
-import { RotateCcw, RotateCw, Search, Ruler, Target, FileText } from 'lucide-react';
+import { RotateCcw, RotateCw, Search, Ruler, Target, FileText, StickyNote } from 'lucide-react';
 import { ShortcutTooltip } from '../KeyboardShortcutHelper';
 
 interface ActionButtonsProps {
@@ -12,6 +12,8 @@ interface ActionButtonsProps {
   onAutoLayout?: () => void;
   onToggleNotesPanel?: () => void;
   showNotesPanel?: boolean;
+  onToggleNodeNotePanel?: () => void;
+  showNodeNotePanel?: boolean;
   onCenterRootNode?: () => void;
 }
 
@@ -25,6 +27,8 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   onAutoLayout,
   onToggleNotesPanel,
   showNotesPanel = false,
+  onToggleNodeNotePanel,
+  showNodeNotePanel = false,
   
   onCenterRootNode
 }) => {
@@ -92,12 +96,23 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
       {/* ノート・ヘルプ・設定 */}
       <div className="action-group help-actions">
         {onToggleNotesPanel && (
-          <ShortcutTooltip shortcut="Ctrl+Shift+N" description="ノートパネル">
+          <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">
             <button 
               className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`}
               onClick={onToggleNotesPanel}
             >
               <FileText size={16} />
+            </button>
+          </ShortcutTooltip>
+        )}
+
+        {onToggleNodeNotePanel && (
+          <ShortcutTooltip shortcut="Ctrl+Shift+M" description="選択ノードのノート">
+            <button 
+              className={`toolbar-btn notes ${showNodeNotePanel ? 'active' : ''}`}
+              onClick={onToggleNodeNotePanel}
+            >
+              <StickyNote size={16} />
             </button>
           </ShortcutTooltip>
         )}

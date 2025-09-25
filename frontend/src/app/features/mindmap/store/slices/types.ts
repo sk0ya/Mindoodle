@@ -73,6 +73,10 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   setShowTutorial: (show: boolean) => void;
   setShowNotesPanel: (show: boolean) => void;
   toggleNotesPanel: () => void;
+  setShowNodeNotePanel?: (show: boolean) => void;
+  toggleNodeNotePanel?: () => void;
+  setMarkdownPanelWidth?: (width: number) => void;
+  setNodeNotePanelHeight?: (height: number) => void;
   setFileMenuPosition: (position: Position) => void;
   setShowImageModal: (show: boolean) => void;
   setShowFileActionMenu: (show: boolean) => void;

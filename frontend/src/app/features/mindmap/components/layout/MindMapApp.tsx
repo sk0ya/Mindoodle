@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
-import { findNodeById, findNodeInRoots } from '@mindmap/utils';
+import { findNodeById, findNodeInRoots, calculateNodeSize } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import { relPathBetweenMapIds } from '@shared/utils';
 import ActivityBar from './ActivityBar';
@@ -12,6 +12,7 @@ import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
 import MindMapLinkOverlays from './MindMapLinkOverlays';
+import SelectedNodeNotePanel from '../panels/SelectedNodeNotePanel';
 import MarkdownPanelContainer from './NodeNotesPanelContainer';
 import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
@@ -166,7 +167,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   } = mindMap;
 
   // VSCode風サイドバーの状態はUIストアから取得
-  const activeView = ui.activeView;
+  const uiStore = useMindMapStore().ui;
+  const activeView = uiStore.activeView;
   const setActiveView = store.setActiveView;
   // Bridge workspaces to sidebar via globals (quick wiring)
   React.useEffect(() => {
@@ -279,7 +281,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   // UI state から個別に取得
   const { showKeyboardHelper, setShowKeyboardHelper } = {
-    showKeyboardHelper: ui.showShortcutHelper,
+    showKeyboardHelper: uiStore.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show)
   };
 
@@ -294,7 +296,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     e.preventDefault();
 
     // リンクリストまたは添付ファイルリスト表示中は右クリックコンテキストメニューを無効化
-    if (ui.showLinkListForNode) {
+    if (uiStore.showLinkListForNode) {
       return;
     }
 
@@ -648,7 +650,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   };
 
-  // ノードを画面中央に移動する関数（最適化済み）
+  // ノードが見切れないように最小限のスクロールで可視範囲に入れる
   const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
 
     if (!data) return;
@@ -667,32 +669,40 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
-    // 左側パネルの幅を計算（UI状態に基づく）
-    let leftPanelWidth = 48; // Activity bar is always visible (48px)
-    if (activeView && !ui.sidebarCollapsed) {
-      leftPanelWidth += 280; // Primary sidebar width when expanded and active view is selected
-    }
+    // 左側パネル幅はUI状態から推定（固定値を使用）
+    const ACTIVITY_BAR_WIDTH = 48;
+    const SIDEBAR_WIDTH = 280;
+    const leftPanelWidth = ACTIVITY_BAR_WIDTH + (activeView && !uiStore.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
 
-    // 右側パネルの幅を計算（実際のDOM要素から取得）
-    let rightPanelWidth = 0;
-    if (ui.showNotesPanel) {
-      const notesPanel = document.querySelector('.markdown-panel') as HTMLElement;
-      if (notesPanel) {
-        rightPanelWidth += notesPanel.offsetWidth;
-      } else {
-        rightPanelWidth += 600; // デフォルト幅
-      }
-    }
+    // 右側はUI状態から取得された実幅（パネル自体がストアへwidthを反映）
+    const rightPanelWidth = uiStore.showNotesPanel ? (uiStore.markdownPanelWidth || 0) : 0;
 
     // 実際の利用可能なマップエリアを計算
-    // ツールバーはoverlayしていないので上端は0から、下端はVimStatusBar分のみ引く
-    const effectiveBottomOffset = 35; // VimStatusBar + 余白 (25 + 10px)
+    // 上端はツールバー固定高（CSSと一致させる）
+    const TOOLBAR_HEIGHT = 60;
+    const topOverlay = TOOLBAR_HEIGHT;
+    const VIM_HEIGHT = 24;
+    const defaultNoteHeight = Math.round(window.innerHeight * 0.3);
+    // Prefer store height, but unconditionally read DOM to avoid stale flags
+    let noteHeight = uiStore.showNodeNotePanel
+      ? (uiStore.nodeNotePanelHeight && uiStore.nodeNotePanelHeight > 0 ? uiStore.nodeNotePanelHeight : defaultNoteHeight)
+      : 0;
+    let domNoteHeight = 0;
+    try {
+      const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+      domNoteHeight = el ? Math.round(el.getBoundingClientRect().height) : 0;
+    } catch {}
+    if (domNoteHeight > 0 && domNoteHeight !== noteHeight) {
+      noteHeight = domNoteHeight;
+      try { console.warn('[Viewport] noteHeight override via DOM', { domNoteHeight }); } catch {}
+    }
+    const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
 
     const mapAreaRect = new DOMRect(
       leftPanelWidth,
-      0, // 上端は0から
-      viewportWidth - leftPanelWidth - rightPanelWidth,
-      viewportHeight - effectiveBottomOffset
+      topOverlay,
+      Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
+      Math.max(0, viewportHeight - bottomOverlay - topOverlay)
     );
 
     if (!targetNode) {
@@ -718,27 +728,91 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const nodeX = targetNode.x || 0;
     const nodeY = targetNode.y || 0;
 
-    // マップエリアの中央を計算
-    const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
-    const targetX = mapAreaRect.left + (mapAreaRect.width * positionRatio);
-    const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-
-
     // 現在のズーム率を取得（SVGでは1.5倍されている）
-    const currentZoom = ui.zoom * 1.5;
+    const currentZoom = uiStore.zoom * 1.5;
 
-    // SVGの transform="scale(s) translate(tx, ty)" の場合、
-    // 最終座標は s * (x + tx) となるため、目標位置に配置するには：
-    // targetX = currentZoom * (nodeX + panX) → panX = targetX/currentZoom - nodeX
-    const newPanX = targetX / currentZoom - nodeX;
-    const newPanY = targetY / currentZoom - nodeY;
+    // isLeftMode: 特例として左寄せに配置
+    if (isLeftMode) {
+      const targetX = mapAreaRect.left + (mapAreaRect.width * 0.1);
+      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
+      const newPanX = targetX / currentZoom - nodeX;
+      const newPanY = targetY / currentZoom - nodeY;
 
+      if (animate) {
+        const currentPan = uiStore.pan;
+        const steps = 16;
+        const duration = 250;
+        const stepDuration = duration / steps;
+        const deltaX = (newPanX - currentPan.x) / steps;
+        const deltaY = (newPanY - currentPan.y) / steps;
+        let step = 0;
+        const animateStep = () => {
+          if (step < steps) {
+            step++;
+            const currentX = currentPan.x + (deltaX * step);
+            const currentY = currentPan.y + (deltaY * step);
+            if (step % 2 === 0 || step === steps) {
+              setPan({ x: currentX, y: currentY });
+            }
+            window.setTimeout(animateStep, stepDuration);
+          }
+        };
+        window.setTimeout(animateStep, 0);
+      } else {
+        setPan({ x: newPanX, y: newPanY });
+      }
+      return;
+    }
+
+    // 通常モード: 最小パンで可視域に入れる（ノードサイズも考慮）
+    const margin = 16; // 可視域マージン（左右・上）
+    const bottomExtraMargin = (noteHeight > 0) ? 12 : 24; // DOM優先でノート有無を判定
+    const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, (store as any).settings?.fontSize || 14);
+    const halfW = (nodeSize?.width || 80) / 2 * currentZoom;
+    const halfH = (nodeSize?.height || 24) / 2 * currentZoom;
+    // 現在のスクリーン座標（ノード中心）
+    const screenX = currentZoom * (nodeX + uiStore.pan.x);
+    const screenY = currentZoom * (nodeY + uiStore.pan.y);
+    const leftBound = mapAreaRect.left + margin;
+    const rightBound = mapAreaRect.right - margin;
+    const topBound = mapAreaRect.top + margin;
+    const bottomBound = mapAreaRect.bottom - (margin + bottomExtraMargin);
+
+    
+
+    let deltaScreenX = 0;
+    let deltaScreenY = 0;
+    const epsilon = 12; // しきい値のゆとり（ピクセル）
+    // ノート表示時はノート高さに比例して余白を多めに確保（最小24px）
+    const bottomPad = noteHeight > 0 ? Math.max(24, Math.round(noteHeight * 0.2)) : 0;
+    // 左右
+    if ((screenX - halfW) < (leftBound + epsilon)) {
+      deltaScreenX = (leftBound + epsilon) - (screenX - halfW);
+    } else if ((screenX + halfW) > (rightBound - epsilon)) {
+      deltaScreenX = (rightBound - epsilon) - (screenX + halfW);
+    }
+    // 上下
+    if ((screenY - halfH) < (topBound + epsilon)) {
+      deltaScreenY = (topBound + epsilon) - (screenY - halfH);
+    } else if ((screenY + halfH) > (bottomBound - epsilon - bottomPad)) {
+      deltaScreenY = (bottomBound - epsilon - bottomPad) - (screenY + halfH);
+    }
+
+    
+
+    if (deltaScreenX === 0 && deltaScreenY === 0) {
+      try { logger.debug('[Viewport] no pan needed'); } catch {}
+      return; // 既に可視範囲
+    }
+
+    const newPanX = uiStore.pan.x + (deltaScreenX / currentZoom);
+    const newPanY = uiStore.pan.y + (deltaScreenY / currentZoom);
 
     if (animate) {
       // 非同期アニメーション（ユーザー操作をブロックしない）
-      const currentPan = ui.pan;
-      const steps = 16; // ステップ数を削減（20→16）
-      const duration = 250; // 短時間化（300→250ms）
+      const currentPan = uiStore.pan;
+      const steps = 16; // ステップ数
+      const duration = 250; // 短時間
       const stepDuration = duration / steps;
 
       const deltaX = (newPanX - currentPan.x) / steps;
@@ -767,8 +841,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     } else {
       // 即座にパンを更新
       setPan({ x: newPanX, y: newPanY });
+      
     }
-  }, [data, ui.zoom, ui.pan, setPan]);
+  }, [data, uiStore.zoom, uiStore.pan, setPan]);
 
   // ルートノードを左端中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
@@ -781,6 +856,40 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       centerNodeInView(roots[0].id, false, { mode: 'left' });
     }
   }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
+
+  // Recenter selected node when panel visibility changes (right markdown / bottom notes)
+  React.useEffect(() => {
+    if (!selectedNodeId) return;
+    const raf = () => requestAnimationFrame(() => {
+      centerNodeInView(selectedNodeId, false);
+      requestAnimationFrame(() => centerNodeInView(selectedNodeId, false));
+    });
+    const id = window.setTimeout(raf, 0);
+    return () => { window.clearTimeout(id); };
+  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId, centerNodeInView]);
+
+  // Listen to explicit note panel resize events to keep selection visible
+  React.useEffect(() => {
+    const handler = () => {
+      if (selectedNodeId) centerNodeInView(selectedNodeId, false);
+    };
+    window.addEventListener('node-note-panel-resize', handler as EventListener);
+    return () => window.removeEventListener('node-note-panel-resize', handler as EventListener);
+  }, [selectedNodeId, centerNodeInView]);
+
+  // Also recenter when the stored height value changes (store-driven source of truth)
+  React.useEffect(() => {
+    if (!selectedNodeId) return;
+    centerNodeInView(selectedNodeId, false);
+  }, [uiStore.nodeNotePanelHeight, selectedNodeId, centerNodeInView]);
+
+  // When selection changes (e.g., cursor navigation), ensure visibility with minimal scroll
+  React.useEffect(() => {
+    if (!selectedNodeId) return;
+    // Let DOM/layout settle before computing
+    const id = requestAnimationFrame(() => centerNodeInView(selectedNodeId, false));
+    return () => cancelAnimationFrame(id);
+  }, [selectedNodeId]);
 
 
   // Simplified link navigation via utility
@@ -888,7 +997,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       }
     },
     pasteNodeFromClipboard: async (parentId: string) => {
-      const clipboardNode = ui.clipboard;
+      const clipboardNode = uiStore.clipboard;
       if (!clipboardNode) { showNotification('warning', 'コピーされたノードがありません'); return; }
       const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
         const newNodeId = store.addChildNode(parent, nodeToAdd.text);
@@ -1025,7 +1134,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           onRedo={redo}
           canUndo={canUndo}
           canRedo={canRedo}
-          zoom={ui.zoom}
+          zoom={uiStore.zoom}
           onZoomReset={() => setZoom(1.0)}
           onAutoLayout={() => {
             logger.info('Manual auto layout triggered');
@@ -1038,7 +1147,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           storageMode={storageMode}
           onStorageModeChange={onModeChange as ((mode: 'local' | 'markdown') => void) | undefined}
           onToggleNotesPanel={() => store.toggleNotesPanel()}
-          showNotesPanel={ui.showNotesPanel}
+          showNotesPanel={uiStore.showNotesPanel}
+          onToggleNodeNotePanel={() => store.toggleNodeNotePanel?.()}
+          showNodeNotePanel={!!uiStore.showNodeNotePanel}
           onCenterRootNode={handleCenterRootNode}
         />
 
@@ -1069,16 +1180,16 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             availableMaps={allMindMaps.map((map: any) => ({ id: map.mapIdentifier.mapId, title: map.title }))}
             currentMapData={data}
             onLinkNavigate={handleLinkNavigate2}
-            zoom={ui.zoom}
+            zoom={uiStore.zoom}
             setZoom={setZoom}
-            pan={ui.pan}
+            pan={uiStore.pan}
             setPan={setPan}
             onToggleLinkList={store.toggleLinkListForNode}
             onLoadRelativeImage={onLoadRelativeImage}
             onImageClick={handleShowImageModal}
           />
 
-          {ui.showNotesPanel && (
+          {uiStore.showNotesPanel && (
             <MarkdownPanelContainer
               onClose={() => store.setShowNotesPanel(false)}
               currentMapIdentifier={data ? data.mapIdentifier : null}
@@ -1088,6 +1199,18 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               subscribeMarkdownFromNodes={(mindMap as any).subscribeMarkdownFromNodes}
               getNodeIdByMarkdownLine={(mindMap as any).getNodeIdByMarkdownLine}
               onSelectNode={selectNode}
+            />
+          )}
+
+          {uiStore.showNodeNotePanel && (
+            <SelectedNodeNotePanel
+              nodeId={selectedNodeId}
+              nodeTitle={(selectedNodeId ? (findNodeInRoots(data?.rootNodes || [], selectedNodeId)?.text || '') : '')}
+              note={(selectedNodeId ? (findNodeInRoots(data?.rootNodes || [], selectedNodeId)?.note || '') : '')}
+              onChange={(val) => {
+                if (selectedNodeId) updateNode(selectedNodeId, { note: val });
+              }}
+              onClose={() => store.setShowNodeNotePanel?.(false)}
             />
           )}
         </div>

@@ -1,5 +1,5 @@
 import type { StateCreator } from 'zustand';
-import type { MindMapNode, Position, NodeLink } from '@shared/types';
+import type { MindMapNode, NodeLink } from '@shared/types';
 import { logger } from '@shared/utils';
 import {
   addLinkToNodeInTree,
@@ -17,7 +17,7 @@ import {
   changeSiblingOrderNormalized
 } from '@core/data/normalizedStore';
 import { generateNodeId } from '@shared/utils';
-import { COLORS, LAYOUT } from '@shared/constants';
+import { COLORS } from '@shared/constants';
 import { getBranchColor } from '../../utils';
 import type { MindMapStore } from './types';
 

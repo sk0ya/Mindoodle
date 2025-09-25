@@ -346,6 +346,7 @@ const Node: React.FC<NodeProps> = ({
   const baseNodeSize = calculateNodeSize(node, node.text, false, globalFontSize);
   const nodeLeftX = getNodeLeftX(node, baseNodeSize.width);
   const vim = useVim();
+  // const { ui } = useMindMapStore();
 
   return (
     <g data-node-id={node.id}>
@@ -415,6 +416,8 @@ const Node: React.FC<NodeProps> = ({
         nodeWidth={nodeWidth}
         nodeHeight={nodeHeight}
       />
+
+
     </g>
   );
 };
@@ -455,8 +458,8 @@ export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
 
   // ズーム・パンが変わった場合は再レンダリング
   if (prevProps.zoom !== nextProps.zoom ||
-      prevProps.pan.x !== nextProps.pan.x ||
-      prevProps.pan.y !== nextProps.pan.y) {
+      prevProps.pan.x !== (nextProps as any).pan?.x ||
+      prevProps.pan.y !== (nextProps as any).pan?.y) {
     return false;
   }
 
