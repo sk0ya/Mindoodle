@@ -240,49 +240,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     }
   }, [onCreateMap, setEmptyFolders, extractCategory, currentWorkspaceId, mindMaps]);
 
-  // 新しいボタン用のハンドラー
-  const handleAddMap = useCallback(() => {
-    handleCreateMap(null);
-  }, [handleCreateMap]);
-
-  const handleAddFolder = useCallback(() => {
-    handleCreateFolder(null);
-  }, [handleCreateFolder]);
-
-  const handleExpandAll = useCallback(() => {
-    // Legacy maps view
-    setCollapsedCategories(new Set());
-    // Explorer view
-    setExplorerCollapsed({}); // all expanded
-  }, []);
-
-  const handleCollapseAll = useCallback(() => {
-    // すべてのカテゴリを取得してから折りたたみ状態にする
-    const allFolders = new Set([...Object.keys(mindMaps.reduce((groups: { [key: string]: any[] }, map) => {
-      const category = map.category || '';
-      if (!groups[category]) {
-        groups[category] = [];
-      }
-      groups[category].push(map);
-      return groups;
-    }, {})), ...Array.from(emptyFolders)]);
-    setCollapsedCategories(allFolders);
-    // Explorer view: build list from explorerTree
-    const markAllCollapsed = (node: ExplorerItem | undefined, acc: Record<string, boolean>) => {
-      if (!node) return acc;
-      if (node.type === 'folder') {
-        if (node.path) acc[node.path] = true;
-        (node.children || []).forEach(child => markAllCollapsed(child, acc));
-      }
-      return acc;
-    };
-    // @ts-ignore explorerTree may be undefined
-    const tree: ExplorerItem | undefined = (explorerTree as any) || undefined;
-    if (tree) {
-      const next = markAllCollapsed(tree, {});
-      setExplorerCollapsed(next);
-    }
-  }, [mindMaps, emptyFolders, explorerTree]);
+  // 旧: 追加/展開系ボタンのハンドラーは削除しました
 
   // フォルダの削除ハンドラー
   const handleDeleteFolder = useCallback((folderPath: string) => {
@@ -734,10 +692,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
         onToggleCollapse={onToggleCollapse}
-        onAddMap={handleAddMap}
-        onAddFolder={handleAddFolder}
-        onExpandAll={handleExpandAll}
-        onCollapseAll={handleCollapseAll}
       />
       {explorerTree ? (
         <div className="maps-content-wrapper">

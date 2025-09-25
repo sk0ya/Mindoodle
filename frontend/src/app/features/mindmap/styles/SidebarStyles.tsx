@@ -47,13 +47,13 @@ const SidebarStyles: React.FC = () => (
     }
 
     .sidebar-header {
-      padding: 8px !important;
+      padding: 0 !important; /* remove extra space around search */
       border-bottom: 1px solid rgba(148, 163, 184, 0.12);
       background: rgba(248, 250, 252, 0.5);
       backdrop-filter: blur(10px);
       display: flex !important;
       flex-direction: column !important;
-      gap: 2px !important;
+      gap: 0 !important; /* no vertical gap */
       position: relative !important;
       z-index: 100 !important;
       width: 100% !important;
@@ -177,24 +177,31 @@ const SidebarStyles: React.FC = () => (
 
     .search-container {
       display: flex;
-      gap: 8px;
+      gap: 0;
+      margin: 0;
+      padding: 0; /* no inner space */
+      width: 100%;
     }
 
     .search-input {
       flex: 1;
-      padding: 10px 12px;
+      padding: 4px 6px; /* more compact */
       border: 1px solid rgba(148, 163, 184, 0.3);
-      border-radius: 10px;
-      font-size: 14px;
+      border-radius: 4px; /* more compact */
+      font-size: 12px; /* smaller */
+      line-height: 1.1;
       background: rgba(248, 250, 252, 0.8);
-      transition: all 0.2s ease;
+      transition: border-color 0.15s ease, background 0.15s ease;
       color: #333;
+      margin: 0;
+      min-height: 24px; /* compact min height */
+      height: 24px; /* enforce compact height */
     }
 
     .search-input:focus {
       outline: none;
       border-color: rgba(59, 130, 246, 0.5);
-      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      box-shadow: none; /* no extra visual ring to keep compact */
       background: white;
     }
 
@@ -207,6 +214,11 @@ const SidebarStyles: React.FC = () => (
     [data-theme="dark"] .search-input:focus {
       background: #374151;
       border-color: rgba(59, 130, 246, 0.6);
+      box-shadow: none;
+    }
+
+    .search-input::placeholder {
+      font-size: 12px;
     }
 
     [data-theme="dark"] .search-input::placeholder {
