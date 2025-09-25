@@ -227,38 +227,208 @@ export function addNormalizedNode(
 }
 
 /**
+ * ノード移動の制約をチェックする
+ */
+function validateNodeMovement(
+  normalizedData: NormalizedData,
+  nodeId: string,
+  newParentId: string
+): { isValid: boolean; reason?: string } {
+  const node = normalizedData.nodes[nodeId];
+  const newParent = normalizedData.nodes[newParentId];
+
+  if (!node || !newParent) {
+    return { isValid: false, reason: 'ノードが見つかりません' };
+  }
+
+  const nodeType = node.markdownMeta?.type;
+  const parentType = newParent.markdownMeta?.type;
+
+  // 1. リストノードは見出しノードを子ノードにできない
+  if ((nodeType === 'heading') &&
+      (parentType === 'unordered-list' || parentType === 'ordered-list')) {
+    return {
+      isValid: false,
+      reason: 'リストノードは見出しノードを子ノードにできません'
+    };
+  }
+
+  // 2. 見出しノードの階層制限（6階層まで）
+  if (nodeType === 'heading') {
+    const parentLevel = parentType === 'heading' ? (newParent.markdownMeta?.level || 1) : 0;
+
+    if (parentType === 'heading' && parentLevel + 1 > 6) {
+      return {
+        isValid: false,
+        reason: '見出しノードは6階層までです'
+      };
+    }
+  }
+
+  // 3. 見出しノードの兄弟がいる場合、リストノードは一番兄としてでしか子ノードになれない
+  // 注意: この制約は「リストが見出しより後に配置されること」を禁止するが、
+  // 「リストが見出しより前に配置されること」は許可する
+  // つまり、基本的な移動は許可し、位置指定時にのみ制限をかける
+  // ここでは基本的な移動の可否のみをチェックし、位置制約は別途処理
+
+  return { isValid: true };
+}
+
+/**
+ * ポジション指定での移動制約をチェックする
+ */
+function validateNodeMovementWithPosition(
+  normalizedData: NormalizedData,
+  nodeId: string,
+  targetNodeId: string,
+  position: 'before' | 'after' | 'child'
+): { isValid: boolean; reason?: string } {
+  const node = normalizedData.nodes[nodeId];
+  const target = normalizedData.nodes[targetNodeId];
+
+  if (!node || !target) {
+    return { isValid: false, reason: 'ノードが見つかりません' };
+  }
+
+  if (position === 'child') {
+    // child の場合は通常の移動制約チェック + 位置制約
+    const basicValidation = validateNodeMovement(normalizedData, nodeId, targetNodeId);
+    if (!basicValidation.isValid) {
+      return basicValidation;
+    }
+
+    // 制約3: リストノードが見出しノードの子になる場合の位置制約
+    const nodeType = node.markdownMeta?.type;
+    const parentType = target.markdownMeta?.type;
+
+    if ((nodeType === 'unordered-list' || nodeType === 'ordered-list') &&
+        parentType === 'heading') {
+      const siblings = normalizedData.childrenMap[targetNodeId] || [];
+      const hasHeadingSiblings = siblings.some(siblingId => {
+        const sibling = normalizedData.nodes[siblingId];
+        return sibling?.markdownMeta?.type === 'heading';
+      });
+
+      if (hasHeadingSiblings) {
+        // 見出しの兄弟がいる場合、リストは一番最初に配置される
+        // child位置での追加は最後に追加されるので、見出しがいる場合は禁止
+        return {
+          isValid: false,
+          reason: '見出しノードの兄弟がいる場合、リストノードは一番最初にのみ配置できます'
+        };
+      }
+    }
+
+    return { isValid: true };
+  }
+
+  // before/after の場合は兄弟として配置されるので、その親に対してチェック
+  const targetParentId = normalizedData.parentMap[targetNodeId];
+  if (!targetParentId) {
+    return { isValid: false, reason: 'ターゲットノードに親がありません' };
+  }
+
+  // 基本的な制約チェック
+  const validationResult = validateNodeMovement(normalizedData, nodeId, targetParentId);
+  if (!validationResult.isValid) {
+    return validationResult;
+  }
+
+  // 制約3: リストノードが見出しノードの子になる場合の位置制約
+  const nodeType = node.markdownMeta?.type;
+  const targetParent = normalizedData.nodes[targetParentId];
+  const parentType = targetParent?.markdownMeta?.type;
+
+  if ((nodeType === 'unordered-list' || nodeType === 'ordered-list') &&
+      parentType === 'heading') {
+    const siblings = normalizedData.childrenMap[targetParentId] || [];
+    const targetIndex = siblings.indexOf(targetNodeId);
+    const hasHeadingSiblings = siblings.some(siblingId => {
+      const sibling = normalizedData.nodes[siblingId];
+      return sibling?.markdownMeta?.type === 'heading';
+    });
+
+    if (hasHeadingSiblings) {
+      // リストは見出しより前（一番最初）にのみ配置可能
+      if (position === 'before') {
+        // targetの前に配置する場合、targetが最初の見出しでないと駄目
+        const firstHeading = siblings.find(siblingId => {
+          const sibling = normalizedData.nodes[siblingId];
+          return sibling?.markdownMeta?.type === 'heading';
+        });
+        if (targetNodeId !== firstHeading) {
+          return {
+            isValid: false,
+            reason: '見出しノードの兄弟がいる場合、リストノードは一番最初にのみ配置できます'
+          };
+        }
+      }
+      
+      if (position === 'after') {
+        // targetの後に配置する場合、targetより後に見出しがあると禁止
+        const afterTargetSiblings = siblings.slice(targetIndex + 1);
+        const hasHeadingAfterTarget = afterTargetSiblings.some(siblingId => {
+          const sibling = normalizedData.nodes[siblingId];
+          return sibling?.markdownMeta?.type === 'heading';
+        });
+        
+        if (hasHeadingAfterTarget) {
+          return {
+            isValid: false,
+            reason: '見出しノードの兄弟がいる場合、リストノードは一番最初にのみ配置できます'
+          };
+        }
+      }
+    }
+  }
+
+  return { isValid: true };
+}
+
+/**
  * 正規化されたデータでのノード移動 - O(1)
  */
 export function moveNormalizedNode(
   normalizedData: NormalizedData,
   nodeId: string,
   newParentId: string
-): NormalizedData {
+): { success: true; data: NormalizedData } | { success: false; reason: string } {
   if (normalizedData.rootNodeIds.includes(nodeId)) {
-    throw new Error('Cannot move root node');
+    return { success: false, reason: 'ルートノードは移動できません' };
   }
 
   const oldParentId = normalizedData.parentMap[nodeId];
   if (!oldParentId) {
-    throw new Error(`Parent not found for node: ${nodeId}`);
+    return { success: false, reason: `ノードの親が見つかりません: ${nodeId}` };
   }
 
   if (!normalizedData.nodes[newParentId]) {
-    throw new Error(`New parent node not found: ${newParentId}`);
+    return { success: false, reason: `移動先のノードが見つかりません: ${newParentId}` };
   }
 
-  // 循環参照チェック
-  function isDescendant(ancestorId: string, descendantId: string): boolean {
-    const children = normalizedData.childrenMap[descendantId] || [];
-    return children.includes(ancestorId) || 
-           children.some(childId => isDescendant(ancestorId, childId));
+  // ノードの種類制約チェック
+  const validation = validateNodeMovement(normalizedData, nodeId, newParentId);
+  if (!validation.isValid) {
+    return { success: false, reason: validation.reason || 'ノードの移動ができません' };
+  }
+
+  // 循環参照チェック: newParentId が nodeId の子孫でないかチェック
+  function isDescendant(parentId: string, childId: string): boolean {
+    const children = normalizedData.childrenMap[parentId] || [];
+    return children.includes(childId) ||
+           children.some(child => isDescendant(child, childId));
   }
 
   if (isDescendant(nodeId, newParentId)) {
-    throw new Error('Cannot move node to its descendant');
+    return { success: false, reason: '親ノードを子ノードの下に移動することはできません' };
   }
 
-  return {
+  // 同じ親内での移動の場合は何もしない
+  if (oldParentId === newParentId) {
+    return { success: true, data: normalizedData };
+  }
+
+  const newData = {
     ...normalizedData,
     parentMap: {
       ...normalizedData.parentMap,
@@ -270,6 +440,8 @@ export function moveNormalizedNode(
       [newParentId]: [...(normalizedData.childrenMap[newParentId] || []), nodeId]
     }
   };
+
+  return { success: true, data: newData };
 }
 
 /**
@@ -280,18 +452,24 @@ export function moveNodeWithPositionNormalized(
   nodeId: string,
   targetNodeId: string,
   position: 'before' | 'after' | 'child'
-): NormalizedData {
+): { success: true; data: NormalizedData } | { success: false; reason: string } {
   if (normalizedData.rootNodeIds.includes(nodeId)) {
-    throw new Error('Cannot move root node');
+    return { success: false, reason: 'ルートノードは移動できません' };
   }
 
   const oldParentId = normalizedData.parentMap[nodeId];
   if (!oldParentId) {
-    throw new Error(`Parent not found for node: ${nodeId}`);
+    return { success: false, reason: `ノードの親が見つかりません: ${nodeId}` };
   }
 
   if (!normalizedData.nodes[targetNodeId]) {
-    throw new Error(`Target node not found: ${targetNodeId}`);
+    return { success: false, reason: `ターゲットノードが見つかりません: ${targetNodeId}` };
+  }
+
+  // ノードの種類制約チェック
+  const validation = validateNodeMovementWithPosition(normalizedData, nodeId, targetNodeId, position);
+  if (!validation.isValid) {
+    return { success: false, reason: validation.reason || 'ノードの移動ができません' };
   }
 
   let newParentId: string;
@@ -305,27 +483,27 @@ export function moveNodeWithPositionNormalized(
     // 兄弟として追加（before/after）
     newParentId = normalizedData.parentMap[targetNodeId];
     if (!newParentId) {
-      throw new Error(`Target node has no parent: ${targetNodeId}`);
+      return { success: false, reason: `ターゲットノードに親がありません: ${targetNodeId}` };
     }
 
     const siblings = normalizedData.childrenMap[newParentId] || [];
     const targetIndex = siblings.indexOf(targetNodeId);
     if (targetIndex === -1) {
-      throw new Error(`Target node not found in parent's children: ${targetNodeId}`);
+      return { success: false, reason: `ターゲットノードが親の子リストに見つかりません: ${targetNodeId}` };
     }
 
     insertionIndex = position === 'before' ? targetIndex : targetIndex + 1;
   }
 
-  // 循環参照チェック: newParentIdがnodeIdの子孫かどうかを確認
-  function isDescendantOf(parentId: string, childId: string): boolean {
+  // 循環参照チェック: newParentId が nodeId の子孫でないかチェック
+  function isDescendant(parentId: string, childId: string): boolean {
     const children = normalizedData.childrenMap[parentId] || [];
     return children.includes(childId) ||
-           children.some(child => isDescendantOf(child, childId));
+           children.some(child => isDescendant(child, childId));
   }
 
-  if (isDescendantOf(nodeId, newParentId)) {
-    throw new Error('Cannot move node to its descendant');
+  if (isDescendant(nodeId, newParentId)) {
+    return { success: false, reason: '親ノードを子ノードの下に移動することはできません' };
   }
 
   // 古い親から削除
@@ -348,7 +526,7 @@ export function moveNodeWithPositionNormalized(
 
   newSiblings.splice(insertionIndex, 0, nodeId);
 
-  return {
+  const newData = {
     ...normalizedData,
     parentMap: {
       ...normalizedData.parentMap,
@@ -360,6 +538,8 @@ export function moveNodeWithPositionNormalized(
       [newParentId]: newSiblings
     }
   };
+
+  return { success: true, data: newData };
 }
 
 /**

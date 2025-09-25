@@ -435,21 +435,21 @@ export function useShortcutHandlers(args: Args) {
 
     // Node structure manipulation
     moveNode: async (nodeId: string, newParentId: string) => {
-      try {
-        store.moveNode(nodeId, newParentId);
+      const result = store.moveNode(nodeId, newParentId);
+      if (result.success) {
         showNotification('success', 'ノードを移動しました');
-      } catch (error) {
-        logger.error('moveNode error:', error);
-        showNotification('error', 'ノードの移動に失敗しました');
+      } else {
+        showNotification('warning', result.reason || 'ノードの移動ができませんでした');
+        logger.warn('moveNode constraint violation:', result.reason);
       }
     },
     moveNodeWithPosition: async (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
-      try {
-        store.moveNodeWithPosition(nodeId, targetNodeId, position);
+      const result = store.moveNodeWithPosition(nodeId, targetNodeId, position);
+      if (result.success) {
         showNotification('success', 'ノードを移動しました');
-      } catch (error) {
-        logger.error('moveNodeWithPosition error:', error);
-        showNotification('error', 'ノードの移動に失敗しました');
+      } else {
+        showNotification('warning', result.reason || 'ノードの移動ができませんでした');
+        logger.warn('moveNodeWithPosition constraint violation:', result.reason);
       }
     },
     findParentNode: (nodeId: string) => {

@@ -5,7 +5,7 @@ import { MarkdownImporter } from '@markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
-import { useDataReset } from '@shared/hooks';
+import { useDataReset, useNotification } from '@shared/hooks';
 import { useStorageConfigChange } from '@file-management/hooks/useStorageConfigChange';
 import { logger } from '@shared/utils';
 import type { StorageConfig } from '@core/storage/types';
@@ -28,6 +28,7 @@ export const useMindMap = (
   const uiHook = useMindMapUI();
   const actionsHook = useMindMapActions();
   const persistenceHook = useMindMapPersistence(storageConfig);
+  const { showNotification } = useNotification();
   // const { mergeWithExistingNodes } = useMarkdownSync();
 
   useDataReset(resetKey, {
@@ -584,6 +585,26 @@ export const useMindMap = (
   // マップ一覧の初期化状態も返す
   const isReady = persistenceHook.isInitialized;
 
+  // 通知付き移動関数
+  const moveNodeWithNotification = useCallback((nodeId: string, newParentId: string) => {
+    const result = dataHook.moveNode(nodeId, newParentId);
+    if (result.success) {
+      showNotification('success', 'ノードを移動しました');
+    } else {
+      showNotification('warning', result.reason || 'ノードの移動ができませんでした');
+      logger.warn('moveNode constraint violation:', result.reason);
+    }
+  }, [dataHook.moveNode, showNotification]);
+
+  const moveNodeWithPositionAndNotification = useCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
+    const result = dataHook.moveNodeWithPosition(nodeId, targetNodeId, position);
+    if (result.success) {
+      showNotification('success', 'ノードを移動しました');
+    } else {
+      showNotification('warning', result.reason || 'ノードの移動ができませんでした');
+      logger.warn('moveNodeWithPosition constraint violation:', result.reason);
+    }
+  }, [dataHook.moveNodeWithPosition, showNotification]);
 
   return {
     // === 状態 ===
@@ -612,8 +633,8 @@ export const useMindMap = (
     addNode: dataHook.addNode,
     updateNode: dataHook.updateNode,
     deleteNode: dataHook.deleteNode,
-    moveNode: dataHook.moveNode,
-    moveNodeWithPosition: dataHook.moveNodeWithPosition,
+    moveNode: moveNodeWithNotification,
+    moveNodeWithPosition: moveNodeWithPositionAndNotification,
     changeSiblingOrder: dataHook.changeSiblingOrder,
     toggleNodeCollapse: dataHook.toggleNodeCollapse,
     startEditing: dataHook.startEditing,

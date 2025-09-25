@@ -42,8 +42,8 @@ export interface NodeSlice {
   addChildNode: (parentId: string, text?: string) => string | undefined;
   addSiblingNode: (nodeId: string, text?: string, insertAfter?: boolean) => string | undefined;
   deleteNode: (nodeId: string) => void;
-  moveNode: (nodeId: string, newParentId: string) => void;
-  moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
+  moveNode: (nodeId: string, newParentId: string) => { success: boolean; reason?: string };
+  moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => { success: boolean; reason?: string };
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
   
@@ -431,45 +431,63 @@ export const createNodeSlice: StateCreator<
   },
 
   moveNode: (nodeId: string, newParentId: string) => {
+    let moveResult: { success: boolean; reason?: string } = { success: false };
+
     set((state) => {
       if (!state.normalizedData) return;
-      
-      try {
-        state.normalizedData = moveNormalizedNode(state.normalizedData, nodeId, newParentId);
-      } catch (error) {
-        logger.error('moveNode error:', error);
+
+      const result = moveNormalizedNode(state.normalizedData, nodeId, newParentId);
+      if (result.success) {
+        state.normalizedData = result.data;
+        moveResult = { success: true };
+      } else {
+        moveResult = { success: false, reason: result.reason };
+        logger.warn('moveNode constraint violation:', result.reason);
       }
     });
-    
-    // Sync to tree structure and add to history
-    get().syncToMindMapData();
-    
-    // Apply auto layout if enabled
-    const { data } = get();
-    if (data?.settings?.autoLayout) {
-      get().applyAutoLayout();
+
+    if (moveResult.success) {
+      // Sync to tree structure and add to history
+      get().syncToMindMapData();
+
+      // Apply auto layout if enabled
+      const { data } = get();
+      if (data?.settings?.autoLayout) {
+        get().applyAutoLayout();
+      }
     }
+
+    return moveResult;
   },
 
   moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
+    let moveResult: { success: boolean; reason?: string } = { success: false };
+
     set((state) => {
       if (!state.normalizedData) return;
 
-      try {
-        state.normalizedData = moveNodeWithPositionNormalized(state.normalizedData, nodeId, targetNodeId, position);
-      } catch (error) {
-        logger.error('moveNodeWithPosition error:', error);
+      const result = moveNodeWithPositionNormalized(state.normalizedData, nodeId, targetNodeId, position);
+      if (result.success) {
+        state.normalizedData = result.data;
+        moveResult = { success: true };
+      } else {
+        moveResult = { success: false, reason: result.reason };
+        logger.warn('moveNodeWithPosition constraint violation:', result.reason);
       }
     });
 
-    // Sync to tree structure and add to history
-    get().syncToMindMapData();
+    if (moveResult.success) {
+      // Sync to tree structure and add to history
+      get().syncToMindMapData();
 
-    // Apply auto layout if enabled
-    const { data } = get();
-    if (data?.settings?.autoLayout) {
-      get().applyAutoLayout();
+      // Apply auto layout if enabled
+      const { data } = get();
+      if (data?.settings?.autoLayout) {
+        get().applyAutoLayout();
+      }
     }
+
+    return moveResult;
   },
 
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {

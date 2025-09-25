@@ -23,12 +23,12 @@ export const useMindMapData = () => {
       store.deleteNode(nodeId);
     }, [store]),
 
-    moveNode: useCallback((nodeId: string, newParentId: string) => {
-      store.moveNode(nodeId, newParentId);
+    moveNode: useCallback((nodeId: string, newParentId: string): { success: boolean; reason?: string } => {
+      return store.moveNode(nodeId, newParentId);
     }, [store]),
 
-    moveNodeWithPosition: useCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
-      store.moveNodeWithPosition(nodeId, targetNodeId, position);
+    moveNodeWithPosition: useCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child'): { success: boolean; reason?: string } => {
+      return store.moveNodeWithPosition(nodeId, targetNodeId, position);
     }, [store]),
 
     changeSiblingOrder: useCallback((draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {

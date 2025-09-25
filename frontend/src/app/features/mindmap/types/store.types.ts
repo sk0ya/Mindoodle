@@ -34,7 +34,7 @@ export interface NodeOperations {
   addNode: (parentId: string, text?: string) => void;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   deleteNode: (nodeId: string) => void;
-  moveNode: (nodeId: string, newParentId: string) => void;
+  moveNode: (nodeId: string, newParentId: string) => { success: boolean; reason?: string };
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
 
@@ -135,7 +135,7 @@ export interface MindMapStore extends DataState, HistoryState, AISlice, Settings
   addChildNode: (parentId: string, text?: string) => string | undefined;
   addSiblingNode: (nodeId: string, text?: string) => string | undefined;
   deleteNode: (nodeId: string) => void;
-  moveNode: (nodeId: string, newParentId: string) => void;
+  moveNode: (nodeId: string, newParentId: string) => { success: boolean; reason?: string };
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
 
