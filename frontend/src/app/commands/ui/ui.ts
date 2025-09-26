@@ -95,6 +95,38 @@ export const toggleMarkdownPanelCommand: Command = {
   }
 };
 
+// Toggle Selected Node Note Panel (bottom/right overlay)
+export const toggleNodeNotePanelCommand: Command = {
+  name: 'toggle-node-note-panel',
+  aliases: ['toggle-node-note', 'node-note-panel'],
+  description: 'Toggle Selected Node Note panel visibility',
+  category: 'ui',
+  examples: ['toggle-node-note-panel', 'toggle-node-note'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      const canToggle = typeof context.handlers.toggleNodeNotePanel === 'function';
+      const canSet = typeof context.handlers.setShowNodeNotePanel === 'function';
+      const hasState = typeof context.handlers.showNodeNotePanel === 'boolean';
+
+      if (canToggle) {
+        (context.handlers.toggleNodeNotePanel as () => void)();
+      } else if (canSet && hasState) {
+        (context.handlers.setShowNodeNotePanel as (b: boolean) => void)(!(context.handlers.showNodeNotePanel as boolean));
+      } else {
+        return { success: false, error: 'Node note panel controls are not available' };
+      }
+
+      return { success: true, message: 'Toggled Node Note panel' };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to toggle Node Note panel'
+      };
+    }
+  }
+};
+
 // Start editing current node
 export const startEditCommand: Command = {
   name: 'start-edit',

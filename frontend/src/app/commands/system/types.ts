@@ -72,6 +72,10 @@ export interface CommandContext {
     showNotesPanel?: boolean;
     setShowNotesPanel?: (show: boolean) => void;
     toggleNotesPanel?: () => void;
+    // Node note panel visibility
+    showNodeNotePanel?: boolean;
+    setShowNodeNotePanel?: (show: boolean) => void;
+    toggleNodeNotePanel?: () => void;
 
     // UI operations
     closeAttachmentAndLinkLists: () => void;

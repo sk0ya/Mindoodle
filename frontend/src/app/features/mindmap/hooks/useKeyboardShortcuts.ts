@@ -265,8 +265,15 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
+      // Global: Toggle Node Note panel (Ctrl/Cmd + Shift + M)
+      if ((ctrlKey || metaKey) && !altKey && event.shiftKey && (key === 'm' || key === 'M')) {
+        event.preventDefault();
+        try { commands.execute('toggle-node-note-panel'); } catch {}
+        return;
+      }
+
       // Global: Toggle Markdown panel (Ctrl/Cmd + M)
-      if ((ctrlKey || metaKey) && !altKey && (key === 'm' || key === 'M')) {
+      if ((ctrlKey || metaKey) && !altKey && !event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
         try {
           // Use command system to toggle, so it stays consistent with handlers

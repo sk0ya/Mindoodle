@@ -362,6 +362,10 @@ export function useShortcutHandlers(args: Args) {
     showNotesPanel: !!useMindMapStore.getState().ui?.showNotesPanel,
     setShowNotesPanel: (show: boolean) => store.setShowNotesPanel?.(show),
     toggleNotesPanel: () => store.toggleNotesPanel?.(),
+    // Node note panel visibility control for commands
+    showNodeNotePanel: !!useMindMapStore.getState().ui?.showNodeNotePanel,
+    setShowNodeNotePanel: (show: boolean) => store.setShowNodeNotePanel?.(show),
+    toggleNodeNotePanel: () => store.toggleNodeNotePanel?.(),
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,
     centerNodeInView,
