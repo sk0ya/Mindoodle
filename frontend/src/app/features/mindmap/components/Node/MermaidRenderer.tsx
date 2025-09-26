@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { mermaidSVGCache } from '../../utils/mermaidCache';
 
 type MermaidRendererProps = {
   code: string;
@@ -42,8 +43,18 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
 
   useEffect(() => {
     let cancelled = false;
+
     const render = async () => {
       try {
+        // Check cache first
+        const cached = mermaidSVGCache.get(cleanedCode);
+        if (cached && !cancelled) {
+          setSvg(cached.svg);
+          onLoadedDimensions?.(cached.dimensions.width, cached.dimensions.height);
+          return;
+        }
+
+        // Generate new SVG if not cached
         const id = `mmd-${Math.random().toString(36).slice(2, 10)}`;
         const { svg } = await mermaid.render(id, cleanedCode);
         if (cancelled) return;
@@ -80,8 +91,13 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
 
         const serializer = new XMLSerializer();
         const adjusted = serializer.serializeToString(el);
-        setSvg(adjusted);
 
+        // Cache the result
+        if (vbW > 0 && vbH > 0) {
+          mermaidSVGCache.set(cleanedCode, adjusted, { width: vbW, height: vbH });
+        }
+
+        setSvg(adjusted);
         if (vbW > 0 && vbH > 0) {
           onLoadedDimensions?.(vbW, vbH);
         }
@@ -90,6 +106,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
         setSvg('');
       }
     };
+
     render();
     return () => { cancelled = true; };
   }, [cleanedCode, onLoadedDimensions]);
