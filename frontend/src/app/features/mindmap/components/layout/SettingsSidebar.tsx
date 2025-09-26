@@ -137,17 +137,33 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           <div className="settings-toggle">
             <input
               type="checkbox"
-              id="vim-mode"
-              checked={settings.vimMode}
-              onChange={(e) => handleSettingChange('vimMode', e.target.checked)}
+              id="vim-mindmap"
+              checked={(settings as any).vimMindMap}
+              onChange={(e) => handleSettingChange('vimMindMap' as keyof typeof settings, e.target.checked as any)}
             />
-            <label htmlFor="vim-mode" className="settings-toggle-label">
+            <label htmlFor="vim-mindmap" className="settings-toggle-label">
               <span className="settings-icon"><Keyboard size={16} /></span>
-              Vimモード
+              マインドマップ Vim
             </label>
           </div>
           <div className="settings-description">
-            Vimライクなキーボード操作（hjkl移動、iで編集開始など）を有効にします
+            マインドマップ上での Vim ライク操作（hjkl 移動、i で編集開始など）を有効にします
+          </div>
+
+          <div className="settings-toggle" style={{ marginTop: '8px' }}>
+            <input
+              type="checkbox"
+              id="vim-editor"
+              checked={(settings as any).vimEditor}
+              onChange={(e) => handleSettingChange('vimEditor' as keyof typeof settings, e.target.checked as any)}
+            />
+            <label htmlFor="vim-editor" className="settings-toggle-label">
+              <span className="settings-icon"><Keyboard size={16} /></span>
+              エディタ Vim（Monaco）
+            </label>
+          </div>
+          <div className="settings-description">
+            右側のマークダウンエディタで Vim キーバインドを有効にします
           </div>
         </div>
       </div>

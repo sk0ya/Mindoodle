@@ -67,20 +67,20 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   }, []);
 
   const enable = useCallback(() => {
-    updateSetting('vimMode', true);
+    updateSetting('vimMindMap', true);
   }, [updateSetting]);
 
   const disable = useCallback(() => {
-    updateSetting('vimMode', false);
+    updateSetting('vimMindMap', false);
   }, [updateSetting]);
 
   const toggle = useCallback(() => {
-    if (settings.vimMode) {
+    if ((settings as any).vimMindMap) {
       disable();
     } else {
       enable();
     }
-  }, [settings.vimMode, enable, disable]);
+  }, [(settings as any).vimMindMap, enable, disable]);
 
   const executeCommand = useCallback((command: string) => {
     setState(prev => ({ 
@@ -485,7 +485,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
   return useMemo(() => ({
     ...state,
-    isEnabled: settings.vimMode,
+    isEnabled: (settings as any).vimMindMap,
     setMode,
     enable,
     disable,
@@ -511,7 +511,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     setCommandOutput
   }), [
     state,
-    settings.vimMode,
+    (settings as any).vimMindMap,
     setMode,
     enable,
     disable,

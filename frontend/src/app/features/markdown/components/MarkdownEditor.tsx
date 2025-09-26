@@ -134,8 +134,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     editor.onDidFocusEditorText?.(async () => {
       onFocusChange?.(true);
       isTextFocusedRef.current = true;
-      // Enable Vim only when editor has focus and setting is on
-      if (settings.vimMode && !isVimEnabled) {
+      // Enable Vim only when editor has focus and editor setting is on
+      if ((settings as any).vimEditor && !isVimEnabled) {
         const ok = await enableVimMode(editor, monaco);
         if (ok) setIsVimEnabled(true);
       }
@@ -386,22 +386,22 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   }, [settings.theme, settings.fontSize, settings.fontFamily]);
 
-  // React to settings.vimMode changes
+  // React to settings.vimEditor changes
   useEffect(() => {
     const apply = async () => {
       if (!editorRef.current) return;
       // Only enable when setting is on AND editor has focus
       const hasFocus = editorRef.current.hasTextFocus?.() ?? false;
-      if (settings.vimMode && hasFocus && !isVimEnabled) {
+      if ((settings as any).vimEditor && hasFocus && !isVimEnabled) {
         const monaco = monacoRef.current || (await import('monaco-editor'));
         const ok = await enableVimMode(editorRef.current, monaco);
         if (ok) setIsVimEnabled(true);
-      } else if (!settings.vimMode && isVimEnabled) {
+      } else if (!(settings as any).vimEditor && isVimEnabled) {
         disableVimMode();
       }
     };
     apply();
-  }, [settings.vimMode, isVimEnabled, disableVimMode]);
+  }, [(settings as any).vimEditor, isVimEnabled, disableVimMode]);
 
   // Handle external resize events
   useEffect(() => {

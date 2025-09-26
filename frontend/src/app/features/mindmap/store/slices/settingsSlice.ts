@@ -14,7 +14,10 @@ export interface AppSettings {
   snapToGrid: boolean;
   
   // エディタ設定
-  vimMode: boolean;
+  // Legacy: vimMode (kept for storage backward-compat only)
+  // Split Vim settings
+  vimMindMap: boolean; // Mind map canvas Vim (default ON)
+  vimEditor: boolean;  // Markdown editor Vim (default OFF)
   previewMode: boolean;
 }
 
@@ -34,7 +37,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 14,
   fontFamily: 'system-ui',
   snapToGrid: false,
-  vimMode: false,
+  vimMindMap: true,
+  vimEditor: false,
   previewMode: false,
 };
 
@@ -77,7 +81,13 @@ export const createSettingsSlice: StateCreator<
     const result = getLocalStorage(STORAGE_KEYS.APP_SETTINGS, DEFAULT_SETTINGS);
     if (result.success && result.data) {
       set((state) => {
-        state.settings = { ...DEFAULT_SETTINGS, ...result.data };
+        const loaded: any = { ...DEFAULT_SETTINGS, ...result.data };
+        // Backward compatibility: map legacy vimMode to new keys if present and new keys missing
+        if (typeof (result.data as any).vimMode === 'boolean') {
+          if (typeof loaded.vimMindMap !== 'boolean') loaded.vimMindMap = (result.data as any).vimMode;
+          if (typeof loaded.vimEditor !== 'boolean') loaded.vimEditor = (result.data as any).vimMode;
+        }
+        state.settings = loaded as AppSettings;
       });
     }
   },
