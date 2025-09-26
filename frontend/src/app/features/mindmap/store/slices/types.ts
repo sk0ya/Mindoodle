@@ -22,6 +22,7 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   
   // Data Actions
   setData: (data: MindMapData) => void;
+  setRootNodes: (rootNodes: MindMapNode[]) => void;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   addChildNode: (parentId: string, text?: string) => string | undefined;
   addSiblingNode: (nodeId: string, text?: string) => string | undefined;
@@ -54,6 +55,11 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   redo: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
+  commitSnapshot: () => void;
+  scheduleCommitSnapshot: () => void;
+  cancelPendingCommit: () => void;
+  beginHistoryGroup?: (label?: string) => void;
+  endHistoryGroup?: (commit?: boolean) => void;
   
   // Utility
   updateNormalizedData: () => void;

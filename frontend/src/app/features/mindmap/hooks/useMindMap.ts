@@ -209,6 +209,7 @@ export const useMindMap = (
             t?: string; // type
             lvl?: number; // level
             ind?: number; // indent level
+            k?: string; // node kind (e.g., 'table')
           };
           const flatten = (nodes: any[], out: FlatItem[] = []): FlatItem[] => {
             for (const n of nodes || []) {
@@ -220,6 +221,7 @@ export const useMindMap = (
                 t: mm?.type,
                 lvl: typeof mm?.level === 'number' ? mm.level : undefined,
                 ind: typeof mm?.indentLevel === 'number' ? mm.indentLevel : undefined,
+                k: typeof n?.kind === 'string' ? n.kind : undefined,
               });
               if (n?.children?.length) flatten(n.children, out);
             }
@@ -229,6 +231,7 @@ export const useMindMap = (
           const prevFlat = flatten(currentData.rootNodes || []);
           const nextFlat = flatten(safeRootNodes);
 
+          // sameStructure: t/lvl/ind/k must all match
           const sameStructure = (() => {
             if (prevFlat.length !== nextFlat.length) return false;
             for (let i = 0; i < prevFlat.length; i++) {
@@ -242,10 +245,38 @@ export const useMindMap = (
                 const ib = typeof b.ind === 'number' ? b.ind : 0;
                 if (ia !== ib) return false;
               }
+              // if kind changed (e.g., to 'table'), treat as structural change
+              if (a.k !== b.k) return false;
             }
             return true;
           })();
 
+          // sameStructureExceptKind: t/lvl/ind match; kind is ignored
+          const sameStructureExceptKind = (() => {
+            if (prevFlat.length !== nextFlat.length) return false;
+            for (let i = 0; i < prevFlat.length; i++) {
+              const a = prevFlat[i];
+              const b = nextFlat[i];
+              if (a.t !== b.t) return false;
+              if (a.lvl !== b.lvl) return false;
+              if ((a.t === 'unordered-list' || a.t === 'ordered-list')) {
+                const ia = typeof a.ind === 'number' ? a.ind : 0;
+                const ib = typeof b.ind === 'number' ? b.ind : 0;
+                if (ia !== ib) return false;
+              }
+            }
+            return true;
+          })();
+
+          const hasKindDiff = (() => {
+            if (prevFlat.length !== nextFlat.length) return false;
+            for (let i = 0; i < prevFlat.length; i++) {
+              if (prevFlat[i].k !== nextFlat[i].k) return true;
+            }
+            return false;
+          })();
+
+          console.debug('[md-sync] structure compare', { sameStructure, sameStructureExceptKind, hasKindDiff, prevCount: prevFlat.length, nextCount: nextFlat.length });
           if (sameStructure) {
             // Update only changed text/note fields
             for (let i = 0; i < prevFlat.length; i++) {
@@ -263,10 +294,15 @@ export const useMindMap = (
               }
             }
           } else {
-            // Structure changed: replace (auto-layout permanently disabled to prevent loops)
-            const now = new Date().toISOString();
-            const updatedData = { ...currentData, rootNodes: safeRootNodes, updatedAt: now } as any;
-            setDataRef.current(updatedData);
+            // Structure changed: replace root nodes and record in history (including kind changes)
+            console.debug('[md-sync] applying structural change', { emit: true });
+            try {
+              (dataHook as any).setRootNodes(safeRootNodes, { emit: true });
+            } catch {
+              const now = new Date().toISOString();
+              const updatedData = { ...currentData, rootNodes: safeRootNodes, updatedAt: now } as any;
+              setDataRef.current(updatedData);
+            }
             // Apply unified auto-layout after structural markdown changes.
             // Positions are not serialized to markdown, so this won't cause loops.
             try { applyAutoLayoutRef.current?.(); } catch {}

@@ -14,7 +14,8 @@ import {
   addRootSiblingNode,
   moveNormalizedNode,
   moveNodeWithPositionNormalized,
-  changeSiblingOrderNormalized
+  changeSiblingOrderNormalized,
+  denormalizeTreeData
 } from '@core/data/normalizedStore';
 import { generateNodeId } from '@shared/utils';
 import { COLORS } from '@shared/constants';
@@ -83,6 +84,7 @@ export const createNodeSlice: StateCreator<
   },
 
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => {
+    try { console.debug('[node] updateNode', { nodeId, hasKind: Object.prototype.hasOwnProperty.call(updates, 'kind') }); } catch {}
     set((state) => {
       if (!state.normalizedData) return;
       
@@ -99,6 +101,8 @@ export const createNodeSlice: StateCreator<
 
   addChildNode: (parentId: string, text: string = 'New Node') => {
     let newNodeId: string | undefined;
+    // Begin a history group for insert+text edit lifecycle
+    try { (get() as any).beginHistoryGroup?.('insert-node'); } catch {}
     
     set((state) => {
       if (!state.normalizedData) return;
@@ -234,6 +238,8 @@ export const createNodeSlice: StateCreator<
 
   addSiblingNode: (nodeId: string, text: string = 'New Node', insertAfter: boolean = true) => {
     let newNodeId: string | undefined;
+    // Begin a history group for insert+text edit lifecycle
+    try { (get() as any).beginHistoryGroup?.('insert-sibling'); } catch {}
     
     set((state) => {
       if (!state.normalizedData) return;
@@ -620,6 +626,8 @@ export const createNodeSlice: StateCreator<
       
       // Delete the empty node
       get().deleteNode(nodeId);
+      // End group without commit (cancelled new-node)
+      try { (get() as any).endHistoryGroup?.(false); } catch {}
       
       // Prefer restoring selection to the node that triggered the insert (o/O/Enter/Tab)
       const { normalizedData: nd2 } = get();
@@ -657,6 +665,8 @@ export const createNodeSlice: StateCreator<
     
     // Update the node text
     get().updateNode(nodeId, { text: trimmedText });
+    // End group with commit – treat insert+text as single change
+    try { (get() as any).endHistoryGroup?.(true); } catch {}
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -694,25 +704,23 @@ export const createNodeSlice: StateCreator<
   },
 
   toggleNodeCollapse: (nodeId: string) => {
+    // Update collapsed state but DO NOT push to history
     set((state) => {
       if (!state.normalizedData) return;
-      
       try {
         const node = state.normalizedData.nodes[nodeId];
         if (!node) return;
-        
-        // Toggle collapsed state
         const newCollapsedState = !node.collapsed;
-        state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, { 
-          collapsed: newCollapsedState 
-        });
+        state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, { collapsed: newCollapsedState });
+        // Reflect into tree data without emitting history events
+        if (state.data) {
+          const newRootNodes = denormalizeTreeData(state.normalizedData);
+          state.data = { ...state.data, rootNodes: newRootNodes, updatedAt: new Date().toISOString() };
+        }
       } catch (error) {
         logger.error('toggleNodeCollapse error:', error);
       }
     });
-    
-    // Sync to tree structure and add to history
-    get().syncToMindMapData();
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -760,6 +768,8 @@ export const createNodeSlice: StateCreator<
         logger.error('addNodeLink error:', error);
       }
     });
+    // Commit to tree + history via event bus
+    get().syncToMindMapData();
   },
 
   updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) => {
@@ -802,6 +812,8 @@ export const createNodeSlice: StateCreator<
         logger.error('updateNodeLink error:', error);
       }
     });
+    // Commit to tree + history via event bus
+    get().syncToMindMapData();
   },
 
   deleteNodeLink: (nodeId: string, linkId: string) => {
@@ -842,5 +854,7 @@ export const createNodeSlice: StateCreator<
         logger.error('deleteNodeLink error:', error);
       }
     });
+    // Commit to tree + history via event bus
+    get().syncToMindMapData();
   },
 });;

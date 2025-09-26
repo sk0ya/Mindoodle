@@ -47,6 +47,7 @@ export interface LinkOperations {
 export interface NodeActions extends NodeOperations, LinkOperations {
   // Data management
   setData: (data: MindMapData) => void;
+  setRootNodes: (rootNodes: MindMapNode[]) => void;
   
   // Layout
   applyAutoLayout: () => void;

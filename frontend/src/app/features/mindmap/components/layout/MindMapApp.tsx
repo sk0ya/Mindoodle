@@ -1166,9 +1166,14 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             return;
           }
 
-          // updatedAt を更新して Nodes -> Markdown 同期を確実にトリガー
-          const newData = { ...data, rootNodes: updatedNodes, updatedAt: new Date().toISOString() } as typeof data;
-          store.setData(newData);
+          // ルートノードを置き換え（履歴に積む）
+          try {
+            (store as any).setRootNodes(updatedNodes, { emit: true, source: 'changeNodeType' });
+          } catch {
+            // フォールバック（非推奨）
+            const newData = { ...data, rootNodes: updatedNodes, updatedAt: new Date().toISOString() } as typeof data;
+            store.setData(newData);
+          }
           // Ensure unified auto-layout after markdown-driven structure changes
           try { store.applyAutoLayout(); } catch {}
           // 選択状態は維持しつつ再描画。明示的な selectNode(null) は行わない
@@ -1472,9 +1477,13 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 return;
               }
 
-              // updatedAt を更新して Nodes -> Markdown 同期を確実にトリガー
-              const newData = { ...data, rootNodes: updatedNodes, updatedAt: new Date().toISOString() } as typeof data;
-              store.setData(newData);
+              // ルートノードを置き換え（履歴に積む）
+              try {
+                (store as any).setRootNodes(updatedNodes, { emit: true, source: 'contextMenu.changeNodeType' });
+              } catch {
+                const newData = { ...data, rootNodes: updatedNodes, updatedAt: new Date().toISOString() } as typeof data;
+                store.setData(newData);
+              }
               // Ensure unified auto-layout after markdown-driven structure changes
               try { store.applyAutoLayout(); } catch {}
               // 選択状態を維持して即時再描画を促す

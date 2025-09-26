@@ -2,6 +2,7 @@ import type { StateCreator } from 'zustand';
 import type { MindMapData, MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
+import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
 import { calculateNodeSize } from '../../utils/nodeUtils';
 import type { MindMapStore } from './types';
@@ -13,6 +14,7 @@ const AUTOLAYOUT_DEBOUNCE_MS = 50;
 
 export interface DataSlice extends DataState {
   setData: (data: MindMapData) => void;
+  setRootNodes: (rootNodes: MindMapNode[], options?: { emit?: boolean; source?: string; reason?: string }) => void;
   updateNormalizedData: () => void;
   syncToMindMapData: () => void;
   applyAutoLayout: () => void;
@@ -38,7 +40,29 @@ export const createDataSlice: StateCreator<
       state.data = data;
       // Only use rootNodes array
       state.normalizedData = normalizeTreeData(data.rootNodes);
+      // Reset history to empty baseline (no undo available on open)
+      state.history = [];
+      state.historyIndex = -1;
     });
+    console.debug('[data] setData (initial load)', { title: data?.title, roots: data?.rootNodes?.length });
+  },
+
+  // Replace the entire rootNodes without resetting history (for Markdown-driven structure updates)
+  setRootNodes: (rootNodes: MindMapNode[], options?: { emit?: boolean; source?: string; reason?: string }) => {
+    set((state) => {
+      if (!state.data) return;
+      state.data = {
+        ...state.data,
+        rootNodes,
+        updatedAt: new Date().toISOString(),
+      };
+      state.normalizedData = normalizeTreeData(rootNodes);
+    });
+    const shouldEmit = options?.emit !== false;
+    console.debug('[data] setRootNodes', { emit: shouldEmit, source: options?.source, reason: options?.reason, count: rootNodes?.length });
+    if (shouldEmit) {
+      try { mindMapEvents.emit({ type: 'model.changed', source: options?.source || 'unknown' }); } catch {}
+    }
   },
 
   // Update normalized data from current tree
@@ -50,7 +74,7 @@ export const createDataSlice: StateCreator<
     });
   },
 
-  // Sync normalized data back to tree structure and add to history
+  // Sync normalized data back to tree structure (no history push here)
   syncToMindMapData: () => {
     set((state) => {
       if (state.normalizedData && state.data) {
@@ -61,12 +85,14 @@ export const createDataSlice: StateCreator<
           updatedAt: new Date().toISOString()
         };
         state.data = newData;
-        
-        // Add to history
-        state.history = [...state.history.slice(0, state.historyIndex + 1), newData];
-        state.historyIndex = state.history.length - 1;
       }
     });
+
+    // Emit a model changed event so subscribers can commit snapshots
+    try {
+      console.debug('[data] syncToMindMapData -> emit model.changed');
+      mindMapEvents.emit({ type: 'model.changed', source: 'syncToMindMapData' });
+    } catch { /* noop */ }
   },
 
   applyAutoLayout: () => {
@@ -244,6 +270,11 @@ export const createDataSlice: StateCreator<
             }
           }
         });
+
+        // Emit layout event; history subscriber will capture snapshot
+        try {
+          mindMapEvents.emit({ type: 'layout.applied' });
+        } catch { /* noop */ }
       });
       
       logger.debug('🎉 Auto layout applied successfully');

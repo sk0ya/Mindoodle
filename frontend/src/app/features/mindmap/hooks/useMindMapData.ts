@@ -73,6 +73,9 @@ export const useMindMapData = () => {
     setData: useCallback((data: MindMapData) => {
       store.setData(data);
     }, [store]),
+    setRootNodes: useCallback((rootNodes: MindMapNode[]) => {
+      (store as any).setRootNodes(rootNodes);
+    }, [store]),
 
     // レイアウト
     applyAutoLayout: useCallback(() => {
