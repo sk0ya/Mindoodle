@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Loader } from 'lucide-react';
+import { Loader, FileText } from 'lucide-react';
 import MarkdownEditor from '../../../markdown/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
@@ -170,7 +170,14 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         className={`resize-handle ${isResizing ? 'resizing' : ''}`}
         onMouseDown={handleResizeStart}
       />
-      {/* Header removed per request: no title icon/text or close button */}
+
+      {/* Panel Header */}
+      <div className="panel-header">
+        <div className="panel-title">
+          <FileText size={14} />
+          <span>Markdown</span>
+        </div>
+      </div>
 
       <div className="editor-container">
         {loadingMapMd ? (
@@ -232,7 +239,31 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       background: var(--accent-color);
     }
 
-    /* Header styles removed */
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      min-height: 32px;
+      flex-shrink: 0;
+    }
+
+    .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .panel-title svg {
+      color: var(--text-secondary);
+      width: 14px;
+      height: 14px;
+    }
 
     .editor-container {
       flex: 1;

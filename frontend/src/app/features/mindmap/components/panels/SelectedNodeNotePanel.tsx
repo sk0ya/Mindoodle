@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
+import { StickyNote } from 'lucide-react';
 import MarkdownEditor from '../../../markdown/components/MarkdownEditor';
 import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
@@ -161,6 +162,14 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     <div ref={containerRef} className="selected-node-note-panel" style={{ height, left: leftOffset, right: rightOffset }}>
       <div ref={handleRef} className={`drag-handle ${isResizing ? 'resizing' : ''}`} onMouseDown={handleResizeStart} />
 
+      {/* Panel Header */}
+      <div className="panel-header">
+        <div className="panel-title">
+          <StickyNote size={14} />
+          <span>ノート</span>
+        </div>
+      </div>
+
       <div className="panel-editor">
         <MarkdownEditor
           value={note || ''}
@@ -203,6 +212,32 @@ function getStyles(isResizing: boolean) {
       background: transparent;
     }
     .selected-node-note-panel .drag-handle.resizing { background: var(--accent-color); opacity: 0.3; }
+
+    .selected-node-note-panel .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 12px;
+      border-bottom: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      min-height: 32px;
+      flex-shrink: 0;
+    }
+
+    .selected-node-note-panel .panel-title {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--text-primary);
+      font-weight: 500;
+      font-size: 12px;
+    }
+
+    .selected-node-note-panel .panel-title svg {
+      color: var(--text-secondary);
+      width: 14px;
+      height: 14px;
+    }
 
     .selected-node-note-panel .panel-editor { flex: 1; min-height: 0; }
     .selected-node-note-panel .node-note-editor { width: 100%; height: 100%; }
