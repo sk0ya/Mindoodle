@@ -33,7 +33,7 @@ export const centerCommand: Command = {
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
     const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const animate = (args as any)['animate'] ?? false;
+    const animate = (args as any)['animate'] ?? true;
 
     if (!nodeId) {
       return {
@@ -50,7 +50,8 @@ export const centerCommand: Command = {
     }
 
     try {
-      context.handlers.centerNodeInView(nodeId, animate);
+      // Explicit center positioning (not just ensure-visible)
+      (context.handlers as any).centerNodeInView(nodeId, animate, { mode: 'center' });
       return {
         success: true,
         message: `Centered node ${nodeId}`

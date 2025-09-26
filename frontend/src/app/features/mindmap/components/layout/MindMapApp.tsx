@@ -780,8 +780,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
     if (!data) return;
 
-    // Check if this is a left-center mode request
-    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left';
+    // Check if special positioning mode is requested
+    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && (fallbackCoords as any).mode === 'left';
+    const isCenterMode = fallbackCoords && 'mode' in fallbackCoords && (fallbackCoords as any).mode === 'center';
 
 
     // ルートノードの場合は最適化（検索を省略）
@@ -860,6 +861,39 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     // isLeftMode: 特例として左寄せに配置
     if (isLeftMode) {
       const targetX = mapAreaRect.left + (mapAreaRect.width * 0.1);
+      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
+      const newPanX = targetX / currentZoom - nodeX;
+      const newPanY = targetY / currentZoom - nodeY;
+
+      if (animate) {
+        const currentPan = uiStore.pan;
+        const steps = 16;
+        const duration = 250;
+        const stepDuration = duration / steps;
+        const deltaX = (newPanX - currentPan.x) / steps;
+        const deltaY = (newPanY - currentPan.y) / steps;
+        let step = 0;
+        const animateStep = () => {
+          if (step < steps) {
+            step++;
+            const currentX = currentPan.x + (deltaX * step);
+            const currentY = currentPan.y + (deltaY * step);
+            if (step % 2 === 0 || step === steps) {
+              setPan({ x: currentX, y: currentY });
+            }
+            window.setTimeout(animateStep, stepDuration);
+          }
+        };
+        window.setTimeout(animateStep, 0);
+      } else {
+        setPan({ x: newPanX, y: newPanY });
+      }
+      return;
+    }
+
+    // isCenterMode: 正確に中央に配置（zz 対応）
+    if (isCenterMode) {
+      const targetX = mapAreaRect.left + (mapAreaRect.width / 2);
       const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
       const newPanX = targetX / currentZoom - nodeX;
       const newPanY = targetY / currentZoom - nodeY;
