@@ -237,51 +237,74 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const displayText = getDisplayText();
 
+    // テキスト単体クリックでノード選択/編集へフォワード（背景レイヤーに届かないため）
+    const handleTextClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      // すでに編集モードなら何もしない
+      if (isEditing) return;
+      // 未選択なら選択だけ
+      if (!isSelected) {
+        onSelectNode?.(node.id);
+        return;
+      }
+      // 選択済みかつリンクテキストでないなら編集開始
+      if (!isAnyLink) {
+        onStartEdit?.(node.id);
+      }
+    };
+
     // Handle double-click on text: navigate if node text is a link
     const handleTextDoubleClick = (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (!isAnyLink) return;
-
-      // Markdown link
-      if (isNodeTextMarkdownLink) {
-        const info = parseMarkdownLink(node.text);
-        if (!info) return;
-        const href = info.href;
-        if (/^#/.test(href) || /^node:/i.test(href)) {
-          const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
-          if (onLinkNavigate) {
-            onLinkNavigate({ id: `text:${anchor}`, targetNodeId: `text:${anchor}` });
+      // リンクなら既存のナビゲーション動作
+      if (isAnyLink) {
+        // Markdown link
+        if (isNodeTextMarkdownLink) {
+          const info = parseMarkdownLink(node.text);
+          if (!info) return;
+          const href = info.href;
+          if (/^#/.test(href) || /^node:/i.test(href)) {
+            const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
+            if (onLinkNavigate) {
+              onLinkNavigate({ id: `text:${anchor}`, targetNodeId: `text:${anchor}` });
+            }
+            return;
           }
+          // Relative map link
+          if (!href.startsWith('http://') && !href.startsWith('https://')) {
+            const currentData: any = useMindMapStore.getState().data;
+            const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
+            const [mapPath, anchor] = href.includes('#') ? href.split('#') : [href, ''];
+            const clean = mapPath.replace(/\/$/, '');
+            let resolved = clean;
+            if (clean.startsWith('../')) {
+              resolved = clean.substring(3);
+            } else if (clean.startsWith('./')) {
+              const dir = currentMapId.includes('/') ? currentMapId.substring(0, currentMapId.lastIndexOf('/')) : '';
+              const rel = clean.substring(2);
+              resolved = dir ? `${dir}/${rel}` : rel;
+            }
+            resolved = resolved.replace(/\.md$/i, '');
+            if (onLinkNavigate) {
+              onLinkNavigate({ id: `map|${resolved}${anchor ? `#${anchor}` : ''}`, targetMapId: resolved, ...(anchor ? { targetNodeId: `text:${anchor}` } : {}) });
+            }
+            return;
+          }
+          // External URL
+          window.open(href, '_blank', 'noopener,noreferrer');
           return;
         }
-        // Relative map link
-        if (!href.startsWith('http://') && !href.startsWith('https://')) {
-          const currentData: any = useMindMapStore.getState().data;
-          const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
-          const [mapPath, anchor] = href.includes('#') ? href.split('#') : [href, ''];
-          const clean = mapPath.replace(/\/$/, '');
-          let resolved = clean;
-          if (clean.startsWith('../')) {
-            resolved = clean.substring(3);
-          } else if (clean.startsWith('./')) {
-            const dir = currentMapId.includes('/') ? currentMapId.substring(0, currentMapId.lastIndexOf('/')) : '';
-            const rel = clean.substring(2);
-            resolved = dir ? `${dir}/${rel}` : rel;
-          }
-          resolved = resolved.replace(/\.md$/i, '');
-          if (onLinkNavigate) {
-            onLinkNavigate({ id: `map|${resolved}${anchor ? `#${anchor}` : ''}`, targetMapId: resolved, ...(anchor ? { targetNodeId: `text:${anchor}` } : {}) });
-          }
+        // Plain URL
+        if (isNodeTextUrl) {
+          window.open(node.text, '_blank', 'noopener,noreferrer');
           return;
         }
-        // External URL
-        window.open(href, '_blank', 'noopener,noreferrer');
-        return;
       }
-      // Plain URL
-      if (isNodeTextUrl) {
-        window.open(node.text, '_blank', 'noopener,noreferrer');
+      // リンクでない場合はダブルクリックで編集開始
+      if (!isSelected) {
+        onSelectNode?.(node.id);
       }
+      onStartEdit?.(node.id);
     };
 
     return (
@@ -300,6 +323,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             pointerEvents: 'auto',
             userSelect: 'none'
           }}
+          onClick={handleTextClick}
         >
           <title>{node.text}</title>
           {(() => {
