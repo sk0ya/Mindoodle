@@ -821,8 +821,28 @@ const ExplorerView: React.FC<{
     return null;
   };
 
-  // Apply search filtering
-  const filteredTree = searchTerm ? filterTree(tree, searchTerm.toLowerCase()) : tree;
+  // Hide dot-files and dot-folders from explorer
+  const pruneDotEntries = (item: ExplorerItem): ExplorerItem | null => {
+    if (!item) return null as any;
+    const name = item.name || '';
+    // Skip items starting with '.'
+    if (name.startsWith('.')) return null;
+    // Recurse for folders
+    if (item.type === 'folder' && Array.isArray(item.children)) {
+      const pruned = item.children
+        .map(pruneDotEntries)
+        .filter((c): c is ExplorerItem => !!c);
+      return { ...item, children: pruned };
+    }
+    return item;
+  };
+
+  const treeNoDots = pruneDotEntries(tree);
+
+  // Apply search filtering on top of dot filtering
+  const filteredTree = searchTerm && treeNoDots
+    ? filterTree(treeNoDots, searchTerm.toLowerCase())
+    : treeNoDots;
 
   const NodeView: React.FC<NodeViewProps> = ({
     item,
