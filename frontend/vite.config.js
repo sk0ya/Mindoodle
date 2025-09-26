@@ -4,7 +4,7 @@ import path from 'path'
 
 const PORT = parseInt(process.env.PORT || '5174', 10);
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
   plugins: [react()],
   resolve: {
     alias: {
@@ -29,5 +29,5 @@ export default defineConfig({
     outDir: 'dist',
     sourcemap: true
   },
-base: '/Mindoodle/',
-})
+  base: command === 'serve' ? '/' : '/Mindoodle/',
+}))
