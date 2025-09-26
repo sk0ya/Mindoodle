@@ -245,35 +245,26 @@ export class MarkdownImporter {
       };
 
       // If the content contains only a table, convert this node into a table node
+      // 表ブロックが含まれる場合、子表ノードは作らず、同じ階層に表ノードを兄弟として挿入する
+      // このとき、元ノードの note には table の "前"(before) のみを残し、
+      // 兄弟の表ノードの note には table の "後"(after) を保持する
       const tableInfo = this.extractFirstTable(newNode.note);
+      let pendingSiblingTableNode: MindMapNode | null = null;
       if (tableInfo) {
-        const surrounding = `${tableInfo.before}${tableInfo.after}`; // preserve whitespace exactly
-        if (surrounding.length === 0 && newNode.text.trim().length === 0) {
-          // Pure table node
-          (newNode as any).kind = 'table';
-          newNode.text = tableInfo.tableBlock; // store markdown table in text
-          delete (newNode as any).note;
-          // 表ノードは見出し/リストのメタを持たない
-          delete (newNode as any).markdownMeta;
-        } else if (surrounding.length === 0 && newNode.text.trim().length > 0) {
-          // Heading/List node whose content is only a table -> add a child table node
-          const tableNode = createNewNode('');
-          (tableNode as any).kind = 'table';
-          tableNode.text = tableInfo.tableBlock;
-          delete (tableNode as any).note;
-          newNode.note = undefined;
-          newNode.children?.push(tableNode);
-        } else {
-          // Content has table plus other text: remove table from note and create child table node
-          const tableNode = createNewNode('');
-          (tableNode as any).kind = 'table';
-          tableNode.text = tableInfo.tableBlock;
-          delete (tableNode as any).note;
-          // Preserve before/after exactly as in original (no trimming, no extra newlines)
-          const combined = `${tableInfo.before}${tableInfo.after}`;
-          newNode.note = combined.length > 0 ? combined : undefined;
-          newNode.children?.push(tableNode);
-        }
+        // 元ノードの note は before のみ
+        const before = tableInfo.before;
+        newNode.note = before && before.length > 0 ? before : undefined;
+
+        // 兄弟として表ノードを作成（子としては追加しない）
+        const tnode = createNewNode('');
+        (tnode as any).kind = 'table';
+        tnode.text = tableInfo.tableBlock;
+        delete (tnode as any).note;
+        const after = tableInfo.after;
+        tnode.note = after && after.length > 0 ? after : undefined;
+        // markdownMeta は表ノードに不要
+        delete (tnode as any).markdownMeta;
+        pendingSiblingTableNode = tnode;
       }
 
       if (element.type === 'heading') {
@@ -290,11 +281,15 @@ export class MarkdownImporter {
         if (headingStack.length === 0) {
           // 親見出しがない → ルートノード
           rootNodes.push(newNode);
+          // 表ノードを同階層に兄弟として追加
+          if (pendingSiblingTableNode) rootNodes.push(pendingSiblingTableNode);
         } else {
           // 親見出しがある → その子として追加
           const parentHeading = headingStack[headingStack.length - 1].node;
           parentHeading.children = parentHeading.children || [];
           parentHeading.children.push(newNode);
+          // 表ノードを同階層に兄弟として追加
+          if (pendingSiblingTableNode) parentHeading.children.push(pendingSiblingTableNode);
         }
 
         // 現在の見出しとしてスタックに追加
@@ -325,9 +320,13 @@ export class MarkdownImporter {
           // 親ノードの子として追加
           parentNode.children = parentNode.children || [];
           parentNode.children.push(newNode);
+          // 表ノードを同階層に兄弟として追加
+          if (pendingSiblingTableNode) parentNode.children.push(pendingSiblingTableNode);
         } else {
           // 親がない場合 → ルートレベルのリスト項目として扱う
           rootNodes.push(newNode);
+          // 表ノードを同階層に兄弟として追加
+          if (pendingSiblingTableNode) rootNodes.push(pendingSiblingTableNode);
         }
 
         // 現在のリストアイテムをスタックに追加
