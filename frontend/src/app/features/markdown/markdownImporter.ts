@@ -711,9 +711,9 @@ export class MarkdownImporter {
             // マーカーはNodeEditorで表示されるので、textには追加しない
           } else if (newType === 'unordered-list') {
             // 見出し/順序ありリスト → 順序なしリスト
-            let targetLevel = currentMeta.level || 1;
-            
-            // 親ノードがリストの場合、適切なインデントレベルを設定
+            // 既定はトップレベル（見出し直下/ルート直下）のリストとして level=1, indent=0
+            let targetLevel = 1;
+            // 親がリストなら親+1の深さにする
             if (parentNode && (parentNode.markdownMeta?.type === 'unordered-list' || parentNode.markdownMeta?.type === 'ordered-list')) {
               targetLevel = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
             }
@@ -722,15 +722,16 @@ export class MarkdownImporter {
               type: 'unordered-list',
               level: targetLevel,
               originalFormat: '-',
-              indentLevel: Math.max(targetLevel - 1, 0),
+              // indentLevel はスペース数（1レベル=2スペース）。見出し直下は0。
+              indentLevel: Math.max(targetLevel - 1, 0) * 2,
               lineNumber: currentMeta.lineNumber
             };
             // マーカーはNodeEditorで表示されるので、textには追加しない
           } else if (newType === 'ordered-list') {
             // 見出し/順序なしリスト → 順序ありリスト
-            let targetLevel = currentMeta.level || 1;
-            
-            // 親ノードがリストの場合、適切なインデントレベルを設定
+            // 既定はトップレベル（見出し直下/ルート直下）のリストとして level=1, indent=0
+            let targetLevel = 1;
+            // 親がリストなら親+1の深さにする
             if (parentNode && (parentNode.markdownMeta?.type === 'unordered-list' || parentNode.markdownMeta?.type === 'ordered-list')) {
               targetLevel = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
             }
@@ -739,7 +740,8 @@ export class MarkdownImporter {
               type: 'ordered-list',
               level: targetLevel,
               originalFormat: '1.',
-              indentLevel: Math.max(targetLevel - 1, 0),
+              // indentLevel はスペース数（1レベル=2スペース）。見出し直下は0。
+              indentLevel: Math.max(targetLevel - 1, 0) * 2,
               lineNumber: currentMeta.lineNumber
             };
             // マーカーはNodeEditorで表示されるので、textには追加しない

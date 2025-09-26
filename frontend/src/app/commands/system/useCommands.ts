@@ -196,8 +196,10 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         }
 
         // Determine target level and indent based on current meta and parent
-        let level = (node.markdownMeta?.level ?? 1);
-        let indentLevel = Math.max(level - 1, 0);
+        // 既定はトップレベルのリスト（level=1, indent=0）
+        let level = 1;
+        // indentLevel はスペース数（1レベル=2スペース）
+        let indentLevel = 0;
 
         // Try to derive from parent when possible
         try {
@@ -216,7 +218,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
           const parent = findParent(roots, selectedNodeId);
           if (parent?.markdownMeta && (parent.markdownMeta.type === 'ordered-list' || parent.markdownMeta.type === 'unordered-list')) {
             level = Math.max((parent.markdownMeta.level || 1) + 1, 1);
-            indentLevel = Math.max(level - 1, 0);
+            indentLevel = Math.max(level - 1, 0) * 2;
           }
         } catch { /* ignore parent derivation errors */ }
 
