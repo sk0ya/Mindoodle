@@ -320,6 +320,7 @@ const Node: React.FC<NodeProps> = ({
         onToggleLinkList={onToggleLinkList}
         onLinkNavigate={onLinkNavigate}
         onStartEdit={onStartEdit}
+        onMouseDown={handleMouseDown}
         searchQuery={vim.searchQuery}
         vimEnabled={vim.isEnabled}
       />

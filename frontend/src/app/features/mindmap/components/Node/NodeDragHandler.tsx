@@ -70,7 +70,10 @@ export const useNodeDragHandler = ({
 
   // Handle mouse down to start drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    // Only react to primary button drags
+    if (e.button !== 0) return;
     e.preventDefault();
+    e.stopPropagation();
 
     if (!svgRef.current) return;
 

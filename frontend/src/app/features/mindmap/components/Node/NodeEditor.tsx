@@ -19,6 +19,7 @@ interface NodeEditorProps {
   onToggleLinkList?: (nodeId: string) => void;
   onLinkNavigate?: (link: any) => void;
   onStartEdit?: (nodeId: string) => void;
+  onMouseDown?: (e: React.MouseEvent) => void; // allow drag start from text
   searchQuery: string;
   vimEnabled: boolean;
 }
@@ -38,6 +39,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onLinkNavigate,
   onStartEdit,
   searchQuery,
+  onMouseDown,
   vimEnabled
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -323,6 +325,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             pointerEvents: 'auto',
             userSelect: 'none'
           }}
+          onMouseDown={(e) => { e.stopPropagation(); onMouseDown?.(e); }}
           onClick={handleTextClick}
         >
           <title>{node.text}</title>
