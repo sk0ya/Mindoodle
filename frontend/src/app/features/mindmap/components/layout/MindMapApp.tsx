@@ -1348,10 +1348,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
           {uiStore.showNotesPanel && (
             <MarkdownPanelContainer
-              onClose={() => store.setShowNotesPanel(false)}
               currentMapIdentifier={data ? data.mapIdentifier : null}
               getMapMarkdown={(mindMap as any).getMapMarkdown}
-              setAutoSaveEnabled={(mindMap as any).setAutoSaveEnabled}
               onMapMarkdownInput={(mindMap as any).onMapMarkdownInput}
               subscribeMarkdownFromNodes={(mindMap as any).subscribeMarkdownFromNodes}
               getNodeIdByMarkdownLine={(mindMap as any).getNodeIdByMarkdownLine}

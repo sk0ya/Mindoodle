@@ -7,11 +7,8 @@ import { useResizingState } from '@/app/shared/hooks';
 import { useMindMapStore } from '../../store';
 
 interface MarkdownPanelProps {
-  // onClose is intentionally not used; kept in type for compatibility
-  onClose?: () => void;
   currentMapIdentifier?: MapIdentifier | null;
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
-  setAutoSaveEnabled?: (enabled: boolean) => void;
   onMapMarkdownInput?: (markdown: string) => void;
   subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
   // Cursor mapping helpers
@@ -22,7 +19,6 @@ interface MarkdownPanelProps {
 const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   currentMapIdentifier,
   getMapMarkdown,
-  setAutoSaveEnabled,
   onMapMarkdownInput,
   subscribeMarkdownFromNodes,
   getNodeIdByMarkdownLine,

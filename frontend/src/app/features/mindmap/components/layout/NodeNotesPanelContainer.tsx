@@ -4,9 +4,7 @@ import type { MapIdentifier } from '@shared/types';
 
 type Props = {
   currentMapIdentifier?: MapIdentifier | null;
-  onClose: () => void;
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
-  setAutoSaveEnabled?: (enabled: boolean) => void;
   onMapMarkdownInput?: (markdown: string) => void;
   subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
   getNodeIdByMarkdownLine?: (line: number) => string | null;
@@ -15,9 +13,7 @@ type Props = {
 
 const MarkdownPanelContainer: React.FC<Props> = ({
   currentMapIdentifier,
-  onClose,
   getMapMarkdown,
-  setAutoSaveEnabled,
   onMapMarkdownInput,
   subscribeMarkdownFromNodes,
   getNodeIdByMarkdownLine,
@@ -25,10 +21,8 @@ const MarkdownPanelContainer: React.FC<Props> = ({
 }) => {
   return (
     <MarkdownPanel
-      onClose={onClose}
       currentMapIdentifier={currentMapIdentifier || null}
       getMapMarkdown={getMapMarkdown}
-      setAutoSaveEnabled={setAutoSaveEnabled}
       onMapMarkdownInput={onMapMarkdownInput}
       subscribeMarkdownFromNodes={subscribeMarkdownFromNodes}
       getNodeIdByMarkdownLine={getNodeIdByMarkdownLine}
