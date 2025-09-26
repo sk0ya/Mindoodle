@@ -17,6 +17,8 @@ interface NodeEditorProps {
   isSelected?: boolean;
   onSelectNode?: (nodeId: string | null) => void;
   onToggleLinkList?: (nodeId: string) => void;
+  onLinkNavigate?: (link: any) => void;
+  onStartEdit?: (nodeId: string) => void;
   searchQuery: string;
   vimEnabled: boolean;
 }
@@ -33,6 +35,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   isSelected = false,
   onSelectNode,
   onToggleLinkList,
+  onLinkNavigate,
+  onStartEdit,
   searchQuery,
   vimEnabled
 }) => {
@@ -233,6 +237,53 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const displayText = getDisplayText();
 
+    // Handle double-click on text: navigate if node text is a link
+    const handleTextDoubleClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isAnyLink) return;
+
+      // Markdown link
+      if (isNodeTextMarkdownLink) {
+        const info = parseMarkdownLink(node.text);
+        if (!info) return;
+        const href = info.href;
+        if (/^#/.test(href) || /^node:/i.test(href)) {
+          const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
+          if (onLinkNavigate) {
+            onLinkNavigate({ id: `text:${anchor}`, targetNodeId: `text:${anchor}` });
+          }
+          return;
+        }
+        // Relative map link
+        if (!href.startsWith('http://') && !href.startsWith('https://')) {
+          const currentData: any = useMindMapStore.getState().data;
+          const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
+          const [mapPath, anchor] = href.includes('#') ? href.split('#') : [href, ''];
+          const clean = mapPath.replace(/\/$/, '');
+          let resolved = clean;
+          if (clean.startsWith('../')) {
+            resolved = clean.substring(3);
+          } else if (clean.startsWith('./')) {
+            const dir = currentMapId.includes('/') ? currentMapId.substring(0, currentMapId.lastIndexOf('/')) : '';
+            const rel = clean.substring(2);
+            resolved = dir ? `${dir}/${rel}` : rel;
+          }
+          resolved = resolved.replace(/\.md$/i, '');
+          if (onLinkNavigate) {
+            onLinkNavigate({ id: `map|${resolved}${anchor ? `#${anchor}` : ''}`, targetMapId: resolved, ...(anchor ? { targetNodeId: `text:${anchor}` } : {}) });
+          }
+          return;
+        }
+        // External URL
+        window.open(href, '_blank', 'noopener,noreferrer');
+        return;
+      }
+      // Plain URL
+      if (isNodeTextUrl) {
+        window.open(node.text, '_blank', 'noopener,noreferrer');
+      }
+    };
+
     return (
       <>
         <text
@@ -246,7 +297,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           fontStyle={node.fontStyle || 'normal'}
           fontFamily={settings.fontFamily || 'system-ui'}
           style={{
-            pointerEvents: 'none',
+            pointerEvents: 'auto',
             userSelect: 'none'
           }}
         >
@@ -290,10 +341,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
               return (
                 <>
-                  <tspan {...markerStyle}>{marker}</tspan>
+                  {/* Marker: double click -> start editing */}
+                  <tspan
+                    {...markerStyle}
+                    onDoubleClick={(e: any) => { e.stopPropagation(); onStartEdit?.(node.id); }}
+                  >
+                    {marker}
+                  </tspan>
                   <tspan
                     dx="0.3em"
                     {...textStyle}
+                    onDoubleClick={handleTextDoubleClick}
                   >
                     {vimEnabled && searchQuery ?
                       renderHighlightedText(displayText, searchQuery) :
@@ -310,6 +368,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   fill: settings.theme === 'dark' ? '#60a5fa' : '#2563eb',
                   textDecoration: 'underline'
                 } : {})}
+                onDoubleClick={handleTextDoubleClick}
               >
                 {vimEnabled && searchQuery ?
                   renderHighlightedText(displayText, searchQuery) :

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useCallback, useEffect, memo } from 'react';
 import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
-import NodeEditor, { isMarkdownLink, isUrl, parseMarkdownLink } from './NodeEditor';
+import NodeEditor, { isMarkdownLink, isUrl } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX } from '@mindmap/utils/nodeUtils';
 import { stopEventPropagation } from '@shared/utils';
@@ -129,94 +129,12 @@ const Node: React.FC<NodeProps> = ({
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
-
-
-    // リンクの場合はリンクジャンプ処理（編集状態には移行しない）
-    if (isMarkdownLink(node.text) || isUrl(node.text)) {
-      if (isMarkdownLink(node.text)) {
-        const linkInfo = parseMarkdownLink(node.text);
-        if (linkInfo) {
-          const href = linkInfo.href;
-
-          // Internal anchor forms
-          if (/^#/.test(href) || /^node:/i.test(href)) {
-            if (onLinkNavigate) {
-              const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
-              const link: NodeLink = {
-                id: `text:${anchor}`,
-                targetNodeId: `text:${anchor}`,
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              };
-              onLinkNavigate(link);
-            }
-            return; // 確実にリターン
-          }
-          // Map link (relative path)
-          else if (!href.startsWith('http://') && !href.startsWith('https://')) {
-            if (onLinkNavigate) {
-              // 現在のマップIDを取得
-              const currentData: any = useMindMapStore.getState().data;
-              const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
-
-              // アンカー部分を分離
-              const [mapPath, anchor] = href.includes('#') ? href.split('#') : [href, ''];
-
-              // パスの正規化（末尾のスラッシュを削除）
-              const cleanMapPath = mapPath.replace(/\/$/, '');
-
-              // 相対パスを絶対パスに変換
-              let resolvedMapId;
-              if (cleanMapPath.startsWith('../')) {
-                // 親ディレクトリへの相対パス
-                const relativePath = cleanMapPath.substring(3); // ../を削除
-                resolvedMapId = relativePath; // 親ディレクトリなのでcurrentDirは使わない
-              } else if (cleanMapPath.startsWith('./')) {
-                // 現在のディレクトリの相対パス
-                const currentDir = currentMapId.includes('/') ?
-                  currentMapId.substring(0, currentMapId.lastIndexOf('/')) : '';
-                const relativePath = cleanMapPath.substring(2); // ./を削除
-                resolvedMapId = currentDir ? `${currentDir}/${relativePath}` : relativePath;
-              } else {
-                // 絶対パスまたは同一ディレクトリ
-                resolvedMapId = cleanMapPath;
-              }
-
-              // .md拡張子を削除
-              resolvedMapId = resolvedMapId.replace(/\.md$/i, '');
-
-              const link: NodeLink = {
-                id: `map|${resolvedMapId}${anchor ? `#${anchor}` : ''}`,
-                targetMapId: resolvedMapId,
-                ...(anchor ? { targetNodeId: `text:${anchor}` } : {}),
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString()
-              };
-              onLinkNavigate(link);
-            }
-            return; // 確実にリターン
-          }
-          // External URL
-          else {
-            window.open(href, '_blank', 'noopener,noreferrer');
-            return; // 確実にリターン
-          }
-        }
-        return; // マークダウンリンクの解析に失敗した場合もリターン
-      } else if (isUrl(node.text)) {
-        // 単純なURLの場合は直接開く
-        window.open(node.text, '_blank', 'noopener,noreferrer');
-        return; // 確実にリターン
-      }
-      // リンクの場合は編集状態に移行しない（確実にリターン）
-      return;
-    }
-
-    // 通常のノードの場合のみ編集開始
+    // ダブルクリック時: 背景（テキスト以外）なら編集開始
+    // テキスト上のダブルクリックは NodeEditor 側で stopPropagation + ナビゲーション処理
     if ((node as any).kind !== 'table') {
       onStartEdit(node.id);
     }
-  }, [node.id, node.text, onStartEdit, onLinkNavigate]);
+  }, [node.id, onStartEdit]);
 
   // Sidebar -> node DnD: add map link on drop
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -400,6 +318,8 @@ const Node: React.FC<NodeProps> = ({
         isSelected={isSelected}
         onSelectNode={onSelect}
         onToggleLinkList={onToggleLinkList}
+        onLinkNavigate={onLinkNavigate}
+        onStartEdit={onStartEdit}
         searchQuery={vim.searchQuery}
         vimEnabled={vim.isEnabled}
       />
