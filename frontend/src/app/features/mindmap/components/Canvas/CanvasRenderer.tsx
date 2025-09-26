@@ -37,9 +37,6 @@ interface CanvasRendererProps {
   onNodeSelect: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  onAddChild: (parentId: string) => void;
-  onAddSibling: (nodeId: string) => void;
-  onDeleteNode: (nodeId: string) => void;
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
@@ -83,9 +80,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onNodeSelect,
   onStartEdit,
   onFinishEdit,
-  onAddChild,
-  onAddSibling,
-  onDeleteNode,
   onRightClick,
   onToggleCollapse,
   onShowLinkActionMenu,
@@ -178,9 +172,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onDragStart={onDragStart}
                 onDragMove={onDragMove}
                 onDragEnd={onDragEnd}
-                onAddChild={onAddChild}
-                onAddSibling={onAddSibling}
-                onDelete={onDeleteNode}
                 onRightClick={onRightClick}
                 editText={editText}
                 setEditText={setEditText}

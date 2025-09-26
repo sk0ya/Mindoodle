@@ -17,9 +17,6 @@ interface NodeProps {
   onSelect: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  onAddChild?: (nodeId: string) => void;
-  onAddSibling?: (nodeId: string) => void;
-  onDelete?: (nodeId: string) => void;
   onDragStart?: (nodeId: string) => void;
   onDragMove?: (x: number, y: number) => void;
   onDragEnd?: (nodeId: string, x: number, y: number) => void;
@@ -47,9 +44,6 @@ const Node: React.FC<NodeProps> = ({
   onSelect,
   onStartEdit,
   onFinishEdit,
-  onAddChild: _onAddChild,
-  onAddSibling: _onAddSibling,
-  onDelete: _onDelete,
   onDragStart,
   onDragMove,
   onDragEnd,
@@ -395,12 +389,10 @@ const Node: React.FC<NodeProps> = ({
         setEditText={setEditText}
         onFinishEdit={onFinishEdit}
         nodeWidth={nodeWidth}
-        imageHeight={imageHeight}
         blurTimeoutRef={blurTimeoutRef}
         isSelected={isSelected}
         onSelectNode={onSelect}
         onToggleLinkList={onToggleLinkList}
-        onLinkNavigate={onLinkNavigate}
         searchQuery={vim.searchQuery}
         vimEnabled={vim.isEnabled}
       />

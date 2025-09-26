@@ -17,9 +17,6 @@ interface MindMapCanvasProps {
   onChangeParent?: (nodeId: string, newParentId: string) => void;
   onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
   onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
-  onAddChild: (parentId: string) => void;
-  onAddSibling: (nodeId: string) => void;
-  onDeleteNode: (nodeId: string) => void;
   onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onNavigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
@@ -59,9 +56,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onChangeParent,
     onChangeSiblingOrder,
     onMoveNodeWithPosition,
-    onAddChild,
-    onAddSibling,
-    onDeleteNode,
     onRightClick,
     onToggleCollapse,
     onShowLinkActionMenu,
@@ -117,7 +111,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   const { handleWheel, handleMouseDown, getCursor, getIsPanning } = useCanvasViewportHandler({
     zoom,
     setZoom,
-    pan,
     setPan,
     svgRef,
     isDragging: dragState.isDragging
@@ -175,9 +168,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
       onNodeSelect={handleNodeSelect}
       onStartEdit={onStartEdit}
       onFinishEdit={onFinishEdit}
-      onAddChild={onAddChild}
-      onAddSibling={onAddSibling}
-      onDeleteNode={onDeleteNode}
       onRightClick={onRightClick}
       onToggleCollapse={onToggleCollapse}
       onShowLinkActionMenu={onShowLinkActionMenu}

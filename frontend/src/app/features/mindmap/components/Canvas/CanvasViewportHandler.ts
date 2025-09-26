@@ -9,7 +9,6 @@ interface ViewportState {
 interface CanvasViewportHandlerProps {
   zoom: number;
   setZoom: (zoom: number) => void;
-  pan: { x: number; y: number };
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   svgRef: React.RefObject<SVGSVGElement>;
   isDragging?: boolean;
@@ -18,7 +17,6 @@ interface CanvasViewportHandlerProps {
 export const useCanvasViewportHandler = ({
   zoom,
   setZoom,
-  pan: _pan,
   setPan,
   svgRef,
   isDragging = false

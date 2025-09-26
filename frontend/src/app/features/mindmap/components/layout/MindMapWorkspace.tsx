@@ -15,9 +15,6 @@ interface MindMapWorkspaceProps {
   onMoveNode: (nodeId: string, newParentId: string) => void;
   onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
   onChangeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
-  onAddChild: (parentId: string) => void;
-  onAddSibling: (nodeId: string) => void;
-  onDeleteNode: (nodeId: string) => void;
   onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
@@ -55,9 +52,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onMoveNode,
   onMoveNodeWithPosition,
   onChangeSiblingOrder,
-  onAddChild,
-  onAddSibling,
-  onDeleteNode,
   onRightClick,
   onToggleCollapse,
   onShowLinkActionMenu,
@@ -90,9 +84,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onChangeParent={onMoveNode}
         onMoveNodeWithPosition={onMoveNodeWithPosition}
         onChangeSiblingOrder={onChangeSiblingOrder}
-        onAddChild={onAddChild}
-        onAddSibling={onAddSibling}
-        onDeleteNode={onDeleteNode}
         onRightClick={onRightClick}
         onToggleCollapse={onToggleCollapse}
         onNavigateToDirection={(_direction: 'up' | 'down' | 'left' | 'right') => {}}

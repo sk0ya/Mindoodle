@@ -3,7 +3,7 @@ import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../store';
 import { calculateIconLayout } from '@mindmap/utils';
 import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '../../../markdown';
-import type { MindMapNode, NodeLink } from '@shared/types';
+import type { MindMapNode } from '@shared/types';
 
 interface NodeEditorProps {
   node: MindMapNode;
@@ -13,12 +13,10 @@ interface NodeEditorProps {
   setEditText: (text: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
   nodeWidth: number;
-  imageHeight: number;
   blurTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
   isSelected?: boolean;
   onSelectNode?: (nodeId: string | null) => void;
   onToggleLinkList?: (nodeId: string) => void;
-  onLinkNavigate?: (link: NodeLink) => void;
   searchQuery: string;
   vimEnabled: boolean;
 }
@@ -31,12 +29,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   setEditText,
   onFinishEdit,
   nodeWidth,
-  imageHeight: _imageHeight,
   blurTimeoutRef,
   isSelected = false,
   onSelectNode,
   onToggleLinkList,
-  onLinkNavigate: _onLinkNavigate,
   searchQuery,
   vimEnabled
 }) => {
