@@ -113,6 +113,8 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize);
           const toggleX = togglePosition.x;
           const toggleY = togglePosition.y;
+
+          
           
           // 親からトグルボタンへの接続線（親ノードの右端からトグルボタンの中心へ）
           const parentColor = normalizedData ? getBranchColor(node.id, normalizedData) : (node.color || '#666');
@@ -155,6 +157,8 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
         const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize);
         const toggleX = togglePosition.x;
         const toggleY = togglePosition.y;
+
+        
         
         // 親からトグルボタンへの接続線（親ノードの右端からトグルボタンの中心へ）
         const collapsedColor = normalizedData ? getBranchColor(node.id, normalizedData) : (node.color || '#666');

@@ -108,6 +108,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       node.x = centerX + (depth * levelSpacing);
     }
     node.y = centerY + yOffset;
+
+    
     
     if (!node.collapsed && node.children && node.children.length > 0) {
       // 子ノードの実際の高さを考慮した配置

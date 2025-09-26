@@ -402,19 +402,34 @@ export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode
   
   // フォントサイズとノードサイズに応じた動的なマージン調整
   const fontSize = globalFontSize || 14;
-  
   // フォントサイズに比例した基本マージン
-  let baseMargin = Math.max(fontSize * 1.5, 20);
-  
-  // 画像の高さに応じてマージンを調整
-  if (nodeSize.imageHeight > 100) {
-    baseMargin = baseMargin + (nodeSize.imageHeight - 100) * 0.1;
+  const base = Math.max(fontSize * 1.5, 20);
+
+  // Mermaidや表など「ビジュアルが大きいノード」はトグルを遠ざけ過ぎない
+  const note: string = (node as any)?.note || '';
+  const hasMermaid = /```mermaid[\s\S]*?```/i.test(note);
+  const isTable = (node as any)?.kind === 'table';
+  const isVisualHeavy = hasMermaid || isTable;
+
+  let baseMargin = base;
+  let widthAdjustment = 0;
+
+  if (!isVisualHeavy) {
+    // 画像の高さに応じた調整（軽微）
+    if (nodeSize.imageHeight > 100) {
+      baseMargin += Math.min((nodeSize.imageHeight - 100) * 0.08, 24); // 上限24px
+    }
+    // 幅に応じた追加調整（過度に広がらないように上限）
+    const expectedMinWidth = fontSize * 8; // 想定される最小幅
+    widthAdjustment = Math.max(0, (nodeSize.width - expectedMinWidth) * 0.06);
+    widthAdjustment = Math.min(widthAdjustment, 28); // 上限28px
+  } else {
+    // ビジュアルが大きいノードは固定の小さめオフセット
+    baseMargin += 8;
   }
-  
-  // 幅に応じた追加調整（フォントサイズも考慮）
-  const expectedMinWidth = fontSize * 8; // 想定される最小幅
-  const widthAdjustment = Math.max(0, (nodeSize.width - expectedMinWidth) * 0.08);
-  const totalMargin = baseMargin + widthAdjustment;
+
+  // 最終的なトグル余白をクランプ
+  const totalMargin = Math.min(Math.max(baseMargin + widthAdjustment, 12), 40);
   
   // ノードの右端から一定距離でトグルボタンを配置
   const nodeRightEdge = node.x + nodeSize.width / 2;
@@ -422,6 +437,7 @@ export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode
   
   const toggleX = isOnRight ? (nodeRightEdge + totalMargin) : (nodeLeftEdge - totalMargin);
   const toggleY = node.y;
+  
   
   return { x: toggleX, y: toggleY };
 }
