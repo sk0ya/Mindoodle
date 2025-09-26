@@ -36,7 +36,9 @@ interface PrimarySidebarProps {
   currentMapData?: MindMapData | null;
   // Search props
   onNodeSelect?: (nodeId: string) => void;
-  onMapSwitch?: (id: MapIdentifier) => void;
+  onMapSwitch?: (id: MapIdentifier) => Promise<void>;
+  onMapSwitchWithNodeSelect?: (id: MapIdentifier, nodeId: string) => Promise<void>;
+  loadAllMaps?: () => Promise<MindMapData[]>;
 }
 
 const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
@@ -67,7 +69,9 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   currentMapData,
   // Search props
   onNodeSelect,
-  onMapSwitch
+  onMapSwitch,
+  onMapSwitchWithNodeSelect,
+  loadAllMaps
 }) => {
   if (!isVisible || !activeView) {
     return null;
@@ -105,6 +109,8 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             allMapsData={mindMaps}
             onNodeSelect={onNodeSelect}
             onMapSwitch={onMapSwitch}
+            onMapSwitchWithNodeSelect={onMapSwitchWithNodeSelect}
+            loadAllMaps={loadAllMaps}
           />
         );
       case 'ai':

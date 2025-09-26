@@ -24,7 +24,10 @@ type Props = {
   onCreateFolder: (path: string) => Promise<void>;
   currentMapData: any;
   onNodeSelect: (nodeId: string) => void;
-  onMapSwitch: (id: MapIdentifier) => void;
+  onMapSwitch: (id: MapIdentifier) => Promise<void>;
+  onMapSwitchWithNodeSelect?: (id: MapIdentifier, nodeId: string) => Promise<void>;
+  // Provide storage adapter to lazy-load all maps for search
+  storageAdapter?: any;
 };
 
 const PrimarySidebarContainer: React.FC<Props> = (props) => {
@@ -49,6 +52,8 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     currentMapData,
     onNodeSelect,
     onMapSwitch,
+    onMapSwitchWithNodeSelect,
+    storageAdapter,
   } = props;
 
 
@@ -82,6 +87,18 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       currentMapData={currentMapData}
       onNodeSelect={onNodeSelect}
       onMapSwitch={onMapSwitch}
+      onMapSwitchWithNodeSelect={onMapSwitchWithNodeSelect}
+      loadAllMaps={async () => {
+        try {
+          const adapter = storageAdapter;
+          if (adapter && typeof adapter.loadAllMaps === 'function') {
+            const maps = await adapter.loadAllMaps();
+            return maps || [];
+          }
+        } catch {}
+        // Fallback to in-memory list
+        return allMindMaps || [];
+      }}
     />
   );
 };

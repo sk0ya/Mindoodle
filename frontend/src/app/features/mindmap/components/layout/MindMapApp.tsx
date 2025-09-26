@@ -1224,6 +1224,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onModeChange={onModeChange}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
+        storageAdapter={storageAdapter}
         onSelectMap={async (id) => {
           // デバッグログを追加
           logger.debug('🖱️ Map clicked:', {
@@ -1277,8 +1278,26 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           }
         }}
         currentMapData={data}
-        onNodeSelect={(nodeId) => { selectNode(nodeId); }}
+        onNodeSelect={(nodeId) => {
+          selectNode(nodeId);
+          centerNodeInView(nodeId, true);
+        }}
         onMapSwitch={async (id) => { await selectMapById(id); }}
+        onMapSwitchWithNodeSelect={async (id, nodeId) => {
+          await selectMapById(id);
+          setTimeout(() => {
+            const currentData = store.data;
+            if (currentData?.rootNodes) {
+              const nodeExists = findNodeInRoots(currentData.rootNodes, nodeId);
+              if (nodeExists) {
+                selectNode(nodeId);
+                setTimeout(() => {
+                  centerNodeInView(nodeId, true);
+                }, 50);
+              }
+            }
+          }, 200);
+        }}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>

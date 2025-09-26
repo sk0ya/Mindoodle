@@ -5,26 +5,30 @@ import { searchNodes, searchMultipleMaps, getMatchPosition, type SearchResult } 
 import { useLoadingState } from '@/app/shared/hooks';
 import '@shared/styles/layout/SearchSidebar.css';
 
-export type SearchScope = 'current' | 'all';
 
 interface SearchSidebarProps {
   currentMapData?: MindMapData | null;
   allMapsData?: MindMapData[];
   onNodeSelect?: (nodeId: string) => void;
-  onMapSwitch?: (id: MapIdentifier) => void;
+  onMapSwitch?: (id: MapIdentifier) => Promise<void>;
+  onMapSwitchWithNodeSelect?: (id: MapIdentifier, nodeId: string) => Promise<void>;
+  // Lazy loader for cross-map search (optional)
+  loadAllMaps?: () => Promise<MindMapData[]>;
 }
 
 const SearchSidebar: React.FC<SearchSidebarProps> = ({
   currentMapData,
   allMapsData = [],
   onNodeSelect,
-  onMapSwitch
+  onMapSwitch,
+  onMapSwitchWithNodeSelect,
+  loadAllMaps
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const { isLoading: isSearching, startLoading: startSearching, stopLoading: stopSearching } = useLoadingState();
-  const [searchScope, setSearchScope] = useState<SearchScope>('current');
   const inputRef = useRef<HTMLInputElement>(null);
+  const [loadedAllMaps, setLoadedAllMaps] = useState<MindMapData[] | null>(null);
 
   // Focus search input when component mounts
   useEffect(() => {
@@ -38,34 +42,55 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   // Handle search
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (searchQuery.trim()) {
-        startSearching();
-        let results: SearchResult[] = [];
-        
-        if (searchScope === 'current') {
-          results = searchNodes(searchQuery, currentMapData || null);
-        } else if (searchScope === 'all') {
-          results = searchMultipleMaps(searchQuery, allMapsData);
+      const run = async () => {
+        if (!searchQuery.trim()) {
+          setSearchResults([]);
+          return;
         }
-        
-        setSearchResults(results);
-        stopSearching();
-      } else {
-        setSearchResults([]);
-      }
+
+        startSearching();
+        try {
+          // Always search all maps
+          let mapsForSearch: MindMapData[] = allMapsData;
+          if (typeof loadAllMaps === 'function') {
+            try {
+              // Cache after first load to avoid repeated heavy I/O
+              const maps = loadedAllMaps ?? await loadAllMaps();
+              if (!loadedAllMaps) setLoadedAllMaps(maps);
+              mapsForSearch = maps;
+            } catch {
+              // If load fails, fallback to provided allMapsData
+            }
+          }
+          const results = searchMultipleMaps(searchQuery, mapsForSearch || []);
+          setSearchResults(results);
+        } finally {
+          stopSearching();
+        }
+      };
+      void run();
     }, 300); // デバウンス
 
     return () => clearTimeout(timer);
-  }, [searchQuery, currentMapData, allMapsData, searchScope]);
+  }, [searchQuery, currentMapData, allMapsData, loadAllMaps, loadedAllMaps, startSearching, stopSearching]);
 
-  const handleNodeClick = (result: SearchResult) => {
-    // 他のマップのノードの場合は、まずマップを切り替えてからノードを選択
-    if (result.mapId && result.mapId !== currentMapData?.mapIdentifier.mapId) {
-      onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
-      // マップ切り替え後にノードを選択（少し遅延させる）
-      setTimeout(() => {
-        onNodeSelect?.(result.nodeId);
-      }, 500);
+  const handleNodeClick = async (result: SearchResult) => {
+    // currentMapDataがundefinedの場合、または異なるマップの場合はマップ切り替えを実行
+    const needMapSwitch = !currentMapData ||
+                         (result.mapId && result.mapId !== currentMapData?.mapIdentifier?.mapId);
+
+    if (needMapSwitch && result.mapId) {
+      try {
+        // シンプルな従来の方法を使用
+        await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
+
+        // マップ切り替え完了後、もう少し長めの遅延でノードを選択
+        setTimeout(() => {
+          onNodeSelect?.(result.nodeId);
+        }, 500);
+      } catch (error) {
+        console.error('Failed to switch map:', error);
+      }
     } else {
       onNodeSelect?.(result.nodeId);
     }
@@ -102,37 +127,12 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
       <div className="search-sidebar-header">
         <h2>検索</h2>
         
-        {/* 検索スコープ選択 */}
-        <div className="search-scope-selector">
-          <div className="search-scope-options">
-            <label className="search-scope-option">
-              <input
-                type="radio"
-                name="searchScope"
-                value="current"
-                checked={searchScope === 'current'}
-                onChange={(e) => setSearchScope(e.target.value as SearchScope)}
-              />
-              <span>現在のマップ</span>
-            </label>
-            <label className="search-scope-option">
-              <input
-                type="radio"
-                name="searchScope"
-                value="all"
-                checked={searchScope === 'all'}
-                onChange={(e) => setSearchScope(e.target.value as SearchScope)}
-              />
-              <span>すべてのマップ ({allMapsData.length}個)</span>
-            </label>
-          </div>
-        </div>
         
         <div className="search-input-container">
           <input
             ref={inputRef}
             type="text"
-            placeholder={searchScope === 'current' ? "現在のマップから検索..." : "すべてのマップから検索..."}
+            placeholder="すべてのマップから検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
@@ -211,9 +211,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
               <ul>
                 <li>部分一致で検索されます</li>
                 <li>大文字小文字は区別されません</li>
-                <li>検索スコープを選択してください：</li>
-                <li style={{ marginLeft: '16px' }}>• 現在のマップ：開いているマップのみ</li>
-                <li style={{ marginLeft: '16px' }}>• すべてのマップ：保存されたすべてのマップ</li>
+                <li>保存されたすべてのマップから検索します</li>
               </ul>
             </div>
           </div>
