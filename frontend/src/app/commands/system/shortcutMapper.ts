@@ -53,7 +53,7 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'y', modifiers: { ctrl: true }, command: 'redo', category: 'application', description: 'Redo (Ctrl+Y)' },
   { key: 'c', modifiers: { ctrl: true }, command: 'copy', category: 'application', description: 'Copy (Ctrl+C)' },
   { key: 'v', modifiers: { ctrl: true }, command: 'paste', category: 'application', description: 'Paste (Ctrl+V)' },
-  { key: 'm', modifiers: { ctrl: true }, command: 'markdown-convert', category: 'application', description: 'Convert markdown (Ctrl+M)' },
+  { key: 'm', modifiers: { ctrl: true }, command: 'toggle-markdown-panel', category: 'ui', description: 'Toggle Markdown panel (Ctrl+M)' },
 
   // UI shortcuts
   { key: 'F1', command: 'help', category: 'ui', description: 'Toggle help panel' },

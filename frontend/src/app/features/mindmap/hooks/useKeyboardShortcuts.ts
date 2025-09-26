@@ -265,6 +265,16 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
+      // Global: Toggle Markdown panel (Ctrl/Cmd + M)
+      if ((ctrlKey || metaKey) && !altKey && (key === 'm' || key === 'M')) {
+        event.preventDefault();
+        try {
+          // Use command system to toggle, so it stays consistent with handlers
+          commands.execute('toggle-markdown-panel');
+        } catch {}
+        return;
+      }
+
       // Handle search mode
       if (vim && vim.isEnabled && vim.mode === 'search') {
         const { key } = event;

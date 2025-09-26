@@ -358,6 +358,10 @@ export function useShortcutHandlers(args: Args) {
       return findNodeInRoots(roots, nodeId);
     },
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
+    // Markdown panel visibility control for commands
+    showNotesPanel: !!useMindMapStore.getState().ui?.showNotesPanel,
+    setShowNotesPanel: (show: boolean) => store.setShowNotesPanel?.(show),
+    toggleNotesPanel: () => store.toggleNotesPanel?.(),
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,
     centerNodeInView,

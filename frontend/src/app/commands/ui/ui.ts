@@ -63,6 +63,38 @@ export const closePanelsCommand: Command = {
   }
 };
 
+// Toggle Markdown Panel (right panel)
+export const toggleMarkdownPanelCommand: Command = {
+  name: 'toggle-markdown-panel',
+  aliases: ['toggle-md', 'md-panel'],
+  description: 'Toggle Markdown panel visibility',
+  category: 'ui',
+  examples: ['toggle-markdown-panel', 'toggle-md'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      const canToggle = typeof context.handlers.toggleNotesPanel === 'function';
+      const canSet = typeof context.handlers.setShowNotesPanel === 'function';
+      const hasState = typeof context.handlers.showNotesPanel === 'boolean';
+
+      if (canToggle) {
+        (context.handlers.toggleNotesPanel as () => void)();
+      } else if (canSet && hasState) {
+        (context.handlers.setShowNotesPanel as (b: boolean) => void)(!(context.handlers.showNotesPanel as boolean));
+      } else {
+        return { success: false, error: 'Markdown panel controls are not available' };
+      }
+
+      return { success: true, message: 'Toggled Markdown panel' };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to toggle Markdown panel'
+      };
+    }
+  }
+};
+
 // Start editing current node
 export const startEditCommand: Command = {
   name: 'start-edit',

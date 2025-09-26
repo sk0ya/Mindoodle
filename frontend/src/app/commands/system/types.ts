@@ -68,6 +68,10 @@ export interface CommandContext {
     setShowLocalStorage: (show: boolean) => void;
     showTutorial: boolean;
     setShowTutorial: (show: boolean) => void;
+    // Markdown panel (right-side) visibility
+    showNotesPanel?: boolean;
+    setShowNotesPanel?: (show: boolean) => void;
+    toggleNotesPanel?: () => void;
 
     // UI operations
     closeAttachmentAndLinkLists: () => void;
