@@ -70,6 +70,31 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   // Explorer collapsed state mapping: path -> collapsed?
   const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
+
+  // Initialize default collapsed state: collapse all folders except workspace roots
+  React.useEffect(() => {
+    const tree = explorerTree;
+    if (!tree) return;
+
+    const isWorkspaceRoot = (p: string): boolean => /^\/?ws_[^/]+\/?$/.test(p || '');
+    const visit = (item: ExplorerItem, acc: Record<string, boolean>) => {
+      if (!item) return;
+      if (item.type === 'folder') {
+        const path = item.path || '';
+        const defaultCollapsed = isWorkspaceRoot(path) ? false : true;
+        if (acc[path] === undefined) acc[path] = defaultCollapsed;
+        if (Array.isArray(item.children)) {
+          item.children.forEach((ch) => visit(ch, acc));
+        }
+      }
+    };
+
+    setExplorerCollapsed((prev) => {
+      const next = { ...prev };
+      visit(tree, next);
+      return next;
+    });
+  }, [explorerTree]);
   
   // Drag & Drop フック
   const [contextMenu, setContextMenu] = useState<{
