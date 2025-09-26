@@ -1166,7 +1166,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             return;
           }
 
-          const newData = { ...data, rootNodes: updatedNodes };
+          // updatedAt を更新して Nodes -> Markdown 同期を確実にトリガー
+          const newData = { ...data, rootNodes: updatedNodes, updatedAt: new Date().toISOString() } as typeof data;
           store.setData(newData);
           // 選択状態は維持しつつ再描画。明示的な selectNode(null) は行わない
           setTimeout(() => {
@@ -1469,8 +1470,13 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 return;
               }
 
-              const newData = { ...data, rootNodes: updatedNodes };
+              // updatedAt を更新して Nodes -> Markdown 同期を確実にトリガー
+              const newData = { ...data, rootNodes: updatedNodes, updatedAt: new Date().toISOString() } as typeof data;
               store.setData(newData);
+              // 選択状態を維持して即時再描画を促す
+              setTimeout(() => {
+                try { selectNode(nodeId); } catch { /* noop */ }
+              }, 0);
             });
           }
         }}

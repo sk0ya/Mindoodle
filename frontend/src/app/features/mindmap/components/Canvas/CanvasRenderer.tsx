@@ -161,7 +161,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           <g className="nodes">
             {allNodes.map(node => (
               <Node
-                key={node.id}
+                key={`${node.id}:${node.markdownMeta?.type || 'none'}:${node.markdownMeta?.level || 0}:${node.markdownMeta?.indentLevel || 0}`}
                 node={node}
                 isSelected={selectedNodeId === node.id}
                 isEditing={editingNodeId === node.id}
