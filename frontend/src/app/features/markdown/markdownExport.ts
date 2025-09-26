@@ -25,7 +25,7 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     return md;
   }
 
-  // Determine the appropriate prefix based on node type
+  // Determine the appropriate prefix based on node type (メタがある場合のみ)
   if (nodeType === 'unordered-list' || nodeType === 'ordered-list') {
     // For list items, calculate indent based on actual indentLevel
     // If parent is heading, start list items from level 0 (no indent)
@@ -37,9 +37,12 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     } else {
       prefix = `${indentSpaces}1. `;
     }
-  } else {
-    // For heading nodes or nodes without type, use heading format
+  } else if (nodeType === 'heading') {
+    // For heading nodes, use heading format
     prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
+  } else {
+    // メタなしノードはプレーンテキスト
+    prefix = '';
   }
 
   md = `${prefix}${node.text}`;

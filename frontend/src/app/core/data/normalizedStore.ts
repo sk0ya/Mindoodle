@@ -440,6 +440,16 @@ export function moveNormalizedNode(
     return { success: true, data: normalizedData };
   }
 
+  // 表ノードの配置制約: moveNormalizedNode は末尾に追加するため、
+  // 表ノードは空の親にのみ移動可（兄弟がいる場合は先頭以外になるためNG）
+  const movingNode = normalizedData.nodes[nodeId] as any;
+  if (movingNode?.kind === 'table') {
+    const siblings = (normalizedData.childrenMap[newParentId] || []).filter(id => id !== nodeId);
+    if (siblings.length > 0) {
+      return { success: false, reason: '表ノードは兄弟がいる親へ末尾追加できません（先頭のみ許可）' };
+    }
+  }
+
   const newData = {
     ...normalizedData,
     parentMap: {
@@ -545,6 +555,15 @@ export function moveNodeWithPositionNormalized(
   }
 
   newSiblings.splice(insertionIndex, 0, nodeId);
+
+  // 表ノードの配置制約: 兄弟がいる場合は常に先頭（insertionIndex === 0）のみ許可
+  const movingNode2 = normalizedData.nodes[nodeId] as any;
+  if (movingNode2?.kind === 'table') {
+    const siblingsCountExcludingSelf = newSiblings.filter(id => id !== nodeId).length;
+    if (siblingsCountExcludingSelf > 0 && insertionIndex !== 0) {
+      return { success: false, reason: '表ノードは兄弟がいる場合は先頭にのみ配置できます' };
+    }
+  }
 
   const newData = {
     ...normalizedData,

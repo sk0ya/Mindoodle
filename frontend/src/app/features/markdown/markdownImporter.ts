@@ -364,27 +364,16 @@ export class MarkdownImporter {
     }
 
     const processNode = (node: MindMapNode, parentLevel: number = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list'): void => {
-      // Special-case: table node outputs a markdown table block
+      // Special-case: table node outputs its markdown text verbatim
       if ((node as any).kind === 'table') {
-        const headers = (node as any).tableData?.headers as string[] | undefined;
-        const rows = (node as any).tableData?.rows as string[][] | undefined;
-        const effectiveHeaders: string[] = headers && headers.length > 0
-          ? headers
-          : (() => {
-              const cols = Math.max(((rows && rows[0]?.length) || 0), 1);
-              return new Array(cols).fill('');
-            })();
-        // Build table block
-        lines.push(`| ${effectiveHeaders.join(' | ')} |`);
-        lines.push(`| ${effectiveHeaders.map(() => '---').join(' | ')} |`);
-        (rows || []).forEach(r => {
-          lines.push(`| ${(r || []).map(c => c ?? '').join(' | ')} |`);
-        });
-        // Append note if exists
-        if (node.note && node.note.trim() !== '') {
+        const tableMd = String(node.text || '');
+        if (tableMd) {
+          const tableLines = tableMd.split(/\r?\n/);
+          for (const ln of tableLines) lines.push(ln);
+        }
+        if (node.note != null && node.note !== '') {
           lines.push(node.note);
         }
-        // Guardedly handle children without injecting extra blank lines
         if (node.children && node.children.length > 0) {
           node.children.forEach(child => processNode(child, parentLevel + 1, parentType));
         }
@@ -446,23 +435,9 @@ export class MarkdownImporter {
 
         lines.push(prefix + node.text);
       } else {
-        // 新しく作成されたノード（マークダウンメタデータなし）の場合の処理
-        // parentLevelに基づいてリストアイテムとして出力
-        const indent = ' '.repeat(parentLevel * 2);
-        const finalLine = indent + '- ' + node.text;
-
-        if (DEBUG_MD) {
-          logger.debug('⚠️ マークダウンメタデータなし - リストに変換', {
-            nodeId: node.id,
-            nodeText: node.text,
-            parentLevel: parentLevel,
-            indent: indent,
-            finalLine: finalLine,
-            originalNode: node // 元のノード情報全体を確認
-          });
-        }
-
-        lines.push(finalLine);
+        // メタなしノードはテキストをそのまま出力（プレーン行）。
+        // 余計なリスト/見出し記号は付与しない。
+        lines.push(node.text);
       }
 
       // ノートがある場合は追加（不要な空行なし・trimしない: 意図した空白を保持）
