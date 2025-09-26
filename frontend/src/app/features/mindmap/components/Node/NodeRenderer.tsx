@@ -1,4 +1,5 @@
 import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
+import MermaidRenderer from './MermaidRenderer';
 import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode, FileAttachment } from '@shared/types';
 import { useResizingState, useHoverState } from '@shared/hooks';
@@ -71,18 +72,31 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
   const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
 
-  // Extract image URLs from node note
-  const extractNoteImages = (note?: string): string[] => {
+  // Display entries: images (md/html) and mermaid blocks in note order
+  type DisplayEntry =
+    | { kind: 'image'; subType: 'md' | 'html'; url: string; tag: string; start: number; end: number }
+    | { kind: 'mermaid'; code: string; start: number; end: number };
+
+  const extractDisplayEntries = (note?: string): DisplayEntry[] => {
     if (!note) return [];
-    const urls: string[] = [];
-    // Combined regex that preserves source order for Markdown and HTML images
-    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>/gi;
+    const entries: DisplayEntry[] = [];
+    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|(<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>)|(```mermaid[\s\S]*?```)/gi;
     let m: RegExpExecArray | null;
     while ((m = re.exec(note)) !== null) {
-      const url = m[1] || m[2];
-      if (url) urls.push(url);
+      const full = m[0];
+      const start = m.index;
+      const end = start + full.length;
+      if (m[4]) {
+        entries.push({ kind: 'mermaid', code: full, start, end });
+      } else if (m[2]) {
+        const url = m[3];
+        entries.push({ kind: 'image', subType: 'html', url, tag: full, start, end });
+      } else {
+        const url = m[1];
+        entries.push({ kind: 'image', subType: 'md', url, tag: full, start, end });
+      }
     }
-    return urls;
+    return entries;
   };
 
   // Check if a path is a relative local file path
@@ -91,16 +105,17 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
     return path.startsWith('./') || path.startsWith('../') || (!path.includes('://') && !path.startsWith('/'));
   };
 
-  const noteImageUrls = extractNoteImages(node.note);
-  const noteImageFiles: FileAttachment[] = noteImageUrls.map((u, i) => ({
+  const displayEntries = extractDisplayEntries(node.note);
+  const imageEntries = displayEntries.filter((e): e is Extract<DisplayEntry, { kind: 'image' }> => e.kind === 'image');
+  const noteImageFiles: FileAttachment[] = imageEntries.map((e, i) => ({
     id: `noteimg-${node.id}-${i}`,
-    name: (u.split('/').pop() || `image-${i}`),
+    name: (e.url.split('/').pop() || `image-${i}`),
     type: 'image/*',
     size: 0,
     isImage: true,
     createdAt: new Date().toISOString(),
-    downloadUrl: u,
-    isRelativeLocal: isRelativeLocalPath(u)
+    downloadUrl: e.url,
+    isRelativeLocal: isRelativeLocalPath(e.url)
   } as FileAttachment & { isRelativeLocal?: boolean }));
 
   // State to hold resolved data URLs for relative local images
@@ -137,56 +152,31 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
     loadRelativeImages();
   }, [noteImageFiles, onLoadRelativeImage]);
 
-  // 添付画像は今後廃止: ノート内の画像のみ扱う
-  const imageFiles: FileAttachment[] = noteImageFiles;
-  const usingNoteImages = noteImageFiles.length > 0;
-  const [imageIndex, setImageIndex] = useState(0);
-  useEffect(() => { setImageIndex(0); }, [node.id]);
-  // ノート内の画像出現数が変動した際に、選択インデックスを安全に補正
+  // 画像とMermaidを統一した表示インデックス
+  const [slotIndex, setSlotIndex] = useState(0);
+  useEffect(() => { setSlotIndex(0); }, [node.id]);
   useEffect(() => {
-    const len = imageFiles.length;
-    // 画像が無ければインデックスを0へ
+    const len = displayEntries.length;
     if (len === 0) {
-      if (imageIndex !== 0) setImageIndex(0);
+      if (slotIndex !== 0) setSlotIndex(0);
       return;
     }
-    // 範囲外になった場合は末尾にクランプ
-    if (imageIndex >= len) {
-      setImageIndex(len - 1);
+    if (slotIndex >= len) {
+      setSlotIndex(len - 1);
     }
-  }, [imageFiles.length, imageIndex]);
-  const currentImage: FileAttachment | undefined = imageFiles[imageIndex];
+  }, [displayEntries.length, slotIndex]);
+  const currentEntry = displayEntries[slotIndex];
+  const currentImage: FileAttachment | undefined = currentEntry && currentEntry.kind === 'image'
+    ? noteImageFiles[imageEntries.indexOf(currentEntry)]
+    : undefined;
 
-  // ノート本文から画像の出現順序でエントリ一覧を抽出
-  type NoteImageEntry = { type: 'md' | 'html'; url: string; tag: string; start: number; end: number };
-  const extractNoteImageEntries = (note?: string): NoteImageEntry[] => {
-    if (!note) return [];
-    const entries: NoteImageEntry[] = [];
-    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|(<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>)/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(note)) !== null) {
-      const full = m[0];
-      const start = m.index;
-      const end = start + full.length;
-      if (m[2]) {
-        // HTML
-        const url = m[3];
-        entries.push({ type: 'html', url, tag: full, start, end });
-      } else {
-        // Markdown
-        const url = m[1];
-        entries.push({ type: 'md', url, tag: full, start, end });
-      }
-    }
-    return entries;
-  };
+  // Mermaid is treated as one of display entries (no priority)
 
-  // 指定インデックスのノート画像サイズ取得（HTMLのみ幅高さ取得可能）
-  const parseNoteImageSizeByIndex = (note: string | undefined, index: number): { width: number; height: number } | null => {
+  // ノート中のサイズ指定（HTML画像のみ）を参照
+  const parseNoteSizeByIndex = (note: string | undefined, index: number): { width: number; height: number } | null => {
     if (!note) return null;
-    const entries = extractNoteImageEntries(note);
-    const entry = entries[index];
-    if (!entry || entry.type !== 'html') return null;
+    const entry = displayEntries[index];
+    if (!entry || entry.kind !== 'image' || entry.subType !== 'html') return null;
     const tag = entry.tag;
     const wMatch = tag.match(/\swidth=["']?(\d+)(?:px)?["']?/i);
     const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
@@ -199,8 +189,10 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
     return null;
   };
 
+  // (old parseNoteImageSizeByIndex removed; merged into parseNoteSizeByIndex)
+
   // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
-  const noteSize = currentImage ? parseNoteImageSizeByIndex(node.note, imageIndex) : null;
+  const noteSize = currentEntry ? parseNoteSizeByIndex(node.note, slotIndex) : null;
   const imageDimensions = node.customImageWidth && node.customImageHeight
     ? { width: node.customImageWidth, height: node.customImageHeight }
     : noteSize || { width: 150, height: 105 };
@@ -210,16 +202,17 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   useEffect(() => {
     if (!onAutoLayout) return;
     if (isResizing) return; // リサイズ中は自動レイアウトを抑止
-    const layoutKey = `${node.id}:${imageDimensions.width}x${imageDimensions.height}:${imageIndex}`;
+    const layoutKey = `${node.id}:${imageDimensions.width}x${imageDimensions.height}:${slotIndex}`;
     if (lastLayoutKeyRef.current === layoutKey) return;
     lastLayoutKeyRef.current = layoutKey;
     // レンダリング直後のフレームでレイアウト
     requestAnimationFrame(() => {
       onAutoLayout();
     });
-  }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, imageIndex, isResizing]);
+  }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, slotIndex, isResizing]);
 
   // 画像リサイズハンドラー
+  const [localDims, setLocalDims] = useState<{ width: number; height: number } | null>(null);
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -228,27 +221,30 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
     if (!svgRef.current) return;
 
     const svgRect = svgRef.current.getBoundingClientRect();
+    const scale = zoom * 1.5; // match CanvasRenderer group scale
     const currentDimensions = imageDimensions;
 
     startResizing();
     setResizeStartPos({
-      x: (e.clientX - svgRect.left) / zoom - pan.x,
-      y: (e.clientY - svgRect.top) / zoom - pan.y
+      x: (e.clientX - svgRect.left) / scale - pan.x,
+      y: (e.clientY - svgRect.top) / scale - pan.y
     });
     setResizeStartSize({
       width: currentDimensions.width,
       height: currentDimensions.height
     });
     setOriginalAspectRatio(currentDimensions.width / currentDimensions.height);
+    setLocalDims({ width: currentDimensions.width, height: currentDimensions.height });
   }, [imageDimensions, onUpdateNode, svgRef, zoom, pan, startResizing]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !onUpdateNode || !svgRef.current) return;
 
     const svgRect = svgRef.current.getBoundingClientRect();
+    const scale = zoom * 1.5; // match CanvasRenderer group scale
     const currentPos = {
-      x: (e.clientX - svgRect.left) / zoom - pan.x,
-      y: (e.clientY - svgRect.top) / zoom - pan.y
+      x: (e.clientX - svgRect.left) / scale - pan.x,
+      y: (e.clientY - svgRect.top) / scale - pan.y
     };
 
     const deltaX = currentPos.x - resizeStartPos.x;
@@ -264,62 +260,79 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
     const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width + diagonal * direction));
     const newHeight = newWidth / originalAspectRatio;
 
-    onUpdateNode(node.id, {
-      customImageWidth: Math.round(newWidth),
-      customImageHeight: Math.round(newHeight)
-    });
+    setLocalDims({ width: Math.round(newWidth), height: Math.round(newHeight) });
   }, [isResizing, onUpdateNode, svgRef, zoom, pan, resizeStartPos, resizeStartSize, originalAspectRatio, node.id]);
+
+  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    try {
+      (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+    } catch {}
+    handleResizeStart(e as unknown as React.MouseEvent);
+  }, [handleResizeStart]);
 
   const updateNoteImageSizeByIndex = (note: string | undefined, index: number, w: number, h: number): string | undefined => {
     if (!note) return note;
-    const entries = extractNoteImageEntries(note);
-    const entry = entries[index];
+    const entry = displayEntries[index];
     if (!entry) return note;
+    if ((entry as any).kind && (entry as DisplayEntry).kind !== 'image') return note;
     const width = Math.round(w);
     const height = Math.round(h);
     let replacement: string;
-    if (entry.type === 'html') {
-      replacement = entry.tag
+    const imgEntry = entry as Extract<DisplayEntry, { kind: 'image' }>;
+    if (imgEntry.subType === 'html') {
+      replacement = imgEntry.tag
         .replace(/\swidth=["']?\d+(?:px)?["']?/ig, '')
         .replace(/\sheight=["']?\d+(?:px)?["']?/ig, '')
         .replace(/<img([^>]*)>/i, (_m, attrs: string) => `<img${attrs} width="${width}" height="${height}">`);
     } else {
-      replacement = `<img src="${entry.url}" width="${width}" height="${height}">`;
+      replacement = `<img src="${imgEntry.url}" width="${width}" height="${height}">`;
     }
-    return note.slice(0, entry.start) + replacement + note.slice(entry.end);
+    return note.slice(0, imgEntry.start) + replacement + note.slice(imgEntry.end);
   };
 
   const handleResizeEnd = useCallback(() => {
-    if (isResizing) {
-      stopResizing();
-      // ノート画像のサイズ指定を更新（ノート画像が表示されている場合）
-      if (usingNoteImages && onUpdateNode) {
-        const newNote = updateNoteImageSizeByIndex(node.note, imageIndex, imageDimensions.width, imageDimensions.height);
-        if (newNote && newNote !== node.note) {
-          onUpdateNode(node.id, { note: newNote, customImageWidth: imageDimensions.width, customImageHeight: imageDimensions.height });
-        }
-      }
-      // リサイズ後に自動整列
-      if (onAutoLayout) {
-        requestAnimationFrame(() => {
-          onAutoLayout();
-        });
-      }
-    }
-  }, [isResizing, stopResizing, onAutoLayout, onUpdateNode, node.id, node.note, imageDimensions.width, imageDimensions.height, usingNoteImages, imageIndex]);
+    if (!isResizing) return;
+    stopResizing();
 
-  // マウスイベントリスナーの管理
+    const finalW = Math.round(localDims?.width ?? imageDimensions.width);
+    const finalH = Math.round(localDims?.height ?? imageDimensions.height);
+
+
+    if (onUpdateNode) {
+      const maybeUpdatedNote = updateNoteImageSizeByIndex(node.note, slotIndex, finalW, finalH);
+      const updates: Partial<MindMapNode> = { customImageWidth: finalW, customImageHeight: finalH };
+      if (maybeUpdatedNote && maybeUpdatedNote !== node.note) {
+        updates.note = maybeUpdatedNote;
+      }
+      onUpdateNode(node.id, updates);
+    }
+
+    setLocalDims(null);
+    if (onAutoLayout) {
+      requestAnimationFrame(() => { onAutoLayout(); });
+    }
+  }, [isResizing, stopResizing, onAutoLayout, onUpdateNode, node.id, node.note, imageDimensions.width, imageDimensions.height, slotIndex, localDims]);
+
+  // マウス/ポインタイベントリスナーの管理（foreignObject越境対策）
   useEffect(() => {
     if (isResizing) {
-      const handleMouseMove = (e: MouseEvent) => handleResizeMove(e);
-      const handleMouseUp = () => handleResizeEnd();
+      const mouseMove = (e: MouseEvent) => handleResizeMove(e);
+      const mouseUp = () => handleResizeEnd();
+      const pointerMove = (e: PointerEvent) => handleResizeMove(e as unknown as MouseEvent);
+      const pointerUp = () => handleResizeEnd();
 
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      window.addEventListener('mousemove', mouseMove);
+      window.addEventListener('mouseup', mouseUp);
+      window.addEventListener('pointermove', pointerMove);
+      window.addEventListener('pointerup', pointerUp);
 
       return () => {
-        document.removeEventListener('mousemove', handleMouseMove);
-        document.removeEventListener('mouseup', handleMouseUp);
+        window.removeEventListener('mousemove', mouseMove);
+        window.removeEventListener('mouseup', mouseUp);
+        window.removeEventListener('pointermove', pointerMove);
+        window.removeEventListener('pointerup', pointerUp);
       };
     }
     return undefined;
@@ -382,40 +395,64 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   }, [onShowFileActionMenu, node.id]);
 
   // 画像位置計算を統一（ノード上部に配置、4pxマージン）
+  const renderDims = localDims || imageDimensions;
   const imageY = node.y - nodeHeight / 2 + 4;
-  const imageX = node.x - imageDimensions.width / 2;
+  const imageX = node.x - renderDims.width / 2;
+
+  // no-op
+
+  // A) 画像/Mermaidを切り替えたら、そのエントリ固有のサイズに合わせる
+  // エントリキー（画像:URL / Mermaid:コード先頭と長さ）
+  const getEntryKey = (entry?: DisplayEntry): string => {
+    if (!entry) return 'none';
+    if (entry.kind === 'image') return `img:${entry.url}`;
+    const code = entry.code || '';
+    return `mmd:${code.length}:${code.slice(0, 50)}`;
+  };
+  const prevEntryKeyRef = useRef<string>('');
+  useEffect(() => {
+    const key = getEntryKey(currentEntry);
+    if (key !== prevEntryKeyRef.current) {
+      prevEntryKeyRef.current = key;
+      // 新しいエントリの自然サイズに合わせるため、一旦カスタムサイズを解除
+      setLocalDims(null);
+      if (onUpdateNode) {
+        onUpdateNode(node.id, { customImageWidth: undefined as unknown as number, customImageHeight: undefined as unknown as number });
+      }
+      // autoLayoutはsize決定後（onLoadやonLoadedDimensions後）に発火する既存ロジックで反映
+    }
+  }, [currentEntry, node.id, onUpdateNode]);
 
   // 表示中の画像に合わせてノードの画像サイズを更新
   const handleImageLoadDimensions = useCallback((w: number, h: number) => {
     if (!onUpdateNode) return;
     if (w <= 0 || h <= 0) return;
-    // 表示中の画像に合わせて毎回ノードの表示サイズを更新（ノート/添付どちらも）
+    // 既にユーザーがカスタム設定済みなら、ロード寸法で上書きしない
+    if (node.customImageWidth && node.customImageHeight) return;
+    // 初回のみ、表示中の画像に合わせてノードの表示サイズを設定
     const minWidth = 50;
     const maxWidth = 400;
     const newWidth = Math.max(minWidth, Math.min(maxWidth, w));
     const ratio = w > 0 ? h / w : 1;
     const newHeight = Math.max(Math.round(newWidth * ratio), Math.round(minWidth * ratio));
-    if (node.customImageWidth !== Math.round(newWidth) || node.customImageHeight !== newHeight) {
-      onUpdateNode(node.id, { customImageWidth: Math.round(newWidth), customImageHeight: newHeight });
-    }
+    onUpdateNode(node.id, { customImageWidth: Math.round(newWidth), customImageHeight: newHeight });
   }, [node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
 
-  // ノート画像の場合、現在の画像のサイズ指定があれば先に反映（ロード完了前にレイアウトを安定させる）
+  // ノートのHTML画像にサイズ指定があれば先に反映（ロード完了前にレイアウトを安定）
   useEffect(() => {
     if (!onUpdateNode) return;
-    if (isResizing) return; // リサイズ中はノート側のサイズ反映で上書きしない
-    if (!usingNoteImages) return;
-    const sz = parseNoteImageSizeByIndex(node.note, imageIndex);
+    if (isResizing) return;
+    // 一度でもカスタムサイズが設定されたら、ノート側のサイズで上書きしない
+    if (node.customImageWidth && node.customImageHeight) return;
+    const sz = parseNoteSizeByIndex(node.note, slotIndex);
     if (sz) {
       const minWidth = 50;
       const maxWidth = 400;
       const w = Math.max(minWidth, Math.min(maxWidth, sz.width));
       const h = Math.round(w * (sz.height / Math.max(1, sz.width)));
-      if (node.customImageWidth !== w || node.customImageHeight !== h) {
-        onUpdateNode(node.id, { customImageWidth: w, customImageHeight: h });
-      }
+      onUpdateNode(node.id, { customImageWidth: w, customImageHeight: h });
     }
-  }, [isResizing, usingNoteImages, imageIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
+  }, [isResizing, slotIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
 
   // ホバー状態でコントロール表示
   const { isHovered, handleMouseEnter, handleMouseLeave } = useHoverState();
@@ -436,8 +473,8 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   const nodeStyles = getBaseNodeStyles(renderingState, themeConfig, DEFAULT_ANIMATION_CONFIG);
   const backgroundFill = getBackgroundFill(themeConfig);
 
-  // 画像がない場合は基本のNodeレンダリングのみ（フック定義の後で判定し、Hooks規約を満たす）
-  if (!currentImage) {
+  // 画像もMermaidもない場合は基本のNodeレンダリングのみ
+  if (!currentEntry) {
     return (
       <rect
         x={nodeLeftX}
@@ -463,6 +500,9 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
       />
     );
   }
+
+  // 現在のスロットがMermaidかどうか
+  const showMermaid = !!currentEntry && (currentEntry as DisplayEntry).kind === 'mermaid';
 
   return (
     <>
@@ -490,118 +530,231 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
         onDrop={onDrop}
       />
 
-      {/* ノートまたは添付の画像を表示（切替可能） */}
-      <g key={currentImage.id}>
+      {/* ノート内Mermaid もしくは 画像を表示 */}
+      <g key={showMermaid ? `mermaid-${node.id}` : (currentImage ? currentImage.id : `empty-${node.id}`)}>
           <foreignObject
             x={imageX}
             y={imageY}
-            width={imageDimensions.width}
-            height={imageDimensions.height}
+            width={renderDims.width}
+            height={renderDims.height}
           >
-            <div style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              borderRadius: '6px',
-              overflow: 'hidden',
-              border: 'none',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-              backgroundColor: 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)', // スムーズなサイズ変更アニメーション
-              cursor: 'pointer'
-            }}
-            onClick={(e) => handleImageClick(e as any, currentImage)}
-            onDoubleClick={(e) => handleImageDoubleClick(e as any, currentImage)}
-            onContextMenu={(e) => handleFileActionMenu(e as any, currentImage)}
-            onMouseEnter={handleMouseEnter}
-            onMouseLeave={handleMouseLeave}
-            >
-              <img
-                src={(() => {
-                  // Use resolved data URL for relative local images
-                  const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
-                  if (relativeFile.isRelativeLocal && relativeFile.downloadUrl && resolvedImageUrls[relativeFile.downloadUrl]) {
-                    return resolvedImageUrls[relativeFile.downloadUrl];
-                  }
-                  return currentImage.downloadUrl || currentImage.dataURL || currentImage.data;
-                })()}
-                alt={currentImage.name}
-                style={{
-                  maxWidth: '100%',
-                  maxHeight: '100%',
-                  width: 'auto',
-                  height: 'auto',
-                  objectFit: 'contain',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                  display: 'block',
-                  margin: '0 auto'
-                }}
-                onClick={(e) => handleImageClick(e, currentImage)}
-                onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
-                onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
-                onError={() => {}}
-                onLoad={(e) => {
-                  const img = e.currentTarget as HTMLImageElement;
-                  const w = img.naturalWidth || 0;
-                  const h = img.naturalHeight || 0;
-                  if (w > 0 && h > 0) {
+            {showMermaid ? (
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <MermaidRenderer
+                  code={(currentEntry as Extract<DisplayEntry, { kind: 'mermaid' }>).code}
+                  onLoadedDimensions={(w, h) => {
+                    // mimic image load sizing behavior
                     handleImageLoadDimensions(w, h);
-                  }
-                }}
-              />
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    if (!isSelected && onSelectNode) onSelectNode(node.id);
+                  }}
+                  onDoubleClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onContextMenu={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                />
+                {/* 切替コントロール（Mermaid表示時も有効） */}
+                {displayEntries.length > 1 && (isSelected || isHovered) && (
+                  (() => {
+                    const tiny = renderDims.width < 100;
+                    const compact = renderDims.width < 140;
+                    const fontSize = tiny ? 9 : (compact ? 10 : 12);
+                    const padH = tiny ? '0 3px' : (compact ? '1px 4px' : '2px 6px');
+                    const btnPad = tiny ? '0 3px' : '0 4px';
+                    return (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 6,
+                          bottom: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: tiny ? 2 : 4,
+                          background: 'rgba(0,0,0,0.45)',
+                          color: '#fff',
+                          borderRadius: 9999,
+                          padding: padH,
+                          pointerEvents: 'auto',
+                          lineHeight: 1
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length); }}
+                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
+                          aria-label="前の画像"
+                          title="前の画像"
+                        >
+                          ‹
+                        </button>
+                        <div style={{ fontSize: fontSize - 1 }}>{slotIndex + 1}/{displayEntries.length}</div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev + 1) % displayEntries.length); }}
+                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
+                          aria-label="次の画像"
+                          title="次の画像"
+                        >
+                          ›
+                        </button>
+                      </div>
+                    );
+                  })()
+                )}
+                {isSelected && (
+                  <div
+                    onPointerDown={handleResizePointerDown}
+                    title="サイズ変更"
+                    style={{
+                      position: 'absolute',
+                      right: 2,
+                      bottom: 2,
+                      width: 12,
+                      height: 12,
+                      background: 'white',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: 2,
+                      cursor: isResizing ? 'nw-resize' : 'se-resize',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                )}
+              </div>
+            ) : (
+              <div style={{
+                position: 'relative',
+                width: '100%',
+                height: '100%',
+                borderRadius: '6px',
+                overflow: 'hidden',
+                border: 'none',
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                backgroundColor: 'transparent',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                cursor: 'pointer'
+              }}
+              onClick={(e) => currentImage && handleImageClick(e as any, currentImage)}
+              onDoubleClick={(e) => currentImage && handleImageDoubleClick(e as any, currentImage)}
+              onContextMenu={(e) => currentImage && handleFileActionMenu(e as any, currentImage)}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              >
+                {currentImage && (
+                  <img
+                    src={(() => {
+                      const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
+                      if (relativeFile.isRelativeLocal && relativeFile.downloadUrl && resolvedImageUrls[relativeFile.downloadUrl]) {
+                        return resolvedImageUrls[relativeFile.downloadUrl];
+                      }
+                      return currentImage.downloadUrl || currentImage.dataURL || currentImage.data;
+                    })()}
+                    alt={currentImage.name}
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '100%',
+                      width: 'auto',
+                      height: 'auto',
+                      objectFit: 'contain',
+                      cursor: 'pointer',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                      display: 'block',
+                      margin: '0 auto'
+                    }}
+                    onClick={(e) => handleImageClick(e, currentImage)}
+                    onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
+                    onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
+                    onError={() => {}}
+                    onLoad={(e) => {
+                      const img = e.currentTarget as HTMLImageElement;
+                      const w = img.naturalWidth || 0;
+                      const h = img.naturalHeight || 0;
+                      if (w > 0 && h > 0) {
+                        handleImageLoadDimensions(w, h);
+                      }
+                    }}
+                  />
+                )}
 
-              {/* 画像切替コントロール（ノード選択時またはホバー時のみ表示） */}
-              {imageFiles.length > 1 && (isSelected || isHovered) && (
-                (() => {
-                  const tiny = imageDimensions.width < 100;
-                  const compact = imageDimensions.width < 140;
-                  const fontSize = tiny ? 9 : (compact ? 10 : 12);
-                  const padH = tiny ? '0 3px' : (compact ? '1px 4px' : '2px 6px');
-                  const btnPad = tiny ? '0 3px' : '0 4px';
-                  return (
-                    <div
-                      style={{
-                        position: 'absolute',
-                        left: 6,
-                        bottom: 6,
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: tiny ? 2 : 4,
-                        background: 'rgba(0,0,0,0.45)',
-                        color: '#fff',
-                        borderRadius: 9999,
-                        padding: padH,
-                        pointerEvents: 'auto',
-                        lineHeight: 1
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev - 1 + imageFiles.length) % imageFiles.length); }}
-                        style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
-                        aria-label="前の画像"
-                        title="前の画像"
+                {/* 画像切替コントロール（ノード選択時またはホバー時のみ表示） */}
+                {displayEntries.length > 1 && (isSelected || isHovered) && (
+                  (() => {
+                    const tiny = imageDimensions.width < 100;
+                    const compact = imageDimensions.width < 140;
+                    const fontSize = tiny ? 9 : (compact ? 10 : 12);
+                    const padH = tiny ? '0 3px' : (compact ? '1px 4px' : '2px 6px');
+                    const btnPad = tiny ? '0 3px' : '0 4px';
+                    return (
+                      <div
+                        style={{
+                          position: 'absolute',
+                          left: 6,
+                          bottom: 6,
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: tiny ? 2 : 4,
+                          background: 'rgba(0,0,0,0.45)',
+                          color: '#fff',
+                          borderRadius: 9999,
+                          padding: padH,
+                          pointerEvents: 'auto',
+                          lineHeight: 1
+                        }}
+                        onClick={(e) => e.stopPropagation()}
                       >
-                        ‹
-                      </button>
-                      <div style={{ fontSize: fontSize - 1 }}>{imageIndex + 1}/{imageFiles.length}</div>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); setImageIndex((prev) => (prev + 1) % imageFiles.length); }}
-                        style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
-                        aria-label="次の画像"
-                        title="次の画像"
-                      >
-                        ›
-                      </button>
-                    </div>
-                  );
-                })()
-              )}
-            </div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length); }}
+                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
+                          aria-label="前の画像"
+                          title="前の画像"
+                        >
+                          ‹
+                        </button>
+                        <div style={{ fontSize: fontSize - 1 }}>{slotIndex + 1}/{displayEntries.length}</div>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev + 1) % displayEntries.length); }}
+                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
+                          aria-label="次の画像"
+                          title="次の画像"
+                        >
+                          ›
+                        </button>
+                      </div>
+                    );
+                  })()
+                )}
+
+                {isSelected && (
+                  <div
+                    onPointerDown={handleResizePointerDown}
+                    title="サイズ変更"
+                    style={{
+                      position: 'absolute',
+                      right: 2,
+                      bottom: 2,
+                      width: 12,
+                      height: 12,
+                      background: 'white',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: 2,
+                      cursor: isResizing ? 'nw-resize' : 'se-resize',
+                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                    }}
+                  />
+                )}
+
+              </div>
+            )}
           </foreignObject>
 
           {/* 画像選択時の枠線とリサイズハンドル */}
@@ -625,47 +778,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
                 }}
               />
 
-              {/* リサイズハンドル（右下） */}
-              <g>
-                {/* ハンドル背景 */}
-                <rect
-                  x={imageX + imageDimensions.width - 4}
-                  y={imageY + imageDimensions.height - 4}
-                  width="8"
-                  height="8"
-                  fill="white"
-                  stroke="#bfdbfe"
-                  strokeWidth="1"
-                  rx="1"
-                  ry="1"
-                  style={{
-                    cursor: isResizing ? 'nw-resize' : 'se-resize',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onMouseDown={handleResizeStart}
-                />
-                {/* リサイズハンドルのアイコン（斜め線） */}
-                <g stroke="#6b7280" strokeWidth="1" style={{ pointerEvents: 'none' }}>
-                  <line
-                    x1={imageX + imageDimensions.width - 2}
-                    y1={imageY + imageDimensions.height - 2}
-                    x2={imageX + imageDimensions.width + 2}
-                    y2={imageY + imageDimensions.height - 6}
-                  />
-                  <line
-                    x1={imageX + imageDimensions.width - 1}
-                    y1={imageY + imageDimensions.height - 3}
-                    x2={imageX + imageDimensions.width + 1}
-                    y2={imageY + imageDimensions.height - 5}
-                  />
-                  <line
-                    x1={imageX + imageDimensions.width}
-                    y1={imageY + imageDimensions.height - 4}
-                    x2={imageX + imageDimensions.width}
-                    y2={imageY + imageDimensions.height - 4}
-                  />
-                </g>
-              </g>
+              {/* リサイズハンドル（SVGの上ではなく、foreignObject内に配置するためここでは描画しない） */}
             </g>
           )}
         </g>

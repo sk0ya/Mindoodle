@@ -167,7 +167,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     // 画像がある場合はテキストをノードの下部に表示
     const noteStr: string = (node as any)?.note || '';
     const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
-    const hasImage = noteHasImages;
+    const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
+    const hasImage = noteHasImages || noteHasMermaid;
 
     // カスタム画像サイズを考慮し、なければノート内<img>のheight属性を参照
     const getActualImageHeight = () => {
@@ -175,7 +176,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       if (node.customImageWidth && node.customImageHeight) {
         return node.customImageHeight;
       }
-      if (noteStr) {
+      if (noteStr && noteHasImages) {
         const tagMatch = noteStr.match(/<img[^>]*>/i);
         if (tagMatch) {
           const tag = tagMatch[0];
@@ -386,14 +387,15 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   // 編集時も画像がある場合はテキストを下部に配置
   const noteStr2: string = (node as any)?.note || '';
   const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
-  const hasImage = noteHasImages2;
+  const noteHasMermaid2 = !!noteStr2 && /```mermaid[\s\S]*?```/i.test(noteStr2);
+  const hasImage = noteHasImages2 || noteHasMermaid2;
 
   const getActualImageHeight = () => {
     if (!hasImage) return 0;
     if (node.customImageWidth && node.customImageHeight) {
       return node.customImageHeight;
     }
-    if (noteStr2) {
+    if (noteStr2 && noteHasImages2) {
       const tagMatch = noteStr2.match(/<img[^>]*>/i);
       if (tagMatch) {
         const tag = tagMatch[0];

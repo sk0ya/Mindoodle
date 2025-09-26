@@ -59,6 +59,7 @@ const Node: React.FC<NodeProps> = ({
   onLoadRelativeImage,
   onLinkNavigate,
   onImageClick,
+  pan,
 }) => {
   const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -365,7 +366,7 @@ const Node: React.FC<NodeProps> = ({
         // Original NodeAttachments props
         svgRef={svgRef}
         zoom={zoom}
-        pan={{ x: 0, y: 0 }} // TODO: Get actual pan from parent
+        pan={pan}
         onSelectNode={onSelect}
         onShowImageModal={(file) => {
           // Convert FileAttachment to URL for onImageClick

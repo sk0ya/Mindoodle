@@ -159,7 +159,8 @@ export function calculateNodeSize(
   // 添付画像は廃止。ノート内画像のみ検出
   const noteStr: string = (node as any)?.note || '';
   const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
-  const hasImages = !!hasNoteImages;
+  const hasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
+  const hasImages = !!(hasNoteImages || hasMermaid);
   
   let imageHeight = 0;
   let imageWidth = 0;
