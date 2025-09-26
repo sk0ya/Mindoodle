@@ -4,26 +4,6 @@ import { COORDINATES, LAYOUT } from '../../../shared/constants/index';
 import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from './nodeUtils';
 import type { MindMapNode } from '../../../shared/types';
 
-/**
- * サイドバーの状態を考慮してルートノードの適切なX座標を計算
- */
-const calculateDynamicCenterX = (sidebarCollapsed?: boolean, activeView?: string | null): number => {
-  // 左側パネルの幅を計算（UI状態に基づく）
-  let leftPanelWidth = 0;
-  if (activeView && !sidebarCollapsed) {
-    leftPanelWidth = 280; // Primary sidebar width when expanded and active view is selected
-  }
-
-
-  // ルートノードを適切な位置に配置（サイドバーのすぐ右ギリギリ）
-  const baseMargin = 5; // サイドバーのすぐ右ギリギリ
-  const position = leftPanelWidth + baseMargin;
-  const finalPosition = position;
-
-
-  return finalPosition;
-};
-
 // Layout options interfaces
 interface LayoutOptions {
   centerX?: number;
@@ -31,7 +11,7 @@ interface LayoutOptions {
   levelSpacing?: number;
   nodeSpacing?: number;
   globalFontSize?: number;
-  // UI状態を考慮したレイアウト
+  // 互換性のために残すが本実装では未使用
   sidebarCollapsed?: boolean;
   activeView?: string | null;
 }
@@ -66,11 +46,8 @@ const getChildNodeXFromRootEdge = (rootNode: MindMapNode, childNode: MindMapNode
  * 実際のノードサイズを考慮して衝突を回避
  */
 export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
-  const calculatedCenterX = calculateDynamicCenterX(options.sidebarCollapsed, options.activeView);
-
-
   const {
-    centerX = calculatedCenterX,
+    centerX = COORDINATES.DEFAULT_CENTER_X,
     centerY = COORDINATES.DEFAULT_CENTER_Y,
     levelSpacing = LAYOUT.LEVEL_SPACING,
     nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN, // 最小間隔を使用
@@ -79,12 +56,11 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
   const newRootNode = cloneDeep(rootNode);
 
-  // サブツリーの実際の高さを計算（画像サイズを考慮した適応的間隔）
+  // サブツリーの実際の高さを計算（旧ロジック: テーブル外側マージンなし）
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
     if (node.collapsed || !node.children || node.children.length === 0) {
       const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
-      const outerMarginY = (node as any)?.kind === 'table' ? 12 : 0; // more generous external margin for tables
-      return nodeSize.height + outerMarginY * 2;
+      return nodeSize.height;
     }
     
     // 子ノードの合計高さ + 最小限の間隔
@@ -101,10 +77,9 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       return sum + childHeight + spacing;
     }, 0);
     
-    // 現在のノードの高さと子ノード群の高さの最大値
+    // 現在のノードの高さと子ノード群の高さの最大値（外側マージンなし）
     const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
-    const outerMarginY = (node as any)?.kind === 'table' ? 12 : 0;
-    return Math.max(nodeSize.height, childrenTotalHeight) + outerMarginY * 2;
+    return Math.max(nodeSize.height, childrenTotalHeight);
   };
 
   // サブツリーのノード数を計算（レイアウト調整用）
@@ -178,9 +153,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
         const calculateNodeBounds = (childNode: MindMapNode) => {
           const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
-          const outerMarginY = (childNode as any)?.kind === 'table' ? 12 : 0;
-          const nodeTop = childNode.y - nodeSize.height / 2 - outerMarginY;
-          const nodeBottom = childNode.y + nodeSize.height / 2 + outerMarginY;
+          const nodeTop = childNode.y - nodeSize.height / 2;
+          const nodeBottom = childNode.y + nodeSize.height / 2;
           
           minY = Math.min(minY, nodeTop);
           maxY = Math.max(maxY, nodeBottom);
@@ -263,7 +237,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       newRootNode.y = childrenCenterY;
     }
 
-    // 子ノードがある場合もルートノードのX座標を設定
+    // ルートノードのX座標を設定（旧ロジック: 定数ベース）
     newRootNode.x = centerX;
   } else {
     // 子ノードがない場合はデフォルト位置
