@@ -1,6 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapData, MindMapNode } from '@shared/types';
-import { logger } from '@shared/utils';
+import { logger, LRUCache, memoryManager } from '@shared/utils';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
@@ -11,6 +11,46 @@ import type { DataState } from '@shared/types/nodeTypes';
 // Debounce utility for autoLayout
 let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
 const AUTOLAYOUT_DEBOUNCE_MS = 50;
+
+// Global caches with memory limits to prevent memory leaks
+const nodeSizeCache = new LRUCache<string, { width: number; height: number }>(500, 300000); // 500 items, 5min TTL
+const boundsCache = new LRUCache<string, { minY: number; maxY: number }>(300, 300000); // 300 items, 5min TTL
+const nodeCountCache = new LRUCache<string, number>(200, 600000); // 200 items, 10min TTL
+
+// Periodic cache cleanup using managed timer
+if (typeof window !== 'undefined') {
+  memoryManager.createManagedInterval(() => {
+    const before = {
+      nodeSize: nodeSizeCache.size(),
+      bounds: boundsCache.size(),
+      nodeCount: nodeCountCache.size()
+    };
+
+    nodeSizeCache.cleanup();
+    boundsCache.cleanup();
+    nodeCountCache.cleanup();
+
+    const after = {
+      nodeSize: nodeSizeCache.size(),
+      bounds: boundsCache.size(),
+      nodeCount: nodeCountCache.size()
+    };
+
+    const cleaned = {
+      nodeSize: before.nodeSize - after.nodeSize,
+      bounds: before.bounds - after.bounds,
+      nodeCount: before.nodeCount - after.nodeCount
+    };
+
+    logger.debug('🧹 Cache cleanup completed', { before, after, cleaned });
+
+    // Force garbage collection in development (if available)
+    if (process.env.NODE_ENV === 'development' && (window as any).gc) {
+      (window as any).gc();
+      logger.debug('🗑️ Manual GC triggered');
+    }
+  }, 120000, 'DataSlice cache cleanup'); // More frequent: every 2 minutes
+}
 
 export interface DataSlice extends DataState {
   setData: (data: MindMapData) => void;
@@ -139,26 +179,26 @@ export const createDataSlice: StateCreator<
         firstNodeId: rootNodes[0]?.id
       });
       
-      // Memoized node size calculation
-      const nodeSizeCache = new Map<string, { width: number; height: number }>();
+      // Memoized node size calculation using global cache
       const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
         const cacheKey = `${node.id}_${node.text}_${state.settings.fontSize}`;
-        if (nodeSizeCache.has(cacheKey)) {
-          return nodeSizeCache.get(cacheKey)!;
+        const cached = nodeSizeCache.get(cacheKey);
+        if (cached) {
+          return cached;
         }
         const size = calculateNodeSize(node, undefined, false, state.settings.fontSize);
         nodeSizeCache.set(cacheKey, size);
         return size;
       };
 
-      // Optimized subtree bounds calculation with memoization
-      const boundsCache = new Map<string, { minY: number; maxY: number }>();
+      // Optimized subtree bounds calculation using global cache
       const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
         // Create cache key based on node id and position (to invalidate on position changes)
         const cacheKey = `${node.id}_${node.y || 0}`;
-        
-        if (boundsCache.has(cacheKey)) {
-          return boundsCache.get(cacheKey)!;
+
+        const cached = boundsCache.get(cacheKey);
+        if (cached) {
+          return cached;
         }
 
         const nodeY = node.y || 0;
@@ -184,11 +224,11 @@ export const createDataSlice: StateCreator<
         return result;
       };
 
-      // Memoized node count calculation  
-      const nodeCountCache = new Map<string, number>();
+      // Memoized node count calculation using global cache
       const getNodeCount = (node: MindMapNode): number => {
-        if (nodeCountCache.has(node.id)) {
-          return nodeCountCache.get(node.id)!;
+        const cached = nodeCountCache.get(node.id);
+        if (cached !== undefined) {
+          return cached;
         }
         
         const count = !node.children || node.children.length === 0 

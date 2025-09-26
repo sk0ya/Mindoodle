@@ -138,14 +138,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   }, []);
 
   const toggleCategoryCollapse = useCallback((category: string) => {
-    const newCollapsed = new Set(collapsedCategories);
-    if (newCollapsed.has(category)) {
-      newCollapsed.delete(category);
-    } else {
-      newCollapsed.add(category);
-    }
-    setCollapsedCategories(newCollapsed);
-  }, [collapsedCategories]);
+    setCollapsedCategories(prev => {
+      return prev.has(category)
+        ? (prev.size === 1 ? new Set<string>() : (() => { const s = new Set(prev); s.delete(category); return s; })())
+        : (() => { const s = new Set(prev); s.add(category); return s; })();
+    });
+  }, []);
 
 
 
