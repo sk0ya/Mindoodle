@@ -23,6 +23,7 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   // Data Actions
   setData: (data: MindMapData) => void;
   setRootNodes: (rootNodes: MindMapNode[]) => void;
+  updateMapMetadata?: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => void;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   addChildNode: (parentId: string, text?: string) => string | undefined;
   addSiblingNode: (nodeId: string, text?: string) => string | undefined;

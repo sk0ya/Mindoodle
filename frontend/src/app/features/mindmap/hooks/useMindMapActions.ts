@@ -63,12 +63,8 @@ export const useMindMapActions = () => {
     updateMapMetadata: useCallback((mapIdentifier: MapIdentifier, updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
       const currentData = store.data;
       if (currentData && currentData.mapIdentifier.mapId === mapIdentifier.mapId && currentData.mapIdentifier.workspaceId === mapIdentifier.workspaceId) {
-        const updatedData = {
-          ...currentData,
-          ...updates,
-          updatedAt: new Date().toISOString()
-        };
-        store.setData(updatedData);
+        // Do not reset history for metadata changes
+        (store as any).updateMapMetadata?.(updates);
         logger.debug('Updated map metadata:', updates);
       }
     }, [store])

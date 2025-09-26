@@ -15,6 +15,7 @@ const AUTOLAYOUT_DEBOUNCE_MS = 50;
 export interface DataSlice extends DataState {
   setData: (data: MindMapData) => void;
   setRootNodes: (rootNodes: MindMapNode[], options?: { emit?: boolean; source?: string; reason?: string }) => void;
+  updateMapMetadata?: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => void;
   updateNormalizedData: () => void;
   syncToMindMapData: () => void;
   applyAutoLayout: () => void;
@@ -63,6 +64,20 @@ export const createDataSlice: StateCreator<
     if (shouldEmit) {
       try { mindMapEvents.emit({ type: 'model.changed', source: options?.source || 'unknown' }); } catch {}
     }
+  },
+
+  // Update high-level map metadata (title/category) without touching history
+  updateMapMetadata: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
+    set((state) => {
+      if (!state.data) return;
+      state.data = {
+        ...state.data,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      };
+    });
+    // Intentionally no history event; metadata is not part of node undo/redo
+    try { console.debug('[data] updateMapMetadata', { updates }); } catch {}
   },
 
   // Update normalized data from current tree

@@ -296,13 +296,7 @@ export const useMindMap = (
           } else {
             // Structure changed: replace root nodes and record in history (including kind changes)
             console.debug('[md-sync] applying structural change', { emit: true });
-            try {
-              (dataHook as any).setRootNodes(safeRootNodes, { emit: true });
-            } catch {
-              const now = new Date().toISOString();
-              const updatedData = { ...currentData, rootNodes: safeRootNodes, updatedAt: now } as any;
-              setDataRef.current(updatedData);
-            }
+            (dataHook as any).setRootNodes(safeRootNodes, { emit: true });
             // Apply unified auto-layout after structural markdown changes.
             // Positions are not serialized to markdown, so this won't cause loops.
             try { applyAutoLayoutRef.current?.(); } catch {}
