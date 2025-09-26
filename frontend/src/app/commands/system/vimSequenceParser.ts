@@ -77,6 +77,26 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
   // Don't normalize case to preserve uppercase commands like 'M'
   const normalizedSequence = sequence.trim();
 
+  // Support numeric prefix for ordered-list conversion: "<number>m"
+  // - Partial when only digits (wait for trailing 'm')
+  // - Complete when digits followed by 'm'
+  if (/^\d+$/.test(normalizedSequence)) {
+    return {
+      isComplete: false,
+      isPartial: true
+    };
+  }
+  if (/^(\d+)m$/.test(normalizedSequence)) {
+    const m = normalizedSequence.match(/^(\d+)m$/);
+    const num = m ? m[1] : '';
+    return {
+      isComplete: true,
+      isPartial: false,
+      // Encode numeric argument in the command string
+      command: `m:${num}`
+    };
+  }
+
   // Check for complete commands
   for (const [key, pattern] of Object.entries(VIM_COMMAND_PATTERNS)) {
     if (key === normalizedSequence) {
@@ -135,6 +155,9 @@ export function getVimKeys(): string[] {
   // Add special keys (must match useCommands vimCommandMap)
   // Let standard handler manage delete/backspace/tab/enter
   keys.add('escape');
+
+  // Allow digits for numeric-prefixed commands like "3m"
+  '0123456789'.split('').forEach(k => keys.add(k));
 
   return Array.from(keys);
 }

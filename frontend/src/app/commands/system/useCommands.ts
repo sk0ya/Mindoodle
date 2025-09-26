@@ -15,6 +15,7 @@ import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from '../index';
 import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import { logger } from '@shared/utils';
+import { useMindMapStore } from '@mindmap/store';
 import type { VimModeHook } from '@vim/hooks/useVimMode';
 
 interface UseCommandsProps {
@@ -181,7 +182,62 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
 
   // Execute vim-specific commands
   const executeVimCommand = useCallback(async (vimKey: string): Promise<CommandResult> => {
+    // Numeric-prefixed ordered-list conversion: "<number>m"
+    // parseVimSequence encodes as 'm:<num>'
+    if (/^m:\d+$/.test(vimKey)) {
+      try {
+        const num = parseInt(vimKey.split(':')[1], 10);
+        if (!selectedNodeId || !handlers.findNodeById) {
+          return { success: false, error: 'No node selected' };
+        }
+        const node = handlers.findNodeById(selectedNodeId);
+        if (!node) {
+          return { success: false, error: 'Selected node not found' };
+        }
 
+        // Determine target level and indent based on current meta and parent
+        let level = (node.markdownMeta?.level ?? 1);
+        let indentLevel = Math.max(level - 1, 0);
+
+        // Try to derive from parent when possible
+        try {
+          const roots: any[] = (useMindMapStore as any).getState?.().data?.rootNodes || [];
+          // Lightweight parent search
+          const findParent = (list: any[], targetId: string, parent: any | null = null): any | null => {
+            for (const n of list) {
+              if (n.id === targetId) return parent;
+              if (n.children?.length) {
+                const p = findParent(n.children, targetId, n);
+                if (p) return p;
+              }
+            }
+            return null;
+          };
+          const parent = findParent(roots, selectedNodeId);
+          if (parent?.markdownMeta && (parent.markdownMeta.type === 'ordered-list' || parent.markdownMeta.type === 'unordered-list')) {
+            level = Math.max((parent.markdownMeta.level || 1) + 1, 1);
+            indentLevel = Math.max(level - 1, 0);
+          }
+        } catch { /* ignore parent derivation errors */ }
+
+        const newMeta = {
+          type: 'ordered-list' as const,
+          level,
+          originalFormat: `${Math.max(1, num)}.`,
+          indentLevel,
+          lineNumber: node.markdownMeta?.lineNumber ?? 0
+        };
+
+        // Update only this node's markdownMeta to ordered-list with the specified number
+        handlers.updateNode(selectedNodeId, { markdownMeta: newMeta } as any);
+
+        return { success: true, message: `Converted to ${num}. ordered list` };
+      } catch (e) {
+        return { success: false, error: e instanceof Error ? e.message : 'Failed to set ordered number' };
+      }
+    }
+
+    
     // Handle search commands specially
     if (vimKey === '/' && vim) {
       vim.startSearch();
