@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { MarkdownImporter } from '../markdownImporter';
+import { mergeNodesPreservingLayout } from '../markdownNodeMerge';
 import { type MindMapNode } from '@shared/types';
 import { statusMessages } from '@shared/utils';
 
@@ -60,9 +61,9 @@ export const useMarkdownSync = () => {
       const { rootNodes } = MarkdownImporter.parseMarkdownToNodes(markdownText, options);
       let finalNodes = rootNodes;
 
-      // 既存ノードがある場合は差分更新を試行
+      // 既存ノードがある場合は差分更新を試行（レイアウトを保持しつつ構造を更新）
       if (options?.currentNodes && options?.preservePositions) {
-        finalNodes = mergeWithExistingNodes(rootNodes, options.currentNodes);
+        finalNodes = mergeNodesPreservingLayout(options.currentNodes, rootNodes, null);
       }
 
       onNodesUpdate(finalNodes);
@@ -111,36 +112,52 @@ export const useMarkdownSync = () => {
         const existingNode = existingNodeMap.get(newNode.text);
         
         if (existingNode) {
-          // 既存ノードが見つかった場合、位置情報とIDを保持
-          const mergedNode: MindMapNode = {
+          // 既存ノードが見つかった場合、位置情報とIDを保持しつつ、新しい構造属性を優先
+          const kind = (newNode as any)?.kind ?? (existingNode as any)?.kind;
+          const tableData = (newNode as any)?.tableData ?? (existingNode as any)?.tableData;
+
+          const mergedNode: any = {
             ...newNode,
             id: existingNode.id,
             x: existingNode.x,
             y: existingNode.y,
-            // その他の編集可能な属性も保持
+            // 編集系/外観は既存を優先（ユーザー操作を尊重）
             color: existingNode.color || newNode.color,
             fontSize: existingNode.fontSize || newNode.fontSize,
             fontWeight: existingNode.fontWeight || newNode.fontWeight,
             fontFamily: existingNode.fontFamily || newNode.fontFamily,
             fontStyle: existingNode.fontStyle || newNode.fontStyle,
-            note: existingNode.note || newNode.note,
             links: existingNode.links || newNode.links,
             collapsed: existingNode.collapsed || newNode.collapsed,
           };
+
+          // kind/tableData は新パースを優先
+          if (kind) mergedNode.kind = kind;
+          if (tableData) mergedNode.tableData = tableData;
+          // 表ノードはmeta不要、テキストも空でOK
+          if (mergedNode.kind === 'table') {
+            delete mergedNode.markdownMeta;
+            if (!mergedNode.text) mergedNode.text = '';
+            // noteはImporterが分離しているため、既存noteを尊重（パース側が更新したい場合はnewNode.noteが入る）
+            mergedNode.note = newNode.note ?? existingNode.note;
+          } else {
+            // 非表ノードはnoteは最新（new）を優先
+            mergedNode.note = newNode.note ?? existingNode.note;
+          }
 
           // 子ノードも再帰的にマージ
           if (newNode.children) {
             mergedNode.children = mergeNodeData(newNode.children);
           }
 
-          return mergedNode;
+          return mergedNode as MindMapNode;
         } else {
           // 新しいノードの場合はそのまま使用（子ノードも処理）
-          const processedNode = { ...newNode };
+          const processedNode: any = { ...newNode };
           if (newNode.children) {
             processedNode.children = mergeNodeData(newNode.children);
           }
-          return processedNode;
+          return processedNode as MindMapNode;
         }
       });
     };

@@ -37,6 +37,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   vimEnabled
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Table nodes render their own content; no text editor overlay
+  if (node.kind === 'table') {
+    return null;
+  }
   const { settings, data, ui } = useMindMapStore();
 
   // リンククリック時の処理
@@ -166,9 +171,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   if (!isEditing) {
     // 画像がある場合はテキストをノードの下部に表示
     const noteStr: string = (node as any)?.note || '';
-    const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
-    const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
-    const hasImage = noteHasImages || noteHasMermaid;
+  const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
+  const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
+  const hasImage = noteHasImages || noteHasMermaid;
 
     // カスタム画像サイズを考慮し、なければノート内<img>のheight属性を参照
     const getActualImageHeight = () => {

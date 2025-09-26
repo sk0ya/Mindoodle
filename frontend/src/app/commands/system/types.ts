@@ -103,7 +103,7 @@ export interface Command {
   description: string;
   args?: CommandArg[];
   examples?: string[];
-  category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility';
+  category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility' | 'ui';
   execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
 }
 

@@ -7,6 +7,24 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
   let prefix = '';
   let md = '';
 
+  // Special handling: table node renders as a markdown table block
+  if ((node as any).kind === 'table') {
+    // For table nodes, the canonical source is node.text (markdown table)
+    md = node.text || '';
+    // Append note if present (exactly as saved)
+    if (node.note != null && node.note !== '') {
+      md += `\n${node.note}`;
+    }
+    // Children (unlikely) — no extra blank lines injected
+    if (node.children && node.children.length > 0) {
+      md += '\n';
+      node.children.forEach((child: MindMapNode) => {
+        md += nodeToMarkdown(child, level + 1, nodeType);
+      });
+    }
+    return md;
+  }
+
   // Determine the appropriate prefix based on node type
   if (nodeType === 'unordered-list' || nodeType === 'ordered-list') {
     // For list items, calculate indent based on actual indentLevel
@@ -31,7 +49,7 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     md += `\n${node.note}`;
   }
 
-  // Add children with proper line breaks
+  // Add children with proper line breaks (do not inject extra blank lines)
   if (node.children && node.children.length > 0) {
     md += '\n';
     node.children.forEach((child: MindMapNode) => {

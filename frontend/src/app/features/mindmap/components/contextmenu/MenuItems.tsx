@@ -60,7 +60,6 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       disabled: isGenerating
     }] : []),
     ...(aiEnabled && onAIGenerate ? [{ type: 'separator' as const }] : []),
-    { type: 'separator' as const },
     {
       icon: <Copy size={16} />,
       label: 'コピー',

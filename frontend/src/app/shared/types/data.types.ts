@@ -78,6 +78,12 @@ export interface MindMapNode {
   note?: string;
   customImageWidth?: number;
   customImageHeight?: number;
+  // Node kind: default is text. 'table' nodes render a table as the node itself and cannot have children
+  kind?: 'text' | 'table';
+  tableData?: {
+    headers?: string[];
+    rows: string[][];
+  };
 }
 
 // MindMap Settings interface

@@ -38,20 +38,21 @@ interface NodeRendererProps {
   onAutoLayout?: () => void;
 }
 
-const NodeRenderer: React.FC<NodeRendererProps> = ({
-  node,
-  nodeLeftX,
-  isSelected,
-  isDragTarget,
-  isDragging,
-  isLayoutTransitioning,
-  nodeWidth,
-  nodeHeight,
-  onMouseDown,
-  onClick,
-  onDoubleClick,
-  onContextMenu,
-  onDragOver,
+  const NodeRenderer: React.FC<NodeRendererProps> = ({
+    node,
+    nodeLeftX,
+    isSelected,
+    isDragTarget,
+    isDragging,
+    isLayoutTransitioning,
+    nodeWidth,
+    nodeHeight,
+    imageHeight,
+    onMouseDown,
+    onClick,
+    onDoubleClick,
+    onContextMenu,
+    onDragOver,
   onDrop,
   onLoadRelativeImage,
   // Original NodeAttachments props
@@ -193,9 +194,13 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
 
   // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
   const noteSize = currentEntry ? parseNoteSizeByIndex(node.note, slotIndex) : null;
-  const imageDimensions = node.customImageWidth && node.customImageHeight
+  // If table node, prefer using existing node size props
+  const imageDimensionsBase = node.customImageWidth && node.customImageHeight
     ? { width: node.customImageWidth, height: node.customImageHeight }
     : noteSize || { width: 150, height: 105 };
+  const imageDimensions = (node.kind === 'table')
+    ? { width: node.customImageWidth ?? Math.max(50, nodeWidth - 10), height: node.customImageHeight ?? imageHeight }
+    : imageDimensionsBase;
 
   // 決定した画像サイズに基づき、一度だけ自動レイアウトを発火
   const lastLayoutKeyRef = useRef<string | null>(null);
@@ -301,10 +306,13 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
 
 
     if (onUpdateNode) {
-      const maybeUpdatedNote = updateNoteImageSizeByIndex(node.note, slotIndex, finalW, finalH);
       const updates: Partial<MindMapNode> = { customImageWidth: finalW, customImageHeight: finalH };
-      if (maybeUpdatedNote && maybeUpdatedNote !== node.note) {
-        updates.note = maybeUpdatedNote;
+      // Only update note markup when resizing embedded note images
+      if (node.kind !== 'table') {
+        const maybeUpdatedNote = updateNoteImageSizeByIndex(node.note, slotIndex, finalW, finalH);
+        if (maybeUpdatedNote && maybeUpdatedNote !== node.note) {
+          (updates as any).note = maybeUpdatedNote;
+        }
       }
       onUpdateNode(node.id, updates);
     }
@@ -396,7 +404,7 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
 
   // 画像位置計算を統一（ノード上部に配置、4pxマージン）
   const renderDims = localDims || imageDimensions;
-  const imageY = node.y - nodeHeight / 2 + 4;
+  const imageY = node.y - nodeHeight / 2 + (node.kind === 'table' ? 0 : 4);
   const imageX = node.x - renderDims.width / 2;
 
   // no-op
@@ -406,12 +414,15 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   const getEntryKey = (entry?: DisplayEntry): string => {
     if (!entry) return 'none';
     if (entry.kind === 'image') return `img:${entry.url}`;
-    const code = entry.code || '';
-    return `mmd:${code.length}:${code.slice(0, 50)}`;
+    if (entry.kind === 'mermaid') {
+      const code = entry.code || '';
+      return `mmd:${code.length}:${code.slice(0, 50)}`;
+    }
+    return 'none';
   };
   const prevEntryKeyRef = useRef<string>('');
   useEffect(() => {
-    const key = getEntryKey(currentEntry);
+    const key = node.kind === 'table' ? `tbl:${(node as any).tableData?.rows?.length || 0}` : getEntryKey(currentEntry);
     if (key !== prevEntryKeyRef.current) {
       prevEntryKeyRef.current = key;
       // 新しいエントリの自然サイズに合わせるため、一旦カスタムサイズを解除
@@ -473,8 +484,8 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   const nodeStyles = getBaseNodeStyles(renderingState, themeConfig, DEFAULT_ANIMATION_CONFIG);
   const backgroundFill = getBackgroundFill(themeConfig);
 
-  // 画像もMermaidもない場合は基本のNodeレンダリングのみ
-  if (!currentEntry) {
+  // 画像もMermaidもなく、かつテーブルノードでもない場合は背景のみ
+  if (!currentEntry && node.kind !== 'table') {
     return (
       <rect
         x={nodeLeftX}
@@ -504,6 +515,9 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
   // 現在のスロットがMermaidかどうか
   const showMermaid = !!currentEntry && (currentEntry as DisplayEntry).kind === 'mermaid';
 
+  // Table node flag
+  const isTableNode = node.kind === 'table';
+
   return (
     <>
       {/* Node background */}
@@ -530,8 +544,8 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
         onDrop={onDrop}
       />
 
-      {/* ノート内Mermaid もしくは 画像を表示 */}
-      <g key={showMermaid ? `mermaid-${node.id}` : (currentImage ? currentImage.id : `empty-${node.id}`)}>
+      {/* ノート内Mermaid / 画像 または テーブルノードを表示 */}
+      <g key={showMermaid ? `mermaid-${node.id}` : (isTableNode ? `table-${node.id}` : (currentImage ? currentImage.id : `empty-${node.id}`))}>
           <foreignObject
             x={imageX}
             y={imageY}
@@ -627,6 +641,81 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
                     }}
                   />
                 )}
+              </div>
+            ) : isTableNode ? (
+              <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
+                   onClick={(e) => { e.stopPropagation(); if (!isSelected && onSelectNode) onSelectNode(node.id); }}
+                   onDoubleClick={(e) => { e.stopPropagation(); }}
+                   onContextMenu={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                   onMouseEnter={handleMouseEnter}
+                   onMouseLeave={handleMouseLeave}
+              >
+                <div style={{ width: '100%', height: '100%', background: 'white', borderRadius: 8, overflow: 'hidden', border: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.08)', boxSizing: 'border-box' }}>
+                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: (settings.fontSize || node.fontSize || 14), lineHeight: 1.35 }}>
+                    <tbody>
+                      {(() => {
+                        // Build rows to render from structured data or fallback parse from text/note
+                        const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
+                          if (!src) return null;
+                          const lines = src.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                          for (let i = 0; i < lines.length - 1; i++) {
+                            const header = lines[i];
+                            const sep = lines[i + 1];
+                            const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
+                            const isSep = /:?-{3,}:?\s*\|/.test(sep) || /^\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?$/.test(sep);
+                            if (isHeader && isSep) {
+                              const outRows: string[][] = [];
+                              const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+                              const headers = toCells(header);
+                              outRows.push(headers);
+                              let j = i + 2;
+                              while (j < lines.length && lines[j].includes('|')) {
+                                outRows.push(toCells(lines[j]));
+                                j++;
+                              }
+                              return { headers, rows: outRows.slice(1) };
+                            }
+                          }
+                          return null;
+                        };
+
+                        // Prefer parsing from node.text (canonical); fallback to note
+                        let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
+                        if (!parsed) {
+                          const td = (node as any).tableData as { headers?: string[]; rows?: string[][] } | undefined;
+                          if (td && Array.isArray(td.rows)) {
+                            parsed = { headers: td.headers, rows: td.rows } as any;
+                          }
+                        }
+
+                        const headers = parsed?.headers;
+                        const dataRows = parsed?.rows || [];
+                        const rows = [ ...(headers ? [headers] : []), ...dataRows ];
+                        const rowsOrPlaceholder = rows.length > 0 ? rows : [['', ''], ['', '']];
+                        return rowsOrPlaceholder.map((row: string[], ri: number) => (
+                          <tr key={ri} style={{ background: headers && ri === 0 ? '#f9fafb' : (ri % 2 === (headers ? 1 : 0) ? '#fcfcfd' : 'white') }}>
+                            {row.map((cell: string, ci: number) => (
+                              <td
+                                key={ci}
+                                style={{
+                                  borderRight: '1px solid #e5e7eb',
+                                  borderBottom: '1px solid #e5e7eb',
+                                  borderLeft: ci === 0 ? '1px solid #e5e7eb' : undefined,
+                                  borderTop: (headers ? ri === 0 : ri === 0) ? '1px solid #e5e7eb' : undefined,
+                                  padding: '6px 8px',
+                                  fontWeight: headers && ri === 0 ? 600 : 400,
+                                  color: headers && ri === 0 ? '#111827' : '#1f2937',
+                                  whiteSpace: 'nowrap'
+                                }}
+                              >{cell}</td>
+                            ))}
+                          </tr>
+                        ));
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+                {/* No resize handle for table nodes */}
               </div>
             ) : (
               <div style={{
@@ -757,8 +846,8 @@ const NodeRenderer: React.FC<NodeRendererProps> = ({
             )}
           </foreignObject>
 
-          {/* 画像選択時の枠線とリサイズハンドル */}
-          {isSelected && (
+          {/* 画像選択時の枠線とリサイズハンドル（表ノードでは非表示） */}
+          {isSelected && node.kind !== 'table' && (
             <g>
               {/* 枠線 */}
               <rect

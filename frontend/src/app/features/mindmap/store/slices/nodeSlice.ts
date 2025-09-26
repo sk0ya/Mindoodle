@@ -106,6 +106,11 @@ export const createNodeSlice: StateCreator<
       try {
         const parentNode = state.normalizedData.nodes[parentId];
         if (!parentNode) return;
+
+        // Disallow adding children to table nodes
+        if ((parentNode as any)?.kind === 'table') {
+          return;
+        }
         
         // 設定を取得してノード作成時に適用
         const settings = state.settings;
@@ -120,10 +125,10 @@ export const createNodeSlice: StateCreator<
         newNode.x = parentNode.x;
         newNode.y = parentNode.y;
 
-        // Set markdownMeta based on siblings or parent
-        if (childNodes.length > 0) {
-          // Check the last sibling for markdownMeta
-          const lastSibling = childNodes[childNodes.length - 1];
+        // Set markdownMeta based on siblings (excluding table nodes) or parent
+        const nonTableSiblings = childNodes.filter((s: any) => s && s.kind !== 'table');
+        if (nonTableSiblings.length > 0) {
+          const lastSibling = nonTableSiblings[nonTableSiblings.length - 1];
           if (lastSibling && lastSibling.markdownMeta) {
             newNode.markdownMeta = {
               type: lastSibling.markdownMeta.type,
@@ -229,6 +234,68 @@ export const createNodeSlice: StateCreator<
         if (!currentNode) return;
         
         const parentId = state.normalizedData.parentMap[nodeId];
+
+        // Helper to derive markdownMeta for a new sibling when current is a table node
+        const deriveSiblingMarkdownMeta = (): Partial<MindMapNode['markdownMeta']> | undefined => {
+          const nd = state.normalizedData!;
+          const isTable = (currentNode as any)?.kind === 'table';
+          const getNearestNonTableSiblingMeta = (siblings: string[], currentIdx: number) => {
+            // search left then right for nearest non-table sibling having markdownMeta
+            const n = siblings.length;
+            for (let offset = 1; offset < n; offset++) {
+              const left = currentIdx - offset;
+              const right = currentIdx + offset;
+              if (left >= 0) {
+                const sib = nd.nodes[siblings[left]] as any;
+                if (sib && sib.kind !== 'table' && sib.markdownMeta) return sib.markdownMeta;
+              }
+              if (right < n) {
+                const sib = nd.nodes[siblings[right]] as any;
+                if (sib && sib.kind !== 'table' && sib.markdownMeta) return sib.markdownMeta;
+              }
+            }
+            return undefined;
+          };
+
+          if (!isTable) {
+            return currentNode.markdownMeta;
+          }
+
+          if (!parentId) {
+            // Root-level siblings
+            const roots = nd.rootNodeIds || [];
+            const idx = roots.indexOf(nodeId);
+            const meta = getNearestNonTableSiblingMeta(roots, idx);
+            if (meta) return meta;
+            // Default to heading level 1 at root
+            return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 } as any;
+          } else {
+            const siblings = nd.childrenMap[parentId] || [];
+            const idx = siblings.indexOf(nodeId);
+            const meta = getNearestNonTableSiblingMeta(siblings, idx);
+            if (meta) return meta;
+            const parentNode = nd.nodes[parentId] as any;
+            const pMeta = parentNode?.markdownMeta;
+            if (pMeta) {
+              if (pMeta.type === 'heading') {
+                // Under heading: children are headings with level+1 (as in addChildNode)
+                const lvl = Math.min((pMeta.level || 1) + 1, 6);
+                return { type: 'heading', level: lvl, originalFormat: '#'.repeat(lvl), indentLevel: 0, lineNumber: -1 } as any;
+              } else if (pMeta.type === 'unordered-list' || pMeta.type === 'ordered-list') {
+                // Sibling under list: one deeper than parent list container
+                return {
+                  type: pMeta.type,
+                  level: (pMeta.level || 1) + 1,
+                  originalFormat: pMeta.originalFormat,
+                  indentLevel: (pMeta.indentLevel || 0) + 2,
+                  lineNumber: -1
+                } as any;
+              }
+            }
+            // Fallback: heading level 1 (safer than forcing list)
+            return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 } as any;
+          }
+        };
         
         // 設定を取得してノード作成時に適用
         const settings = state.settings;
@@ -244,16 +311,10 @@ export const createNodeSlice: StateCreator<
           newNode.x = currentNode.x;
           newNode.y = currentNode.y;
 
-          // Set markdownMeta same as current root sibling node
-          if (currentNode.markdownMeta) {
-            newNode.markdownMeta = {
-              type: currentNode.markdownMeta.type,
-              level: currentNode.markdownMeta.level,
-              originalFormat: currentNode.markdownMeta.originalFormat,
-              indentLevel: currentNode.markdownMeta.indentLevel,
-              lineNumber: -1
-            };
-          }
+          // Set markdownMeta same as current root sibling node (skip if current is table)
+          // markdownMeta inheritance / fallback
+          const derivedMeta = deriveSiblingMarkdownMeta();
+          if (derivedMeta) newNode.markdownMeta = { ...(derivedMeta as any), lineNumber: -1 } as any;
 
           // 新しいルートノードを追加
           state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
@@ -276,16 +337,10 @@ export const createNodeSlice: StateCreator<
           newNode.x = currentNode.x;
           newNode.y = currentNode.y;
 
-          // Set markdownMeta same as current sibling node
-          if (currentNode.markdownMeta) {
-            newNode.markdownMeta = {
-              type: currentNode.markdownMeta.type,
-              level: currentNode.markdownMeta.level,
-              originalFormat: currentNode.markdownMeta.originalFormat,
-              indentLevel: currentNode.markdownMeta.indentLevel,
-              lineNumber: -1
-            };
-          }
+          // Set markdownMeta same as current sibling node (skip if current is table)
+          // markdownMeta inheritance / fallback
+          const derivedMeta2 = deriveSiblingMarkdownMeta();
+          if (derivedMeta2) newNode.markdownMeta = { ...(derivedMeta2 as any), lineNumber: -1 } as any;
 
           // Add sibling node first to establish parent-child relationship
           state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, insertAfter);

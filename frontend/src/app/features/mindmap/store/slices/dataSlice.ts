@@ -122,8 +122,9 @@ export const createDataSlice: StateCreator<
 
         const nodeY = node.y || 0;
         const nodeSize = getNodeSize(node);
-        const nodeTop = nodeY - nodeSize.height / 2;
-        const nodeBottom = nodeY + nodeSize.height / 2;
+        const outerMarginY = (node as any)?.kind === 'table' ? 8 : 0;
+        const nodeTop = nodeY - nodeSize.height / 2 - outerMarginY;
+        const nodeBottom = nodeY + nodeSize.height / 2 + outerMarginY;
 
         let minY = nodeTop;
         let maxY = nodeBottom;

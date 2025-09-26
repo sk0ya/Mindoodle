@@ -18,7 +18,9 @@ const calculateNodePosition = (parentX: number, parentY: number, childIndex: num
 });
 
 function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMapNode {
-  return {
+  const kind = (target as any)?.kind ?? (source as any)?.kind;
+  const tableData = (target as any)?.tableData ?? (source as any)?.tableData;
+  const cloned: any = {
     id: source.id,
     text: target.text,
     x: source.x,
@@ -38,6 +40,9 @@ function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMa
     // update markdown meta from parsed target
     markdownMeta: target.markdownMeta
   };
+  if (kind) cloned.kind = kind;
+  if (tableData) cloned.tableData = tableData;
+  return cloned as MindMapNode;
 }
 
 export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: MindMapNode[], parent: MindMapNode | null = null): MindMapNode[] {
@@ -99,6 +104,9 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
         base.x = pos.x; base.y = pos.y;
       }
       base.markdownMeta = p.markdownMeta;
+      // carry table kind/data into new nodes
+      if ((p as any).kind) (base as any).kind = (p as any).kind;
+      if ((p as any).tableData) (base as any).tableData = (p as any).tableData;
       base.children = mergeNodesPreservingLayout([], p.children || [], base);
       result.push(base);
     }
@@ -107,4 +115,3 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
   // Deletions: any existing not matched are dropped (no need to carry over)
   return result;
 }
-

@@ -155,6 +155,92 @@ export function calculateNodeSize(
   isEditing: boolean = false,
   globalFontSize?: number
 ): NodeSize {
+  // Table node sizing
+  if (node.kind === 'table') {
+    // Use the same font size as rendering (settings.fontSize or node.fontSize)
+    const fontSize = globalFontSize || node.fontSize || 14;
+    const paddingX = 12; // per cell horizontal padding (left+right total = 24)
+    const paddingY = 6;  // per cell vertical padding (top+bottom total = 12)
+    const borderWidth = 1;
+
+    // Build rows from structured data or fallback parse from text/note
+    const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
+      if (!src) return null;
+      const lines = src.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      for (let i = 0; i < lines.length - 1; i++) {
+        const header = lines[i];
+        const sep = lines[i + 1];
+        const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
+        const isSep = /:?-{3,}:?\s*\|/.test(sep) || /^\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?$/.test(sep);
+        if (isHeader && isSep) {
+          const outRows: string[][] = [];
+          const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+          const headers = toCells(header);
+          outRows.push(headers);
+          let j = i + 2;
+          while (j < lines.length && lines[j].includes('|')) {
+            outRows.push(toCells(lines[j]));
+            j++;
+          }
+          return { headers, rows: outRows.slice(1) };
+        }
+      }
+      return null;
+    };
+
+    // Prefer parsing from node.text (canonical); fallback to note
+    let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
+    if (!parsed && (node as any)?.tableData && Array.isArray((node as any).tableData.rows)) {
+      parsed = { headers: (node as any).tableData.headers, rows: (node as any).tableData.rows } as any;
+    }
+
+    const rows: string[][] = [
+      ...(parsed?.headers ? [parsed.headers] : []),
+      ...((parsed?.rows) || [])
+    ];
+    // Fallback placeholder if nothing
+    if (rows.length === 0) {
+      rows.push(['', '']);
+      rows.push(['', '']);
+    }
+
+    const colCount = rows.reduce((m, r) => Math.max(m, r.length), 0);
+    const colWidths: number[] = new Array(colCount).fill(0);
+
+    for (let r = 0; r < rows.length; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const cell = rows[r][c] ?? '';
+        const w = measureTextWidth(cell, fontSize, node.fontFamily || 'system-ui, -apple-system, sans-serif', node.fontWeight || 'normal', node.fontStyle || 'normal');
+        colWidths[c] = Math.max(colWidths[c], w + paddingX * 2);
+      }
+    }
+
+    let contentWidth = colWidths.reduce((a, b) => a + b, 0) + (colCount + 1) * borderWidth; // include borders
+    // row height accounts for line-height (~1.35x) + vertical paddings
+    const rowHeight = Math.max(Math.ceil(fontSize * 1.35) + paddingY * 2, 22);
+    const rowCount = rows.length || 1;
+    let contentHeight = rowCount * rowHeight + (rowCount + 1) * borderWidth;
+
+    // No internal vertical padding for table itself; external margins handled by layout
+
+    // Ensure size is always large enough to display full table (no scrollbars)
+    if (node.customImageWidth && node.customImageHeight) {
+      contentWidth = Math.max(contentWidth, node.customImageWidth);
+      contentHeight = Math.max(contentHeight, node.customImageHeight);
+    }
+
+    // For table nodes, there is no text block at top
+    const baseNodeHeight = 0;
+    const nodeWidth = contentWidth + 10; // small side breathing room
+    const nodeHeight = baseNodeHeight + contentHeight;
+
+    return {
+      width: nodeWidth,
+      height: nodeHeight,
+      imageHeight: contentHeight
+    };
+  }
+
   // 画像の有無とサイズを確認（添付 or ノート埋め込み画像）
   // 添付画像は廃止。ノート内画像のみ検出
   const noteStr: string = (node as any)?.note || '';
@@ -175,6 +261,7 @@ export function calculateNodeSize(
       let noteW: number | null = null;
       let noteH: number | null = null;
       if (noteStr) {
+        // 画像: <img>サイズ指定を反映
         const tagMatch = noteStr.match(/<img[^>]*>/i);
         if (tagMatch) {
           const tag = tagMatch[0];
@@ -193,7 +280,7 @@ export function calculateNodeSize(
         imageWidth = noteW;
         imageHeight = noteH;
       } else {
-        // デフォルトの画像サイズを使用
+        // デフォルトのコンテンツサイズを使用（画像/mermaid）
         imageWidth = 150;
         imageHeight = 105;
       }
@@ -343,22 +430,18 @@ export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode
  * 親ノードの右端から子ノードの左端までの水平距離を計算
  */
 export function getDynamicNodeSpacing(parentNodeSize: NodeSize, childNodeSize: NodeSize, isRootChild: boolean = false): number {
-  if (isRootChild) {
-    // ルートノードの子の場合：密な配置にするため距離を大幅に短縮
-    const baseDistance = 50; // 120から50に短縮
-    const widthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.1); // 0.2から0.1に削減
-    const imageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.05 : 0; // 0.15から0.05に削減
+  // 強化版の距離計算：表ノードなど幅の広いノードに十分な余白を確保
+  const minGap = 16; // 最低でも 16px の余白
+  const widthInfluence = isRootChild ? 0.22 : 0.18; // 子ノード幅に対する係数
+  const parentInfluence = isRootChild ? 0.10 : 0.08; // 親ノード幅の影響
+  const imageInfluence = 0.05; // 画像/表の高さの影響
 
-    return baseDistance + widthAdjustment + imageAdjustment;
-  } else {
-    // 通常の親子間：密な配置にするため距離を短縮
-    const baseDistance = 40; // 60から40に短縮
-    const parentWidthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.05); // 0.1から0.05に削減
-    const parentImageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.05 : 0; // 0.1から0.05に削減
-    const childSizeAdjustment = Math.max(0, (childNodeSize.width - 100) * 0.02); // 0.05から0.02に削減
+  const base = isRootChild ? 80 : 60;
+  const byChildWidth = childNodeSize.width * widthInfluence;
+  const byParentWidth = Math.max(0, (parentNodeSize.width - 100)) * parentInfluence;
+  const byParentHeight = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * imageInfluence : 0;
 
-    return baseDistance + parentWidthAdjustment + parentImageAdjustment + childSizeAdjustment;
-  }
+  return Math.max(base + byChildWidth + byParentWidth + byParentHeight, minGap);
 }
 
 /**

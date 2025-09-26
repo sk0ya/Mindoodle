@@ -114,6 +114,10 @@ const Node: React.FC<NodeProps> = ({
         if (isMarkdownLink(node.text) || isUrl(node.text)) {
           return; // リンクノードはシングルクリック時も編集モードに入らない
         }
+        // 表ノードは編集モードに入らない（ノード自体が表でありセル編集UIは別途）
+        if ((node as any).kind === 'table') {
+          return;
+        }
         // 既に選択されている通常ノードの場合は編集モードに入る
         onStartEdit(node.id);
       } else {
@@ -209,7 +213,9 @@ const Node: React.FC<NodeProps> = ({
     }
 
     // 通常のノードの場合のみ編集開始
-    onStartEdit(node.id);
+    if ((node as any).kind !== 'table') {
+      onStartEdit(node.id);
+    }
   }, [node.id, node.text, onStartEdit, onLinkNavigate]);
 
   // Sidebar -> node DnD: add map link on drop

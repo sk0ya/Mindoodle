@@ -204,6 +204,12 @@ export function addNormalizedNode(
     throw new Error(`Parent node not found: ${parentId}`);
   }
 
+  // Disallow adding children to table nodes (table renders as a single node)
+  const parentNode = normalizedData.nodes[parentId];
+  if ((parentNode as any)?.kind === 'table') {
+    throw new Error('テーブルノードには子ノードを追加できません');
+  }
+
   const { children, ...nodeWithoutChildren } = newNode;
   // childrenは使用しないがdestructuringで除外する必要がある
   void children;
@@ -406,6 +412,12 @@ export function moveNormalizedNode(
     return { success: false, reason: `移動先のノードが見つかりません: ${newParentId}` };
   }
 
+  // Disallow moving under a table node
+  const targetParent = normalizedData.nodes[newParentId];
+  if ((targetParent as any)?.kind === 'table') {
+    return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
+  }
+
   // ノードの種類制約チェック
   const validation = validateNodeMovement(normalizedData, nodeId, newParentId);
   if (!validation.isValid) {
@@ -464,6 +476,14 @@ export function moveNodeWithPositionNormalized(
 
   if (!normalizedData.nodes[targetNodeId]) {
     return { success: false, reason: `ターゲットノードが見つかりません: ${targetNodeId}` };
+  }
+
+  // If moving as child, disallow child under a table node
+  if (position === 'child') {
+    const targetNode = normalizedData.nodes[targetNodeId];
+    if ((targetNode as any)?.kind === 'table') {
+      return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
+    }
   }
 
   // ノードの種類制約チェック

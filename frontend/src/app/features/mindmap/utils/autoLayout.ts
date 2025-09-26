@@ -83,7 +83,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
     if (node.collapsed || !node.children || node.children.length === 0) {
       const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
-      return nodeSize.height;
+      const outerMarginY = (node as any)?.kind === 'table' ? 12 : 0; // more generous external margin for tables
+      return nodeSize.height + outerMarginY * 2;
     }
     
     // 子ノードの合計高さ + 最小限の間隔
@@ -102,7 +103,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     
     // 現在のノードの高さと子ノード群の高さの最大値
     const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
-    return Math.max(nodeSize.height, childrenTotalHeight);
+    const outerMarginY = (node as any)?.kind === 'table' ? 12 : 0;
+    return Math.max(nodeSize.height, childrenTotalHeight) + outerMarginY * 2;
   };
 
   // サブツリーのノード数を計算（レイアウト調整用）
@@ -176,8 +178,9 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
         const calculateNodeBounds = (childNode: MindMapNode) => {
           const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
-          const nodeTop = childNode.y - nodeSize.height / 2;
-          const nodeBottom = childNode.y + nodeSize.height / 2;
+          const outerMarginY = (childNode as any)?.kind === 'table' ? 12 : 0;
+          const nodeTop = childNode.y - nodeSize.height / 2 - outerMarginY;
+          const nodeBottom = childNode.y + nodeSize.height / 2 + outerMarginY;
           
           minY = Math.min(minY, nodeTop);
           maxY = Math.max(maxY, nodeBottom);
@@ -277,4 +280,3 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 export const autoSelectLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
   return simpleHierarchicalLayout(rootNode, options);
 };
-

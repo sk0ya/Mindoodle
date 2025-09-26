@@ -184,6 +184,46 @@ export class MarkdownImporter {
   }
 
   /**
+   * Extract first Markdown table from text
+   */
+  private static extractFirstTable(text?: string): {
+    headers?: string[];
+    rows: string[][];
+    before: string;
+    tableBlock: string;
+    after: string;
+  } | null {
+    if (!text) return null;
+    const lines = text.split(/\r?\n/);
+    for (let i = 0; i < lines.length - 1; i++) {
+      const headerLine = lines[i];
+      const sepLine = lines[i + 1];
+      const isHeader = /^\s*\|.*\|\s*$/.test(headerLine.trim());
+      const isSep = /^\s*\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?\s*$/.test(sepLine.trim());
+      if (!isHeader || !isSep) continue;
+
+      // collect data rows
+      let j = i + 2;
+      const rowLines: string[] = [];
+      while (j < lines.length && /^\s*\|.*\|\s*$/.test(lines[j].trim())) {
+        rowLines.push(lines[j]);
+        j++;
+      }
+
+      const toCells = (line: string) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+      const headers = toCells(headerLine);
+      const rows = rowLines.map(toCells);
+
+      const before = lines.slice(0, i).join('\n'); // do not trim; preserve original whitespace
+      const tableBlock = lines.slice(i, j).join('\n');
+      const after = lines.slice(j).join('\n'); // do not trim; preserve original whitespace
+
+      return { headers, rows, before, tableBlock, after };
+    }
+    return null;
+  }
+
+  /**
    * 構造要素リストからノード階層を構築
    * 見出しが親、リストがその子という正しい階層関係を構築
    * リスト項目同士もインデントレベルに基づいて親子関係を構築
@@ -213,6 +253,38 @@ export class MarkdownImporter {
         indentLevel: element.indentLevel,
         lineNumber: element.lineNumber
       };
+
+      // If the content contains only a table, convert this node into a table node
+      const tableInfo = this.extractFirstTable(newNode.note);
+      if (tableInfo) {
+        const surrounding = `${tableInfo.before}${tableInfo.after}`; // preserve whitespace exactly
+        if (surrounding.length === 0 && newNode.text.trim().length === 0) {
+          // Pure table node
+          (newNode as any).kind = 'table';
+          newNode.text = tableInfo.tableBlock; // store markdown table in text
+          delete (newNode as any).note;
+          // 表ノードは見出し/リストのメタを持たない
+          delete (newNode as any).markdownMeta;
+        } else if (surrounding.length === 0 && newNode.text.trim().length > 0) {
+          // Heading/List node whose content is only a table -> add a child table node
+          const tableNode = createNewNode('');
+          (tableNode as any).kind = 'table';
+          tableNode.text = tableInfo.tableBlock;
+          delete (tableNode as any).note;
+          newNode.note = undefined;
+          newNode.children?.push(tableNode);
+        } else {
+          // Content has table plus other text: remove table from note and create child table node
+          const tableNode = createNewNode('');
+          (tableNode as any).kind = 'table';
+          tableNode.text = tableInfo.tableBlock;
+          delete (tableNode as any).note;
+          // Preserve before/after exactly as in original (no trimming, no extra newlines)
+          const combined = `${tableInfo.before}${tableInfo.after}`;
+          newNode.note = combined.length > 0 ? combined : undefined;
+          newNode.children?.push(tableNode);
+        }
+      }
 
       if (element.type === 'heading') {
         // 見出しの場合：階層に基づいて親子関係を決定
@@ -292,6 +364,32 @@ export class MarkdownImporter {
     }
 
     const processNode = (node: MindMapNode, parentLevel: number = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list'): void => {
+      // Special-case: table node outputs a markdown table block
+      if ((node as any).kind === 'table') {
+        const headers = (node as any).tableData?.headers as string[] | undefined;
+        const rows = (node as any).tableData?.rows as string[][] | undefined;
+        const effectiveHeaders: string[] = headers && headers.length > 0
+          ? headers
+          : (() => {
+              const cols = Math.max(((rows && rows[0]?.length) || 0), 1);
+              return new Array(cols).fill('');
+            })();
+        // Build table block
+        lines.push(`| ${effectiveHeaders.join(' | ')} |`);
+        lines.push(`| ${effectiveHeaders.map(() => '---').join(' | ')} |`);
+        (rows || []).forEach(r => {
+          lines.push(`| ${(r || []).map(c => c ?? '').join(' | ')} |`);
+        });
+        // Append note if exists
+        if (node.note && node.note.trim() !== '') {
+          lines.push(node.note);
+        }
+        // Guardedly handle children without injecting extra blank lines
+        if (node.children && node.children.length > 0) {
+          node.children.forEach(child => processNode(child, parentLevel + 1, parentType));
+        }
+        return;
+      }
       const markdownMeta = node.markdownMeta;
       const nodeType = markdownMeta?.type;
 
@@ -372,9 +470,10 @@ export class MarkdownImporter {
         lines.push(node.note);
       }
 
-      // 子ノードを処理
+      // 子ノードを処理（空行はnoteに保持されたもののみ）
       if (node.children && node.children.length > 0) {
-        for (const child of node.children) {
+        for (let i = 0; i < node.children.length; i++) {
+          const child = node.children[i] as any;
           // 親の種類に応じて子ノードのインデントレベルを決定
           let childParentLevel = parentLevel;
 
@@ -755,12 +854,12 @@ export class MarkdownImporter {
           return updatedNode;
         }
 
-        if (node.children && node.children.length > 0) {
-          return {
-            ...node,
-            children: processNode(node.children, node)
-          };
-        }
+      if (node.children && node.children.length > 0) {
+        return {
+          ...node,
+          children: processNode(node.children, node)
+        };
+      }
 
         return node;
       });
