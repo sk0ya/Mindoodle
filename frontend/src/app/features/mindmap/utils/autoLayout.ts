@@ -11,10 +11,21 @@ interface LayoutOptions {
   levelSpacing?: number;
   nodeSpacing?: number;
   globalFontSize?: number;
-  // 互換性のために残すが本実装では未使用
+  // UI状態に応じた配置（サイドバー重なり回避のために使用）
   sidebarCollapsed?: boolean;
   activeView?: string | null;
 }
+
+// Compute a UI-aware default X so the root won't be hidden under the left sidebar
+const calculateDynamicCenterX = (
+  sidebarCollapsed?: boolean,
+  activeView?: string | null
+): number => {
+  // When a view is active and the sidebar is expanded, reserve its width
+  const leftPanelWidth = activeView && !sidebarCollapsed ? LAYOUT.SIDEBAR_WIDTH : 0;
+  const margin = 12; // breathing room next to the sidebar edge
+  return leftPanelWidth > 0 ? leftPanelWidth + margin : COORDINATES.DEFAULT_CENTER_X;
+};
 
 /**
  * 親ノードの右端から子ノードの左端までの距離に基づいて子ノードのX座標を計算（非ルート）
@@ -36,8 +47,10 @@ const getChildNodeXFromParentEdge = (parentNode: MindMapNode, childNode: MindMap
  * 実際のノードサイズを考慮して衝突を回避
  */
 export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
+  const uiAwareCenterX = calculateDynamicCenterX(options.sidebarCollapsed, options.activeView);
+
   const {
-    centerX = COORDINATES.DEFAULT_CENTER_X,
+    centerX = uiAwareCenterX,
     centerY = COORDINATES.DEFAULT_CENTER_Y,
     levelSpacing = LAYOUT.LEVEL_SPACING,
     nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN, // 最小間隔を使用
