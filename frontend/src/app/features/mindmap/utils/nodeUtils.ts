@@ -429,24 +429,9 @@ export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode
 /**
  * 親ノードの右端から子ノードの左端までの水平距離を計算
  */
-export function getDynamicNodeSpacing(parentNodeSize: NodeSize, childNodeSize: NodeSize, isRootChild: boolean = false): number {
-  // 旧ロジック（密な配置）に戻す
-  if (isRootChild) {
-    // ルート直下: よりタイトに
-    const baseDistance = 50;
-    const widthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.1);
-    const imageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.05 : 0;
-
-    return baseDistance + widthAdjustment + imageAdjustment;
-  } else {
-    // 通常の親子間: タイトめの距離
-    const baseDistance = 40;
-    const parentWidthAdjustment = Math.max(0, (parentNodeSize.width - 100) * 0.05);
-    const parentImageAdjustment = parentNodeSize.imageHeight > 0 ? parentNodeSize.imageHeight * 0.05 : 0;
-    const childSizeAdjustment = Math.max(0, (childNodeSize.width - 100) * 0.02);
-
-    return baseDistance + parentWidthAdjustment + parentImageAdjustment + childSizeAdjustment;
-  }
+export function getDynamicNodeSpacing(_parentNodeSize: NodeSize, _childNodeSize: NodeSize, _isRootChild: boolean = false): number {
+  // 特別扱いを廃止し、全階層で同じエッジ間距離を使用
+  return 40;
 }
 
 /**

@@ -28,17 +28,7 @@ const getChildNodeXFromParentEdge = (parentNode: MindMapNode, childNode: MindMap
   return calculateChildNodeX(parentNode, childNodeSize, edgeToEdgeDistance);
 };
 
-/**
- * ルートノードの右端から子ノードの左端までの距離に基づいて子ノードのX座標を計算
- */
-const getChildNodeXFromRootEdge = (rootNode: MindMapNode, childNode: MindMapNode, globalFontSize?: number): number => {
-  const rootNodeSize = calculateNodeSize(rootNode, undefined, false, globalFontSize);
-  const childNodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
-  
-  // ルートノードの右端から子ノードの左端までの距離を計算
-  const edgeToEdgeDistance = getDynamicNodeSpacing(rootNodeSize, childNodeSize, true);
-  return calculateChildNodeX(rootNode, childNodeSize, edgeToEdgeDistance);
-};
+// ルート直下を特別扱いしない方針に変更
 
 
 /**
@@ -55,6 +45,9 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   } = options;
 
   const newRootNode = cloneDeep(rootNode);
+  // Place root first so children use the final root.x as baseline
+  newRootNode.x = centerX;
+  newRootNode.y = centerY;
 
   // サブツリーの実際の高さを計算（旧ロジック: テーブル外側マージンなし）
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
@@ -94,15 +87,9 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   const positionNode = (node: MindMapNode, parent: MindMapNode | null, depth: number, yOffset: number): void => {
     if (depth === 0) return; // ルートは既に配置済み
     
-    // X座標の計算
+    // X座標の計算（ルート直下も含めて全て親基準の同一ロジック）
     if (parent) {
-      if (depth === 1) {
-        // ルートノードの直接の子要素: ルートノードの右端から子ノードの左端まで
-        node.x = getChildNodeXFromRootEdge(newRootNode, node, globalFontSize);
-      } else {
-        // それ以外: 親ノードの右端から子ノードの左端まで
-        node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize);
-      }
+      node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize);
     } else {
       // フォールバック: 従来の深度ベースの配置
       node.x = centerX + (depth * levelSpacing);
@@ -237,12 +224,9 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       newRootNode.y = childrenCenterY;
     }
 
-    // ルートノードのX座標を設定（旧ロジック: 定数ベース）
-    newRootNode.x = centerX;
   } else {
-    // 子ノードがない場合はデフォルト位置
-    newRootNode.x = centerX;
-    newRootNode.y = centerY;
+    // 子ノードがない場合はデフォルト位置（すでに設定済み）
+    // newRootNode.x = centerX; newRootNode.y = centerY;
   }
 
   return newRootNode;

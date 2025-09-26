@@ -102,6 +102,8 @@ export const useMindMap = (
   useEffect(() => { setDataRef.current = dataHook.setData; }, [dataHook.setData]);
   const updateNodeRef = useRef(dataHook.updateNode);
   useEffect(() => { updateNodeRef.current = dataHook.updateNode; }, [dataHook.updateNode]);
+  const applyAutoLayoutRef = useRef(dataHook.applyAutoLayout);
+  useEffect(() => { applyAutoLayoutRef.current = dataHook.applyAutoLayout; }, [dataHook.applyAutoLayout]);
 
   // Timer to prevent nodes->markdown sync after editor changes
   const skipNodeToMarkdownSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -265,7 +267,9 @@ export const useMindMap = (
             const now = new Date().toISOString();
             const updatedData = { ...currentData, rootNodes: safeRootNodes, updatedAt: now } as any;
             setDataRef.current(updatedData);
-            // Auto layout permanently disabled here to prevent infinite loops during markdown updates
+            // Apply unified auto-layout after structural markdown changes.
+            // Positions are not serialized to markdown, so this won't cause loops.
+            try { applyAutoLayoutRef.current?.(); } catch {}
           }
         }
       } catch (error) {

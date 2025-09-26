@@ -3,17 +3,9 @@ import { generateNodeId } from '@shared/utils';
 import { logger } from '@shared/utils';
 
 // Helper function to create new node with proper initial positioning
-const createNewNode = (text: string, isRoot: boolean = false): MindMapNode => {
-  // サイドバーを考慮した適切な初期X座標を設定
-  const calculateInitialX = () => {
-    if (!isRoot) return 0; // 子ノードは後でautoLayoutで配置される
-
-    const leftPanelWidth = 280; // Primary sidebar
-    const margin = 5; // サイドバーのすぐ右ギリギリ
-
-
-    return leftPanelWidth + margin; // サイドバーのすぐ右側
-  };
+const createNewNode = (text: string, _isRoot: boolean = false): MindMapNode => {
+  // 初期X座標（全ノード同一の最小初期値。実配置は adjustNodePositions/autoLayout で決定）
+  const calculateInitialX = () => 0;
 
   return {
     id: generateNodeId(),
@@ -90,10 +82,8 @@ export class MarkdownImporter {
     // ノード構造を構築
     const rootNodes = this.buildNodeHierarchy(elements);
 
-    // 位置を調整
-    if (options) {
-      this.adjustNodePositions(rootNodes, options);
-    }
+    // 位置を調整（オプション未指定でも最小の仮配置を適用して見た目を安定化）
+    this.adjustNodePositions(rootNodes, options || {});
 
     if (DEBUG_MD) {
       logger.debug('🏗️ ノード構築結果', {
@@ -947,8 +937,9 @@ export class MarkdownImporter {
     const {
       startX = 100,
       startY = 100,
-      horizontalSpacing = 250,
-      verticalSpacing = 100
+      // Make provisional spacing minimal; auto-layout will refine
+      horizontalSpacing = 12,
+      verticalSpacing = 18
     } = options;
 
     let currentY = startY;

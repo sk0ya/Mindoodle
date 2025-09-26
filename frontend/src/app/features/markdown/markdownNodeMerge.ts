@@ -12,9 +12,10 @@ const createNewNode = (text: string): MindMapNode => ({
   fontWeight: 'normal'
 });
 
+// Use even smaller provisional offsets; auto-layout will correct soon after
 const calculateNodePosition = (parentX: number, parentY: number, childIndex: number): { x: number; y: number } => ({
-  x: parentX + 250,
-  y: parentY + (childIndex * 100)
+  x: parentX + 28,
+  y: parentY + (childIndex * 28)
 });
 
 function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMapNode {

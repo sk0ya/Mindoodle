@@ -18,7 +18,7 @@ import {
 } from '@core/data/normalizedStore';
 import { generateNodeId } from '@shared/utils';
 import { COLORS } from '@shared/constants';
-import { getBranchColor } from '../../utils';
+import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from '../../utils';
 import type { MindMapStore } from './types';
 
 // Helper function to create new node
@@ -120,10 +120,19 @@ export const createNodeSlice: StateCreator<
         const childIds = state.normalizedData.childrenMap[parentId] || [];
         const childNodes = childIds.map((id: string) => state.normalizedData?.nodes[id]).filter(Boolean);
         
-        // Skip initial position calculation - let autoLayout handle it
-        // This prevents the visual "jump" when autoLayout is enabled
-        newNode.x = parentNode.x;
-        newNode.y = parentNode.y;
+        // Initial position: place relative to parent uniformly for all depths (root is just another parent)
+        try {
+          const fontSize = state.settings?.fontSize;
+          const parentSize = calculateNodeSize(parentNode as any, undefined, false, fontSize);
+          const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize);
+          const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
+          newNode.x = calculateChildNodeX(parentNode as any, childSize as any, edge);
+          newNode.y = parentNode.y; // Y is refined by autoLayout later
+        } catch (_e) {
+          // Fallback: overlap parent if anything goes wrong
+          newNode.x = parentNode.x;
+          newNode.y = parentNode.y;
+        }
 
         // Set markdownMeta based on siblings (excluding table nodes) or parent
         const nonTableSiblings = childNodes.filter((s: any) => s && s.kind !== 'table');
@@ -332,10 +341,19 @@ export const createNodeSlice: StateCreator<
           newNode = createNewNode(text, parentNode, settings);
           newNodeId = newNode.id;
           
-          // Skip initial position calculation - let autoLayout handle it
-          // This prevents the visual "jump" when autoLayout is enabled
-          newNode.x = currentNode.x;
-          newNode.y = currentNode.y;
+          // Initial position relative to the same parent (consistent for all depths)
+          try {
+            const fontSize = state.settings?.fontSize;
+            const pNode = state.normalizedData.nodes[parentId];
+            const parentSize = calculateNodeSize(pNode as any, undefined, false, fontSize);
+            const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize);
+            const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
+            newNode.x = calculateChildNodeX(pNode as any, childSize as any, edge);
+            newNode.y = pNode.y; // Y refined later by autoLayout
+          } catch (_e) {
+            newNode.x = currentNode.x;
+            newNode.y = currentNode.y;
+          }
 
           // Set markdownMeta same as current sibling node (skip if current is table)
           // markdownMeta inheritance / fallback
