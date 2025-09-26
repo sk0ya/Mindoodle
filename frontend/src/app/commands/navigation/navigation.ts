@@ -344,82 +344,31 @@ export const selectCenterNodeCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      let rootNode = null;
 
-      // Get root node from vim context
-      if (context.vim?.getCurrentRootNode) {
-        rootNode = context.vim.getCurrentRootNode();
-      }
+      // Compute viewport rect like centerNodeInView
+      const st = (useMindMapStore.getState() as any);
+      const ui = st?.ui || {};
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+      const ACTIVITY_BAR_WIDTH = 48;
+      const SIDEBAR_WIDTH = 280;
+      const leftPanelWidth = ACTIVITY_BAR_WIDTH + (ui?.activeView && !ui?.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
+      const rightPanelWidth = ui?.showNotesPanel ? (ui?.markdownPanelWidth || 0) : 0;
+      const VIM_HEIGHT = 24;
+      const defaultNoteHeight = Math.round(window.innerHeight * 0.3);
+      const noteHeight = ui?.showNodeNotePanel ? (ui?.nodeNotePanelHeight && ui?.nodeNotePanelHeight > 0 ? ui?.nodeNotePanelHeight : defaultNoteHeight) : 0;
+      const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
+      const topOverlay = 0;
+      const mapAreaRect = new DOMRect(
+        leftPanelWidth,
+        topOverlay,
+        Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
+        Math.max(0, viewportHeight - bottomOverlay - topOverlay)
+      );
 
-      if (!rootNode) {
-        return {
-          success: false,
-          error: 'No root node found in current map'
-        };
-      }
-
-      // Get actual viewport dimensions considering sidebar and panels
-      const mindmapContainer = document.querySelector('.mindmap-workspace') ||
-                              document.querySelector('.mindmap-canvas') ||
-                              document.querySelector('.canvas-container');
-
-      let effectiveWidth = window.innerWidth;
-      let effectiveHeight = window.innerHeight;
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (mindmapContainer) {
-        const rect = mindmapContainer.getBoundingClientRect();
-        effectiveWidth = rect.width;
-        effectiveHeight = rect.height;
-        offsetX = rect.left;
-        offsetY = rect.top;
-      } else {
-        // Fallback: manually calculate effective area considering all panels
-
-        // Left sidebar
-        const sidebar = document.querySelector('.sidebar') ||
-                       document.querySelector('.primary-sidebar') ||
-                       document.querySelector('.primary-sidebar-container');
-        if (sidebar) {
-          const sidebarRect = sidebar.getBoundingClientRect();
-          effectiveWidth -= sidebarRect.width;
-          offsetX = sidebarRect.width;
-        }
-
-        // Right panels (notes panel, customization panel, etc.)
-        const rightPanels = [
-          document.querySelector('.node-notes-panel'),
-          document.querySelector('.customization-panel'),
-          document.querySelector('.notes-panel-container'),
-          document.querySelector('.panel-container')
-        ].filter(panel => {
-          if (!panel) return false;
-          const rect = panel.getBoundingClientRect();
-          return rect.width > 0 && rect.height > 0; // Only visible panels
-        });
-
-        rightPanels.forEach(panel => {
-          if (panel) {
-            const panelRect = panel.getBoundingClientRect();
-            effectiveWidth -= panelRect.width;
-          }
-        });
-
-        // Top toolbar/header
-        const header = document.querySelector('.toolbar') ||
-                      document.querySelector('.mindmap-header') ||
-                      document.querySelector('.header');
-        if (header) {
-          const headerRect = header.getBoundingClientRect();
-          effectiveHeight -= headerRect.height;
-          offsetY = headerRect.height;
-        }
-      }
-
-      // Calculate the center of the effective viewport in screen coordinates
-      const centerScreenX = offsetX + effectiveWidth / 2;
-      const centerScreenY = offsetY + effectiveHeight / 2;
+      // Center of effective viewport (screen coords)
+      const centerScreenX = mapAreaRect.left + (mapAreaRect.width / 2);
+      const centerScreenY = mapAreaRect.top + (mapAreaRect.height / 2);
 
       // Function to find all visible nodes
       function collectAllNodes(node: any): any[] {
@@ -432,22 +381,18 @@ export const selectCenterNodeCommand: Command = {
         return nodes;
       }
 
-      const allNodes = collectAllNodes(rootNode);
+      // Gather nodes from all roots so selection considers the full map
+      const st2 = (useMindMapStore.getState() as any);
+      const rootsForCollect = st2?.data?.rootNodes || [];
+      const allNodes = ([] as any[]).concat(...rootsForCollect.map((r: any) => collectAllNodes(r)));
 
       // Find the node closest to the center of the viewport
       let closestNode = null;
       let closestDistance = Infinity;
 
-      // Get current zoom and pan from context (we'll need to estimate this)
-      // For now, we'll use a default zoom of 1.5 that matches the ensureNodeVisible function
-      const currentZoom = 1.5; // This should ideally come from ui context
-      const currentPan = { x: 0, y: 0 }; // This should ideally come from ui context
-
-      // Try to get pan/zoom from handlers if available
-      if (context.handlers.setPan && typeof context.handlers.setPan === 'function') {
-        // We can't easily get current pan/zoom, so we'll use the default approach
-        // In a real implementation, we'd need access to current ui state
-      }
+      // Use actual zoom/pan from UI store for accurate screen positions
+      const currentZoom = ((ui?.zoom) || 1) * 1.5; // match renderer scale
+      const currentPan = ui?.pan || { x: 0, y: 0 };
 
       for (const node of allNodes) {
         if (!node.x || !node.y) continue; // Skip nodes without position
@@ -474,8 +419,11 @@ export const selectCenterNodeCommand: Command = {
         };
       }
 
-      // Select the closest node
+      // Select the closest node and bring it into view
       context.handlers.selectNode(closestNode.id);
+      if (context.handlers.centerNodeInView) {
+        context.handlers.centerNodeInView(closestNode.id, true);
+      }
 
       // Close any open panels
       context.handlers.closeAttachmentAndLinkLists();
