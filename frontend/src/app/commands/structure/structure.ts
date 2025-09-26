@@ -217,16 +217,20 @@ export const convertNodeCommand: Command = {
       };
     }
 
-    // For vim 'm' behavior: toggle between heading and list when no specific type is provided
+    // For vim 'm' behavior (no explicit type):
+    // - heading -> unordered-list
+    // - ordered-list -> unordered-list (番号付き → 箇条書き)
+    // - unordered-list -> heading
+    // - unknown -> unordered-list
     if (!args.type) {
-      if (node.markdownMeta?.type === 'heading') {
-        // 見出し → リスト
+      const currentType = node.markdownMeta?.type;
+      if (currentType === 'heading') {
         targetType = 'unordered-list';
-      } else if (node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list') {
-        // リスト → 見出し
+      } else if (currentType === 'ordered-list') {
+        targetType = 'unordered-list';
+      } else if (currentType === 'unordered-list') {
         targetType = 'heading';
       } else {
-        // メタデータが無い/不明な場合は「見出し扱い」としてリストへ変換
         targetType = 'unordered-list';
       }
     }
