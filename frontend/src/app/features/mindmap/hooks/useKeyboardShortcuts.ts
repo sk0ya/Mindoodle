@@ -238,6 +238,12 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
               if (vim && vim.isEnabled) vim.setMode('normal');
             });
             return;
+          } else if (event.key === 'Tab') {
+            event.preventDefault();
+            handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
+              if (vim && vim.isEnabled) vim.setMode('normal');
+            });
+            return;
           } else if (event.key === 'Escape') {
             event.preventDefault();
             handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
