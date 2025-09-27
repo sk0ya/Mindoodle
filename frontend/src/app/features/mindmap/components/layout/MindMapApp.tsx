@@ -657,6 +657,12 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       const targetNode = findNodeInRoots(roots, selId);
       if (!targetNode) return;
 
+      // Get current UI state from store (not from component closure)
+      const currentUI = st.ui || {};
+      const currentActiveView = currentUI.activeView;
+      const currentSidebarCollapsed = currentUI.sidebarCollapsed;
+
+
       const mindmapContainer = document.querySelector('.mindmap-canvas-container') ||
                                document.querySelector('.workspace-container') ||
                                document.querySelector('.mindmap-app');
@@ -666,21 +672,60 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       let offsetX = 0;
       let offsetY = 0;
 
+
       if (mindmapContainer) {
         const rect = mindmapContainer.getBoundingClientRect();
         effectiveWidth = rect.width;
         effectiveHeight = rect.height;
         offsetX = rect.left;
         offsetY = rect.top;
-      } else {
-        const sidebar = document.querySelector('.sidebar') ||
-                        document.querySelector('.primary-sidebar') ||
-                        document.querySelector('.primary-sidebar-container');
-        if (sidebar) {
-          const sidebarRect = sidebar.getBoundingClientRect();
-          effectiveWidth -= sidebarRect.width;
-          offsetX = sidebarRect.width;
+
+        // Even when using container, we need to check if sidebar should be considered
+        // Container might already account for sidebar, but let's verify the offsetX
+        if (currentActiveView && !currentSidebarCollapsed && offsetX === 0) {
+          // Container doesn't account for sidebar, so we need to adjust
+          const ACTIVITY_BAR_WIDTH = 48;
+          const sidebarPanel = document.querySelector('.mindmap-sidebar') as HTMLElement | null;
+          let sidebarWidth = 0;
+          if (sidebarPanel) {
+            try {
+              const sidebarRect = sidebarPanel.getBoundingClientRect();
+              sidebarWidth = sidebarRect.width;
+            } catch {}
+          } else {
+            sidebarWidth = 280; // fallback
+          }
+          const totalLeftOffset = ACTIVITY_BAR_WIDTH + sidebarWidth;
+          offsetX = totalLeftOffset;
         }
+      } else {
+        // Left sidebar - use same pattern as panels: DOM first, fallback to store/fixed values
+        const ACTIVITY_BAR_WIDTH = 48;
+        const SIDEBAR_WIDTH = 280; // fallback
+        let leftPanelWidth = ACTIVITY_BAR_WIDTH;
+
+        if (currentActiveView && !currentSidebarCollapsed) {
+          // Try to get actual sidebar width from DOM first (like panels)
+          const sidebarPanel = document.querySelector('.mindmap-sidebar') as HTMLElement | null;
+          if (sidebarPanel) {
+            try {
+              const sidebarRect = sidebarPanel.getBoundingClientRect();
+              console.log('[ensureSelectedNodeVisible] Sidebar DOM found:', {
+                width: sidebarRect.width,
+                left: sidebarRect.left,
+                right: sidebarRect.right
+              });
+              leftPanelWidth += sidebarRect.width;
+            } catch {}
+          } else {
+            // Fallback to fixed width if DOM not available
+            leftPanelWidth += SIDEBAR_WIDTH;
+          }
+        }
+
+
+        effectiveWidth -= leftPanelWidth;
+        offsetX = leftPanelWidth;
 
         // Right-side markdown panel (primary right panel in this app)
         const markdownPanel = document.querySelector('.markdown-panel') as HTMLElement | null;
@@ -689,9 +734,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             const pr = markdownPanel.getBoundingClientRect();
             effectiveWidth -= pr.width;
           } catch {}
-        } else if (uiStore.showNotesPanel && (uiStore as any).markdownPanelWidth) {
+        } else if (currentUI.showNotesPanel && currentUI.markdownPanelWidth) {
           // Fallback to store width if DOM not yet available
-          const w = Math.max(0, (uiStore as any).markdownPanelWidth as number);
+          const w = Math.max(0, currentUI.markdownPanelWidth);
           effectiveWidth -= w;
         }
 
@@ -773,7 +818,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         setPanLocal({ x: newPanX, y: newPanY });
       }
     } catch {}
-  }, []);
+  }, [activeView, uiStore.sidebarCollapsed, uiStore.showNotesPanel, uiStore.markdownPanelWidth]);
 
   // ノードが見切れないように最小限のスクロールで可視範囲に入れる
   const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
