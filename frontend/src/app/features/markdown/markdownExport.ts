@@ -1,6 +1,6 @@
 import type { MindMapNode } from '@shared/types';
 
-export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list'): string {
+export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list' | 'preface'): string {
   const nodeType = node.markdownMeta?.type;
   const indentLevel = node.markdownMeta?.indentLevel ?? 0;
 
@@ -40,6 +40,9 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
   } else if (nodeType === 'heading') {
     // For heading nodes, use heading format
     prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
+  } else if (nodeType === 'preface') {
+    // For preface nodes, no prefix
+    prefix = '';
   } else {
     // メタなしノードはプレーンテキスト
     prefix = '';

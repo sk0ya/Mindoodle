@@ -53,7 +53,7 @@ export interface MarkdownMeta {
   filePath?: string;
   lineNumber?: number;
   level?: number;
-  type?: 'heading' | 'unordered-list' | 'ordered-list';
+  type?: 'heading' | 'unordered-list' | 'ordered-list' | 'preface';
   originalText?: string;
   lastModified?: number;
   originalFormat?: string;

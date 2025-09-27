@@ -24,7 +24,7 @@ const DEBUG_MD = true; // 一時的にデバッグ有効
 //   (import.meta as any)?.env?.VITE_DEBUG_MARKDOWN === 'true';
 
 interface StructureElement {
-  type: 'heading' | 'unordered-list' | 'ordered-list';
+  type: 'heading' | 'unordered-list' | 'ordered-list' | 'preface';
   level: number;
   text: string;
   content: string;
@@ -106,13 +106,31 @@ export class MarkdownImporter {
     const elements: StructureElement[] = [];
     let currentContent: string[] = [];
     let currentElement: StructureElement | null = null;
+    let prefaceLines: string[] = [];
+    let foundFirstStructureElement = false;
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      
+
       // 見出しをチェック
       const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
       if (headingMatch) {
+        // 最初の構造要素の前に前文があった場合、前文要素を作成
+        if (!foundFirstStructureElement && prefaceLines.length > 0) {
+          const prefaceText = prefaceLines.join('\n').trim();
+          if (prefaceText) {
+            elements.push({
+              type: 'preface',
+              level: 0,
+              text: prefaceText,
+              content: '',
+              originalFormat: '',
+              lineNumber: 0
+            });
+          }
+        }
+        foundFirstStructureElement = true;
+
         // 前の要素を保存
         if (currentElement) {
           currentElement.content = currentContent.join('\n').trim();
@@ -134,6 +152,22 @@ export class MarkdownImporter {
       // リスト項目をチェック
       const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
       if (listMatch) {
+        // 最初の構造要素の前に前文があった場合、前文要素を作成
+        if (!foundFirstStructureElement && prefaceLines.length > 0) {
+          const prefaceText = prefaceLines.join('\n').trim();
+          if (prefaceText) {
+            elements.push({
+              type: 'preface',
+              level: 0,
+              text: prefaceText,
+              content: '',
+              originalFormat: '',
+              lineNumber: 0
+            });
+          }
+        }
+        foundFirstStructureElement = true;
+
         // 前の要素を保存
         if (currentElement) {
           currentElement.content = currentContent.join('\n').trim();
@@ -158,9 +192,28 @@ export class MarkdownImporter {
         continue;
       }
 
-      // その他のコンテンツを現在の要素に追加
-      if (currentElement) {
+      // その他のコンテンツを処理
+      if (!foundFirstStructureElement) {
+        // まだ構造要素が見つかっていない場合は前文として収集
+        prefaceLines.push(line);
+      } else if (currentElement) {
+        // 構造要素が見つかった後は現在の要素のコンテンツとして追加
         currentContent.push(line);
+      }
+    }
+
+    // 前文のみでドキュメントが終わった場合
+    if (!foundFirstStructureElement && prefaceLines.length > 0) {
+      const prefaceText = prefaceLines.join('\n').trim();
+      if (prefaceText) {
+        elements.push({
+          type: 'preface',
+          level: 0,
+          text: prefaceText,
+          content: '',
+          originalFormat: '',
+          lineNumber: 0
+        });
       }
     }
 
@@ -225,6 +278,26 @@ export class MarkdownImporter {
     let currentHeading: MindMapNode | null = null;
 
     for (const element of elements) {
+      // 前文の場合は特別に処理
+      if (element.type === 'preface') {
+        const prefaceNode = createNewNode('', true); // テキストは空
+        prefaceNode.children = [];
+        prefaceNode.note = element.text; // 前文はnoteに格納
+        
+        // 前文ノードのメタデータ設定
+        prefaceNode.markdownMeta = {
+          type: 'preface',
+          level: 0,
+          originalFormat: '',
+          indentLevel: 0,
+          lineNumber: element.lineNumber
+        };
+
+        // 前文は常にルートレベルに配置し、他の要素より先に表示
+        rootNodes.unshift(prefaceNode);
+        continue;
+      }
+
       // Determine if this will be a root node before creating it
       const isRoot = (element.type === 'heading' && (
         headingStack.length === 0 ||
@@ -352,7 +425,7 @@ export class MarkdownImporter {
       });
     }
 
-    const processNode = (node: MindMapNode, parentLevel: number = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list'): void => {
+    const processNode = (node: MindMapNode, parentLevel: number = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list' | 'preface'): void => {
       // Special-case: table node outputs its markdown text verbatim
       if ((node as any).kind === 'table') {
         const tableMd = String(node.text || '');
@@ -386,7 +459,20 @@ export class MarkdownImporter {
         // 現在のtypeに基づいて動的にフォーマットを生成
         let prefix = '';
 
-        if (markdownMeta.type === 'heading') {
+        if (markdownMeta.type === 'preface') {
+          // 前文の場合はnoteからコンテンツを取得し、マーカーなしで出力
+          if (node.note != null && node.note !== '') {
+            lines.push(node.note);
+          }
+          // 前文の場合は子ノードを処理してから return
+          if (node.children && node.children.length > 0) {
+            for (let i = 0; i < node.children.length; i++) {
+              const child = node.children[i] as any;
+              processNode(child, 0, nodeType);
+            }
+          }
+          return;
+        } else if (markdownMeta.type === 'heading') {
           // 見出しの場合：levelに基づいて#の数を決定
           prefix = '#'.repeat(markdownMeta.level || 1) + ' ';
         } else if (markdownMeta.type === 'unordered-list') {
@@ -444,6 +530,9 @@ export class MarkdownImporter {
           if (markdownMeta) {
             if (markdownMeta.type === 'heading') {
               // 見出しの子は常にインデントレベル0から開始
+              childParentLevel = 0;
+            } else if (markdownMeta.type === 'preface') {
+              // 前文の子も通常のレベルで処理
               childParentLevel = 0;
             } else {
               // リストの子は親のインデントレベル + 1

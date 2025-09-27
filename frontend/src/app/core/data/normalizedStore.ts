@@ -418,6 +418,11 @@ export function moveNormalizedNode(
     return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
   }
 
+  // Disallow moving under a preface node
+  if (targetParent.markdownMeta?.type === 'preface') {
+    return { success: false, reason: '前文ノードには子ノードを追加できません' };
+  }
+
   // ノードの種類制約チェック
   const validation = validateNodeMovement(normalizedData, nodeId, newParentId);
   if (!validation.isValid) {

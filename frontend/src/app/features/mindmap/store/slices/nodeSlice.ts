@@ -87,14 +87,23 @@ export const createNodeSlice: StateCreator<
     try { console.debug('[node] updateNode', { nodeId, hasKind: Object.prototype.hasOwnProperty.call(updates, 'kind') }); } catch {}
     set((state) => {
       if (!state.normalizedData) return;
-      
+
       try {
-        state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, updates);
+        const existingNode = state.normalizedData.nodes[nodeId];
+
+        // Prevent text updates for preface nodes
+        if (existingNode?.markdownMeta?.type === 'preface' && 'text' in updates) {
+          // Remove text from updates to prevent modification
+          const { text, ...allowedUpdates } = updates;
+          state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, allowedUpdates);
+        } else {
+          state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, updates);
+        }
       } catch (error) {
         logger.error('updateNode error:', error);
       }
     });
-    
+
     // Sync to tree structure and add to history
     get().syncToMindMapData();
   },
@@ -113,6 +122,11 @@ export const createNodeSlice: StateCreator<
 
         // Disallow adding children to table nodes
         if ((parentNode as any)?.kind === 'table') {
+          return;
+        }
+
+        // Disallow adding children to preface nodes
+        if (parentNode.markdownMeta?.type === 'preface') {
           return;
         }
         
