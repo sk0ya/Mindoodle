@@ -16,6 +16,7 @@ const createNewNode = (text: string, _isRoot: boolean = false, parentLineEnding?
     children: [],
     fontSize: 14,
     fontWeight: 'normal',
+    note: undefined,
     lineEnding: parentLineEnding || '\n'
   };
 };
@@ -29,7 +30,7 @@ interface StructureElement {
   type: 'heading' | 'unordered-list' | 'ordered-list' | 'preface';
   level: number;
   text: string;
-  content: string;
+  content?: string | undefined; // ノート内容（前後の空行は除去済み）
   originalFormat: string; // #, ##, -, *, +, 1., 2. など
   indentLevel?: number; // リストのインデントレベル（スペース数）
   lineNumber: number; // 元の行番号
@@ -130,7 +131,7 @@ export class MarkdownImporter {
             type: 'preface',
             level: 0,
             text: prefaceText,
-            content: '',
+            content: undefined,
             originalFormat: '',
             lineNumber: 0
           });
@@ -139,7 +140,9 @@ export class MarkdownImporter {
 
         // 前の要素を保存
         if (currentElement) {
-          currentElement.content = currentContent.join(lineEnding);
+          if(currentContent.length > 0) {
+            currentElement.content = currentContent.join(lineEnding);
+          }
           elements.push(currentElement);
         }
 
@@ -147,7 +150,7 @@ export class MarkdownImporter {
           type: 'heading',
           level: headingMatch[1].length,
           text: headingMatch[2],
-          content: '',
+          content: undefined,
           originalFormat: headingMatch[1], // # の個数を保存
           lineNumber: i
         };
@@ -166,7 +169,7 @@ export class MarkdownImporter {
             type: 'preface',
             level: 0,
             text: prefaceText,
-            content: '',
+            content: undefined,
             originalFormat: '',
             lineNumber: 0
           });
@@ -175,7 +178,9 @@ export class MarkdownImporter {
 
         // 前の要素を保存
         if (currentElement) {
-          currentElement.content = currentContent.join(lineEnding);
+          if(currentContent.length > 0) {
+            currentElement.content = currentContent.join(lineEnding);
+          }
           elements.push(currentElement);
         }
 
@@ -188,7 +193,7 @@ export class MarkdownImporter {
           type: marker.match(/\d+\./) ? 'ordered-list' : 'unordered-list',
           level: level,
           text: text,
-          content: '',
+          content: undefined,
           originalFormat: marker,
           indentLevel: indent.length,
           lineNumber: i
@@ -215,7 +220,7 @@ export class MarkdownImporter {
         type: 'preface',
         level: 0,
         text: prefaceText,
-        content: '',
+        content: undefined,
         originalFormat: '',
         lineNumber: 0
       });
@@ -223,7 +228,9 @@ export class MarkdownImporter {
 
     // 最後の要素を保存
     if (currentElement) {
-      currentElement.content = currentContent.join(lineEnding);
+      if (currentContent.length > 0) {
+        currentElement.content = currentContent.join(lineEnding);
+      }
       elements.push(currentElement);
     }
 
@@ -312,9 +319,8 @@ export class MarkdownImporter {
 
       const newNode = createNewNode(element.text, isRoot);
       // noteに格納する前にトリム（先頭・末尾の空行除去）
-      if (element.content !== undefined) {
-        const trimmedContent = element.content.replace(/^\s*\n+/g, '').replace(/\n+\s*$/g, '');
-        newNode.note = trimmedContent.length > 0 ? trimmedContent : undefined;
+      if (element.content != undefined) {
+        newNode.note = element.content;
       }
       newNode.children = [];
       newNode.lineEnding = defaultLineEnding || '\n';
@@ -452,7 +458,7 @@ export class MarkdownImporter {
           const tableLines = tableMd.split(/\r\n|\r|\n/);
           for (const ln of tableLines) lines.push(ln);
         }
-        if (node.note != null) {
+        if (node.note != undefined) {
           lines.push(node.note);
         }
         if (node.children && node.children.length > 0) {
@@ -481,7 +487,7 @@ export class MarkdownImporter {
         if (markdownMeta.type === 'preface') {
           // 前文の場合はnoteからコンテンツを取得し、マーカーなしで出力
           // 空文字列でも出力する（元の情報を完全に保持）
-          if (node.note != null) {
+          if (node.note != undefined) {
             lines.push(node.note);
           }
           // 前文の場合は子ノードを処理してから return
@@ -536,7 +542,7 @@ export class MarkdownImporter {
       }
 
       // ノートがある場合は追加（空文字列でも出力：意図した空白を保持）
-      if (node.note != null) {
+      if (node.note != undefined) {
         lines.push(node.note);
       }
 
