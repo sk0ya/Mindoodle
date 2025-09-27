@@ -342,6 +342,18 @@ export function calculateNodeSize(
     const measuredWidth = measureTextWidth(displayText, fontSize, fontFamily, fontWeight, fontStyle);
     const minWidth = fontSize * 2; // 最小2文字分の幅に縮小
     actualTextWidth = Math.max(measuredWidth, minWidth);
+
+    // 非常に長いテキスト（特に全角文字）に対する安全マージンを追加
+    // Canvas測定とSVGレンダリングの微小な差異を補正
+    if (displayText.length > 100) {
+      const safetyMargin = measuredWidth * 0.02; // 測定幅の2%の安全マージン
+      actualTextWidth = Math.max(measuredWidth + safetyMargin, minWidth);
+    }
+
+    // 非常に長いテキストの場合のデバッグ（開発時のみ）
+    if (displayText.length > 100 && process.env.NODE_ENV === 'development') {
+      console.log(`Long text debug - Length: ${displayText.length}, Measured: ${measuredWidth}, Font: ${fontSize}px`);
+    }
   }
   
   // アイコンレイアウトに必要な最小幅を計算（リンクのみ、添付ファイル機能は廃止）
@@ -357,8 +369,18 @@ export function calculateNodeSize(
   // パディングを追加（左右に余白を持たせる）
   // 編集時はinputにpadding(左右各10px) + border(各1px)があり、foreignObject自体にも内側余白(-8)を設けているため
   // コンテンツ幅 >= 実測テキスト幅 となるように実質的な左右合計パディングを広めに確保する
-  // 非編集時も十分なパディングを確保（SVGテキストレンダリングに対応）
-  const H_PADDING = isEditing ? 34 : 20; // 編集時は合計約30px + 余裕4px、非編集時は20px（左右各10px）
+  // 非編集時：テキスト長に応じて適応的なパディングを計算（SVGテキストレンダリングの安全性確保）
+  let H_PADDING: number;
+  if (isEditing) {
+    H_PADDING = 34; // 編集時は合計約30px + 余裕4px
+  } else {
+    // 非編集時：基本パディング + テキスト長による適応的パディング
+    const basePadding = 12; // 基本12px（左右各6px）
+    const textLength = editText ? editText.length : node.text.length;
+    const textLengthFactor = Math.min(textLength / 25, 1); // 25文字で1倍、最大1倍
+    const additionalPadding = textLengthFactor * 13; // 最大13px追加（25px総計）
+    H_PADDING = basePadding + additionalPadding;
+  }
   const textBasedWidth = Math.max(actualTextWidth + H_PADDING, Math.max(fontSize * 2, 24));
   
   // ノードの高さは最小限に（フォントサイズ + 少しの上下パディング）
