@@ -70,7 +70,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   // Search props
   onNodeSelect,
   onMapSwitch,
-  onMapSwitchWithNodeSelect,
   loadAllMaps
 }) => {
   if (!isVisible || !activeView) {
@@ -109,7 +108,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             allMapsData={mindMaps}
             onNodeSelect={onNodeSelect}
             onMapSwitch={onMapSwitch}
-            onMapSwitchWithNodeSelect={onMapSwitchWithNodeSelect}
             loadAllMaps={loadAllMaps}
           />
         );
