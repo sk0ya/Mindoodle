@@ -40,7 +40,8 @@ const TopLeftTitlePanel: React.FC<Props> = ({
   // Calculate left offset to hug the visible left edge of the map area
   const ACTIVITY_BAR = 48; // matches ActivityBar.css width
   const SIDEBAR = 280; // matches PrimarySidebar.css width
-  const leftOffset = ACTIVITY_BAR + (activeView && !sidebarCollapsed ? SIDEBAR : 0) + 6; // small padding
+  // Ensure buttons are always aligned to the actual visible left edge
+  const leftOffset = ACTIVITY_BAR + (activeView && !sidebarCollapsed ? SIDEBAR : 0) + 8; // consistent padding
 
   return (
     <div
@@ -81,7 +82,7 @@ const TopLeftTitlePanel: React.FC<Props> = ({
           lineHeight: 1.2,
           userSelect: 'none',
           pointerEvents: 'auto',
-          maxWidth: 420,
+          maxWidth: 'calc(100vw - 400px)', // Dynamic width based on viewport
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -93,7 +94,11 @@ const TopLeftTitlePanel: React.FC<Props> = ({
       </div>
 
       {/* Action buttons under title */}
-      <div style={{ pointerEvents: 'auto' }}>
+      <div style={{
+        pointerEvents: 'auto',
+        alignSelf: 'flex-start', // Force buttons to align to left edge
+        width: 'auto' // Don't stretch to fill container width
+      }}>
         <ActionButtons
           onUndo={onUndo}
           onRedo={onRedo}
