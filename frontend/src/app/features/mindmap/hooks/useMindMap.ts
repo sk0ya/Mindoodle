@@ -541,13 +541,23 @@ export const useMindMap = (
         const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
         const parts = (actualMapId || '').split('/').filter(Boolean);
         const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
-        const now = new Date().toISOString();
+        
+        // ファイルの実際の更新時刻を取得（自動保存トリガーを防ぐため）
+        let fileLastModified: string;
+        try {
+          const lastModified = await adapter.getMapLastModified?.(target);
+          fileLastModified = lastModified ? new Date(lastModified).toISOString() : new Date().toISOString();
+        } catch {
+          // getMapLastModifiedが利用できない場合は現在時刻を使用
+          fileLastModified = new Date().toISOString();
+        }
+        
         const parsed: MindMapData = {
           title: mapId, // UIで表示されるタイトル
           category: category || '',
           rootNodes: parseResult.rootNodes,
-          createdAt: now,
-          updatedAt: now,
+          createdAt: fileLastModified,
+          updatedAt: fileLastModified, // ファイルの実際の更新時刻を使用
           settings: {
             autoSave: true,
             autoLayout: true,
