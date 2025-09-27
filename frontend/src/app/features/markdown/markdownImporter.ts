@@ -311,7 +311,11 @@ export class MarkdownImporter {
       )) || (element.type !== 'heading' && currentHeading === null && (element.indentLevel || 0) === 0);
 
       const newNode = createNewNode(element.text, isRoot);
-      if (element.content !== undefined) newNode.note = element.content;
+      // noteに格納する前にトリム（先頭・末尾の空行除去）
+      if (element.content !== undefined) {
+        const trimmedContent = element.content.replace(/^\s*\n+/g, '').replace(/\n+\s*$/g, '');
+        newNode.note = trimmedContent.length > 0 ? trimmedContent : undefined;
+      }
       newNode.children = [];
       newNode.lineEnding = defaultLineEnding || '\n';
 
