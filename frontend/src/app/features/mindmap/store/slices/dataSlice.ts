@@ -308,29 +308,27 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
       
-      // Optimized state update using requestAnimationFrame for smoother UI (no history push)
-      requestAnimationFrame(() => {
-        set((draft) => {
-          if (draft.data) {
-            draft.data = {
-              ...draft.data,
-              rootNodes: layoutedRootNodes
-            };
-            
-            // Update normalized data
-            try {
-              draft.normalizedData = normalizeTreeData(layoutedRootNodes);
-            } catch (normalizeError) {
-              logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
-            }
+      // Synchronous state update for immediate UI response (no history push)
+      set((draft) => {
+        if (draft.data) {
+          draft.data = {
+            ...draft.data,
+            rootNodes: layoutedRootNodes
+          };
+          
+          // Update normalized data
+          try {
+            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
+          } catch (normalizeError) {
+            logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
           }
-        });
-
-        // Emit layout event; history subscriber will capture snapshot
-        try {
-          mindMapEvents.emit({ type: 'layout.applied' });
-        } catch { /* noop */ }
+        }
       });
+
+      // Emit layout event; history subscriber will capture snapshot
+      try {
+        mindMapEvents.emit({ type: 'layout.applied' });
+      } catch { /* noop */ }
       
       logger.debug('🎉 Auto layout applied successfully');
     } catch (error) {
