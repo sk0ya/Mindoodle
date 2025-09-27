@@ -42,6 +42,9 @@ export interface MindMapNode {
 
   // Markdown structure metadata
   markdownMeta?: MarkdownNodeMeta;
+
+  // Line ending preference for markdown export (inherited from parent or detected from source)
+  lineEnding?: string;
 }
 
 // Markdown structure metadata for preserving original format

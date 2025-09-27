@@ -18,19 +18,21 @@ import {
   denormalizeTreeData
 } from '@core/data/normalizedStore';
 import { generateNodeId } from '@shared/utils';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import { COLORS } from '@shared/constants';
 import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from '../../utils';
 import type { MindMapStore } from './types';
 
 // Helper function to create new node
-const createNewNode = (text: string, _parentNode?: MindMapNode, _settings?: any): MindMapNode => ({
+const createNewNode = (text: string, parentNode?: MindMapNode, _settings?: any): MindMapNode => ({
   id: generateNodeId(),
   text,
   x: 0,
   y: 0,
   children: [],
   fontSize: 14,
-  fontWeight: 'normal'
+  fontWeight: 'normal',
+  lineEnding: parentNode?.lineEnding || LineEndingUtils.LINE_ENDINGS.LF
 });
 
 export interface NodeSlice {

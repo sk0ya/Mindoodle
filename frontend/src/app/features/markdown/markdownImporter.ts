@@ -4,7 +4,7 @@ import { logger } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 // Helper function to create new node with proper initial positioning
-const createNewNode = (text: string, _isRoot: boolean = false): MindMapNode => {
+const createNewNode = (text: string, _isRoot: boolean = false, parentLineEnding?: string): MindMapNode => {
   // 初期X座標（全ノード同一の最小初期値。実配置は adjustNodePositions/autoLayout で決定）
   const calculateInitialX = () => 0;
 
@@ -15,7 +15,8 @@ const createNewNode = (text: string, _isRoot: boolean = false): MindMapNode => {
     y: 300, // デフォルトY座標
     children: [],
     fontSize: 14,
-    fontWeight: 'normal'
+    fontWeight: 'normal',
+    lineEnding: parentLineEnding || LineEndingUtils.LINE_ENDINGS.LF
   };
 };
 
@@ -57,6 +58,9 @@ export class MarkdownImporter {
       });
     }
 
+    // Detect line ending from the original markdown text
+    const detectedLineEnding = LineEndingUtils.detectLineEnding(markdownText);
+
     const lines = LineEndingUtils.splitLines(markdownText);
     const elements = this.extractStructureElements(lines);
 
@@ -64,6 +68,7 @@ export class MarkdownImporter {
       logger.debug('📝 構造要素抽出結果', {
         elementsCount: elements.length,
         elements: elements.map((e) => ({ type: e.type, level: e.level, text: e.text })),
+        detectedLineEnding: detectedLineEnding
       });
     }
 
@@ -80,8 +85,8 @@ export class MarkdownImporter {
       }
     });
 
-    // ノード構造を構築
-    const rootNodes = this.buildNodeHierarchy(elements);
+    // ノード構造を構築（改行コード情報を渡す）
+    const rootNodes = this.buildNodeHierarchy(elements, detectedLineEnding);
 
     // 位置を調整（オプション未指定でも最小の仮配置を適用して見た目を安定化）
     this.adjustNodePositions(rootNodes, options || {});
@@ -93,6 +98,7 @@ export class MarkdownImporter {
           text: r.text,
           childrenCount: r.children?.length || 0,
           position: { x: r.x, y: r.y },
+          lineEnding: r.lineEnding
         })),
       });
     }
@@ -269,7 +275,7 @@ export class MarkdownImporter {
    * 見出しが親、リストがその子という正しい階層関係を構築
    * リスト項目同士もインデントレベルに基づいて親子関係を構築
    */
-  private static buildNodeHierarchy(elements: StructureElement[]): MindMapNode[] {
+  private static buildNodeHierarchy(elements: StructureElement[], defaultLineEnding?: string): MindMapNode[] {
     const rootNodes: MindMapNode[] = [];
     const headingStack: { node: MindMapNode; level: number }[] = [];
     const listStack: { node: MindMapNode; indentLevel: number }[] = [];
@@ -281,6 +287,7 @@ export class MarkdownImporter {
         const prefaceNode = createNewNode('', true); // テキストは空
         prefaceNode.children = [];
         prefaceNode.note = element.text; // 前文はnoteに格納
+        prefaceNode.lineEnding = defaultLineEnding || LineEndingUtils.LINE_ENDINGS.LF;
         
         // 前文ノードのメタデータ設定
         prefaceNode.markdownMeta = {
@@ -305,6 +312,7 @@ export class MarkdownImporter {
       const newNode = createNewNode(element.text, isRoot);
       if (element.content !== undefined) newNode.note = element.content;
       newNode.children = [];
+      newNode.lineEnding = defaultLineEnding || LineEndingUtils.LINE_ENDINGS.LF;
 
       // 元の構造情報をノードに保存（正式な型として）
       newNode.markdownMeta = {
@@ -333,6 +341,7 @@ export class MarkdownImporter {
         delete (tnode as any).note;
         const after = tableInfo.after;
         tnode.note = after && after.length > 0 ? after : undefined;
+        tnode.lineEnding = defaultLineEnding || LineEndingUtils.LINE_ENDINGS.LF;
         // markdownMeta は表ノードに不要
         delete (tnode as any).markdownMeta;
         pendingSiblingTableNode = tnode;
@@ -414,12 +423,19 @@ export class MarkdownImporter {
    */
   static convertNodesToMarkdown(nodes: MindMapNode[]): string {
     const lines: string[] = [];
+    let detectedLineEnding: string = LineEndingUtils.LINE_ENDINGS.LF; // デフォルト
+
+    // 最初のノードから改行コードを検出
+    if (nodes.length > 0 && nodes[0].lineEnding) {
+      detectedLineEnding = nodes[0].lineEnding;
+    }
 
     if (DEBUG_MD) {
       logger.debug('🔵 convertNodesToMarkdown 開始', {
         totalNodes: nodes.length,
         rootNodeTexts: nodes.map(n => n.text),
-        rootNodeMetas: nodes.map(n => ({ id: n.id, meta: n.markdownMeta }))
+        rootNodeMetas: nodes.map(n => ({ id: n.id, meta: n.markdownMeta })),
+        detectedLineEnding: detectedLineEnding
       });
     }
 
@@ -551,12 +567,14 @@ export class MarkdownImporter {
       processNode(rootNode, 0);
     }
 
-    const result = LineEndingUtils.joinLines(lines);
+    // 検出された改行コードを使用してマークダウンを結合
+    const result = LineEndingUtils.joinLines(lines, detectedLineEnding);
 
     if (DEBUG_MD) {
       logger.debug('🔵 convertNodesToMarkdown 完了', {
         totalLines: lines.length,
-        finalMarkdown: result
+        finalMarkdown: result,
+        usedLineEnding: detectedLineEnding
       });
     }
 

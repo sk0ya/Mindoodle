@@ -84,6 +84,8 @@ export interface MindMapNode {
     headers?: string[];
     rows: string[][];
   };
+  // Line ending preference for markdown export (inherited from parent or detected from source)
+  lineEnding?: string;
 }
 
 // MindMap Settings interface
