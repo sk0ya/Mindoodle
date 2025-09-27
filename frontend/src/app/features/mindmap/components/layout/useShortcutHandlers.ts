@@ -297,7 +297,7 @@ export function useShortcutHandlers(args: Args) {
       const convertToMd = (n: MindMapNode, level = 0): string => {
         const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
         let md = `${prefix}${n.text}\n`;
-        if (n.note?.trim()) md += `${n.note}\n`;
+        if (n.note !== null) md += `${n.note}\n`;
         if (n.children?.length) n.children.forEach(c => { md += convertToMd(c, level + 1); });
         return md;
       };

@@ -124,8 +124,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       collapsed: false,
       fontSize: 16,
       fontWeight: 'normal',
-      color: '#333333',
-      note: ''
+      color: '#333333'
     };
   };
 
@@ -139,8 +138,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
     collapsed: false,
     fontSize: 18,
     fontWeight: 'bold',
-    color: '#333333',
-    note: ''
+    color: '#333333'
   };
 
   return rootNode;
