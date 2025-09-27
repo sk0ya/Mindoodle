@@ -1,12 +1,11 @@
 import type { MindMapNode } from '@shared/types';
-import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list' | 'preface'): string {
   const nodeType = node.markdownMeta?.type;
   const indentLevel = node.markdownMeta?.indentLevel ?? 0;
 
   // Use the node's line ending preference, or default to LF
-  const lineEnding = node.lineEnding || LineEndingUtils.LINE_ENDINGS.LF;
+  const lineEnding = node.lineEnding || '\n';
 
   let prefix = '';
   let md = '';

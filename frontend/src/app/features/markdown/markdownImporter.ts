@@ -16,7 +16,7 @@ const createNewNode = (text: string, _isRoot: boolean = false, parentLineEnding?
     children: [],
     fontSize: 14,
     fontWeight: 'normal',
-    lineEnding: parentLineEnding || LineEndingUtils.LINE_ENDINGS.LF
+    lineEnding: parentLineEnding || '\n'
   };
 };
 
@@ -54,15 +54,15 @@ export class MarkdownImporter {
     if (DEBUG_MD) {
       logger.debug('🔍 マークダウンパース開始', {
         textLength: markdownText.length,
-        firstLine: LineEndingUtils.splitLines(markdownText)[0],
+        firstLine: markdownText.split(/\r\n|\r|\n/)[0],
       });
     }
 
     // Detect line ending from the original markdown text
     const detectedLineEnding = LineEndingUtils.detectLineEnding(markdownText);
 
-    const lines = LineEndingUtils.splitLines(markdownText);
-    const elements = this.extractStructureElements(lines);
+    const lines = markdownText.split(/\r\n|\r|\n/);
+    const elements = this.extractStructureElements(lines, detectedLineEnding);
 
     if (DEBUG_MD) {
       logger.debug('📝 構造要素抽出結果', {
@@ -109,7 +109,7 @@ export class MarkdownImporter {
   /**
    * マークダウンから見出しとリスト要素を抽出
    */
-  private static extractStructureElements(lines: string[]): StructureElement[] {
+  private static extractStructureElements(lines: string[], lineEnding: string): StructureElement[] {
     const elements: StructureElement[] = [];
     let currentContent: string[] = [];
     let currentElement: StructureElement | null = null;
@@ -124,7 +124,7 @@ export class MarkdownImporter {
       if (headingMatch) {
         // 最初の構造要素の前に前文があった場合、前文要素を作成
         if (!foundFirstStructureElement && prefaceLines.length > 0) {
-          const prefaceText = LineEndingUtils.joinLines(prefaceLines);
+          const prefaceText = prefaceLines.join(lineEnding);
           // 前文は行が存在すれば保持する（空配列のみ除外）
           elements.push({
             type: 'preface',
@@ -139,7 +139,7 @@ export class MarkdownImporter {
 
         // 前の要素を保存
         if (currentElement) {
-          currentElement.content = LineEndingUtils.joinLines(currentContent);
+          currentElement.content = currentContent.join(lineEnding);
           elements.push(currentElement);
         }
 
@@ -160,7 +160,7 @@ export class MarkdownImporter {
       if (listMatch) {
         // 最初の構造要素の前に前文があった場合、前文要素を作成
         if (!foundFirstStructureElement && prefaceLines.length > 0) {
-          const prefaceText = LineEndingUtils.joinLines(prefaceLines);
+          const prefaceText = prefaceLines.join(lineEnding);
           // 前文は行が存在すれば保持する（空配列のみ除外）
           elements.push({
             type: 'preface',
@@ -175,7 +175,7 @@ export class MarkdownImporter {
 
         // 前の要素を保存
         if (currentElement) {
-          currentElement.content = LineEndingUtils.joinLines(currentContent);
+          currentElement.content = currentContent.join(lineEnding);
           elements.push(currentElement);
         }
 
@@ -209,7 +209,7 @@ export class MarkdownImporter {
 
     // 前文のみでドキュメントが終わった場合
     if (!foundFirstStructureElement && prefaceLines.length > 0) {
-      const prefaceText = LineEndingUtils.joinLines(prefaceLines);
+      const prefaceText = prefaceLines.join(lineEnding);
       // 前文は行が存在すれば保持する（空配列のみ除外）
       elements.push({
         type: 'preface',
@@ -223,7 +223,7 @@ export class MarkdownImporter {
 
     // 最後の要素を保存
     if (currentElement) {
-      currentElement.content = LineEndingUtils.joinLines(currentContent);
+      currentElement.content = currentContent.join(lineEnding);
       elements.push(currentElement);
     }
 
@@ -233,7 +233,7 @@ export class MarkdownImporter {
   /**
    * Extract first Markdown table from text
    */
-  private static extractFirstTable(text?: string): {
+  private static extractFirstTable(text?: string, lineEnding?: string): {
     headers?: string[];
     rows: string[][];
     before: string;
@@ -241,7 +241,8 @@ export class MarkdownImporter {
     after: string;
   } | null {
     if (!text) return null;
-    const lines = LineEndingUtils.splitLines(text);
+    const defaultLineEnding = lineEnding || '\n';
+    const lines = text.split(/\r\n|\r|\n/);
     for (let i = 0; i < lines.length - 1; i++) {
       const headerLine = lines[i];
       const sepLine = lines[i + 1];
@@ -261,9 +262,9 @@ export class MarkdownImporter {
       const headers = toCells(headerLine);
       const rows = rowLines.map(toCells);
 
-      const before = LineEndingUtils.joinLinesWithOriginalEnding(text, lines.slice(0, i));
-      const tableBlock = LineEndingUtils.joinLinesWithOriginalEnding(text, lines.slice(i, j));
-      const after = LineEndingUtils.joinLinesWithOriginalEnding(text, lines.slice(j));
+      const before = lines.slice(0, i).join(defaultLineEnding);
+      const tableBlock = lines.slice(i, j).join(defaultLineEnding);
+      const after = lines.slice(j).join(defaultLineEnding);
 
       return { headers, rows, before, tableBlock, after };
     }
@@ -287,7 +288,7 @@ export class MarkdownImporter {
         const prefaceNode = createNewNode('', true); // テキストは空
         prefaceNode.children = [];
         prefaceNode.note = element.text; // 前文はnoteに格納
-        prefaceNode.lineEnding = defaultLineEnding || LineEndingUtils.LINE_ENDINGS.LF;
+        prefaceNode.lineEnding = defaultLineEnding || '\n';
         
         // 前文ノードのメタデータ設定
         prefaceNode.markdownMeta = {
@@ -312,7 +313,7 @@ export class MarkdownImporter {
       const newNode = createNewNode(element.text, isRoot);
       if (element.content !== undefined) newNode.note = element.content;
       newNode.children = [];
-      newNode.lineEnding = defaultLineEnding || LineEndingUtils.LINE_ENDINGS.LF;
+      newNode.lineEnding = defaultLineEnding || '\n';
 
       // 元の構造情報をノードに保存（正式な型として）
       newNode.markdownMeta = {
@@ -327,7 +328,7 @@ export class MarkdownImporter {
       // 表ブロックが含まれる場合、子表ノードは作らず、同じ階層に表ノードを兄弟として挿入する
       // このとき、元ノードの note には table の "前"(before) のみを残し、
       // 兄弟の表ノードの note には table の "後"(after) を保持する
-      const tableInfo = this.extractFirstTable(newNode.note);
+      const tableInfo = this.extractFirstTable(newNode.note, defaultLineEnding);
       let pendingSiblingTableNode: MindMapNode | null = null;
       if (tableInfo) {
         // 元ノードの note は before のみ
@@ -341,7 +342,7 @@ export class MarkdownImporter {
         delete (tnode as any).note;
         const after = tableInfo.after;
         tnode.note = after && after.length > 0 ? after : undefined;
-        tnode.lineEnding = defaultLineEnding || LineEndingUtils.LINE_ENDINGS.LF;
+        tnode.lineEnding = defaultLineEnding || '\n';
         // markdownMeta は表ノードに不要
         delete (tnode as any).markdownMeta;
         pendingSiblingTableNode = tnode;
@@ -423,7 +424,7 @@ export class MarkdownImporter {
    */
   static convertNodesToMarkdown(nodes: MindMapNode[]): string {
     const lines: string[] = [];
-    let detectedLineEnding: string = LineEndingUtils.LINE_ENDINGS.LF; // デフォルト
+    let detectedLineEnding: string = '\n'; // デフォルト
 
     // 最初のノードから改行コードを検出
     if (nodes.length > 0 && nodes[0].lineEnding) {
@@ -444,7 +445,7 @@ export class MarkdownImporter {
       if ((node as any).kind === 'table') {
         const tableMd = String(node.text || '');
         if (tableMd) {
-          const tableLines = LineEndingUtils.splitLines(tableMd);
+          const tableLines = tableMd.split(/\r\n|\r|\n/);
           for (const ln of tableLines) lines.push(ln);
         }
         if (node.note != null) {
@@ -568,7 +569,7 @@ export class MarkdownImporter {
     }
 
     // 検出された改行コードを使用してマークダウンを結合
-    const result = LineEndingUtils.joinLines(lines, detectedLineEnding);
+    const result = lines.join(detectedLineEnding);
 
     if (DEBUG_MD) {
       logger.debug('🔵 convertNodesToMarkdown 完了', {

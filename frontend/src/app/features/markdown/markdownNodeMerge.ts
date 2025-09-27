@@ -1,6 +1,5 @@
 import type { MindMapNode } from '@shared/types';
 import { generateNodeId } from '@shared/utils';
-import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 // Helper functions for node creation and positioning
 const createNewNode = (text: string, parentLineEnding?: string): MindMapNode => ({
@@ -11,7 +10,7 @@ const createNewNode = (text: string, parentLineEnding?: string): MindMapNode => 
   children: [],
   fontSize: 14,
   fontWeight: 'normal',
-  lineEnding: parentLineEnding || LineEndingUtils.LINE_ENDINGS.LF
+  lineEnding: parentLineEnding || '\n'
 });
 
 // Use even smaller provisional offsets; auto-layout will correct soon after
