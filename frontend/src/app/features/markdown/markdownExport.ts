@@ -1,8 +1,12 @@
 import type { MindMapNode } from '@shared/types';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list' | 'preface'): string {
   const nodeType = node.markdownMeta?.type;
   const indentLevel = node.markdownMeta?.indentLevel ?? 0;
+
+  // Use the node's line ending preference, or default to LF
+  const lineEnding = node.lineEnding || LineEndingUtils.LINE_ENDINGS.LF;
 
   let prefix = '';
   let md = '';
@@ -13,11 +17,11 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     md = node.text || '';
     // Append note if present (exactly as saved)
     if (node.note != null && node.note !== '') {
-      md += `\n${node.note}`;
+      md += `${lineEnding}${node.note}`;
     }
     // Children (unlikely) — no extra blank lines injected
     if (node.children && node.children.length > 0) {
-      md += '\n';
+      md += lineEnding;
       node.children.forEach((child: MindMapNode) => {
         md += nodeToMarkdown(child, level + 1, nodeType);
       });
@@ -52,12 +56,12 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
 
   // Add note if present; do not trim to preserve intentional spaces
   if (node.note != null && node.note !== '') {
-    md += `\n${node.note}`;
+    md += `${lineEnding}${node.note}`;
   }
 
   // Add children with proper line breaks (do not inject extra blank lines)
   if (node.children && node.children.length > 0) {
-    md += '\n';
+    md += lineEnding;
     node.children.forEach((child: MindMapNode) => {
       const childLevel = nodeType === 'unordered-list' || nodeType === 'ordered-list' ? level : level + 1;
       md += nodeToMarkdown(child, childLevel, nodeType);
@@ -66,7 +70,7 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
 
   // Only add final newline if this is not a leaf node or if we have notes
   if ((node.children && node.children.length > 0) || (node.note != null && node.note !== '')) {
-    md += '\n';
+    md += lineEnding;
   }
 
   return md;
