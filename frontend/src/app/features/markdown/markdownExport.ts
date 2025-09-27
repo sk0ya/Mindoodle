@@ -14,8 +14,8 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
   if ((node as any).kind === 'table') {
     // For table nodes, the canonical source is node.text (markdown table)
     md = node.text || '';
-    // Append note if present (exactly as saved)
-    if (node.note != null && node.note !== '') {
+    // Append note if present (exactly as saved, including empty lines)
+    if (node.note != null) {
       md += `${lineEnding}${node.note}`;
     }
     // Children (unlikely) — no extra blank lines injected
@@ -30,19 +30,24 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
 
   // Determine the appropriate prefix based on node type (メタがある場合のみ)
   if (nodeType === 'unordered-list' || nodeType === 'ordered-list') {
-    // For list items, calculate indent based on actual indentLevel
-    // If parent is heading, start list items from level 0 (no indent)
-    const actualIndent = parentType === 'heading' ? 0 : indentLevel;
-    const indentSpaces = '  '.repeat(actualIndent);
+    // Use original indent level if available, otherwise calculate
+    const actualIndent = node.markdownMeta?.indentLevel ??
+                        (parentType === 'heading' ? 0 : indentLevel);
+    const indentSpaces = ' '.repeat(actualIndent);
 
     if (nodeType === 'unordered-list') {
-      prefix = `${indentSpaces}- `;
+      // Use original marker if available, otherwise default to '-'
+      const marker = node.markdownMeta?.originalFormat || '-';
+      prefix = `${indentSpaces}${marker} `;
     } else {
-      prefix = `${indentSpaces}1. `;
+      // Use original number format if available, otherwise default to '1.'
+      const marker = node.markdownMeta?.originalFormat || '1.';
+      prefix = `${indentSpaces}${marker} `;
     }
   } else if (nodeType === 'heading') {
-    // For heading nodes, use heading format
-    prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
+    // Use original heading level if available, otherwise calculate
+    const headingLevel = node.markdownMeta?.level || (level + 1);
+    prefix = '#'.repeat(Math.min(headingLevel, 6)) + ' ';
   } else if (nodeType === 'preface') {
     // For preface nodes, no prefix
     prefix = '';
@@ -53,8 +58,8 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
 
   md = `${prefix}${node.text}`;
 
-  // Add note if present; do not trim to preserve intentional spaces
-  if (node.note != null && node.note !== '') {
+  // Add note if present; do not trim to preserve intentional spaces (including empty lines)
+  if (node.note != null) {
     md += `${lineEnding}${node.note}`;
   }
 
@@ -68,7 +73,7 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
   }
 
   // Only add final newline if this is not a leaf node or if we have notes
-  if ((node.children && node.children.length > 0) || (node.note != null && node.note !== '')) {
+  if ((node.children && node.children.length > 0) || (node.note != null)) {
     md += lineEnding;
   }
 
