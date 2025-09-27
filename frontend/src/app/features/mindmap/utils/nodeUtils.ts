@@ -357,7 +357,8 @@ export function calculateNodeSize(
   // パディングを追加（左右に余白を持たせる）
   // 編集時はinputにpadding(左右各10px) + border(各1px)があり、foreignObject自体にも内側余白(-8)を設けているため
   // コンテンツ幅 >= 実測テキスト幅 となるように実質的な左右合計パディングを広めに確保する
-  const H_PADDING = isEditing ? 34 : 6; // 編集時は合計約30px + 余裕4px、非編集時は従来の6px
+  // 非編集時も十分なパディングを確保（SVGテキストレンダリングに対応）
+  const H_PADDING = isEditing ? 34 : 20; // 編集時は合計約30px + 余裕4px、非編集時は20px（左右各10px）
   const textBasedWidth = Math.max(actualTextWidth + H_PADDING, Math.max(fontSize * 2, 24));
   
   // ノードの高さは最小限に（フォントサイズ + 少しの上下パディング）
@@ -390,17 +391,62 @@ export function calculateNodeSize(
 }
 
 /**
+ * ノードの座標計算ユーティリティ
+ * 一貫性のある座標計算を提供
+ */
+
+/**
  * ノードの左端X座標を計算
  */
 export function getNodeLeftX(node: MindMapNode, nodeWidth: number): number {
   return node.x - nodeWidth / 2;
 }
 
-export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode, nodeSize: NodeSize, globalFontSize?: number) {
+/**
+ * ノードの右端X座標を計算
+ */
+export function getNodeRightX(node: MindMapNode, nodeWidth: number): number {
+  return node.x + nodeWidth / 2;
+}
+
+/**
+ * ノードの上端Y座標を計算
+ */
+export function getNodeTopY(node: MindMapNode, nodeHeight: number): number {
+  return node.y - nodeHeight / 2;
+}
+
+/**
+ * ノードの下端Y座標を計算
+ */
+export function getNodeBottomY(node: MindMapNode, nodeHeight: number): number {
+  return node.y + nodeHeight / 2;
+}
+
+/**
+ * ノードの境界を計算する（統一インターフェース）
+ */
+export function getNodeBounds(node: MindMapNode, nodeSize: NodeSize) {
+  return {
+    left: getNodeLeftX(node, nodeSize.width),
+    right: getNodeRightX(node, nodeSize.width),
+    top: getNodeTopY(node, nodeSize.height),
+    bottom: getNodeBottomY(node, nodeSize.height),
+    centerX: node.x,
+    centerY: node.y,
+    width: nodeSize.width,
+    height: nodeSize.height
+  };
+}
+
+export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode, nodeSize?: NodeSize, globalFontSize?: number) {
   // ルートノード自身の場合は常に右側に配置
   const isRootNodeItself = node.id === rootNode.id;
   const isOnRight = isRootNodeItself ? true : node.x > rootNode.x;
-  
+
+  // 一貫したノードサイズ計算を使用（引数で渡されない場合は内部で計算）
+  const actualNodeSize = nodeSize || calculateNodeSize(node, undefined, false, globalFontSize);
+
   // フォントサイズとノードサイズに応じた動的なマージン調整
   const fontSize = globalFontSize || 14;
   // フォントサイズに比例した基本マージン
@@ -417,49 +463,78 @@ export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode
 
   if (!isVisualHeavy) {
     // 画像の高さに応じた調整（軽微）
-    if (nodeSize.imageHeight > 100) {
-      baseMargin += Math.min((nodeSize.imageHeight - 100) * 0.08, 24); // 上限24px
+    if (actualNodeSize.imageHeight > 100) {
+      baseMargin += Math.min((actualNodeSize.imageHeight - 100) * 0.08, 24); // 上限24px
     }
-    // 幅に応じた追加調整（過度に広がらないように上限）
-    const expectedMinWidth = fontSize * 8; // 想定される最小幅
-    widthAdjustment = Math.max(0, (nodeSize.width - expectedMinWidth) * 0.06);
-    widthAdjustment = Math.min(widthAdjustment, 28); // 上限28px
+    // 幅に応じた追加調整（ノードサイズに比例させる）
+    // 基準となる幅をフォントサイズの4倍程度に設定（より現実的な値）
+    const baseWidth = fontSize * 4;
+    // ノード幅が基準を超えた分の10%をマージンとして追加（より控えめ）
+    widthAdjustment = Math.max(0, (actualNodeSize.width - baseWidth) * 0.04);
+    widthAdjustment = Math.min(widthAdjustment, 20); // 上限20px（より控えめ）
   } else {
     // ビジュアルが大きいノードは固定の小さめオフセット
     baseMargin += 8;
   }
 
-  // 最終的なトグル余白をクランプ
-  const totalMargin = Math.min(Math.max(baseMargin + widthAdjustment, 12), 40);
-  
-  // ノードの右端から一定距離でトグルボタンを配置
-  const nodeRightEdge = node.x + nodeSize.width / 2;
-  const nodeLeftEdge = node.x - nodeSize.width / 2;
-  
+  // 最終的なトグル余白をクランプ（より控えめな上限）
+  const totalMargin = Math.min(Math.max(baseMargin + widthAdjustment, 12), 35);
+
+  // ノードの右端から一定距離でトグルボタンを配置（統一された関数を使用）
+  const nodeRightEdge = getNodeRightX(node, actualNodeSize.width);
+  const nodeLeftEdge = getNodeLeftX(node, actualNodeSize.width);
+
   const toggleX = isOnRight ? (nodeRightEdge + totalMargin) : (nodeLeftEdge - totalMargin);
   const toggleY = node.y;
-  
-  
+
+
   return { x: toggleX, y: toggleY };
 }
 
 /**
  * 親ノードの右端から子ノードの左端までの水平距離を計算
+ * トグルボタンの存在を考慮した間隔計算
  */
-export function getDynamicNodeSpacing(_parentNodeSize: NodeSize, _childNodeSize: NodeSize, _isRootChild: boolean = false): number {
-  // 特別扱いを廃止し、全階層で同じエッジ間距離を使用
-  return 40;
+export function getDynamicNodeSpacing(parentNodeSize: NodeSize, childNodeSize: NodeSize, _isRootChild: boolean = false): number {
+  // トグルボタンのサイズと最小間隔を考慮
+  const toggleButtonWidth = 20; // トグルボタンの幅
+  const minToggleToChildSpacing = 15; // トグルボタンと子ノードの最小間隔
+
+  // 基本間隔（親ノード → トグルボタン → 子ノード）
+  const baseSpacing = 30;
+
+  // 親ノードと子ノードの幅を考慮した追加間隔
+  const parentWidthFactor = Math.min(parentNodeSize.width / 100, 1) * 5; // 最大5px追加
+  const childWidthFactor = Math.min(childNodeSize.width / 100, 1) * 5;   // 最大5px追加
+
+  // トグルボタンのためのスペースを確保
+  const calculatedSpacing = baseSpacing + parentWidthFactor + childWidthFactor;
+  const minRequiredSpacing = toggleButtonWidth + minToggleToChildSpacing;
+
+  return Math.round(Math.max(calculatedSpacing, minRequiredSpacing));
 }
 
 /**
  * 親ノードの右端から子ノードの左端までの距離に基づいて子ノードのX座標を計算
+ * トグルボタンの位置を考慮して重なりを防ぐ
  */
-export function calculateChildNodeX(parentNode: MindMapNode, childNodeSize: NodeSize, edgeToEdgeDistance: number): number {
-  const parentNodeSize = calculateNodeSize(parentNode);
-  const parentRightEdge = parentNode.x + parentNodeSize.width / 2;
-  const childLeftEdge = parentRightEdge + edgeToEdgeDistance;
-  const childCenterX = childLeftEdge + childNodeSize.width / 2;
-  
+export function calculateChildNodeX(parentNode: MindMapNode, childNodeSize: NodeSize, edgeToEdgeDistance: number, globalFontSize?: number): number {
+  const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize);
+  const parentRightEdge = getNodeRightX(parentNode, parentNodeSize.width);
+
+  // 基本的な子ノード位置計算
+  const basicChildLeftEdge = parentRightEdge + edgeToEdgeDistance;
+
+  // トグルボタンの位置を計算（getToggleButtonPositionと同じロジック）
+  const togglePosition = getToggleButtonPosition(parentNode, parentNode, parentNodeSize, globalFontSize);
+  const toggleButtonWidth = 20; // トグルボタンの幅
+  const minToggleToChildSpacing = 15; // トグルボタンと子ノードの最小間隔
+  const requiredChildLeftEdge = togglePosition.x + toggleButtonWidth / 2 + minToggleToChildSpacing;
+
+  // 基本計算と、トグルボタンを考慮した位置の、より右側を使用
+  const finalChildLeftEdge = Math.max(basicChildLeftEdge, requiredChildLeftEdge);
+  const childCenterX = finalChildLeftEdge + childNodeSize.width / 2;
+
   return childCenterX;
 }
 

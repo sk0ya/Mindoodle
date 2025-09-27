@@ -1,7 +1,7 @@
 // 自動レイアウト機能のユーティリティ
 import { cloneDeep } from '@shared/utils';
 import { COORDINATES, LAYOUT } from '../../../shared/constants/index';
-import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from './nodeUtils';
+import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, getNodeTopY, getNodeBottomY } from './nodeUtils';
 import type { MindMapNode } from '../../../shared/types';
 
 // Layout options interfaces
@@ -33,10 +33,10 @@ const calculateDynamicCenterX = (
 const getChildNodeXFromParentEdge = (parentNode: MindMapNode, childNode: MindMapNode, globalFontSize?: number): number => {
   const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize);
   const childNodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
-  
+
   // 親ノードの右端から子ノードの左端までの距離を計算
   const edgeToEdgeDistance = getDynamicNodeSpacing(parentNodeSize, childNodeSize, false);
-  return calculateChildNodeX(parentNode, childNodeSize, edgeToEdgeDistance);
+  return calculateChildNodeX(parentNode, childNodeSize, edgeToEdgeDistance, globalFontSize);
 };
 
 // ルート直下を特別扱いしない方針に変更
@@ -155,8 +155,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
         const calculateNodeBounds = (childNode: MindMapNode) => {
           const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
-          const nodeTop = childNode.y - nodeSize.height / 2;
-          const nodeBottom = childNode.y + nodeSize.height / 2;
+          const nodeTop = getNodeTopY(childNode, nodeSize.height);
+          const nodeBottom = getNodeBottomY(childNode, nodeSize.height);
           
           minY = Math.min(minY, nodeTop);
           maxY = Math.max(maxY, nodeBottom);
@@ -220,8 +220,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
       const calculateNodeBounds = (node: MindMapNode) => {
         const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
-        const nodeTop = node.y - nodeSize.height / 2;
-        const nodeBottom = node.y + nodeSize.height / 2;
+        const nodeTop = getNodeTopY(node, nodeSize.height);
+        const nodeBottom = getNodeBottomY(node, nodeSize.height);
         
         minY = Math.min(minY, nodeTop);
         maxY = Math.max(maxY, nodeBottom);

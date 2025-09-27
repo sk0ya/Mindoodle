@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import Connection from '../Connection';
-import { calculateNodeSize, getToggleButtonPosition, getBranchColor, getNodeLeftX } from '@mindmap/utils';
+import { calculateNodeSize, getToggleButtonPosition, getBranchColor, getNodeLeftX, getNodeRightX } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import type { MindMapNode, MindMapData } from '@shared/types';
 
@@ -74,8 +74,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           const toggleY = togglePosition.y;
 
           // ルートノードからトグルボタンへの接続線
-          const nodeLeftX = getNodeLeftX(node, nodeSize.width);
-          const nodeRightEdge = nodeLeftX + nodeSize.width;
+          const nodeRightEdge = getNodeRightX(node, nodeSize.width);
           connections.push({
             from: { x: nodeRightEdge, y: node.y },
             to: { x: toggleX, y: toggleY },
@@ -118,8 +117,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           
           // 親からトグルボタンへの接続線（親ノードの右端からトグルボタンの中心へ）
           const parentColor = normalizedData ? getBranchColor(node.id, normalizedData) : (node.color || '#666');
-          const parentLeftX = getNodeLeftX(node, nodeSize.width);
-          const parentRightEdge = parentLeftX + nodeSize.width; // ノードの右端
+          const parentRightEdge = getNodeRightX(node, nodeSize.width); // ノードの右端
           connections.push({
             from: { x: parentRightEdge, y: node.y },
             to: { x: toggleX, y: toggleY },
@@ -162,8 +160,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
         
         // 親からトグルボタンへの接続線（親ノードの右端からトグルボタンの中心へ）
         const collapsedColor = normalizedData ? getBranchColor(node.id, normalizedData) : (node.color || '#666');
-        const parentLeftX = getNodeLeftX(node, nodeSize.width);
-        const parentRightEdge = parentLeftX + nodeSize.width; // ノードの右端
+        const parentRightEdge = getNodeRightX(node, nodeSize.width); // ノードの右端
         connections.push({
           from: { x: parentRightEdge, y: node.y },
           to: { x: toggleX, y: toggleY },

@@ -4,7 +4,7 @@ import { logger, LRUCache, memoryManager } from '@shared/utils';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
-import { calculateNodeSize } from '../../utils/nodeUtils';
+import { calculateNodeSize, getNodeTopY, getNodeBottomY } from '../../utils/nodeUtils';
 import type { MindMapStore } from './types';
 import type { DataState } from '@shared/types/nodeTypes';
 
@@ -201,11 +201,10 @@ export const createDataSlice: StateCreator<
           return cached;
         }
 
-        const nodeY = node.y || 0;
         const nodeSize = getNodeSize(node);
         const outerMarginY = (node as any)?.kind === 'table' ? 8 : 0;
-        const nodeTop = nodeY - nodeSize.height / 2 - outerMarginY;
-        const nodeBottom = nodeY + nodeSize.height / 2 + outerMarginY;
+        const nodeTop = getNodeTopY(node, nodeSize.height) - outerMarginY;
+        const nodeBottom = getNodeBottomY(node, nodeSize.height) + outerMarginY;
 
         let minY = nodeTop;
         let maxY = nodeBottom;
