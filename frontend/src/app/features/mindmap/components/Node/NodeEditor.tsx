@@ -20,6 +20,8 @@ interface NodeEditorProps {
   onLinkNavigate?: (link: any) => void;
   onStartEdit?: (nodeId: string) => void;
   onMouseDown?: (e: React.MouseEvent) => void; // allow drag start from text
+  onDragOver?: (e: React.DragEvent) => void; // drag over text area
+  onDrop?: (e: React.DragEvent) => void; // drop on text area
   searchQuery: string;
   vimEnabled: boolean;
 }
@@ -40,6 +42,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onStartEdit,
   searchQuery,
   onMouseDown,
+  onDragOver,
+  onDrop,
   vimEnabled
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -327,6 +331,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           }}
           onMouseDown={(e) => { e.stopPropagation(); onMouseDown?.(e); }}
           onClick={handleTextClick}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
         >
           <title>{node.text}</title>
           {(() => {
@@ -518,6 +524,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       y={editY}
       width={editWidth}
       height="20"
+      onDragOver={onDragOver}
+      onDrop={onDrop}
     >
       <input
         ref={inputRef}

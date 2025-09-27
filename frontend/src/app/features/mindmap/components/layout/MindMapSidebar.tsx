@@ -920,7 +920,6 @@ const ExplorerView: React.FC<{
         ? item.path.replace(/^\/ws_[^/]+\//, '')
         : item.path;
 
-
       // Set the relative path for file system operations (without workspaceId prefix)
       e.dataTransfer.setData('mindoodle/path', relativePath);
       e.dataTransfer.setData('mindoodle/type', item.type);
