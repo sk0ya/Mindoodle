@@ -1,6 +1,7 @@
 import { type MindMapNode } from '@shared/types';
 import { generateNodeId } from '@shared/utils';
 import { logger } from '@shared/utils';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 // Helper function to create new node with proper initial positioning
 const createNewNode = (text: string, _isRoot: boolean = false): MindMapNode => {
@@ -52,11 +53,11 @@ export class MarkdownImporter {
     if (DEBUG_MD) {
       logger.debug('🔍 マークダウンパース開始', {
         textLength: markdownText.length,
-        firstLine: markdownText.split('\n')[0],
+        firstLine: LineEndingUtils.splitLines(markdownText)[0],
       });
     }
 
-    const lines = markdownText.split('\n');
+    const lines = LineEndingUtils.splitLines(markdownText);
     const elements = this.extractStructureElements(lines);
 
     if (DEBUG_MD) {
@@ -117,30 +118,29 @@ export class MarkdownImporter {
       if (headingMatch) {
         // 最初の構造要素の前に前文があった場合、前文要素を作成
         if (!foundFirstStructureElement && prefaceLines.length > 0) {
-          const prefaceText = prefaceLines.join('\n').trim();
-          if (prefaceText) {
-            elements.push({
-              type: 'preface',
-              level: 0,
-              text: prefaceText,
-              content: '',
-              originalFormat: '',
-              lineNumber: 0
-            });
-          }
+          const prefaceText = LineEndingUtils.joinLines(prefaceLines);
+          // 前文は行が存在すれば保持する（空配列のみ除外）
+          elements.push({
+            type: 'preface',
+            level: 0,
+            text: prefaceText,
+            content: '',
+            originalFormat: '',
+            lineNumber: 0
+          });
         }
         foundFirstStructureElement = true;
 
         // 前の要素を保存
         if (currentElement) {
-          currentElement.content = currentContent.join('\n').trim();
+          currentElement.content = LineEndingUtils.joinLines(currentContent);
           elements.push(currentElement);
         }
 
         currentElement = {
           type: 'heading',
           level: headingMatch[1].length,
-          text: headingMatch[2].trim(),
+          text: headingMatch[2],
           content: '',
           originalFormat: headingMatch[1], // # の個数を保存
           lineNumber: i
@@ -154,23 +154,22 @@ export class MarkdownImporter {
       if (listMatch) {
         // 最初の構造要素の前に前文があった場合、前文要素を作成
         if (!foundFirstStructureElement && prefaceLines.length > 0) {
-          const prefaceText = prefaceLines.join('\n').trim();
-          if (prefaceText) {
-            elements.push({
-              type: 'preface',
-              level: 0,
-              text: prefaceText,
-              content: '',
-              originalFormat: '',
-              lineNumber: 0
-            });
-          }
+          const prefaceText = LineEndingUtils.joinLines(prefaceLines);
+          // 前文は行が存在すれば保持する（空配列のみ除外）
+          elements.push({
+            type: 'preface',
+            level: 0,
+            text: prefaceText,
+            content: '',
+            originalFormat: '',
+            lineNumber: 0
+          });
         }
         foundFirstStructureElement = true;
 
         // 前の要素を保存
         if (currentElement) {
-          currentElement.content = currentContent.join('\n').trim();
+          currentElement.content = LineEndingUtils.joinLines(currentContent);
           elements.push(currentElement);
         }
 
@@ -182,7 +181,7 @@ export class MarkdownImporter {
         currentElement = {
           type: marker.match(/\d+\./) ? 'ordered-list' : 'unordered-list',
           level: level,
-          text: text.trim(),
+          text: text,
           content: '',
           originalFormat: marker,
           indentLevel: indent.length,
@@ -204,22 +203,21 @@ export class MarkdownImporter {
 
     // 前文のみでドキュメントが終わった場合
     if (!foundFirstStructureElement && prefaceLines.length > 0) {
-      const prefaceText = prefaceLines.join('\n').trim();
-      if (prefaceText) {
-        elements.push({
-          type: 'preface',
-          level: 0,
-          text: prefaceText,
-          content: '',
-          originalFormat: '',
-          lineNumber: 0
-        });
-      }
+      const prefaceText = LineEndingUtils.joinLines(prefaceLines);
+      // 前文は行が存在すれば保持する（空配列のみ除外）
+      elements.push({
+        type: 'preface',
+        level: 0,
+        text: prefaceText,
+        content: '',
+        originalFormat: '',
+        lineNumber: 0
+      });
     }
 
     // 最後の要素を保存
     if (currentElement) {
-      currentElement.content = currentContent.join('\n').trim();
+      currentElement.content = LineEndingUtils.joinLines(currentContent);
       elements.push(currentElement);
     }
 
@@ -237,29 +235,29 @@ export class MarkdownImporter {
     after: string;
   } | null {
     if (!text) return null;
-    const lines = text.split(/\r?\n/);
+    const lines = LineEndingUtils.splitLines(text);
     for (let i = 0; i < lines.length - 1; i++) {
       const headerLine = lines[i];
       const sepLine = lines[i + 1];
-      const isHeader = /^\s*\|.*\|\s*$/.test(headerLine.trim());
-      const isSep = /^\s*\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?\s*$/.test(sepLine.trim());
+      const isHeader = /^\s*\|.*\|\s*$/.test(headerLine);
+      const isSep = /^\s*\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?\s*$/.test(sepLine);
       if (!isHeader || !isSep) continue;
 
       // collect data rows
       let j = i + 2;
       const rowLines: string[] = [];
-      while (j < lines.length && /^\s*\|.*\|\s*$/.test(lines[j].trim())) {
+      while (j < lines.length && /^\s*\|.*\|\s*$/.test(lines[j])) {
         rowLines.push(lines[j]);
         j++;
       }
 
-      const toCells = (line: string) => line.trim().replace(/^\|/, '').replace(/\|$/, '').split('|').map((c) => c.trim());
+      const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|');
       const headers = toCells(headerLine);
       const rows = rowLines.map(toCells);
 
-      const before = lines.slice(0, i).join('\n'); // do not trim; preserve original whitespace
-      const tableBlock = lines.slice(i, j).join('\n');
-      const after = lines.slice(j).join('\n'); // do not trim; preserve original whitespace
+      const before = LineEndingUtils.joinLinesWithOriginalEnding(text, lines.slice(0, i));
+      const tableBlock = LineEndingUtils.joinLinesWithOriginalEnding(text, lines.slice(i, j));
+      const after = LineEndingUtils.joinLinesWithOriginalEnding(text, lines.slice(j));
 
       return { headers, rows, before, tableBlock, after };
     }
@@ -430,10 +428,10 @@ export class MarkdownImporter {
       if ((node as any).kind === 'table') {
         const tableMd = String(node.text || '');
         if (tableMd) {
-          const tableLines = tableMd.split(/\r?\n/);
+          const tableLines = LineEndingUtils.splitLines(tableMd);
           for (const ln of tableLines) lines.push(ln);
         }
-        if (node.note != null && node.note !== '') {
+        if (node.note != null) {
           lines.push(node.note);
         }
         if (node.children && node.children.length > 0) {
@@ -461,7 +459,8 @@ export class MarkdownImporter {
 
         if (markdownMeta.type === 'preface') {
           // 前文の場合はnoteからコンテンツを取得し、マーカーなしで出力
-          if (node.note != null && node.note !== '') {
+          // 空文字列でも出力する（元の情報を完全に保持）
+          if (node.note != null) {
             lines.push(node.note);
           }
           // 前文の場合は子ノードを処理してから return
@@ -515,8 +514,8 @@ export class MarkdownImporter {
         lines.push(node.text);
       }
 
-      // ノートがある場合は追加（不要な空行なし・trimしない: 意図した空白を保持）
-      if (node.note != null && node.note !== '') {
+      // ノートがある場合は追加（空文字列でも出力：意図した空白を保持）
+      if (node.note != null) {
         lines.push(node.note);
       }
 
@@ -552,7 +551,7 @@ export class MarkdownImporter {
       processNode(rootNode, 0);
     }
 
-    const result = lines.join('\n');
+    const result = LineEndingUtils.joinLines(lines);
 
     if (DEBUG_MD) {
       logger.debug('🔵 convertNodesToMarkdown 完了', {

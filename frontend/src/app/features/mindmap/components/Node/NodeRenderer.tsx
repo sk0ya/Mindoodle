@@ -9,6 +9,7 @@ import {
   getBackgroundFill,
   DEFAULT_ANIMATION_CONFIG
 } from '@mindmap/handlers/BaseRenderer';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 interface NodeRendererProps {
   node: MindMapNode;
@@ -657,7 +658,7 @@ interface NodeRendererProps {
                         // Build rows to render from structured data or fallback parse from text/note
                         const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
                           if (!src) return null;
-                          const lines = src.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                          const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
                           for (let i = 0; i < lines.length - 1; i++) {
                             const header = lines[i];
                             const sep = lines[i + 1];

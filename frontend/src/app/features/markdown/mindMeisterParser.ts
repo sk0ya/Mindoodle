@@ -4,6 +4,7 @@
 
 import { MindMapNode } from '@shared/types';
 import { generateId } from '@shared/utils';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 interface ParsedNode {
   text: string;
@@ -15,7 +16,7 @@ interface ParsedNode {
  * MindMeisterのマークダウン形式からノード構造を解析
  */
 export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
-  const lines = markdown.split('\n').filter(line => line.trim());
+  const lines = LineEndingUtils.splitLines(markdown).filter(line => !LineEndingUtils.isEmptyOrWhitespace(line));
   
   if (lines.length === 0) {
     return null;
@@ -150,7 +151,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
  * マークダウンテキストがMindMeister形式かどうかを判定
  */
 export function isMindMeisterFormat(text: string): boolean {
-  const lines = text.split('\n').filter(line => line.trim());
+  const lines = LineEndingUtils.splitLines(text).filter(line => !LineEndingUtils.isEmptyOrWhitespace(line));
   
   if (lines.length === 0) return false;
   

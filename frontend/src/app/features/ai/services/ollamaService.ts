@@ -267,7 +267,7 @@ export class OllamaService {
   private parseChildNodesResponse(response: string): string[] {
     // 改行で分割し、空行や余分な文字を除去
     const lines = response
-      .split(/[\n,]/)  // 改行とカンマで分割
+      .split(/[\n,]/)  // 改行とカンマで分割（LineEndingUtilsは使わない：カンマ分割も含むため）
       .map(line => line.trim())
       .filter(line => line.length > 0);
     

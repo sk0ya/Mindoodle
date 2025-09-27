@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { X } from 'lucide-react';
 import { useAI } from '../../../ai/hooks/useAI';
 import type { MindMapNode } from '@shared/types';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 interface AIGenerationModalProps {
   isOpen: boolean;
@@ -90,7 +91,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
       const response = await generateText(fullPrompt);
       
       // レスポンスをパースして子ノードに変換
-      const lines = response.split('\n').filter((line: string) => line.trim());
+      const lines = LineEndingUtils.splitLines(response).filter((line: string) => !LineEndingUtils.isEmptyOrWhitespace(line));
       const childTexts = lines.slice(0, 5).map((line: string) => 
         line.replace(/^\d+\.\s*/, '').replace(/^[-*]\s*/, '').trim()
       ).filter((text: string) => text);

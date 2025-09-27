@@ -2,6 +2,7 @@ import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '../../../core/data/normalizedStore';
 import { COLORS } from '../../../shared/constants';
 import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../../markdown/markdownLinkUtils';
+import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 // アイコンレイアウト情報
 interface IconLayout {
@@ -166,7 +167,7 @@ export function calculateNodeSize(
     // Build rows from structured data or fallback parse from text/note
     const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
       if (!src) return null;
-      const lines = src.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
       for (let i = 0; i < lines.length - 1; i++) {
         const header = lines[i];
         const sep = lines[i + 1];
