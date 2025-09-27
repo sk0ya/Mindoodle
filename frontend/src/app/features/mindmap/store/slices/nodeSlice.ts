@@ -627,10 +627,9 @@ export const createNodeSlice: StateCreator<
   },
 
   finishEditing: (nodeId: string, text: string) => {
-    const trimmedText = text.trim();
     
     // If text is empty, delete the node and select parent
-    if (!trimmedText) {
+    if (!text) {
       // Get parent info before deleting
       let parentId: string | null = null;
       const { normalizedData } = get();
@@ -678,7 +677,7 @@ export const createNodeSlice: StateCreator<
     });
     
     // Update the node text
-    get().updateNode(nodeId, { text: trimmedText });
+    get().updateNode(nodeId, { text: text });
     // End group with commit – treat insert+text as single change
     try { (get() as any).endHistoryGroup?.(true); } catch {}
     
