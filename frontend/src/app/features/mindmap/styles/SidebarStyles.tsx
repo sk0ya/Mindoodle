@@ -575,7 +575,15 @@ const SidebarStyles: React.FC = () => (
     }
 
     .explorer-file .file-icon { font-size: 14px; color: #666; display: inline-flex; align-items: center; }
-    .explorer-file .file-name { font-size: 13px; color: #333; }
+    .explorer-file .file-name {
+      font-size: 13px;
+      color: #333;
+      flex: 1;
+      min-width: 0;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
     .explorer-file.selected { background: rgba(59, 130, 246, 0.15); }
     .explorer-file.selected .file-name { color: #1f2937; }
 
