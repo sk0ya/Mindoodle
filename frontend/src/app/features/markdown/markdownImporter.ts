@@ -303,7 +303,7 @@ export class MarkdownImporter {
       )) || (element.type !== 'heading' && currentHeading === null && (element.indentLevel || 0) === 0);
 
       const newNode = createNewNode(element.text, isRoot);
-      if (element.content) newNode.note = element.content;
+      if (element.content !== undefined) newNode.note = element.content;
       newNode.children = [];
 
       // 元の構造情報をノードに保存（正式な型として）
