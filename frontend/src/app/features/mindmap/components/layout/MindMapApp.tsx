@@ -37,13 +37,13 @@ import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
-import type { StorageConfig } from '@core/storage/types';
+import type { StorageConfig } from '@core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
 
 interface MindMapAppProps {
-  storageMode?: 'local' | 'markdown';
-  onModeChange?: (mode: 'local' | 'markdown') => void;
+  storageMode?: 'local' ;
+  onModeChange?: (mode: 'local') => void;
   resetKey?: number;
 }
 
@@ -753,16 +753,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           const w = Math.max(0, currentUI.markdownPanelWidth);
           effectiveWidth -= w;
         }
-
-        const header = document.querySelector('.toolbar') ||
-                       document.querySelector('.mindmap-header') ||
-                       document.querySelector('.header');
-        if (header) {
-          const hr = header.getBoundingClientRect();
-          effectiveHeight -= hr.height;
-          offsetY = hr.height;
-        }
-
       }
 
       // Bottom overlays (apply regardless of container measurement):
@@ -864,9 +854,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
     // 実際の利用可能なマップエリアを計算
     // 上端はツールバー固定高（CSSと一致させる）
-    // No top toolbar anymore
-    const TOOLBAR_HEIGHT = 0;
-    const topOverlay = TOOLBAR_HEIGHT;
     const VIM_HEIGHT = 24;
     const defaultNoteHeight = Math.round(window.innerHeight * 0.3);
     // Prefer store height, but unconditionally read DOM to avoid stale flags
@@ -886,9 +873,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
     const mapAreaRect = new DOMRect(
       leftPanelWidth,
-      topOverlay,
+      0,
       Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
-      Math.max(0, viewportHeight - bottomOverlay - topOverlay)
+      Math.max(0, viewportHeight - bottomOverlay)
     );
 
     if (!targetNode) {
@@ -1624,7 +1611,7 @@ const MindMapAppWrapper: React.FC<MindMapAppProps> = (props) => {
 
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
-    return { mode: 'markdown' } as StorageConfig;
+    return { mode: 'local' } as StorageConfig;
   }, []);
 
   // Create mindMap instance first

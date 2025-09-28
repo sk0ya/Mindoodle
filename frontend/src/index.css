@@ -9,7 +9,6 @@
   --border-color: #3e3e42;
   --accent-color: #007acc;
   --hover-color: #2d2d30;
-  --toolbar-height: 0px;
 }
 
 [data-theme="light"] {
@@ -22,7 +21,6 @@
   --border-color: #e1e5e9;
   --accent-color: #007acc;
   --hover-color: #f0f0f0;
-  --toolbar-height: 0px;
 }
 
 body {

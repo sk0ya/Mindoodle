@@ -4,13 +4,12 @@ import { ShortcutTooltip } from '../KeyboardShortcutHelper';
 import { useBooleanState } from '@shared/hooks';
 
 interface StorageModeSwitchProps {
-  currentMode: 'local' | 'markdown';
-  onModeChange: (mode: 'local' | 'markdown') => void;
+  currentMode: 'local';
+  onModeChange: (mode: 'local') => void;
 }
 
 const STORAGE_MODES = [
   { id: 'local' as const, label: 'ローカル', icon: <HardDrive size={16} />, description: 'このデバイスのみ' },
-  { id: 'markdown' as const, label: 'マークダウン', icon: <HardDrive size={16} />, description: 'Markdownファイル' }
 ];
 
 const StorageModeSwitch: React.FC<StorageModeSwitchProps> = ({
@@ -21,7 +20,7 @@ const StorageModeSwitch: React.FC<StorageModeSwitchProps> = ({
 
   const currentModeInfo = STORAGE_MODES.find(mode => mode.id === currentMode);
 
-  const handleModeSelect = (mode: 'local' | 'markdown') => {
+  const handleModeSelect = (mode: 'local') => {
     onModeChange(mode);
     closeDropdown();
   };

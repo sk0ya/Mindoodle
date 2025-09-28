@@ -245,7 +245,6 @@ const commands = {
 MindMapApp                    # Root application
 ├── MindMapProviders         # Context providers
 ├── MindMapWorkspace         # Main workspace
-│   ├── MindMapHeader       # Top toolbar
 │   ├── MindMapCanvas       # SVG rendering area
 │   │   ├── Node[]          # Individual nodes
 │   │   ├── Connection[]    # Node connections

@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect } from 'react';
 import { X } from 'lucide-react';
 import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/types';
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
-import type { ExplorerItem } from '@core/storage/types';
+import type { ExplorerItem } from '@core/types';
 import { computeAnchorForNode } from '../../../markdown';
 import { useLoadingState } from '@/app/shared/hooks';
 

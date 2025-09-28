@@ -4,8 +4,8 @@ import type { MapIdentifier } from '@shared/types';
 
 type Props = {
   activeView: string | null;
-  storageMode: 'local' | 'markdown';
-  onModeChange?: (mode: 'local' | 'markdown') => void;
+  storageMode: 'local';
+  onModeChange?: (mode: 'local') => void;
   // Mind map context
   allMindMaps: any[];
   currentMapId: string | null;
@@ -34,7 +34,6 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
   const {
     activeView,
     storageMode,
-    onModeChange,
     allMindMaps,
     currentMapId,
     onSelectMap,
@@ -74,9 +73,7 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       onRenameMap={onRenameMap}
       onChangeCategory={onChangeCategory}
       onChangeCategoryBulk={onChangeCategoryBulk}
-      availableCategories={['仕事', 'プライベート', '学習', '未分類']}
       storageMode={storageMode}
-      onStorageModeChange={onModeChange}
       onShowKeyboardHelper={onShowKeyboardHelper}
       onAutoLayout={onAutoLayout}
       workspaces={workspaces}

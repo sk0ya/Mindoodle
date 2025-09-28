@@ -10,7 +10,6 @@ const App: React.FC = () => {
       </div>
     }>
       <LocalMindMapApp 
-        storageMode="markdown"
       />
     </React.Suspense>
   );

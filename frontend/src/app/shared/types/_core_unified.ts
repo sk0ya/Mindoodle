@@ -158,9 +158,7 @@ export interface LayoutAlgorithm {
 }
 
 // Enum-like types
-export type StorageMode = 'local' | 'markdown';
-export type SyncStatus = 'idle' | 'syncing' | 'success' | 'error';
-export type ConnectionStatus = 'connected' | 'connecting' | 'disconnected' | 'error';
+export type StorageMode = 'local';
 
 // Event types for consistency
 export interface NodeEvent {

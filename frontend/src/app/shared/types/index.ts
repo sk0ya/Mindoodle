@@ -99,6 +99,5 @@ export type {
   AppError,
   MindMapHookReturn,
   UserId,
-  ConnectionStatus,
   MarkdownNodeMeta
 } from './_core_unified';

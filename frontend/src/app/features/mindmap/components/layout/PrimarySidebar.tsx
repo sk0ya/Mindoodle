@@ -4,7 +4,7 @@ import SettingsSidebar from './SettingsSidebar';
 import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import type { ExplorerItem } from '@core/storage/types';
+import type { ExplorerItem } from '@core/types';
 import '@shared/styles/layout/PrimarySidebar.css';
 
 interface PrimarySidebarProps {
@@ -20,14 +20,12 @@ interface PrimarySidebarProps {
   onRenameMap?: (id: MapIdentifier, newTitle: string) => void;
   onChangeCategory?: (id: MapIdentifier, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
-  availableCategories?: string[];
   // Workspaces
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
   // Settings props
-  storageMode?: 'local' | 'markdown';
-  onStorageModeChange?: (mode: 'local' | 'markdown') => void;
+  storageMode?: 'local';
   onShowKeyboardHelper?: () => void;
   onAutoLayout?: () => void;
   explorerTree: ExplorerItem;
@@ -54,15 +52,9 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onRenameMap,
   onChangeCategory,
   onChangeCategoryBulk,
-  availableCategories = [],
   workspaces = [],
   onAddWorkspace,
   onRemoveWorkspace,
-  // Settings props
-  storageMode,
-  onStorageModeChange,
-  onShowKeyboardHelper,
-  onAutoLayout,
   explorerTree,
   onCreateFolder,
   // Current map data
@@ -90,7 +82,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             onRenameMap={onRenameMap || (() => {})}
             onChangeCategory={onChangeCategory || (() => {})}
             onChangeCategoryBulk={onChangeCategoryBulk}
-            availableCategories={availableCategories}
             isCollapsed={false}
             onToggleCollapse={() => {}}
             workspaces={workspaces}
@@ -117,10 +108,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
       case 'settings':
         return (
           <SettingsSidebar
-            storageMode={storageMode}
-            onStorageModeChange={onStorageModeChange}
-            onShowKeyboardHelper={onShowKeyboardHelper}
-            onAutoLayout={onAutoLayout}
           />
         );
       

@@ -1,62 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Moon, Sun, Keyboard, HardDrive, Trash2, Ruler, TriangleAlert } from 'lucide-react';
+import React from 'react';
+import { Moon, Sun, Keyboard } from 'lucide-react';
 import { useMindMapStore } from '../../store';
-import { useDataCleanup, useBooleanState, type DataCleanupStats } from '@shared/hooks';
 
 interface SettingsSidebarProps {
-  // 既存のprops（後方互換性のため保持）
-  storageMode?: 'local' | 'markdown';
-  onStorageModeChange?: (mode: 'local' | 'markdown') => void;
-  onShowKeyboardHelper?: () => void;
-  onAutoLayout?: () => void;
-  // Workspace selection moved to Maps view
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
-  storageMode,
-  onStorageModeChange,
-  onShowKeyboardHelper,
-  onAutoLayout,
 }) => {
   const { settings, updateSetting } = useMindMapStore();
-  const { clearAllData, getDataStats, isClearing, error } = useDataCleanup();
-  const [dataStats, setDataStats] = useState<DataCleanupStats | null>(null);
-  const { value: showConfirmDialog, setTrue: openConfirmDialog, setFalse: closeConfirmDialog } = useBooleanState();
 
   const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
-  };
-
-  // データ統計の取得
-  useEffect(() => {
-    getDataStats().then(setDataStats);
-  }, [getDataStats]);
-
-  // データクリーンアップの実行
-  const handleClearData = async () => {
-    if (!showConfirmDialog) {
-      openConfirmDialog();
-      return;
-    }
-
-    try {
-      await clearAllData();
-      closeConfirmDialog();
-      // 統計を更新
-      const newStats = await getDataStats();
-      setDataStats(newStats);
-    } catch (err) {
-      // エラーはhookで管理される
-    }
-  };
-
-  // データサイズのフォーマット
-  const formatBytes = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
   return (
@@ -184,122 +138,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </div>
           <div className="settings-description">
             右側のマークダウンエディタで Vim キーバインドを有効にします
-          </div>
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <h3 className="settings-section-title">ストレージモード</h3>
-        <div className="settings-section-content">
-          <div className="settings-radio-group">
-            <label className="settings-radio-option">
-              <input
-                type="radio"
-                name="storageMode"
-                value="local"
-                checked={storageMode === 'local'}
-                onChange={() => onStorageModeChange?.('local')}
-              />
-              <span className="settings-radio-label">
-                <span className="settings-icon"><HardDrive size={16} /></span>
-                ローカル
-              </span>
-            </label>
-            <label className="settings-radio-option">
-              <input
-                type="radio"
-                name="storageMode"
-                value="markdown"
-                checked={storageMode === 'markdown'}
-                onChange={() => onStorageModeChange?.('markdown')}
-              />
-              <span className="settings-radio-label">
-                <span className="settings-icon"><HardDrive size={16} /></span>
-                マークダウン
-              </span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <h3 className="settings-section-title">データ管理</h3>
-        <div className="settings-section-content">
-          {dataStats && (
-            <div className="data-stats">
-              <div className="data-stats-item">
-                <span className="data-stats-label">使用容量:</span>
-                <span className="data-stats-value">{formatBytes(dataStats.indexedDBSize)}</span>
-              </div>
-            </div>
-          )}
-          
-          {error && (
-            <div className="cleanup-error">
-              <span className="cleanup-error-icon"><TriangleAlert size={16} /></span>
-              {error}
-            </div>
-          )}
-
-          <div className="cleanup-actions">
-            {!showConfirmDialog ? (
-              <button 
-                className="cleanup-button"
-                onClick={handleClearData}
-                disabled={isClearing}
-              >
-                <span className="settings-button-icon"><Trash2 size={16} /></span>
-                {isClearing ? 'クリア中...' : 'すべてのデータを削除'}
-              </button>
-            ) : (
-              <div className="cleanup-confirm">
-                <p className="cleanup-confirm-text">
-                  すべてのローカルデータ（マインドマップ、設定など）が削除されます。この操作は元に戻せません。
-                </p>
-                <div className="cleanup-confirm-buttons">
-                  <button 
-                    className="cleanup-button cleanup-button-danger"
-                    onClick={handleClearData}
-                    disabled={isClearing}
-                  >
-                    {isClearing ? '削除中...' : '削除する'}
-                  </button>
-                  <button 
-                    className="cleanup-button cleanup-button-cancel"
-                    onClick={closeConfirmDialog}
-                    disabled={isClearing}
-                  >
-                    キャンセル
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      <div className="settings-section">
-        <h3 className="settings-section-title">その他</h3>
-        <div className="settings-section-content">
-          <div className="settings-action-group">
-            {onAutoLayout && (
-              <button 
-                className="settings-button"
-                onClick={onAutoLayout}
-              >
-                <span className="settings-button-icon"><Ruler size={16} /></span>
-                自動整列
-              </button>
-            )}
-            {onShowKeyboardHelper && (
-              <button 
-                className="settings-button"
-                onClick={onShowKeyboardHelper}
-              >
-                <span className="settings-button-icon"><Keyboard size={16} /></span>
-                キーボードショートカット
-              </button>
-            )}
           </div>
         </div>
       </div>

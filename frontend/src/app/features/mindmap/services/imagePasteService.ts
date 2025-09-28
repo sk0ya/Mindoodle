@@ -1,5 +1,5 @@
 import { readClipboardImageAsFile } from '@shared/utils/clipboard';
-import { StorageAdapter } from '../../../core/storage/types';
+import { StorageAdapter } from '@core/types';
 
 export interface ImagePasteService {
   pasteImageToNode(nodeId: string, storageAdapter: StorageAdapter, workspaceId?: string, mapId?: string): Promise<string>;

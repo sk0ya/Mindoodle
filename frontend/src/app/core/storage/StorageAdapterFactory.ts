@@ -8,7 +8,7 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
   }
 
   isSupported(mode: StorageMode): boolean {
-    const supportedModes: StorageMode[] = ['markdown'];
+    const supportedModes: StorageMode[] = ['local'];
     return supportedModes.includes(mode);
   }
 

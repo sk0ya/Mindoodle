@@ -1,6 +1,5 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
-import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from '../../styles/SidebarStyles';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
@@ -9,7 +8,7 @@ import { createChildFolderPath } from '@shared/utils';
 import { logger } from '@shared/utils';
 import { highlightSearchTerm } from '@shared/utils';
 import { getLastPathSegment, splitPath } from '@shared/utils';
-import type { ExplorerItem } from '@core/storage/types';
+import type { ExplorerItem } from '@core/types';
 
 interface NodeViewProps {
   item: ExplorerItem;
@@ -37,7 +36,6 @@ interface MindMapSidebarProps {
   onRenameMap: (id: MapIdentifier, newTitle: string) => void;
   onChangeCategory: (id: MapIdentifier, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
-  availableCategories: string[];
   isCollapsed: boolean;
   onToggleCollapse: () => void;
   workspaces?: Array<{ id: string; name: string }>;
@@ -65,7 +63,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 }) => {
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState(new Set<string>());
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   // Explorer collapsed state mapping: path -> collapsed?
@@ -711,11 +709,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           )}
         </div>
       </div>
-      <SidebarHeader
-        searchTerm={searchTerm}
-        onSearchChange={setSearchTerm}
-        onToggleCollapse={onToggleCollapse}
-      />
       {explorerTree ? (
         <div className="maps-content-wrapper">
           <ExplorerView

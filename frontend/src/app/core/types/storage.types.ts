@@ -59,16 +59,7 @@ export interface MapPersistenceOperations {
 }
 
 // Storage mode type
-export type StorageMode = 'local' | 'markdown';
-
-// Sync status
-export interface SyncStatus {
-  isOnline: boolean;
-  lastSync?: Date;
-  pendingOperations: number;
-  isSyncing: boolean;
-  error?: string;
-}
+export type StorageMode = 'local';
 
 // Storage configuration type
 export interface StorageConfig {

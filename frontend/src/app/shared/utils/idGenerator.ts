@@ -1,11 +1,10 @@
-export type IdType = 'node' | 'map' | 'link' | 'notification' | 'upload' | 'file' | 'error' | 'workspace' | 'url';
+export type IdType = 'node' | 'map' | 'link' | 'notification' | 'file' | 'error' | 'workspace' | 'url';
 
 const ID_PREFIXES: Record<IdType, string> = {
   node: 'node',
   map: 'map',
   link: 'link',
   notification: 'notif',
-  upload: 'upload',
   file: 'file',
   error: 'err',
   workspace: 'ws',
@@ -22,18 +21,10 @@ export function generateId(type: IdType = 'node'): string {
 export const generateNodeId = () => generateId('node');
 export const generateLinkId = () => generateId('link');
 export const generateNotificationId = () => generateId('notification');
-export const generateUploadId = () => generateId('upload');
 export const generateFileId = () => generateId('file');
 export const generateErrorId = () => generateId('error');
 export const generateWorkspaceId = () => generateId('workspace');
 export const generateUrlId = () => generateId('url');
-
-/**
- * Generate upload key with node ID and filename
- */
-export function generateUploadKey(nodeId: string, filename: string): string {
-  return `${nodeId}_${filename}_${Date.now()}`;
-}
 
 /**
  * Generate file ID with filename context

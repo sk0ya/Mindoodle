@@ -1,18 +1,17 @@
 import React from 'react';
-import { LAYOUT } from '@shared/constants';
 
 const SidebarStyles: React.FC = () => (
   <style>{`
     .mindmap-sidebar {
       width: 280px;
-      height: calc(100vh - ${LAYOUT.TOOLBAR_HEIGHT}px);
+      height: calc(100vh);
       background: #ffffff;
       border-right: 1px solid rgba(148, 163, 184, 0.2);
       display: flex;
       flex-direction: column;
       position: fixed;
       left: 48px;
-      top: ${LAYOUT.TOOLBAR_HEIGHT}px;
+      top:0;
       z-index: 100;
       overflow: hidden;
       box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.05);
@@ -27,7 +26,7 @@ const SidebarStyles: React.FC = () => (
 
     .mindmap-sidebar.collapsed {
       width: 50px;
-      height: calc(100vh - ${LAYOUT.TOOLBAR_HEIGHT}px);
+      height: 100vh;
       background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
       border-right: 2px solid #dee2e6;
       display: flex;
@@ -36,7 +35,7 @@ const SidebarStyles: React.FC = () => (
       padding: 16px 8px 40px 8px;
       position: fixed;
       left: 0;
-      top: ${LAYOUT.TOOLBAR_HEIGHT}px;
+      top: 0;
       z-index: 100;
       overflow: hidden;
     }
@@ -44,26 +43,6 @@ const SidebarStyles: React.FC = () => (
     [data-theme="dark"] .mindmap-sidebar.collapsed {
       background: linear-gradient(to bottom, #374151, #4b5563);
       border-right: 2px solid #6b7280;
-    }
-
-    .sidebar-header {
-      padding: 0 !important; /* remove extra space around search */
-      border-bottom: 1px solid rgba(148, 163, 184, 0.12);
-      background: rgba(248, 250, 252, 0.5);
-      backdrop-filter: blur(10px);
-      display: flex !important;
-      flex-direction: column !important;
-      gap: 0 !important; /* no vertical gap */
-      position: relative !important;
-      z-index: 100 !important;
-      width: 100% !important;
-      overflow: visible !important;
-      flex-shrink: 0 !important;
-    }
-
-    [data-theme="dark"] .sidebar-header {
-      border-bottom: 1px solid rgba(75, 85, 99, 0.2);
-      background: rgba(31, 41, 55, 0.8);
     }
 
     .sidebar-title {

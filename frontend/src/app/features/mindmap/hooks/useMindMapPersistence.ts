@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState, useRef } from 'react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import type { StorageAdapter, StorageConfig, ExplorerItem } from '@core/storage/types';
+import type { StorageAdapter, StorageConfig, ExplorerItem } from '@core/types';
 import { createStorageAdapter } from '@core/storage/StorageAdapterFactory';
 import { logger } from '@shared/utils';
 

@@ -582,8 +582,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           background-color: var(--bg-primary);
         }
 
-        /* Toolbar and buttons removed */
-
         .editor-container {
           flex: 1;
           display: flex;

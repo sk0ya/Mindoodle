@@ -215,12 +215,6 @@ export function useShortcutHandlers(args: Args) {
             const r = md.getBoundingClientRect();
             effectiveWidth -= r.width;
           }
-          const header = document.querySelector('.mindmap-header') || document.querySelector('.toolbar') || document.querySelector('.header');
-          if (header) {
-            const r = header.getBoundingClientRect();
-            effectiveHeight -= r.height;
-            offsetY = r.height;
-          }
         }
 
         // Bottom overlays (fixed): subtract selected-node-note-panel + Vim bar 24px
