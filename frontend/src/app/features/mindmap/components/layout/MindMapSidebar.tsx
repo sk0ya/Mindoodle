@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
+import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from '../../styles/SidebarStyles';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
@@ -63,7 +64,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 }) => {
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
-  const [searchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [collapsedCategories, setCollapsedCategories] = useState(new Set<string>());
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   // Explorer collapsed state mapping: path -> collapsed?
@@ -227,6 +228,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     // eslint-disable-next-line no-alert
     const mapName = window.prompt(`新しいマインドマップの名前を入力してください${parentInfo}:`, '新しいマインドマップ');
     if (mapName && mapName.trim()) {
+      console.log('handleCreateMap: Original parentPath:', parentPath);
+      console.log('handleCreateMap: Extracted category:', category);
 
       // parentPathからworkspaceIdを抽出
       const wsMatch = parentPath?.match(/^\/?(ws_[^/]+)/);
@@ -243,6 +246,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           workspaceId = 'default';
         }
       }
+
+      console.log('handleCreateMap: Extracted workspaceId:', workspaceId, 'from parentPath:', parentPath);
 
       onCreateMap(mapName.trim(), workspaceId, category);
       
@@ -705,6 +710,11 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           )}
         </div>
       </div>
+      <SidebarHeader
+        searchTerm={searchTerm}
+        onSearchChange={setSearchTerm}
+        onToggleCollapse={onToggleCollapse}
+      />
       {explorerTree ? (
         <div className="maps-content-wrapper">
           <ExplorerView
@@ -887,6 +897,7 @@ const ExplorerView: React.FC<{
         // 同じマップが既に選択されている場合は早期リターン
         if (currentMapId === mapId &&
             currentWorkspaceId === workspaceId) {
+          console.log('🔄 Same explorer map clicked, skipping:', mapId);
           return;
         }
         window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
