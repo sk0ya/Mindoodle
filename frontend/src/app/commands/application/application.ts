@@ -165,4 +165,37 @@ export const pasteCommand: Command = {
     }
   }
 };
+// Add workspace command
+export const addWorkspaceCommand: Command = {
+  name: 'addworkspace',
+  aliases: ['workspace-add', 'ws-add'],
+  description: 'Add a new workspace by selecting a folder',
+  category: 'utility',
+  examples: ['addworkspace', 'workspace-add'],
+
+  async execute(): Promise<CommandResult> {
+    try {
+      // Call the global addWorkspace function
+      const addWorkspaceFn = (window as any).mindoodleAddWorkspace;
+      if (typeof addWorkspaceFn !== 'function') {
+        return {
+          success: false,
+          error: 'Workspace functionality not available'
+        };
+      }
+
+      await addWorkspaceFn();
+      return {
+        success: true,
+        message: 'New workspace added successfully'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to add workspace'
+      };
+    }
+  }
+};
+
 // Cut command (equivalent to vim 'dd' - copy then delete)
