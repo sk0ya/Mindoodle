@@ -133,6 +133,29 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
     try {
       switch (cmd) {
+        case 'u':
+        case 'undo': {
+          // Vim-style undo
+          if (store.canUndo && store.canUndo()) {
+            store.undo();
+            setCommandOutput('Undo completed');
+          } else {
+            setCommandOutput('Already at oldest change');
+          }
+          break;
+        }
+
+        case 'redo': {
+          // Vim-style redo (Ctrl+R)
+          if (store.canRedo && store.canRedo()) {
+            store.redo();
+            setCommandOutput('Redo completed');
+          } else {
+            setCommandOutput('Already at newest change');
+          }
+          break;
+        }
+
         case 'mkdir':
         case 'newfolder': {
           if (args.length === 0) {

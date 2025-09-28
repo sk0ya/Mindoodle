@@ -29,6 +29,8 @@ const VIM_COMMAND_PATTERNS = {
   'ciw': { keys: ['c', 'i', 'w'], command: 'ciw' },
   '>>': { keys: ['>', '>'], command: '>>' },
   '<<': { keys: ['<', '<'], command: '<<' },
+  // Ctrl sequences (handled specially)
+  'ctrl-r': { keys: ['ctrl-r'], command: 'ctrl-r' },
 
   // Single-key commands
   'h': { keys: ['h'], command: 'h' },
@@ -53,6 +55,7 @@ const VIM_COMMAND_PATTERNS = {
   'N': { keys: ['N'], command: 'N' },
   's': { keys: ['s'], command: 's' },
   'x': { keys: ['x'], command: 'x' },
+  'u': { keys: ['u'], command: 'u' },
 } as const;
 
 // Generate all possible partial sequences

@@ -276,6 +276,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'gT': 'prev-map',
       'ctrl-u': 'scroll-up',
       'ctrl-d': 'scroll-down',
+      'ctrl-r': 'redo',      // Ctrl+R for redo
       'ciw': 'edit',
       'i': 'append',        // i: 末尾カーソル編集
       'a': 'add-child',     // a: 子ノード追加
@@ -297,6 +298,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'delete': 'delete',
       'backspace': 'delete',
       'x': 'toggle-checkbox',
+      'u': 'undo',          // u for undo
       '>>': 'move-as-child-of-sibling',
       '<<': 'move-as-next-sibling-of-parent'
     };
