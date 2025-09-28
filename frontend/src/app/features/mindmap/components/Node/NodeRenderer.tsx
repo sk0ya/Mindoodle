@@ -1046,7 +1046,10 @@ export const NodeSelectionBorder: React.FC<{
       strokeDasharray={borderStyles.strokeDasharray}
       rx="12"
       ry="12"
-      style={borderStyles.style}
+      style={{
+        ...borderStyles.style,
+        transition: 'none' // 外枠の移動アニメーションを無効化
+      }}
     />
   );
 };

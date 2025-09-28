@@ -200,9 +200,9 @@ export const generateDropZoneAnimation = (): string => {
  * Common renderer configuration
  */
 export const DEFAULT_ANIMATION_CONFIG: AnimationConfig = {
-  enableTransitions: true,
-  transitionDuration: '0.3s',
-  transitionEasing: 'cubic-bezier(0.4, 0.0, 0.2, 1)'
+  enableTransitions: false,
+  transitionDuration: '0s',
+  transitionEasing: 'none'
 };
 
 export const DEFAULT_THEME_CONFIG: ThemeConfig = {

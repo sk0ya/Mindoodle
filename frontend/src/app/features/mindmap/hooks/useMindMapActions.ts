@@ -19,14 +19,12 @@ export const useMindMapActions = () => {
 
       // マップ開時に自動整列が有効な場合は適用（一度のみ実行）
       if (mapData.settings?.autoLayout) {
-        setTimeout(() => {
-          logger.debug('🎯 Applying auto layout on map open (once only)');
-          if (typeof store.applyAutoLayout === 'function') {
-            store.applyAutoLayout();
-          } else {
-            logger.error('❌ applyAutoLayout function not found');
-          }
-        }, 100); // 100msの遅延でレンダリング完了後に実行
+        logger.debug('🎯 Applying auto layout on map open (once only)');
+        if (typeof store.applyAutoLayout === 'function') {
+          store.applyAutoLayout();
+        } else {
+          logger.error('❌ applyAutoLayout function not found');
+        }
       }
 
       logger.debug('Selected map:', mapData.title);
