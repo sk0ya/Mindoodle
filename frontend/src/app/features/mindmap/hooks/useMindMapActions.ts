@@ -124,7 +124,13 @@ export const useMindMapActions = () => {
           return false;
         }
         
-        store.setData(parsedData as MindMapData);
+        // Use setRootNodes to preserve undo/redo history when importing
+        const mindMapData = parsedData as MindMapData;
+        store.setRootNodes(mindMapData.rootNodes, {
+          emit: true,
+          source: 'importFromClipboard',
+          reason: 'Data imported from clipboard'
+        });
         return true;
       } catch (error) {
         logger.error('Failed to import data:', error);
