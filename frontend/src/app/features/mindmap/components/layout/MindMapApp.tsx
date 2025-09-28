@@ -724,11 +724,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           if (sidebarPanel) {
             try {
               const sidebarRect = sidebarPanel.getBoundingClientRect();
-              console.log('[ensureSelectedNodeVisible] Sidebar DOM found:', {
-                width: sidebarRect.width,
-                left: sidebarRect.left,
-                right: sidebarRect.right
-              });
               leftPanelWidth += sidebarRect.width;
             } catch {}
           } else {

@@ -227,8 +227,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     // eslint-disable-next-line no-alert
     const mapName = window.prompt(`新しいマインドマップの名前を入力してください${parentInfo}:`, '新しいマインドマップ');
     if (mapName && mapName.trim()) {
-      console.log('handleCreateMap: Original parentPath:', parentPath);
-      console.log('handleCreateMap: Extracted category:', category);
 
       // parentPathからworkspaceIdを抽出
       const wsMatch = parentPath?.match(/^\/?(ws_[^/]+)/);
@@ -245,8 +243,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           workspaceId = 'default';
         }
       }
-
-      console.log('handleCreateMap: Extracted workspaceId:', workspaceId, 'from parentPath:', parentPath);
 
       onCreateMap(mapName.trim(), workspaceId, category);
       
@@ -891,7 +887,6 @@ const ExplorerView: React.FC<{
         // 同じマップが既に選択されている場合は早期リターン
         if (currentMapId === mapId &&
             currentWorkspaceId === workspaceId) {
-          console.log('🔄 Same explorer map clicked, skipping:', mapId);
           return;
         }
         window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
