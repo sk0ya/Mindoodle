@@ -9,6 +9,7 @@ import { getCommandRegistry } from '../../commands/system/registry';
 import { registerAllCommands } from '../../commands/index';
 import type { Command } from '../../commands/system/types';
 import type { MindMapData } from '@shared/types';
+import { getFolderName } from '../utils/folderUtils';
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -25,7 +26,8 @@ interface MapItem {
   workspaceId: string;
   title: string;
   category: string;
-  workspaceName?: string;
+  folderName: string;
+  folderPath: string;
 }
 
 interface CombinedItem {
@@ -102,20 +104,28 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       // Handle MindMapData format from storage
       const mapIdentifier = map.mapIdentifier;
       const title = map.title || 'Untitled Map';
-      const workspaceName = mapIdentifier.workspaceId === '__default__' ? undefined : mapIdentifier.workspaceId;
+      const category = map.category || '';
+      const folderName = getFolderName(category);
+      const folderPath = category || '（未分類）';
+
+      // Get workspace name from global workspaces array
+      const workspaces = (window as any).mindoodleWorkspaces || [];
+      const workspace = workspaces.find((w: any) => w.id === mapIdentifier.workspaceId);
+      const workspaceName = workspace?.name || (mapIdentifier.workspaceId === '__default__' ? 'Default Workspace' : mapIdentifier.workspaceId);
 
       return {
         type: 'map' as const,
         displayName: title,
-        description: workspaceName ? `Map in ${workspaceName}` : 'Mind map',
+        description: workspaceName,
         category: 'Map',
         mapData: {
           type: 'map' as const,
           mapId: mapIdentifier.mapId,
           workspaceId: mapIdentifier.workspaceId,
           title: title,
-          category: 'default',
-          workspaceName: workspaceName,
+          category: category,
+          folderName: folderName,
+          folderPath: folderPath,
         },
       };
     });
@@ -135,9 +145,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     return allItems.filter(item => {
       const searchText = `${item.displayName} ${item.description} ${item.category}`.toLowerCase();
 
-      // Special handling for maps - also search in workspace name
-      if (item.type === 'map' && item.mapData?.workspaceName) {
-        return searchText.includes(lowerQuery) || item.mapData.workspaceName.toLowerCase().includes(lowerQuery);
+      // Special handling for maps - also search in folder name and path
+      if (item.type === 'map' && item.mapData) {
+        return searchText.includes(lowerQuery) ||
+               item.mapData.folderName.toLowerCase().includes(lowerQuery) ||
+               item.mapData.folderPath.toLowerCase().includes(lowerQuery);
       }
 
       return searchText.includes(lowerQuery);
@@ -385,14 +397,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                     {item.command.aliases.join(', ')}
                   </div>
                 )}
-                {/* Show workspace info for maps */}
-                {item.type === 'map' && item.mapData?.workspaceName && (
+                {/* Show folder info for maps */}
+                {item.type === 'map' && item.mapData?.folderPath && item.mapData.folderPath !== '（未分類）' && (
                   <div style={{
                     fontSize: '10px',
                     color: 'var(--vscode-descriptionForeground, #888888)',
                     marginTop: '2px',
                   }}>
-                    Workspace: {item.mapData.workspaceName}
+                    Path: {item.mapData.folderPath}
                   </div>
                 )}
               </div>
