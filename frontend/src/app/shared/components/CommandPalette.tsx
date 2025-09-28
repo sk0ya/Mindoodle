@@ -267,7 +267,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       if (selectedElement) {
         selectedElement.scrollIntoView({
           block: 'nearest',
-          behavior: 'smooth',
+          behavior: 'auto', // Remove smooth animation for faster response
         });
       }
     }
@@ -309,16 +309,19 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           width: '600px',
           maxWidth: '90vw',
           maxHeight: '60vh',
+          display: 'flex',
+          flexDirection: 'column',
           overflow: 'hidden',
           boxShadow: '0 16px 70px rgba(0, 0, 0, 0.5)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Filter Tabs */}
+        {/* Filter Tabs - Fixed position */}
         <div style={{
           display: 'inline-flex',
           borderBottom: '1px solid var(--vscode-quickInput-border, #464647)',
           alignSelf: 'flex-start',
+          flexShrink: 0,
         }}>
             {(['all', 'maps', 'commands'] as FilterMode[]).map((mode) => (
               <button
@@ -363,13 +366,14 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           ))}
         </div>
 
-        {/* Search Input */}
+        {/* Search Input - Fixed position */}
         <div style={{
           padding: '12px 16px',
           borderBottom: '1px solid var(--vscode-quickInput-border, #464647)',
           display: 'flex',
           alignItems: 'center',
           gap: '8px',
+          flexShrink: 0,
         }}>
           <Search
             size={16}
@@ -403,12 +407,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           </div>
         </div>
 
-        {/* Commands List */}
+        {/* Commands List - Scrollable area only */}
         <div
           ref={listRef}
           style={{
-            maxHeight: 'calc(60vh - 60px)',
+            flex: 1,
             overflowY: 'auto',
+            minHeight: 0,
           }}
         >
           {filteredItems.length > 0 ? (
