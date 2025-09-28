@@ -405,7 +405,9 @@ interface NodeRendererProps {
 
   // 画像位置計算を統一（ノード上部に配置、4pxマージン）
   const renderDims = localDims || imageDimensions;
-  const imageY = node.y - nodeHeight / 2 + (node.kind === 'table' ? 0 : 4);
+  const imageY = node.kind === 'table'
+    ? node.y - renderDims.height / 2  // テーブルは実際のレンダリングサイズの中心に配置
+    : node.y - nodeHeight / 2 + 4;    // 他のノードは従来通り
   const imageX = node.x - renderDims.width / 2;
 
   // no-op
@@ -651,69 +653,130 @@ interface NodeRendererProps {
                    onMouseEnter={handleMouseEnter}
                    onMouseLeave={handleMouseLeave}
               >
-                <div style={{ width: '100%', height: '100%', background: 'white', borderRadius: 8, overflow: 'hidden', border: 'none', boxShadow: '0 2px 6px rgba(0,0,0,0.08)', boxSizing: 'border-box' }}>
-                  <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, fontSize: (settings.fontSize || node.fontSize || 14), lineHeight: 1.35 }}>
-                    <tbody>
-                      {(() => {
-                        // Build rows to render from structured data or fallback parse from text/note
-                        const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
-                          if (!src) return null;
-                          const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
-                          for (let i = 0; i < lines.length - 1; i++) {
-                            const header = lines[i];
-                            const sep = lines[i + 1];
-                            const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
-                            const isSep = /:?-{3,}:?\s*\|/.test(sep) || /^\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?$/.test(sep);
-                            if (isHeader && isSep) {
-                              const outRows: string[][] = [];
-                              const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
-                              const headers = toCells(header);
-                              outRows.push(headers);
-                              let j = i + 2;
-                              while (j < lines.length && lines[j].includes('|')) {
-                                outRows.push(toCells(lines[j]));
-                                j++;
-                              }
-                              return { headers, rows: outRows.slice(1) };
+                <div className="table-wrap" style={{
+                  width: '100%',
+                  height: '100%',
+                  overflow: 'auto',
+                  borderRadius: '10px',
+                  boxSizing: 'border-box'
+                }}>
+                  <table style={{
+                    width: '100%',
+                    borderCollapse: 'collapse',
+                    overflow: 'hidden',
+                    borderRadius: '10px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
+                    background: 'white',
+                    fontSize: `${(settings.fontSize || node.fontSize || 14) * 0.95}px`,
+                    lineHeight: 1.5
+                  }}>
+                    {(() => {
+                      // Build rows to render from structured data or fallback parse from text/note
+                      const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
+                        if (!src) return null;
+                        const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
+                        for (let i = 0; i < lines.length - 1; i++) {
+                          const header = lines[i];
+                          const sep = lines[i + 1];
+                          const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
+                          const isSep = /:?-{3,}:?\s*\|/.test(sep) || /^\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?$/.test(sep);
+                          if (isHeader && isSep) {
+                            const outRows: string[][] = [];
+                            const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+                            const headers = toCells(header);
+                            outRows.push(headers);
+                            let j = i + 2;
+                            while (j < lines.length && lines[j].includes('|')) {
+                              outRows.push(toCells(lines[j]));
+                              j++;
                             }
-                          }
-                          return null;
-                        };
-
-                        // Prefer parsing from node.text (canonical); fallback to note
-                        let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
-                        if (!parsed) {
-                          const td = (node as any).tableData as { headers?: string[]; rows?: string[][] } | undefined;
-                          if (td && Array.isArray(td.rows)) {
-                            parsed = { headers: td.headers, rows: td.rows } as any;
+                            return { headers, rows: outRows.slice(1) };
                           }
                         }
+                        return null;
+                      };
 
-                        const headers = parsed?.headers;
-                        const dataRows = parsed?.rows || [];
-                        const rows = [ ...(headers ? [headers] : []), ...dataRows ];
-                        const rowsOrPlaceholder = rows.length > 0 ? rows : [['', ''], ['', '']];
-                        return rowsOrPlaceholder.map((row: string[], ri: number) => (
-                          <tr key={ri} style={{ background: headers && ri === 0 ? '#f9fafb' : (ri % 2 === (headers ? 1 : 0) ? '#fcfcfd' : 'white') }}>
-                            {row.map((cell: string, ci: number) => (
-                              <td
-                                key={ci}
-                                style={{
-                                  borderRight: '1px solid #e5e7eb',
-                                  borderBottom: '1px solid #e5e7eb',
-                                  borderLeft: ci === 0 ? '1px solid #e5e7eb' : undefined,
-                                  borderTop: (headers ? ri === 0 : ri === 0) ? '1px solid #e5e7eb' : undefined,
-                                  padding: '6px 8px',
-                                  fontWeight: headers && ri === 0 ? 600 : 400,
-                                  color: headers && ri === 0 ? '#111827' : '#1f2937',
-                                  whiteSpace: 'nowrap'
-                                }}
-                              >{cell}</td>
-                            ))}
-                          </tr>
-                        ));
-                      })()}
-                    </tbody>
+                      // Prefer parsing from node.text (canonical); fallback to note
+                      let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
+                      if (!parsed) {
+                        const td = (node as any).tableData as { headers?: string[]; rows?: string[][] } | undefined;
+                        if (td && Array.isArray(td.rows)) {
+                          parsed = { headers: td.headers, rows: td.rows } as any;
+                        }
+                      }
+
+                      const headers = parsed?.headers;
+                      const dataRows = parsed?.rows || [];
+                      const rowsOrPlaceholder = headers || dataRows.length > 0 ? [headers, ...dataRows].filter(Boolean) : [['', ''], ['', '']];
+
+                      const hasHeaders = !!headers;
+
+                      return (
+                        <>
+                          {hasHeaders && (
+                            <thead>
+                              <tr>
+                                {headers!.map((cell: string, ci: number) => (
+                                  <th
+                                    key={ci}
+                                    style={{
+                                      border: 0,
+                                      borderRight: ci < headers!.length - 1 ? '1px solid rgba(255,255,255,0.3)' : undefined,
+                                      padding: '12px 16px',
+                                      verticalAlign: 'middle',
+                                      fontWeight: 600,
+                                      background: '#6b7280',
+                                      color: 'white',
+                                      borderBottom: '2px solid #e2e8f0',
+                                      textAlign: 'left',
+                                      borderTopLeftRadius: ci === 0 ? '10px' : undefined,
+                                      borderTopRightRadius: ci === headers!.length - 1 ? '10px' : undefined,
+                                      whiteSpace: 'nowrap'
+                                    }}
+                                  >{cell}</th>
+                                ))}
+                              </tr>
+                            </thead>
+                          )}
+                          <tbody>
+                            {(hasHeaders ? dataRows : rowsOrPlaceholder).filter((row): row is string[] => !!row).map((row: string[], ri: number) => {
+                              const isLastRow = ri === (hasHeaders ? dataRows : rowsOrPlaceholder).length - 1;
+                              return (
+                                <tr
+                                  key={ri}
+                                  style={{
+                                    transition: 'background 0.15s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.currentTarget.style.background = '#f9fafb';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.currentTarget.style.background = ri % 2 === 0 ? 'white' : '#fcfcfd';
+                                  }}
+                                >
+                                  {row.map((cell: string, ci: number) => (
+                                    <td
+                                      key={ci}
+                                      style={{
+                                        border: 0,
+                                        padding: '12px 16px',
+                                        verticalAlign: 'middle',
+                                        background: ri % 2 === 0 ? 'white' : '#fcfcfd',
+                                        color: 'black',
+                                        borderTop: ri > 0 ? '1px solid #f1f5f9' : undefined,
+                                        borderBottomLeftRadius: isLastRow && ci === 0 ? '10px' : undefined,
+                                        borderBottomRightRadius: isLastRow && ci === row.length - 1 ? '10px' : undefined,
+                                        whiteSpace: 'nowrap'
+                                      }}
+                                    >{cell}</td>
+                                  ))}
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </>
+                      );
+                    })()}
                   </table>
                 </div>
                 {/* No resize handle for table nodes */}

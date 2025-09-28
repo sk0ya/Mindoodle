@@ -156,15 +156,22 @@ export function calculateNodeSize(
   isEditing: boolean = false,
   globalFontSize?: number
 ): NodeSize {
-  // Table node sizing
+  // Table node sizing - 動的サイズ更新に対応
   if (node.kind === 'table') {
-    // Use the same font size as rendering (settings.fontSize or node.fontSize)
-    const fontSize = globalFontSize || node.fontSize || 14;
-    const paddingX = 12; // per cell horizontal padding (left+right total = 24)
-    const paddingY = 6;  // per cell vertical padding (top+bottom total = 12)
-    const borderWidth = 1;
+    // カスタムサイズが設定されている場合は、それを使用（動的更新済み）
+    if (node.customImageWidth && node.customImageHeight) {
+      const contentWidth = node.customImageWidth;
+      const contentHeight = node.customImageHeight;
+      // テーブル表示に適したパディング
+      const padding = 10;
+      return {
+        width: contentWidth + padding,
+        height: contentHeight + padding,
+        imageHeight: contentHeight
+      };
+    }
 
-    // Build rows from structured data or fallback parse from text/note
+    // カスタムサイズが未設定の場合のフォールバック計算
     const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
       if (!src) return null;
       const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
@@ -189,51 +196,33 @@ export function calculateNodeSize(
       return null;
     };
 
-    // Prefer parsing from node.text (canonical); fallback to note
     let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
-    if (!parsed && (node as any)?.tableData && Array.isArray((node as any).tableData.rows)) {
-      parsed = { headers: (node as any).tableData.headers, rows: (node as any).tableData.rows } as any;
-    }
-
-    const rows: string[][] = [
-      ...(parsed?.headers ? [parsed.headers] : []),
-      ...((parsed?.rows) || [])
-    ];
-    // Fallback placeholder if nothing
-    if (rows.length === 0) {
-      rows.push(['', '']);
-      rows.push(['', '']);
-    }
-
-    const colCount = rows.reduce((m, r) => Math.max(m, r.length), 0);
-    const colWidths: number[] = new Array(colCount).fill(0);
-
-    for (let r = 0; r < rows.length; r++) {
-      for (let c = 0; c < colCount; c++) {
-        const cell = rows[r][c] ?? '';
-        const w = measureTextWidth(cell, fontSize, node.fontFamily || 'system-ui, -apple-system, sans-serif', node.fontWeight || 'normal', node.fontStyle || 'normal');
-        colWidths[c] = Math.max(colWidths[c], w + paddingX * 2);
+    if (!parsed) {
+      const td = (node as any).tableData as { headers?: string[]; rows?: string[][] } | undefined;
+      if (td && Array.isArray(td.rows)) {
+        parsed = { headers: td.headers, rows: td.rows } as any;
       }
     }
 
-    let contentWidth = colWidths.reduce((a, b) => a + b, 0) + (colCount + 1) * borderWidth; // include borders
-    // row height accounts for line-height (~1.35x) + vertical paddings
-    const rowHeight = Math.max(Math.ceil(fontSize * 1.35) + paddingY * 2, 22);
-    const rowCount = rows.length || 1;
-    let contentHeight = rowCount * rowHeight + (rowCount + 1) * borderWidth;
+    // NodeRendererと同じ高さ計算（フォールバック用）
+    const calculateTableHeight = (parsed: { headers?: string[]; rows: string[][] } | null): number => {
+      if (!parsed) return 70;
+      const headerRows = parsed.headers ? 1 : 0;
+      const dataRows = parsed.rows.length;
+      const totalRows = headerRows + dataRows;
+      // NodeRendererの新しいCSS: padding: '12px 16px', line-height: 1.5, fontSize: 14px * 0.95
+      // 実際の計算: (13.3px * 1.5) + (12px * 2) = 19.95px + 24px = 43.95px ≈ 44px
+      const rowHeight = 44;
+      return Math.max(70, totalRows * rowHeight + 12); // 最小70px + 適切なマージン
+    };
 
-    // No internal vertical padding for table itself; external margins handled by layout
+    const calculatedHeight = calculateTableHeight(parsed);
+    const contentWidth = Math.max(150, 200); // 基本的な幅
+    const contentHeight = calculatedHeight;
 
-    // Ensure size is always large enough to display full table (no scrollbars)
-    if (node.customImageWidth && node.customImageHeight) {
-      contentWidth = Math.max(contentWidth, node.customImageWidth);
-      contentHeight = Math.max(contentHeight, node.customImageHeight);
-    }
-
-    // For table nodes, there is no text block at top
-    const baseNodeHeight = 0;
-    const nodeWidth = contentWidth + 10; // small side breathing room
-    const nodeHeight = baseNodeHeight + contentHeight;
+    const padding = 10; // テーブル表示に適したパディング
+    const nodeWidth = contentWidth + padding;
+    const nodeHeight = contentHeight + padding;
 
     return {
       width: nodeWidth,
