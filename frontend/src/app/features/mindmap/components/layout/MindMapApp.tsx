@@ -25,7 +25,7 @@ import { useAI } from '../../../ai/hooks/useAI';
 import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
-import { logger } from '@shared/utils';
+import { logger, statusMessages } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
@@ -1207,7 +1207,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           // 変換エラーをチェック
           if ((updatedNodes as any).__conversionError) {
             const errorMessage = (updatedNodes as any).__conversionError;
-            showNotification('warning', `変換できません: ${errorMessage}`);
+            const typeDisplayName = newType === 'heading' ? '見出し' :
+              newType === 'unordered-list' ? '箇条書きリスト' : '番号付きリスト';
+            statusMessages.customError(`${typeDisplayName}への変換に失敗しました: ${errorMessage}`);
             return;
           }
 
@@ -1531,7 +1533,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               // 変換エラーをチェック
               if ((updatedNodes as any).__conversionError) {
                 const errorMessage = (updatedNodes as any).__conversionError;
-                showNotification('warning', `変換できません: ${errorMessage}`);
+                const typeDisplayName = newType === 'heading' ? '見出し' :
+                  newType === 'unordered-list' ? '箇条書きリスト' : '番号付きリスト';
+                statusMessages.customError(`${typeDisplayName}への変換に失敗しました: ${errorMessage}`);
                 return;
               }
 

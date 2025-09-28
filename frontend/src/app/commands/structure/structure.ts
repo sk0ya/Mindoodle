@@ -4,6 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
+import { statusMessages } from '@shared/utils';
 
 // Add child node command (vim Tab/o)
 export const addChildCommand: Command = {
@@ -195,25 +196,31 @@ export const convertNodeCommand: Command = {
     let targetType = (args as any)['type'] as 'heading' | 'unordered-list' | 'ordered-list';
 
     if (!nodeId) {
+      const errorMessage = 'ノードが選択されておらず、ノードIDも指定されていません';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'No node selected and no node ID provided'
+        error: errorMessage
       };
     }
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
+      const errorMessage = `ノード ${nodeId} が見つかりません`;
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: `Node ${nodeId} not found`
+        error: errorMessage
       };
     }
 
     // Check if onMarkdownNodeType handler is available
     if (!context.handlers.onMarkdownNodeType) {
+      const errorMessage = 'ノード型変換機能が利用できません';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'Node type conversion is not available'
+        error: errorMessage
       };
     }
 
@@ -242,9 +249,11 @@ export const convertNodeCommand: Command = {
         message: `Converted "${node.text}" to ${targetType}`
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'ノード変換に失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to convert node type'
+        error: errorMessage
       };
     }
   }

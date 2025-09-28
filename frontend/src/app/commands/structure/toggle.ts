@@ -6,6 +6,7 @@
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
 import { MarkdownImporter } from '../../features/markdown/markdownImporter';
+import { statusMessages } from '@shared/utils';
 
 export const toggleCommand: Command = {
   name: 'toggle',
@@ -38,26 +39,32 @@ export const toggleCommand: Command = {
     const forceState = (args as any)['expand'];
 
     if (!nodeId) {
+      const errorMessage = 'ノードが選択されておらず、ノードIDも指定されていません';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'No node selected and no node ID provided'
+        error: errorMessage
       };
     }
 
     // Get node information
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
+      const errorMessage = `ノード ${nodeId} が見つかりません`;
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: `Node ${nodeId} not found`
+        error: errorMessage
       };
     }
 
     // Check if node has children
     if (!node.children || node.children.length === 0) {
+      const errorMessage = `ノード「${node.text}」にはトグルできる子ノードがありません`;
+      statusMessages.customWarning(errorMessage);
       return {
         success: false,
-        error: `Node "${node.text}" has no children to toggle`
+        error: errorMessage
       };
     }
 
@@ -78,9 +85,11 @@ export const toggleCommand: Command = {
         message: `${action} node "${node.text}" (${node.children.length} children)`
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'ノード状態の切り替えに失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to toggle node state'
+        error: errorMessage
       };
     }
   }
@@ -101,24 +110,30 @@ export const expandCommand: Command = {
     const nodeId = context.selectedNodeId;
 
     if (!nodeId) {
+      const errorMessage = 'ノードが選択されていません';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'No node selected'
+        error: errorMessage
       };
     }
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
+      const errorMessage = `ノード ${nodeId} が見つかりません`;
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: `Node ${nodeId} not found`
+        error: errorMessage
       };
     }
 
     if (!node.children || node.children.length === 0) {
+      const errorMessage = `ノード「${node.text}」には展開できる子ノードがありません`;
+      statusMessages.customWarning(errorMessage);
       return {
         success: false,
-        error: `Node "${node.text}" has no children to expand`
+        error: errorMessage
       };
     }
 
@@ -136,9 +151,11 @@ export const expandCommand: Command = {
         message: `Expanded node "${node.text}" (${node.children.length} children)`
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'ノードの展開に失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to expand node'
+        error: errorMessage
       };
     }
   }
@@ -159,24 +176,30 @@ export const collapseCommand: Command = {
     const nodeId = context.selectedNodeId;
 
     if (!nodeId) {
+      const errorMessage = 'ノードが選択されていません';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'No node selected'
+        error: errorMessage
       };
     }
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
+      const errorMessage = `ノード ${nodeId} が見つかりません`;
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: `Node ${nodeId} not found`
+        error: errorMessage
       };
     }
 
     if (!node.children || node.children.length === 0) {
+      const errorMessage = `ノード「${node.text}」には折りたたみできる子ノードがありません`;
+      statusMessages.customWarning(errorMessage);
       return {
         success: false,
-        error: `Node "${node.text}" has no children to collapse`
+        error: errorMessage
       };
     }
 
@@ -194,9 +217,11 @@ export const collapseCommand: Command = {
         message: `Collapsed node "${node.text}" (${node.children.length} children)`
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'ノードの折りたたみに失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to collapse node'
+        error: errorMessage
       };
     }
   }
@@ -220,9 +245,11 @@ export const expandAllCommand: Command = {
       const rootNodes = state?.data?.rootNodes || [];
 
       if (rootNodes.length === 0) {
+        const errorMessage = '現在のマインドマップにノードが見つかりません';
+        statusMessages.customError(errorMessage);
         return {
           success: false,
-          error: 'No nodes found in current mindmap'
+          error: errorMessage
         };
       }
 
@@ -248,9 +275,11 @@ export const expandAllCommand: Command = {
         message: `Expanded all nodes (${expandedCount} nodes were collapsed)`
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'すべてのノードの展開に失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to expand all nodes'
+        error: errorMessage
       };
     }
   }
@@ -274,9 +303,11 @@ export const collapseAllCommand: Command = {
       const rootNodes = state?.data?.rootNodes || [];
 
       if (rootNodes.length === 0) {
+        const errorMessage = '現在のマインドマップにノードが見つかりません';
+        statusMessages.customError(errorMessage);
         return {
           success: false,
-          error: 'No nodes found in current mindmap'
+          error: errorMessage
         };
       }
 
@@ -302,9 +333,11 @@ export const collapseAllCommand: Command = {
         message: `Collapsed all nodes (${collapsedCount} nodes were expanded)`
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'すべてのノードの折りたたみに失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to collapse all nodes'
+        error: errorMessage
       };
     }
   }
@@ -325,17 +358,21 @@ export const toggleCheckboxCommand: Command = {
     const nodeId = context.selectedNodeId;
 
     if (!nodeId) {
+      const errorMessage = 'ノードが選択されていません';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'No node selected'
+        error: errorMessage
       };
     }
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
+      const errorMessage = `ノード ${nodeId} が見つかりません`;
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: `Node ${nodeId} not found`
+        error: errorMessage
       };
     }
 
@@ -362,9 +399,11 @@ export const toggleCheckboxCommand: Command = {
         // チェックボックス変換処理
         const data = store.data;
         if (!data || !data.rootNodes) {
+          const errorMessage = 'マップデータが利用できません';
+          statusMessages.customError(errorMessage);
           return {
             success: false,
-            error: 'No map data available'
+            error: errorMessage
           };
         }
 
@@ -374,9 +413,11 @@ export const toggleCheckboxCommand: Command = {
           const safetyCheck = MarkdownImporter.canSafelyConvertToList(data.rootNodes, nodeId);
 
           if (!safetyCheck.canConvert) {
+            const errorMessage = safetyCheck.reason || '見出しノードから変換できません';
+            statusMessages.customError(errorMessage);
             return {
               success: false,
-              error: safetyCheck.reason || '見出しノードから変換できません'
+              error: errorMessage
             };
           }
         }
@@ -440,14 +481,18 @@ export const toggleCheckboxCommand: Command = {
         };
       }
 
+      const errorMessage = 'チェックボックスのトグルに失敗しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: 'Failed to toggle checkbox'
+        error: errorMessage
       };
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'チェックボックスのトグルでエラーが発生しました';
+      statusMessages.customError(errorMessage);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Failed to toggle checkbox'
+        error: errorMessage
       };
     }
   }
