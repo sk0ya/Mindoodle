@@ -7,70 +7,70 @@ Vim 風のショートカット一覧です。
 - モードは Normal 前提
 - 主要移動: h/j/k/l
 
-## 移動 / ビュー
+## ナビゲーション
 
 | キー | 動作 |
 |---|---|
-| h | 親へ |
-| j | 次の兄弟へ |
-| k | 前の兄弟へ |
-| l | 最初の子へ |
-| gg | ルートを選択して中央へ |
-| G | 最下位の可視ノードを選択 |
-| M | 画面中央付近のノードを選択 |
-| 0 | そのノードの属するルートを選択 |
-| zz | 中央へスクロール |
-| zt | 左寄せスクロール |
-| Ctrl-U | 上へパン |
-| Ctrl-D | 下へパン |
-| gt / gT | 次/前のマップへ |
+| zz | Center the selected node in the viewport |
+| center-node | Center the selected node in the viewport |
+| k | Navigate up to the previous sibling node |
+| j | Navigate down to the next sibling node |
+| d | Navigate down to the next sibling node |
+| h | Navigate left to the parent node |
+| parent | Navigate left to the parent node |
+| l | Navigate right to the first child node |
+| root | Select and center the root node |
+| go-root | Select and center the root node |
+| gg | Select and center the root node |
+| vim-G | Select the visible node positioned lowest in the map |
+| G | Select the visible node positioned lowest in the map |
 
-## 折りたたみ（Fold）
-
-| キー | 動作 |
-|---|---|
-| za | 折りたたみトグル |
-| zo | 展開 |
-| zc | 折りたたみ |
-| zR | 全展開 |
-| zM | 全折りたたみ |
-
-## 作成・編集
+## 編集
 
 | キー | 動作 |
 |---|---|
-| o | 下に兄弟を作成して編集 |
-| O | 上に兄弟を作成して編集 |
-| Enter | 兄弟を追加して編集 |
-| Tab | 子を追加して編集 |
-| a | 子を追加して編集 |
-| i | 末尾で編集開始 |
-| I | 先頭で編集開始 |
-| A | 末尾で編集開始 |
-| ciw | テキストをクリアして編集 |
+| ciw | Clear node text and start editing |
+| change | Clear node text and start editing |
+| clear-edit | Clear node text and start editing |
+| i | Start editing the selected node |
+| a | Create a child node and start editing |
+| A | Start editing at the end of the node text |
+| I | Start editing at the beginning of the node text |
+| dd | Cut the selected node (copy then delete) |
+| cut-node | Cut the selected node (copy then delete) |
+| i | Start editing at the beginning of node text (vim i) |
+| insert-start | Start editing at the beginning of node text (vim i) |
+| a | Start editing at the end of node text (vim a) |
+| insert-end | Start editing at the end of node text (vim a) |
+| o | Create new younger sibling node and start editing (vim o) |
+| add-younger-sibling | Create new younger sibling node and start editing (vim o) |
+| O | Create new elder sibling node and start editing (vim O) |
+| add-elder-sibling | Create new elder sibling node and start editing (vim O) |
+| u | Undo the last operation |
+| r | Redo the last undone operation |
+| c | Copy the selected node |
+| v | Paste copied node as child |
 
-## 構造（インデント/アウトデント）
-
-| キー | 動作 |
-|---|---|
-| >> | 前の兄弟の子にする |
-| << | 親の次兄弟にする |
-
-## クリップボード / 削除
-
-| キー | 動作 |
-|---|---|
-| yy | コピー |
-| p | 貼り付け |
-| dd | カット |
-| Delete / Backspace | 削除 |
-
-## 検索
+## 構造
 
 | キー | 動作 |
 |---|---|
-| / | 検索開始 |
-| n / N | 次 / 前の結果へ |
-| s | ジャンプラベル表示 |
+| m | Convert node type (e.g., heading to list) |
+| convert-type | Convert node type (e.g., heading to list) |
+| za | Toggle the collapse state of node children |
+| toggle-collapse | Toggle the collapse state of node children |
+| fold | Toggle the collapse state of node children |
+| zo | Expand the selected node to show its children |
+| open-fold | Expand the selected node to show its children |
+| zc | Collapse the selected node to hide its children |
+| close-fold | Collapse the selected node to hide its children |
+| zR | Expand all nodes in the mindmap |
+| open-all-folds | Expand all nodes in the mindmap |
+| zM | Collapse all nodes in the mindmap |
+| close-all-folds | Collapse all nodes in the mindmap |
+| x | Toggle checkbox state of a list node, or convert to checkbox list |
+| checkbox-toggle | Toggle checkbox state of a list node, or convert to checkbox list |
 
-最終更新: 2025-09-26
+
+
+最終更新: 2025-09-29

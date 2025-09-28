@@ -6,9 +6,9 @@
   "main": "index.js",
   "scripts": {
     "dev": "PORT=5174 vite",
-    "build": "npm run validate && vite build",
-    "build:full": "npm run validate && vite build",
-    "build:safe": "npm run validate && vite build",
+    "build": "npm run docs:generate && npm run validate && vite build",
+    "build:full": "npm run docs:generate && npm run validate && vite build",
+    "build:safe": "npm run docs:generate && npm run validate && vite build",
     "preview": "vite preview",
     "serve": "serve -s dist",
     "type-check": "tsc --noEmit",
@@ -17,6 +17,8 @@
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts'",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts' --fix",
     "validate": "echo 'Type safety validation completed'",
+    "docs:generate": "tsx ../scripts/generate-docs.ts",
+    "docs:watch": "tsx --watch ../scripts/generate-docs.ts",
     "prepare": "husky"
   },
   "keywords": [
@@ -52,6 +54,7 @@
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "husky": "^9.1.7",
+    "tsx": "^4.20.6",
     "typescript": "^5.8.3",
     "vite": "^6.3.5"
   }
