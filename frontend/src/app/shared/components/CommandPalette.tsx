@@ -133,8 +133,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       };
     });
 
-    // コマンドを先に、マップを後に配置
-    return [...commandItems, ...mapItems];
+    // マップを先に、コマンドを後に配置
+    return [...mapItems, ...commandItems];
   }, [loadedMaps]);
 
   // Filter items based on filter mode and search query
@@ -162,16 +162,16 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     const lowerQuery = searchQuery.toLowerCase();
 
     return itemsToFilter.filter(item => {
-      const searchText = `${item.displayName} ${item.description} ${item.category}`.toLowerCase();
+      // Search only in display name for both commands and maps
+      const displayNameMatch = item.displayName.toLowerCase().includes(lowerQuery);
 
-      // Special handling for maps - also search in folder name and path
+      // For maps, also search in folder path
       if (item.type === 'map' && item.mapData) {
-        return searchText.includes(lowerQuery) ||
-               item.mapData.folderName.toLowerCase().includes(lowerQuery) ||
-               item.mapData.folderPath.toLowerCase().includes(lowerQuery);
+        const pathMatch = item.mapData.folderPath.toLowerCase().includes(lowerQuery);
+        return displayNameMatch || pathMatch;
       }
 
-      return searchText.includes(lowerQuery);
+      return displayNameMatch;
     });
   }, [searchQuery, allItems, filterMode]);
 
@@ -343,7 +343,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                   ? '2px solid var(--vscode-focusBorder, #007acc)'
                   : '2px solid transparent',
                 cursor: 'pointer',
-                fontSize: '13px',
+                fontSize: '16px',
                 fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, sans-serif)',
                 fontWeight: filterMode === mode ? '500' : 'normal',
                 textTransform: 'capitalize',
@@ -392,7 +392,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
               border: 'none',
               outline: 'none',
               color: 'var(--vscode-quickInput-foreground, #cccccc)',
-              fontSize: '14px',
+              fontSize: '16px',
               fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, sans-serif)',
             }}
           />
@@ -456,7 +456,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                       </span>
                     )}
                     <span style={{
-                      fontSize: '13px',
+                      fontSize: '15px',
                       fontWeight: '500',
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -484,7 +484,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                   </span>
                 </div>
                 <div style={{
-                  fontSize: '11px',
+                  fontSize: '13px',
                   color: 'var(--vscode-descriptionForeground, #999999)',
                   lineHeight: '1.3',
                 }}>
@@ -517,7 +517,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
               padding: '32px 16px',
               textAlign: 'center',
               color: 'var(--vscode-descriptionForeground, #999999)',
-              fontSize: '13px',
+              fontSize: '15px',
               fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, sans-serif)',
             }}>
               No commands found
