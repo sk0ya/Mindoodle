@@ -32,6 +32,9 @@ import { useVim, VimProvider } from "../../../vim/context/vimContext";
 import { JumpyLabels } from "../../../vim";
 import VimStatusBar from "../VimStatusBar";
 import { imagePasteService } from '../../services/imagePasteService';
+import CommandPalette from '@shared/components/CommandPalette';
+import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
+import { useCommands } from '../../../../commands/system/useCommands';
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/storage/types';
@@ -97,6 +100,17 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setCurrentImageAlt(altText || '');
     setShowImageModal(true);
   }, []);
+
+  // コマンドパレット状態管理
+  const commandPalette = useCommandPalette({
+    enabled: true,
+    shortcut: 'ctrl+p'
+  });
+
+  // Initialize shortcut handlers first (we'll need them for commands)
+  const finishEditingWrapper = (nodeId: string, text?: string) => {
+    if (text !== undefined) finishEditing(nodeId, text);
+  };
 
   const handleCloseImageModal = useCallback(() => {
     setShowImageModal(false);
@@ -1110,9 +1124,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const handleShowLinkActionMenu = openLinkActionMenu;
 
   // キーボードショートカット設定（ハンドラー組み立てを外部化）
-  const finishEditingWrapper = (nodeId: string, text?: string) => {
-    if (text !== undefined) finishEditing(nodeId, text);
-  };
   const shortcutHandlers = useShortcutHandlers({
     data: null,
     ui,
@@ -1250,6 +1261,31 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
+
+  // Initialize command system after shortcutHandlers
+  const commands = useCommands({
+    selectedNodeId,
+    editingNodeId,
+    vim,
+    handlers: shortcutHandlers as any, // 型が複雑で完全に一致しないため、anyで回避
+  });
+
+  // Handle command execution from palette
+  const handleExecuteCommand = useCallback(async (commandName: string, _args?: Record<string, any>) => {
+    try {
+      const result = await commands.execute(commandName);
+      if (result.success) {
+        if (result.message) {
+          showNotification('success', result.message);
+        }
+      } else {
+        showNotification('error', result.error || 'コマンドの実行に失敗しました');
+      }
+    } catch (error) {
+      console.error('Command execution failed:', error);
+      showNotification('error', 'コマンドの実行中にエラーが発生しました');
+    }
+  }, [commands, showNotification]);
 
   // Outline save feature removed
 
@@ -1560,6 +1596,17 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         imageUrl={currentImageUrl}
         altText={currentImageAlt}
         onClose={handleCloseImageModal}
+      />
+
+      {/* Command Palette */}
+      <CommandPalette
+        isOpen={commandPalette.isOpen}
+        onClose={commandPalette.close}
+        onExecuteCommand={handleExecuteCommand}
+        onSelectMap={async (mapId) => {
+          await selectMapById(mapId);
+        }}
+        storageAdapter={mindMap?.storageAdapter}
       />
     </div>
   );

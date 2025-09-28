@@ -12,6 +12,7 @@ export { useModal } from './ui/useModal';
 export { useModalState } from './ui/useModalState';
 export { useNotification, NotificationProvider, type NotificationType, type Notification } from './ui/useNotification';
 export { useStatusBar, StatusBarProvider } from './ui/useStatusBar';
+export { useCommandPalette, type UseCommandPaletteOptions, type UseCommandPaletteReturn } from './ui/useCommandPalette';
 
 // System & Error Handling Hooks
 export { useErrorBoundary } from './system/useErrorBoundary';

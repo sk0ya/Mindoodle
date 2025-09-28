@@ -52,11 +52,21 @@ export const commands = Object.values(commandCategories).flat();
 // Registry Helper
 // =============================
 export function registerAllCommands(registry: any) {
+  console.log('Registering commands. Total available:', commands.length);
+  console.log('Command categories:', Object.keys(commandCategories));
+  console.log('Sample commands structure:', commands.slice(0, 3));
+
   for (const command of commands) {
     try {
-      registry.register(command);
+      if (command && typeof command === 'object' && command.name) {
+        registry.register(command);
+      } else {
+        console.warn('Invalid command structure:', command);
+      }
     } catch (error) {
       console.warn(`Failed to register command: ${command?.name ?? 'unknown'}`, error);
     }
   }
+
+  console.log('Registration completed. Registry now has:', registry.getAll().length, 'commands');
 }
