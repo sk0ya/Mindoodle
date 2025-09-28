@@ -181,7 +181,10 @@ export const createDataSlice: StateCreator<
       
       // Memoized node size calculation using global cache
       const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
-        const cacheKey = `${node.id}_${node.text}_${state.settings.fontSize}`;
+        // Include node kind and table data for proper cache invalidation of table nodes
+        const nodeKind = (node as any)?.kind || 'text';
+        const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
+        const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
         const cached = nodeSizeCache.get(cacheKey);
         if (cached) {
           return cached;
@@ -193,8 +196,8 @@ export const createDataSlice: StateCreator<
 
       // Optimized subtree bounds calculation using global cache
       const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-        // Create cache key based on node id and position (to invalidate on position changes)
-        const cacheKey = `${node.id}_${node.y || 0}`;
+        // Create cache key based on node id, position, and collapsed state
+        const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
 
         const cached = boundsCache.get(cacheKey);
         if (cached) {
@@ -209,8 +212,8 @@ export const createDataSlice: StateCreator<
         let minY = nodeTop;
         let maxY = nodeBottom;
 
-        if (node.children && node.children.length > 0) {
-          // Use parallel processing for children bounds calculation
+        if (node.children && node.children.length > 0 && !node.collapsed) {
+          // Use parallel processing for children bounds calculation (only for non-collapsed nodes)
           const childBounds = node.children.map(child => getSubtreeBounds(child));
           for (const bounds of childBounds) {
             minY = Math.min(minY, bounds.minY);
@@ -225,16 +228,17 @@ export const createDataSlice: StateCreator<
 
       // Memoized node count calculation using global cache
       const getNodeCount = (node: MindMapNode): number => {
-        const cached = nodeCountCache.get(node.id);
+        const cacheKey = `${node.id}_${node.collapsed || false}`;
+        const cached = nodeCountCache.get(cacheKey);
         if (cached !== undefined) {
           return cached;
         }
-        
-        const count = !node.children || node.children.length === 0 
-          ? 1 
+
+        const count = node.collapsed || !node.children || node.children.length === 0
+          ? 1
           : 1 + node.children.reduce((sum, child) => sum + getNodeCount(child), 0);
-        
-        nodeCountCache.set(node.id, count);
+
+        nodeCountCache.set(cacheKey, count);
         return count;
       };
 
@@ -284,8 +288,31 @@ export const createDataSlice: StateCreator<
             }
           }
 
-          // Clear cache for modified nodes to force recalculation
-          boundsCache.clear();
+          // Selectively invalidate only affected nodes instead of clearing all cache
+          const invalidateNodeBounds = (node: MindMapNode) => {
+            // Invalidate both collapsed and expanded cache entries for this node
+            const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
+            const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
+            boundsCache.delete(cacheKeyCollapsed);
+            boundsCache.delete(cacheKeyExpanded);
+
+            // Also invalidate node count cache for both states
+            const countKeyCollapsed = `${node.id}_true`;
+            const countKeyExpanded = `${node.id}_false`;
+            nodeCountCache.delete(countKeyCollapsed);
+            nodeCountCache.delete(countKeyExpanded);
+
+            // Invalidate node size cache
+            const nodeKind = (node as any)?.kind || 'text';
+            const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
+            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+            nodeSizeCache.delete(sizeKey);
+
+            if (node.children && !node.collapsed) {
+              node.children.forEach(child => invalidateNodeBounds(child));
+            }
+          };
+          invalidateNodeBounds(layoutedNode);
           
           // Calculate final bottom position
           const finalBounds = getSubtreeBounds(layoutedNode);

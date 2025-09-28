@@ -1,4 +1,4 @@
-import React, { useRef, useState, useCallback, useEffect, memo } from 'react';
+import React, { useRef, useCallback, useEffect, memo } from 'react';
 import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
 import NodeEditor, { isMarkdownLink, isUrl } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';

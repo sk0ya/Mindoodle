@@ -55,6 +55,12 @@ export class LRUCache<K, V> {
     this.timestamps.set(key, now);
   }
 
+  delete(key: K): boolean {
+    const deleted = this.cache.delete(key);
+    this.timestamps.delete(key);
+    return deleted;
+  }
+
   clear(): void {
     this.cache.clear();
     this.timestamps.clear();

@@ -62,13 +62,15 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   newRootNode.x = centerX;
   newRootNode.y = centerY;
 
-  // サブツリーの実際の高さを計算（旧ロジック: テーブル外側マージンなし）
+  // サブツリーの実際の高さを計算（折りたたみ状態を考慮）
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
+    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
+
+    // 折りたたまれているか、子ノードがない場合は自分の高さのみ
     if (node.collapsed || !node.children || node.children.length === 0) {
-      const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
       return nodeSize.height;
     }
-    
+
     // 子ノードの合計高さ + 最小限の間隔
     const childrenTotalHeight = node.children.reduce((sum, child, index) => {
       const childHeight = calculateSubtreeActualHeight(child);
@@ -82,9 +84,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
       return sum + childHeight + spacing;
     }, 0);
-    
+
     // 現在のノードの高さと子ノード群の高さの最大値（外側マージンなし）
-    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
     return Math.max(nodeSize.height, childrenTotalHeight);
   };
 
@@ -96,10 +97,10 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     return node.children.reduce((sum, child) => sum + calculateSubtreeNodeCount(child), 0);
   };
 
-  // 再帰的にノードを配置
+  // 再帰的にノードを配置（折りたたみ状態を考慮した位置保持）
   const positionNode = (node: MindMapNode, parent: MindMapNode | null, depth: number, yOffset: number): void => {
     if (depth === 0) return; // ルートは既に配置済み
-    
+
     // X座標の計算（ルート直下も含めて全て親基準の同一ロジック）
     if (parent) {
       node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize);
@@ -109,9 +110,12 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     }
     node.y = centerY + yOffset;
 
-    
-    
-    if (!node.collapsed && node.children && node.children.length > 0) {
+    // 折りたたまれたノードの場合、子ノードの位置は更新しない（現在の位置を保持）
+    if (node.collapsed) {
+      return;
+    }
+
+    if (node.children && node.children.length > 0) {
       // 子ノードの実際の高さを考慮した配置
       const childrenWithHeights = node.children.map(child => ({
         node: child,
@@ -157,12 +161,12 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
           const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
           const nodeTop = getNodeTopY(childNode, nodeSize.height);
           const nodeBottom = getNodeBottomY(childNode, nodeSize.height);
-          
+
           minY = Math.min(minY, nodeTop);
           maxY = Math.max(maxY, nodeBottom);
 
-          // 子ノードも再帰的にチェック
-          if (childNode.children) {
+          // 折りたたまれていない場合のみ子ノードを再帰的にチェック
+          if (childNode.children && !childNode.collapsed) {
             childNode.children.forEach(grandChild => calculateNodeBounds(grandChild));
           }
         };
@@ -222,12 +226,12 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
         const nodeTop = getNodeTopY(node, nodeSize.height);
         const nodeBottom = getNodeBottomY(node, nodeSize.height);
-        
+
         minY = Math.min(minY, nodeTop);
         maxY = Math.max(maxY, nodeBottom);
 
-        // 子ノードも再帰的にチェック
-        if (node.children) {
+        // 折りたたまれていない場合のみ子ノードを再帰的にチェック
+        if (node.children && !node.collapsed) {
           node.children.forEach(child => calculateNodeBounds(child));
         }
       };
