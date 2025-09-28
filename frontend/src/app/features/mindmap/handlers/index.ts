@@ -4,4 +4,4 @@ export * from './BaseEventHandler';
 export * from './BaseRenderer';
 
 // Re-export utils that are commonly used with handlers
-export { isNodeElement, convertScreenToSVG, snapToGrid } from '../utils/canvasCoordinateUtils';
+export { isNodeElement, convertScreenToSVG } from '../utils/canvasCoordinateUtils';

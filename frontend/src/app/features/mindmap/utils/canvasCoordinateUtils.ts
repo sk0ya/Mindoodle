@@ -75,22 +75,6 @@ export const isNodeElement = (target: Element): boolean => {
          target.closest('foreignObject') !== null;
 };
 
-/**
- * Snap coordinates to grid
- */
-export const snapToGrid = (
-  x: number,
-  y: number,
-  gridSize: number = 20,
-  enabled: boolean = true
-): { x: number; y: number } => {
-  if (!enabled) return { x, y };
-
-  return {
-    x: Math.round(x / gridSize) * gridSize,
-    y: Math.round(y / gridSize) * gridSize
-  };
-};
 
 /**
  * Extract client coordinates from mouse or touch event

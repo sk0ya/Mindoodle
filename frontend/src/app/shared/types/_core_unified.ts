@@ -84,7 +84,6 @@ export interface MapIdentifier {
 export interface MindMapSettings {
   autoSave: boolean;
   autoLayout: boolean;
-  snapToGrid?: boolean;
   showGrid?: boolean;
   animationEnabled?: boolean;
 }

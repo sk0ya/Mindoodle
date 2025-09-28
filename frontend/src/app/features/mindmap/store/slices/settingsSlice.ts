@@ -5,14 +5,14 @@ import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 export interface AppSettings {
   // テーマ設定
   theme: 'dark' | 'light';
-  
+
   // フォント設定
   fontSize: number;
   fontFamily: string;
-  
+
   // レイアウト設定
-  snapToGrid: boolean;
-  
+  nodeSpacing: number; // ノード間隔（ピクセル）
+
   // エディタ設定
   // Legacy: vimMode (kept for storage backward-compat only)
   // Split Vim settings
@@ -36,7 +36,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   fontSize: 14,
   fontFamily: 'system-ui',
-  snapToGrid: false,
+  nodeSpacing: 8, // デフォルトノード間隔8px
   vimMindMap: true,
   vimEditor: false,
   previewMode: false,
@@ -58,6 +58,17 @@ export const createSettingsSlice: StateCreator<
     setTimeout(() => {
       get().saveSettingsToStorage();
     }, 0);
+
+    // レイアウトに影響する設定の場合は自動レイアウトを実行
+    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize'];
+    if (layoutAffectingSettings.includes(key)) {
+      setTimeout(() => {
+        const state = get();
+        if (state.applyAutoLayout) {
+          state.applyAutoLayout();
+        }
+      }, 50); // 設定反映後に少し遅延してレイアウト実行
+    }
   },
 
   updateSettings: (newSettings: Partial<AppSettings>) => {
@@ -68,6 +79,21 @@ export const createSettingsSlice: StateCreator<
     setTimeout(() => {
       get().saveSettingsToStorage();
     }, 0);
+
+    // レイアウトに影響する設定が含まれている場合は自動レイアウトを実行
+    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize'];
+    const hasLayoutAffectingChanges = layoutAffectingSettings.some(setting =>
+      setting in newSettings
+    );
+
+    if (hasLayoutAffectingChanges) {
+      setTimeout(() => {
+        const state = get();
+        if (state.applyAutoLayout) {
+          state.applyAutoLayout();
+        }
+      }, 50); // 設定反映後に少し遅延してレイアウト実行
+    }
   },
 
   resetSettings: () => {

@@ -203,7 +203,6 @@ export const DEFAULTS = {
     SETTINGS: {
       autoSave: true,
       autoLayout: true,
-      snapToGrid: false,
       showGrid: false,
       animationEnabled: true
     }

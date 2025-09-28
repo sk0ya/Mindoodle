@@ -247,6 +247,7 @@ export const createDataSlice: StateCreator<
         const rootNode = rootNodes[index];
         const layoutedNode = autoSelectLayout(rootNode, {
           globalFontSize: state.settings.fontSize,
+          nodeSpacing: (state.settings as any).nodeSpacing || 8,
           sidebarCollapsed: state.ui.sidebarCollapsed,
           activeView: state.ui.activeView
         });

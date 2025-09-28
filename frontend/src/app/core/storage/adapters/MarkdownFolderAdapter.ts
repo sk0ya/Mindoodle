@@ -451,7 +451,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         settings: {
           autoSave: true,
           autoLayout: true,
-          snapToGrid: false,
           showGrid: false,
           animationEnabled: true
         },

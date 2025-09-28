@@ -1,9 +1,8 @@
 import React, { useCallback } from 'react';
-import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import { useDragHandler } from '@mindmap/handlers/BaseDragHandler';
-import { convertScreenToSVG, snapToGrid } from '@mindmap/handlers';
+import { convertScreenToSVG } from '@mindmap/handlers';
 
 interface NodeDragHandlerProps {
   node: MindMapNode;
@@ -22,7 +21,6 @@ export const useNodeDragHandler = ({
   onDragMove,
   onDragEnd
 }: NodeDragHandlerProps) => {
-  const { settings } = useMindMapStore();
 
   // Use the shared drag handler
   const { dragState, handleStart, isDragging } = useDragHandler<string>(
@@ -46,19 +44,13 @@ export const useNodeDragHandler = ({
         const svgCoords = convertScreenToSVG(position.x, position.y, svgRef, zoom, { x: 0, y: 0 });
         if (!svgCoords) return;
 
-        const rawX = svgCoords.svgX - (dragState.dragOffset?.x || 0);
-        const rawY = svgCoords.svgY - (dragState.dragOffset?.y || 0);
-
-        // Apply grid snapping
-        const { x: newX, y: newY } = snapToGrid(rawX, rawY, 20, settings.snapToGrid);
+        const newX = svgCoords.svgX - (dragState.dragOffset?.x || 0);
+        const newY = svgCoords.svgY - (dragState.dragOffset?.y || 0);
 
         logger.debug('Node ドラッグ終了通知:', {
           nodeId: node.id,
-          rawX,
-          rawY,
           newX,
-          newY,
-          snapToGrid: settings.snapToGrid
+          newY
         });
 
         if (onDragEnd) {

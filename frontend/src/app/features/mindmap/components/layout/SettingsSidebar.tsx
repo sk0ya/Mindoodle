@@ -130,6 +130,26 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         </div>
       </div>
 
+      <div className="settings-section">
+        <h3 className="settings-section-title">レイアウト設定</h3>
+        <div className="settings-section-content">
+          <div className="settings-input-group">
+            <label className="settings-input-label">ノード間隔 (px)</label>
+            <input
+              type="number"
+              min="1"
+              max="50"
+              value={(settings as any).nodeSpacing}
+              onChange={(e) => handleSettingChange('nodeSpacing' as keyof typeof settings, parseInt(e.target.value) as any)}
+              className="settings-input"
+            />
+            <div className="settings-description">
+              ノード間の縦方向の間隔を設定します（1-50px）
+            </div>
+          </div>
+        </div>
+      </div>
+
 
       <div className="settings-section">
         <h3 className="settings-section-title">エディタ設定</h3>

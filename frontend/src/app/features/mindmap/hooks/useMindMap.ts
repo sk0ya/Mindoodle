@@ -478,7 +478,6 @@ export const useMindMap = (
             settings: {
               autoSave: true,
               autoLayout: true,
-              snapToGrid: false,
               showGrid: false,
               animationEnabled: true
             },
@@ -561,7 +560,6 @@ export const useMindMap = (
           settings: {
             autoSave: true,
             autoLayout: true,
-            snapToGrid: false,
             showGrid: false,
             animationEnabled: true
           },

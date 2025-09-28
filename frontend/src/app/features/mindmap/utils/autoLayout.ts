@@ -76,8 +76,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       // 前の子ノードとの最小限のスペース計算
       let spacing = 0;
       if (index > 0) {
-        // 密なレイアウトのため、最小間隔のみを使用
-        spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
+        // ユーザー設定のノード間隔を使用
+        spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
       }
 
       return sum + childHeight + spacing;
@@ -123,8 +123,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
         let spacing = 0;
         if (index > 0) {
-          // 密なレイアウトのため、最小間隔のみを使用
-          spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
+          // ユーザー設定のノード間隔を使用
+          spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
         }
         return sum + child.actualHeight + spacing;
       }, 0);
@@ -141,8 +141,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         // 次の子ノードのためのオフセット更新（最小限の間隔）
         currentOffset += childInfo.actualHeight;
         if (index < childrenWithHeights.length - 1) {
-          // 密なレイアウトのため、基本間隔の半分を使用
-          let spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
+          // ユーザー設定のノード間隔を使用
+          let spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
           currentOffset += spacing;
         }
       });
@@ -188,8 +188,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
       let spacing = 0;
       if (index > 0) {
-        // 密なレイアウトのため、最小間隔のみを使用
-        spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
+        // ユーザー設定のノード間隔を使用
+        spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
       }
       return sum + child.actualHeight + spacing;
     }, 0);
@@ -206,8 +206,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       // 次の子ノードのためのオフセット更新（最小限の間隔）
       currentOffset += childInfo.actualHeight;
       if (index < childrenWithHeights.length - 1) {
-        // 密なレイアウトのため、基本間隔の半分を使用
-        let spacing = Math.max(nodeSpacing * 0.5, 2); // 基本間隔の半分、最小2px
+        // ユーザー設定のノード間隔を使用
+        let spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
         currentOffset += spacing;
       }
     });
