@@ -63,6 +63,9 @@ export interface NodeSlice {
   addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) => void;
   updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) => void;
   deleteNodeLink: (nodeId: string, linkId: string) => void;
+
+  // Checkbox operations
+  toggleNodeCheckbox: (nodeId: string, checked: boolean) => void;
 }
 
 export const createNodeSlice: StateCreator<
@@ -871,5 +874,75 @@ export const createNodeSlice: StateCreator<
     });
     // Commit to tree + history via event bus
     get().syncToMindMapData();
+  },
+
+  toggleNodeCheckbox: (nodeId: string, checked: boolean) => {
+    // 1. 正規化データのみ即座に更新（軽い処理、UIが瞬時に反映）
+    set((state) => {
+      if (state.normalizedData) {
+        const node = state.normalizedData.nodes[nodeId];
+        if (node && node.markdownMeta?.isCheckbox) {
+          state.normalizedData.nodes[nodeId] = {
+            ...node,
+            markdownMeta: {
+              ...node.markdownMeta,
+              isChecked: checked
+            }
+          };
+        }
+      }
+    });
+
+    // 2. 重いツリー構造更新とファイル保存は非同期実行
+    requestAnimationFrame(() => {
+      set((state) => {
+        if (!state.data) return;
+
+        try {
+          // Update tree structure - only use rootNodes
+          const rootNodes = state.data.rootNodes || [];
+
+          const updateNodeInTree = (nodes: MindMapNode[]): MindMapNode[] => {
+            return nodes.map(node => {
+              if (node.id === nodeId) {
+                // チェックボックスノードの場合のみ更新
+                if (node.markdownMeta?.isCheckbox) {
+                  return {
+                    ...node,
+                    markdownMeta: {
+                      ...node.markdownMeta,
+                      isChecked: checked
+                    }
+                  };
+                }
+                return node;
+              }
+              if (node.children && node.children.length > 0) {
+                return {
+                  ...node,
+                  children: updateNodeInTree(node.children)
+                };
+              }
+              return node;
+            });
+          };
+
+          const updatedRootNodes = updateNodeInTree(rootNodes);
+
+          state.data = {
+            ...state.data,
+            rootNodes: updatedRootNodes,
+            updatedAt: new Date().toISOString()
+          };
+
+          logger.debug('Checkbox toggled for node:', nodeId, 'checked:', checked);
+        } catch (error) {
+          logger.error('toggleNodeCheckbox error:', error);
+        }
+      });
+
+      // ファイル保存等の重い処理
+      get().syncToMindMapData();
+    });
   },
 });;

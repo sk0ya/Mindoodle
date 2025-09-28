@@ -58,6 +58,8 @@ export interface MarkdownMeta {
   lastModified?: number;
   originalFormat?: string;
   indentLevel?: number;
+  isCheckbox?: boolean;
+  isChecked?: boolean;
 }
 
 // MindMap Node interface

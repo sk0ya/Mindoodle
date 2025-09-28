@@ -38,7 +38,14 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     if (nodeType === 'unordered-list') {
       // Use original marker if available, otherwise default to '-'
       const marker = node.markdownMeta?.originalFormat || '-';
-      prefix = `${indentSpaces}${marker} `;
+
+      // チェックボックス処理
+      if (node.markdownMeta?.isCheckbox) {
+        const checkMark = node.markdownMeta.isChecked ? 'x' : ' ';
+        prefix = `${indentSpaces}${marker} [${checkMark}] `;
+      } else {
+        prefix = `${indentSpaces}${marker} `;
+      }
     } else {
       // Use original number format if available, otherwise default to '1.'
       const marker = node.markdownMeta?.originalFormat || '1.';

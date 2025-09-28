@@ -34,6 +34,8 @@ interface NodeProps {
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onLinkNavigate?: (link: NodeLink) => void;
   onImageClick?: (imageUrl: string, altText?: string) => void;
+  // Checkbox functionality
+  onToggleCheckbox?: (nodeId: string, checked: boolean) => void;
 }
 
 const Node: React.FC<NodeProps> = ({
@@ -59,6 +61,7 @@ const Node: React.FC<NodeProps> = ({
   onLoadRelativeImage,
   onLinkNavigate,
   onImageClick,
+  onToggleCheckbox,
   pan,
 }) => {
   const [isLayoutTransitioning, setIsLayoutTransitioning] = useState(false);
@@ -303,6 +306,7 @@ const Node: React.FC<NodeProps> = ({
         onShowFileActionMenu={() => {}} // Placeholder for now
         onUpdateNode={onUpdateNode}
         onAutoLayout={onAutoLayout}
+        onToggleCheckbox={onToggleCheckbox}
       />
 
       {/* 3. テキスト */}

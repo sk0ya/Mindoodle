@@ -296,6 +296,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       '0': 'select-current-root',
       'delete': 'delete',
       'backspace': 'delete',
+      'x': 'toggle-checkbox',
       '>>': 'move-as-child-of-sibling',
       '<<': 'move-as-next-sibling-of-parent'
     };

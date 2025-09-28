@@ -186,6 +186,10 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onLoadRelativeImage={onLoadRelativeImage}
                 onLinkNavigate={onLinkNavigate}
                 onImageClick={onImageClick}
+                onToggleCheckbox={(nodeId, checked) => {
+                  // ストアのtoggleNodeCheckbox機能を呼び出し
+                  useMindMapStore.getState().toggleNodeCheckbox(nodeId, checked);
+                }}
               />
             ))}
           </g>

@@ -5,6 +5,7 @@
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
+import { MarkdownImporter } from '../../features/markdown/markdownImporter';
 
 export const toggleCommand: Command = {
   name: 'toggle',
@@ -304,6 +305,149 @@ export const collapseAllCommand: Command = {
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to collapse all nodes'
+      };
+    }
+  }
+};
+
+/**
+ * Toggle Checkbox Command (vim 'x')
+ * Toggles the checkbox state of a list node, or converts a regular list to a checkbox list
+ */
+export const toggleCheckboxCommand: Command = {
+  name: 'toggle-checkbox',
+  aliases: ['x', 'checkbox-toggle'],
+  description: 'Toggle checkbox state of a list node, or convert to checkbox list',
+  category: 'structure',
+  examples: ['toggle-checkbox', 'x'],
+
+  execute(context: CommandContext): CommandResult {
+    const nodeId = context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected'
+      };
+    }
+
+    const node = context.handlers.findNodeById(nodeId);
+    if (!node) {
+      return {
+        success: false,
+        error: `Node ${nodeId} not found`
+      };
+    }
+
+    try {
+      // ストアのtoggleNodeCheckbox機能を使用
+      const store = useMindMapStore.getState() as any;
+
+      // チェックボックスリストかどうかをチェック
+      if (node.markdownMeta?.isCheckbox) {
+        // 既にチェックボックスリストの場合、状態をトグル
+        // 正規化データから最新の状態を取得
+        const normalizedNode = store.normalizedData?.nodes[nodeId];
+        const currentChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta.isChecked ?? false;
+        const newChecked = !currentChecked;
+
+        if (store.toggleNodeCheckbox) {
+          store.toggleNodeCheckbox(nodeId, newChecked);
+          return {
+            success: true,
+            message: `Checkbox ${newChecked ? 'checked' : 'unchecked'} for "${node.text}"`
+          };
+        }
+      } else {
+        // チェックボックス変換処理
+        const data = store.data;
+        if (!data || !data.rootNodes) {
+          return {
+            success: false,
+            error: 'No map data available'
+          };
+        }
+
+        // 見出しノードの場合は変換可否をチェック
+        if (node.markdownMeta?.type === 'heading') {
+          // MarkdownImporterの既存ロジックを使用して安全性チェック
+          const safetyCheck = MarkdownImporter.canSafelyConvertToList(data.rootNodes, nodeId);
+
+          if (!safetyCheck.canConvert) {
+            return {
+              success: false,
+              error: safetyCheck.reason || '見出しノードから変換できません'
+            };
+          }
+        }
+
+        const updateNodeInTree = (nodes: any[]): any[] => {
+          return nodes.map((n: any) => {
+            if (n.id === nodeId) {
+              let newMarkdownMeta;
+              
+              if (node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list') {
+                // リストノードの場合、チェックボックスリストに変換（デフォルトはunchecked）
+                newMarkdownMeta = {
+                  ...node.markdownMeta,
+                  isCheckbox: true,
+                  isChecked: false
+                };
+              } else {
+                // 通常のノードまたは見出しノードの場合、unordered-listのチェックボックスに変換
+                // 見出しノードの場合は既に安全性チェック済み
+                newMarkdownMeta = {
+                  type: 'unordered-list' as const,
+                  level: 1,
+                  originalFormat: '-',
+                  indentLevel: 0,
+                  lineNumber: node.markdownMeta?.lineNumber ?? 0,
+                  isCheckbox: true,
+                  isChecked: false
+                };
+              }
+
+              return {
+                ...n,
+                markdownMeta: newMarkdownMeta
+              };
+            }
+
+            if (n.children && n.children.length > 0) {
+              return {
+                ...n,
+                children: updateNodeInTree(n.children)
+              };
+            }
+
+            return n;
+          });
+        };
+
+        // ツリー構造を更新
+        const updatedRootNodes = updateNodeInTree(data.rootNodes);
+        
+        // changeNodeTypeと同様にsetRootNodesを呼び出してストア全体を更新
+        // これによりノードサイズ再計算とUI更新が完全に実行される
+        store.setRootNodes(updatedRootNodes, { emit: true, source: 'toggle-checkbox-convert' });
+
+        const sourceType = node.markdownMeta?.type === 'heading' ? '見出し' :
+          (node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list') ? 'リスト' : '通常';
+
+        return {
+          success: true,
+          message: `${sourceType}ノード「${node.text}」をチェックボックスリストに変換しました (unchecked)`
+        };
+      }
+
+      return {
+        success: false,
+        error: 'Failed to toggle checkbox'
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to toggle checkbox'
       };
     }
   }

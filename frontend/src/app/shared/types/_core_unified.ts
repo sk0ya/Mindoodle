@@ -54,6 +54,9 @@ export interface MarkdownNodeMeta {
   originalFormat: string; // #, ##, -, *, +, 1., 2. など
   indentLevel?: number; // リストのインデントレベル（スペース数）
   lineNumber: number; // 元の行番号
+  // Checkbox functionality for GitHub-style task lists
+  isCheckbox?: boolean; // Whether this list item is a checkbox
+  isChecked?: boolean;  // Checkbox state (true = checked, false = unchecked)
 }
 
 // Main mindmap data structure

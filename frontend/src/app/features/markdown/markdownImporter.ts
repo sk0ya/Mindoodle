@@ -34,6 +34,9 @@ interface StructureElement {
   originalFormat: string; // #, ##, -, *, +, 1., 2. など
   indentLevel?: number; // リストのインデントレベル（スペース数）
   lineNumber: number; // 元の行番号
+  // チェックボックス情報
+  isCheckbox?: boolean; // チェックボックスかどうか
+  isChecked?: boolean;  // チェック状態
 }
 
 /**
@@ -158,7 +161,7 @@ export class MarkdownImporter {
         continue;
       }
 
-      // リスト項目をチェック
+      // リスト項目をチェック（チェックボックス対応）
       const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
       if (listMatch) {
         // 最初の構造要素の前に前文があった場合、前文要素を作成
@@ -186,8 +189,18 @@ export class MarkdownImporter {
 
         const indent = listMatch[1];
         const marker = listMatch[2];
-        const text = listMatch[3];
+        let text = listMatch[3];
         const level = Math.floor(indent.length / 2) + 1; // 2スペースで1レベル
+
+        // チェックボックスパターンを検出
+        let isCheckbox = false;
+        let isChecked = false;
+        const checkboxMatch = text.match(/^\[([ xX])\]\s*(.*)$/);
+        if (checkboxMatch && marker.match(/^[-*+]$/)) { // チェックボックスは順序なしリストのみ
+          isCheckbox = true;
+          isChecked = checkboxMatch[1].toLowerCase() === 'x';
+          text = checkboxMatch[2]; // チェックボックス記号を除いたテキスト
+        }
 
         currentElement = {
           type: marker.match(/\d+\./) ? 'ordered-list' : 'unordered-list',
@@ -196,7 +209,10 @@ export class MarkdownImporter {
           content: undefined,
           originalFormat: marker,
           indentLevel: indent.length,
-          lineNumber: i
+          lineNumber: i,
+          // チェックボックス情報を追加
+          isCheckbox: isCheckbox,
+          isChecked: isCheckbox ? isChecked : undefined
         };
         currentContent = [];
         continue;
@@ -331,7 +347,10 @@ export class MarkdownImporter {
         level: element.level,
         originalFormat: element.originalFormat,
         indentLevel: element.indentLevel,
-        lineNumber: element.lineNumber
+        lineNumber: element.lineNumber,
+        // チェックボックス情報を追加
+        isCheckbox: element.isCheckbox,
+        isChecked: element.isChecked
       };
 
       // If the content contains only a table, convert this node into a table node
@@ -518,6 +537,12 @@ export class MarkdownImporter {
             numberFormat = markdownMeta.originalFormat;
           }
           prefix = indent + numberFormat + ' ';
+        }
+
+        if(markdownMeta.isCheckbox) {
+          // チェックボックス付きリスト項目の場合、テキストの先頭に [ ] または [x] を追加
+          const checkboxMark = markdownMeta.isChecked ? '[x] ' : '[ ] ';
+          prefix += checkboxMark;
         }
 
         if (DEBUG_MD) {

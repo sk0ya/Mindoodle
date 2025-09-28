@@ -32,6 +32,7 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => { success: boolean; reason?: string };
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
+ toggleNodeCheckbox: (nodeId: string, isChecked: boolean) => void;
   
   // Link operations
   addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) => void;

@@ -221,11 +221,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       ? iconLayout.totalWidth + TEXT_ICON_SPACING + RIGHT_MARGIN
       : 0;
 
+    // チェックボックスノードの場合のテキスト位置調整
+    const isCheckboxNode = node.markdownMeta?.isCheckbox;
+    const checkboxSize = 16;
+    const checkboxMargin = 8;
+    const checkboxOffset = isCheckboxNode ? (checkboxSize + checkboxMargin) / 2 : 0;
+
     // テキスト位置の統合計算
     // Y位置: 画像がある場合は画像の下に配置、ない場合はノード中央
     const textY = hasImage ? node.y + actualImageHeight / 2 + 2 : node.y;
-    // X位置: リンクアイコンがある場合はその分左に寄せる
-    const textX = node.x - iconBlockWidth / 2;
+    // X位置: リンクアイコンがある場合はその分左に寄せる、チェックボックスがある場合はその分右にずらす
+    const textX = node.x - iconBlockWidth / 2 + checkboxOffset;
 
     // ノードテキストがリンク形式かどうかをチェック
     const isNodeTextMarkdownLink = isMarkdownLink(node.text);

@@ -37,6 +37,8 @@ interface NodeRendererProps {
   onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onUpdateNode?: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
+  // Checkbox functionality
+  onToggleCheckbox?: (nodeId: string, checked: boolean) => void;
 }
 
   const NodeRenderer: React.FC<NodeRendererProps> = ({
@@ -64,15 +66,33 @@ interface NodeRendererProps {
   onShowImageModal,
   onShowFileActionMenu,
   onUpdateNode,
-  onAutoLayout
+  onAutoLayout,
+  // Checkbox functionality
+  onToggleCheckbox
 }) => {
-  const { settings } = useMindMapStore();
+  const { settings, normalizedData } = useMindMapStore();
 
   // 画像リサイズ状態管理
   const { isResizing, startResizing, stopResizing } = useResizingState();
   const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
   const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
   const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
+
+  // チェックボックスのクリックハンドラー（データファースト更新）
+  const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (onToggleCheckbox && node.markdownMeta?.isCheckbox) {
+      // 正規化データから最新の状態を取得
+      const normalizedNode = normalizedData?.nodes[node.id];
+      const currentChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta?.isChecked ?? false;
+      const newChecked = !currentChecked;
+
+      // 即座にデータを更新（UIは自動的に追従）
+      onToggleCheckbox(node.id, newChecked);
+    }
+  }, [onToggleCheckbox, node.id, node.markdownMeta?.isCheckbox, normalizedData]);
 
   // Display entries: images (md/html) and mermaid blocks in note order
   type DisplayEntry =
@@ -489,29 +509,72 @@ interface NodeRendererProps {
 
   // 画像もMermaidもなく、かつテーブルノードでもない場合は背景のみ
   if (!currentEntry && node.kind !== 'table') {
+    // 正規化データを優先して、最新の状態を即座に反映
+    const normalizedNode = normalizedData?.nodes[node.id];
+    const isCheckboxNode = normalizedNode?.markdownMeta?.isCheckbox ?? node.markdownMeta?.isCheckbox ?? false;
+    const isChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta?.isChecked ?? false;
+    const checkboxSize = 16;
+    const checkboxMargin = 8;
+
     return (
-      <rect
-        x={nodeLeftX}
-        y={node.y - nodeHeight / 2}
-        width={nodeWidth}
-        height={nodeHeight}
-        fill={backgroundFill}
-        stroke="transparent"
-        strokeWidth="0"
-        rx="12"
-        ry="12"
-        role="button"
-        tabIndex={0}
-        aria-label={`Mind map node: ${node.text}`}
-        aria-selected={isSelected}
-        style={nodeStyles}
-        onMouseDown={onMouseDown}
-        onClick={onClick}
-        onDoubleClick={onDoubleClick}
-        onContextMenu={onContextMenu}
-        onDragOver={onDragOver}
-        onDrop={onDrop}
-      />
+      <g>
+        <rect
+          x={nodeLeftX}
+          y={node.y - nodeHeight / 2}
+          width={nodeWidth}
+          height={nodeHeight}
+          fill={backgroundFill}
+          stroke="transparent"
+          strokeWidth="0"
+          rx="12"
+          ry="12"
+          role="button"
+          tabIndex={0}
+          aria-label={`Mind map node: ${node.text}`}
+          aria-selected={isSelected}
+          style={nodeStyles}
+          onMouseDown={onMouseDown}
+          onClick={onClick}
+          onDoubleClick={onDoubleClick}
+          onContextMenu={onContextMenu}
+          onDragOver={onDragOver}
+          onDrop={onDrop}
+        />
+
+        {/* チェックボックスの表示 */}
+        {isCheckboxNode && (
+          <g>
+            {/* チェックボックス背景 */}
+            <rect
+              x={nodeLeftX + checkboxMargin}
+              y={node.y - checkboxSize / 2}
+              width={checkboxSize}
+              height={checkboxSize}
+              fill={isChecked ? '#4caf50' : 'white'}
+              stroke={isChecked ? '#4caf50' : '#ccc'}
+              strokeWidth="1"
+              rx="2"
+              ry="2"
+              onClick={handleCheckboxClick}
+              style={{ cursor: 'pointer' }}
+            />
+
+            {/* チェックマーク */}
+            {isChecked && (
+              <path
+                d={`M${nodeLeftX + checkboxMargin + 3} ${node.y - 1} L${nodeLeftX + checkboxMargin + 7} ${node.y + 3} L${nodeLeftX + checkboxMargin + 13} ${node.y - 5}`}
+                stroke="white"
+                strokeWidth="2"
+                fill="none"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                onClick={handleCheckboxClick}
+                style={{ cursor: 'pointer', pointerEvents: 'none' }}
+              />
+            )}
+          </g>
+        )}
+      </g>
     );
   }
 
@@ -988,4 +1051,17 @@ export const NodeSelectionBorder: React.FC<{
   );
 };
 
-export default memo(NodeRenderer);
+export default memo(NodeRenderer, (prevProps, nextProps) => {
+  // markdownMetaの変更も検知するようにカスタム比較関数を追加
+  return (
+    prevProps.node.id === nextProps.node.id &&
+    prevProps.node.text === nextProps.node.text &&
+    prevProps.node.x === nextProps.node.x &&
+    prevProps.node.y === nextProps.node.y &&
+    prevProps.isSelected === nextProps.isSelected &&
+    prevProps.isDragging === nextProps.isDragging &&
+    prevProps.nodeWidth === nextProps.nodeWidth &&
+    prevProps.nodeHeight === nextProps.nodeHeight &&
+    JSON.stringify(prevProps.node.markdownMeta) === JSON.stringify(nextProps.node.markdownMeta)
+  );
+});

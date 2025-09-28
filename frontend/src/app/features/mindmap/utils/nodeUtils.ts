@@ -355,6 +355,12 @@ export function calculateNodeSize(
     minIconWidth = ICON_WIDTH; // リンクアイコンのみ
   }
   
+  // チェックボックスノードの場合の幅調整
+  const isCheckboxNode = node.markdownMeta?.isCheckbox;
+  const checkboxSize = 16;
+  const checkboxMargin = 8;
+  const checkboxWidth = isCheckboxNode ? checkboxSize + checkboxMargin : 0;
+
   // パディングを追加（左右に余白を持たせる）
   // 編集時はinputにpadding(左右各10px) + border(各1px)があり、foreignObject自体にも内側余白(-8)を設けているため
   // コンテンツ幅 >= 実測テキスト幅 となるように実質的な左右合計パディングを広めに確保する
@@ -370,7 +376,7 @@ export function calculateNodeSize(
     const additionalPadding = textLengthFactor * 13; // 最大13px追加（25px総計）
     H_PADDING = basePadding + additionalPadding;
   }
-  const textBasedWidth = Math.max(actualTextWidth + H_PADDING, Math.max(fontSize * 2, 24));
+  const textBasedWidth = Math.max(actualTextWidth + H_PADDING + checkboxWidth, Math.max(fontSize * 2, 24));
   
   // ノードの高さは最小限に（フォントサイズ + 少しの上下パディング）
   const baseNodeHeight = Math.max(fontSize + 8, 22); // 元の高さに戻す
