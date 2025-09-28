@@ -39,6 +39,8 @@ interface CombinedItem {
   mapData?: MapItem;
 }
 
+type FilterMode = 'all' | 'maps' | 'commands';
+
 const CommandPalette: React.FC<CommandPaletteProps> = ({
   isOpen,
   onClose,
@@ -50,6 +52,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loadedMaps, setLoadedMaps] = useState<MindMapData[]>([]);
   const [mapsLoading, setMapsLoading] = useState(false);
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -134,15 +137,31 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     return [...commandItems, ...mapItems];
   }, [loadedMaps]);
 
-  // Filter items based on search query
+  // Filter items based on filter mode and search query
   const filteredItems = useMemo(() => {
+    // First, filter by mode
+    let itemsToFilter = allItems;
+    switch (filterMode) {
+      case 'commands':
+        itemsToFilter = allItems.filter(item => item.type === 'command');
+        break;
+      case 'maps':
+        itemsToFilter = allItems.filter(item => item.type === 'map');
+        break;
+      case 'all':
+      default:
+        itemsToFilter = allItems;
+        break;
+    }
+
+    // Then filter by search query
     if (!searchQuery.trim()) {
-      return allItems;
+      return itemsToFilter;
     }
 
     const lowerQuery = searchQuery.toLowerCase();
 
-    return allItems.filter(item => {
+    return itemsToFilter.filter(item => {
       const searchText = `${item.displayName} ${item.description} ${item.category}`.toLowerCase();
 
       // Special handling for maps - also search in folder name and path
@@ -154,7 +173,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
 
       return searchText.includes(lowerQuery);
     });
-  }, [searchQuery, allItems]);
+  }, [searchQuery, allItems, filterMode]);
 
   // Reset selection when filtered items change
   useEffect(() => {
@@ -167,12 +186,26 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       searchInputRef.current.focus();
       setSearchQuery('');
       setSelectedIndex(0);
+      setFilterMode('all');
     } else if (!isOpen) {
       // Reset loaded maps when closing to ensure fresh data next time
       setLoadedMaps([]);
       setMapsLoading(false);
     }
   }, [isOpen]);
+
+  // Cycle through filter modes
+  const cycleFilterMode = useCallback(() => {
+    setFilterMode(prev => {
+      switch (prev) {
+        case 'all': return 'maps';
+        case 'maps': return 'commands';
+        case 'commands': return 'all';
+        default: return 'all';
+      }
+    });
+    setSelectedIndex(0); // Reset selection when changing modes
+  }, []);
 
   // Handle keyboard navigation
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
@@ -182,6 +215,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       case 'Escape':
         e.preventDefault();
         onClose();
+        break;
+
+      case 'p':
+        if (e.ctrlKey || e.metaKey) {
+          e.preventDefault();
+          cycleFilterMode();
+        }
         break;
 
       case 'ArrowDown':
@@ -205,7 +245,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         }
         break;
     }
-  }, [isOpen, onClose, filteredItems, selectedIndex]);
+  }, [isOpen, onClose, filteredItems, selectedIndex, cycleFilterMode]);
 
   // Handle item selection (command or map)
   const handleSelectItem = useCallback((item: CombinedItem) => {
@@ -274,6 +314,55 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
+        {/* Filter Tabs */}
+        <div style={{
+          display: 'inline-flex',
+          borderBottom: '1px solid var(--vscode-quickInput-border, #464647)',
+          alignSelf: 'flex-start',
+        }}>
+            {(['all', 'maps', 'commands'] as FilterMode[]).map((mode) => (
+              <button
+              key={mode}
+              onClick={() => {
+                setFilterMode(mode);
+                setSelectedIndex(0);
+              }}
+              style={{
+                padding: '8px 16px',
+                border: 'none',
+                background: filterMode === mode
+                  ? 'var(--vscode-tab-activeBackground, #1e1e1e)'
+                  : 'transparent',
+                color: filterMode === mode
+                  ? 'var(--vscode-tab-activeForeground, #ffffff)'
+                  : 'var(--vscode-tab-inactiveForeground, #969696)',
+                borderBottom: filterMode === mode
+                  ? '2px solid var(--vscode-focusBorder, #007acc)'
+                  : '2px solid transparent',
+                cursor: 'pointer',
+                fontSize: '13px',
+                fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, sans-serif)',
+                fontWeight: filterMode === mode ? '500' : 'normal',
+                textTransform: 'capitalize',
+                transition: 'all 0.1s ease',
+                whiteSpace: 'nowrap',
+              }}
+              onMouseEnter={(e) => {
+                if (filterMode !== mode) {
+                  e.currentTarget.style.backgroundColor = 'var(--vscode-quickInputList-focusBackground, #094771)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (filterMode !== mode) {
+                  e.currentTarget.style.backgroundColor = 'transparent';
+                }
+              }}
+            >
+              {mode === 'all' ? 'All' : mode === 'maps' ? 'Maps' : 'Commands'}
+            </button>
+          ))}
+        </div>
+
         {/* Search Input */}
         <div style={{
           padding: '12px 16px',
@@ -303,6 +392,15 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
               fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, sans-serif)',
             }}
           />
+          {/* Ctrl+P Hint */}
+          <div style={{
+            fontSize: '11px',
+            color: 'var(--vscode-descriptionForeground, #999999)',
+            opacity: 0.7,
+            flexShrink: 0,
+          }}>
+            Ctrl+P
+          </div>
         </div>
 
         {/* Commands List */}
