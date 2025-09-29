@@ -43,7 +43,6 @@ import { useShortcutHandlers } from './useShortcutHandlers';
 
 interface MindMapAppProps {
   storageMode?: 'local' ;
-  onModeChange?: (mode: 'local') => void;
   resetKey?: number;
 }
 
@@ -53,7 +52,6 @@ interface MindMapAppContentProps extends MindMapAppProps {
 
 const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   storageMode = 'local', // Used in props passed to child components
-  onModeChange,
   mindMap
 }) => {
 
@@ -1285,8 +1283,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
       <PrimarySidebarContainer
         activeView={activeView}
-        storageMode={storageMode}
-        onModeChange={onModeChange}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
         storageAdapter={storageAdapter}
@@ -1315,15 +1311,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onRenameMap={(id, title) => updateMapMetadata(id, { title })}
         onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
-        onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
-        onAutoLayout={() => {
-          logger.info('Manual auto layout triggered');
-          if (typeof mindMap.applyAutoLayout === 'function') {
-            mindMap.applyAutoLayout();
-          } else {
-            logger.error('applyAutoLayout function not available');
-          }
-        }}
         workspaces={workspaces as any}
         onAddWorkspace={addWorkspace as any}
         onRemoveWorkspace={removeWorkspace as any}
@@ -1348,21 +1335,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           centerNodeInView(nodeId, true);
         }}
         onMapSwitch={async (id) => { await selectMapById(id); }}
-        onMapSwitchWithNodeSelect={async (id, nodeId) => {
-          await selectMapById(id);
-          setTimeout(() => {
-            const currentData = store.data;
-            if (currentData?.rootNodes) {
-              const nodeExists = findNodeInRoots(currentData.rootNodes, nodeId);
-              if (nodeExists) {
-                selectNode(nodeId);
-                setTimeout(() => {
-                  centerNodeInView(nodeId, true);
-                }, 50);
-              }
-            }
-          }, 200);
-        }}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>

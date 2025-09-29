@@ -24,19 +24,13 @@ interface PrimarySidebarProps {
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
-  // Settings props
-  storageMode?: 'local';
-  onShowKeyboardHelper?: () => void;
-  onAutoLayout?: () => void;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
-  // Current map data for export
-  currentMapData?: MindMapData | null;
   // Search props
   onNodeSelect?: (nodeId: string) => void;
   onMapSwitch?: (id: MapIdentifier) => Promise<void>;
-  onMapSwitchWithNodeSelect?: (id: MapIdentifier, nodeId: string) => Promise<void>;
-  loadAllMaps?: () => Promise<MindMapData[]>;
+  // Storage adapter for file-based search
+  storageAdapter?: any;
 }
 
 const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
@@ -57,12 +51,10 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onRemoveWorkspace,
   explorerTree,
   onCreateFolder,
-  // Current map data
-  currentMapData,
   // Search props
   onNodeSelect,
   onMapSwitch,
-  loadAllMaps
+  storageAdapter
 }) => {
   if (!isVisible || !activeView) {
     return null;
@@ -95,11 +87,10 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
       case 'search':
         return (
           <SearchSidebar
-            currentMapData={currentMapData}
-            allMapsData={mindMaps}
             onNodeSelect={onNodeSelect}
             onMapSwitch={onMapSwitch}
-            loadAllMaps={loadAllMaps}
+            storageAdapter={storageAdapter}
+            workspaces={workspaces}
           />
         );
       case 'ai':

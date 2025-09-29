@@ -1,32 +1,35 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X } from 'lucide-react';
-import type { MindMapData, MapIdentifier } from '@shared/types';
-import { searchMultipleMaps, getMatchPosition, type SearchResult } from '@shared/utils';
+import { X } from 'lucide-react';
+import type { MapIdentifier } from '@shared/types';
+import {
+  searchFilesForContent,
+  findNodeByLineNumber,
+  getMatchPosition,
+  type FileBasedSearchResult
+} from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
 import '@shared/styles/layout/SearchSidebar.css';
 
 
 interface SearchSidebarProps {
-  currentMapData?: MindMapData | null;
-  allMapsData?: MindMapData[];
   onNodeSelect?: (nodeId: string) => void;
   onMapSwitch?: (id: MapIdentifier) => Promise<void>;
-  // Lazy loader for cross-map search (optional)
-  loadAllMaps?: () => Promise<MindMapData[]>;
+  // Storage adapter for file-based search
+  storageAdapter?: any;
+  // Workspaces for path display
+  workspaces?: Array<{ id: string; name: string }>;
 }
 
 const SearchSidebar: React.FC<SearchSidebarProps> = ({
-  currentMapData,
-  allMapsData = [],
   onNodeSelect,
   onMapSwitch,
-  loadAllMaps
+  storageAdapter,
+  workspaces
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [fileBasedResults, setFileBasedResults] = useState<FileBasedSearchResult[]>([]);
   const { isLoading: isSearching, startLoading: startSearching, stopLoading: stopSearching } = useLoadingState();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [loadedAllMaps, setLoadedAllMaps] = useState<MindMapData[] | null>(null);
 
   // Focus search input when component mounts
   useEffect(() => {
@@ -42,26 +45,23 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
     const timer = setTimeout(() => {
       const run = async () => {
         if (!searchQuery.trim()) {
-          setSearchResults([]);
+          setFileBasedResults([]);
+          return;
+        }
+
+        if (!storageAdapter) {
+          console.warn('🔍 [SearchSidebar] Storage adapter not available for search');
           return;
         }
 
         startSearching();
         try {
-          // Always search all maps
-          let mapsForSearch: MindMapData[] = allMapsData;
-          if (typeof loadAllMaps === 'function') {
-            try {
-              // Cache after first load to avoid repeated heavy I/O
-              const maps = loadedAllMaps ?? await loadAllMaps();
-              if (!loadedAllMaps) setLoadedAllMaps(maps);
-              mapsForSearch = maps;
-            } catch {
-              // If load fails, fallback to provided allMapsData
-            }
-          }
-          const results = searchMultipleMaps(searchQuery, mapsForSearch || []);
-          setSearchResults(results);
+          console.log('🔍 [SearchSidebar] Performing file-based search');
+          const fileResults = await searchFilesForContent(searchQuery, storageAdapter, workspaces);
+          setFileBasedResults(fileResults);
+        } catch (error) {
+          console.error('🔍 [SearchSidebar] File-based search error:', error);
+          setFileBasedResults([]);
         } finally {
           stopSearching();
         }
@@ -70,27 +70,68 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
     }, 300); // デバウンス
 
     return () => clearTimeout(timer);
-  }, [searchQuery, currentMapData, allMapsData, loadAllMaps, loadedAllMaps, startSearching, stopSearching]);
+  }, [searchQuery, storageAdapter, workspaces, startSearching, stopSearching]);
 
-  const handleNodeClick = async (result: SearchResult) => {
-    // currentMapDataがundefinedの場合、または異なるマップの場合はマップ切り替えを実行
-    const needMapSwitch = !currentMapData ||
-                         (result.mapId && result.mapId !== currentMapData?.mapIdentifier?.mapId);
 
-    if (needMapSwitch && result.mapId) {
-      try {
-        // シンプルな従来の方法を使用
+  const handleFileResultDoubleClick = async (result: FileBasedSearchResult) => {
+    console.log('🔍 [SearchSidebar] handleFileResultDoubleClick called:', {
+      filePath: result.filePath,
+      lineNumber: result.lineNumber,
+      mapId: result.mapId,
+      workspaceId: result.workspaceId
+    });
+
+    try {
+      // まず、storageAdapterから直接マップデータを取得
+      if (!storageAdapter) {
+        console.error('🔍 [SearchSidebar] Storage adapter not available');
+        return;
+      }
+
+      let mapData = null;
+
+      // 利用可能な関数を順番に試行
+      if (typeof storageAdapter.loadMapById === 'function') {
+        console.log('🔍 [SearchSidebar] Using loadMapById');
+        mapData = await storageAdapter.loadMapById(result.mapId, result.workspaceId);
+      } else if (typeof storageAdapter.loadMap === 'function') {
+        console.log('🔍 [SearchSidebar] Using loadMap');
+        mapData = await storageAdapter.loadMap({
+          mapId: result.mapId,
+          workspaceId: result.workspaceId
+        });
+      } else if (typeof storageAdapter.loadAllMaps === 'function') {
+        console.log('🔍 [SearchSidebar] Using loadAllMaps as fallback');
+        const allMaps = await storageAdapter.loadAllMaps();
+        mapData = allMaps.find((map: any) =>
+          map.mapIdentifier?.mapId === result.mapId &&
+          map.mapIdentifier?.workspaceId === result.workspaceId
+        );
+      }
+
+      if (!mapData) {
+        console.error('🔍 [SearchSidebar] Failed to load map data');
+        return;
+      }
+
+      // 行番号からノードを特定
+      const nodeResult = findNodeByLineNumber(mapData, result.lineNumber);
+
+      if (nodeResult?.node) {
+        console.log('🔍 [SearchSidebar] Found node by line number:', nodeResult.node.id);
+
+        // マップを切り替えてからノードを選択
         await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
 
-        // マップ切り替え完了後、もう少し長めの遅延でノードを選択
+        // 少し待ってからノード選択
         setTimeout(() => {
-          onNodeSelect?.(result.nodeId);
-        }, 500);
-      } catch (error) {
-        console.error('Failed to switch map:', error);
+          onNodeSelect?.(nodeResult.node.id);
+        }, 300);
+      } else {
+        console.warn('🔍 [SearchSidebar] Node not found for line number:', result.lineNumber);
       }
-    } else {
-      onNodeSelect?.(result.nodeId);
+    } catch (error) {
+      console.error('🔍 [SearchSidebar] Error in file result navigation:', error);
     }
   };
 
@@ -109,28 +150,19 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   };
 
 
-  const getMatchTypeLabel = (matchType: SearchResult['matchType']) => {
-    switch (matchType) {
-      case 'text':
-        return 'テキスト';
-      case 'note':
-        return 'ノート';
-      default:
-        return '';
-    }
-  };
 
   return (
     <div className="search-sidebar">
       <div className="search-sidebar-header">
-        <h2>検索</h2>
-        
-        
+        <h2>
+          ファイル検索
+        </h2>
+
         <div className="search-input-container">
           <input
             ref={inputRef}
             type="text"
-            placeholder="すべてのマップから検索..."
+            placeholder="すべてのファイルから検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
@@ -154,44 +186,39 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
           </div>
         )}
 
-        {!isSearching && searchQuery && searchResults.length === 0 && (
+        {!isSearching && searchQuery && fileBasedResults.length === 0 && (
           <div className="search-no-results">
             検索結果が見つかりませんでした
           </div>
         )}
 
-        {!isSearching && searchResults.length > 0 && (
+        {!isSearching && fileBasedResults.length > 0 && (
           <>
             <div className="search-results-count">
-              {searchResults.length}件の検索結果
+              {fileBasedResults.length}件の検索結果
             </div>
             <div className="search-results-list">
-              {searchResults.map((result) => (
+              {fileBasedResults.map((result, index) => (
                 <div
-                  key={`${result.mapId}-${result.nodeId}`}
-                  className="search-result-item"
-                  onClick={() => handleNodeClick(result)}
+                  key={`${result.mapId}-${result.lineNumber}-${index}`}
+                  className="search-result-item file-result"
+                  onDoubleClick={() => handleFileResultDoubleClick(result)}
+                  title="ダブルクリックでノードに移動"
                 >
                   <div className="search-result-header">
                     <h4 className="search-result-title">
-                      {highlightMatch(result.text, searchQuery)}
+                      {highlightMatch(result.lineContent, searchQuery)}
                     </h4>
-                    <span className="search-result-match-type">
-                      {getMatchTypeLabel(result.matchType)}
+                    <span className="search-result-line-number">
+                      行 {result.lineNumber}
                     </span>
                   </div>
-                  
-                  {result.note && (
-                    <div className="search-result-content">
-                      {highlightMatch(result.note, searchQuery)}
+
+                  <div className="search-result-file-info">
+                    <div className="search-result-file-path">
+                      {result.filePath}
                     </div>
-                  )}
-                  
-                  {result.mapTitle && (
-                    <div className="search-result-map">
-                      マップ: {result.mapTitle}
-                    </div>
-                  )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -200,16 +227,16 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
 
         {!searchQuery && (
           <div className="search-placeholder">
-            <div className="search-placeholder-icon"><Search size={24} /></div>
             <div className="search-placeholder-text">
-              ノードのテキストやノートを検索できます
+              ファイル内容を検索できます
             </div>
             <div className="search-placeholder-tips">
               <h4>検索のヒント:</h4>
               <ul>
-                <li>部分一致で検索されます</li>
+                <li>マークダウン形式で行単位で検索されます</li>
                 <li>大文字小文字は区別されません</li>
-                <li>保存されたすべてのマップから検索します</li>
+                <li>ダブルクリックでノードに移動します</li>
+                <li>ファイルパスと行番号が表示されます</li>
               </ul>
             </div>
           </div>
