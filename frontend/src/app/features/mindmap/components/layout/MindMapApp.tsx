@@ -40,6 +40,7 @@ import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/
 import type { StorageConfig } from '@core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
+import { findNodeByLineNumber } from '@shared/utils/searchUtils';
 
 interface MindMapAppProps {
   storageMode?: 'local' ;
@@ -1330,11 +1331,35 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           }
         }}
         currentMapData={data}
-        onNodeSelect={(nodeId) => {
-          selectNode(nodeId);
-          centerNodeInView(nodeId, true);
-        }}
-        onMapSwitch={async (id) => { await selectMapById(id); }}
+        onMapSwitch={useCallback(
+          async (targetMapIdentifier: MapIdentifier) => {
+            const currentMapData = useMindMapStore.getState().data;
+
+            // Skip if same map is already selected
+            if (currentMapData?.mapIdentifier?.mapId === targetMapIdentifier.mapId &&
+                currentMapData?.mapIdentifier?.workspaceId === targetMapIdentifier.workspaceId) {
+              return;
+            }
+
+            await selectMapById(targetMapIdentifier);
+          },
+          [selectMapById])}
+
+        onNodeSelectByLine={useCallback(
+          async (lineNumber: number) => {
+            const currentMapData = useMindMapStore.getState().data;
+
+            if (!currentMapData) return;
+
+            const searchResult = findNodeByLineNumber(currentMapData, lineNumber);
+
+            if (searchResult?.node?.id) {
+              const foundNodeId = searchResult.node.id;
+              selectNode(foundNodeId);
+              centerNodeInView(foundNodeId, false);
+            }
+          },
+          [selectNode, centerNodeInView])}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>

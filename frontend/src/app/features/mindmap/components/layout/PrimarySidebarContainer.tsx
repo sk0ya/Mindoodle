@@ -19,8 +19,8 @@ type Props = {
   explorerTree: any;
   onCreateFolder: (path: string) => Promise<void>;
   currentMapData: any;
-  onNodeSelect: (nodeId: string) => void;
-  onMapSwitch: (id: MapIdentifier) => Promise<void>;
+  onMapSwitch: (mapIdentifier: MapIdentifier) => Promise<void>;
+  onNodeSelectByLine: (lineNumber: number) => Promise<void>;
   // Provide storage adapter to lazy-load all maps for search
   storageAdapter?: any;
 };
@@ -41,8 +41,8 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     explorerTree,
     onCreateFolder,
     currentMapData,
-    onNodeSelect,
     onMapSwitch,
+    onNodeSelectByLine,
     storageAdapter,
   } = props;
 
@@ -69,8 +69,8 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       onRemoveWorkspace={onRemoveWorkspace}
       explorerTree={explorerTree}
       onCreateFolder={onCreateFolder}
-      onNodeSelect={onNodeSelect}
       onMapSwitch={onMapSwitch}
+      onNodeSelectByLine={onNodeSelectByLine}
       storageAdapter={storageAdapter}
     />
   );

@@ -26,9 +26,9 @@ interface PrimarySidebarProps {
   onRemoveWorkspace?: (id: string) => void;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
-  // Search props
-  onNodeSelect?: (nodeId: string) => void;
-  onMapSwitch?: (id: MapIdentifier) => Promise<void>;
+  // Search functionality props
+  onMapSwitch?: (mapIdentifier: MapIdentifier) => Promise<void>;
+  onNodeSelectByLine?: (lineNumber: number) => Promise<void>;
   // Storage adapter for file-based search
   storageAdapter?: any;
 }
@@ -51,9 +51,9 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onRemoveWorkspace,
   explorerTree,
   onCreateFolder,
-  // Search props
-  onNodeSelect,
+  // Search functionality props
   onMapSwitch,
+  onNodeSelectByLine,
   storageAdapter
 }) => {
   if (!isVisible || !activeView) {
@@ -87,8 +87,8 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
       case 'search':
         return (
           <SearchSidebar
-            onNodeSelect={onNodeSelect}
             onMapSwitch={onMapSwitch}
+            onNodeSelectByLine={onNodeSelectByLine}
             storageAdapter={storageAdapter}
             workspaces={workspaces}
           />

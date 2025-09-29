@@ -3,7 +3,6 @@ import { X } from 'lucide-react';
 import type { MapIdentifier } from '@shared/types';
 import {
   searchFilesForContent,
-  findNodeByLineNumber,
   getMatchPosition,
   type FileBasedSearchResult
 } from '@shared/utils';
@@ -12,8 +11,8 @@ import '@shared/styles/layout/SearchSidebar.css';
 
 
 interface SearchSidebarProps {
-  onNodeSelect?: (nodeId: string) => void;
-  onMapSwitch?: (id: MapIdentifier) => Promise<void>;
+  onMapSwitch?: (mapIdentifier: MapIdentifier) => Promise<void>;
+  onNodeSelectByLine?: (lineNumber: number) => Promise<void>;
   // Storage adapter for file-based search
   storageAdapter?: any;
   // Workspaces for path display
@@ -21,8 +20,8 @@ interface SearchSidebarProps {
 }
 
 const SearchSidebar: React.FC<SearchSidebarProps> = ({
-  onNodeSelect,
   onMapSwitch,
+  onNodeSelectByLine,
   storageAdapter,
   workspaces
 }) => {
@@ -81,59 +80,10 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
       workspaceId: result.workspaceId
     });
 
-    try {
-      // まず、storageAdapterから直接マップデータを取得
-      if (!storageAdapter) {
-        console.error('🔍 [SearchSidebar] Storage adapter not available');
-        return;
-      }
-
-      let mapData = null;
-
-      // 利用可能な関数を順番に試行
-      if (typeof storageAdapter.loadMapById === 'function') {
-        console.log('🔍 [SearchSidebar] Using loadMapById');
-        mapData = await storageAdapter.loadMapById(result.mapId, result.workspaceId);
-      } else if (typeof storageAdapter.loadMap === 'function') {
-        console.log('🔍 [SearchSidebar] Using loadMap');
-        mapData = await storageAdapter.loadMap({
-          mapId: result.mapId,
-          workspaceId: result.workspaceId
-        });
-      } else if (typeof storageAdapter.loadAllMaps === 'function') {
-        console.log('🔍 [SearchSidebar] Using loadAllMaps as fallback');
-        const allMaps = await storageAdapter.loadAllMaps();
-        mapData = allMaps.find((map: any) =>
-          map.mapIdentifier?.mapId === result.mapId &&
-          map.mapIdentifier?.workspaceId === result.workspaceId
-        );
-      }
-
-      if (!mapData) {
-        console.error('🔍 [SearchSidebar] Failed to load map data');
-        return;
-      }
-
-      // 行番号からノードを特定
-      const nodeResult = findNodeByLineNumber(mapData, result.lineNumber);
-
-      if (nodeResult?.node) {
-        console.log('🔍 [SearchSidebar] Found node by line number:', nodeResult.node.id);
-
-        // マップを切り替えてからノードを選択
-        await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
-
-        // 少し待ってからノード選択
-        setTimeout(() => {
-          onNodeSelect?.(nodeResult.node.id);
-        }, 300);
-      } else {
-        console.warn('🔍 [SearchSidebar] Node not found for line number:', result.lineNumber);
-      }
-    } catch (error) {
-      console.error('🔍 [SearchSidebar] Error in file result navigation:', error);
-    }
-  };
+      console.log('🔍 [SearchSidebar] Switching to map:', result.mapId);
+      await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
+      await onNodeSelectByLine?.(result.lineNumber);
+  }
 
   const highlightMatch = (text: string, query: string) => {
     const matchPos = getMatchPosition(text, query);
