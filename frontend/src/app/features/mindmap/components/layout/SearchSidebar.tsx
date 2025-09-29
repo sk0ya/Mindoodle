@@ -28,12 +28,16 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   workspaces
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
+
   const [fileBasedResults, setFileBasedResults] = useState<FileBasedSearchResult[]>([]);
   const { isLoading: isSearching, startLoading: startSearching, stopLoading: stopSearching } = useLoadingState();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Get mindmap store functions for node highlighting
-  const { normalizedData, setSearchQuery: setStoreSearchQuery, setSearchHighlightedNodes, clearSearchHighlight } = useMindMapStore();
+  // Get mindmap store functions for node highlighting with stable references
+  const setStoreSearchQuery = useMindMapStore(state => state.setSearchQuery);
+  const setSearchHighlightedNodes = useMindMapStore(state => state.setSearchHighlightedNodes);
+  const clearSearchHighlight = useMindMapStore(state => state.clearSearchHighlight);
+
 
   // Focus search input when component mounts
   useEffect(() => {
@@ -47,74 +51,54 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       if (!searchQuery.trim()) {
-        // Clear highlights when search is empty
         clearSearchHighlight();
         return;
       }
 
-      // Update store search query
       setStoreSearchQuery(searchQuery);
 
-      // Perform node search on current map
-      const { highlightedNodes } = performNodeSearch(searchQuery, normalizedData);
-
-      // Update highlighted nodes in store
+      // Get fresh normalized data at execution time to avoid dependency issues
+      const currentNormalizedData = useMindMapStore.getState().normalizedData;
+      const { highlightedNodes } = performNodeSearch(searchQuery, currentNormalizedData);
       setSearchHighlightedNodes(highlightedNodes);
-
-      console.log('🔍 [SearchSidebar] Current map search:', {
-        query: searchQuery,
-        matchingNodesCount: highlightedNodes.size,
-        highlightedNodes: Array.from(highlightedNodes)
-      });
-    }, 300); // デバウンス
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, normalizedData, setStoreSearchQuery, setSearchHighlightedNodes, clearSearchHighlight]);
+  }, [searchQuery]);
 
   // Handle file-based search
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const run = async () => {
-        if (!searchQuery.trim()) {
-          setFileBasedResults([]);
-          return;
-        }
+    // Skip entirely if search query is empty
+    if (!searchQuery.trim()) {
+      setFileBasedResults([]);
+      return;
+    }
 
-        if (!storageAdapter) {
-          console.warn('🔍 [SearchSidebar] Storage adapter not available for search');
-          return;
-        }
+    const timer = setTimeout(async () => {
+      if (!storageAdapter) {
+        console.warn('🔍 [SearchSidebar] Storage adapter not available for search');
+        return;
+      }
 
-        startSearching();
-        try {
-          console.log('🔍 [SearchSidebar] Performing file-based search');
-          const fileResults = await searchFilesForContent(searchQuery, storageAdapter, workspaces);
-          setFileBasedResults(fileResults);
-        } catch (error) {
-          console.error('🔍 [SearchSidebar] File-based search error:', error);
-          setFileBasedResults([]);
-        } finally {
-          stopSearching();
-        }
-      };
-      void run();
-    }, 300); // デバウンス
+      startSearching();
+      try {
+        const fileResults = await searchFilesForContent(searchQuery, storageAdapter, workspaces);
+        setFileBasedResults(fileResults);
+      } catch (error) {
+        console.error('🔍 [SearchSidebar] File-based search error:', error);
+        setFileBasedResults([]);
+      } finally {
+        stopSearching();
+      }
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery, storageAdapter, workspaces, startSearching, stopSearching]);
+  }, [searchQuery]);
 
 
   const handleFileResultDoubleClick = async (result: FileBasedSearchResult) => {
-    console.log('🔍 [SearchSidebar] handleFileResultDoubleClick called:', {
-      filePath: result.filePath,
-      lineNumber: result.lineNumber,
-      mapId: result.mapId,
-      workspaceId: result.workspaceId
-    });
-
-      console.log('🔍 [SearchSidebar] Switching to map:', result.mapId);
-      await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
-      await onNodeSelectByLine?.(result.lineNumber);
+    await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
+    await onNodeSelectByLine?.(result.lineNumber);
   }
 
   const highlightMatch = (text: string, query: string) => {
@@ -137,14 +121,14 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
     <div className="search-sidebar">
       <div className="search-sidebar-header">
         <h2>
-          ファイル検索
+          検索
         </h2>
 
         <div className="search-input-container">
           <input
             ref={inputRef}
             type="text"
-            placeholder="すべてのファイルから検索..."
+            placeholder=".mdファイルから検索..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="search-input"
