@@ -7,3 +7,4 @@ export * from './linkUtils';
 export * from './nodeTreeUtils';
 export * from './nodeUtils';
 export * from './pasteTree';
+export * from './searchUtils';

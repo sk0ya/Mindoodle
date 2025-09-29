@@ -7,6 +7,8 @@ import {
   type FileBasedSearchResult
 } from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
+import { useMindMapStore } from '../../store';
+import { performNodeSearch } from '../../utils';
 import '@shared/styles/layout/SearchSidebar.css';
 
 
@@ -30,6 +32,9 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   const { isLoading: isSearching, startLoading: startSearching, stopLoading: stopSearching } = useLoadingState();
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Get mindmap store functions for node highlighting
+  const { normalizedData, setSearchQuery: setStoreSearchQuery, setSearchHighlightedNodes, clearSearchHighlight } = useMindMapStore();
+
   // Focus search input when component mounts
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -38,8 +43,35 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Handle current map node highlighting
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (!searchQuery.trim()) {
+        // Clear highlights when search is empty
+        clearSearchHighlight();
+        return;
+      }
 
-  // Handle search
+      // Update store search query
+      setStoreSearchQuery(searchQuery);
+
+      // Perform node search on current map
+      const { highlightedNodes } = performNodeSearch(searchQuery, normalizedData);
+
+      // Update highlighted nodes in store
+      setSearchHighlightedNodes(highlightedNodes);
+
+      console.log('🔍 [SearchSidebar] Current map search:', {
+        query: searchQuery,
+        matchingNodesCount: highlightedNodes.size,
+        highlightedNodes: Array.from(highlightedNodes)
+      });
+    }, 300); // デバウンス
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, normalizedData, setStoreSearchQuery, setSearchHighlightedNodes, clearSearchHighlight]);
+
+  // Handle file-based search
   useEffect(() => {
     const timer = setTimeout(() => {
       const run = async () => {

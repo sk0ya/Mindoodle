@@ -5,6 +5,10 @@ import type { UIState, UIActions } from '@shared/types';
 
 export interface UISlice extends UIActions {
   ui: UIState;
+  // Search highlighting actions
+  setSearchQuery: (query: string) => void;
+  setSearchHighlightedNodes: (nodeIds: Set<string>) => void;
+  clearSearchHighlight: () => void;
 }
 
 export const createUISlice: StateCreator<
@@ -34,6 +38,8 @@ export const createUISlice: StateCreator<
     showFileActionMenu: false,
     clipboard: null,
     showLinkListForNode: null,
+    searchHighlightedNodes: new Set<string>(),
+    searchQuery: '',
   },
 
   // Zoom and Pan Actions
@@ -192,7 +198,27 @@ export const createUISlice: StateCreator<
     });
   },
 
-  
+  // Search highlighting actions
+  setSearchQuery: (query: string) => {
+    set((state) => {
+      state.ui.searchQuery = query;
+    });
+  },
+
+  setSearchHighlightedNodes: (nodeIds: Set<string>) => {
+    set((state) => {
+      state.ui.searchHighlightedNodes = new Set(nodeIds);
+    });
+  },
+
+  clearSearchHighlight: () => {
+    set((state) => {
+      state.ui.searchHighlightedNodes = new Set();
+      state.ui.searchQuery = '';
+    });
+  },
+
+
 
   // Composite Actions
   closeAllPanels: () => {

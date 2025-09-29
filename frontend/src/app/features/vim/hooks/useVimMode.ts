@@ -48,7 +48,7 @@ interface VimActions {
 export interface VimModeHook extends VimState, VimActions {}
 
 export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
-  const { settings, updateSetting } = useMindMapStore();
+  const { settings, updateSetting, setSearchQuery: setUISearchQuery } = useMindMapStore();
   const [state, setState] = useState<Omit<VimState, 'isEnabled'>>({
     mode: 'normal',
     lastCommand: '',
@@ -321,6 +321,9 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   const updateSearchQuery = useCallback((query: string) => {
     setState(prev => ({ ...prev, searchQuery: query }));
 
+    // Update UI store searchQuery for unified highlighting
+    setUISearchQuery(query);
+
     // リアルタイム検索を実行
     if (query.trim()) {
       const allNodes = getAllNodes();
@@ -340,7 +343,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     } else {
       setState(prev => ({ ...prev, searchResults: [], currentSearchIndex: -1 }));
     }
-  }, [getAllNodes]);
+  }, [getAllNodes, setUISearchQuery]);
 
   const executeSearch = useCallback(() => {
     const { searchQuery } = state;

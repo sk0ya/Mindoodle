@@ -37,7 +37,10 @@ export interface UIState {
 
   // Icon-triggered displays
   showLinkListForNode: string | null;
-  
+
+  // Search highlighting
+  searchHighlightedNodes: Set<string>;
+  searchQuery: string;
 }
 
 // Context menu state
@@ -96,7 +99,11 @@ export interface UIActions {
   setShowLinkListForNode: (nodeId: string | null) => void;
   toggleLinkListForNode: (nodeId: string) => void;
   closeAttachmentAndLinkLists: () => void;
-  
+
+  // Search highlighting
+  setSearchQuery: (query: string) => void;
+  setSearchHighlightedNodes: (nodeIds: Set<string>) => void;
+  clearSearchHighlight: () => void;
 
   // Composite Actions
   closeAllPanels: () => void;

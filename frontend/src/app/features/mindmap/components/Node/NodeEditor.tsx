@@ -22,8 +22,6 @@ interface NodeEditorProps {
   onMouseDown?: (e: React.MouseEvent) => void; // allow drag start from text
   onDragOver?: (e: React.DragEvent) => void; // drag over text area
   onDrop?: (e: React.DragEvent) => void; // drop on text area
-  searchQuery: string;
-  vimEnabled: boolean;
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -40,19 +38,17 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onToggleLinkList,
   onLinkNavigate,
   onStartEdit,
-  searchQuery,
   onMouseDown,
   onDragOver,
-  onDrop,
-  vimEnabled
+  onDrop
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
+  const { ui, settings, data } = useMindMapStore();
 
   // Table nodes render their own content; no text editor overlay
   if (node.kind === 'table') {
     return null;
   }
-  const { settings, data, ui } = useMindMapStore();
 
   // リンククリック時の処理
   const handleLinkClick = useCallback((e: React.MouseEvent) => {
@@ -392,8 +388,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                     {...textStyle}
                     onDoubleClick={handleTextDoubleClick}
                   >
-                    {vimEnabled && searchQuery ?
-                      renderHighlightedText(displayText, searchQuery) :
+                    {ui.searchQuery ?
+                      renderHighlightedText(displayText, ui.searchQuery) :
                       displayText
                     }
                   </tspan>
@@ -409,8 +405,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                 } : {})}
                 onDoubleClick={handleTextDoubleClick}
               >
-                {vimEnabled && searchQuery ?
-                  renderHighlightedText(displayText, searchQuery) :
+                {ui.searchQuery ?
+                  renderHighlightedText(displayText, ui.searchQuery) :
                   displayText
                 }
               </tspan>
