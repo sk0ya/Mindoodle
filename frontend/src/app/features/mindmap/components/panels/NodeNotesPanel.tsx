@@ -33,6 +33,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
   const [resizeCounter, setResizeCounter] = useState<number>(0);
   const [editorFocused, setEditorFocused] = useState<boolean>(false);
+  const editorFocusedRef = useRef<boolean>(false);
   const pendingNodesTextRef = useRef<string | null>(null);
 
   // Load map markdown when component mounts or map changes
@@ -69,17 +70,30 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   useEffect(() => {
     if (!subscribeMarkdownFromNodes) return;
     const unsub = subscribeMarkdownFromNodes((text: string) => {
+      // Use ref to get current focus state to avoid stale closure
+      const isCurrentlyFocused = editorFocusedRef.current;
+
       // While editing, never override the user's input. Queue it instead.
-      if (editorFocused) {
+      if (isCurrentlyFocused) {
         pendingNodesTextRef.current = text || '';
         return;
       }
-      if (text !== mapMarkdown) {
-        setMapMarkdown(text || '');
-      }
+
+      // Only update if content actually differs
+      setMapMarkdown(prevMarkdown => {
+        if (text !== prevMarkdown) {
+          return text || '';
+        }
+        return prevMarkdown;
+      });
     });
     return () => { try { unsub(); } catch (_e) { /* ignore */ } };
-  }, [subscribeMarkdownFromNodes, mapMarkdown, editorFocused]);
+  }, [subscribeMarkdownFromNodes]); // Remove mapMarkdown and editorFocused from deps
+
+  // Sync ref with state for reliable focus tracking
+  useEffect(() => {
+    editorFocusedRef.current = editorFocused;
+  }, [editorFocused]);
 
   // When editing ends, if there is a queued nodes text, apply it once
   useEffect(() => {

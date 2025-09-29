@@ -14,6 +14,7 @@ const EDITOR_LOADING_TEXT = "エディターを読み込み中...";
 
 interface MarkdownEditorProps {
   value: string;
+  updatedAt?: string;
   onChange: (value: string) => void;
   onSave?: () => void;
   className?: string;
@@ -26,8 +27,9 @@ interface MarkdownEditorProps {
   onFocusChange?: (focused: boolean) => void;
 }
 
-export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({ 
+export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   value,
+  updatedAt,
   onChange,
   onSave,
   className = '',
@@ -41,7 +43,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
   const monacoRef = useRef<typeof import('monaco-editor') | null>(null);
-  const ignoreExternalChangeRef = useRef(false);
+  const lastUpdatedAtRef = useRef<string>('');
   const hoveredRef = useRef(false);
   // Tracks whether Vim is currently enabled on the Monaco instance
   const [isVimEnabled, setIsVimEnabled] = useState(false);
@@ -50,11 +52,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings } = useMindMapStore();
 
-  // Debounced onChange handler
+  // Debounced onChange handler with updatedAt-based deduplication
   const handleEditorChange = useCallback((newValue: string) => {
-    if (ignoreExternalChangeRef.current) {
-      return; // ignore programmatic updates from nodes->markdown
-    }
     // Clear existing timeout
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
@@ -63,7 +62,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     // Set new debounced timeout
     debounceTimeoutRef.current = setTimeout(() => {
       onChange(newValue);
-    }, 300); // 300ms debounce
+    }, 200); // 200ms debounce to match MarkdownStream
   }, [onChange]);
 
   // Convert markdown to HTML (memoized for performance)
@@ -124,9 +123,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     // Cursor and focus listeners
     editor.onDidChangeCursorPosition((e) => {
       // Avoid syncing selection if editor doesn't have focus
-      // or while we are applying programmatic changes
       const hasFocus = editor.hasTextFocus?.() ?? false;
-      if (!hasFocus || ignoreExternalChangeRef.current) return;
+      if (!hasFocus) return;
       const line = e.position.lineNumber;
       onCursorLineChange?.(line);
     });
@@ -344,28 +342,37 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   // External cursor sync intentionally removed per request
 
 
-  // Apply external value changes to editor model without disrupting user typing
+  // Apply external value changes to editor model with updatedAt-based deduplication
   useEffect(() => {
     const ed = editorRef.current;
     if (!ed) return;
+
     try {
       const current = ed.getValue();
       const next = value || '';
-      if (current !== next) {
-        // Avoid triggering onChange for this programmatic update
-        ignoreExternalChangeRef.current = true;
-        const hasFocus = ed.hasTextFocus?.() ?? false;
-        const selection = hasFocus ? ed.getSelection() : null;
-        ed.setValue(next);
-        // Try to restore selection when focused
-        if (hasFocus && selection) {
-          try { ed.setSelection(selection); } catch {}
-        }
-        // Release flag on next macrotask to let Monaco settle
-        setTimeout(() => { ignoreExternalChangeRef.current = false; }, 0);
+
+      // 同じ内容なら何もしない
+      if (current === next) return;
+
+      // updatedAtが提供され、それが前回と同じなら重複更新として無視
+      if (updatedAt && updatedAt === lastUpdatedAtRef.current) return;
+
+      // updatedAtを更新
+      if (updatedAt) {
+        lastUpdatedAtRef.current = updatedAt;
+      }
+
+      // エディターの値を更新
+      const hasFocus = ed.hasTextFocus?.() ?? false;
+      const selection = hasFocus ? ed.getSelection() : null;
+      ed.setValue(next);
+
+      // フォーカス中なら選択範囲を復元
+      if (hasFocus && selection) {
+        try { ed.setSelection(selection); } catch {}
       }
     } catch {}
-  }, [value]);
+  }, [value, updatedAt]);
 
   // Update theme and font settings when settings change
   useEffect(() => {
@@ -477,7 +484,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       // Cleanup debounce timeout
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
       }
+      // Reset updatedAt tracking
+      lastUpdatedAtRef.current = '';
       // Cleanup Vim mode on unmount
       if (editorRef.current) {
         // Disable and cleanup Vim if enabled

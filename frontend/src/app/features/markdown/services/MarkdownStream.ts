@@ -20,8 +20,9 @@ import { logger } from '@shared/utils';
 export class MarkdownStream {
   private content = '';
   private lastFlushed = '';
+  private lastUpdatedAt: string = '';
   private sinks: MarkdownSink[] = [];
-  private subscribers = new Set<(markdown: string, source: MarkdownSource) => void>();
+  private subscribers = new Set<(markdown: string, source: MarkdownSource, updatedAt?: string) => void>();
   private debounceMs: number;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private flushLock: Promise<void> = Promise.resolve();
@@ -32,12 +33,20 @@ export class MarkdownStream {
 
   getMarkdown(): string { return this.content; }
 
-  setMarkdown(markdown: string, source: MarkdownSource = 'external'): void {
+  setMarkdown(markdown: string, source: MarkdownSource = 'external', updatedAt?: string): void {
     if (typeof markdown !== 'string') return;
-    if (markdown === this.content) return; // no-op
+
+    // 同じ内容なら無視
+    if (markdown === this.content) return;
+
+    // updatedAtが提供され、それが前回と同じなら無視（重複更新防止）
+    if (updatedAt && updatedAt === this.lastUpdatedAt) return;
 
     this.content = markdown;
-    this.notify(markdown, source);
+    if (updatedAt) {
+      this.lastUpdatedAt = updatedAt;
+    }
+    this.notify(markdown, source, updatedAt);
     this.scheduleFlush();
   }
 
@@ -49,7 +58,7 @@ export class MarkdownStream {
     this.sinks.push(sink);
   }
 
-  subscribe(cb: (markdown: string, source: MarkdownSource) => void): () => void {
+  subscribe(cb: (markdown: string, source: MarkdownSource, updatedAt?: string) => void): () => void {
     this.subscribers.add(cb);
     // Don't emit initial content to prevent feedback loops
     // Initial content will be loaded via proper load mechanism in useMarkdownStream
@@ -58,10 +67,10 @@ export class MarkdownStream {
     };
   }
 
-  private notify(markdown: string, source: MarkdownSource): void {
-    logger.debug('📢 MarkdownStream.notify', { source, length: markdown.length, subscribers: this.subscribers.size });
+  private notify(markdown: string, source: MarkdownSource, updatedAt?: string): void {
+    logger.debug('📢 MarkdownStream.notify', { source, length: markdown.length, updatedAt, subscribers: this.subscribers.size });
     for (const cb of Array.from(this.subscribers)) {
-      try { cb(markdown, source); } catch (_e) { /* ignore subscriber error */ void 0; }
+      try { cb(markdown, source, updatedAt); } catch (_e) { /* ignore subscriber error */ void 0; }
     }
   }
 
