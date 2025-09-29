@@ -426,6 +426,16 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
         }
 
+        // Handle Escape key to clear search information in normal mode
+        if (key === 'Escape') {
+          event.preventDefault();
+          // Clear search query and highlighting if there's an active search
+          if (vim.searchQuery || vim.searchResults.length > 0) {
+            vim.exitSearch();
+            return;
+          }
+        }
+
         // Regular vim commands (non-modifier keys)
         if (!isModifier) {
           // Skip modifier keys themselves

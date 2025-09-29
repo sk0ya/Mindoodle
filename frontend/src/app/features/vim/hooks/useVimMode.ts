@@ -404,7 +404,10 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
       searchResults: [],
       currentSearchIndex: -1
     }));
-  }, []);
+    
+    // Also clear UI search query for unified highlighting
+    setUISearchQuery('');
+  }, [setUISearchQuery]);;
 
   // Generate jump labels avoiding partial matches
   const generateJumpLabels = useCallback((count: number): string[] => {
