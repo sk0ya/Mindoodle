@@ -131,7 +131,7 @@ export async function searchFilesForContent(
           if (markdownContent) {
             const lines = markdownContent.split('\n');
 
-            lines.forEach((line, index) => {
+            lines.forEach((line: string, index: number) => {
               const lowerLine = line.toLowerCase();
               if (lowerLine.includes(searchTerm)) {
                 results.push({

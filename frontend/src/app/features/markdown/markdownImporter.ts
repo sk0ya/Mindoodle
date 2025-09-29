@@ -285,9 +285,10 @@ export class MarkdownImporter {
       const headers = toCells(headerLine);
       const rows = rowLines.map(toCells);
 
-      const before = lines.slice(0, i).join(defaultLineEnding);
+      // 前後の空行情報を適切に保持
+      const before = i > 0 ? lines.slice(0, i).join(defaultLineEnding) : '';
       const tableBlock = lines.slice(i, j).join(defaultLineEnding);
-      const after = lines.slice(j).join(defaultLineEnding);
+      const after = j < lines.length ? lines.slice(j).join(defaultLineEnding) : '';
 
       return { headers, rows, before, tableBlock, after };
     }
@@ -477,8 +478,13 @@ export class MarkdownImporter {
           const tableLines = tableMd.split(/\r\n|\r|\n/);
           for (const ln of tableLines) lines.push(ln);
         }
-        if (node.note != undefined) {
-          lines.push(node.note);
+        // 表ノードのnoteには after（表の後のコンテンツ）が含まれている
+        if (node.note != undefined && node.note.length > 0) {
+          // afterの内容を行ごとに分割して追加（空行も保持）
+          const afterLines = node.note.split(/\r\n|\r|\n/);
+          for (const afterLine of afterLines) {
+            lines.push(afterLine);
+          }
         }
         if (node.children && node.children.length > 0) {
           node.children.forEach(child => processNode(child, parentLevel + 1, parentType));
@@ -507,7 +513,11 @@ export class MarkdownImporter {
           // 前文の場合はnoteからコンテンツを取得し、マーカーなしで出力
           // 空文字列でも出力する（元の情報を完全に保持）
           if (node.note != undefined) {
-            lines.push(node.note);
+            // 前文のnoteに含まれる改行コードもそのまま保持する
+            const prefaceLines = node.note.split(/\r\n|\r|\n/);
+            for (const prefaceLine of prefaceLines) {
+              lines.push(prefaceLine);
+            }
           }
           // 前文の場合は子ノードを処理してから return
           if (node.children && node.children.length > 0) {
@@ -568,7 +578,11 @@ export class MarkdownImporter {
 
       // ノートがある場合は追加（空文字列でも出力：意図した空白を保持）
       if (node.note != undefined) {
-        lines.push(node.note);
+        // ノートに含まれる改行コードもそのまま保持する
+        const noteLines = node.note.split(/\r\n|\r|\n/);
+        for (const noteLine of noteLines) {
+          lines.push(noteLine);
+        }
       }
 
       // 子ノードを処理（空行はnoteに保持されたもののみ）
