@@ -276,3 +276,145 @@ export const openAboveCommand: Command = {
     }
   }
 };
+/**
+ * Insert Checkbox Child Command (vim 'X')
+ * Adds a new checkbox list child node, positioning it before any heading nodes to maintain map structure
+ */
+export const insertCheckboxChildCommand: Command = {
+  name: 'insert-checkbox-child',
+  aliases: ['X', 'add-checkbox-child'],
+  description: 'Add a new checkbox list child node, positioning before heading nodes',
+  category: 'editing',
+  examples: [
+    'insert-checkbox-child',
+    'X'
+  ],
+  args: [
+    {
+      name: 'parentId',
+      type: 'node-id',
+      required: false,
+      description: 'Parent node ID (uses selected node if not specified)'
+    },
+    {
+      name: 'text',
+      type: 'string',
+      required: false,
+      default: '',
+      description: 'Initial text for the new checkbox node'
+    },
+    {
+      name: 'edit',
+      type: 'boolean',
+      required: false,
+      default: true,
+      description: 'Start editing the new node immediately'
+    }
+  ],
+
+  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
+    const parentId = (args as any)['parentId'] || context.selectedNodeId;
+    const text = (args as any)['text'] || '';
+    const startEdit = (args as any)['edit'] ?? true;
+
+    if (!parentId) {
+      return {
+        success: false,
+        error: 'No node selected and no parent ID provided'
+      };
+    }
+
+    const parentNode = context.handlers.findNodeById(parentId);
+    if (!parentNode) {
+      return {
+        success: false,
+        error: `Parent node ${parentId} not found`
+      };
+    }
+
+    try {
+      // 最初に見出しノードの位置を特定
+      const currentSiblings = parentNode.children || [];
+      let targetInsertIndex = -1; // 見出しノードの位置
+      
+      for (let i = 0; i < currentSiblings.length; i++) {
+        const sibling = currentSiblings[i];
+        if (sibling.markdownMeta?.type === 'heading') {
+          targetInsertIndex = i;
+          break;
+        }
+      }
+
+      // 通常のadd-childでノードを追加（最後に追加される）
+      const newNodeId = await context.handlers.addChildNode(parentId, text, false); // 編集は後で
+
+      if (!newNodeId) {
+        return {
+          success: false,
+          error: 'Failed to create new child node'
+        };
+      }
+
+      // チェックボックスのメタデータを設定
+      let level = 1;
+      let indentLevel = 0;
+      
+      if (parentNode.markdownMeta) {
+        if (parentNode.markdownMeta.type === 'heading') {
+          level = 1;
+          indentLevel = 0;
+        } else if (parentNode.markdownMeta.type === 'unordered-list' || parentNode.markdownMeta.type === 'ordered-list') {
+          level = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
+          indentLevel = Math.max(level - 1, 0) * 2;
+        }
+      }
+
+      const checkboxMarkdownMeta = {
+        type: 'unordered-list' as const,
+        level,
+        originalFormat: '- [ ]',
+        indentLevel,
+        lineNumber: 0,
+        isCheckbox: true,
+        isChecked: false
+      };
+
+      // チェックボックスメタデータを設定
+      context.handlers.updateNode(newNodeId, { 
+        markdownMeta: checkboxMarkdownMeta 
+      });
+
+      // 見出しノードより上に移動させる
+      if (targetInsertIndex >= 0 && context.handlers.changeSiblingOrder) {
+        // 更新された親ノードを再取得
+        const updatedParentNode = context.handlers.findNodeById(parentId);
+        if (updatedParentNode && updatedParentNode.children) {
+          const targetSibling = updatedParentNode.children[targetInsertIndex];
+          if (targetSibling) {
+            // 新しいノードを見出しノードの前に移動
+            context.handlers.changeSiblingOrder(newNodeId, targetSibling.id, true); // insert before
+          }
+        }
+      }
+
+      // Vimモードと編集開始
+      if (context.vim && context.vim.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      if (startEdit) {
+        context.handlers.startEdit(newNodeId);
+      }
+
+      return {
+        success: true,
+        message: `Added checkbox child node to "${parentNode.text}"${targetInsertIndex >= 0 ? ' (positioned before heading)' : ''}`
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to insert checkbox child node'
+      };
+    }
+  }
+};;

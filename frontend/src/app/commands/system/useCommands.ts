@@ -284,6 +284,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'I': 'insert',        // I: 先頭カーソル編集
       'o': 'open',
       'O': 'open-above',
+      'X': 'insert-checkbox-child',  // X: チェックボックス付き子ノード追加
       'h': 'left',
       'j': 'down',
       'k': 'up',

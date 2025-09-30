@@ -43,6 +43,7 @@ const VIM_COMMAND_PATTERNS = {
   'I': { keys: ['I'], command: 'I' },
   'o': { keys: ['o'], command: 'o' },
   'O': { keys: ['O'], command: 'O' },
+  'X': { keys: ['X'], command: 'X' },
   'p': { keys: ['p'], command: 'p' },
   'm': { keys: ['m'], command: 'm' },
   'M': { keys: ['M'], command: 'M' },
@@ -56,7 +57,7 @@ const VIM_COMMAND_PATTERNS = {
   's': { keys: ['s'], command: 's' },
   'x': { keys: ['x'], command: 'x' },
   'u': { keys: ['u'], command: 'u' },
-} as const;
+} as const;;
 
 // Generate all possible partial sequences
 function generatePartialSequences(): Set<string> {
