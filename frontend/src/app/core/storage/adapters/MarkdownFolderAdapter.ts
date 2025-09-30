@@ -934,9 +934,15 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       req.onerror = () => reject(req.error);
     });
     db.close();
+
+    // saveTargetsから削除
     const prefix = `${id}::`;
-    Array.from(this.saveTargets.keys()).forEach(k => { if (k.startsWith(prefix)) this.saveTargets.delete(k); });
-    await this.restoreWorkspaces();
+    Array.from(this.saveTargets.keys()).forEach(k => {
+      if (k.startsWith(prefix)) this.saveTargets.delete(k);
+    });
+
+    // メモリ上の配列からも直接削除（restoreWorkspaces()は呼ばない）
+    this.workspaces = this.workspaces.filter(w => w.id !== id);
   }
 
   // Read image file from workspace and convert to data URL for display
