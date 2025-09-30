@@ -35,6 +35,8 @@ import { imagePasteService } from '../../services/imagePasteService';
 import CommandPalette from '@shared/components/CommandPalette';
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
+import { AuthModal } from '@shared/components';
+import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 
 import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
@@ -122,6 +124,41 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   // テーマ管理
   useTheme();
+
+  // Auth modal state management
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authCloudAdapter, setAuthCloudAdapter] = useState<CloudStorageAdapter | null>(null);
+  const [authOnSuccess, setAuthOnSuccess] = useState<((adapter: CloudStorageAdapter) => void) | null>(null);
+
+  // Listen for global auth modal event
+  React.useEffect(() => {
+    const handleShowAuthModal = (event: CustomEvent) => {
+      const { cloudAdapter, onSuccess } = event.detail;
+      setAuthCloudAdapter(cloudAdapter);
+      setAuthOnSuccess(() => onSuccess);
+      setIsAuthModalOpen(true);
+    };
+
+    window.addEventListener('mindoodle:showAuthModal', handleShowAuthModal as EventListener);
+    return () => {
+      window.removeEventListener('mindoodle:showAuthModal', handleShowAuthModal as EventListener);
+    };
+  }, []);
+
+  // Handle auth modal close
+  const handleAuthModalClose = () => {
+    setIsAuthModalOpen(false);
+    setAuthCloudAdapter(null);
+    setAuthOnSuccess(null);
+  };
+
+  // Handle auth success
+  const handleAuthModalSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
+    if (authOnSuccess) {
+      authOnSuccess(authenticatedAdapter);
+    }
+    handleAuthModalClose();
+  };
 
 
   // Folder guide modal state (extracted)
@@ -1587,6 +1624,16 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         }}
         storageAdapter={mindMap?.storageAdapter}
       />
+
+      {/* Auth Modal */}
+      {isAuthModalOpen && authCloudAdapter && (
+        <AuthModal
+          isOpen={isAuthModalOpen}
+          cloudAdapter={authCloudAdapter}
+          onClose={handleAuthModalClose}
+          onSuccess={handleAuthModalSuccess}
+        />
+      )}
     </div>
   );
 };
@@ -1595,6 +1642,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 const MindMapAppWrapper: React.FC<MindMapAppProps> = (props) => {
   const { resetKey = 0 } = props;
   const [internalResetKey, setInternalResetKey] = useState(resetKey);
+  const store = useMindMapStore();
 
   // Sync external resetKey with internal resetKey
   React.useEffect(() => {
@@ -1603,8 +1651,11 @@ const MindMapAppWrapper: React.FC<MindMapAppProps> = (props) => {
 
   // Create storage configuration based on selected mode
   const storageConfig: StorageConfig = React.useMemo(() => {
-    return { mode: 'local' } as StorageConfig;
-  }, []);
+    return {
+      mode: store.settings.storageMode,
+      cloudApiEndpoint: store.settings.cloudApiEndpoint
+    } as StorageConfig;
+  }, [store.settings.storageMode, store.settings.cloudApiEndpoint]);
 
   // Create mindMap instance first
   const mindMap = useMindMap(storageConfig, Math.max(resetKey, internalResetKey));

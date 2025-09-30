@@ -38,7 +38,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
           }
           
           logger.debug(`Creating ${config.mode} storage adapter`);
-          const adapter = await createStorageAdapter();
+          const adapter = await createStorageAdapter(config);
           setStorageAdapter(adapter);
           setIsInitialized(true);
           logger.debug(`${config.mode} storage initialized successfully`);

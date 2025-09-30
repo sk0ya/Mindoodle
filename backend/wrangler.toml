@@ -1,0 +1,28 @@
+name = "mindoodle-backend"
+main = "src/index.ts"
+compatibility_date = "2024-10-01"
+
+[env.production.vars]
+ALLOWED_EMAIL = "shigekazukoya@gmail.com"
+
+[[env.production.kv_namespaces]]
+binding = "USERS"
+id = "your-kv-namespace-id"
+
+[[env.production.r2_buckets]]
+binding = "MAPS_BUCKET"
+bucket_name = "mindoodle-maps"
+
+[env.development]
+compatibility_date = "2024-10-01"
+
+[env.development.vars]
+ALLOWED_EMAIL = "shigekazukoya@gmail.com"
+
+[[env.development.kv_namespaces]]
+binding = "USERS"
+preview_id = "your-preview-kv-namespace-id"
+
+[[env.development.r2_buckets]]
+binding = "MAPS_BUCKET"
+bucket_name = "mindoodle-maps-dev"

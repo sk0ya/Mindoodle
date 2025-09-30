@@ -59,7 +59,7 @@ export interface MapPersistenceOperations {
 }
 
 // Storage mode type
-export type StorageMode = 'local';
+export type StorageMode = 'local' | 'local+cloud';
 
 // Storage configuration type
 export interface StorageConfig {
@@ -68,6 +68,9 @@ export interface StorageConfig {
   syncInterval?: number;
   retryAttempts?: number;
   enableOfflineMode?: boolean;
+  // Cloud storage specific
+  cloudApiEndpoint?: string;
+  authToken?: string;
 }
 
 

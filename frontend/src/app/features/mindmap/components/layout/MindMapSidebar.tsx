@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
@@ -46,12 +46,12 @@ interface MindMapSidebarProps {
   onCreateFolder?: (path: string) => Promise<void> | void;
 }
 
-const MindMapSidebar: React.FC<MindMapSidebarProps> = ({ 
-  mindMaps, 
+const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
+  mindMaps,
   currentMapId,
   currentWorkspaceId,
-  onSelectMap, 
-  onCreateMap, 
+  onSelectMap,
+  onCreateMap,
   onDeleteMap,
   onChangeCategory,
   isCollapsed,
@@ -69,6 +69,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   // Explorer collapsed state mapping: path -> collapsed?
   const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
+
 
   // Initialize default collapsed state: collapse all folders except workspace roots
   React.useEffect(() => {

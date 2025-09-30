@@ -1,0 +1,19 @@
+{
+  "name": "mindoodle-backend",
+  "version": "1.0.0",
+  "description": "Cloudflare Workers backend for Mindoodle",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@cloudflare/workers-types": "^4.20241018.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "wrangler": "^3.78.12"
+  }
+}

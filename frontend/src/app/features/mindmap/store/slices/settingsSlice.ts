@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapStore } from './types';
+import type { StorageMode } from '@core/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 
 export interface AppSettings {
@@ -12,6 +13,10 @@ export interface AppSettings {
 
   // レイアウト設定
   nodeSpacing: number; // ノード間隔（ピクセル）
+
+  // ストレージ設定
+  storageMode: StorageMode; // ローカル or ローカル+クラウド
+  cloudApiEndpoint?: string; // クラウドAPIエンドポイント
 
   // エディタ設定
   // Legacy: vimMode (kept for storage backward-compat only)
@@ -37,6 +42,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 14,
   fontFamily: 'system-ui',
   nodeSpacing: 8, // デフォルトノード間隔8px
+  storageMode: 'local', // デフォルトはローカルストレージ
+  cloudApiEndpoint: 'https://mindoodle-backend.your-subdomain.workers.dev',
   vimMindMap: true,
   vimEditor: false,
   previewMode: false,
