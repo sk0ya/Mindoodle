@@ -79,6 +79,11 @@ class MermaidSVGCache {
     this.cache.clear();
   }
 
+  delete(code: string): boolean {
+    const key = this.generateKey(code);
+    return this.cache.delete(key);
+  }
+
   getStats(): { size: number; maxSize: number; maxAge: number } {
     return {
       size: this.cache.size,

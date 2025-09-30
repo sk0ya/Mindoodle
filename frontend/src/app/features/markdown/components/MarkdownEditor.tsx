@@ -4,7 +4,9 @@ import type { editor } from 'monaco-editor';
 import { marked } from 'marked';
 import { FileText } from 'lucide-react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
+import { mermaidSVGCache } from '../../mindmap/utils/mermaidCache';
 import { logger } from '@shared/utils';
+import mermaid from 'mermaid';
 
 // Constants to prevent re-renders
 const EDITOR_HEIGHT = "100%";
@@ -50,7 +52,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
   // Editor is controlled by `value`; no internal mirror state is needed
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const { settings } = useMindMapStore();
+  const { settings, clearMermaidRelatedCaches } = useMindMapStore();
+
+  // Extract mermaid code blocks from markdown
+  const extractMermaidBlocks = useCallback((text: string): string[] => {
+    const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
+    const blocks: string[] = [];
+    let match;
+    while ((match = mermaidRegex.exec(text)) !== null) {
+      blocks.push(match[1].trim());
+    }
+    return blocks;
+  }, []);
 
   // Debounced onChange handler with updatedAt-based deduplication
   const handleEditorChange = useCallback((newValue: string) => {
@@ -61,9 +74,109 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
     // Set new debounced timeout
     debounceTimeoutRef.current = setTimeout(() => {
+      // Check if mermaid blocks have changed and clear all related caches if needed
+      const oldMermaidBlocks = extractMermaidBlocks(value);
+      const newMermaidBlocks = extractMermaidBlocks(newValue);
+
+      // If any mermaid blocks have changed, clear all mermaid-related caches
+      const hasChanges = oldMermaidBlocks.length !== newMermaidBlocks.length ||
+        oldMermaidBlocks.some(oldBlock => !newMermaidBlocks.includes(oldBlock)) ||
+        newMermaidBlocks.some(newBlock => !oldMermaidBlocks.includes(newBlock));
+
+      if (hasChanges) {
+        // Use the comprehensive cache clearing function
+        clearMermaidRelatedCaches();
+      }
+
       onChange(newValue);
     }, 200); // 200ms debounce to match MarkdownStream
-  }, [onChange]);
+  }, [onChange, value, extractMermaidBlocks, clearMermaidRelatedCaches]);
+
+  // Initialize mermaid once
+  useEffect(() => {
+    try {
+      mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+    } catch {
+      // ignore re-initialize errors
+    }
+  }, []);
+
+  // Process mermaid diagrams in HTML
+  const processMermaidInHtml = useCallback(async (html: string): Promise<string> => {
+    // Find all mermaid code blocks in the HTML
+    const mermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;
+    let processedHtml = html;
+    let match;
+    const promises: Promise<string>[] = [];
+    const replacements: { original: string; replacement: string }[] = [];
+
+    while ((match = mermaidRegex.exec(html)) !== null) {
+      const fullMatch = match[0];
+      const mermaidCode = match[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+
+      const promise = (async () => {
+        try {
+          // Check cache first
+          const cached = mermaidSVGCache.get(mermaidCode);
+          if (cached) {
+            return cached.svg;
+          }
+
+          // Generate new SVG
+          const id = `mmd-preview-${Math.random().toString(36).slice(2, 10)}`;
+          const { svg } = await mermaid.render(id, mermaidCode);
+
+          // Parse and normalize SVG
+          const parser = new DOMParser();
+          const doc = parser.parseFromString(svg, 'image/svg+xml');
+          const el = doc.documentElement;
+
+          // Set responsive attributes
+          el.removeAttribute('width');
+          el.removeAttribute('height');
+          el.setAttribute('width', '100%');
+          el.setAttribute('height', 'auto');
+          el.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+          el.setAttribute('style', 'max-width: 100%; height: auto; display: block; margin: 12px 0;');
+
+          const serializer = new XMLSerializer();
+          const adjustedSvg = serializer.serializeToString(el);
+
+          // Cache the result
+          const vb = el.getAttribute('viewBox');
+          if (vb) {
+            const parts = vb.split(/[ ,]+/).map(Number);
+            if (parts.length === 4) {
+              mermaidSVGCache.set(mermaidCode, adjustedSvg, { width: parts[2], height: parts[3] });
+            }
+          }
+
+          return adjustedSvg;
+        } catch (error) {
+          logger.warn('Mermaid rendering error:', error);
+          return `<div style="border: 1px solid #e74c3c; border-radius: 4px; padding: 12px; background: #fdf2f2; color: #c0392b;">
+            <strong>Mermaid rendering error:</strong><br/>
+            <code>${mermaidCode}</code>
+          </div>`;
+        }
+      })();
+
+      promises.push(promise.then(svg => {
+        replacements.push({ original: fullMatch, replacement: svg });
+        return svg;
+      }));
+    }
+
+    // Wait for all mermaid diagrams to be processed
+    await Promise.all(promises);
+
+    // Apply all replacements
+    for (const { original, replacement } of replacements) {
+      processedHtml = processedHtml.replace(original, replacement);
+    }
+
+    return processedHtml;
+  }, []);
 
   // Convert markdown to HTML (memoized for performance)
   const previewHtml = useMemo((): string => {
@@ -75,6 +188,23 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       return '<p>マークダウンの解析でエラーが発生しました</p>';
     }
   }, [value]);
+
+  // Process mermaid diagrams and get final HTML
+  const [processedHtml, setProcessedHtml] = useState<string>('');
+
+  useEffect(() => {
+    const processHtml = async () => {
+      try {
+        const processed = await processMermaidInHtml(previewHtml);
+        setProcessedHtml(processed);
+      } catch (error) {
+        logger.warn('Error processing mermaid in HTML:', error);
+        // Fallback to original HTML if processing fails
+        setProcessedHtml(previewHtml);
+      }
+    };
+    processHtml();
+  }, [previewHtml, processMermaidInHtml]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
@@ -559,7 +689,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               {value.trim() ? (
                 <div
                   className="markdown-preview"
-                  dangerouslySetInnerHTML={{ __html: previewHtml }}
+                  dangerouslySetInnerHTML={{ __html: processedHtml || previewHtml }}
                 />
               ) : (
                 <div className="preview-empty">

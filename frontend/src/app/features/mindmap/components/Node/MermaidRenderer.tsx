@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
+import { useMindMapStore } from '../../store';
 
 type MermaidRendererProps = {
   code: string;
@@ -25,6 +26,9 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [svg, setSvg] = useState<string>('');
 
+  // Get UI state to monitor cache clear events
+  const { ui } = useMindMapStore();
+
   // Initialize mermaid once
   useEffect(() => {
     try {
@@ -40,6 +44,14 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
     if (fenceMatch) return fenceMatch[1].trim();
     return code.trim();
   }, [code]);
+
+  // Clear cache when code changes to force re-render
+  useEffect(() => {
+    // Clear SVG state to show re-rendering
+    setSvg('');
+    // Note: We don't need to delete from cache here as the cache key
+    // will be different for different content
+  }, [cleanedCode]);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,7 +121,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
 
     render();
     return () => { cancelled = true; };
-  }, [cleanedCode, onLoadedDimensions]);
+  }, [cleanedCode, onLoadedDimensions, ui.lastMermaidCacheCleared]);
 
   return (
     <div

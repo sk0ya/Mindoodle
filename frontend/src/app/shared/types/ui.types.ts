@@ -41,6 +41,9 @@ export interface UIState {
   // Search highlighting
   searchHighlightedNodes: Set<string>;
   searchQuery: string;
+
+  // Mermaid cache management
+  lastMermaidCacheCleared?: number;
 }
 
 // Context menu state

@@ -67,6 +67,7 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   updateNormalizedData: () => void;
   syncToMindMapData: () => void;
   applyAutoLayout: () => void;
+  clearMermaidRelatedCaches: () => void;
   
   // UI Actions
   setZoom: (zoom: number) => void;

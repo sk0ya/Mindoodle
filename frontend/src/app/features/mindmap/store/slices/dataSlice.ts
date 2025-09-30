@@ -5,6 +5,7 @@ import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedSto
 import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
 import { calculateNodeSize, getNodeTopY, getNodeBottomY } from '../../utils/nodeUtils';
+import { mermaidSVGCache } from '../../utils/mermaidCache';
 import type { MindMapStore } from './types';
 import type { DataState } from '@shared/types/nodeTypes';
 
@@ -59,6 +60,7 @@ export interface DataSlice extends DataState {
   updateNormalizedData: () => void;
   syncToMindMapData: () => void;
   applyAutoLayout: () => void;
+  clearMermaidRelatedCaches: () => void;
 }
 
 export const createDataSlice: StateCreator<
@@ -364,5 +366,27 @@ export const createDataSlice: StateCreator<
       logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
     }, AUTOLAYOUT_DEBOUNCE_MS);
+  },
+
+  clearMermaidRelatedCaches: () => {
+    // Clear mermaid SVG cache
+    if (typeof mermaidSVGCache?.clear === 'function') {
+      mermaidSVGCache.clear();
+    }
+
+    // Clear all node size cache to force re-calculation
+    // This is critical for mermaid nodes as size calculations trigger mermaid re-rendering
+    nodeSizeCache.clear();
+
+    // Also clear bounds and count caches to ensure complete refresh
+    boundsCache.clear();
+    nodeCountCache.clear();
+
+    // Force component re-render by updating a dummy timestamp
+    set((draft) => {
+      draft.ui.lastMermaidCacheCleared = Date.now();
+    });
+
+    logger.debug('🧹 Mermaid related caches cleared completely');
   },
 });

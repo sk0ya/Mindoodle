@@ -43,7 +43,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onDrop
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { ui, settings, data } = useMindMapStore();
+  const { ui, settings, data, clearMermaidRelatedCaches } = useMindMapStore();
 
   // Table nodes render their own content; no text editor overlay
   if (node.kind === 'table') {
@@ -77,6 +77,43 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     const urlPattern = /^https?:\/\/[^\s]+$/;
     return urlPattern.test(text);
   };
+
+  // Extract mermaid code blocks and clear cache for changed blocks
+  const clearMermaidCacheOnChange = useCallback((oldText: string, newText: string) => {
+    const extractMermaidBlocks = (text: string): string[] => {
+      const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
+      const blocks: string[] = [];
+      let match;
+      while ((match = mermaidRegex.exec(text)) !== null) {
+        blocks.push(match[1].trim());
+      }
+      return blocks;
+    };
+
+    const oldMermaidBlocks = extractMermaidBlocks(oldText);
+    const newMermaidBlocks = extractMermaidBlocks(newText);
+
+    // If any mermaid blocks have changed, clear all mermaid-related caches for comprehensive update
+    const hasChanges = oldMermaidBlocks.length !== newMermaidBlocks.length ||
+      oldMermaidBlocks.some(oldBlock => !newMermaidBlocks.includes(oldBlock)) ||
+      newMermaidBlocks.some(newBlock => !oldMermaidBlocks.includes(newBlock));
+
+    if (hasChanges) {
+      clearMermaidRelatedCaches();
+    }
+  }, [clearMermaidRelatedCaches]);
+
+  // Monitor note changes and clear mermaid cache when needed
+  const previousNoteRef = useRef<string>((node as any)?.note || '');
+  useEffect(() => {
+    const currentNote = (node as any)?.note || '';
+    const previousNote = previousNoteRef.current;
+
+    if (currentNote !== previousNote) {
+      clearMermaidCacheOnChange(previousNote, currentNote);
+      previousNoteRef.current = currentNote;
+    }
+  }, [(node as any)?.note]);
 
   // 検索ハイライト機能
   const renderHighlightedText = (text: string, searchQuery: string) => {
@@ -147,11 +184,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         clearTimeout(blurTimeoutRef.current);
         blurTimeoutRef.current = null;
       }
+      // Clear mermaid cache if text has changed
+      clearMermaidCacheOnChange(node.text, editText);
       // Use the latest input value, not stale node.text
       onFinishEdit(node.id, editText);
     }
     // Tab/EnterはuseKeyboardShortcutsで統一処理
-  }, [node.id, node.text, onFinishEdit, blurTimeoutRef]);
+  }, [node.id, node.text, editText, onFinishEdit, blurTimeoutRef, clearMermaidCacheOnChange]);
 
   const handleInputBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
     // 既存のタイマーをクリア
@@ -163,9 +202,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     // 最新の入力値を取得
     const currentValue = e.target ? e.target.value : editText;
 
+    // Clear mermaid cache if text has changed
+    clearMermaidCacheOnChange(node.text, currentValue);
+
     // 編集完了処理を実行（余計なフォーカス判定は行わない）
     onFinishEdit(node.id, currentValue);
-  }, [node.id, editText, onFinishEdit, blurTimeoutRef]);
+  }, [node.id, node.text, editText, onFinishEdit, blurTimeoutRef, clearMermaidCacheOnChange]);
 
   // inputフィールドのマウスダウン・クリックイベント処理
   const handleInputMouseEvents = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
