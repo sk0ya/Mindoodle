@@ -477,7 +477,7 @@ export class MarkdownImporter {
           for (const ln of tableLines) lines.push(ln);
         }
         // 表ノードのnoteには after（表の後のコンテンツ）が含まれている
-        if (node.note != undefined && node.note.length > 0) {
+        if (node.note != undefined) {
           // afterの内容を行ごとに分割して追加（空行も保持）
           const afterLines = node.note.split(/\r\n|\r|\n/);
           for (const afterLine of afterLines) {
