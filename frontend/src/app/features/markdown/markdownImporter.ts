@@ -259,9 +259,9 @@ export class MarkdownImporter {
   private static extractFirstTable(text?: string, lineEnding?: string): {
     headers?: string[];
     rows: string[][];
-    before: string;
+    before?: string;
     tableBlock: string;
-    after: string;
+    after?: string;
   } | null {
     if (!text) return null;
     const defaultLineEnding = lineEnding || '\n';
@@ -286,9 +286,9 @@ export class MarkdownImporter {
       const rows = rowLines.map(toCells);
 
       // 前後の空行情報を適切に保持
-      const before = i > 0 ? lines.slice(0, i).join(defaultLineEnding) : '';
+      const before = i > 0 ? lines.slice(0, i).join(defaultLineEnding) : undefined;
       const tableBlock = lines.slice(i, j).join(defaultLineEnding);
-      const after = j < lines.length ? lines.slice(j).join(defaultLineEnding) : '';
+      const after = j < lines.length ? lines.slice(j).join(defaultLineEnding) : undefined;
 
       return { headers, rows, before, tableBlock, after };
     }
@@ -362,16 +362,14 @@ export class MarkdownImporter {
       let pendingSiblingTableNode: MindMapNode | null = null;
       if (tableInfo) {
         // 元ノードの note は before のみ
-        const before = tableInfo.before;
-        newNode.note = before && before.length > 0 ? before : undefined;
+        newNode.note = tableInfo.before;
 
         // 兄弟として表ノードを作成（子としては追加しない）
         const tnode = createNewNode('');
         (tnode as any).kind = 'table';
         tnode.text = tableInfo.tableBlock;
         delete (tnode as any).note;
-        const after = tableInfo.after;
-        tnode.note = after && after.length > 0 ? after : undefined;
+        tnode.note = tableInfo.after;
         tnode.lineEnding = defaultLineEnding || '\n';
         // markdownMeta は表ノードに不要
         delete (tnode as any).markdownMeta;
