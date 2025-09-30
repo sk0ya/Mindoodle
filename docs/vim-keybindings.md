@@ -46,6 +46,8 @@ Vim 風のショートカット一覧です。
 | add-younger-sibling | Create new younger sibling node and start editing (vim o) |
 | O | Create new elder sibling node and start editing (vim O) |
 | add-elder-sibling | Create new elder sibling node and start editing (vim O) |
+| X | Add a new checkbox list child node, positioning before heading nodes |
+| add-checkbox-child | Add a new checkbox list child node, positioning before heading nodes |
 | u | Undo the last operation |
 | r | Redo the last undone operation |
 | c | Copy the selected node |
@@ -73,4 +75,4 @@ Vim 風のショートカット一覧です。
 
 
 
-最終更新: 2025-09-29
+最終更新: 2025-09-30

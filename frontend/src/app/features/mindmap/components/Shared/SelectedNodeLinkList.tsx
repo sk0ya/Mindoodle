@@ -211,8 +211,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     const link: NodeLink = {
                       id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      createdAt: '',
+                      updatedAt: ''
                     };
                     handleLinkClick(e, link);
                   } else if (entry.kind === 'map') {
@@ -220,8 +220,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       id: `map|${entry.mapId}|${entry.anchorText || ''}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      createdAt: '',
+                      updatedAt: ''
                     };
                     handleLinkClick(e, link);
                   } else {
@@ -234,8 +234,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     const link: NodeLink = {
                       id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      createdAt: '',
+                      updatedAt: ''
                     };
                     handleLinkDoubleClick(link);
                   } else if (entry.kind === 'map') {
@@ -243,8 +243,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       id: `map|${entry.mapId}|${entry.anchorText || ''}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      createdAt: '',
+                      updatedAt: ''
                     };
                     if (onLinkNavigate) onLinkNavigate(nodeLink);
                   } else {
@@ -268,8 +268,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                           id: `map|${target.mapId}|${target.anchorText || ''}`,
                           targetMapId: target.mapId,
                           targetNodeId: target.anchorText ? `text:${target.anchorText}` : undefined,
-                          createdAt: new Date().toISOString(),
-                          updatedAt: new Date().toISOString()
+                          createdAt: '',
+                          updatedAt: ''
                         };
                         onLinkNavigate(nodeLink);
                         return;
@@ -288,8 +288,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     const link: NodeLink = {
                       id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      createdAt: '',
+                      updatedAt: ''
                     };
                     handleLinkContextMenu(e, link);
                   } else if (entry.kind === 'map') {
@@ -297,8 +297,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       id: `map|${entry.mapId}|${entry.anchorText || ''}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
-                      createdAt: new Date().toISOString(),
-                      updatedAt: new Date().toISOString()
+                      createdAt: '',
+                      updatedAt: ''
                     };
                     handleLinkContextMenu(e, link);
                   } else {
