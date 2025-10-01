@@ -1360,7 +1360,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onCreateFolder={async (path: string) => {
           if (typeof (mindMap as any).createFolder === 'function') {
             // フルパスからworkspaceIdと相対パスを分離
-            const wsMatch = path.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+            const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
             if (wsMatch) {
               const workspaceId = wsMatch[1];
               const relativePath = wsMatch[2] || '';

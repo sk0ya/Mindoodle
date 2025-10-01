@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo } from 'react';
+import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
@@ -72,10 +72,63 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   // Explorer collapsed state mapping: path -> collapsed?
   const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
 
+  // Clear emptyFolders when workspace changes
+  useEffect(() => {
+    setEmptyFolders(new Set());
+  }, [currentWorkspaceId]);
+
+
+  // Merge emptyFolders into explorerTree
+  const enhancedExplorerTree = useMemo(() => {
+    if (!explorerTree) return null;
+    if (emptyFolders.size === 0 || !currentWorkspaceId) return explorerTree;
+
+    // Clone the tree
+    const clonedTree: ExplorerItem = JSON.parse(JSON.stringify(explorerTree));
+
+    // Find the current workspace node in the tree
+    const workspaceNode = clonedTree.children?.find(
+      child => child.path === `/${currentWorkspaceId}` || child.path === currentWorkspaceId
+    );
+
+    if (!workspaceNode) {
+      console.warn('MindMapSidebar: Workspace node not found in tree');
+      return clonedTree;
+    }
+
+    // Add empty folders to the workspace node
+    emptyFolders.forEach(folderPath => {
+      const parts = folderPath.split('/').filter(p => p.trim());
+      let current = workspaceNode;
+
+      parts.forEach((part) => {
+        if (!current.children) current.children = [];
+
+        let folder = current.children.find(
+          child => child.type === 'folder' && child.name === part
+        );
+
+        if (!folder) {
+          const fullPath = `${current.path}/${part}`;
+          folder = {
+            type: 'folder',
+            name: part,
+            path: fullPath,
+            children: []
+          };
+          current.children.push(folder);
+        }
+
+        current = folder;
+      });
+    });
+
+    return clonedTree;
+  }, [explorerTree, emptyFolders, currentWorkspaceId]);
 
   // Initialize default collapsed state: collapse all folders except workspace roots
   React.useEffect(() => {
-    const tree = explorerTree;
+    const tree = enhancedExplorerTree;
     if (!tree) return;
 
     const isWorkspaceRoot = (p: string): boolean => /^\/?(?:ws_[^/]+|cloud)\/?$/.test(p || '');
@@ -174,7 +227,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       let cleanParentPath: string | null = null;
 
       if (parentPath) {
-        const wsMatch = parentPath.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+        const wsMatch = parentPath.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
         if (wsMatch) {
           workspaceId = wsMatch[1];
           cleanParentPath = wsMatch[2] || null;
@@ -192,10 +245,18 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
 
       if (onCreateFolder) {
-        // onCreateFolderを修正してworkspaceIdを受け取れるようにする必要がある
-        // 現在は暫定的にフルパスで渡す
         const fullPath = `/${workspaceId}/${newFolderPath}`;
-        Promise.resolve(onCreateFolder(fullPath)).catch(() => {});
+        Promise.resolve(onCreateFolder(fullPath)).then(() => {
+          // Successfully created folder - update UI state
+          setEmptyFolders(prev => new Set([...prev, newFolderPath]));
+          setCollapsedCategories(prev => {
+            const newSet = new Set(prev);
+            newSet.delete(newFolderPath);
+            return newSet;
+          });
+        }).catch((err) => {
+          console.error('MindMapSidebar: onCreateFolder failed:', err);
+        });
       } else {
         // フォールバック: UIのみ更新
         setEmptyFolders(prev => new Set([...prev, newFolderPath]));
@@ -231,9 +292,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     // eslint-disable-next-line no-alert
     const mapName = window.prompt(`新しいマインドマップの名前を入力してください${parentInfo}:`, '新しいマインドマップ');
     if (mapName && mapName.trim()) {
-      console.log('handleCreateMap: Original parentPath:', parentPath);
-      console.log('handleCreateMap: Extracted category:', category);
-
       // parentPathからworkspaceIdを抽出
       // Pattern: /ws_xxx or /cloud
       let workspaceId: string | null = null;
@@ -257,8 +315,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           workspaceId = 'default';
         }
       }
-
-      console.log('handleCreateMap: Extracted workspaceId:', workspaceId, 'from parentPath:', parentPath);
 
       onCreateMap(mapName.trim(), workspaceId, category);
 
@@ -363,10 +419,15 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
   // フィルタリングとグループ化（階層フォルダ対応）
   const { filteredMaps } = useMemo(() => {
+    // Filter maps by current workspace
+    const workspaceMaps = currentWorkspaceId
+      ? mindMaps.filter(m => m.mapIdentifier?.workspaceId === currentWorkspaceId)
+      : mindMaps;
+
     const searchLower = searchTerm.toLowerCase();
-    
+
     // マップのタイトルまたはカテゴリ名で検索（workspaceフォルダは除外）
-    const filtered = mindMaps.filter(map => {
+    const filtered = workspaceMaps.filter(map => {
       const titleMatch = map.title.toLowerCase().includes(searchLower);
 
       // カテゴリ名での検索（workspaceフォルダ部分は除外）
@@ -467,12 +528,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       return partsA.length - partsB.length;
     });
 
-    return { 
-      filteredMaps: filtered, 
-      groupedMaps: grouped, 
+    return {
+      filteredMaps: filtered,
+      groupedMaps: grouped,
       visibleFolders: sortedFolders
     };
-  }, [mindMaps, searchTerm, emptyFolders]);
+  }, [mindMaps, searchTerm, emptyFolders, currentWorkspaceId]);
 
   // コンテキストメニューのアイテムを生成
   const contextMenuItems = useMemo((): ContextMenuItem[] => {
@@ -742,10 +803,10 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         onSearchChange={setSearchTerm}
         onToggleCollapse={onToggleCollapse}
       />
-      {explorerTree ? (
+      {enhancedExplorerTree ? (
         <div className="maps-content-wrapper">
           <ExplorerView
-            tree={explorerTree}
+            tree={enhancedExplorerTree}
             searchTerm={searchTerm}
             collapsed={explorerCollapsed}
             onTogglePath={(path: string) => setExplorerCollapsed(prev => ({ ...prev, [path]: !prev[path] }))}
@@ -937,7 +998,6 @@ const ExplorerView: React.FC<{
         // 同じマップが既に選択されている場合は早期リターン
         if (currentMapId === mapId &&
             currentWorkspaceId === workspaceId) {
-          console.log('🔄 Same explorer map clicked, skipping:', mapId);
           return;
         }
         window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {

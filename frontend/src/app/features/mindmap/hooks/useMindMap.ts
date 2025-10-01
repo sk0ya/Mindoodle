@@ -334,7 +334,10 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const createFolder = useCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = workspaceId && (persistenceHook as any).getAdapterForWorkspace
+      ? (persistenceHook as any).getAdapterForWorkspace(workspaceId)
+      : persistenceHook.storageAdapter;
+
     if (adapter && typeof adapter.createFolder === 'function') {
       await adapter.createFolder(relativePath, workspaceId);
       await persistenceHook.refreshMapList();
@@ -350,7 +353,14 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const deleteItem = useCallback(async (path: string): Promise<void> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    // Extract workspaceId from path (e.g., /cloud/folder/file.md or /ws_xxx/folder/file.md)
+    const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)/);
+    const workspaceId = wsMatch ? wsMatch[1] : null;
+
+    const adapter: any = workspaceId && (persistenceHook as any).getAdapterForWorkspace
+      ? (persistenceHook as any).getAdapterForWorkspace(workspaceId)
+      : persistenceHook.storageAdapter;
+
     if (adapter && typeof adapter.deleteItem === 'function') {
       await adapter.deleteItem(path);
       await persistenceHook.refreshMapList();
@@ -442,7 +452,11 @@ export const useMindMap = (
       }
 
       if (adapter.saveMapMarkdown) {
-        const initialMarkdown = `# ${title}\n\n`;
+        let initialMarkdown = '';
+        if (category) {
+          initialMarkdown = `---\ncategory: ${category}\n---\n\n`;
+        }
+        initialMarkdown += `# ${title}\n\n`;
         try {
           await adapter.saveMapMarkdown(mapIdentifier, initialMarkdown);
           await persistenceHook.refreshMapList();

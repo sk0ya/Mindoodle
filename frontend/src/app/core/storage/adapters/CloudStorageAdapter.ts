@@ -281,12 +281,15 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   private convertCloudMapToMindMapData(cloudMap: CloudMapData): MindMapData {
+    // Extract frontmatter from markdown content
+    const { category, content } = this.extractFrontmatter(cloudMap.content);
+
     // Parse markdown content to get rootNodes
-    const parseResult = MarkdownImporter.parseMarkdownToNodes(cloudMap.content);
+    const parseResult = MarkdownImporter.parseMarkdownToNodes(content);
 
     return {
       title: cloudMap.title,
-      category: '', // Category will be derived from mapId path
+      category: category,
       rootNodes: parseResult.rootNodes,
       createdAt: cloudMap.createdAt,
       updatedAt: cloudMap.updatedAt,
@@ -304,8 +307,14 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   private convertMindMapDataToCloudMap(mindMapData: MindMapData): CloudMapData {
+    // Add frontmatter with category if present
+    let markdown = '';
+    if (mindMapData.category) {
+      markdown += `---\ncategory: ${mindMapData.category}\n---\n\n`;
+    }
+
     // Convert rootNodes to markdown
-    let markdown = `# ${mindMapData.title}\n\n`;
+    markdown += `# ${mindMapData.title}\n\n`;
 
     // Convert each root node to markdown
     mindMapData.rootNodes.forEach(node => {
@@ -335,9 +344,28 @@ export class CloudStorageAdapter implements StorageAdapter {
     // Nothing to cleanup for cloud storage
   }
 
+  // Helper method to extract frontmatter from markdown
+  private extractFrontmatter(markdown: string): { category: string; content: string } {
+    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
+    const match = markdown.match(frontmatterRegex);
+
+    if (!match) {
+      return { category: '', content: markdown };
+    }
+
+    const frontmatterContent = match[1];
+    const categoryMatch = frontmatterContent.match(/^category:\s*(.+)$/m);
+    const category = categoryMatch ? categoryMatch[1].trim() : '';
+    const content = markdown.slice(match[0].length);
+
+    return { category, content };
+  }
+
   // Optional methods - not implemented for cloud storage
-  async createFolder?(_relativePath: string): Promise<void> {
-    throw new Error('Cloud storage does not support folder creation');
+  async createFolder?(relativePath: string, workspaceId?: string): Promise<void> {
+    // Virtual folders - no actual folder creation needed
+    // Folders are derived from map categories
+    logger.info('CloudStorageAdapter: Virtual folder created (no-op)', { relativePath, workspaceId });
   }
 
   async getExplorerTree?(): Promise<ExplorerItem> {
@@ -354,20 +382,66 @@ export class CloudStorageAdapter implements StorageAdapter {
       // Load all maps to build the tree
       const maps = await this.loadAllMaps();
 
-      // Convert maps to file items
-      const children: ExplorerItem[] = maps.map(map => ({
-        type: 'file',
-        name: `${map.title}.md`,
-        path: `/cloud/${map.mapIdentifier.mapId}.md`,
-        isMarkdown: true
-      }));
-
-      return {
+      // Build folder structure from categories
+      const root: ExplorerItem = {
         type: 'folder',
         name: 'Cloud',
         path: '/cloud',
-        children
+        children: []
       };
+
+      // Helper function to build nested folder structure
+      const getOrCreateFolder = (parent: ExplorerItem, pathParts: string[]): ExplorerItem => {
+        if (pathParts.length === 0) return parent;
+
+        const [currentPart, ...remaining] = pathParts;
+        let folder = parent.children?.find(
+          child => child.type === 'folder' && child.name === currentPart
+        );
+
+        if (!folder) {
+          folder = {
+            type: 'folder',
+            name: currentPart,
+            path: `${parent.path}/${currentPart}`,
+            children: []
+          };
+          if (!parent.children) parent.children = [];
+          parent.children.push(folder);
+        }
+
+        return getOrCreateFolder(folder, remaining);
+      };
+
+      // Add each map to the tree
+      for (const map of maps) {
+        const pathParts = map.category ? map.category.split('/').filter(p => p.trim()) : [];
+        const parentFolder = getOrCreateFolder(root, pathParts);
+
+        const fileItem: ExplorerItem = {
+          type: 'file',
+          name: `${map.title}.md`,
+          path: `${parentFolder.path}/${map.mapIdentifier.mapId}.md`,
+          isMarkdown: true
+        };
+
+        if (!parentFolder.children) parentFolder.children = [];
+        parentFolder.children.push(fileItem);
+      }
+
+      // Sort children: folders first, then files
+      const sortChildren = (item: ExplorerItem) => {
+        if (item.children) {
+          item.children.sort((a, b) => {
+            if (a.type === b.type) return a.name.localeCompare(b.name);
+            return a.type === 'folder' ? -1 : 1;
+          });
+          item.children.forEach(sortChildren);
+        }
+      };
+      sortChildren(root);
+
+      return root;
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to build explorer tree', error);
       return {
@@ -383,8 +457,28 @@ export class CloudStorageAdapter implements StorageAdapter {
     throw new Error('Cloud storage does not support item renaming');
   }
 
-  async deleteItem?(_path: string): Promise<void> {
-    throw new Error('Cloud storage does not support item deletion via path');
+  async deleteItem?(path: string): Promise<void> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
+    // Extract map ID from path: /cloud/[folders...]/mapId.md
+    const pathParts = path.split('/').filter(p => p.trim());
+    const fileName = pathParts[pathParts.length - 1];
+
+    // Remove .md extension to get map ID
+    const mapId = fileName.replace(/\.md$/, '');
+
+    try {
+      await this.makeRequest(`/api/maps/${mapId}`, {
+        method: 'DELETE'
+      });
+
+      logger.info(`CloudStorageAdapter: Deleted map ${mapId} from cloud`);
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to delete map', error);
+      throw error;
+    }
   }
 
   async moveItem?(_sourcePath: string, _targetFolderPath: string): Promise<void> {
