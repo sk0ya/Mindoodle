@@ -294,9 +294,28 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
           await switchWorkspace(null); // Switch back to default
         }
       }
+    } else {
+      // Handle local workspace removal (ws_xxxxx)
+      const adapter = adapterManager?.getAdapterForWorkspace(id);
+      if (adapter && typeof adapter.removeWorkspace === 'function') {
+        try {
+          await adapter.removeWorkspace(id);
+          logger.info(`Local workspace ${id} removed successfully`);
+
+          // Switch to another workspace if currently viewing the deleted one
+          if (currentWorkspaceId === id) {
+            await switchWorkspace(null);
+          }
+
+          // Refresh workspace and map lists
+          await refreshMapList();
+        } catch (error) {
+          logger.error(`Failed to remove workspace ${id}:`, error);
+        }
+      }
     }
     logger.info(`Workspace ${id} removal requested`);
-  }, [adapterManager, currentWorkspaceId, switchWorkspace]);
+  }, [adapterManager, currentWorkspaceId, switchWorkspace, refreshMapList]);
 
   return {
     // State

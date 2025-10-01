@@ -8,7 +8,8 @@ const allowedOrigins = [
   'http://localhost:5175',
   'http://localhost:5200',
   'https://mindoodle.com',
-  'https://www.mindoodle.com'
+  'https://www.mindoodle.com',
+  'https://sk0ya.github.io'
 ];
 
 // Helper function to get CORS headers based on request origin

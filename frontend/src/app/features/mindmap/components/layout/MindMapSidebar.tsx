@@ -787,7 +787,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
                   backgroundColor: ws.id === currentWorkspaceId ? 'rgba(0, 122, 204, 0.1)' : 'transparent'
                 }}>
                 <span>{ws.name}</span>
-                {onRemoveWorkspace && <button onClick={(e) => {
+                {/* Cloud workspaceはxボタンを表示しない */}
+                {onRemoveWorkspace && ws.id !== 'cloud' && <button onClick={(e) => {
                   e.stopPropagation();
                   onRemoveWorkspace(ws.id);
                 }} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}
@@ -1087,6 +1088,9 @@ const ExplorerView: React.FC<{
     };
 
     if (item.type === 'folder') {
+      // cloudワークスペースの場合は🌐アイコンを使用
+      const isCloudWorkspace = item.path === '/cloud' || item.path === 'cloud';
+
       return (
         <div className={`explorer-folder ${dragOverPath === item.path ? 'drag-over' : ''}`}>
           <div
@@ -1104,7 +1108,7 @@ const ExplorerView: React.FC<{
               {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
             </span>
             <span className="category-folder-icon">
-              {isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />}
+              {isCloudWorkspace ? '🌐' : (isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />)}
             </span>
             <span className="category-name">
               {searchTerm ? highlightSearchTerm(item.name || '(root)', searchTerm) : (item.name || '(root)')}

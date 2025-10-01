@@ -925,6 +925,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async removeWorkspace(id: string): Promise<void> {
+    // メモリ上のワークスペース情報を取得
+    const workspace = this.workspaces.find(w => w.id === id);
+
+    // IndexedDBから削除
     const db = await this.openDb();
     await new Promise<void>((resolve, reject) => {
       const tx = db.transaction('workspaces', 'readwrite');
@@ -941,8 +945,30 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (k.startsWith(prefix)) this.saveTargets.delete(k);
     });
 
+    // ファイルシステムからワークスペースのフォルダを削除
+    if (workspace?.handle) {
+      try {
+        // ワークスペースフォルダ内のすべてのファイル・サブフォルダを削除
+        await this.deleteDirectoryContents(workspace.handle);
+        console.log(`Deleted all contents from workspace: ${workspace.name} (${id})`);
+      } catch (error) {
+        console.error(`Failed to delete workspace contents: ${workspace.name} (${id})`, error);
+      }
+    }
+
     // メモリ上の配列からも直接削除（restoreWorkspaces()は呼ばない）
     this.workspaces = this.workspaces.filter(w => w.id !== id);
+  }
+
+  // Helper method to recursively delete directory contents
+  private async deleteDirectoryContents(dirHandle: FileSystemDirectoryHandle): Promise<void> {
+    for await (const entry of (dirHandle as any).values()) {
+      try {
+        await dirHandle.removeEntry(entry.name, { recursive: true });
+      } catch (error) {
+        console.error(`Failed to remove entry: ${entry.name}`, error);
+      }
+    }
   }
 
   // Read image file from workspace and convert to data URL for display

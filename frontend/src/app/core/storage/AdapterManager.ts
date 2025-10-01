@@ -78,7 +78,7 @@ export class AdapterManager {
       if (cloudAdapter) {
         workspaces.push({
           id: 'cloud',
-          name: '🌐 Cloud',
+          name: 'Cloud',
           type: 'cloud',
           adapter: cloudAdapter
         });
