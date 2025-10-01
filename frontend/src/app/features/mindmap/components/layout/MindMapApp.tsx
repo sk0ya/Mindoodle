@@ -42,7 +42,6 @@ import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/
 import type { StorageConfig } from '@core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
-import { findNodeByLineNumber } from '@shared/utils/searchUtils';
 
 interface MindMapAppProps {
   storageMode?: 'local' ;
@@ -1390,17 +1389,43 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           async (lineNumber: number) => {
             const currentMapData = useMindMapStore.getState().data;
 
-            if (!currentMapData) return;
+            if (!currentMapData || !storageAdapter) return;
 
-            const searchResult = findNodeByLineNumber(currentMapData, lineNumber);
+            try {
+              // ノードツリーを走査して、markdownMeta.lineNumberが一致するノードを見つける
+              let foundNodeId: string | null = null;
 
-            if (searchResult?.node?.id) {
-              const foundNodeId = searchResult.node.id;
-              selectNode(foundNodeId);
-              centerNodeInView(foundNodeId, false);
+              const findNodeByMarkdownLine = (nodes: any[]): boolean => {
+                for (const node of nodes) {
+                  // markdownMetaに保存されている行番号を確認
+                  const nodeLineNumber = node.markdownMeta?.lineNumber;
+
+                  // lineNumberは0-based、検索結果のlineNumberは1-based
+                  if (typeof nodeLineNumber === 'number' && nodeLineNumber + 1 === lineNumber) {
+                    foundNodeId = node.id;
+                    return true;
+                  }
+
+                  if (node.children && node.children.length > 0) {
+                    if (findNodeByMarkdownLine(node.children)) {
+                      return true;
+                    }
+                  }
+                }
+                return false;
+              };
+
+              findNodeByMarkdownLine(currentMapData.rootNodes || []);
+
+              if (foundNodeId) {
+                selectNode(foundNodeId);
+                centerNodeInView(foundNodeId, false);
+              }
+            } catch (error) {
+              console.error('Error finding node by line number:', error);
             }
           },
-          [selectNode, centerNodeInView])}
+          [selectNode, centerNodeInView, storageAdapter])}
       />
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>

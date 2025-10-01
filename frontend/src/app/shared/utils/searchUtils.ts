@@ -192,7 +192,6 @@ export function findNodeByLineNumber(
   return findInNodes(map.rootNodes || []);
 }
 
-
 /**
  * 検索結果のハイライト表示用のマッチ位置を返す
  */

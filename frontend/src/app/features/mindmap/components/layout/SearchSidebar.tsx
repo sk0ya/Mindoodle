@@ -99,7 +99,8 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   const handleFileResultDoubleClick = async (result: FileBasedSearchResult) => {
     await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
     await onNodeSelectByLine?.(result.lineNumber);
-  }
+  };
+
 
   const highlightMatch = (text: string, query: string) => {
     const matchPos = getMatchPosition(text, query);
@@ -139,7 +140,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
               onClick={() => setSearchQuery('')}
               title="クリア"
             >
-<X size={16} />
+              <X size={16} />
             </button>
           )}
         </div>

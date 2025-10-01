@@ -375,26 +375,78 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   }, [state.searchQuery, getAllNodes]);
 
   const nextSearchResult = useCallback(() => {
-    const { searchResults, currentSearchIndex } = state;
-    if (searchResults.length === 0) return;
+    const { searchQuery } = state;
+    if (!searchQuery.trim()) return;
 
-    const nextIndex = (currentSearchIndex + 1) % searchResults.length;
-    setState(prev => ({ ...prev, currentSearchIndex: nextIndex }));
+    // Re-execute search to get fresh results (handles node changes)
+    const allNodes = getAllNodes();
+    const results: string[] = [];
+
+    allNodes.forEach(node => {
+      if (node.text?.toLowerCase().includes(searchQuery.toLowerCase())) {
+        results.push(node.id);
+      }
+    });
+
+    if (results.length === 0) return;
+
+    // Find next result after current selected node
+    const { selectedNodeId } = useMindMapStore.getState() as any;
+    let nextIndex = 0;
+
+    if (selectedNodeId) {
+      const currentIndex = results.indexOf(selectedNodeId);
+      if (currentIndex !== -1) {
+        nextIndex = (currentIndex + 1) % results.length;
+      }
+    }
+
+    setState(prev => ({
+      ...prev,
+      searchResults: results,
+      currentSearchIndex: nextIndex
+    }));
 
     const { selectNode } = useMindMapStore.getState() as any;
-    selectNode(searchResults[nextIndex]);
-  }, [state.searchResults, state.currentSearchIndex]);
+    selectNode(results[nextIndex]);
+  }, [state.searchQuery, getAllNodes]);
 
   const previousSearchResult = useCallback(() => {
-    const { searchResults, currentSearchIndex } = state;
-    if (searchResults.length === 0) return;
+    const { searchQuery } = state;
+    if (!searchQuery.trim()) return;
 
-    const prevIndex = currentSearchIndex <= 0 ? searchResults.length - 1 : currentSearchIndex - 1;
-    setState(prev => ({ ...prev, currentSearchIndex: prevIndex }));
+    // Re-execute search to get fresh results (handles node changes)
+    const allNodes = getAllNodes();
+    const results: string[] = [];
+
+    allNodes.forEach(node => {
+      if (node.text?.toLowerCase().includes(searchQuery.toLowerCase())) {
+        results.push(node.id);
+      }
+    });
+
+    if (results.length === 0) return;
+
+    // Find previous result before current selected node
+    const { selectedNodeId } = useMindMapStore.getState() as any;
+    let prevIndex = results.length - 1;
+
+    if (selectedNodeId) {
+      const currentIndex = results.indexOf(selectedNodeId);
+      if (currentIndex !== -1) {
+        prevIndex = currentIndex <= 0 ? results.length - 1 : currentIndex - 1;
+      }
+    }
+
+    setState(prev => ({
+      ...prev,
+      searchResults: results,
+      currentSearchIndex: prevIndex
+    }));
 
     const { selectNode } = useMindMapStore.getState() as any;
-    selectNode(searchResults[prevIndex]);
-  }, [state.searchResults, state.currentSearchIndex]);
+    selectNode(results[prevIndex]);
+  }, [state.searchQuery, getAllNodes]);
 
   const exitSearch = useCallback(() => {
     setState(prev => ({
