@@ -123,6 +123,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   // Handle resize functionality
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     startResizing();
 
     const startX = e.clientX;
@@ -130,6 +131,8 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     let currentWidth = startWidth;
 
     const handleMouseMove = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
       const deltaX = startX - e.clientX; // Reverse direction for left panel
       currentWidth = Math.max(300, Math.min(1200, startWidth + deltaX));
       setPanelWidth(currentWidth);
@@ -139,19 +142,22 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       setMarkdownPanelWidth?.(currentWidth);
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
       stopResizing();
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mousemove', handleMouseMove, true);
+      document.removeEventListener('mouseup', handleMouseUp, true);
       // Save width to localStorage
       setLocalStorage(STORAGE_KEYS.NOTES_PANEL_WIDTH, currentWidth);
       // Final Monaco Editor layout update
       setTimeout(() => { setResizeCounter(prev => prev + 1); }, 50);
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }, [panelWidth]);
+    // Use capture phase to ensure events are caught even if other elements try to stop propagation
+    document.addEventListener('mousemove', handleMouseMove, true);
+    document.addEventListener('mouseup', handleMouseUp, true);
+  }, [panelWidth, startResizing, stopResizing, setMarkdownPanelWidth]);
 
   // Load saved width on mount
   useEffect(() => {

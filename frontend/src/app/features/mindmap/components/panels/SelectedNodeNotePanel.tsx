@@ -40,21 +40,26 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
   // Resize handler (drag from top edge)
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     startResizing();
     const startY = e.clientY;
     const startH = height;
 
     const onMove = (ev: MouseEvent) => {
+      ev.preventDefault();
+      ev.stopPropagation();
       const dy = startY - ev.clientY;
       const next = Math.min(Math.max(120, startH + dy), Math.round(window.innerHeight * 0.9));
       setHeight(next);
     };
-    const onUp = () => {
+    const onUp = (ev: MouseEvent) => {
+      ev.preventDefault();
+      ev.stopPropagation();
       stopResizing();
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('mousemove', onMove, true);
+      document.removeEventListener('mouseup', onUp, true);
       try { window.localStorage.setItem(HEIGHT_KEY, JSON.stringify(height)); } catch {}
-      
+
       // force editor layout pass after resize settles
       setTimeout(() => {
         setHeight(h => h + 0);
@@ -62,8 +67,9 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       }, 50);
     };
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
+    // Use capture phase to ensure events are caught even if other elements try to stop propagation
+    document.addEventListener('mousemove', onMove, true);
+    document.addEventListener('mouseup', onUp, true);
   }, [height, startResizing, stopResizing]);
 
   // Compute dynamic offsets to avoid overlapping activity bar, primary sidebar, and markdown panel
