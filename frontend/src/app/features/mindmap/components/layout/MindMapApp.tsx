@@ -211,8 +211,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     undo,
     redo,
     workspaces,
+    currentWorkspaceId,
     addWorkspace,
     removeWorkspace,
+    switchWorkspace,
     storageAdapter,
     refreshMapList
   } = mindMap;
@@ -1350,8 +1352,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
         workspaces={workspaces as any}
+        currentWorkspaceId={currentWorkspaceId as any}
         onAddWorkspace={addWorkspace as any}
         onRemoveWorkspace={removeWorkspace as any}
+        onSwitchWorkspace={switchWorkspace as any}
         explorerTree={(mindMap as any).explorerTree || null}
         onCreateFolder={async (path: string) => {
           if (typeof (mindMap as any).createFolder === 'function') {

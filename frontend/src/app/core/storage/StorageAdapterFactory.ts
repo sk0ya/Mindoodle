@@ -1,5 +1,6 @@
 import type { StorageAdapter, StorageMode, StorageConfig, StorageAdapterFactory as IStorageAdapterFactory } from '../types/storage.types';
 import { MarkdownFolderAdapter, CloudStorageAdapter } from './adapters';
+import { WorkspaceService } from '@shared/services/WorkspaceService';
 import { logger } from '@shared/utils';
 
 export class StorageAdapterFactory implements IStorageAdapterFactory {
@@ -31,6 +32,16 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
   }
 
   private async createCloudAdapter(config: StorageConfig): Promise<StorageAdapter> {
+    // Check if there's already an authenticated adapter in WorkspaceService
+    const workspaceService = WorkspaceService.getInstance();
+    const existingAdapter = workspaceService.getCloudAdapter();
+
+    if (existingAdapter && existingAdapter.isAuthenticated) {
+      logger.info('StorageAdapterFactory: Using existing authenticated cloud adapter');
+      return existingAdapter;
+    }
+
+    // Create new adapter if none exists or not authenticated
     const adapter = new CloudStorageAdapter(config.cloudApiEndpoint);
     await adapter.initialize();
     logger.info('StorageAdapterFactory: Cloud storage adapter created');

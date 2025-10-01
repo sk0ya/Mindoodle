@@ -14,8 +14,10 @@ type Props = {
   onChangeCategoryBulk: (updates: Array<{ id: string; category: string }>) => Promise<void>;
   // Workspaces management
   workspaces?: Array<{ id: string; name: string }>;
+  currentWorkspaceId?: string | null;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
+  onSwitchWorkspace?: (workspaceId: string | null) => void;
   explorerTree: any;
   onCreateFolder: (path: string) => Promise<void>;
   currentMapData: any;
@@ -36,8 +38,10 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
     onChangeCategory,
     onChangeCategoryBulk,
     workspaces,
+    currentWorkspaceId,
     onAddWorkspace,
     onRemoveWorkspace,
+    onSwitchWorkspace,
     explorerTree,
     onCreateFolder,
     currentMapData,
@@ -58,7 +62,7 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       isVisible={activeView !== null}
       mindMaps={allMindMaps}
       currentMapId={currentMapId}
-      currentWorkspaceId={currentMapData?.mapIdentifier?.workspaceId || null}
+      currentWorkspaceId={currentWorkspaceId || currentMapData?.mapIdentifier?.workspaceId || null}
       onSelectMap={onSelectMap}
       onCreateMap={handleCreateMap}
       onRenameMap={onRenameMap}
@@ -67,6 +71,7 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
       workspaces={workspaces}
       onAddWorkspace={onAddWorkspace}
       onRemoveWorkspace={onRemoveWorkspace}
+      onSwitchWorkspace={onSwitchWorkspace}
       explorerTree={explorerTree}
       onCreateFolder={onCreateFolder}
       onMapSwitch={onMapSwitch}

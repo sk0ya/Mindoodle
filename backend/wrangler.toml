@@ -7,7 +7,7 @@ ALLOWED_EMAIL = "shigekazukoya@gmail.com"
 
 [[env.production.kv_namespaces]]
 binding = "USERS"
-id = "your-kv-namespace-id"
+id = "26ed643d1e894f3cae22e60b4e8cd566"
 
 [[env.production.r2_buckets]]
 binding = "MAPS_BUCKET"
@@ -21,7 +21,7 @@ ALLOWED_EMAIL = "shigekazukoya@gmail.com"
 
 [[env.development.kv_namespaces]]
 binding = "USERS"
-preview_id = "your-preview-kv-namespace-id"
+id = "49eb2b709ef04f94a2550901c4df8631"
 
 [[env.development.r2_buckets]]
 binding = "MAPS_BUCKET"

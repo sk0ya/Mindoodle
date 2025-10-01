@@ -18,8 +18,14 @@ export class WorkspaceService {
   private constructor() {
     // Initialize with any persisted workspaces
     this.loadPersistedWorkspaces();
-    // Ensure default workspace exists
-    this.ensureDefaultWorkspace();
+
+    // Cleanup: Remove any existing default workspace
+    if (this.workspaces.has('default')) {
+      this.workspaces.delete('default');
+      this.persistWorkspaces();
+      logger.info('Removed deprecated default workspace');
+    }
+
   }
 
   static getInstance(): WorkspaceService {
@@ -157,7 +163,7 @@ export class WorkspaceService {
     try {
       const persistentData = {
         localWorkspaces: Array.from(this.workspaces.values())
-          .filter(ws => ws.type === 'local')
+          .filter(ws => ws.type === 'local' && ws.id !== 'default')
           .map(ws => ({ id: ws.id, name: ws.name })),
         hasCloudWorkspace: this.workspaces.has('cloud')
       };
@@ -174,19 +180,11 @@ export class WorkspaceService {
       const saved = localStorage.getItem('mindoodle-workspaces');
       if (!saved) return;
 
-      const data = JSON.parse(saved);
+      // Parse saved data but don't use it in new design
+      JSON.parse(saved);
 
-      // Restore local workspaces
-      if (Array.isArray(data.localWorkspaces)) {
-        data.localWorkspaces.forEach((ws: { id: string; name: string }) => {
-          this.workspaces.set(ws.id, {
-            id: ws.id,
-            name: ws.name,
-            type: 'local',
-            isRemovable: true
-          });
-        });
-      }
+      // Skip local workspaces - they are not used in new design
+      // Only cloud workspace is managed by WorkspaceService
 
       // Note: Cloud workspace will be restored when CloudStorageAdapter initializes
       // and finds a valid auth token in localStorage
@@ -197,25 +195,6 @@ export class WorkspaceService {
     }
   }
 
-  // Ensure default workspace exists
-  private ensureDefaultWorkspace(): void {
-    // Check if any local workspaces exist
-    const hasLocalWorkspaces = Array.from(this.workspaces.values()).some(ws => ws.type === 'local');
-
-    if (!hasLocalWorkspaces) {
-      // Create default workspace
-      this.workspaces.set('default', {
-        id: 'default',
-        name: 'Default',
-        type: 'local',
-        isRemovable: false // Default workspace cannot be removed
-      });
-
-      this.persistWorkspaces();
-      this.notifyListeners();
-      logger.info('Created default workspace');
-    }
-  }
 
   // Restore cloud workspace on app startup (called by CloudStorageAdapter)
   restoreCloudWorkspace(cloudAdapter: CloudStorageAdapter): void {

@@ -53,11 +53,16 @@ export const useMindMap = (
     setAutoSaveEnabled(enabled);
   }, []);
 
-  // Stabilize adapter reference - persistenceHook likely returns new references
+  // Stabilize adapter reference - get adapter for current map's workspace
+  const mapWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
   const stableAdapter = useMemo(() => {
-    const adapter = (persistenceHook as any).storageAdapter || null;
+    if (!mapWorkspaceId) {
+      return (persistenceHook as any).storageAdapter || null;
+    }
+    // Get adapter for the specific workspace
+    const adapter = (persistenceHook as any).getAdapterForWorkspace?.(mapWorkspaceId) || (persistenceHook as any).storageAdapter || null;
     return adapter;
-  }, [persistenceHook.storageAdapter]);
+  }, [persistenceHook, mapWorkspaceId]);
 
   // Stabilize currentId to prevent unnecessary stream recreation
   const mapIdentifierWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
@@ -378,7 +383,7 @@ export const useMindMap = (
 
   // Expose raw markdown fetch for current adapter (markdown mode only)
   const getMapMarkdown = useCallback(async (id: MapIdentifier): Promise<string | null> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(id.workspaceId) || persistenceHook.storageAdapter;
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
       try {
         return await adapter.getMapMarkdown(id);
@@ -390,10 +395,10 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const getMapLastModified = useCallback(async (id: MapIdentifier): Promise<number | null> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(id.workspaceId) || persistenceHook.storageAdapter;
     if (adapter && typeof adapter.getMapLastModified === 'function') {
       try {
-        return await adapter.getMapLastModified(id.mapId);
+        return await adapter.getMapLastModified(id);
       } catch {
         return null;
       }
@@ -403,7 +408,7 @@ export const useMindMap = (
 
   // Save raw markdown for current adapter (markdown mode only)
   const saveMapMarkdown = useCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(id.workspaceId) || persistenceHook.storageAdapter;
     if (adapter && typeof adapter.saveMapMarkdown === 'function') {
       try {
         await adapter.saveMapMarkdown(id, markdown);
@@ -430,7 +435,7 @@ export const useMindMap = (
       const mapIdentifier: MapIdentifier = { mapId, workspaceId };
 
       // adapterを通じてファイルを作成
-      const adapter = persistenceHook.storageAdapter;
+      const adapter = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
       if (!adapter) {
         console.error('createAndSelectMap: No storage adapter available');
         throw new Error('Storage adapter is not available');
@@ -456,7 +461,7 @@ export const useMindMap = (
 
       // 作成したファイルからマップをロードして選択
       try {
-        const adapter: any = (persistenceHook as any).storageAdapter;
+        const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
         const loadedMarkdown = await adapter.getMapMarkdown(mapIdentifier);
 
         if (loadedMarkdown) {
@@ -498,7 +503,6 @@ export const useMindMap = (
       const mapId = target.mapId;
       const workspaceId = target.workspaceId;
 
-
       // Do NOT trust cached allMindMaps content; always try to load fresh content
       // (cached list may be stale vs on-disk / stream-saved markdown)
 
@@ -513,7 +517,8 @@ export const useMindMap = (
       (window as any).__selectMapFallbackInProgress[fallbackKey] = true;
 
       try {
-        const adapter: any = (persistenceHook as any).storageAdapter;
+        // Get adapter for the target workspace
+        const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || (persistenceHook as any).storageAdapter;
         if (!adapter) {
           delete (window as any).__selectMapFallbackInProgress[fallbackKey];
           return false;
@@ -724,8 +729,10 @@ export const useMindMap = (
     explorerTree: (persistenceHook as any).explorerTree || null
     ,
     workspaces: (persistenceHook as any).workspaces || [],
+    currentWorkspaceId: (persistenceHook as any).currentWorkspaceId,
     addWorkspace: (persistenceHook as any).addWorkspace,
     removeWorkspace: (persistenceHook as any).removeWorkspace,
+    switchWorkspace: (persistenceHook as any).switchWorkspace,
 
     // Storage adapter access
     storageAdapter: persistenceHook.storageAdapter,

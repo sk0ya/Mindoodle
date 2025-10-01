@@ -4,7 +4,7 @@ export class MapStorageService {
   constructor(private env: Env) {}
 
   private getMapKey(userId: string, mapId: string): string {
-    return `maps/${userId}/${mapId}.json`;
+    return `maps/${userId}/${mapId}.md`;
   }
 
   private generateMapId(): string {
@@ -16,19 +16,27 @@ export class MapStorageService {
   async saveMap(userId: string, mapId: string | null, title: string, content: string): Promise<MapResponse> {
     try {
       const id = mapId || this.generateMapId();
-      const now = new Date().toISOString();
+      const key = this.getMapKey(userId, id);
+
+      // Save markdown file
+      await this.env.MAPS_BUCKET.put(key, content, {
+        httpMetadata: {
+          contentType: 'text/markdown',
+        }
+      });
+
+      // Get uploaded timestamp
+      const object = await this.env.MAPS_BUCKET.get(key);
+      const timestamp = object?.uploaded.toISOString() || new Date().toISOString();
 
       const mapData: MapData = {
         id,
         userId,
         title,
         content,
-        createdAt: mapId ? await this.getMapCreatedAt(userId, id) || now : now,
-        updatedAt: now
+        createdAt: timestamp,
+        updatedAt: timestamp
       };
-
-      const key = this.getMapKey(userId, id);
-      await this.env.MAPS_BUCKET.put(key, JSON.stringify(mapData));
 
       return {
         success: true,
@@ -55,15 +63,21 @@ export class MapStorageService {
         };
       }
 
-      const mapData: MapData = JSON.parse(await object.text());
+      const content = await object.text();
+      const timestamp = object.uploaded.toISOString();
 
-      // Check if map belongs to user
-      if (mapData.userId !== userId) {
-        return {
-          success: false,
-          error: 'Access denied'
-        };
-      }
+      // Extract title from markdown (first line starting with #)
+      const titleMatch = content.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1] : 'Untitled';
+
+      const mapData: MapData = {
+        id: mapId,
+        userId,
+        title,
+        content,
+        createdAt: timestamp,
+        updatedAt: timestamp
+      };
 
       return {
         success: true,
@@ -85,21 +99,31 @@ export class MapStorageService {
 
       const maps = [];
       for (const object of listed.objects) {
+        // Only process .md files
+        if (!object.key.endsWith('.md')) {
+          continue;
+        }
+
         try {
-          const mapObject = await this.env.MAPS_BUCKET.get(object.key);
-          if (mapObject) {
-            const mapData: MapData = JSON.parse(await mapObject.text());
-            if (!mapData.isDeleted) {
-              maps.push({
-                id: mapData.id,
-                title: mapData.title,
-                createdAt: mapData.createdAt,
-                updatedAt: mapData.updatedAt
-              });
-            }
+          const fullObject = await this.env.MAPS_BUCKET.get(object.key);
+          if (fullObject) {
+            const content = await fullObject.text();
+            const timestamp = fullObject.uploaded.toISOString();
+
+            // Extract title from markdown
+            const titleMatch = content.match(/^#\s+(.+)$/m);
+            const title = titleMatch ? titleMatch[1] : 'Untitled';
+
+            const mapId = object.key.split('/').pop()?.replace('.md', '') || '';
+            maps.push({
+              id: mapId,
+              title,
+              createdAt: timestamp,
+              updatedAt: timestamp
+            });
           }
         } catch (error) {
-          console.error('Error parsing map:', object.key, error);
+          console.error('Error processing map:', object.key, error);
         }
       }
 
@@ -123,7 +147,7 @@ export class MapStorageService {
     try {
       const key = this.getMapKey(userId, mapId);
 
-      // First check if map exists and belongs to user
+      // Check if map exists
       const object = await this.env.MAPS_BUCKET.get(key);
       if (!object) {
         return {
@@ -132,19 +156,8 @@ export class MapStorageService {
         };
       }
 
-      const mapData: MapData = JSON.parse(await object.text());
-      if (mapData.userId !== userId) {
-        return {
-          success: false,
-          error: 'Access denied'
-        };
-      }
-
-      // Mark as deleted instead of actually deleting
-      mapData.isDeleted = true;
-      mapData.updatedAt = new Date().toISOString();
-
-      await this.env.MAPS_BUCKET.put(key, JSON.stringify(mapData));
+      // Actually delete the file
+      await this.env.MAPS_BUCKET.delete(key);
 
       return {
         success: true
@@ -158,17 +171,4 @@ export class MapStorageService {
     }
   }
 
-  private async getMapCreatedAt(userId: string, mapId: string): Promise<string | null> {
-    try {
-      const key = this.getMapKey(userId, mapId);
-      const object = await this.env.MAPS_BUCKET.get(key);
-      if (object) {
-        const mapData: MapData = JSON.parse(await object.text());
-        return mapData.createdAt;
-      }
-    } catch (error) {
-      console.error('Error getting map createdAt:', error);
-    }
-    return null;
-  }
 }

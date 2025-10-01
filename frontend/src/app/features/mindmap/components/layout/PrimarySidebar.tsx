@@ -13,7 +13,7 @@ interface PrimarySidebarProps {
   // Maps view props
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
-  currentWorkspaceId: string;
+  currentWorkspaceId?: string | null;
   onSelectMap?: (id: MapIdentifier) => void;
   onCreateMap?: (title: string, workspaceId: string, category?: string) => void;
   onDeleteMap?: (id: MapIdentifier) => void;
@@ -24,6 +24,7 @@ interface PrimarySidebarProps {
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
+  onSwitchWorkspace?: (workspaceId: string | null) => void;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
   // Search functionality props
@@ -49,6 +50,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   workspaces = [],
   onAddWorkspace,
   onRemoveWorkspace,
+  onSwitchWorkspace,
   explorerTree,
   onCreateFolder,
   // Search functionality props
@@ -79,6 +81,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             workspaces={workspaces}
             onAddWorkspace={onAddWorkspace}
             onRemoveWorkspace={onRemoveWorkspace}
+            onSwitchWorkspace={onSwitchWorkspace}
             explorerTree={explorerTree}
             onCreateFolder={onCreateFolder}
           />

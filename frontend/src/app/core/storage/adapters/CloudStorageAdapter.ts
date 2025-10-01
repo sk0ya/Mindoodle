@@ -2,6 +2,8 @@ import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
 import { logger } from '@shared/utils';
 import { WorkspaceService } from '@shared/services';
+import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
+import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
 
 interface CloudMapData {
   id: string;
@@ -29,7 +31,7 @@ export class CloudStorageAdapter implements StorageAdapter {
   private authToken: string | null = null;
   private user: CloudUser | null = null;
 
-  constructor(baseUrl = 'https://mindoodle-backend.your-subdomain.workers.dev') {
+  constructor(baseUrl = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
     this.baseUrl = baseUrl;
   }
 
@@ -53,6 +55,7 @@ export class CloudStorageAdapter implements StorageAdapter {
 
         // Verify token is still valid
         const isValid = await this.verifyAuth();
+
         if (!isValid) {
           this.clearAuth();
         } else {
@@ -67,7 +70,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     this._isInitialized = true;
-    logger.info('CloudStorageAdapter: Initialized');
+    logger.info(`CloudStorageAdapter: Initialized, authenticated: ${this.isAuthenticated}`);
   }
 
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
@@ -178,34 +181,41 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
+    logger.info(`CloudStorageAdapter: loadAllMaps called - authenticated: ${this.isAuthenticated}, token: ${!!this.authToken}, user: ${!!this.user}`);
+
     if (!this.isAuthenticated) {
       logger.warn('CloudStorageAdapter: Not authenticated, returning empty map list');
       return [];
     }
 
     try {
+      logger.info('CloudStorageAdapter: Making request to /api/maps');
       const response = await this.makeRequest('/api/maps');
+      logger.info('CloudStorageAdapter: Maps list response:', response);
 
       if (!response.success || !response.maps) {
         logger.warn('CloudStorageAdapter: Failed to load maps', response.error);
         return [];
       }
 
+      logger.info(`CloudStorageAdapter: Found ${response.maps.length} maps in cloud`);
       const maps: MindMapData[] = [];
       for (const cloudMap of response.maps) {
         try {
-          // Get full map data
+          // Get full map data with markdown content
+          logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
           const fullMapResponse = await this.makeRequest(`/api/maps/${cloudMap.id}`);
           if (fullMapResponse.success && fullMapResponse.map) {
             const mindMapData = this.convertCloudMapToMindMapData(fullMapResponse.map);
             maps.push(mindMapData);
+            logger.info(`CloudStorageAdapter: Successfully loaded map: ${mindMapData.title}`);
           }
         } catch (error) {
           logger.warn(`CloudStorageAdapter: Failed to load map ${cloudMap.id}`, error);
         }
       }
 
-      logger.info(`CloudStorageAdapter: Loaded ${maps.length} maps from cloud`);
+      logger.info(`CloudStorageAdapter: Successfully loaded ${maps.length} maps from cloud`);
       return maps;
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to load maps', error);
@@ -271,15 +281,16 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   private convertCloudMapToMindMapData(cloudMap: CloudMapData): MindMapData {
-    const content = JSON.parse(cloudMap.content);
+    // Parse markdown content to get rootNodes
+    const parseResult = MarkdownImporter.parseMarkdownToNodes(cloudMap.content);
 
     return {
       title: cloudMap.title,
-      category: 'Cloud', // All cloud maps are in "Cloud" category
-      rootNodes: content.rootNodes || [],
+      category: '', // Category will be derived from mapId path
+      rootNodes: parseResult.rootNodes,
       createdAt: cloudMap.createdAt,
       updatedAt: cloudMap.updatedAt,
-      settings: content.settings || {
+      settings: {
         autoSave: true,
         autoLayout: true,
         showGrid: false,
@@ -293,18 +304,31 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   private convertMindMapDataToCloudMap(mindMapData: MindMapData): CloudMapData {
-    const content = {
-      rootNodes: mindMapData.rootNodes,
-      settings: mindMapData.settings
-    };
+    // Convert rootNodes to markdown
+    let markdown = `# ${mindMapData.title}\n\n`;
+
+    // Convert each root node to markdown
+    mindMapData.rootNodes.forEach(node => {
+      markdown += nodeToMarkdown(node, 0);
+    });
 
     return {
       id: mindMapData.mapIdentifier.mapId || '',
       title: mindMapData.title,
-      content: JSON.stringify(content),
+      content: markdown,
       createdAt: mindMapData.createdAt,
       updatedAt: mindMapData.updatedAt
     };
+  }
+
+  async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
+    // For cloud storage, we provide a single "Cloud" workspace
+    return [
+      {
+        id: 'cloud',
+        name: '🌐 Cloud'
+      }
+    ];
   }
 
   cleanup(): void {
@@ -312,34 +336,73 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   // Optional methods - not implemented for cloud storage
-  async createFolder?(relativePath: string): Promise<void> {
+  async createFolder?(_relativePath: string): Promise<void> {
     throw new Error('Cloud storage does not support folder creation');
   }
 
   async getExplorerTree?(): Promise<ExplorerItem> {
-    // Return a simple tree showing cloud maps
-    return {
-      type: 'folder',
-      name: 'Cloud',
-      path: '/cloud',
-      children: []
-    };
+    if (!this.isAuthenticated) {
+      return {
+        type: 'folder',
+        name: 'Cloud',
+        path: '/cloud',
+        children: []
+      };
+    }
+
+    try {
+      // Load all maps to build the tree
+      const maps = await this.loadAllMaps();
+
+      // Convert maps to file items
+      const children: ExplorerItem[] = maps.map(map => ({
+        type: 'file',
+        name: `${map.title}.md`,
+        path: `/cloud/${map.mapIdentifier.mapId}.md`,
+        isMarkdown: true
+      }));
+
+      return {
+        type: 'folder',
+        name: 'Cloud',
+        path: '/cloud',
+        children
+      };
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to build explorer tree', error);
+      return {
+        type: 'folder',
+        name: 'Cloud',
+        path: '/cloud',
+        children: []
+      };
+    }
   }
 
-  async renameItem?(path: string, newName: string): Promise<void> {
+  async renameItem?(_path: string, _newName: string): Promise<void> {
     throw new Error('Cloud storage does not support item renaming');
   }
 
-  async deleteItem?(path: string): Promise<void> {
+  async deleteItem?(_path: string): Promise<void> {
     throw new Error('Cloud storage does not support item deletion via path');
   }
 
-  async moveItem?(sourcePath: string, targetFolderPath: string): Promise<void> {
+  async moveItem?(_sourcePath: string, _targetFolderPath: string): Promise<void> {
     throw new Error('Cloud storage does not support item moving');
   }
 
   async getMapMarkdown?(id: MapIdentifier): Promise<string | null> {
-    // For cloud storage, we don't store raw markdown
+    if (!this.isAuthenticated) return null;
+
+    try {
+      const response = await this.makeRequest(`/api/maps/${id.mapId}`);
+      if (response.success && response.map) {
+        return response.map.content;
+      }
+    } catch (error) {
+      logger.warn('CloudStorageAdapter: Failed to get map markdown', error);
+    }
+
     return null;
   }
 
@@ -359,19 +422,53 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   async saveMapMarkdown?(id: MapIdentifier, markdown: string): Promise<void> {
-    throw new Error('Cloud storage does not support raw markdown saving');
+    if (!this.isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // Extract title from markdown (first line starting with #)
+      const titleMatch = markdown.match(/^#\s+(.+)$/m);
+      const title = titleMatch ? titleMatch[1] : 'Untitled';
+
+      if (id.mapId && id.mapId !== 'new') {
+        // Update existing map
+        await this.makeRequest(`/api/maps/${id.mapId}`, {
+          method: 'PUT',
+          body: JSON.stringify({
+            title,
+            content: markdown
+          })
+        });
+      } else {
+        // Create new map
+        const response = await this.makeRequest('/api/maps', {
+          method: 'POST',
+          body: JSON.stringify({
+            title,
+            content: markdown
+          })
+        });
+
+        if (response.success && response.map) {
+          // Update the map identifier with the new ID from server
+          id.mapId = response.map.id;
+        }
+      }
+
+      logger.info(`CloudStorageAdapter: Saved markdown for map ${id.mapId}`);
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to save markdown', error);
+      throw error;
+    }
   }
 
-  async listWorkspaces?(): Promise<Array<{ id: string; name: string }>> {
-    if (!this.isAuthenticated) return [];
-    return [{ id: 'cloud', name: 'Cloud' }];
-  }
 
   async addWorkspace?(): Promise<void> {
     throw new Error('Cloud storage does not support adding workspaces');
   }
 
-  async removeWorkspace?(id: string): Promise<void> {
+  async removeWorkspace?(_id: string): Promise<void> {
     throw new Error('Cloud storage does not support removing workspaces');
   }
 

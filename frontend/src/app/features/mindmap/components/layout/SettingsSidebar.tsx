@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Moon, Sun, Keyboard, Cloud, HardDrive } from 'lucide-react';
 import { useMindMapStore } from '../../store';
-import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 import { WorkspaceService } from '@shared/services';
 

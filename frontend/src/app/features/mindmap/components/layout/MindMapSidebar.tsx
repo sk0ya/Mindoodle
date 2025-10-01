@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, memo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, memo } from 'react';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
@@ -42,6 +42,7 @@ interface MindMapSidebarProps {
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
+  onSwitchWorkspace?: (workspaceId: string | null) => void;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
 }
@@ -59,6 +60,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   workspaces = [],
   onAddWorkspace,
   onRemoveWorkspace,
+  onSwitchWorkspace,
   explorerTree,
   onCreateFolder
 }) => {
@@ -76,7 +78,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     const tree = explorerTree;
     if (!tree) return;
 
-    const isWorkspaceRoot = (p: string): boolean => /^\/?ws_[^/]+\/?$/.test(p || '');
+    const isWorkspaceRoot = (p: string): boolean => /^\/?(?:ws_[^/]+|cloud)\/?$/.test(p || '');
     const visit = (item: ExplorerItem, acc: Record<string, boolean>) => {
       if (!item) return;
       if (item.type === 'folder') {
@@ -210,8 +212,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const extractCategory = useCallback((fullPath: string | null): string | undefined => {
     if (!fullPath) return undefined;
 
-    // workspaceIdのパターンにマッチするかチェック
-    const wsMatch = fullPath.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+    // workspaceIdのパターンにマッチするかチェック (ws_xxx or cloud)
+    const wsMatch = fullPath.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
     if (wsMatch) {
       const [, , categoryPart] = wsMatch;
       return categoryPart || undefined;
@@ -233,10 +235,18 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       console.log('handleCreateMap: Extracted category:', category);
 
       // parentPathからworkspaceIdを抽出
-      const wsMatch = parentPath?.match(/^\/?(ws_[^/]+)/);
-      let workspaceId = wsMatch ? wsMatch[1] : null;
+      // Pattern: /ws_xxx or /cloud
+      let workspaceId: string | null = null;
 
-      // parentPathがnullの場合、現在のワークスペースまたは利用可能な最初のワークスペースを使用
+      if (parentPath) {
+        // Try to match workspace ID at the start of path
+        const pathMatch = parentPath.match(/^\/?(ws_[^/]+|cloud)/);
+        if (pathMatch) {
+          workspaceId = pathMatch[1];
+        }
+      }
+
+      // parentPathがnullまたはworkspaceIdが抽出できなかった場合
       if (!workspaceId) {
         if (currentWorkspaceId) {
           workspaceId = currentWorkspaceId;
@@ -251,7 +261,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       console.log('handleCreateMap: Extracted workspaceId:', workspaceId, 'from parentPath:', parentPath);
 
       onCreateMap(mapName.trim(), workspaceId, category);
-      
+
       // マップが作成されたフォルダを空フォルダリストから削除
       if (parentPath) {
         setEmptyFolders(prev => {
@@ -701,9 +711,25 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {workspaces && workspaces.length > 0 ? (
             workspaces.map((ws) => (
-              <span key={ws.id} className="workspace-chip" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: 999, fontSize: 12 }}>
+              <span key={ws.id}
+                className={`workspace-chip ${ws.id === currentWorkspaceId ? 'active' : ''}`}
+                onClick={() => onSwitchWorkspace && onSwitchWorkspace(ws.id)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '2px 6px',
+                  border: ws.id === currentWorkspaceId ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  backgroundColor: ws.id === currentWorkspaceId ? 'rgba(0, 122, 204, 0.1)' : 'transparent'
+                }}>
                 <span>{ws.name}</span>
-                {onRemoveWorkspace && <button onClick={() => onRemoveWorkspace(ws.id)} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}
+                {onRemoveWorkspace && <button onClick={(e) => {
+                  e.stopPropagation();
+                  onRemoveWorkspace(ws.id);
+                }} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}
               </span>
             ))
           ) : (
@@ -887,8 +913,21 @@ const ExplorerView: React.FC<{
     const isCollapsed = collapsed[item.path] || false;
 
     // Map ID extraction and matching
-    const workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
-    const mapId = isMarkdown ? item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '') : null;
+    let workspaceId: string | undefined;
+    let mapId: string | null = null;
+
+    if (isMarkdown) {
+      // Pattern: /ws_xxx/... or /cloud/...
+      const pathMatch = item.path.match(/^\/(ws_[^/]+|cloud)\/(.+)$/);
+      if (pathMatch) {
+        workspaceId = pathMatch[1];
+        mapId = pathMatch[2].replace(/\.md$/i, '');
+      } else {
+        // Fallback for other patterns
+        workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
+        mapId = item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
+      }
+    }
     const isActive = isMarkdown && mapId && currentMapId === mapId && (
       currentWorkspaceId ? (workspaceId === currentWorkspaceId) : true
     );

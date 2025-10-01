@@ -43,7 +43,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   fontFamily: 'system-ui',
   nodeSpacing: 8, // デフォルトノード間隔8px
   storageMode: 'local', // デフォルトはローカルストレージ
-  cloudApiEndpoint: 'https://mindoodle-backend.your-subdomain.workers.dev',
+  cloudApiEndpoint: 'https://mindoodle-backend-production.shigekazukoya.workers.dev',
   vimMindMap: true,
   vimEditor: false,
   previewMode: false,
@@ -115,11 +115,18 @@ export const createSettingsSlice: StateCreator<
     if (result.success && result.data) {
       set((state) => {
         const loaded: any = { ...DEFAULT_SETTINGS, ...result.data };
+
         // Backward compatibility: map legacy vimMode to new keys if present and new keys missing
         if (typeof (result.data as any).vimMode === 'boolean') {
           if (typeof loaded.vimMindMap !== 'boolean') loaded.vimMindMap = (result.data as any).vimMode;
           if (typeof loaded.vimEditor !== 'boolean') loaded.vimEditor = (result.data as any).vimMode;
         }
+
+        // Migration: Update old cloudApiEndpoint to new production URL
+        if (loaded.cloudApiEndpoint === 'https://mindoodle-backend.your-subdomain.workers.dev') {
+          loaded.cloudApiEndpoint = DEFAULT_SETTINGS.cloudApiEndpoint;
+        }
+
         state.settings = loaded as AppSettings;
       });
     }
