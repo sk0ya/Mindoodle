@@ -566,6 +566,110 @@ export class CloudStorageAdapter implements StorageAdapter {
     throw new Error('Cloud storage does not support removing workspaces');
   }
 
+  // Image handling for R2 bucket
+  async saveImageFile?(relativePath: string, file: File, _workspaceId?: string): Promise<void> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      // Convert File to base64 for JSON transfer
+      const reader = new FileReader();
+      const base64Data = await new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const result = reader.result as string;
+          // Remove data URL prefix (e.g., "data:image/png;base64,")
+          const base64 = result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+
+      // Upload to R2 via backend API
+      await this.makeRequest('/api/images/upload', {
+        method: 'POST',
+        body: JSON.stringify({
+          path: relativePath,
+          data: base64Data,
+          contentType: file.type
+        })
+      });
+
+      logger.info(`CloudStorageAdapter: Uploaded image to R2: ${relativePath}`);
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to upload image', error);
+      throw error;
+    }
+  }
+
+  async readImageFile?(relativePath: string, _workspaceId?: string): Promise<File | null> {
+    if (!this.isAuthenticated) {
+      return null;
+    }
+
+    try {
+      // Download from R2 via backend API
+      const response = await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`);
+
+      if (response.success && response.data) {
+        // Convert base64 back to File
+        const byteCharacters = atob(response.data);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: response.contentType || 'image/png' });
+
+        // Extract filename from path
+        const filename = relativePath.split('/').pop() || 'image.png';
+        return new File([blob], filename, { type: response.contentType || 'image/png' });
+      }
+
+      return null;
+    } catch (error) {
+      logger.warn('CloudStorageAdapter: Failed to read image', error);
+      return null;
+    }
+  }
+
+  async deleteImageFile?(relativePath: string, _workspaceId?: string): Promise<void> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
+    try {
+      await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`, {
+        method: 'DELETE'
+      });
+
+      logger.info(`CloudStorageAdapter: Deleted image from R2: ${relativePath}`);
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to delete image', error);
+      throw error;
+    }
+  }
+
+  async listImageFiles?(directoryPath: string, _workspaceId?: string): Promise<string[]> {
+    if (!this.isAuthenticated) {
+      return [];
+    }
+
+    try {
+      const response = await this.makeRequest(`/api/images/list?path=${encodeURIComponent(directoryPath)}`);
+
+      if (response.success && response.files) {
+        return response.files;
+      }
+
+      return [];
+    } catch (error) {
+      logger.warn('CloudStorageAdapter: Failed to list images', error);
+      return [];
+    }
+  }
+
   // Public API for frontend integration
   getCurrentUser(): CloudUser | null {
     return this.user;

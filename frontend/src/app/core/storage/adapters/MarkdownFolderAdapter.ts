@@ -939,36 +939,21 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     });
     db.close();
 
-    // saveTargetsから削除
+    // saveTargetsから削除（メモリ上のキャッシュのみ）
     const prefix = `${id}::`;
     Array.from(this.saveTargets.keys()).forEach(k => {
       if (k.startsWith(prefix)) this.saveTargets.delete(k);
     });
 
-    // ファイルシステムからワークスペースのフォルダを削除
-    if (workspace?.handle) {
-      try {
-        // ワークスペースフォルダ内のすべてのファイル・サブフォルダを削除
-        await this.deleteDirectoryContents(workspace.handle);
-        console.log(`Deleted all contents from workspace: ${workspace.name} (${id})`);
-      } catch (error) {
-        console.error(`Failed to delete workspace contents: ${workspace.name} (${id})`, error);
-      }
+    // ファイルシステムには何もしない
+    // ワークスペースはユーザーのフォルダへの参照であり、削除してはいけない
+    // 再度同じフォルダを選択すれば、ワークスペースとして再利用できる
+    if (workspace) {
+      console.log(`Removed workspace reference: ${workspace.name} (${id}) - Files preserved`);
     }
 
     // メモリ上の配列からも直接削除（restoreWorkspaces()は呼ばない）
     this.workspaces = this.workspaces.filter(w => w.id !== id);
-  }
-
-  // Helper method to recursively delete directory contents
-  private async deleteDirectoryContents(dirHandle: FileSystemDirectoryHandle): Promise<void> {
-    for await (const entry of (dirHandle as any).values()) {
-      try {
-        await dirHandle.removeEntry(entry.name, { recursive: true });
-      } catch (error) {
-        console.error(`Failed to remove entry: ${entry.name}`, error);
-      }
-    }
   }
 
   // Read image file from workspace and convert to data URL for display
