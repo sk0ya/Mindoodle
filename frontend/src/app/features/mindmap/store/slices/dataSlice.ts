@@ -87,6 +87,10 @@ export const createDataSlice: StateCreator<
       state.history = [];
       state.historyIndex = -1;
     });
+
+    // Clear Mermaid caches when loading a new map to prevent stale diagram rendering
+    get().clearMermaidRelatedCaches();
+
     console.debug('[data] setData (initial load)', { title: data?.title, roots: data?.rootNodes?.length });
   },
 
@@ -101,6 +105,10 @@ export const createDataSlice: StateCreator<
       };
       state.normalizedData = normalizeTreeData(rootNodes);
     });
+
+    // Clear Mermaid caches when root nodes are replaced to prevent stale diagram rendering
+    get().clearMermaidRelatedCaches();
+
     const shouldEmit = options?.emit !== false;
     console.debug('[data] setRootNodes', { emit: shouldEmit, source: options?.source, reason: options?.reason, count: rootNodes?.length });
     if (shouldEmit) {
