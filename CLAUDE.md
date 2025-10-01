@@ -185,3 +185,141 @@ frontend/
 - No external API calls or network dependencies
 - Data stored locally using browser storage APIs
 - Import/export for data portability
+
+---
+
+## Implementation Roadmap
+
+### 🔴 Priority: High (Critical Bug Fixes)
+
+#### 1. Node Coordinate Glitch
+- **Issue:** Y-coordinate temporarily shifts when adding child nodes or confirming text
+- **Root Cause:** Timing issue in `updateNormalizedNode` coordinate calculation
+- **Location:** `frontend/src/app/core/data/normalizedStore.ts`
+- **Fix:** Synchronize coordinate updates, ensure coordinates are finalized before rendering
+
+#### 2. Mermaid Diagram Cache Issue
+- **Issue:** Outdated cached diagrams persist after map updates
+- **Workaround:** Auto-layout triggers redraw
+- **Location:** `frontend/src/app/features/mindmap/utils/mermaidCache.ts`
+- **Fix:** Review cache invalidation triggers, implement proper cache-busting strategy
+
+#### 3. Search IME Support
+- **Issue:** IME input not working in search field
+- **Current Status:** Deprioritized due to limited use case
+- **Fix:** Check Monaco Editor IME settings or switch to standard input element
+
+#### 4. Sidebar/Panel Resize Issues
+- **Issue:** Unstable drag behavior when resizing panels
+- **Fix:** Improve drag handler logic, set appropriate boundary constraints
+
+---
+
+### 🟡 Priority: Medium (Feature Improvements)
+
+#### 5. Enhanced Search Navigation
+- **Feature:** "Find next" should navigate from current node
+- **Location:** `frontend/src/app/features/mindmap/utils/searchUtils.ts`
+- **Implementation:**
+  - Filter search results based on current node ID
+  - Implement circular search (wrap to beginning after last result)
+
+#### 6. Vim Keymap Customization
+- **Feature:** Allow users to customize Vim keybindings
+- **Location:** `frontend/src/app/features/vim/`
+- **Implementation:**
+  - Add keymap editor to settings screen
+  - Use `monaco-vim` key mapping customization API
+
+---
+
+### 🟢 Priority: Low (New Features)
+
+#### 7. Cloud Features Extension
+- **File Upload:** Already implemented in CloudStorageAdapter
+- **Image Paste:** Add R2 bucket upload support
+- **Location:** `frontend/src/app/features/mindmap/services/imagePasteService.ts`
+- **Implementation:** Branch image handling based on cloud mode
+
+#### 8. Multi-Node Selection
+- **UX Design:** `v` enters selection mode → select multiple → `m` for batch operations
+- **Implementation:**
+  - Add selection state to Zustand store
+  - Create batch operation commands for multiple nodes
+
+#### 9. Additional Features (Future)
+- **Image Editor:** Edit and save local attachment files
+- **CSV Editor:** Visual editing for Markdown tables
+- **Drawing Tool:** Freehand drawing functionality
+- **Format Feature:** Auto-formatting based on mind map structure
+- **Markdown Initial Settings:** Apply configuration to markdown rendering
+
+---
+
+### 🏗️ Refactoring Proposals
+
+#### 10. Centralize Viewport Information Retrieval
+- **Issue:** Code for retrieving current screen info is scattered throughout codebase
+- **Recommendation:**
+  - Create `ViewportService` class
+  - Use singleton pattern for centralized state management
+  - Place in `frontend/src/app/core/services/`
+
+---
+
+### 💡 Additional Ideas
+
+#### 11. Performance Optimization
+- **Virtualized Rendering:** Limit displayed nodes for large maps
+- **Lazy Loading:** Progressive rendering of Mermaid diagrams
+
+#### 12. Accessibility Improvements
+- **Keyboard Navigation:** Full keyboard access to all features
+- **Screen Reader Support:** Add ARIA attributes
+
+#### 13. Enhanced Export Features
+- **PDF Export:** Print-ready PDF output of mind maps
+- **SVG/PNG Export:** Image format exports
+
+#### 14. Template System
+- **Preset Saving:** Save custom node styles
+- **Map Templates:** Reuse common mind map structures
+
+---
+
+### 📊 Recommended Implementation Sequence
+
+```
+Phase 1: Bug Fixes (1-2 weeks)
+├─ Fix node coordinate glitch
+├─ Fix Mermaid cache issue
+└─ IME support for search
+
+Phase 2: Basic Feature Improvements (2-3 weeks)
+├─ Enhanced search navigation (find next)
+├─ Improve sidebar resize behavior
+└─ Vim keymap customization
+
+Phase 3: New Features (4-6 weeks)
+├─ Multi-node selection
+├─ Cloud image support
+└─ ViewportService refactoring
+
+Phase 4: Extensions (Optional)
+├─ Image editor & CSV editor
+├─ Drawing tool
+└─ Export feature expansion
+```
+
+---
+
+### 🧪 Testing Strategy
+
+#### Cloud Storage Adapter Testing
+- **Priority:** Test file operations in cloud adapter
+- **Location:** `frontend/src/app/core/storage/adapters/CloudStorageAdapter.ts`
+- **Test Cases:**
+  - File creation and deletion
+  - Folder operations
+  - Category support
+  - R2 markdown storage integration
