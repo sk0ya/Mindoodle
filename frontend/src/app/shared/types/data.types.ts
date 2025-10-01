@@ -101,7 +101,7 @@ export interface MindMapSettings {
 // MindMap Data interface
 export interface MindMapData {
   title: string;
-  category: string;
+  category?: string;
   createdAt: string;
   updatedAt: string;
   mapIdentifier: MapIdentifier;

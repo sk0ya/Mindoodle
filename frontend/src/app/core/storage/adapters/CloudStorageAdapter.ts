@@ -5,14 +5,6 @@ import { WorkspaceService } from '@shared/services';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
 
-interface CloudMapData {
-  id: string;
-  title: string;
-  content: string;
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface CloudUser {
   id: string;
   email: string;
@@ -206,7 +198,26 @@ export class CloudStorageAdapter implements StorageAdapter {
           logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
           const fullMapResponse = await this.makeRequest(`/api/maps/${cloudMap.id}`);
           if (fullMapResponse.success && fullMapResponse.map) {
-            const mindMapData = this.convertCloudMapToMindMapData(fullMapResponse.map);
+            const markdown = fullMapResponse.map.content || '';
+            const parseResult = MarkdownImporter.parseMarkdownToNodes(markdown);
+
+            const mindMapData: MindMapData = {
+              title: fullMapResponse.map.title || 'Untitled',
+              rootNodes: parseResult.rootNodes,
+              createdAt: fullMapResponse.map.createdAt,
+              updatedAt: fullMapResponse.map.updatedAt,
+              settings: {
+                autoSave: true,
+                autoLayout: true,
+                showGrid: false,
+                animationEnabled: true
+              },
+              mapIdentifier: {
+                mapId: fullMapResponse.map.id,
+                workspaceId: 'cloud'
+              }
+            };
+
             maps.push(mindMapData);
             logger.info(`CloudStorageAdapter: Successfully loaded map: ${mindMapData.title}`);
           }
@@ -229,15 +240,19 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      const cloudMapData = this.convertMindMapDataToCloudMap(map);
+      // Convert map to markdown
+      let markdown = `# ${map.title}\n`;
+      map.rootNodes.forEach(node => {
+        markdown += nodeToMarkdown(node, 0);
+      });
 
       if (map.mapIdentifier.mapId && map.mapIdentifier.mapId !== 'new') {
         // Update existing map
-        await this.makeRequest(`/api/maps/${cloudMapData.id}`, {
+        await this.makeRequest(`/api/maps/${map.mapIdentifier.mapId}`, {
           method: 'PUT',
           body: JSON.stringify({
-            title: cloudMapData.title,
-            content: cloudMapData.content
+            title: map.title,
+            content: markdown
           })
         });
       } else {
@@ -245,8 +260,8 @@ export class CloudStorageAdapter implements StorageAdapter {
         const response = await this.makeRequest('/api/maps', {
           method: 'POST',
           body: JSON.stringify({
-            title: cloudMapData.title,
-            content: cloudMapData.content
+            title: map.title,
+            content: markdown
           })
         });
 
@@ -280,55 +295,6 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
-  private convertCloudMapToMindMapData(cloudMap: CloudMapData): MindMapData {
-    // Extract frontmatter from markdown content
-    const { category, content } = this.extractFrontmatter(cloudMap.content);
-
-    // Parse markdown content to get rootNodes
-    const parseResult = MarkdownImporter.parseMarkdownToNodes(content);
-
-    return {
-      title: cloudMap.title,
-      category: category,
-      rootNodes: parseResult.rootNodes,
-      createdAt: cloudMap.createdAt,
-      updatedAt: cloudMap.updatedAt,
-      settings: {
-        autoSave: true,
-        autoLayout: true,
-        showGrid: false,
-        animationEnabled: true
-      },
-      mapIdentifier: {
-        mapId: cloudMap.id,
-        workspaceId: 'cloud'
-      }
-    };
-  }
-
-  private convertMindMapDataToCloudMap(mindMapData: MindMapData): CloudMapData {
-    // Add frontmatter with category if present
-    let markdown = '';
-    if (mindMapData.category) {
-      markdown += `---\ncategory: ${mindMapData.category}\n---\n\n`;
-    }
-
-    // Convert rootNodes to markdown
-    markdown += `# ${mindMapData.title}\n\n`;
-
-    // Convert each root node to markdown
-    mindMapData.rootNodes.forEach(node => {
-      markdown += nodeToMarkdown(node, 0);
-    });
-
-    return {
-      id: mindMapData.mapIdentifier.mapId || '',
-      title: mindMapData.title,
-      content: markdown,
-      createdAt: mindMapData.createdAt,
-      updatedAt: mindMapData.updatedAt
-    };
-  }
 
   async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
     // For cloud storage, we provide a single "Cloud" workspace
@@ -344,22 +310,6 @@ export class CloudStorageAdapter implements StorageAdapter {
     // Nothing to cleanup for cloud storage
   }
 
-  // Helper method to extract frontmatter from markdown
-  private extractFrontmatter(markdown: string): { category: string; content: string } {
-    const frontmatterRegex = /^---\s*\n([\s\S]*?)\n---\s*\n/;
-    const match = markdown.match(frontmatterRegex);
-
-    if (!match) {
-      return { category: '', content: markdown };
-    }
-
-    const frontmatterContent = match[1];
-    const categoryMatch = frontmatterContent.match(/^category:\s*(.+)$/m);
-    const category = categoryMatch ? categoryMatch[1].trim() : '';
-    const content = markdown.slice(match[0].length);
-
-    return { category, content };
-  }
 
   // Optional methods - not implemented for cloud storage
   async createFolder?(relativePath: string, workspaceId?: string): Promise<void> {
@@ -379,69 +329,25 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Load all maps to build the tree
+      // Load all maps to build a flat list
       const maps = await this.loadAllMaps();
 
-      // Build folder structure from categories
-      const root: ExplorerItem = {
+      const children: ExplorerItem[] = maps.map(map => ({
+        type: 'file' as const,
+        name: `${map.title}.md`,
+        path: `/cloud/${map.mapIdentifier.mapId}.md`,
+        isMarkdown: true
+      }));
+
+      // Sort files alphabetically
+      children.sort((a, b) => a.name.localeCompare(b.name));
+
+      return {
         type: 'folder',
         name: 'Cloud',
         path: '/cloud',
-        children: []
+        children
       };
-
-      // Helper function to build nested folder structure
-      const getOrCreateFolder = (parent: ExplorerItem, pathParts: string[]): ExplorerItem => {
-        if (pathParts.length === 0) return parent;
-
-        const [currentPart, ...remaining] = pathParts;
-        let folder = parent.children?.find(
-          child => child.type === 'folder' && child.name === currentPart
-        );
-
-        if (!folder) {
-          folder = {
-            type: 'folder',
-            name: currentPart,
-            path: `${parent.path}/${currentPart}`,
-            children: []
-          };
-          if (!parent.children) parent.children = [];
-          parent.children.push(folder);
-        }
-
-        return getOrCreateFolder(folder, remaining);
-      };
-
-      // Add each map to the tree
-      for (const map of maps) {
-        const pathParts = map.category ? map.category.split('/').filter(p => p.trim()) : [];
-        const parentFolder = getOrCreateFolder(root, pathParts);
-
-        const fileItem: ExplorerItem = {
-          type: 'file',
-          name: `${map.title}.md`,
-          path: `${parentFolder.path}/${map.mapIdentifier.mapId}.md`,
-          isMarkdown: true
-        };
-
-        if (!parentFolder.children) parentFolder.children = [];
-        parentFolder.children.push(fileItem);
-      }
-
-      // Sort children: folders first, then files
-      const sortChildren = (item: ExplorerItem) => {
-        if (item.children) {
-          item.children.sort((a, b) => {
-            if (a.type === b.type) return a.name.localeCompare(b.name);
-            return a.type === 'folder' ? -1 : 1;
-          });
-          item.children.forEach(sortChildren);
-        }
-      };
-      sortChildren(root);
-
-      return root;
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to build explorer tree', error);
       return {

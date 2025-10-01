@@ -452,11 +452,7 @@ export const useMindMap = (
       }
 
       if (adapter.saveMapMarkdown) {
-        let initialMarkdown = '';
-        if (category) {
-          initialMarkdown = `---\ncategory: ${category}\n---\n\n`;
-        }
-        initialMarkdown += `# ${title}\n\n`;
+        let initialMarkdown = `# ${title}\n`;
         try {
           await adapter.saveMapMarkdown(mapIdentifier, initialMarkdown);
           await persistenceHook.refreshMapList();
