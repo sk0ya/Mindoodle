@@ -152,7 +152,225 @@ export const createDataSlice: StateCreator<
     } catch { /* noop */ }
   },
 
-  applyAutoLayout: () => {
+  applyAutoLayout: (immediate = false) => {
+    // If immediate execution is requested, skip debouncing
+    if (immediate) {
+      // Clear any pending debounced execution
+      if (autoLayoutTimeoutId) {
+        clearTimeout(autoLayoutTimeoutId);
+        autoLayoutTimeoutId = null;
+      }
+
+      const state = get();
+      const rootNodes = state.data?.rootNodes || [];
+
+      logger.debug('⚡ Immediate autoLayout execution started');
+
+    if (rootNodes.length === 0) {
+      logger.warn('⚠️ Auto layout: No root nodes found');
+      return;
+    }
+
+    // Validate autoSelectLayout function exists
+    if (typeof autoSelectLayout !== 'function') {
+      logger.error('❌ Auto layout: autoSelectLayout function not found');
+      return;
+    }
+
+    try {
+      logger.debug('🎯 Applying auto layout to root nodes:', {
+        rootNodesCount: rootNodes.length,
+        firstNodeId: rootNodes[0]?.id
+      });
+
+      // Memoized node size calculation using global cache
+      const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
+        // Include node kind and table data for proper cache invalidation of table nodes
+        const nodeKind = (node as any)?.kind || 'text';
+        const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
+        const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+        const cached = nodeSizeCache.get(cacheKey);
+        if (cached) {
+          return cached;
+        }
+        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize);
+        nodeSizeCache.set(cacheKey, size);
+        return size;
+      };
+
+      // Optimized subtree bounds calculation using global cache
+      const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
+        // Create cache key based on node id, position, and collapsed state
+        const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
+
+        const cached = boundsCache.get(cacheKey);
+        if (cached) {
+          return cached;
+        }
+
+        const nodeSize = getNodeSize(node);
+        const outerMarginY = (node as any)?.kind === 'table' ? 8 : 0;
+        const nodeTop = getNodeTopY(node, nodeSize.height) - outerMarginY;
+        const nodeBottom = getNodeBottomY(node, nodeSize.height) + outerMarginY;
+
+        let minY = nodeTop;
+        let maxY = nodeBottom;
+
+        if (node.children && node.children.length > 0 && !node.collapsed) {
+          // Use parallel processing for children bounds calculation (only for non-collapsed nodes)
+          const childBounds = node.children.map(child => getSubtreeBounds(child));
+          for (const bounds of childBounds) {
+            minY = Math.min(minY, bounds.minY);
+            maxY = Math.max(maxY, bounds.maxY);
+          }
+        }
+
+        const result = { minY, maxY };
+        boundsCache.set(cacheKey, result);
+        return result;
+      };
+
+      // Memoized node count calculation using global cache
+      const getNodeCount = (node: MindMapNode): number => {
+        const cacheKey = `${node.id}_${node.collapsed || false}`;
+        const cached = nodeCountCache.get(cacheKey);
+        if (cached !== undefined) {
+          return cached;
+        }
+
+        const count = node.collapsed || !node.children || node.children.length === 0
+          ? 1
+          : 1 + node.children.reduce((sum, child) => sum + getNodeCount(child), 0);
+
+        nodeCountCache.set(cacheKey, count);
+        return count;
+      };
+
+      // Apply layout to each root node separately
+      const layoutedRootNodes: MindMapNode[] = [];
+      let previousSubtreeBottom = 0;
+
+      // Process root nodes sequentially but cache results
+      for (let index = 0; index < rootNodes.length; index++) {
+        const rootNode = rootNodes[index];
+        const layoutedNode = autoSelectLayout(rootNode, {
+          globalFontSize: state.settings.fontSize,
+          nodeSpacing: (state.settings as any).nodeSpacing || 8,
+          sidebarCollapsed: state.ui.sidebarCollapsed,
+          activeView: state.ui.activeView
+        });
+
+        if (!layoutedNode) continue;
+
+        if (index > 0) {
+          // Calculate current subtree bounds
+          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
+          const currentSubtreeTop = currentSubtreeBounds.minY;
+
+          // Calculate adaptive spacing with cached node counts
+          const previousRoot = layoutedRootNodes[index - 1];
+          const previousNodeCount = getNodeCount(previousRoot);
+          const currentNodeCount = getNodeCount(layoutedNode);
+
+          // Optimized spacing calculation
+          const baseSpacing = 8;
+          const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
+          const adaptiveSpacing = baseSpacing + complexityFactor;
+
+          // Calculate and apply offset
+          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
+          const offsetY = targetTopY - currentSubtreeTop;
+
+          // Optimized offset application using iteration instead of recursion
+          const nodesToProcess = [layoutedNode];
+          while (nodesToProcess.length > 0) {
+            const currentNode = nodesToProcess.pop()!;
+            currentNode.y = (currentNode.y || 0) + offsetY;
+
+            if (currentNode.children) {
+              nodesToProcess.push(...currentNode.children);
+            }
+          }
+
+          // Selectively invalidate only affected nodes instead of clearing all cache
+          const invalidateNodeBounds = (node: MindMapNode) => {
+            // Invalidate both collapsed and expanded cache entries for this node
+            const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
+            const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
+            boundsCache.delete(cacheKeyCollapsed);
+            boundsCache.delete(cacheKeyExpanded);
+
+            // Also invalidate node count cache for both states
+            const countKeyCollapsed = `${node.id}_true`;
+            const countKeyExpanded = `${node.id}_false`;
+            nodeCountCache.delete(countKeyCollapsed);
+            nodeCountCache.delete(countKeyExpanded);
+
+            // Invalidate node size cache
+            const nodeKind = (node as any)?.kind || 'text';
+            const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
+            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+            nodeSizeCache.delete(sizeKey);
+
+            if (node.children && !node.collapsed) {
+              node.children.forEach(child => invalidateNodeBounds(child));
+            }
+          };
+          invalidateNodeBounds(layoutedNode);
+
+          // Calculate final bottom position
+          const finalBounds = getSubtreeBounds(layoutedNode);
+          previousSubtreeBottom = finalBounds.maxY;
+        } else {
+          // First root node
+          const bounds = getSubtreeBounds(layoutedNode);
+          previousSubtreeBottom = bounds.maxY;
+        }
+
+        layoutedRootNodes.push(layoutedNode);
+      }
+
+      if (layoutedRootNodes.some(node => !node)) {
+        logger.error('❌ Auto layout: One or more layouted nodes are null or undefined');
+        return;
+      }
+
+      logger.debug('✅ Auto layout result:', {
+        layoutedNodesCount: layoutedRootNodes.length
+      });
+
+      // Synchronous state update for immediate UI response (no history push)
+      set((draft) => {
+        if (draft.data) {
+          draft.data = {
+            ...draft.data,
+            rootNodes: layoutedRootNodes
+          };
+
+          // Update normalized data
+          try {
+            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
+          } catch (normalizeError) {
+            logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
+          }
+        }
+      });
+
+      // Emit layout event; history subscriber will capture snapshot
+      try {
+        mindMapEvents.emit({ type: 'layout.applied' });
+      } catch { /* noop */ }
+
+      logger.debug('🎉 Auto layout applied successfully');
+    } catch (error) {
+      logger.error('❌ Auto layout failed:', error);
+      logger.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+      logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    }
+
+      return; // Exit early for immediate execution
+    }
+
     // Clear any existing timeout to debounce rapid successive calls
     if (autoLayoutTimeoutId) {
       clearTimeout(autoLayoutTimeoutId);

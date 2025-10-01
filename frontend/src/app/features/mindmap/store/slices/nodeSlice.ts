@@ -244,7 +244,7 @@ export const createNodeSlice: StateCreator<
       logger.debug('✅ Applying auto layout after addChildNode');
       const applyAutoLayout = get().applyAutoLayout;
       if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout();
+        applyAutoLayout(true); // immediate execution to prevent coordinate glitch
       } else {
         logger.error('❌ applyAutoLayout function not found');
       }
@@ -418,7 +418,7 @@ export const createNodeSlice: StateCreator<
       logger.debug('✅ Applying auto layout after addSiblingNode');
       const applyAutoLayout = get().applyAutoLayout;
       if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout();
+        applyAutoLayout(true); // immediate execution to prevent coordinate glitch
       } else {
         logger.error('❌ applyAutoLayout function not found');
       }
@@ -698,7 +698,7 @@ export const createNodeSlice: StateCreator<
       logger.debug('✅ Applying auto layout after finishEditing');
       const applyAutoLayout = get().applyAutoLayout;
       if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout();
+        applyAutoLayout(true); // immediate execution to prevent coordinate glitch
       } else {
         logger.error('❌ applyAutoLayout function not found');
       }
