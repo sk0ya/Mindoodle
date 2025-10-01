@@ -278,9 +278,29 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   }, [isInitialized, adapterManager]);
 
   const addWorkspace = useCallback(async (): Promise<void> => {
-    // Workspace creation handled by individual adapters
-    logger.info('Workspace creation requested');
-  }, []);
+    if (!adapterManager) {
+      logger.warn('Cannot add workspace: adapter manager not initialized');
+      return;
+    }
+
+    try {
+      // Get adapter for a local workspace (will return MarkdownFolderAdapter)
+      const localAdapter = adapterManager.getAdapterForWorkspace(null);
+
+      if (localAdapter && typeof localAdapter.addWorkspace === 'function') {
+        await localAdapter.addWorkspace();
+        logger.info('Workspace added successfully');
+
+        // Refresh the map list to show the new workspace
+        await refreshMapList();
+      } else {
+        logger.warn('Local adapter does not support workspace creation');
+      }
+    } catch (error) {
+      logger.error('Failed to add workspace:', error);
+      throw error;
+    }
+  }, [adapterManager, refreshMapList]);
 
   const removeWorkspace = useCallback(async (id: string): Promise<void> => {
     if (id === 'cloud') {
