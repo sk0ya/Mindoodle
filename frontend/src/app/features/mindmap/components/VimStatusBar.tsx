@@ -7,22 +7,97 @@ type Props = {
 
 const VimStatusBar: React.FC<Props> = ({ vim }) => {
   const { state: status } = useStatusBar();
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const commandInputRef = useRef<HTMLInputElement>(null);
+  const unifiedInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when entering search mode
+  // Focus input when entering search or command mode
   useEffect(() => {
-    if (vim.mode === 'search' && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if ((vim.mode === 'search' || vim.mode === 'command') && unifiedInputRef.current) {
+      unifiedInputRef.current.focus();
     }
   }, [vim.mode]);
 
-  // Focus input when entering command mode
-  useEffect(() => {
-    if (vim.mode === 'command' && commandInputRef.current) {
-      commandInputRef.current.focus();
+  // Handle unified input for both search and command modes
+  const handleInputChange = (value: string) => {
+    if (value.length === 0) {
+      // Empty input - return to normal mode
+      if (vim.mode === 'search') {
+        vim.exitSearch();
+      } else if (vim.mode === 'command') {
+        vim.exitCommandLine();
+      }
+      return;
     }
-  }, [vim.mode]);
+
+    const firstChar = value[0];
+    const content = value.slice(1);
+
+    if (firstChar === '/') {
+      // Search mode
+      if (vim.mode !== 'search') {
+        vim.startSearch();
+      }
+      vim.updateSearchQuery(content);
+    } else if (firstChar === ':') {
+      // Command mode
+      if (vim.mode !== 'command') {
+        vim.startCommandLine();
+      }
+      vim.updateCommandLineBuffer(content);
+    }
+  };
+
+  const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    const value = (e.target as HTMLInputElement).value;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      if (vim.mode === 'search') {
+        vim.exitSearch();
+      } else if (vim.mode === 'command') {
+        vim.exitCommandLine();
+      }
+      return;
+    }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (vim.mode === 'search') {
+        vim.executeSearch();
+        vim.setMode('normal');
+      } else if (vim.mode === 'command') {
+        const command = vim.commandLineBuffer.trim();
+        if (command) {
+          vim.executeCommandLine(command).then(() => {
+            vim.exitCommandLine();
+          });
+        } else {
+          vim.exitCommandLine();
+        }
+      }
+      return;
+    }
+
+    // Handle backspace on first character (mode prefix)
+    if (e.key === 'Backspace' && value.length === 1) {
+      e.preventDefault();
+      if (vim.mode === 'search') {
+        vim.exitSearch();
+      } else if (vim.mode === 'command') {
+        vim.exitCommandLine();
+      }
+      return;
+    }
+  };
+
+  // Get current input value based on mode
+  const getInputValue = () => {
+    if (vim.mode === 'search') {
+      return '/' + vim.searchQuery;
+    } else if (vim.mode === 'command') {
+      return ':' + vim.commandLineBuffer;
+    }
+    return '';
+  };
 
   const getModeColor = () => {
     switch (vim.mode) {
@@ -75,28 +150,18 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
         <div className="vim-mode-indicator vim-off">STATUS</div>
       )}
 
-      {vim.isEnabled && vim.mode === 'search' && (
-        <div className="vim-search-input">
-          /
+      {vim.isEnabled && (vim.mode === 'search' || vim.mode === 'command') && (
+        <div className={`vim-unified-input ${vim.mode === 'search' ? 'search-mode' : 'command-mode'}`}>
           <input
-            ref={searchInputRef}
+            ref={unifiedInputRef}
             type="text"
-            value={vim.searchQuery}
-            onChange={(e) => vim.updateSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                vim.executeSearch();
-                vim.setMode('normal');
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                vim.exitSearch();
-              }
-            }}
-            className="vim-search-input-field"
+            value={getInputValue()}
+            onChange={(e) => handleInputChange(e.target.value)}
+            onKeyDown={handleInputKeyDown}
+            className="vim-unified-input-field"
             autoFocus
           />
-          {vim.searchResults.length > 0 && (
+          {vim.mode === 'search' && vim.searchResults.length > 0 && (
             <span className="search-results-count">
               [{vim.currentSearchIndex + 1}/{vim.searchResults.length}]
             </span>
@@ -111,35 +176,6 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
       {vim.isEnabled && vim.commandBuffer && vim.mode !== 'search' && vim.mode !== 'command' && (
         <div className="vim-command-buffer">
           :{vim.commandBuffer}
-        </div>
-      )}
-      {vim.isEnabled && vim.mode === 'command' && (
-        <div className="vim-command-buffer">
-          :
-          <input
-            ref={commandInputRef}
-            type="text"
-            value={vim.commandLineBuffer}
-            onChange={(e) => vim.updateCommandLineBuffer(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') {
-                e.preventDefault();
-                const command = vim.commandLineBuffer.trim();
-                if (command) {
-                  vim.executeCommandLine(command).then(() => {
-                    vim.exitCommandLine();
-                  });
-                } else {
-                  vim.exitCommandLine();
-                }
-              } else if (e.key === 'Escape') {
-                e.preventDefault();
-                vim.exitCommandLine();
-              }
-            }}
-            className="vim-command-input-field"
-            autoFocus
-          />
         </div>
       )}
       {vim.isEnabled && vim.lastCommand && (
@@ -198,19 +234,25 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           border: 1px solid var(--border-color);
         }
 
-        .vim-search-input {
+        .vim-unified-input {
           color: var(--text-primary);
           background: var(--bg-tertiary);
           padding: 2px 6px;
           border-radius: 3px;
-          border: 1px solid #8b5cf6;
           display: flex;
           align-items: center;
           gap: 4px;
         }
 
-        .vim-search-input-field,
-        .vim-command-input-field {
+        .vim-unified-input.search-mode {
+          border: 1px solid #8b5cf6;
+        }
+
+        .vim-unified-input.command-mode {
+          border: 1px solid #ef4444;
+        }
+
+        .vim-unified-input-field {
           background: transparent;
           border: none;
           outline: none;
