@@ -18,15 +18,26 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Architecture
 
-**Mindoodle** is a local-first, markdown-based mind mapping application built with React + TypeScript + Vite.
+**Mindoodle** is a local-first, markdown-based mind mapping application built with React + TypeScript + Vite. It now supports both local storage and optional cloud storage via Cloudflare Workers backend.
 
 ### Directory Structure
 
 **Current Directory Structure:**
 ```
-frontend/
-├── public/                       # 静的ファイル（favicon, manifest, icons）
-├── src/
+/
+├── frontend/                     # React frontend application
+│   ├── public/                   # Static files (favicon, manifest, icons)
+│   └── src/
+├── backend/                      # Cloudflare Workers backend (optional cloud storage)
+│   ├── src/
+│   │   ├── index.ts              # Main worker entry point
+│   │   ├── auth.ts               # Authentication logic
+│   │   └── types.ts              # Backend type definitions
+│   └── wrangler.toml             # Cloudflare Workers configuration
+├── scripts/                      # Build and utility scripts
+└── docs/                         # Documentation
+
+frontend/src/
 │   ├── app/                      # アプリケーションのコア（データ層・サービス）
 │   │   ├── commands/             # コマンドシステム
 │   │   │   ├── navigation/       # ナビゲーションコマンド
@@ -139,15 +150,19 @@ frontend/
 - **Command-driven core:** Command system in `src/app/commands/` with domain-specific command categories
 - **Feature-based organization:** Each feature (mindmap, file-management, ai, vim, theme, markdown, files) has its own directory with services, hooks, components, store, and types
 - **Zustand store architecture:** Feature-specific stores with mindmap store using slice pattern
-- **Local-first:** No network calls, all data stored locally with multiple storage adapters
+- **Hybrid storage:** Local-first with optional cloud storage via CloudStorageAdapter
+  - **Local mode:** File System Access API or IndexedDB (MarkdownFolderAdapter)
+  - **Cloud mode:** Cloudflare Workers + KV + R2 storage (CloudStorageAdapter)
 
 ### Key Technologies
-- **Frontend:** React 18 + TypeScript 5.8 + Vite 6
-- **State:** Zustand for state management
-- **Editor:** Monaco Editor with Vim mode support
-- **File handling:** JSZip for import/export
-- **Markdown:** Marked for parsing
-- **Icons:** Lucide React
+- **Frontend:** React 18.2 + TypeScript 5.8 + Vite 6.3
+- **State:** Zustand 5.0 + Immer 10.1 for state management
+- **Editor:** Monaco Editor 0.52 with Monaco Vim 0.4 support
+- **File handling:** JSZip 3.10 for import/export
+- **Markdown:** Marked 16.2 for parsing
+- **Diagrams:** Mermaid 10.9 for embedded diagrams
+- **Icons:** Lucide React 0.544
+- **Backend (optional):** Cloudflare Workers with KV and R2 storage
 
 ## Code Quality Standards
 
@@ -181,10 +196,10 @@ frontend/
 - Place tests as `*.test.ts(x)` alongside source files
 
 ### Local-First Philosophy
-- All functionality works offline
-- No external API calls or network dependencies
-- Data stored locally using browser storage APIs
-- Import/export for data portability
+- All functionality works offline by default
+- Optional cloud storage mode for synchronization across devices
+- Data stored locally using browser storage APIs (File System Access API or IndexedDB)
+- Import/export for data portability (ZIP format supported)
 
 ---
 
@@ -192,67 +207,73 @@ frontend/
 
 ### 🔴 Priority: High (Critical Bug Fixes)
 
-#### 1. Node Coordinate Glitch
-- **Issue:** Y-coordinate temporarily shifts when adding child nodes or confirming text
-- **Root Cause:** Timing issue in `updateNormalizedNode` coordinate calculation
-- **Location:** `frontend/src/app/core/data/normalizedStore.ts`
-- **Fix:** Synchronize coordinate updates, ensure coordinates are finalized before rendering
-
-#### 2. Mermaid Diagram Cache Issue
-- **Issue:** Outdated cached diagrams persist after map updates
-- **Workaround:** Auto-layout triggers redraw
-- **Location:** `frontend/src/app/features/mindmap/utils/mermaidCache.ts`
-- **Fix:** Review cache invalidation triggers, implement proper cache-busting strategy
-
-#### 3. Search IME Support
-- **Issue:** IME input not working in search field
-- **Current Status:** Deprioritized due to limited use case
-- **Fix:** Check Monaco Editor IME settings or switch to standard input element
-
-#### 4. Sidebar/Panel Resize Issues
-- **Issue:** Unstable drag behavior when resizing panels
-- **Fix:** Improve drag handler logic, set appropriate boundary constraints
+#### ✅ COMPLETED
+1. **Node Coordinate Glitch** - Fixed (commit: 4c2a2f4)
+   - Eliminated Y-coordinate shift during node creation
+2. **Mermaid Diagram Cache** - Fixed (commit: 9db8b3a)
+   - Proper cache clearing on map data changes
+3. **Search IME Support** - Fixed (commit: 6e06ae1)
+   - Added IME support for Vim search and command modes
+4. **Sidebar/Panel Resize** - Fixed (commit: e19c13d)
+   - Improved resize event handling with capture phase
 
 ---
 
 ### 🟡 Priority: Medium (Feature Improvements)
 
-#### 5. Enhanced Search Navigation
-- **Feature:** "Find next" should navigate from current node
-- **Location:** `frontend/src/app/features/mindmap/utils/searchUtils.ts`
-- **Implementation:**
-  - Filter search results based on current node ID
-  - Implement circular search (wrap to beginning after last result)
+#### ✅ COMPLETED
+1. **Enhanced Search Navigation** - Implemented (commit: aea697a)
+   - Improved search navigation to handle dynamic node changes
+2. **Vim Search and Command Unification** - Implemented (commit: 9f720bc)
+   - Unified Vim search and command input with dynamic mode switching
+3. **Keyboard Shortcut Helper** - Enhanced (commit: a8a915e)
+   - Dynamic generation and compact UI
+4. **Inline Markdown Formatting** - Added (commit: 1aad32b)
+   - Support for inline markdown with Vim keybindings
+5. **Hierarchical Color System** - Added (commit: a99245a)
+   - Mind map connections with color set selection
+6. **System Clipboard Paste** - Added (commit: e9b0ec0)
+   - Multi-line text paste support
 
-#### 6. Vim Keymap Customization
-- **Feature:** Allow users to customize Vim keybindings
-- **Location:** `frontend/src/app/features/vim/`
-- **Implementation:**
-  - Add keymap editor to settings screen
-  - Use `monaco-vim` key mapping customization API
+#### 🎯 TODO
+1. **Vim Keymap Customization**
+   - Add keymap editor to settings screen
+   - Use `monaco-vim` key mapping customization API
 
 ---
 
 ### 🟢 Priority: Low (New Features)
 
-#### 7. Cloud Features Extension
-- **File Upload:** Already implemented in CloudStorageAdapter
-- **Image Paste:** Add R2 bucket upload support
-- **Location:** `frontend/src/app/features/mindmap/services/imagePasteService.ts`
-- **Implementation:** Branch image handling based on cloud mode
+#### ✅ COMPLETED
 
-#### 8. Multi-Node Selection
-- **UX Design:** `v` enters selection mode → select multiple → `m` for batch operations
-- **Implementation:**
-  - Add selection state to Zustand store
-  - Create batch operation commands for multiple nodes
+1. **Cloud Storage Implementation** - Implemented (commit: 81e1150, 7bcb946)
+   - CloudStorageAdapter with Cloudflare Workers backend
+   - KV storage for user data and map metadata
+   - R2 bucket for markdown files and images
+   - Authentication system with email-based access
+   - Workspace management for cloud mode
+2. **Storage Adapter Refactoring** - Completed (commit: 109d463)
+   - Simplified storage adapters, removed unnecessary metadata
+3. **Paste Operation Enhancement** - Fixed (commit: 555d670)
+   - Fixed undo/redo stack and checkbox preservation
+4. **Checkbox Default State** - Added (commit: 1264599)
+   - New checkbox nodes default to unchecked
+5. **Blank Line Setting** - Added (commit: f08c9f0)
+   - Blank line setting for heading nodes
 
-#### 9. Additional Features (Future)
-- **Image Editor:** Edit and save local attachment files
-- **CSV Editor:** Visual editing for Markdown tables
-- **Drawing Tool:** Freehand drawing functionality
-- **Format Feature:** Auto-formatting based on mind map structure
-- **Markdown Initial Settings:** Apply configuration to markdown rendering
+#### 🎯 TODO
+
+1. **Cloud Image Storage Extension**
+   - R2 bucket upload for image paste operations
+   - Location: `frontend/src/app/features/mindmap/services/imagePasteService.ts`
+2. **Multi-Node Selection**
+   - `v` enters selection mode → select multiple → `m` for batch operations
+   - Add selection state to Zustand store
+3. **Additional Features (Future)**
+   - Image Editor: Edit and save local attachment files
+   - CSV Editor: Visual editing for Markdown tables
+   - Drawing Tool: Freehand drawing functionality
+   - Format Feature: Auto-formatting based on mind map structure
 
 ---
 
@@ -287,29 +308,44 @@ frontend/
 
 ---
 
-### 📊 Recommended Implementation Sequence
+### 📊 Recent Achievements & Implementation Status
 
-```
-Phase 1: Bug Fixes (1-2 weeks)
-├─ Fix node coordinate glitch
-├─ Fix Mermaid cache issue
-└─ IME support for search
+#### Completed Phases
 
-Phase 2: Basic Feature Improvements (2-3 weeks)
-├─ Enhanced search navigation (find next)
-├─ Improve sidebar resize behavior
-└─ Vim keymap customization
+**Phase 1: Critical Bug Fixes** ✅ COMPLETED
+- ✅ Node coordinate glitch fixed
+- ✅ Mermaid cache issue resolved
+- ✅ IME support for search implemented
+- ✅ Sidebar resize behavior improved
 
-Phase 3: New Features (4-6 weeks)
-├─ Multi-node selection
-├─ Cloud image support
-└─ ViewportService refactoring
+**Phase 2: Feature Enhancements** ✅ MOSTLY COMPLETED
+- ✅ Enhanced search navigation
+- ✅ Vim search/command unification
+- ✅ Keyboard shortcut helper improvements
+- ✅ Inline markdown formatting
+- ✅ Hierarchical color system
+- ✅ System clipboard paste support
+- ⏳ Vim keymap customization (pending)
 
-Phase 4: Extensions (Optional)
-├─ Image editor & CSV editor
-├─ Drawing tool
-└─ Export feature expansion
-```
+**Phase 3: Cloud Infrastructure** ✅ COMPLETED
+- ✅ CloudStorageAdapter implementation
+- ✅ Cloudflare Workers backend
+- ✅ Authentication system
+- ✅ Workspace management
+- ⏳ Cloud image storage (pending)
+
+#### Next Steps
+
+**Short-term priorities:**
+1. Complete Vim keymap customization
+2. Implement cloud image storage for paste operations
+3. Multi-node selection feature
+
+**Long-term goals:**
+- Image editor integration
+- CSV editor for Markdown tables
+- Drawing tool for freehand annotations
+- Enhanced export features (PDF, SVG, PNG)
 
 ---
 
@@ -318,8 +354,45 @@ Phase 4: Extensions (Optional)
 #### Cloud Storage Adapter Testing
 - **Priority:** Test file operations in cloud adapter
 - **Location:** `frontend/src/app/core/storage/adapters/CloudStorageAdapter.ts`
-- **Test Cases:**
-  - File creation and deletion
-  - Folder operations
-  - Category support
+- **Status:** ✅ Core functionality implemented and deployed
+- **Verified Features:**
+  - User registration and authentication
+  - Workspace creation and deletion
+  - Map CRUD operations (create, read, update, delete)
   - R2 markdown storage integration
+  - KV metadata storage
+- **Pending Tests:**
+  - Image file upload/delete to R2
+  - Concurrent workspace operations
+  - Error handling and recovery
+
+---
+
+## Backend Deployment
+
+### Cloudflare Workers Configuration
+
+**Production Environment:**
+- Worker name: `mindoodle-backend`
+- KV Namespace: `USERS` (id: 26ed643d1e894f3cae22e60b4e8cd566)
+- R2 Bucket: `mindoodle-maps`
+- Allowed email: shigekazukoya@gmail.com
+
+**Development Environment:**
+- KV Namespace: `USERS` (id: 49eb2b709ef04f94a2550901c4df8631)
+- R2 Bucket: `mindoodle-maps-dev`
+
+**Deployment Commands:**
+```bash
+cd backend
+wrangler deploy                    # Deploy to production
+wrangler deploy --env development  # Deploy to development
+```
+
+**Backend Features:**
+- Email-based authentication
+- User session management with KV storage
+- Map metadata storage in KV
+- Markdown file storage in R2 buckets
+- Image file storage in R2 (ready for frontend integration)
+- CORS enabled for frontend communication
