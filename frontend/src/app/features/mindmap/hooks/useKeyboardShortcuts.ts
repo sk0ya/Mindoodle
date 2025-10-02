@@ -288,30 +288,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
-      // Handle search mode
+      // Handle search mode - now handled by input field in VimStatusBar
       if (vim && vim.isEnabled && vim.mode === 'search') {
-        const { key } = event;
-
-        if (key === 'Escape') {
-          event.preventDefault();
-          vim.exitSearch();
-          return;
-        } else if (key === 'Enter') {
-          event.preventDefault();
-          vim.executeSearch();
-
-          vim.setMode('normal');
-          return;
-        } else if (key === 'Backspace') {
-          event.preventDefault();
-          const newQuery = vim.searchQuery.slice(0, -1);
-          vim.updateSearchQuery(newQuery);
-          return;
-        } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
-          event.preventDefault();
-          vim.updateSearchQuery(vim.searchQuery + key);
-          return;
-        }
+        // Let the input field in VimStatusBar handle all keys
         return;
       }
 
@@ -344,33 +323,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
-      // Handle command mode
+      // Handle command mode - now handled by input field in VimStatusBar
       if (vim && vim.isEnabled && vim.mode === 'command') {
-        if (key === 'Enter') {
-          event.preventDefault();
-          const command = vim.commandLineBuffer.trim();
-          if (command) {
-            vim.executeCommandLine(command).then(() => {
-              vim.exitCommandLine();
-            });
-          } else {
-            vim.exitCommandLine();
-          }
-          return;
-        } else if (key === 'Escape') {
-          event.preventDefault();
-          vim.exitCommandLine();
-          return;
-        } else if (key === 'Backspace') {
-          event.preventDefault();
-          const newBuffer = vim.commandLineBuffer.slice(0, -1);
-          vim.updateCommandLineBuffer(newBuffer);
-          return;
-        } else if (key.length === 1 && !ctrlKey && !metaKey && !altKey) {
-          event.preventDefault();
-          vim.updateCommandLineBuffer(vim.commandLineBuffer + key);
-          return;
-        }
+        // Let the input field in VimStatusBar handle all keys
         return;
       }
 
@@ -517,6 +472,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     };
 
     document.addEventListener('keydown', handleKeyDown, true);
+
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
     };

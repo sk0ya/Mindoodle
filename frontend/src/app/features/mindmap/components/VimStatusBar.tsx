@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useVimMode } from '../../vim/hooks/useVimMode';
 import { useStatusBar } from '@shared/hooks';
 type Props = {
@@ -7,6 +7,22 @@ type Props = {
 
 const VimStatusBar: React.FC<Props> = ({ vim }) => {
   const { state: status } = useStatusBar();
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const commandInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus input when entering search mode
+  useEffect(() => {
+    if (vim.mode === 'search' && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [vim.mode]);
+
+  // Focus input when entering command mode
+  useEffect(() => {
+    if (vim.mode === 'command' && commandInputRef.current) {
+      commandInputRef.current.focus();
+    }
+  }, [vim.mode]);
 
   const getModeColor = () => {
     switch (vim.mode) {
@@ -61,7 +77,25 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
 
       {vim.isEnabled && vim.mode === 'search' && (
         <div className="vim-search-input">
-          /{vim.searchQuery}
+          /
+          <input
+            ref={searchInputRef}
+            type="text"
+            value={vim.searchQuery}
+            onChange={(e) => vim.updateSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                vim.executeSearch();
+                vim.setMode('normal');
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                vim.exitSearch();
+              }
+            }}
+            className="vim-search-input-field"
+            autoFocus
+          />
           {vim.searchResults.length > 0 && (
             <span className="search-results-count">
               [{vim.currentSearchIndex + 1}/{vim.searchResults.length}]
@@ -81,7 +115,31 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
       )}
       {vim.isEnabled && vim.mode === 'command' && (
         <div className="vim-command-buffer">
-          :{vim.commandLineBuffer}
+          :
+          <input
+            ref={commandInputRef}
+            type="text"
+            value={vim.commandLineBuffer}
+            onChange={(e) => vim.updateCommandLineBuffer(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                const command = vim.commandLineBuffer.trim();
+                if (command) {
+                  vim.executeCommandLine(command).then(() => {
+                    vim.exitCommandLine();
+                  });
+                } else {
+                  vim.exitCommandLine();
+                }
+              } else if (e.key === 'Escape') {
+                e.preventDefault();
+                vim.exitCommandLine();
+              }
+            }}
+            className="vim-command-input-field"
+            autoFocus
+          />
         </div>
       )}
       {vim.isEnabled && vim.lastCommand && (
@@ -148,7 +206,21 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           border: 1px solid #8b5cf6;
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 4px;
+        }
+
+        .vim-search-input-field,
+        .vim-command-input-field {
+          background: transparent;
+          border: none;
+          outline: none;
+          color: var(--text-primary);
+          font-family: inherit;
+          font-size: inherit;
+          padding: 0;
+          margin: 0;
+          flex: 1;
+          min-width: 100px;
         }
 
         .search-results-count {
