@@ -9,6 +9,8 @@ interface ParsedNode {
   text: string;
   level: number;
   children: ParsedNode[];
+  isCheckbox?: boolean;
+  isChecked?: boolean;
 }
 
 /**
@@ -67,12 +69,24 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       // インデントスペース数から実際のレベルを算出
       const indentSpaces = indentMatch[1].length;
       const indentLevel = indentLevels.indexOf(indentSpaces);
-      const nodeText = indentMatch[2];
+      let nodeText = indentMatch[2];
+
+      // チェックボックスパターンを検出
+      let isCheckbox = false;
+      let isChecked = false;
+      const checkboxMatch = nodeText.match(/^\[([ xX])\]\s*(.*)$/);
+      if (checkboxMatch) {
+        isCheckbox = true;
+        isChecked = checkboxMatch[1].toLowerCase() === 'x';
+        nodeText = checkboxMatch[2]; // チェックボックス記号を除いたテキスト
+      }
 
       const node: ParsedNode = {
         text: nodeText,
         level: indentLevel,
-        children: []
+        children: [],
+        isCheckbox,
+        isChecked
       };
 
       // 子ノードを探す
@@ -115,7 +129,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
 
   // MindMapNode形式に変換
   const convertToMindMapNode = (parsedNode: ParsedNode): MindMapNode => {
-    return {
+    const node: MindMapNode = {
       id: generateId(),
       text: parsedNode.text,
       x: 0,
@@ -126,6 +140,21 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       fontWeight: 'normal',
       color: '#333333'
     };
+
+    // チェックボックス情報を保存
+    if (parsedNode.isCheckbox) {
+      node.markdownMeta = {
+        type: 'unordered-list',
+        level: 1,
+        originalFormat: '-',
+        indentLevel: 0,
+        lineNumber: -1,
+        isCheckbox: true,
+        isChecked: parsedNode.isChecked || false
+      };
+    }
+
+    return node;
   };
 
   // ルートノードを作成

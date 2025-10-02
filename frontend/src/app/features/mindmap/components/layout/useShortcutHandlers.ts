@@ -321,12 +321,29 @@ export function useShortcutHandlers(args: Args) {
         }
 
         logger.debug('pasteNode: pasting node', clipboardNode, 'into parent', parentId);
-        // Paste the node tree
+
+        // Set flag in store state to suppress nested history groups during paste
+        useMindMapStore.setState((state: any) => {
+          state._pasteInProgress = true;
+        });
+
+        // Paste the node tree without creating history groups for each addChildNode
         const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
           const newNodeId = store.addChildNode(parent, nodeToAdd.text);
           logger.debug('pasteNode: created child node', newNodeId, 'with text', nodeToAdd.text);
           if (newNodeId) {
-            if (nodeToAdd.note) updateNode(newNodeId, { note: nodeToAdd.note });
+            // Preserve all node properties including checkbox state
+            const updates: Partial<MindMapNode> = {};
+            if (nodeToAdd.note) updates.note = nodeToAdd.note;
+            if (nodeToAdd.fontSize) updates.fontSize = nodeToAdd.fontSize;
+            if (nodeToAdd.fontWeight) updates.fontWeight = nodeToAdd.fontWeight;
+            if (nodeToAdd.color) updates.color = nodeToAdd.color;
+            if (nodeToAdd.markdownMeta) updates.markdownMeta = nodeToAdd.markdownMeta;
+
+            if (Object.keys(updates).length > 0) {
+              updateNode(newNodeId, updates);
+            }
+
             if (nodeToAdd.children?.length) {
               nodeToAdd.children.forEach(child => paste(child, newNodeId));
             }
@@ -335,6 +352,18 @@ export function useShortcutHandlers(args: Args) {
         };
 
         const newNodeId = paste(clipboardNode, parentId);
+
+        // Clear flag and commit to history
+        useMindMapStore.setState((state: any) => {
+          state._pasteInProgress = false;
+        });
+
+        // Trigger single history snapshot for entire paste operation
+        const state = useMindMapStore.getState();
+        if (typeof (state as any).commitSnapshot === 'function') {
+          (state as any).commitSnapshot();
+        }
+
         if (newNodeId) {
           selectNode(newNodeId);
           showNotification('success', `「${clipboardNode.text}」を貼り付けました`);
@@ -344,6 +373,10 @@ export function useShortcutHandlers(args: Args) {
       } catch (error) {
         console.error('pasteNode: error accessing store', error);
         showNotification('error', 'ペースト中にエラーが発生しました');
+        // Clear flag on error
+        useMindMapStore.setState((state: any) => {
+          state._pasteInProgress = false;
+        });
       }
     },
     pasteImageFromClipboard,

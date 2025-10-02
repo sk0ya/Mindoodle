@@ -115,9 +115,12 @@ export const createNodeSlice: StateCreator<
 
   addChildNode: (parentId: string, text: string = 'New Node') => {
     let newNodeId: string | undefined;
-    // Begin a history group for insert+text edit lifecycle
-    try { (get() as any).beginHistoryGroup?.('insert-node'); } catch {}
-    
+    // Begin a history group for insert+text edit lifecycle (skip if paste is in progress)
+    const pasteInProgress = (get() as any)._pasteInProgress;
+    if (!pasteInProgress) {
+      try { (get() as any).beginHistoryGroup?.('insert-node'); } catch {}
+    }
+
     set((state) => {
       if (!state.normalizedData) return;
       
@@ -257,9 +260,12 @@ export const createNodeSlice: StateCreator<
 
   addSiblingNode: (nodeId: string, text: string = 'New Node', insertAfter: boolean = true) => {
     let newNodeId: string | undefined;
-    // Begin a history group for insert+text edit lifecycle
-    try { (get() as any).beginHistoryGroup?.('insert-sibling'); } catch {}
-    
+    // Begin a history group for insert+text edit lifecycle (skip if paste is in progress)
+    const pasteInProgress = (get() as any)._pasteInProgress;
+    if (!pasteInProgress) {
+      try { (get() as any).beginHistoryGroup?.('insert-sibling'); } catch {}
+    }
+
     set((state) => {
       if (!state.normalizedData) return;
       
