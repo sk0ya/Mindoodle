@@ -120,25 +120,82 @@ export function renderInlineMarkdownSVG(
 }
 
 /**
- * Check if text has a specific formatting marker at the outermost level
+ * Detect all formatting layers in order from outermost to innermost
+ * Returns array of format types in order
+ * Handles cases like ***text*** (bold + italic)
  */
-function hasOutermostMarker(text: string, marker: string): boolean {
-  return text.startsWith(marker) && text.endsWith(marker) && text.length > marker.length * 2;
+function detectFormattingLayers(text: string): Array<'bold' | 'italic' | 'strikethrough'> {
+  const layers: Array<'bold' | 'italic' | 'strikethrough'> = [];
+  let current = text;
+
+  while (true) {
+    let matched = false;
+
+    // Check for *** (bold + italic combination)
+    if (current.startsWith('***') && current.endsWith('***') && current.length > 6) {
+      // Count consecutive asterisks at start and end
+      let startCount = 0;
+      let endCount = 0;
+      for (let i = 0; i < current.length && current[i] === '*'; i++) startCount++;
+      for (let i = current.length - 1; i >= 0 && current[i] === '*'; i--) endCount++;
+
+      if (startCount >= 3 && endCount >= 3) {
+        // Extract as bold (2) + italic (1)
+        layers.push('bold');
+        layers.push('italic');
+        current = current.slice(3, -3);
+        matched = true;
+      }
+    }
+
+    if (!matched && current.startsWith('**') && current.endsWith('**') && current.length > 4) {
+      layers.push('bold');
+      current = current.slice(2, -2);
+      matched = true;
+    }
+
+    if (!matched && current.startsWith('~~') && current.endsWith('~~') && current.length > 4) {
+      layers.push('strikethrough');
+      current = current.slice(2, -2);
+      matched = true;
+    }
+
+    if (!matched && current.startsWith('*') && current.endsWith('*') && current.length > 2) {
+      layers.push('italic');
+      current = current.slice(1, -1);
+      matched = true;
+    }
+
+    if (!matched) {
+      break;
+    }
+  }
+
+  return layers;
 }
 
 /**
- * Remove outermost occurrence of a marker from text
+ * Rebuild text with specified formatting layers
  */
-function removeOutermostMarker(text: string, marker: string): string {
-  if (hasOutermostMarker(text, marker)) {
-    return text.slice(marker.length, -marker.length);
+function rebuildWithLayers(coreText: string, layers: Array<'bold' | 'italic' | 'strikethrough'>): string {
+  const markers = {
+    bold: '**',
+    italic: '*',
+    strikethrough: '~~'
+  };
+
+  let result = coreText;
+  // Apply layers from innermost to outermost (reverse order)
+  for (let i = layers.length - 1; i >= 0; i--) {
+    const marker = markers[layers[i]];
+    result = `${marker}${result}${marker}`;
   }
-  return text;
+  return result;
 }
 
 /**
  * Toggle formatting for selected text or entire text
- * Handles nested formatting correctly (e.g., **~~text~~** → ~~text~~ when toggling bold)
+ * Handles nested formatting correctly (e.g., **~~text~~** → *~~text~~* when toggling bold)
  */
 export function toggleInlineMarkdown(
   text: string,
@@ -146,30 +203,39 @@ export function toggleInlineMarkdown(
   selectionStart?: number,
   selectionEnd?: number
 ): { newText: string; newCursorPos?: number } {
-  const markers = {
-    bold: '**',
-    italic: '*',
-    strikethrough: '~~'
-  };
-
-  const marker = markers[format];
-
   // If no selection, toggle for entire text
   if (selectionStart === undefined || selectionEnd === undefined || selectionStart === selectionEnd) {
-    // Check if text has this formatting at the outermost level
-    if (hasOutermostMarker(text, marker)) {
-      // Remove outermost formatting layer
-      const newText = removeOutermostMarker(text, marker);
-      return {
-        newText,
-        newCursorPos: 0
-      };
+    const layers = detectFormattingLayers(text);
+    const hasFormat = layers.includes(format);
+
+    if (hasFormat) {
+      // Remove this format from layers
+      const newLayers = layers.filter(l => l !== format);
+      // Get core text by stripping all layers
+      let coreText = text;
+      layers.forEach(layer => {
+        const markers = { bold: '**', italic: '*', strikethrough: '~~' };
+        const marker = markers[layer];
+        if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
+          coreText = coreText.slice(marker.length, -marker.length);
+        }
+      });
+      const newText = rebuildWithLayers(coreText, newLayers);
+      return { newText, newCursorPos: 0 };
     } else {
-      // Add formatting at the outermost level
-      return {
-        newText: `${marker}${text}${marker}`,
-        newCursorPos: marker.length + text.length
-      };
+      // Add this format as outermost layer
+      const newLayers = [format, ...layers];
+      // Get core text
+      let coreText = text;
+      layers.forEach(layer => {
+        const markers = { bold: '**', italic: '*', strikethrough: '~~' };
+        const marker = markers[layer];
+        if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
+          coreText = coreText.slice(marker.length, -marker.length);
+        }
+      });
+      const newText = rebuildWithLayers(coreText, newLayers);
+      return { newText, newCursorPos: newText.length };
     }
   }
 
@@ -178,17 +244,37 @@ export function toggleInlineMarkdown(
   const selected = text.slice(selectionStart, selectionEnd);
   const after = text.slice(selectionEnd);
 
-  // Check if selection has this formatting at the outermost level
-  if (hasOutermostMarker(selected, marker)) {
-    // Remove outermost formatting layer
-    const unformatted = removeOutermostMarker(selected, marker);
+  const layers = detectFormattingLayers(selected);
+  const hasFormat = layers.includes(format);
+
+  if (hasFormat) {
+    // Remove this format
+    const newLayers = layers.filter(l => l !== format);
+    let coreText = selected;
+    layers.forEach(layer => {
+      const markers = { bold: '**', italic: '*', strikethrough: '~~' };
+      const marker = markers[layer];
+      if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
+        coreText = coreText.slice(marker.length, -marker.length);
+      }
+    });
+    const formatted = rebuildWithLayers(coreText, newLayers);
     return {
-      newText: before + unformatted + after,
-      newCursorPos: selectionStart + unformatted.length
+      newText: before + formatted + after,
+      newCursorPos: selectionStart + formatted.length
     };
   } else {
-    // Add formatting at the outermost level
-    const formatted = `${marker}${selected}${marker}`;
+    // Add this format as outermost layer
+    const newLayers = [format, ...layers];
+    let coreText = selected;
+    layers.forEach(layer => {
+      const markers = { bold: '**', italic: '*', strikethrough: '~~' };
+      const marker = markers[layer];
+      if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
+        coreText = coreText.slice(marker.length, -marker.length);
+      }
+    });
+    const formatted = rebuildWithLayers(coreText, newLayers);
     return {
       newText: before + formatted + after,
       newCursorPos: selectionStart + formatted.length
