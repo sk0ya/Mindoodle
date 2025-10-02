@@ -170,7 +170,12 @@ export const createNodeSlice: StateCreator<
               level: lastSibling.markdownMeta.level,
               originalFormat: lastSibling.markdownMeta.originalFormat,
               indentLevel: lastSibling.markdownMeta.indentLevel,
-              lineNumber: -1
+              lineNumber: -1,
+              // チェックボックスの場合は、チェックを外した状態で新規作成
+              ...(lastSibling.markdownMeta.isCheckbox && {
+                isCheckbox: true,
+                isChecked: false
+              })
             };
           }
         } else if (parentNode.markdownMeta) {
@@ -204,7 +209,12 @@ export const createNodeSlice: StateCreator<
               level: (parentNode.markdownMeta.level || 1) + 1,
               originalFormat: parentNode.markdownMeta.originalFormat,
               indentLevel: (parentNode.markdownMeta.indentLevel || 0) + 2,
-              lineNumber: -1
+              lineNumber: -1,
+              // チェックボックスの場合は、チェックを外した状態で新規作成
+              ...(parentNode.markdownMeta.isCheckbox && {
+                isCheckbox: true,
+                isChecked: false
+              })
             };
           }
         }
@@ -287,17 +297,36 @@ export const createNodeSlice: StateCreator<
               const right = currentIdx + offset;
               if (left >= 0) {
                 const sib = nd.nodes[siblings[left]] as any;
-                if (sib && sib.kind !== 'table' && sib.markdownMeta) return sib.markdownMeta;
+                if (sib && sib.kind !== 'table' && sib.markdownMeta) {
+                  // チェックボックスの場合は、チェックを外した状態で新規作成
+                  if (sib.markdownMeta.isCheckbox) {
+                    return { ...sib.markdownMeta, isChecked: false };
+                  }
+                  return sib.markdownMeta;
+                }
               }
               if (right < n) {
                 const sib = nd.nodes[siblings[right]] as any;
-                if (sib && sib.kind !== 'table' && sib.markdownMeta) return sib.markdownMeta;
+                if (sib && sib.kind !== 'table' && sib.markdownMeta) {
+                  // チェックボックスの場合は、チェックを外した状態で新規作成
+                  if (sib.markdownMeta.isCheckbox) {
+                    return { ...sib.markdownMeta, isChecked: false };
+                  }
+                  return sib.markdownMeta;
+                }
               }
             }
             return undefined;
           };
 
           if (!isTable) {
+            // チェックボックスの場合は、チェックを外した状態で新規作成
+            if (currentNode.markdownMeta?.isCheckbox) {
+              return {
+                ...currentNode.markdownMeta,
+                isChecked: false
+              };
+            }
             return currentNode.markdownMeta;
           }
 
@@ -328,7 +357,12 @@ export const createNodeSlice: StateCreator<
                   level: (pMeta.level || 1) + 1,
                   originalFormat: pMeta.originalFormat,
                   indentLevel: (pMeta.indentLevel || 0) + 2,
-                  lineNumber: -1
+                  lineNumber: -1,
+                  // チェックボックスの場合は、チェックを外した状態で新規作成
+                  ...(pMeta.isCheckbox && {
+                    isCheckbox: true,
+                    isChecked: false
+                  })
                 } as any;
               }
             }
