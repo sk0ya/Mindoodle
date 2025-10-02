@@ -1218,18 +1218,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       }
     },
     pasteNodeFromClipboard: async (parentId: string) => {
-      const clipboardNode = uiStore.clipboard;
-      if (!clipboardNode) { showNotification('warning', 'コピーされたノードがありません'); return; }
-      const paste = (nodeToAdd: MindMapNode, parent: string): string | undefined => {
-        const newNodeId = store.addChildNode(parent, nodeToAdd.text);
-        if (newNodeId) {
-          updateNode(newNodeId, { fontSize: nodeToAdd.fontSize, fontWeight: nodeToAdd.fontWeight, color: nodeToAdd.color, collapsed: false });
-          nodeToAdd.children?.forEach(child => paste(child, newNodeId));
-        }
-        return newNodeId;
-      };
-      const newId = paste(clipboardNode, parentId);
-      if (newId) { showNotification('success', `「${clipboardNode.text}」を貼り付けました`); selectNode(newId); }
+      const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
+      await pasteFromClipboard(
+        parentId,
+        uiStore.clipboard,
+        (parent: string, text: string) => store.addChildNode(parent, text),
+        updateNode,
+        selectNode,
+        showNotification
+      );
     },
     changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
       if (data?.rootNodes?.[0]) {
