@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Moon, Sun, Keyboard, Cloud, HardDrive } from 'lucide-react';
+import { Keyboard, Cloud, HardDrive } from 'lucide-react';
 import { useMindMapStore } from '../../store';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 import { WorkspaceService } from '@shared/services';
@@ -93,39 +93,6 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
       {/* Workspace selection moved to Maps sidebar */}
 
-      <div className="settings-section">
-        <h3 className="settings-section-title">テーマ</h3>
-        <div className="settings-section-content">
-          <div className="settings-radio-group">
-            <label className="settings-radio-option">
-              <input
-                type="radio"
-                name="theme"
-                value="dark"
-                checked={settings.theme === 'dark'}
-                onChange={() => handleSettingChange('theme', 'dark')}
-              />
-              <span className="settings-radio-label">
-                <span className="settings-icon"><Moon size={16} /></span>
-                ダーク
-              </span>
-            </label>
-            <label className="settings-radio-option">
-              <input
-                type="radio"
-                name="theme"
-                value="light"
-                checked={settings.theme === 'light'}
-                onChange={() => handleSettingChange('theme', 'light')}
-              />
-              <span className="settings-radio-label">
-                <span className="settings-icon"><Sun size={16} /></span>
-                ライト
-              </span>
-            </label>
-          </div>
-        </div>
-      </div>
 
       <div className="settings-section">
         <h3 className="settings-section-title">フォント設定</h3>
@@ -235,6 +202,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           </div>
         </div>
       </div>
+
 
       <style>{`
         .settings-sidebar {
@@ -505,6 +473,70 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
           line-height: 1.4;
           margin-top: 4px;
           padding-left: 4px;
+        }
+
+        .color-set-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 12px;
+          margin-top: 12px;
+        }
+
+        .color-set-card {
+          padding: 12px;
+          border: 2px solid var(--border-color);
+          border-radius: 8px;
+          cursor: pointer;
+          transition: all 0.2s;
+          background: var(--bg-secondary);
+        }
+
+        .color-set-card:hover {
+          border-color: var(--accent-color);
+          background: var(--hover-color);
+        }
+
+        .color-set-card.selected {
+          border-color: var(--accent-color);
+          background: rgba(0, 122, 204, 0.1);
+        }
+
+        .color-set-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 8px;
+        }
+
+        .color-set-name {
+          font-size: 14px;
+          font-weight: 600;
+          color: var(--text-primary);
+        }
+
+        .color-set-check {
+          color: var(--accent-color);
+          font-size: 16px;
+          font-weight: bold;
+        }
+
+        .color-set-colors {
+          display: flex;
+          gap: 4px;
+          margin-bottom: 8px;
+        }
+
+        .color-set-swatch {
+          flex: 1;
+          height: 24px;
+          border-radius: 4px;
+          border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .color-set-description {
+          font-size: 11px;
+          color: var(--text-secondary);
+          line-height: 1.4;
         }
       `}</style>
 

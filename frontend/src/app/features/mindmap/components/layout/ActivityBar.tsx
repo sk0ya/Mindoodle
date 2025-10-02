@@ -1,5 +1,5 @@
 import React from 'react';
-import { Workflow, Search, Bot, Settings, Keyboard } from 'lucide-react';
+import { Workflow, Search, Bot, Settings, Keyboard, Palette } from 'lucide-react';
 import '@shared/styles/layout/ActivityBar.css';
 
 interface ActivityBarItem {
@@ -34,6 +34,12 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
       icon: <Bot size={16} />,
       label: 'AI設定',
       isActive: activeView === 'ai'
+    },
+    {
+      id: 'colors',
+      icon: <Palette size={16} />,
+      label: '色設定',
+      isActive: activeView === 'colors'
     },
     {
       id: 'settings',

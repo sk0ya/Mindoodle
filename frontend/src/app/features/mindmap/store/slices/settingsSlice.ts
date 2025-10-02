@@ -27,6 +27,9 @@ export interface AppSettings {
 
   // マークダウン設定
   addBlankLineAfterHeading: boolean; // 見出しノード追加時に空行を追加（デフォルト: true）
+
+  // 接続線の色設定
+  edgeColorSet: string; // カラーセット名（vibrant, gentle, pastel, nord, warm, cool, monochrome, sunset）
 }
 
 export interface SettingsSlice {
@@ -51,6 +54,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   vimEditor: false,
   previewMode: false,
   addBlankLineAfterHeading: true, // デフォルトで見出し後に空行を追加
+  edgeColorSet: 'vibrant', // デフォルトのカラーセット
 };
 
 export const createSettingsSlice: StateCreator<
