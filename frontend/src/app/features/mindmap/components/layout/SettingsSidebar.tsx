@@ -216,6 +216,26 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         </div>
       </div>
 
+      <div className="settings-section">
+        <h3 className="settings-section-title">マークダウン設定</h3>
+        <div className="settings-section-content">
+          <div className="settings-toggle">
+            <input
+              type="checkbox"
+              id="blank-line-heading"
+              checked={(settings as any).addBlankLineAfterHeading}
+              onChange={(e) => handleSettingChange('addBlankLineAfterHeading' as keyof typeof settings, e.target.checked as any)}
+            />
+            <label htmlFor="blank-line-heading" className="settings-toggle-label">
+              見出し後に空行を追加
+            </label>
+          </div>
+          <div className="settings-description">
+            見出しノードの下に子ノードを追加したとき、マークダウンで空行を自動的に挿入します
+          </div>
+        </div>
+      </div>
+
       <style>{`
         .settings-sidebar {
           padding: 16px;

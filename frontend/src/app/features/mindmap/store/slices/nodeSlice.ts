@@ -24,16 +24,25 @@ import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChil
 import type { MindMapStore } from './types';
 
 // Helper function to create new node
-const createNewNode = (text: string, parentNode?: MindMapNode, _settings?: any): MindMapNode => ({
-  id: generateNodeId(),
-  text,
-  x: 0,
-  y: 0,
-  children: [],
-  fontSize: 14,
-  fontWeight: 'normal',
-  lineEnding: parentNode?.lineEnding || LineEndingUtils.LINE_ENDINGS.LF
-});
+const createNewNode = (text: string, parentNode?: MindMapNode, settings?: any, addBlankLine: boolean = false): MindMapNode => {
+  const newNode: MindMapNode = {
+    id: generateNodeId(),
+    text,
+    x: 0,
+    y: 0,
+    children: [],
+    fontSize: 14,
+    fontWeight: 'normal',
+    lineEnding: parentNode?.lineEnding || LineEndingUtils.LINE_ENDINGS.LF
+  };
+
+  // 見出しノードの場合、設定に応じて空行を追加（新規作成時のみ）
+  if (addBlankLine && parentNode?.markdownMeta?.type === 'heading' && settings?.addBlankLineAfterHeading !== false) {
+    newNode.note = '';
+  }
+
+  return newNode;
+};
 
 export interface NodeSlice {
   // Node operations (O(1) with normalized data)
@@ -138,9 +147,9 @@ export const createNodeSlice: StateCreator<
           return;
         }
         
-        // 設定を取得してノード作成時に適用
+        // 設定を取得してノード作成時に適用（新規作成なので空行追加を有効化）
         const settings = state.settings;
-        const newNode = createNewNode(text, parentNode, settings);
+        const newNode = createNewNode(text, parentNode, settings, true);
         newNodeId = newNode.id;
         
         const childIds = state.normalizedData.childrenMap[parentId] || [];
@@ -377,7 +386,7 @@ export const createNodeSlice: StateCreator<
 
         if (!parentId) {
           // ルートノードの兄弟ノードを追加（新しいルートノード）
-          newNode = createNewNode(text, currentNode, settings);
+          newNode = createNewNode(text, currentNode, settings, true);
           newNodeId = newNode.id;
           
           // Skip initial position calculation - let autoLayout handle it
@@ -402,8 +411,8 @@ export const createNodeSlice: StateCreator<
           // 通常の兄弟ノード追加
           const parentNode = state.normalizedData.nodes[parentId];
           if (!parentNode) return;
-          
-          newNode = createNewNode(text, parentNode, settings);
+
+          newNode = createNewNode(text, parentNode, settings, true);
           newNodeId = newNode.id;
           
           // Initial position relative to the same parent (consistent for all depths)

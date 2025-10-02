@@ -24,6 +24,9 @@ export interface AppSettings {
   vimMindMap: boolean; // Mind map canvas Vim (default ON)
   vimEditor: boolean;  // Markdown editor Vim (default OFF)
   previewMode: boolean;
+
+  // マークダウン設定
+  addBlankLineAfterHeading: boolean; // 見出しノード追加時に空行を追加（デフォルト: true）
 }
 
 export interface SettingsSlice {
@@ -47,6 +50,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   vimMindMap: true,
   vimEditor: false,
   previewMode: false,
+  addBlankLineAfterHeading: true, // デフォルトで見出し後に空行を追加
 };
 
 export const createSettingsSlice: StateCreator<
