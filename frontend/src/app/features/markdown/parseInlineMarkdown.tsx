@@ -20,6 +20,7 @@ export interface InlineSegment {
  * - **text** or __text__ for bold
  * - *text* or _text_ for italic
  * - ~~text~~ for strikethrough
+ * - Nested/overlapping formats like **~~text~~** or ~~**text**~~
  */
 export function parseInlineMarkdown(text: string): InlineSegment[] {
   if (!text) return [{ text: '' }];
@@ -31,7 +32,12 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     // Try to match bold (**text** or __text__)
     const boldMatch = remaining.match(/^(\*\*|__)(.+?)\1/);
     if (boldMatch) {
-      segments.push({ text: boldMatch[2], bold: true });
+      const innerText = boldMatch[2];
+      // Recursively parse inner content for nested formatting
+      const innerSegments = parseInlineMarkdown(innerText);
+      innerSegments.forEach(seg => {
+        segments.push({ ...seg, bold: true });
+      });
       remaining = remaining.slice(boldMatch[0].length);
       continue;
     }
@@ -39,7 +45,12 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     // Try to match strikethrough (~~text~~)
     const strikeMatch = remaining.match(/^~~(.+?)~~/);
     if (strikeMatch) {
-      segments.push({ text: strikeMatch[1], strikethrough: true });
+      const innerText = strikeMatch[1];
+      // Recursively parse inner content for nested formatting
+      const innerSegments = parseInlineMarkdown(innerText);
+      innerSegments.forEach(seg => {
+        segments.push({ ...seg, strikethrough: true });
+      });
       remaining = remaining.slice(strikeMatch[0].length);
       continue;
     }
@@ -47,7 +58,12 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     // Try to match italic (*text* or _text_)
     const italicMatch = remaining.match(/^(\*|_)(.+?)\1/);
     if (italicMatch) {
-      segments.push({ text: italicMatch[2], italic: true });
+      const innerText = italicMatch[2];
+      // Recursively parse inner content for nested formatting
+      const innerSegments = parseInlineMarkdown(innerText);
+      innerSegments.forEach(seg => {
+        segments.push({ ...seg, italic: true });
+      });
       remaining = remaining.slice(italicMatch[0].length);
       continue;
     }
@@ -104,7 +120,25 @@ export function renderInlineMarkdownSVG(
 }
 
 /**
+ * Check if text has a specific formatting marker at the outermost level
+ */
+function hasOutermostMarker(text: string, marker: string): boolean {
+  return text.startsWith(marker) && text.endsWith(marker) && text.length > marker.length * 2;
+}
+
+/**
+ * Remove outermost occurrence of a marker from text
+ */
+function removeOutermostMarker(text: string, marker: string): string {
+  if (hasOutermostMarker(text, marker)) {
+    return text.slice(marker.length, -marker.length);
+  }
+  return text;
+}
+
+/**
  * Toggle formatting for selected text or entire text
+ * Handles nested formatting correctly (e.g., **~~text~~** → ~~text~~ when toggling bold)
  */
 export function toggleInlineMarkdown(
   text: string,
@@ -122,15 +156,16 @@ export function toggleInlineMarkdown(
 
   // If no selection, toggle for entire text
   if (selectionStart === undefined || selectionEnd === undefined || selectionStart === selectionEnd) {
-    // Check if text is already formatted
-    if (text.startsWith(marker) && text.endsWith(marker)) {
-      // Remove formatting
+    // Check if text has this formatting at the outermost level
+    if (hasOutermostMarker(text, marker)) {
+      // Remove outermost formatting layer
+      const newText = removeOutermostMarker(text, marker);
       return {
-        newText: text.slice(marker.length, -marker.length),
+        newText,
         newCursorPos: 0
       };
     } else {
-      // Add formatting
+      // Add formatting at the outermost level
       return {
         newText: `${marker}${text}${marker}`,
         newCursorPos: marker.length + text.length
@@ -143,16 +178,16 @@ export function toggleInlineMarkdown(
   const selected = text.slice(selectionStart, selectionEnd);
   const after = text.slice(selectionEnd);
 
-  // Check if selection is already formatted
-  if (selected.startsWith(marker) && selected.endsWith(marker)) {
-    // Remove formatting
-    const unformatted = selected.slice(marker.length, -marker.length);
+  // Check if selection has this formatting at the outermost level
+  if (hasOutermostMarker(selected, marker)) {
+    // Remove outermost formatting layer
+    const unformatted = removeOutermostMarker(selected, marker);
     return {
       newText: before + unformatted + after,
       newCursorPos: selectionStart + unformatted.length
     };
   } else {
-    // Add formatting
+    // Add formatting at the outermost level
     const formatted = `${marker}${selected}${marker}`;
     return {
       newText: before + formatted + after,
