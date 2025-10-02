@@ -301,7 +301,11 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'x': 'toggle-checkbox',
       'u': 'undo',          // u for undo
       '>>': 'move-as-child-of-sibling',
-      '<<': 'move-as-next-sibling-of-parent'
+      '<<': 'move-as-next-sibling-of-parent',
+      // Text formatting commands
+      'S': 'toggle-strikethrough',  // S for strikethrough
+      'B': 'toggle-bold',           // B for bold
+      '~': 'toggle-italic'          // ~ for italic
     };
 
     const commandName = vimCommandMap[vimKey];

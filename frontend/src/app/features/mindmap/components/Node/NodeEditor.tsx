@@ -3,6 +3,7 @@ import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../store';
 import { calculateIconLayout } from '@mindmap/utils';
 import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '../../../markdown';
+import { renderInlineMarkdownSVG } from '../../../markdown/parseInlineMarkdown';
 import type { MindMapNode } from '@shared/types';
 
 interface NodeEditorProps {
@@ -427,29 +428,27 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   </tspan>
                   <tspan
                     dx="0.3em"
-                    {...textStyle}
                     onDoubleClick={handleTextDoubleClick}
                   >
                     {ui.searchQuery ?
                       renderHighlightedText(displayText, ui.searchQuery) :
-                      displayText
+                      renderInlineMarkdownSVG(displayText, textStyle)
                     }
                   </tspan>
                 </>
               );
             }
             // マークダウンマーカーがない場合
+            const baseStyle = isAnyLink ? {
+              fill: settings.theme === 'dark' ? '#60a5fa' : '#2563eb',
+              textDecoration: 'underline'
+            } : {};
+
             return (
-              <tspan
-                {...(isAnyLink ? {
-                  fill: settings.theme === 'dark' ? '#60a5fa' : '#2563eb',
-                  textDecoration: 'underline'
-                } : {})}
-                onDoubleClick={handleTextDoubleClick}
-              >
+              <tspan onDoubleClick={handleTextDoubleClick}>
                 {ui.searchQuery ?
                   renderHighlightedText(displayText, ui.searchQuery) :
-                  displayText
+                  renderInlineMarkdownSVG(displayText, baseStyle)
                 }
               </tspan>
             );

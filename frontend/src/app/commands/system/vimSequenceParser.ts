@@ -57,6 +57,10 @@ const VIM_COMMAND_PATTERNS = {
   's': { keys: ['s'], command: 's' },
   'x': { keys: ['x'], command: 'x' },
   'u': { keys: ['u'], command: 'u' },
+  // Text formatting commands
+  'S': { keys: ['S'], command: 'S' },  // Toggle strikethrough
+  'B': { keys: ['B'], command: 'B' },  // Toggle bold
+  '~': { keys: ['~'], command: '~' },  // Toggle italic
 } as const;;
 
 // Generate all possible partial sequences

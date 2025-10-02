@@ -8,6 +8,7 @@ import * as navigationIndexCommands from './navigation/index';
 import * as deleteCommands from './editing/delete';
 import * as editCommands from './editing/edit';
 import * as insertCommands from './editing/insert';
+import * as formatCommands from './editing/format';
 
 // structure
 import * as structureCommands from './structure/structure';
@@ -30,7 +31,7 @@ export type { UseCommandsReturn } from './system/useCommands';
 // =============================
 export const allCommandModules = {
   navigation: { ...navigationCommands, ...centerCommands, ...navigationUtilCommands, ...navigationIndexCommands },
-  editing: { ...deleteCommands, ...editCommands, ...insertCommands },
+  editing: { ...deleteCommands, ...editCommands, ...insertCommands, ...formatCommands },
   structure: { ...structureCommands, ...toggleCommands },
   application: { ...applicationCommands, ...mindmapCommands },
   ui: uiCommands,

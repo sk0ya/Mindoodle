@@ -3,6 +3,7 @@ import type { NormalizedData } from '../../../core/data/normalizedStore';
 import { COLORS } from '../../../shared/constants';
 import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../../markdown/markdownLinkUtils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
+import { stripInlineMarkdown } from '../../markdown/parseInlineMarkdown';
 
 // アイコンレイアウト情報
 interface IconLayout {
@@ -295,7 +296,9 @@ export function calculateNodeSize(
     effectiveText = editText;
   } else {
     // 非編集時：マークダウンリンクの場合は表示テキストのみ使用
-    effectiveText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
+    const baseText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
+    // インラインMarkdownフォーマット記号を除去した実際の表示テキストを使用
+    effectiveText = stripInlineMarkdown(baseText);
   }
   
   // フォント設定を取得
