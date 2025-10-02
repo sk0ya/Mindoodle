@@ -1,6 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { stopPropagationOnly } from '@shared/utils';
+import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
 import '@shared/styles/ui/KeyboardShortcutHelper.css';
 
 interface ShortcutItem {
@@ -19,47 +20,86 @@ interface KeyboardShortcutHelperProps {
   onClose: () => void;
 }
 
+// Category mapping for Japanese labels
+const CATEGORY_LABELS: Record<string, string> = {
+  vim: 'Vimモード',
+  navigation: 'ナビゲーション',
+  editing: '編集操作',
+  application: 'アプリケーション',
+  ui: '表示・UI',
+  utility: 'ユーティリティ'
+};
+
+// Format shortcut definition to display keys
+function formatShortcutKeys(shortcut: ShortcutDefinition): (string | React.ReactNode)[] {
+  const keys: (string | React.ReactNode)[] = [];
+  const mods = shortcut.modifiers || {};
+
+  if (mods.ctrl) keys.push('Ctrl');
+  if (mods.shift) keys.push('Shift');
+  if (mods.alt) keys.push('Alt');
+  if (mods.meta) keys.push('Meta');
+
+  // Handle special keys with icons
+  if (shortcut.key === 'ArrowUp') {
+    keys.push(<ArrowUp key="arrow-up" size={14} />);
+  } else if (shortcut.key === 'ArrowDown') {
+    keys.push(<ArrowDown key="arrow-down" size={14} />);
+  } else if (shortcut.key === 'ArrowLeft') {
+    keys.push(<ArrowLeft key="arrow-left" size={14} />);
+  } else if (shortcut.key === 'ArrowRight') {
+    keys.push(<ArrowRight key="arrow-right" size={14} />);
+  } else {
+    keys.push(shortcut.key);
+  }
+
+  return keys;
+}
+
 const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisible, onClose }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('all');
 
-  const shortcuts: ShortcutCategory[] = [
-    {
-      category: 'ノード操作',
-      items: [
-        { keys: ['Tab'], description: '子ノードを追加', context: 'ノード選択時' },
-        { keys: ['Enter'], description: '兄弟ノードを追加', context: 'ノード選択時' },
-        { keys: ['Space'], description: 'ノードを編集', context: 'ノード選択時' },
-        { keys: ['Delete'], description: 'ノードを削除', context: 'ノード選択時' },
-        { keys: ['Escape'], description: '編集を終了/選択を解除', context: '編集時' }
-      ]
-    },
-    {
-      category: 'ナビゲーション',
-      items: [
-        { keys: [<ArrowUp size={14} />], description: '上のノードに移動', context: 'ノード選択時' },
-        { keys: [<ArrowDown size={14} />], description: '下のノードに移動', context: 'ノード選択時' },
-        { keys: [<ArrowLeft size={14} />], description: '左のノードに移動', context: 'ノード選択時' },
-        { keys: [<ArrowRight size={14} />], description: '右のノードに移動', context: 'ノード選択時' }
-      ]
-    },
-    {
-      category: '編集操作',
-      items: [
-        { keys: ['Ctrl', 'Z'], description: '元に戻す', context: 'いつでも' },
-        { keys: ['Ctrl', 'Y'], description: 'やり直し', context: 'いつでも' },
-        { keys: ['Ctrl', 'Shift', 'Z'], description: 'やり直し', context: 'いつでも' },
-        { keys: ['Ctrl', 'L'], description: '全体レイアウトを整列', context: 'いつでも' }
-      ]
-    },
-    {
-      category: '表示・UI',
-      items: [
-        { keys: ['F1'], description: 'ヘルプを表示', context: 'いつでも' },
-        { keys: ['?'], description: 'ショートカット一覧を表示', context: 'いつでも' },
-        { keys: ['Escape'], description: 'パネルを閉じる', context: 'パネル表示時' }
-      ]
+  // Generate shortcuts from SHORTCUT_COMMANDS
+  const allShortcuts: ShortcutCategory[] = useMemo(() => {
+    const categoriesMap = new Map<string, ShortcutItem[]>();
+
+    SHORTCUT_COMMANDS.forEach(shortcut => {
+      if (!shortcut.category || !shortcut.description) return;
+
+      const category = shortcut.category;
+      const item: ShortcutItem = {
+        keys: formatShortcutKeys(shortcut),
+        description: shortcut.description,
+        context: category === 'vim' ? 'Vimモード時' : 'いつでも'
+      };
+
+      if (!categoriesMap.has(category)) {
+        categoriesMap.set(category, []);
+      }
+      categoriesMap.get(category)!.push(item);
+    });
+
+    // Convert to array and sort by category order
+    const categoryOrder = ['vim', 'navigation', 'editing', 'application', 'ui', 'utility'];
+    return categoryOrder
+      .filter(cat => categoriesMap.has(cat))
+      .map(cat => ({
+        category: CATEGORY_LABELS[cat] || cat,
+        items: categoriesMap.get(cat)!
+      }));
+  }, []);
+
+  // Filter shortcuts by active tab
+  const shortcuts = useMemo(() => {
+    if (activeTab === 'all') {
+      return allShortcuts;
     }
-  ];
+    return allShortcuts.filter(cat => {
+      const categoryKey = Object.entries(CATEGORY_LABELS).find(([_, label]) => label === cat.category)?.[0];
+      return categoryKey === activeTab;
+    });
+  }, [allShortcuts, activeTab]);
 
   const filteredShortcuts = shortcuts.map(category => ({
     ...category,
@@ -85,20 +125,42 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
 
   if (!isVisible) return null;
 
+  // Tab configuration
+  const tabs = [
+    { id: 'all', label: 'すべて' },
+    { id: 'vim', label: 'Vim' },
+    { id: 'navigation', label: 'ナビ' },
+    { id: 'editing', label: '編集' },
+    { id: 'application', label: 'アプリ' },
+    { id: 'ui', label: 'UI' }
+  ];
+
   return (
     <div className="shortcut-helper-overlay" onClick={onClose}>
       <div className="shortcut-helper-panel" onClick={stopPropagationOnly}>
         <div className="shortcut-helper-header">
-          <h2>キーボードショートカット</h2>
+          <h2>ショートカット</h2>
           <button className="shortcut-helper-close" onClick={onClose}>
-            <X size={20} />
+            <X size={18} />
           </button>
+        </div>
+
+        <div className="shortcut-helper-tabs">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              className={`shortcut-tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         <div className="shortcut-helper-search">
           <input
             type="text"
-            placeholder="ショートカットを検索..."
+            placeholder="検索..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="shortcut-search-input"
@@ -108,7 +170,9 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
         <div className="shortcut-helper-content">
           {filteredShortcuts.map((category, categoryIndex) => (
             <div key={categoryIndex} className="shortcut-category">
-              <h3 className="shortcut-category-title">{category.category}</h3>
+              {activeTab === 'all' && (
+                <h3 className="shortcut-category-title">{category.category}</h3>
+              )}
               <div className="shortcut-list">
                 {category.items.map((shortcut, index) => (
                   <div key={index} className="shortcut-item">
@@ -123,8 +187,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
                       ))}
                     </div>
                     <div className="shortcut-description">
-                      <span className="shortcut-action">{shortcut.description}</span>
-                      <span className="shortcut-context">{shortcut.context}</span>
+                      {shortcut.description}
                     </div>
                   </div>
                 ))}
@@ -140,10 +203,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
         </div>
 
         <div className="shortcut-helper-footer">
-          <p>
-            <kbd>Esc</kbd> でこのパネルを閉じる | 
-            <kbd>?</kbd> または <kbd>F1</kbd> でいつでも表示
-          </p>
+          <kbd>Esc</kbd> で閉じる | <kbd>?</kbd> または <kbd>F1</kbd> で表示
         </div>
       </div>
     </div>

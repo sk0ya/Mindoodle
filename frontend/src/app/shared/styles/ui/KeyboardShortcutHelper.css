@@ -15,16 +15,17 @@
 }
 
 .shortcut-helper-panel {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  background: var(--bg-primary);
+  border-radius: 8px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
   width: 100%;
-  max-width: 800px;
-  max-height: 80vh;
+  max-width: 900px;
+  height: 85vh;
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  animation: shortcutPanelSlideIn 0.3s ease-out;
+  animation: shortcutPanelSlideIn 0.2s ease-out;
+  border: 1px solid var(--border-color);
 }
 
 @keyframes shortcutPanelSlideIn {
@@ -43,71 +44,109 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px 24px 16px 24px;
-  border-bottom: 1px solid #e1e5e9;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
 .shortcut-helper-header h2 {
   margin: 0;
-  font-size: 24px;
+  font-size: 16px;
   font-weight: 600;
-  color: #2c3e50;
+  color: var(--text-primary);
 }
 
 .shortcut-helper-close {
   background: none;
   border: none;
-  font-size: 28px;
-  color: #7f8c8d;
+  color: var(--text-secondary);
   cursor: pointer;
   padding: 4px;
-  width: 36px;
-  height: 36px;
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 50%;
-  transition: all 0.2s ease;
+  border-radius: 4px;
+  transition: all 0.15s ease;
 }
 
 .shortcut-helper-close:hover {
-  background: #f8f9fa;
-  color: #2c3e50;
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+/* タブ */
+.shortcut-helper-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+.shortcut-tab {
+  flex: 1;
+  padding: 8px 12px;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.shortcut-tab:hover {
+  color: var(--text-primary);
+  background: var(--bg-tertiary);
+}
+
+.shortcut-tab.active {
+  color: var(--accent-color);
+  border-bottom-color: var(--accent-color);
+  background: var(--bg-primary);
 }
 
 /* 検索 */
 .shortcut-helper-search {
-  padding: 16px 24px;
-  border-bottom: 1px solid #e1e5e9;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
 }
 
 .shortcut-search-input {
   width: 100%;
-  padding: 12px 16px;
-  border: 2px solid #e1e5e9;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: border-color 0.2s ease;
+  padding: 6px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  font-size: 13px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  transition: border-color 0.15s ease;
 }
 
 .shortcut-search-input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: var(--accent-color);
 }
 
 .shortcut-search-input::placeholder {
-  color: #95a5a6;
+  color: var(--text-tertiary);
+  font-size: 12px;
 }
 
 /* コンテンツ */
 .shortcut-helper-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px;
+  padding: 12px;
 }
 
 .shortcut-category {
-  margin-bottom: 32px;
+  margin-bottom: 16px;
 }
 
 .shortcut-category:last-child {
@@ -115,112 +154,119 @@
 }
 
 .shortcut-category-title {
-  margin: 0 0 16px 0;
-  font-size: 18px;
+  margin: 0 0 8px 0;
+  font-size: 13px;
   font-weight: 600;
-  color: #2c3e50;
-  padding-bottom: 8px;
-  border-bottom: 2px solid #ecf0f1;
+  color: var(--text-primary);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--border-color);
+  opacity: 0.8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .shortcut-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 4px 8px;
 }
 
 .shortcut-item {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  transition: background 0.2s ease;
+  padding: 4px 8px;
+  background: var(--bg-secondary);
+  border-radius: 4px;
+  transition: background 0.1s ease;
+  gap: 8px;
 }
 
 .shortcut-item:hover {
-  background: #e9ecef;
+  background: var(--bg-tertiary);
 }
 
 .shortcut-keys {
   display: flex;
   align-items: center;
-  min-width: 120px;
-  margin-right: 20px;
+  gap: 3px;
+  flex-shrink: 0;
 }
 
 .shortcut-key {
-  background: white;
-  border: 2px solid #dee2e6;
-  border-radius: 4px;
-  padding: 4px 8px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 3px;
+  padding: 2px 6px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
-  color: #495057;
-  box-shadow: 0 2px 0 #dee2e6;
-  min-width: 28px;
+  color: var(--text-primary);
+  box-shadow: 0 1px 0 var(--border-color);
+  min-width: 22px;
   text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .shortcut-plus {
-  margin: 0 6px;
-  color: #6c757d;
-  font-size: 12px;
+  margin: 0 2px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  opacity: 0.6;
 }
 
 .shortcut-description {
   flex: 1;
-  display: flex;
-  flex-direction: column;
+  font-size: 13px;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .shortcut-action {
-  font-size: 16px;
-  color: #2c3e50;
-  font-weight: 500;
+  font-size: 13px;
+  color: var(--text-primary);
 }
 
 .shortcut-context {
-  font-size: 14px;
-  color: #7f8c8d;
-  margin-top: 2px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.7;
 }
 
 /* 検索結果なし */
 .shortcut-no-results {
   text-align: center;
-  padding: 40px 20px;
-  color: #7f8c8d;
+  padding: 24px 16px;
+  color: var(--text-secondary);
 }
 
 .shortcut-no-results p {
   margin: 0;
-  font-size: 16px;
+  font-size: 13px;
 }
 
 /* フッター */
 .shortcut-helper-footer {
-  padding: 16px 24px;
-  border-top: 1px solid #e1e5e9;
-  background: #f8f9fa;
+  padding: 8px 12px;
+  border-top: 1px solid var(--border-color);
+  background: var(--bg-secondary);
   text-align: center;
-}
-
-.shortcut-helper-footer p {
-  margin: 0;
-  font-size: 14px;
-  color: #6c757d;
+  font-size: 11px;
+  color: var(--text-secondary);
 }
 
 .shortcut-helper-footer kbd {
-  background: white;
-  border: 1px solid #dee2e6;
-  border-radius: 3px;
-  padding: 2px 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 2px;
+  padding: 1px 4px;
   font-family: monospace;
-  font-size: 12px;
-  color: #495057;
+  font-size: 10px;
+  color: var(--text-primary);
   margin: 0 2px;
 }
 
@@ -233,8 +279,8 @@
 .shortcut-tooltip {
   position: absolute;
   left: 50%;
-  background: #2c3e50;
-  color: white;
+  background: var(--tooltip-bg);
+  color: var(--tooltip-text);
   padding: 8px 12px;
   border-radius: 6px;
   font-size: 12px;
@@ -243,6 +289,7 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   animation: tooltipFadeIn 0.2s ease-out;
   min-width: 120px;
+  border: 1px solid var(--border-color);
 }
 
 /* 上側に表示する場合 */
@@ -258,7 +305,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: #2c3e50;
+  border-top-color: var(--tooltip-bg);
 }
 
 /* 下側に表示する場合 */
@@ -274,7 +321,7 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-bottom-color: #2c3e50;
+  border-bottom-color: var(--tooltip-bg);
 }
 
 @keyframes tooltipFadeIn {
@@ -302,136 +349,69 @@
 }
 
 .shortcut-tooltip-key {
-  background: rgba(255, 255, 255, 0.2);
-  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
   border-radius: 2px;
   padding: 1px 4px;
   font-family: monospace;
   font-size: 10px;
+  color: var(--tooltip-text);
 }
 
 .shortcut-tooltip-plus {
-  color: rgba(255, 255, 255, 0.7);
+  color: var(--tooltip-text);
+  opacity: 0.7;
   font-size: 10px;
   margin: 0 2px;
-}
-
-/* ダークモード対応 */
-@media (prefers-color-scheme: dark) {
-  .shortcut-helper-panel {
-    background: #2c3e50;
-    color: #ecf0f1;
-  }
-  
-  .shortcut-helper-header {
-    border-bottom-color: #34495e;
-  }
-  
-  .shortcut-helper-header h2 {
-    color: #ecf0f1;
-  }
-  
-  .shortcut-helper-search {
-    border-bottom-color: #34495e;
-  }
-  
-  .shortcut-search-input {
-    background: #34495e;
-    border-color: #4a5f7a;
-    color: #ecf0f1;
-  }
-  
-  .shortcut-search-input:focus {
-    border-color: #3498db;
-  }
-  
-  .shortcut-category-title {
-    color: #ecf0f1;
-    border-bottom-color: #4a5f7a;
-  }
-  
-  .shortcut-item {
-    background: #34495e;
-  }
-  
-  .shortcut-item:hover {
-    background: #4a5f7a;
-  }
-  
-  .shortcut-key {
-    background: #4a5f7a;
-    border-color: #5d6d7e;
-    color: #ecf0f1;
-    box-shadow: 0 2px 0 #5d6d7e;
-  }
-  
-  .shortcut-action {
-    color: #ecf0f1;
-  }
-  
-  .shortcut-context {
-    color: #bdc3c7;
-  }
-  
-  .shortcut-helper-footer {
-    background: #34495e;
-    border-top-color: #4a5f7a;
-  }
-  
-  .shortcut-helper-footer p {
-    color: #bdc3c7;
-  }
-  
-  .shortcut-helper-footer kbd {
-    background: #4a5f7a;
-    border-color: #5d6d7e;
-    color: #ecf0f1;
-  }
 }
 
 /* レスポンシブ対応 */
 @media (max-width: 768px) {
   .shortcut-helper-panel {
     max-width: 95vw;
-    max-height: 90vh;
+    height: 92vh;
   }
-  
-  .shortcut-helper-header {
-    padding: 20px 16px 12px 16px;
+
+  .shortcut-helper-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
   }
-  
-  .shortcut-helper-header h2 {
-    font-size: 20px;
+
+  .shortcut-tab {
+    flex: 0 0 auto;
+    min-width: 60px;
   }
-  
-  .shortcut-helper-search {
-    padding: 12px 16px;
-  }
-  
+
   .shortcut-helper-content {
-    padding: 16px;
+    padding: 8px;
   }
-  
+
+  .shortcut-list {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
   .shortcut-item {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    padding: 4px 6px;
   }
-  
-  .shortcut-keys {
-    min-width: auto;
-    margin-right: 0;
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .shortcut-list {
+    grid-template-columns: repeat(2, 1fr);
   }
-  
-  .shortcut-description {
-    width: 100%;
+}
+
+@media (min-width: 1201px) {
+  .shortcut-list {
+    grid-template-columns: repeat(3, 1fr);
   }
 }
 
 /* アクセシビリティ */
 .shortcut-helper-close:focus,
 .shortcut-search-input:focus {
-  outline: 2px solid #3498db;
+  outline: 2px solid var(--accent-color);
   outline-offset: 2px;
 }
 
@@ -441,15 +421,15 @@
 }
 
 .shortcut-helper-content::-webkit-scrollbar-track {
-  background: #f1f1f1;
+  background: var(--bg-secondary);
   border-radius: 4px;
 }
 
 .shortcut-helper-content::-webkit-scrollbar-thumb {
-  background: #c1c1c1;
+  background: var(--border-color);
   border-radius: 4px;
 }
 
 .shortcut-helper-content::-webkit-scrollbar-thumb:hover {
-  background: #a8a8a8;
+  background: var(--text-tertiary);
 }
