@@ -204,6 +204,128 @@ export default {
         return jsonResponse(result, result.success ? 200 : 404, request);
       }
 
+      // Image endpoints (require authentication)
+      if (path === '/api/images/upload' && request.method === 'POST') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const body = await request.json() as { path?: string; data?: string; contentType?: string };
+        const { path: imagePath, data, contentType } = body;
+
+        if (!imagePath || !data || !contentType) {
+          return jsonResponse({ success: false, error: 'Path, data, and contentType are required' }, 400, request);
+        }
+
+        try {
+          // Convert base64 to binary
+          const binaryString = atob(data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+
+          // Upload to R2 with user-specific path
+          const r2Key = `${session.userId}/${imagePath}`;
+          await env.MAPS_BUCKET.put(r2Key, bytes, {
+            httpMetadata: {
+              contentType: contentType
+            }
+          });
+
+          return jsonResponse({ success: true, path: imagePath }, 200, request);
+        } catch (error) {
+          console.error('Image upload error:', error);
+          return jsonResponse({ success: false, error: 'Failed to upload image' }, 500, request);
+        }
+      }
+
+      if (path.startsWith('/api/images/') && !path.includes('/list') && request.method === 'GET') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const imagePath = decodeURIComponent(path.substring('/api/images/'.length));
+        if (!imagePath) {
+          return jsonResponse({ success: false, error: 'Image path is required' }, 400, request);
+        }
+
+        try {
+          const r2Key = `${session.userId}/${imagePath}`;
+          const object = await env.MAPS_BUCKET.get(r2Key);
+
+          if (!object) {
+            return jsonResponse({ success: false, error: 'Image not found' }, 404, request);
+          }
+
+          // Convert to base64 for JSON response
+          const arrayBuffer = await object.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binaryString = '';
+          for (let i = 0; i < bytes.length; i++) {
+            binaryString += String.fromCharCode(bytes[i]);
+          }
+          const base64Data = btoa(binaryString);
+
+          return jsonResponse({
+            success: true,
+            data: base64Data,
+            contentType: object.httpMetadata?.contentType || 'image/png'
+          }, 200, request);
+        } catch (error) {
+          console.error('Image download error:', error);
+          return jsonResponse({ success: false, error: 'Failed to download image' }, 500, request);
+        }
+      }
+
+      if (path.startsWith('/api/images/') && request.method === 'DELETE') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const imagePath = decodeURIComponent(path.substring('/api/images/'.length));
+        if (!imagePath) {
+          return jsonResponse({ success: false, error: 'Image path is required' }, 400, request);
+        }
+
+        try {
+          const r2Key = `${session.userId}/${imagePath}`;
+          await env.MAPS_BUCKET.delete(r2Key);
+
+          return jsonResponse({ success: true }, 200, request);
+        } catch (error) {
+          console.error('Image delete error:', error);
+          return jsonResponse({ success: false, error: 'Failed to delete image' }, 500, request);
+        }
+      }
+
+      if (path === '/api/images/list' && request.method === 'GET') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const directoryPath = url.searchParams.get('path') || '';
+
+        try {
+          const prefix = `${session.userId}/${directoryPath}`;
+          const listed = await env.MAPS_BUCKET.list({ prefix });
+
+          const files = listed.objects.map(obj => {
+            // Remove user ID prefix from the key
+            return obj.key.substring(`${session.userId}/`.length);
+          });
+
+          return jsonResponse({ success: true, files }, 200, request);
+        } catch (error) {
+          console.error('Image list error:', error);
+          return jsonResponse({ success: false, error: 'Failed to list images' }, 500, request);
+        }
+      }
+
       // Health check
       if (path === '/api/health' && request.method === 'GET') {
         return jsonResponse({ success: true, message: 'Mindoodle Backend is running' }, 200, request);

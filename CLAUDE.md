@@ -260,16 +260,17 @@ frontend/src/
    - New checkbox nodes default to unchecked
 5. **Blank Line Setting** - Added (commit: f08c9f0)
    - Blank line setting for heading nodes
+6. **Cloud Image Storage Extension** - Implemented
+   - Backend API endpoints for image upload, download, delete, and list
+   - R2 bucket integration for image storage with user-specific paths
+   - Frontend CloudStorageAdapter already supports image operations
+   - Location: `backend/src/index.ts` (image endpoints added)
 
 #### 🎯 TODO
-
-1. **Cloud Image Storage Extension**
-   - R2 bucket upload for image paste operations
-   - Location: `frontend/src/app/features/mindmap/services/imagePasteService.ts`
-2. **Multi-Node Selection**
+1. **Multi-Node Selection**
    - `v` enters selection mode → select multiple → `m` for batch operations
    - Add selection state to Zustand store
-3. **Additional Features (Future)**
+2. **Additional Features (Future)**
    - Image Editor: Edit and save local attachment files
    - CSV Editor: Visual editing for Markdown tables
    - Drawing Tool: Freehand drawing functionality
