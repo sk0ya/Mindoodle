@@ -1,6 +1,6 @@
 import React from 'react';
 
-const LocalMindMapApp = React.lazy(() => import('./app'));
+const LocalMindMapApp = React.lazy(() => import('./app/features/mindmap/components/layout/MindMapApp'));
 
 const App: React.FC = () => {
   return (

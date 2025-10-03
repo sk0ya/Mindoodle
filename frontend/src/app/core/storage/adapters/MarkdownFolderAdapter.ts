@@ -589,34 +589,48 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private async restoreWorkspaces(): Promise<void> {
     this.workspaces = [];
-    const db = await this.openDb();
-    // Read all entries atomically via cursor to avoid nested async on a finished transaction
-    const items: Array<{ id: string; rec: any }> = await new Promise((resolve, reject) => {
-      const list: Array<{ id: string; rec: any }> = [];
-      const tx = db.transaction('workspaces', 'readonly');
-      const store = tx.objectStore('workspaces');
-      const cursorReq = (store as any).openCursor?.();
-      if (!cursorReq) { resolve([]); return; }
-      cursorReq.onsuccess = (ev: any) => {
-        const cursor = ev.target?.result;
-        if (cursor) {
-          list.push({ id: String(cursor.key), rec: cursor.value });
-          cursor.continue();
-        } else {
-          resolve(list);
-        }
-      };
-      cursorReq.onerror = () => reject(cursorReq.error);
-    });
-    db.close();
-    // Now outside of IDB transaction, add all workspaces regardless of permission status
-    // Permission will be checked when actually accessing the workspace
-    for (const { id, rec } of items) {
-      if (!rec) continue;
-      const handle = rec.handle as DirHandle;
-      // Always add workspace to list - don't filter by permission here
-      const name = (handle as any)?.name || rec.name || 'workspace';
-      this.workspaces.push({ id, name, handle });
+
+    try {
+      // Check if database exists before opening
+      const databases = await (window as any).indexedDB?.databases?.();
+      const dbExists = databases?.some((db: any) => db.name === 'mindoodle-fsa');
+
+      if (!dbExists) {
+        return; // Don't create DB if it doesn't exist
+      }
+
+      const db = await this.openDb();
+      // Read all entries atomically via cursor to avoid nested async on a finished transaction
+      const items: Array<{ id: string; rec: any }> = await new Promise((resolve, reject) => {
+        const list: Array<{ id: string; rec: any }> = [];
+        const tx = db.transaction('workspaces', 'readonly');
+        const store = tx.objectStore('workspaces');
+        const cursorReq = (store as any).openCursor?.();
+        if (!cursorReq) { resolve([]); return; }
+        cursorReq.onsuccess = (ev: any) => {
+          const cursor = ev.target?.result;
+          if (cursor) {
+            list.push({ id: String(cursor.key), rec: cursor.value });
+            cursor.continue();
+          } else {
+            resolve(list);
+          }
+        };
+        cursorReq.onerror = () => reject(cursorReq.error);
+      });
+      db.close();
+      // Now outside of IDB transaction, add all workspaces regardless of permission status
+      // Permission will be checked when actually accessing the workspace
+      for (const { id, rec } of items) {
+        if (!rec) continue;
+        const handle = rec.handle as DirHandle;
+        // Always add workspace to list - don't filter by permission here
+        const name = (handle as any)?.name || rec.name || 'workspace';
+        this.workspaces.push({ id, name, handle });
+      }
+    } catch (error) {
+      // Silently ignore errors during restore
+      logger.warn('Failed to restore workspaces:', error);
     }
   }
 
@@ -866,16 +880,28 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   private async loadRootHandle(): Promise<DirHandle | null> {
-    const db = await this.openLegacyDb();
-    const handle = await new Promise<DirHandle | null>((resolve, reject) => {
-      const tx = db.transaction('handles', 'readonly');
-      const store = tx.objectStore('handles');
-      const req = store.get('root');
-      req.onsuccess = () => resolve(req.result || null);
-      req.onerror = () => reject(req.error);
-    });
-    db.close();
-    return handle;
+    try {
+      // Check if database exists before opening
+      const databases = await (window as any).indexedDB?.databases?.();
+      const dbExists = databases?.some((db: any) => db.name === 'mindoodle-fsa');
+
+      if (!dbExists) {
+        return null; // Don't create DB if it doesn't exist
+      }
+
+      const db = await this.openLegacyDb();
+      const handle = await new Promise<DirHandle | null>((resolve, reject) => {
+        const tx = db.transaction('handles', 'readonly');
+        const store = tx.objectStore('handles');
+        const req = store.get('root');
+        req.onsuccess = () => resolve(req.result || null);
+        req.onerror = () => reject(req.error);
+      });
+      db.close();
+      return handle;
+    } catch (error) {
+      return null;
+    }
   }
 
   private async restoreRootHandle(): Promise<boolean> {

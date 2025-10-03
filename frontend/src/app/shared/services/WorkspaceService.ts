@@ -18,14 +18,6 @@ export class WorkspaceService {
   private constructor() {
     // Initialize with any persisted workspaces
     this.loadPersistedWorkspaces();
-
-    // Cleanup: Remove any existing default workspace
-    if (this.workspaces.has('default')) {
-      this.workspaces.delete('default');
-      this.persistWorkspaces();
-      logger.info('Removed deprecated default workspace');
-    }
-
   }
 
   static getInstance(): WorkspaceService {
@@ -163,7 +155,7 @@ export class WorkspaceService {
     try {
       const persistentData = {
         localWorkspaces: Array.from(this.workspaces.values())
-          .filter(ws => ws.type === 'local' && ws.id !== 'default')
+          .filter(ws => ws.type === 'local')
           .map(ws => ({ id: ws.id, name: ws.name })),
         hasCloudWorkspace: this.workspaces.has('cloud')
       };

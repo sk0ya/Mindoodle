@@ -1,6 +1,5 @@
 import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '../../../core/data/normalizedStore';
-import { COLORS } from '../../../shared/constants';
 import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../../markdown/markdownLinkUtils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import { stripInlineMarkdown } from '../../markdown/parseInlineMarkdown';

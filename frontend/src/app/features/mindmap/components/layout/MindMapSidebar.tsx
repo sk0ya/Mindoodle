@@ -233,12 +233,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           cleanParentPath = wsMatch[2] || null;
         } else {
           // ワークスペース情報が含まれていない場合、現在のワークスペースを使用
-          workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'default');
+          workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'local');
           cleanParentPath = parentPath;
         }
       } else {
         // parentPathがnullの場合、適切なワークスペースを決定
-        workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'default');
+        workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'local');
       }
 
       const newFolderPath = createChildFolderPath(cleanParentPath, newFolderName.trim());
@@ -312,7 +312,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
           // 既存のマップから最初のワークスペースIDを取得
           workspaceId = mindMaps[0].mapIdentifier.workspaceId;
         } else {
-          workspaceId = 'default';
+          // デフォルトでローカルワークスペースを使用
+          workspaceId = 'local';
         }
       }
 
@@ -804,7 +805,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         onSearchChange={setSearchTerm}
         onToggleCollapse={onToggleCollapse}
       />
-      {enhancedExplorerTree ? (
+      {enhancedExplorerTree && (enhancedExplorerTree.children?.length ?? 0) > 0 ? (
         <div className="maps-content-wrapper">
           <ExplorerView
             tree={enhancedExplorerTree}
@@ -833,12 +834,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         <div className="empty-state">
           <div className="empty-icon"><Workflow size={32} /></div>
           <div className="empty-title">
-            {mindMaps.length === 0 ? 'マインドマップがありません' : '検索結果が見つかりません'}
+            {mindMaps.length === 0 ? 'このワークスペースにはマインドマップがありません' : '検索結果が見つかりません'}
           </div>
           <div className="empty-description">
             {mindMaps.length === 0 
-              ? '上の「+」ボタンから新しいマインドマップを作成してください。' 
-              : '検索条件を変更してみてください。'
+              ? '「＋」ボタンからローカルフォルダをワークスペースとして追加し、マインドマップやフォルダを作成できます。' 
+              : '検索条件を調整して再度お試しください。'
             }
           </div>
         </div>
@@ -1088,6 +1089,26 @@ const ExplorerView: React.FC<{
     };
 
     if (item.type === 'folder') {
+      // 名前が空のフォルダは表示しない（その子要素のみを表示）
+      if (!item.name || item.name.trim() === '') {
+        return (
+          <>
+            {item.children && item.children.map((child, index) => (
+              <NodeView
+                key={child.path || index}
+                item={child}
+                searchTerm={searchTerm}
+                collapsed={collapsed}
+                onTogglePath={onTogglePath}
+                onContextMenu={onContextMenu}
+                currentMapId={currentMapId}
+                currentWorkspaceId={currentWorkspaceId}
+              />
+            ))}
+          </>
+        );
+      }
+
       // cloudワークスペースの場合は🌐アイコンを使用
       const isCloudWorkspace = item.path === '/cloud' || item.path === 'cloud';
 
@@ -1111,7 +1132,7 @@ const ExplorerView: React.FC<{
               {isCloudWorkspace ? '🌐' : (isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />)}
             </span>
             <span className="category-name">
-              {searchTerm ? highlightSearchTerm(item.name || '(root)', searchTerm) : (item.name || '(root)')}
+              {searchTerm ? highlightSearchTerm(item.name || '', searchTerm) : (item.name || '')}
             </span>
           </div>
           {!isCollapsed && item.children && item.children.length > 0 && (
