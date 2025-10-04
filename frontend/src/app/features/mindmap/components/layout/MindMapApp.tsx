@@ -5,7 +5,6 @@ import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
-// Removed header; use compact top-left panel instead
 import TopLeftTitlePanel from './TopLeftTitlePanel';
 import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
 import MindMapModals from '../modals/MindMapModals';
@@ -59,22 +58,17 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const { handleError } = useErrorHandler();
   const markdownSync = useMarkdownSync();
 
-  // Settings store for initialization
   const { loadSettingsFromStorage } = useMindMapStore();
 
-  // Get vim instance from context
   const vim = useVim();
 
-  // Initialize settings on mount
   React.useEffect(() => {
     loadSettingsFromStorage();
   }, [loadSettingsFromStorage]);
 
   const store = useMindMapStore();
 
-  // グローバルエラーハンドラーの設定を簡潔に
   useGlobalErrorHandlers(handleError);
-  // モーダル状態管理
   const {
     // showLoginModal削除済み
     showLinkModal, setShowLinkModal,
@@ -87,25 +81,21 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     openLinkActionMenu, closeLinkActionMenu,
   } = useMindMapModals();
 
-  // 画像モーダル状態管理
   const [showImageModal, setShowImageModal] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
   const [currentImageAlt, setCurrentImageAlt] = useState<string>('');
 
-  // 画像モーダルハンドラー
   const handleShowImageModal = useCallback((imageUrl: string, altText?: string) => {
     setCurrentImageUrl(imageUrl);
     setCurrentImageAlt(altText || '');
     setShowImageModal(true);
   }, []);
 
-  // コマンドパレット状態管理
   const commandPalette = useCommandPalette({
     enabled: true,
     shortcut: 'ctrl+p'
   });
 
-  // Initialize shortcut handlers first (we'll need them for commands)
   const finishEditingWrapper = (nodeId: string, text?: string) => {
     if (text !== undefined) finishEditing(nodeId, text);
   };
@@ -116,18 +106,14 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setCurrentImageAlt('');
   }, []);
 
-  // AI functionality
   const ai = useAI();
 
-  // テーマ管理
   useTheme();
 
-  // Auth modal state management
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [authCloudAdapter, setAuthCloudAdapter] = useState<CloudStorageAdapter | null>(null);
   const [authOnSuccess, setAuthOnSuccess] = useState<((adapter: CloudStorageAdapter) => void) | null>(null);
 
-  // Listen for global auth modal event
   React.useEffect(() => {
     const handleShowAuthModal = (event: CustomEvent) => {
       const { cloudAdapter, onSuccess } = event.detail;
@@ -142,14 +128,12 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     };
   }, []);
 
-  // Handle auth modal close
   const handleAuthModalClose = () => {
     setIsAuthModalOpen(false);
     setAuthCloudAdapter(null);
     setAuthOnSuccess(null);
   };
 
-  // Handle auth success
   const handleAuthModalSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
     if (authOnSuccess) {
       authOnSuccess(authenticatedAdapter);
@@ -158,15 +142,12 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   };
 
 
-  // Folder guide modal state (extracted)
   const { showFolderGuide, closeGuide, markDismissed } = useFolderGuide();
 
-  // Handle mode changes (loginModal削除済み)
   React.useEffect(() => {
     // ログインモーダル関連は削除されました
   }, [storageMode]);
 
-  // Destructure from the passed mindMap instance
   const {
     data,
     selectedNodeId,
@@ -216,12 +197,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     refreshMapList
   } = mindMap;
 
-  // VSCode風サイドバーの状態はUIストアから取得
   const uiStore = useMindMapStore().ui;
   const activeView = uiStore.activeView;
   const setActiveView = store.setActiveView;
 
-  // Bridge workspaces and maps to window globals for keyboard shortcuts
   const explorerTree = (mindMap as any).explorerTree || null;
   useWindowGlobalsBridge({
     workspaces,
@@ -234,7 +213,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     mindMap,
   });
 
-  // File operations hook
   const {
     loadMapData,
     onLoadRelativeImage,
@@ -247,7 +225,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     showNotification,
   });
 
-  // Wrapper for handleSelectFolder to include closeGuide/markDismissed
   const handleSelectFolder = React.useCallback(async () => {
     await handleSelectFolderFromHook(() => {
       closeGuide();
@@ -255,21 +232,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     });
   }, [handleSelectFolderFromHook, closeGuide, markDismissed]);
 
-  // キーボードショートカット設定は後で定義
 
-  // UI state から個別に取得
   const { showKeyboardHelper, setShowKeyboardHelper } = {
     showKeyboardHelper: uiStore.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show)
   };
 
-  // ファイルハンドラーは useFileHandlers に移譲
 
-  // ダウンロード/削除は useFileHandlers に委譲（downloadFile/deleteFile を直接使用）
 
-  // ユーティリティ関数
 
-  // Context menu handlers
   const handleRightClick = (e: React.MouseEvent, nodeId: string) => {
     e.preventDefault();
 
@@ -294,7 +265,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     });
   };
 
-  // AI operations hook
   const aiOps = useAIOperations({
     ai,
     addNode,
@@ -304,7 +274,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   const handleAIGenerate = aiOps.handleAIGenerate;
 
-  // Markdown operations hook
   const markdownOps = useMarkdownOperations({
     data,
     markdownSync,
@@ -312,7 +281,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     selectNode,
   });
 
-  // Editor effects hook (autosave, vim mode)
   useEditorEffects({
     mindMap,
     showNotesPanel: uiStore.showNotesPanel,
@@ -320,10 +288,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     editingNodeId,
   });
 
-  // Event handlers hook
   useMindMapEvents({ mindMap, selectMapById });
 
-  // ノード数を数える補助関数
   const countNodes = (node: MindMapNode): number => {
     let count = 1; // 現在のノード
     if (node.children) {
@@ -332,7 +298,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     return count;
   };
 
-  // Link operations hook
   const linkOps = useMindMapLinks({
     data,
     loadMapData,
@@ -347,7 +312,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     handleError,
   });
 
-  // Clipboard operations hook
   const clipboardOps = useMindMapClipboard({
     data,
     clipboard: uiStore.clipboard,
@@ -362,7 +326,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     refreshMapList,
   });
 
-  // Viewport/resize operations hook
   const viewportOps = useMindMapViewport({
     data,
     activeView,
@@ -379,7 +342,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setPan,
   });
 
-  // Wrapper functions to maintain existing interface
   const handleAddLink = (nodeId: string) => linkOps.handleAddLink(nodeId);
   const handleEditLink = (link: NodeLink, nodeId: string) => linkOps.handleEditLink(link, nodeId);
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {
@@ -391,11 +353,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     await linkOps.handleDeleteLink(linkModalNodeId, linkId);
   };
 
-  // Use viewport operations from hook
   const ensureSelectedNodeVisible = viewportOps.ensureSelectedNodeVisible;
   const centerNodeInView = viewportOps.centerNodeInView;
 
-  // ルートノードを左端中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
     const roots = data?.rootNodes || [];
     if (roots.length === 0) return;
@@ -407,7 +367,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
 
-  // Keep selected node minimally visible when panels open/resize (no centering)
   React.useEffect(() => {
     if (!selectedNodeId) return;
     const raf = () => requestAnimationFrame(() => ensureSelectedNodeVisible());
@@ -415,21 +374,18 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     return () => { window.clearTimeout(id); };
   }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId, ensureSelectedNodeVisible]);
 
-  // Listen to explicit note panel resize events to keep selection visible
   React.useEffect(() => {
     const handler = () => { ensureSelectedNodeVisible(); };
     window.addEventListener('node-note-panel-resize', handler as EventListener);
     return () => window.removeEventListener('node-note-panel-resize', handler as EventListener);
   }, [ensureSelectedNodeVisible]);
 
-  // Also adjust when the stored height value changes (store-driven source of truth)
   React.useEffect(() => {
     if (!selectedNodeId) return;
     ensureSelectedNodeVisible();
   }, [uiStore.nodeNotePanelHeight, selectedNodeId, ensureSelectedNodeVisible]);
 
 
-  // Simplified link navigation via utility
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
       currentMapId,
@@ -455,7 +411,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   const handleShowLinkActionMenu = openLinkActionMenu;
 
-  // キーボードショートカット設定（ハンドラー組み立てを外部化）
   const shortcutHandlers = useShortcutHandlers({
     data: null,
     ui,
@@ -489,7 +444,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
 
-  // Initialize command system after shortcutHandlers
   const commands = useCommands({
     selectedNodeId,
     editingNodeId,
@@ -497,13 +451,11 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     handlers: shortcutHandlers as any, // 型が複雑で完全に一致しないため、anyで回避
   });
 
-  // Command execution hook
   const { handleExecuteCommand } = useCommandExecution({
     commands,
     showNotification,
   });
 
-  // Outline save feature removed
 
   return (
     <div
