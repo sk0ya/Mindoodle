@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport } from '@mindmap/hooks';
+import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useAIOperations } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
 import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
@@ -220,59 +220,19 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const uiStore = useMindMapStore().ui;
   const activeView = uiStore.activeView;
   const setActiveView = store.setActiveView;
-  // Bridge workspaces to sidebar via globals (quick wiring)
-  React.useEffect(() => {
-    (window as any).mindoodleWorkspaces = workspaces || [];
-    (window as any).mindoodleAddWorkspace = async () => { try { await (addWorkspace as any)?.(); await (mindMap as any).refreshMapList?.(); } catch { } };
-    (window as any).mindoodleRemoveWorkspace = async (id: string) => { try { await (removeWorkspace as any)?.(id); await (mindMap as any).refreshMapList?.(); } catch { } };
-  }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
-  // Expose map list and selector for keyboard shortcuts (Ctrl+P/N)
+  // Bridge workspaces and maps to window globals for keyboard shortcuts
   const explorerTree = (mindMap as any).explorerTree || null;
-  React.useEffect(() => {
-    try {
-      (window as any).mindoodleAllMaps = allMindMaps || [];
-      (window as any).mindoodleCurrentMapId = currentMapId || null;
-      // Build ordered list of maps based on explorer tree (visual order)
-      const ordered: Array<{ mapId: string; workspaceId: string | undefined }> = [];
-      const tree: any = explorerTree;
-      const visit = (node: any) => {
-        if (!node) return;
-        if (node.type === 'folder') {
-          (node.children || []).forEach((c: any) => visit(c));
-        } else if (node.type === 'file' && node.isMarkdown && typeof node.path === 'string') {
-          const workspaceId = node.path.startsWith('/ws_') ? node.path.split('/')[1] : undefined;
-          const mapId = node.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
-          if (mapId) ordered.push({ mapId, workspaceId });
-        }
-      };
-      visit(tree);
-      (window as any).mindoodleOrderedMaps = ordered; // array of { mapId, workspaceId }
-      // Debounced selector to avoid heavy reflows when switching rapidly
-      (window as any).mindoodleSelectMapById = (mapId: string) => {
-        try {
-          // Skip if selecting the same map (use latest reflected on window to avoid stale closure)
-          const curr: string | null = (window as any).mindoodleCurrentMapId || null;
-          if (curr === mapId) return;
-          const target = (allMindMaps || []).find((m: any) => m?.mapIdentifier?.mapId === mapId);
-          if (!target) return;
-          const pendingKey = `pending:${target.mapIdentifier.workspaceId}:${target.mapIdentifier.mapId}`;
-          (window as any).__mindoodlePendingMapKey = pendingKey;
-          if ((window as any).__mindoodleMapSwitchTimer) {
-            clearTimeout((window as any).__mindoodleMapSwitchTimer);
-          }
-          (window as any).__mindoodleMapSwitchTimer = setTimeout(() => {
-            try {
-              // Ensure latest pending is still this target
-              if ((window as any).__mindoodlePendingMapKey === pendingKey) {
-                selectMapById(target.mapIdentifier);
-              }
-            } catch { }
-          }, 150);
-        } catch { }
-      };
-    } catch { }
-  }, [allMindMaps, currentMapId, selectMapById, explorerTree]);
+  useWindowGlobalsBridge({
+    workspaces,
+    addWorkspace,
+    removeWorkspace,
+    allMindMaps,
+    currentMapId,
+    explorerTree,
+    selectMapById,
+    mindMap,
+  });
 
   // File operations hook
   const {
@@ -334,26 +294,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     });
   };
 
-  const handleAIGenerate = async (node: MindMapNode) => {
-    // 生成開始の通知
-    showNotification('info', 'AI子ノード生成中... 🤖');
+  // AI operations hook
+  const aiOps = useAIOperations({
+    ai,
+    addNode,
+    showNotification,
+    onComplete: handleContextMenuClose,
+  });
 
-    try {
-      const childTexts = await ai.generateChildNodes(node);
-
-      // Generate child nodes based on AI suggestions
-      childTexts.forEach(text => {
-        addNode(node.id, text.trim());
-      });
-
-      showNotification('success', `✅ ${childTexts.length}個の子ノードを生成しました`);
-    } catch (error) {
-      logger.error('AI child node generation failed:', error);
-      showNotification('error', '❌ AI子ノード生成に失敗しました');
-    } finally {
-      handleContextMenuClose();
-    }
-  };
+  const handleAIGenerate = aiOps.handleAIGenerate;
 
   // File operations (loadMapData, onLoadRelativeImage) moved to useMindMapFileOps hook
 

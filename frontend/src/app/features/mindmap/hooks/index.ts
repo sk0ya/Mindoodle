@@ -11,3 +11,5 @@ export * from './useMindMapFileOps';
 export * from './useMindMapEvents';
 export * from './useMindMapClipboard';
 export * from './useMindMapViewport';
+export * from './useWindowGlobalsBridge';
+export * from './useAIOperations';
