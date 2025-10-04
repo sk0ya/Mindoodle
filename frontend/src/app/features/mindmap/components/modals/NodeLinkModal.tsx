@@ -1,5 +1,5 @@
-import React, { useState, useCallback, useEffect } from 'react';
-import { X } from 'lucide-react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+// Removed close icon
 import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/types';
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
@@ -29,6 +29,7 @@ interface NodeLinkModalProps {
   currentMapData?: MindMapData;
   onLoadMapData?: (mapIdentifier: MapIdentifier) => Promise<MindMapData | null>;
   loadExplorerTree?: () => Promise<ExplorerItem | null>;
+  currentNodeId?: string | null;
 }
 
 const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
@@ -37,21 +38,23 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   link,
   onSave,
   onDelete,
-  availableMaps = [],
+  availableMaps: _availableMaps = [],
   currentMapData,
   onLoadMapData,
   loadExplorerTree,
+  currentNodeId,
 }) => {
-  const [mode, setMode] = useState<'markdown' | 'files'>('markdown');
   const [selectedMapId, setSelectedMapId] = useState('');
-  const [mapQuery, setMapQuery] = useState('');
   const [selectedNodeId, setSelectedNodeId] = useState('');
   const [loadedMapData, setLoadedMapData] = useState<MindMapData | null>(null);
-  const { isLoading: isLoadingMapData, startLoading: startLoadingMapData, stopLoading: stopLoadingMapData } = useLoadingState();
-  const { isLoading: isLoadingFiles, startLoading: startLoadingFiles, stopLoading: stopLoadingFiles } = useLoadingState();
-  const [fileQuery, setFileQuery] = useState('');
-  const [fileList, setFileList] = useState<string[]>([]);
-  const [selectedFilePath, setSelectedFilePath] = useState('');
+  const { startLoading: startLoadingMapData, stopLoading: stopLoadingMapData } = useLoadingState();
+  // Explorer state for markdown selection
+  const [explorerTree, setExplorerTree] = useState<ExplorerItem | null>(null);
+  const [expandedPaths, setExpandedPaths] = useState<Record<string, boolean>>({});
+  const [selectedExplorerPath, setSelectedExplorerPath] = useState<string>('');
+  const explorerRef = useRef<HTMLDivElement | null>(null);
+  const headingsRef = useRef<HTMLDivElement | null>(null);
+  const [selectedFilePath, setSelectedFilePath] = useState<string>('');
   
   // ノード一覧を生成するヘルパー関数
   const flattenNodes = useCallback((rootNode: MindMapNode, mapId?: string): NodeOption[] => {
@@ -108,13 +111,13 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   }, [selectedMapId, currentMapData, loadedMapData, flattenNodes]);
 
   // フォルダ内のファイルも含むマップ一覧を検索して表示（idベースで見えるようにする）
-  const filteredMaps = useCallback(() => {
-    const q = mapQuery.trim().toLowerCase();
-    if (!q) return availableMaps;
-    return availableMaps.filter(m =>
-      m.mapIdentifier.mapId.toLowerCase().includes(q) || (m.title || '').toLowerCase().includes(q)
-    );
-  }, [availableMaps, mapQuery]);
+  // const filteredMaps = useCallback(() => {
+  //   const q = mapQuery.trim().toLowerCase();
+  //   if (!q) return availableMaps;
+  //   return availableMaps.filter(m =>
+  //     m.mapIdentifier.mapId.toLowerCase().includes(q) || (m.title || '').toLowerCase().includes(q)
+  //   );
+  // }, [availableMaps, mapQuery]);
 
   // 編集時は既存データを読み込み
   useEffect(() => {
@@ -123,45 +126,97 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       setSelectedNodeId(link.targetNodeId || '');
     } else {
       // 新規作成時はフィールドをクリア
-      setSelectedMapId('');
-      setSelectedNodeId('');
+      // デフォルトは現在のマップ/ノードを選択状態に
+      setSelectedMapId(currentMapData?.mapIdentifier.mapId || '');
+      setSelectedNodeId(currentNodeId || '');
     }
-  }, [link, isOpen]);
+  }, [link, isOpen, currentMapData?.mapIdentifier.mapId, currentNodeId]);
 
-  // ファイル一覧の読み込み（モード切替で遅延ロード）
+  // Explorer tree load for markdown mode
   useEffect(() => {
-    if (mode !== 'files' || !loadExplorerTree) return;
+    if (!isOpen || !loadExplorerTree) return;
     let cancelled = false;
     const run = async () => {
-      try {
-        startLoadingFiles();
-        const tree = await loadExplorerTree();
-        if (cancelled || !tree) { setFileList([]); return; }
-        const files: string[] = [];
-        const walk = (item: ExplorerItem) => {
-          if (item.type === 'file') {
-            // マークダウン以外のみ
-            if (!item.isMarkdown) files.push(item.path);
-          } else if (item.children) {
-            item.children.forEach(walk);
-          }
-        };
-        walk(tree);
-        setFileList(files.sort((a,b)=>a.localeCompare(b,'ja')));
-      } finally {
-        if (!cancelled) stopLoadingFiles();
-      }
+      const tree = await loadExplorerTree();
+      if (cancelled) return;
+      setExplorerTree(tree);
     };
     run();
     return () => { cancelled = true; };
-  }, [mode, loadExplorerTree]);
+  }, [isOpen, loadExplorerTree]);
 
-  // マップが変更された時にノード選択をリセットし、データを読み込み
+  const currentWorkspaceId = currentMapData?.mapIdentifier.workspaceId || null;
+  const workspaceTree = useMemo(() => {
+    if (!explorerTree) return null;
+    if (!currentWorkspaceId) return explorerTree; // fallback
+    const children = explorerTree.children || [];
+    const wsNode = children.find(c => c.path === `/${currentWorkspaceId}` || c.path === currentWorkspaceId);
+    return wsNode || null;
+  }, [explorerTree, currentWorkspaceId]);
+
+  // Helper: derive mapId/workspace from explorer path
+  const toMapIdFromPath = useCallback((p: string): { mapId: string | null; workspaceId: string | null } => {
+    if (!p) return { mapId: null, workspaceId: null };
+    const isWs = /^\/ws_[^/]+\//.test(p);
+    const wsId = isWs ? (p.split('/')[1] || null) : (currentWorkspaceId || null);
+    const mapId = p.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '') || null;
+    return { mapId, workspaceId: wsId };
+  }, [currentWorkspaceId]);
+
+  // Auto-select current map path when opening and expand its ancestor folders
   useEffect(() => {
-    setSelectedNodeId('');
-    
-    // 他のマップが選択された場合、そのデータを読み込む
-    if (selectedMapId && selectedMapId !== currentMapData?.mapIdentifier.mapId && onLoadMapData) {
+    if (!workspaceTree) return;
+    if (!currentMapData?.mapIdentifier.mapId) return;
+    // find markdown file whose mapId matches
+    const targetMapId = currentMapData.mapIdentifier.mapId;
+    let foundPath: string | null = null;
+    const walk = (item: ExplorerItem) => {
+      if (foundPath) return;
+      if (item.type === 'file' && item.isMarkdown && item.path) {
+        const { mapId } = toMapIdFromPath(item.path);
+        if (mapId === targetMapId) {
+          foundPath = item.path;
+          return;
+        }
+      }
+      (item.children || []).forEach(walk);
+    };
+    walk(workspaceTree);
+    const fp: string = String(foundPath || '');
+    if (fp) {
+      setSelectedExplorerPath(fp);
+      const parts = fp.split('/').filter(Boolean);
+      const ancestors: string[] = [];
+      let cur = '';
+      for (let i = 0; i < parts.length - 1; i++) {
+        cur += '/' + parts[i];
+        ancestors.push(cur);
+      }
+      setExpandedPaths(prev => {
+        const next = { ...prev };
+        ancestors.forEach(p => next[p] = true);
+        return next;
+      });
+    }
+  }, [workspaceTree, currentMapData?.mapIdentifier.mapId, toMapIdFromPath]);
+  
+
+  // マップが変更された時の読み込み（同一マップなら見出し選択は維持する）
+  useEffect(() => {
+    const currentId = currentMapData?.mapIdentifier.mapId;
+    const isDifferentMap = selectedMapId && selectedMapId !== currentId;
+
+    if (!selectedMapId) {
+      // 何も選択されていない場合のみ選択解除
+      setSelectedNodeId('');
+      setLoadedMapData(null);
+      stopLoadingMapData();
+      return;
+    }
+
+    if (isDifferentMap && onLoadMapData) {
+      // 他のマップが選択された場合のみノード選択をリセットし、読み込み
+      setSelectedNodeId('');
       startLoadingMapData();
       onLoadMapData({ mapId: selectedMapId, workspaceId: currentMapData?.mapIdentifier.workspaceId || DEFAULT_WORKSPACE_ID })
         .then(mapData => {
@@ -175,16 +230,15 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
           stopLoadingMapData();
         });
     } else {
-      // 現在のマップまたは未選択の場合はクリア
+      // 同一マップ選択時はノード選択を維持し、外部ロードはしない
       setLoadedMapData(null);
       stopLoadingMapData();
     }
   }, [selectedMapId, currentMapData?.mapIdentifier.mapId, onLoadMapData]);
 
   const handleSave = useCallback(() => {
-    if (mode === 'markdown') {
-      if (!selectedMapId) return; // 必須
-      
+    // Markdown (map) link
+    if (selectedMapId) {
       // アンカー情報を計算
       let targetAnchor: string | undefined = undefined;
       if (selectedNodeId) {
@@ -194,7 +248,6 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
           targetAnchor = selectedNode.anchorText;
         }
       }
-      
       const linkData: Partial<NodeLink> = {
         ...(link?.id && { id: link.id }),
         targetMapId: selectedMapId,
@@ -207,10 +260,19 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       onClose();
       return;
     }
-    // files mode
-    if (!selectedFilePath) return;
-    onClose();
-  }, [mode, selectedMapId, selectedNodeId, link, onSave, onClose, selectedFilePath, availableNodes]);;
+
+    // Non-Markdown file link (use url)
+    if (selectedFilePath) {
+      const linkData: Partial<NodeLink> = {
+        ...(link?.id && { id: link.id }),
+        url: selectedFilePath,
+        createdAt: link?.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+      onSave(linkData);
+      onClose();
+    }
+  }, [selectedMapId, selectedNodeId, selectedFilePath, link, onSave, onClose, availableNodes]);
 
   const handleDelete = useCallback(() => {
     if (link?.id && onDelete) {
@@ -233,6 +295,91 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
 
   if (!isOpen) return null;
 
+  const isSelfLink = useMemo(() => {
+    const currMapId = currentMapData?.mapIdentifier.mapId;
+    const currNodeId = currentNodeId || '';
+    return !!currMapId && selectedMapId === currMapId && (!!currNodeId && selectedNodeId === currNodeId);
+  }, [currentMapData?.mapIdentifier.mapId, currentNodeId, selectedMapId, selectedNodeId]);
+
+  const renderExplorer = useCallback((item: ExplorerItem) => {
+    const isFolder = item.type === 'folder';
+    const isExpanded = !!expandedPaths[item.path];
+    const hasChildren = (item.children || []).length > 0;
+    const toggle = () => {
+      setExpandedPaths(prev => ({ ...prev, [item.path]: !prev[item.path] }));
+    };
+    const onSelect = () => {
+      setSelectedExplorerPath(item.path);
+      if (item.type === 'file') {
+        if (item.isMarkdown) {
+          const { mapId } = toMapIdFromPath(item.path);
+          setSelectedMapId(mapId || '');
+          // keep current node as default selection when switching to current map
+          if (mapId === currentMapData?.mapIdentifier.mapId) {
+            setSelectedNodeId(currentNodeId || '');
+          } else {
+            setSelectedNodeId('');
+          }
+          setSelectedFilePath('');
+        } else {
+          // 非Markdownファイルはurlリンク対象
+          setSelectedMapId('');
+          setSelectedNodeId('');
+          setSelectedFilePath(item.path || '');
+        }
+      }
+    };
+    return (
+      <div key={item.path} data-path={item.path} className={`explorer-item ${selectedExplorerPath === item.path ? 'selected' : ''}`}>
+        <div className="explorer-row" onClick={isFolder ? toggle : onSelect}>
+          {isFolder && (
+            <span className="twisty">{isExpanded ? '▾' : '▸'}</span>
+          )}
+          {!isFolder && <span className="file-dot">•</span>}
+          <span className="name">{item.name}</span>
+          {!isFolder && item.isMarkdown && <span className="tag">md</span>}
+        </div>
+        {isFolder && isExpanded && hasChildren && (
+          <div className="explorer-children">
+            {(item.children || []).map(ch => renderExplorer(ch))}
+          </div>
+        )}
+      </div>
+    );
+  }, [expandedPaths, selectedExplorerPath, toMapIdFromPath, currentMapData?.mapIdentifier.mapId, currentNodeId]);
+
+  // Scroll selected explorer item into view
+  useEffect(() => {
+    const container = explorerRef.current;
+    if (!container || !selectedExplorerPath) return;
+    const el = container.querySelector(`.explorer-item[data-path="${selectedExplorerPath}"]`) as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }, [isOpen, selectedExplorerPath]);
+
+  // Ensure a heading is selected when modal opens or when nodes become available
+  useEffect(() => {
+    if (!isOpen) return;
+    if (!selectedMapId) return;
+    const nodes = availableNodes();
+    if (!nodes || nodes.length === 0) return;
+    if (!selectedNodeId) {
+      const hasCurrent = currentNodeId && nodes.some(n => n.id === currentNodeId);
+      setSelectedNodeId(hasCurrent ? (currentNodeId as string) : nodes[0].id);
+    }
+  }, [isOpen, selectedMapId, availableNodes, currentNodeId, selectedNodeId]);
+
+  // Scroll selected heading into view
+  useEffect(() => {
+    const container = headingsRef.current;
+    if (!container || !selectedNodeId) return;
+    const el = container.querySelector(`.heading-item[data-node-id="${selectedNodeId}"]`) as HTMLElement | null;
+    if (el) {
+      el.scrollIntoView({ block: 'nearest' });
+    }
+  }, [isOpen, selectedMapId, selectedNodeId]);
+
   return (
     <div
       className="modal-overlay"
@@ -247,119 +394,46 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       <div className="modal-content">
         <div className="modal-header">
           <h2>{link ? 'リンクの編集' : 'リンクの追加'}</h2>
-          <button
-            className="modal-close"
-            onClick={onClose}
-            aria-label="モーダルを閉じる"
-          >
-<X size={20} />
-          </button>
         </div>
 
         <div className="modal-body">
-          <div className="mode-toggle" role="tablist" aria-label="リンク対象の種類">
-            <button
-              type="button"
-              className={`mode-tab ${mode==='markdown'?'active':''}`}
-              onClick={() => setMode('markdown')}
-            >
-              Markdown（マップ）
-            </button>
-            <button
-              type="button"
-              className={`mode-tab ${mode==='files'?'active':''}`}
-              onClick={() => setMode('files')}
-            >
-              ファイル
-            </button>
-          </div>
-
-          {mode === 'markdown' && (
-          <div className="form-group">
-            <label htmlFor="target-map">リンク先のマップ</label>
-            <input
-              type="text"
-              placeholder="検索（パス/タイトル）"
-              value={mapQuery}
-              onChange={(e) => setMapQuery(e.target.value)}
-              style={{ marginBottom: '8px' }}
-            />
-            <select
-              id="target-map"
-              value={selectedMapId}
-              onChange={(e) => setSelectedMapId(e.target.value)}
-            >
-              <option value="">-- マップを選択 --</option>
-              {filteredMaps().map((map) => (
-                <option key={map.mapIdentifier.mapId} value={map.mapIdentifier.mapId}>
-                  {map.mapIdentifier.mapId}
-                </option>
-              ))}
-            </select>
-            <small className="field-help">
-              パス（フォルダ/ファイル）で表示しています
-            </small>
-          </div>
-          )}
-
-          {mode === 'markdown' && (
-          <div className="form-group">
-            <label htmlFor="target-node">リンク先のノード</label>
-            <select
-              id="target-node"
-              value={selectedNodeId}
-              onChange={(e) => setSelectedNodeId(e.target.value)}
-              disabled={isLoadingMapData || !selectedMapId}
-            >
-              <option value="">-- ノードを選択 --</option>
-              {availableNodes().map((node) => (
-                <option key={node.id} value={node.id}>
-                  {node.displayText}
-                </option>
-              ))}
-            </select>
-            <small className="field-help">
-              {!selectedMapId
-                ? 'まずマップを選択してください'
-                : isLoadingMapData
-                ? 'マップデータを読み込み中...'
-                : selectedMapId && selectedMapId !== currentMapData?.mapIdentifier.mapId && !loadedMapData
-                ? 'マップデータの読み込みに失敗しました'
-                : 'リンク先のノードを選択してください'
-              }
-            </small>
-          </div>
-          )}
-
-          {mode === 'files' && (
-            <>
-              <div className="form-group">
-                <label>ファイルを選択</label>
-                <input
-                  type="text"
-                  placeholder="検索（パス/ファイル名）"
-                  value={fileQuery}
-                  onChange={(e) => setFileQuery(e.target.value)}
-                  style={{ marginBottom: '8px' }}
-                />
-                <select
-                  value={selectedFilePath}
-                  onChange={(e) => setSelectedFilePath(e.target.value)}
-                  disabled={isLoadingFiles}
-                >
-                  <option value="">-- ファイルを選択 --</option>
-                  {fileList
-                    .filter(p => p.toLowerCase().includes(fileQuery.trim().toLowerCase()))
-                    .map(p => (
-                      <option key={p} value={p}>{p}</option>
-                    ))}
-                </select>
-                <small className="field-help">
-                  マークダウン以外のファイルのみ表示しています
-                </small>
+          {
+            <div className="split-container">
+              <div className="left-panel">
+                <div className="panel-title">ワークスペース</div>
+                <div className="explorer" ref={explorerRef}>
+                  {workspaceTree ? renderExplorer(workspaceTree) : (
+                    <div className="placeholder">エクスプローラーを読み込み中...</div>
+                  )}
+                </div>
               </div>
-            </>
-          )}
+              <div className="right-panel">
+                {selectedMapId ? (
+                  <>
+                    <div className="panel-title">見出し</div>
+                    <div className="headings" ref={headingsRef}>
+                      {availableNodes().map((node) => (
+                        <div
+                          key={node.id}
+                          data-node-id={node.id}
+                          className={`heading-item ${selectedNodeId === node.id ? 'active' : ''}`}
+                          onClick={() => setSelectedNodeId(node.id)}
+                        >
+                          {node.displayText}
+                        </div>
+                      ))}
+                      {availableNodes().length === 0 && (
+                        <div className="placeholder">見出しが見つかりません</div>
+                      )}
+                    </div>
+                  </>
+                ) : (
+                  <div className="placeholder">マークダウン以外は見出しを表示しません（そのまま作成できます）</div>
+                )}
+              </div>
+            </div>
+          }
+
         </div>
 
         <div className="modal-footer">
@@ -383,7 +457,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
             <button
               className="btn btn-primary"
               onClick={handleSave}
-              disabled={mode==='markdown' ? !selectedMapId : !selectedFilePath}
+              disabled={(selectedMapId ? isSelfLink : false) || (!selectedMapId && !selectedFilePath)}
             >
               {link ? '更新' : '作成'}
             </button>
@@ -408,77 +482,68 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         }
 
         .modal-content {
-          background: white;
-          border-radius: 12px;
-          box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+          background: var(--bg-primary);
+          color: var(--text-primary);
+          border-radius: 10px;
+          box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
           width: 100%;
-          max-width: 500px;
+          max-width: 860px;
           max-height: 90vh;
           overflow-y: auto;
           position: relative;
+          border: 1px solid var(--border-color);
         }
 
         .modal-header {
           display: flex;
-          justify-content: space-between;
+          justify-content: flex-start;
           align-items: center;
-          padding: 20px 24px 16px;
-          border-bottom: 1px solid #e5e7eb;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border-color);
+          background: var(--bg-secondary);
         }
 
         .modal-header h2 {
           margin: 0;
-          font-size: 18px;
+          font-size: 16px;
           font-weight: 600;
-          color: #111827;
+          color: var(--text-primary);
         }
 
-        .modal-close {
-          background: none;
-          border: none;
-          font-size: 24px;
-          cursor: pointer;
-          color: #6b7280;
-          padding: 4px;
-          border-radius: 4px;
-          transition: all 0.2s ease;
-        }
-
-        .modal-close:hover {
-          background: #f3f4f6;
-          color: #374151;
-        }
+        /* Xボタンは削除 */
 
         .modal-body {
-          padding: 20px 24px;
-        }
-
-        .mode-toggle {
-          display: flex;
-          gap: 8px;
-          margin-bottom: 12px;
-        }
-        .mode-tab {
-          padding: 6px 10px;
-          border: 1px solid #d1d5db;
-          background: #fff;
-          border-radius: 6px;
-          cursor: pointer;
-        }
-        .mode-tab.active {
-          background: #3b82f6;
-          border-color: #3b82f6;
-          color: #fff;
+          padding: 12px 16px;
         }
 
         .form-group {
           margin-bottom: 20px;
         }
 
+        .split-container { display: flex; gap: 8px; height: 400px; }
+        .left-panel { flex: 1; min-width: 240px; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-primary); }
+        .right-panel { flex: 1; min-width: 280px; border: 1px solid var(--border-color); border-radius: 6px; overflow: hidden; display: flex; flex-direction: column; background: var(--bg-primary); }
+        .panel-title { padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--text-secondary); background: var(--bg-secondary); border-bottom: 1px solid var(--border-color); }
+        .explorer { padding: 4px 6px; overflow: auto; flex: 1; }
+        .explorer-item { margin-left: 4px; }
+        .explorer-row { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 4px; cursor: pointer; }
+        .explorer-item.selected > .explorer-row { background: var(--hover-color); }
+        .explorer-row:hover { background: var(--hover-color); }
+        .twisty { width: 14px; display: inline-block; color: var(--text-secondary); }
+        .file-dot { width: 14px; display: inline-block; color: var(--text-secondary); }
+        .name { flex: 1; font-size: 13px; color: var(--text-primary); }
+        .tag { font-size: 10px; color: var(--accent-color); background: transparent; border: 1px solid var(--accent-color); padding: 0 4px; border-radius: 3px; }
+        .explorer-children { margin-left: 12px; }
+        .headings { padding: 4px 6px; overflow: auto; flex: 1; }
+        .heading-item { padding: 4px 6px; cursor: pointer; border-bottom: 1px solid var(--border-color); font-size: 13px; color: var(--text-primary); }
+        .heading-item:hover { background: var(--hover-color); }
+        .heading-item.active { background: var(--hover-color); border-left: 3px solid var(--accent-color); }
+        .placeholder { padding: 10px; color: var(--text-secondary); font-size: 13px; }
+
         .form-group label {
           display: block;
           font-weight: 500;
-          color: #374151;
+          color: var(--text-primary);
           margin-bottom: 6px;
           font-size: 14px;
         }
@@ -488,7 +553,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         .form-group select {
           width: 100%;
           padding: 10px 12px;
-          border: 1px solid #d1d5db;
+          border: 1px solid var(--border-color);
           border-radius: 6px;
           font-size: 14px;
           font-family: inherit;
@@ -500,8 +565,8 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         .form-group textarea:focus,
         .form-group select:focus {
           outline: none;
-          border-color: #3b82f6;
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+          border-color: var(--accent-color);
+          box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.2);
         }
 
         .form-group textarea {
@@ -533,7 +598,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         }
 
         .current-node-info {
-          background: #f9fafb;
+          background: var(--bg-secondary);
           border: 1px solid #e5e7eb;
           border-radius: 6px;
           padding: 12px;
@@ -543,7 +608,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         .current-node-info p {
           margin: 0 0 4px 0;
           font-size: 13px;
-          color: #374151;
+          color: var(--text-primary);
         }
 
         .current-node-info p:last-child {
@@ -555,7 +620,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
           justify-content: space-between;
           align-items: center;
           padding: 16px 24px 20px;
-          border-top: 1px solid #e5e7eb;
+          border-top: 1px solid var(--border-color);
         }
 
         .footer-left,
@@ -580,14 +645,13 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         }
 
         .btn-primary {
-          background: #3b82f6;
-          border-color: #3b82f6;
-          color: white;
+          background: var(--accent-color);
+          border-color: var(--accent-color);
+          color: #ffffff;
         }
 
         .btn-primary:hover:not(:disabled) {
-          background: #2563eb;
-          border-color: #2563eb;
+          filter: brightness(1.05);
         }
 
         .btn-primary:disabled {
@@ -596,20 +660,19 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         }
 
         .btn-secondary {
-          background: white;
-          border-color: #d1d5db;
-          color: #374151;
+          background: transparent;
+          border-color: var(--border-color);
+          color: var(--text-primary);
         }
 
         .btn-secondary:hover {
-          background: #f9fafb;
-          border-color: #9ca3af;
+          background: var(--hover-color);
         }
 
         .btn-danger {
           background: #ef4444;
           border-color: #ef4444;
-          color: white;
+          color: #ffffff;
         }
 
         .btn-danger:hover {

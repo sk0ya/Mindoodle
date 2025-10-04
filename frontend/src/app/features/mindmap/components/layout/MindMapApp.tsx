@@ -1569,6 +1569,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onSaveLink={handleSaveLink}
         onDeleteLink={handleDeleteLink}
         onLoadMapData={loadMapData}
+        loadExplorerTree={async () => explorerTree}
         showLinkActionMenu={showLinkActionMenu}
         linkActionMenuData={linkActionMenuData as any}
         onCloseLinkActionMenu={handleCloseLinkActionMenu}

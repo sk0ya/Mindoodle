@@ -2,6 +2,7 @@ import React from 'react';
 import NodeLinkModal from '../modals/NodeLinkModal';
 import LinkActionMenu from '../modals/LinkActionMenu';
 import type { NodeLink, MapIdentifier } from '@shared/types';
+import type { ExplorerItem } from '@core/types';
 
 type Props = {
   // data
@@ -16,6 +17,8 @@ type Props = {
   onSaveLink: (linkData: Partial<NodeLink>) => Promise<void> | void;
   onDeleteLink: (linkId: string) => Promise<void> | void;
   onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<any>;
+  // explorer tree provider
+  loadExplorerTree?: () => Promise<ExplorerItem | null>;
 
   // action menu state
   showLinkActionMenu: boolean;
@@ -36,6 +39,7 @@ const MindMapLinkOverlays: React.FC<Props> = ({
   onSaveLink,
   onDeleteLink,
   onLoadMapData,
+  loadExplorerTree,
   showLinkActionMenu,
   linkActionMenuData,
   onCloseLinkActionMenu,
@@ -55,7 +59,8 @@ const MindMapLinkOverlays: React.FC<Props> = ({
           availableMaps={allMaps}
           currentMapData={currentMapData}
           onLoadMapData={onLoadMapData}
-          loadExplorerTree={async () => null}
+          loadExplorerTree={loadExplorerTree}
+          currentNodeId={linkModalNodeId}
         />
       )}
 
@@ -83,4 +88,3 @@ const MindMapLinkOverlays: React.FC<Props> = ({
 };
 
 export default MindMapLinkOverlays;
-
