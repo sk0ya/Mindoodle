@@ -3,6 +3,7 @@ import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, f
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
+import { viewportService } from '@/app/core/services';
 
 interface Args {
   data: { rootNode: MindMapNode } | null;
@@ -191,8 +192,7 @@ export function useShortcutHandlers(args: Args) {
                                  document.querySelector('.workspace-container') ||
                                  document.querySelector('.mindmap-app');
 
-        let effectiveWidth = window.innerWidth;
-        let effectiveHeight = window.innerHeight;
+        let { width: effectiveWidth, height: effectiveHeight } = viewportService.getSize();
         let offsetX = 0;
         let offsetY = 0;
 

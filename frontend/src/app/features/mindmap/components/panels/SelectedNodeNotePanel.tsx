@@ -3,6 +3,7 @@ import { StickyNote } from 'lucide-react';
 import MarkdownEditor from '../../../markdown/components/MarkdownEditor';
 import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
+import { viewportService } from '@/app/core/services';
 
 type Props = {
   nodeId?: string | null;
@@ -15,7 +16,7 @@ type Props = {
 const HEIGHT_KEY = 'mindoodle_node_note_panel_height';
 
 const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
-  const [height, setHeight] = useState<number>(Math.round(window.innerHeight * 0.3));
+  const [height, setHeight] = useState<number>(viewportService.getDefaultNoteHeight());
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const { isResizing, startResizing, stopResizing } = useResizingState();
@@ -30,7 +31,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       if (raw) {
         const parsed = JSON.parse(raw);
         if (typeof parsed === 'number') {
-          const restored = Math.min(Math.max(120, parsed), Math.round(window.innerHeight * 0.8));
+          const restored = Math.min(Math.max(120, parsed), viewportService.getMaxNoteHeight());
           setHeight(restored);
         }
       }
@@ -49,7 +50,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       ev.preventDefault();
       ev.stopPropagation();
       const dy = startY - ev.clientY;
-      const next = Math.min(Math.max(120, startH + dy), Math.round(window.innerHeight * 0.9));
+      const next = Math.min(Math.max(120, startH + dy), viewportService.getMaxAllowedNoteHeight());
       setHeight(next);
     };
     const onUp = (ev: MouseEvent) => {

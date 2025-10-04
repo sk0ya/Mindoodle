@@ -5,6 +5,7 @@
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
+import { viewportService } from '@/app/core/services';
 
 // Arrow navigation command
 export const arrowNavigateCommand: Command = {
@@ -348,14 +349,13 @@ export const selectCenterNodeCommand: Command = {
       // Compute viewport rect like centerNodeInView
       const st = (useMindMapStore.getState() as any);
       const ui = st?.ui || {};
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+      const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
       const ACTIVITY_BAR_WIDTH = 48;
       const SIDEBAR_WIDTH = 280;
       const leftPanelWidth = ACTIVITY_BAR_WIDTH + (ui?.activeView && !ui?.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
       const rightPanelWidth = ui?.showNotesPanel ? (ui?.markdownPanelWidth || 0) : 0;
       const VIM_HEIGHT = 24;
-      const defaultNoteHeight = Math.round(window.innerHeight * 0.3);
+      const defaultNoteHeight = viewportService.getDefaultNoteHeight();
       const noteHeight = ui?.showNodeNotePanel ? (ui?.nodeNotePanelHeight && ui?.nodeNotePanelHeight > 0 ? ui?.nodeNotePanelHeight : defaultNoteHeight) : 0;
       const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
       const topOverlay = 0;

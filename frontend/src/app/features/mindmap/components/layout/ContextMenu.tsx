@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { viewportService } from '@/app/core/services';
 
 export interface ContextMenuItem {
   label?: string;
@@ -52,8 +53,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       // Position menu within viewport bounds
       const menu = menuRef.current;
       const rect = menu.getBoundingClientRect();
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+      const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
 
       let adjustedX = position.x;
       let adjustedY = position.y;

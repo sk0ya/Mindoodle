@@ -28,6 +28,7 @@ import MindMapProviders from './MindMapProviders';
 import { logger, statusMessages } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
+import { viewportService } from '@/app/core/services';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
 import { JumpyLabels } from "../../../vim";
 import VimStatusBar from "../VimStatusBar";
@@ -718,8 +719,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                                document.querySelector('.workspace-container') ||
                                document.querySelector('.mindmap-app');
 
-      let effectiveWidth = window.innerWidth;
-      let effectiveHeight = window.innerHeight;
+      let { width: effectiveWidth, height: effectiveHeight } = viewportService.getSize();
       let offsetX = 0;
       let offsetY = 0;
 
@@ -874,8 +874,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       : findNodeInRoots(rootNodes, nodeId);
 
     // UI状態に基づいて実際の利用可能な領域を計算
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
 
     // 左側パネル幅はUI状態から推定（固定値を使用）
     const ACTIVITY_BAR_WIDTH = 48;
@@ -888,7 +887,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     // 実際の利用可能なマップエリアを計算
     // 上端はツールバー固定高（CSSと一致させる）
     const VIM_HEIGHT = 24;
-    const defaultNoteHeight = Math.round(window.innerHeight * 0.3);
+    const defaultNoteHeight = viewportService.getDefaultNoteHeight();
     // Prefer store height, but unconditionally read DOM to avoid stale flags
     let noteHeight = uiStore.showNodeNotePanel
       ? (uiStore.nodeNotePanelHeight && uiStore.nodeNotePanelHeight > 0 ? uiStore.nodeNotePanelHeight : defaultNoteHeight)

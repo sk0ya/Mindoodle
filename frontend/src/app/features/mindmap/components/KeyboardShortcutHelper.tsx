@@ -3,6 +3,7 @@ import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { stopPropagationOnly } from '@shared/utils';
 import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
 import '@shared/styles/ui/KeyboardShortcutHelper.css';
+import { viewportService } from '@/app/core/services';
 
 interface ShortcutItem {
   keys: (string | React.ReactNode)[];
@@ -229,8 +230,7 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({ shortcut, chil
     // ツールチップの表示位置を動的に決定
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const viewportWidth = window.innerWidth;
+      const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
       const spaceAbove = rect.top;
       const spaceBelow = viewportHeight - rect.bottom;
       

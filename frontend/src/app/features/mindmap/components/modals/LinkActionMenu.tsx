@@ -1,6 +1,7 @@
 import React, { useRef, useEffect, useCallback } from 'react';
 import { Link, Edit3, Trash2 } from 'lucide-react';
 import type { NodeLink } from '@shared/types';
+import { viewportService } from '@/app/core/services';
 
 interface LinkActionMenuProps {
   isOpen: boolean;
@@ -58,8 +59,7 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
     if (!menuRef.current) return position;
 
     const menuRect = menuRef.current.getBoundingClientRect();
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
+    const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
 
     let { x, y } = position;
 
