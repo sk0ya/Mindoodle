@@ -2,7 +2,7 @@
  * グローバルイベントリスナー管理
  * 複数のコンポーネントが同じイベントを監視する場合の効率化
  */
-import { memoryManager } from './memoryManager';
+import { memoryService } from '@/app/core/services';
 import { isDevelopment } from './env';
 
 type EventHandler = (event: Event) => void;
@@ -199,7 +199,7 @@ export function useManagedEventListener(
 
 // 開発時の監視
 if (isDevelopment()) {
-  memoryManager.createManagedInterval(() => {
+  memoryService.createManagedInterval(() => {
     const status = eventManager.getStatus();
     if (status.activeListeners > 50) {
       console.warn(`⚠️ High listener count: ${status.activeListeners} active listeners`, status.listenersByEvent);
