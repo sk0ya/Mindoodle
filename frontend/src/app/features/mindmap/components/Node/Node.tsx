@@ -307,6 +307,7 @@ const Node: React.FC<NodeProps> = ({
         onLinkNavigate={onLinkNavigate}
         onStartEdit={onStartEdit}
         onMouseDown={handleMouseDown}
+        onRightClick={handleRightClick}
       />
 
       {/* 4. 選択枠線（最後に描画して最前面に） */}

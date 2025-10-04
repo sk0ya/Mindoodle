@@ -23,6 +23,7 @@ interface NodeEditorProps {
   onMouseDown?: (e: React.MouseEvent) => void; // allow drag start from text
   onDragOver?: (e: React.DragEvent) => void; // drag over text area
   onDrop?: (e: React.DragEvent) => void; // drop on text area
+  onRightClick?: (e: React.MouseEvent) => void; // context menu from text
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -41,7 +42,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onStartEdit,
   onMouseDown,
   onDragOver,
-  onDrop
+  onDrop,
+  onRightClick
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const { ui, settings, data, clearMermaidRelatedCaches } = useMindMapStore();
@@ -433,6 +435,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           }}
           onMouseDown={(e) => { e.stopPropagation(); onMouseDown?.(e); }}
           onClick={handleTextClick}
+          onContextMenu={(e) => { e.stopPropagation(); onRightClick?.(e); }}
           onDragOver={onDragOver}
           onDrop={onDrop}
         >
