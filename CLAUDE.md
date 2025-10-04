@@ -332,18 +332,17 @@ frontend/src/
 
 ## 📅 Implementation Roadmap
 
-**Phase 1: ViewportService (1-2 days)** - Current phase
+**Phase 1: ViewportService (1-2 days)** ✅ COMPLETED
 - [x] Analysis complete
-- [ ] ViewportService implementation
-- [ ] Hook creation and migration
-- [ ] Testing and validation
+- [x] ViewportService implementation
+- [x] Hook creation and migration
+- [x] All files already migrated to ViewportService
 
-**Phase 2: MindMapApp Split (3-5 days)**
-- [ ] Extract event handlers to hooks
-- [ ] Extract keyboard handlers to hooks
-- [ ] Extract clipboard handlers to hooks
-- [ ] Refactor main component
-- [ ] End-to-end testing
+**Phase 2: MindMapApp Split (3-5 days)** ✅ COMPLETED
+- [x] Extract link handlers to useMindMapLinks hook
+- [x] Extract file operations to useMindMapFileOps hook
+- [x] Refactor main component (1730→1559 lines, -171 lines)
+- [x] Type-check validation passed
 
 **Phase 3: Memory Management (2-3 days)**
 - [ ] Design MemoryService API

@@ -1,9 +1,8 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts } from '@mindmap/hooks';
+import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
 import { findNodeById, findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
-import { relPathBetweenMapIds } from '@shared/utils';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
 // Removed header; use compact top-left panel instead
@@ -19,7 +18,7 @@ import MindMapContextMenuOverlay from './MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
 import { useNotification, useErrorHandler, useGlobalErrorHandlers } from '@shared/hooks';
 import { useMarkdownSync } from '../../../markdown';
-import { resolveAnchorToNode, computeAnchorForNode } from '../../../markdown';
+import { resolveAnchorToNode } from '../../../markdown';
 import { navigateLink } from '@mindmap/utils';
 import { useAI } from '../../../ai/hooks/useAI';
 import { useTheme } from '../../../theme/hooks/useTheme';
@@ -39,7 +38,7 @@ import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 
-import type { MindMapNode, MindMapData, NodeLink, MapIdentifier } from '@shared/types';
+import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
@@ -277,58 +276,26 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     } catch { }
   }, [allMindMaps, currentMapId, selectMapById, explorerTree]);
 
-  // Now that mindMap is initialized, define folder selection handler
+  // File operations hook
+  const {
+    loadMapData,
+    onLoadRelativeImage,
+    updateMultipleMapCategories,
+    handleSelectFolder: handleSelectFolderFromHook,
+  } = useMindMapFileOps({
+    data,
+    allMindMaps,
+    mindMap,
+    showNotification,
+  });
+
+  // Wrapper for handleSelectFolder to include closeGuide/markDismissed
   const handleSelectFolder = React.useCallback(async () => {
-    try {
-      if (typeof (mindMap as any).selectRootFolder === 'function') {
-        const ok = await (mindMap as any).selectRootFolder();
-        if (ok) {
-          closeGuide();
-          markDismissed();
-        } else {
-          console.warn('selectRootFolder is not available on current adapter');
-        }
-      }
-    } catch (e) {
-      console.error('Folder selection failed:', e);
-    }
-  }, [mindMap, closeGuide, markDismissed]);
-
-  // フォルダ移動用の一括カテゴリ更新関数
-  const updateMultipleMapCategories = React.useCallback(async (mapUpdates: Array<{ id: string, category: string }>) => {
-    logger.debug('Updating multiple map categories:', mapUpdates);
-
-    if (mapUpdates.length === 0) return;
-
-    try {
-      // 一括でマップ情報を更新
-      const updatedMaps = mapUpdates.map(update => {
-        const mapToUpdate = allMindMaps.find((map: any) => map.mapIdentifier.mapId === update.id);
-        if (!mapToUpdate) return null;
-
-        return {
-          ...mapToUpdate,
-          category: update.category,
-          updatedAt: new Date().toISOString()
-        };
-      }).filter(Boolean);
-
-      logger.debug(`Batch updating ${updatedMaps.length} maps`);
-
-      // 成功後にマップリストを強制更新してUIを即座に反映
-      if (typeof (mindMap as any).refreshMapList === 'function') {
-        await (mindMap as any).refreshMapList();
-      }
-
-      logger.debug(`Successfully batch updated ${updatedMaps.length} maps`);
-    } catch (error) {
-      console.error('Failed to batch update map categories:', error);
-      // エラーが発生した場合も、可能な限り状態を同期
-      if (typeof (mindMap as any).refreshMapList === 'function') {
-        await (mindMap as any).refreshMapList();
-      }
-    }
-  }, [allMindMaps, mindMap]);
+    await handleSelectFolderFromHook(() => {
+      closeGuide();
+      markDismissed();
+    });
+  }, [handleSelectFolderFromHook, closeGuide, markDismissed]);
 
   // キーボードショートカット設定は後で定義
 
@@ -390,72 +357,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   };
 
-  // 他のマップのデータを取得する関数
-  const loadMapData = useCallback(async (mapIdentifier: MapIdentifier): Promise<MindMapData | null> => {
-    try {
-      if (data && mapIdentifier.mapId === data.mapIdentifier.mapId && mapIdentifier.workspaceId === data.mapIdentifier.workspaceId) {
-        // 現在のマップの場合はそのまま返す
-        return data;
-      }
-
-      // 他のマップのデータを読み込む
-      // 永続化フックから適切なメソッドを使用
-      const targetMap = allMindMaps.find((map: any) => map.mapIdentifier.mapId === mapIdentifier.mapId && map.mapIdentifier.workspaceId === mapIdentifier.workspaceId);
-      if (targetMap) {
-        // 既に読み込み済みのマップデータがある場合はそれを返す
-        return targetMap;
-      }
-
-      // マップが見つからない場合
-      logger.warn('指定されたマップが見つかりません:', mapIdentifier);
-      showNotification('warning', '指定されたマップが見つかりません');
-      return null;
-    } catch (error) {
-      logger.error('マップデータの読み込みに失敗:', error);
-      showNotification('error', 'マップデータの読み込みに失敗しました');
-      return null;
-    }
-  }, [data, allMindMaps, showNotification]);
-
-  // 相対パス画像を読み込む関数
-  const onLoadRelativeImage = useCallback(async (relativePath: string): Promise<string | null> => {
-    try {
-      if (typeof (mindMap as any).readImageAsDataURL !== 'function') {
-        return null;
-      }
-
-      const workspaceId = data?.mapIdentifier?.workspaceId;
-      const currentMapId = data?.mapIdentifier?.mapId || '';
-
-      // Resolve relativePath against current map directory
-      const resolvePath = (baseFilePath: string, rel: string): string => {
-        // absolute-like path inside workspace
-        if (/^\//.test(rel)) {
-          return rel.replace(/^\//, '');
-        }
-        // get base directory of current map
-        const baseDir = baseFilePath.includes('/') ? baseFilePath.replace(/\/[^/]*$/, '') : '';
-        const baseSegs = baseDir ? baseDir.split('/') : [];
-        const relSegs = rel.replace(/^\.\//, '').split('/');
-        const out: string[] = [...baseSegs];
-        for (const seg of relSegs) {
-          if (!seg || seg === '.') continue;
-          if (seg === '..') {
-            if (out.length > 0) out.pop();
-          } else {
-            out.push(seg);
-          }
-        }
-        return out.join('/');
-      };
-
-      const resolvedPath = resolvePath(currentMapId, relativePath);
-      return await (mindMap as any).readImageAsDataURL(resolvedPath, workspaceId);
-    } catch (error) {
-      console.warn('Failed to load relative image:', relativePath, error);
-      return null;
-    }
-  }, [mindMap, data]);
+  // File operations (loadMapData, onLoadRelativeImage) moved to useMindMapFileOps hook
 
   // Title editing disabled in UI (no-op removed)
 
@@ -598,104 +500,31 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     return count;
   };
 
-  // Link-related handlers
-  const handleAddLink = (nodeId: string) => {
-    // Open modal to choose target map/node, then append markdown on save
-    setEditingLink(null);
-    setLinkModalNodeId(nodeId);
-    setShowLinkModal(true);
-  };
+  // Link operations hook
+  const linkOps = useMindMapLinks({
+    data,
+    loadMapData,
+    onOpenModal: (editingLink, nodeId) => {
+      setEditingLink(editingLink);
+      setLinkModalNodeId(nodeId);
+      setShowLinkModal(true);
+    },
+    onUpdateNode: (nodeId, updates) => store.updateNode(nodeId, updates),
+    onDeleteLink: (nodeId, linkId) => store.deleteNodeLink(nodeId, linkId),
+    showNotification,
+    handleError,
+  });
 
-  const handleEditLink = (link: NodeLink, nodeId: string) => {
-    logger.debug('handleEditLink', { link, nodeId });
-    setEditingLink(link);
-    setLinkModalNodeId(nodeId);
-    setShowLinkModal(true);
-  };
-
-
+  // Wrapper functions to maintain existing interface
+  const handleAddLink = (nodeId: string) => linkOps.handleAddLink(nodeId);
+  const handleEditLink = (link: NodeLink, nodeId: string) => linkOps.handleEditLink(link, nodeId);
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {
-    if (!linkModalNodeId || !data) return;
-    try {
-      const rootNodes = data.rootNodes || [];
-      let destNode = null;
-      for (const rootNode of rootNodes) {
-        destNode = findNodeById(rootNode, linkModalNodeId);
-        if (destNode) break;
-      }
-      if (!destNode) return;
-
-      const currentMapId = data.mapIdentifier.mapId;
-      const targetMapId = linkData.targetMapId || currentMapId;
-      let label = 'リンク';
-      let href = '';
-
-
-
-      // Determine label and href
-      if (targetMapId === currentMapId) {
-        if (linkData.targetNodeId) {
-          const targetNode = findNodeInRoots(data.rootNodes || [], linkData.targetNodeId);
-          if (targetNode) {
-            label = targetNode.text || 'リンク';
-            // Use saved anchor if available, otherwise compute it
-            const anchor = linkData.targetAnchor || computeAnchorForNode(data.rootNodes?.[0], targetNode.id) || label;
-            href = `#${anchor}`;
-          }
-        } else {
-          // Current map without node → center root (no anchor)
-          label = data.title || 'このマップ';
-          href = '';
-        }
-      } else {
-        // Other map
-        const targetMap = await loadMapData({ mapId: targetMapId, workspaceId: data.mapIdentifier.workspaceId });
-        if (targetMap) {
-          if (linkData.targetNodeId) {
-            const targetRootNodes = targetMap.rootNodes || [];
-            let targetNode = null;
-            for (const rootNode of targetRootNodes) {
-              targetNode = findNodeById(rootNode, linkData.targetNodeId);
-              if (targetNode) break;
-            }
-            if (targetNode) {
-              label = targetNode.text || targetMap.title || 'リンク';
-              // Use saved anchor if available, otherwise compute it
-              const anchor = linkData.targetAnchor || computeAnchorForNode(targetMap.rootNodes?.[0], targetNode.id);
-              const rel = relPathBetweenMapIds(currentMapId, targetMap.mapIdentifier.mapId);
-              href = anchor ? `${rel}#${encodeURIComponent(anchor)}` : rel;
-            }
-          } else {
-            label = targetMap.title || 'リンク';
-            const rel = relPathBetweenMapIds(currentMapId, targetMap.mapIdentifier.mapId);
-            href = rel;
-          }
-        }
-      }
-
-      // Append to note
-      const currentNote = destNode.note || '';
-      const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
-      const linkText = href ? `[${label}](${href})` : `[${label}]`;
-      const appended = `${currentNote}${prefix}${linkText}\n`;
-      store.updateNode(linkModalNodeId, { note: appended });
-      showNotification('success', 'ノートにリンクを追加しました');
-    } catch (error) {
-      logger.error('Link save error:', error);
-      handleError(error as Error, 'リンク操作', 'リンクの保存');
-    }
-  };;
-
+    if (!linkModalNodeId) return;
+    await linkOps.handleSaveLink(linkData, linkModalNodeId);
+  };
   const handleDeleteLink = async (linkId: string) => {
     if (!linkModalNodeId) return;
-
-    try {
-      store.deleteNodeLink(linkModalNodeId, linkId);
-      showNotification('success', 'リンクを削除しました');
-    } catch (error) {
-      logger.error('Link delete error:', error);
-      handleError(error as Error, 'リンク操作', 'リンクの削除');
-    }
+    await linkOps.handleDeleteLink(linkModalNodeId, linkId);
   };
 
   // Ensure selected node remains visible with minimal pan (no centering)
