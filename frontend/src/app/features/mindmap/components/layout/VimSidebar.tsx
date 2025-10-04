@@ -35,12 +35,14 @@ const VimSidebar: React.FC = () => {
         <div className="settings-section-content" style={{ flex: 1, minHeight: 0, padding: 0 }}>
           {tab === 'mindmap' ? (
             <VimMappingsEditor
+              key="vim-mindmap"
               sourceKey={'vimMappingsSource' as any}
               leaderKey={'vimLeader' as any}
               mappingsKey={'vimCustomKeybindings' as any}
             />
           ) : (
             <VimMappingsEditor
+              key="vim-editor"
               sourceKey={'vimEditorMappingsSource' as any}
               leaderKey={'vimEditorLeader' as any}
               mappingsKey={'vimEditorCustomKeybindings' as any}

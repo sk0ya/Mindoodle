@@ -52,6 +52,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const hoveredRef = useRef(false);
   // Tracks whether Vim is currently enabled on the Monaco instance
   const [isVimEnabled, setIsVimEnabled] = useState(false);
+  // Track applied custom mappings to allow unmapping/reapply on changes
+  const appliedEditorMappingsRef = useRef<string[]>([]);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
   // Editor is controlled by `value`; no internal mirror state is needed
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -476,6 +478,59 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       // Store vim mode instance and command IDs for cleanup
       (editor as any)._vimMode = vimMode;
       (editor as any)._vimModeCommandIds = commandIds;
+
+      // Resolve Vim API from monaco-vim module or window (varies by build)
+      const resolveVimApi = (): any | null => {
+        try {
+          if ((mod as any)?.Vim) return (mod as any).Vim;
+          if ((mod as any)?.VimMode?.Vim) return (mod as any).VimMode.Vim;
+          if ((mod as any)?.default?.Vim) return (mod as any).default.Vim;
+          if ((window as any)?.Vim) return (window as any).Vim;
+          if ((window as any)?.MonacoVim?.Vim) return (window as any).MonacoVim.Vim;
+        } catch {}
+        return null;
+      };
+
+      // Apply Editor-specific Vim leader and custom mappings from settings (if Vim API is available)
+      try {
+        const Vim: any = resolveVimApi();
+        if (Vim) {
+          // Set leader
+          const leader = (settings as any).vimEditorLeader || ',';
+          Vim.mapleader = leader === ' ' ? ' ' : String(leader).slice(0, 1);
+          // Clear previously applied mappings
+          try {
+            for (const lhs of appliedEditorMappingsRef.current) {
+              try { Vim.unmap?.(lhs, 'normal'); } catch {}
+              try { Vim.unmap?.(lhs, 'visual'); } catch {}
+              try { Vim.unmap?.(lhs, 'insert'); } catch {}
+            }
+          } catch {}
+          appliedEditorMappingsRef.current = [];
+          // Apply new mappings
+          const mappings: Record<string, string> = (settings as any).vimEditorCustomKeybindings || {};
+          const expand = (s: string): string => String(s)
+            .replace(/<\s*leader\s*>/ig, Vim.mapleader || ',')
+            .replace(/<\s*space\s*>/ig, ' ');
+          const entries = Object.entries(mappings);
+          for (const [lhsRaw, rhsRaw] of entries) {
+            const lhs = expand(lhsRaw);
+            const rhs = expand(rhsRaw);
+            try {
+              // Prefer mapping in normal mode; also try visual if available
+              if (typeof Vim.map === 'function') {
+                Vim.map(lhs, rhs, 'normal');
+                appliedEditorMappingsRef.current.push(lhs);
+                try { Vim.map(lhs, rhs, 'insert'); } catch {}
+                try { Vim.map(lhs, rhs, 'visual'); } catch {}
+              }
+            } catch {}
+          }
+        } else {
+          // No Vim API found; leave Vim enabled but log once
+          try { console.warn('[MarkdownEditor] Vim API not found; editor custom mappings will not apply'); } catch {}
+        }
+      } catch {}
       return true;
     } catch (error) {
       logger.warn('Vim mode not available:', error);
@@ -499,10 +554,65 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       delete (editorRef.current as any)._vimModeCommandIds;
     }
 
+    // Attempt to unmap applied custom mappings when disabling
+    try {
+      const Vim: any = (window as any).Vim;
+      if (Vim && Array.isArray(appliedEditorMappingsRef.current)) {
+        for (const lhs of appliedEditorMappingsRef.current) {
+          try { Vim.unmap?.(lhs, 'normal'); } catch {}
+          try { Vim.unmap?.(lhs, 'visual'); } catch {}
+          try { Vim.unmap?.(lhs, 'insert'); } catch {}
+        }
+      }
+    } catch {}
+    appliedEditorMappingsRef.current = [];
+
     setIsVimEnabled(false);
   }, []);
 
   // Mode change is handled via Ctrl/Cmd+L cycling and preview key handler
+
+  // React to editor Vim mapping setting changes while Vim is enabled
+  useEffect(() => {
+    const applyMappings = async () => {
+      if (!isVimEnabled || !editorRef.current) return;
+      try {
+        const mod: any = await import('monaco-vim');
+        const Vim: any = (mod as any)?.Vim || (mod as any)?.VimMode?.Vim || (mod as any)?.default?.Vim || (window as any)?.Vim || (window as any)?.MonacoVim?.Vim;
+        if (!Vim) return;
+        // Update leader
+        const leader = (settings as any).vimEditorLeader || ',';
+        Vim.mapleader = leader === ' ' ? ' ' : String(leader).slice(0, 1);
+        // Remove previously applied mappings
+        try {
+          for (const lhs of appliedEditorMappingsRef.current) {
+            try { Vim.unmap?.(lhs, 'normal'); } catch {}
+            try { Vim.unmap?.(lhs, 'visual'); } catch {}
+            try { Vim.unmap?.(lhs, 'insert'); } catch {}
+          }
+        } catch {}
+        appliedEditorMappingsRef.current = [];
+        // Apply current mappings
+        const mappings: Record<string, string> = (settings as any).vimEditorCustomKeybindings || {};
+        const expand = (s: string): string => String(s)
+          .replace(/<\s*leader\s*>/ig, Vim.mapleader || ',')
+          .replace(/<\s*space\s*>/ig, ' ');
+        for (const [lhsRaw, rhsRaw] of Object.entries(mappings)) {
+          const lhs = expand(lhsRaw);
+          const rhs = expand(rhsRaw);
+          try {
+            if (typeof Vim.map === 'function') {
+              Vim.map(lhs, rhs, 'normal');
+              appliedEditorMappingsRef.current.push(lhs);
+              try { Vim.map(lhs, rhs, 'insert'); } catch {}
+              try { Vim.map(lhs, rhs, 'visual'); } catch {}
+            }
+          } catch {}
+        }
+      } catch {}
+    };
+    applyMappings();
+  }, [isVimEnabled, (settings as any).vimEditorLeader, (settings as any).vimEditorCustomKeybindings]);
 
   // Memoized Monaco Editor props to prevent re-renders
   const editorTheme = useMemo(() =>
