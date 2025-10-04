@@ -2,7 +2,7 @@ import React, { useRef, useCallback, useEffect, memo } from 'react';
 import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
 import NodeEditor, { isMarkdownLink, isUrl } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';
-import { calculateNodeSize, getNodeLeftX } from '@mindmap/utils/nodeUtils';
+import { calculateNodeSize, getNodeLeftX, resolveNodeTextWrapConfig } from '@mindmap/utils/nodeUtils';
 import { stopEventPropagation } from '@shared/utils';
 import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
@@ -64,6 +64,7 @@ const Node: React.FC<NodeProps> = ({
   pan,
 }) => {
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const settings = useMindMapStore((state) => state.settings);
   
   // ドラッグハンドラーを使用
   const { isDragging, handleMouseDown } = useNodeDragHandler({
@@ -238,13 +239,15 @@ const Node: React.FC<NodeProps> = ({
 
 
   // ノードのサイズ計算（共有ユーティリティ関数を使用、グローバルフォントサイズを適用）
-  const nodeSize = calculateNodeSize(node, editText, isEditing, globalFontSize);
+  const effectiveFontSize = globalFontSize ?? settings.fontSize ?? 14;
+  const wrapConfig = resolveNodeTextWrapConfig(settings, effectiveFontSize);
+  const nodeSize = calculateNodeSize(node, editText, isEditing, globalFontSize, wrapConfig);
   const nodeWidth = nodeSize.width;
   const nodeHeight = nodeSize.height;
   const imageHeight = nodeSize.imageHeight;
 
   // 非編集時のノード幅を基準とした左端位置を計算（ノードの左端位置を固定するため）
-  const baseNodeSize = calculateNodeSize(node, node.text, false, globalFontSize);
+  const baseNodeSize = calculateNodeSize(node, node.text, false, globalFontSize, wrapConfig);
   const nodeLeftX = getNodeLeftX(node, baseNodeSize.width);
 
   return (

@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
-import { findNodeById, findNodeInRoots, calculateNodeSize } from '@mindmap/utils';
+import { findNodeById, findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import { relPathBetweenMapIds } from '@shared/utils';
 import ActivityBar from './ActivityBar';
@@ -802,7 +802,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
       // Compute node size to align edges to bounds
       const fontSize = (st.settings?.fontSize ?? 14) as number;
-      const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize);
+      const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
+      const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize, wrapConfig);
       const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
       const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
 
@@ -1004,7 +1005,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
     // 通常モード: 最小パンで可視域に入れる（ノードサイズも考慮）
       const margin = 0; // 余白なし（上下左右）
-    const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, (store as any).settings?.fontSize || 14);
+    const fontSize = ((store as any).settings?.fontSize ?? 14) as number;
+    const wrapConfig = resolveNodeTextWrapConfig((store as any).settings, fontSize);
+    const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize, wrapConfig);
     const halfW = (nodeSize?.width || 80) / 2 * currentZoom;
     const halfH = (nodeSize?.height || 24) / 2 * currentZoom;
     // 現在のスクリーン座標（ノード中心）

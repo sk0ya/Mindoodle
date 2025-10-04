@@ -14,6 +14,10 @@ export interface AppSettings {
   // レイアウト設定
   nodeSpacing: number; // ノード間隔（ピクセル）
 
+  // ノードテキスト折り返し設定
+  nodeTextWrapEnabled: boolean;
+  nodeTextWrapWidth: number; // 折り返し時の最大行幅（px）
+
   // ストレージ設定
   storageMode: StorageMode; // ローカル or ローカル+クラウド
   cloudApiEndpoint?: string; // クラウドAPIエンドポイント
@@ -48,6 +52,8 @@ const DEFAULT_SETTINGS: AppSettings = {
   fontSize: 14,
   fontFamily: 'system-ui',
   nodeSpacing: 8, // デフォルトノード間隔8px
+  nodeTextWrapEnabled: true,
+  nodeTextWrapWidth: 240,
   storageMode: 'local', // デフォルトはローカルストレージ
   cloudApiEndpoint: 'https://mindoodle-backend-production.shigekazukoya.workers.dev',
   vimMindMap: true,
@@ -75,7 +81,7 @@ export const createSettingsSlice: StateCreator<
     }, 0);
 
     // レイアウトに影響する設定の場合は自動レイアウトを実行
-    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize'];
+    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize', 'nodeTextWrapEnabled', 'nodeTextWrapWidth'];
     if (layoutAffectingSettings.includes(key)) {
       setTimeout(() => {
         const state = get();
@@ -96,7 +102,7 @@ export const createSettingsSlice: StateCreator<
     }, 0);
 
     // レイアウトに影響する設定が含まれている場合は自動レイアウトを実行
-    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize'];
+    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize', 'nodeTextWrapEnabled', 'nodeTextWrapWidth'];
     const hasLayoutAffectingChanges = layoutAffectingSettings.some(setting =>
       setting in newSettings
     );

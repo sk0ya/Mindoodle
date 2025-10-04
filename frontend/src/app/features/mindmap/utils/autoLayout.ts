@@ -1,7 +1,7 @@
 // 自動レイアウト機能のユーティリティ
 import { cloneDeep } from '@shared/utils';
 import { COORDINATES, LAYOUT } from '../../../shared/constants/index';
-import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, getNodeTopY, getNodeBottomY } from './nodeUtils';
+import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig, type NodeTextWrapConfig } from './nodeUtils';
 import type { MindMapNode } from '../../../shared/types';
 
 // Layout options interfaces
@@ -11,6 +11,7 @@ interface LayoutOptions {
   levelSpacing?: number;
   nodeSpacing?: number;
   globalFontSize?: number;
+  wrapConfig?: NodeTextWrapConfig;
   // UI状態に応じた配置（サイドバー重なり回避のために使用）
   sidebarCollapsed?: boolean;
   activeView?: string | null;
@@ -30,13 +31,18 @@ const calculateDynamicCenterX = (
 /**
  * 親ノードの右端から子ノードの左端までの距離に基づいて子ノードのX座標を計算（非ルート）
  */
-const getChildNodeXFromParentEdge = (parentNode: MindMapNode, childNode: MindMapNode, globalFontSize?: number): number => {
-  const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize);
-  const childNodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
+const getChildNodeXFromParentEdge = (
+  parentNode: MindMapNode,
+  childNode: MindMapNode,
+  globalFontSize?: number,
+  wrapConfig?: NodeTextWrapConfig
+): number => {
+  const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize, wrapConfig);
+  const childNodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize, wrapConfig);
 
   // 親ノードの右端から子ノードの左端までの距離を計算
   const edgeToEdgeDistance = getDynamicNodeSpacing(parentNodeSize, childNodeSize, false);
-  return calculateChildNodeX(parentNode, childNodeSize, edgeToEdgeDistance, globalFontSize);
+  return calculateChildNodeX(parentNode, childNodeSize, edgeToEdgeDistance, globalFontSize, wrapConfig);
 };
 
 // ルート直下を特別扱いしない方針に変更
@@ -54,8 +60,12 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     centerY = COORDINATES.DEFAULT_CENTER_Y,
     levelSpacing = LAYOUT.LEVEL_SPACING,
     nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN, // 最小間隔を使用
-    globalFontSize
+    globalFontSize,
+    wrapConfig: providedWrapConfig
   } = options;
+
+  const effectiveFontSize = globalFontSize ?? 14;
+  const wrapConfig = providedWrapConfig ?? resolveNodeTextWrapConfig(undefined, effectiveFontSize);
 
   const newRootNode = cloneDeep(rootNode);
   // Place root first so children use the final root.x as baseline
@@ -64,7 +74,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
   // サブツリーの実際の高さを計算（折りたたみ状態を考慮）
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
-    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
+    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
 
     // 折りたたまれているか、子ノードがない場合は自分の高さのみ
     if (node.collapsed || !node.children || node.children.length === 0) {
@@ -103,7 +113,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
 
     // X座標の計算（ルート直下も含めて全て親基準の同一ロジック）
     if (parent) {
-      node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize);
+      node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize, wrapConfig);
     } else {
       // フォールバック: 従来の深度ベースの配置
       node.x = centerX + (depth * levelSpacing);
@@ -158,7 +168,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         let maxY = -Infinity;
 
         const calculateNodeBounds = (childNode: MindMapNode) => {
-          const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize);
+        const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize, wrapConfig);
           const nodeTop = getNodeTopY(childNode, nodeSize.height);
           const nodeBottom = getNodeBottomY(childNode, nodeSize.height);
 
@@ -223,7 +233,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       let maxY = -Infinity;
 
       const calculateNodeBounds = (node: MindMapNode) => {
-        const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize);
+        const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
         const nodeTop = getNodeTopY(node, nodeSize.height);
         const nodeBottom = getNodeBottomY(node, nodeSize.height);
 

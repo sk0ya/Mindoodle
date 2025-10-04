@@ -2,7 +2,7 @@ import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '../../../core/data/normalizedStore';
 import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../../markdown/markdownLinkUtils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
-import { stripInlineMarkdown } from '../../markdown/parseInlineMarkdown';
+import { stripInlineMarkdown, parseInlineMarkdown } from '../../markdown/parseInlineMarkdown';
 
 // アイコンレイアウト情報
 interface IconLayout {
@@ -17,6 +17,65 @@ interface NodeSize {
   width: number;
   height: number;
   imageHeight: number;
+}
+
+const NODE_TEXT_MIN_WIDTH = 160;
+const NODE_TEXT_BASE_MAX_WIDTH = 240;
+const NODE_TEXT_LINE_HEIGHT_RATIO = 1.35;
+
+export const TEXT_ICON_SPACING = 1;
+
+interface RawTextToken {
+  text: string;
+  bold?: boolean;
+  italic?: boolean;
+  strikethrough?: boolean;
+  isMarker?: boolean;
+}
+
+export interface WrappedToken extends RawTextToken {
+  width: number;
+}
+
+export interface WrappedLine {
+  tokens: WrappedToken[];
+  width: number;
+  rawText: string;
+}
+
+export interface WrapNodeTextResult {
+  lines: WrappedLine[];
+  maxLineWidth: number;
+  lineHeight: number;
+  textHeight: number;
+}
+
+export interface WrapNodeTextOptions {
+  fontSize: number;
+  fontFamily: string;
+  fontWeight: string;
+  fontStyle: string;
+  maxWidth: number;
+  prefixTokens?: RawTextToken[];
+}
+
+export interface NodeTextWrapConfig {
+  enabled: boolean;
+  maxWidth: number;
+}
+
+type NodeTextWrapSettingsLike = Partial<{
+  nodeTextWrapEnabled: boolean;
+  nodeTextWrapWidth: number;
+}>;
+
+export function resolveNodeTextWrapConfig(settings?: NodeTextWrapSettingsLike, fontSize: number = 14): NodeTextWrapConfig {
+  const enabled = settings?.nodeTextWrapEnabled !== false;
+  const width = Math.max(NODE_TEXT_MIN_WIDTH, settings?.nodeTextWrapWidth ?? getNodeTextMaxWidth(fontSize));
+  return {
+    enabled,
+    maxWidth: width
+  };
 }
 
 // Canvas要素を使用してテキストの実際の幅を測定するためのキャッシュ
@@ -121,6 +180,200 @@ function calculateTextWidthFallback(text: string): number {
   return width;
 }
 
+export function getNodeTextLineHeight(fontSize: number): number {
+  const computed = fontSize * NODE_TEXT_LINE_HEIGHT_RATIO;
+  return Math.max(computed, fontSize + 6);
+}
+
+export function getNodeTextMaxWidth(fontSize: number): number {
+  const dynamicWidth = NODE_TEXT_BASE_MAX_WIDTH + (fontSize - 14) * 12;
+  return Math.max(NODE_TEXT_MIN_WIDTH, dynamicWidth);
+}
+
+export function getNodeHorizontalPadding(textLength: number, isEditing: boolean): number {
+  if (isEditing) {
+    return 34;
+  }
+  const basePadding = 12;
+  const textLengthFactor = Math.min(textLength / 25, 1);
+  const additionalPadding = textLengthFactor * 13;
+  return basePadding + additionalPadding;
+}
+
+export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNodeTextResult {
+  const {
+    fontSize,
+    fontFamily,
+    fontWeight,
+    fontStyle,
+    maxWidth,
+    prefixTokens
+  } = options;
+
+  const effectiveMaxWidth = Math.max(20, maxWidth);
+  const lineHeight = getNodeTextLineHeight(fontSize);
+  const tokens: RawTextToken[] = [];
+
+  if (prefixTokens && prefixTokens.length > 0) {
+    tokens.push(...prefixTokens);
+  }
+
+  const baseText = (text ?? '').replace(/\r\n/g, '\n');
+  const segments = parseInlineMarkdown(baseText);
+
+  const segmentTokens: RawTextToken[] = segments.flatMap(segment => {
+    const pieces: RawTextToken[] = [];
+    const normalized = segment.text.replace(/\r\n/g, '\n');
+    const newlineSplit = normalized.split(/(\n)/);
+
+    for (const piece of newlineSplit) {
+      if (piece === '') continue;
+      if (piece === '\n') {
+        pieces.push({ text: '\n' });
+        continue;
+      }
+
+      const spaceSplit = piece.split(/(\s+)/);
+      for (const part of spaceSplit) {
+        if (!part) continue;
+        pieces.push({
+          text: part,
+          bold: segment.bold,
+          italic: segment.italic,
+          strikethrough: segment.strikethrough
+        });
+      }
+    }
+
+    return pieces;
+  });
+
+  tokens.push(...segmentTokens);
+
+  const lines: WrappedLine[] = [];
+  let currentTokens: WrappedToken[] = [];
+  let currentWidth = 0;
+
+  const measureTokenWidth = (value: string): number => {
+    if (!value) return 0;
+    return measureTextWidth(value, fontSize, fontFamily, fontWeight, fontStyle);
+  };
+
+  const pushCurrentLine = () => {
+    while (currentTokens.length > 0 && /^\s+$/.test(currentTokens[currentTokens.length - 1].text) && !currentTokens[currentTokens.length - 1].isMarker) {
+      currentWidth -= currentTokens[currentTokens.length - 1].width;
+      currentTokens.pop();
+    }
+
+    const clonedTokens = currentTokens.map(token => ({ ...token }));
+    const rawText = clonedTokens.map(token => token.text).join('');
+    lines.push({ tokens: clonedTokens, width: currentWidth, rawText });
+    currentTokens = [];
+    currentWidth = 0;
+  };
+
+  const breakTokenIfNeeded = (token: RawTextToken): WrappedToken[] => {
+    const textValue = token.text;
+    if (!textValue) {
+      return [{ ...token, width: 0 }];
+    }
+
+    const measured = measureTokenWidth(textValue);
+    if (measured <= effectiveMaxWidth) {
+      return [{ ...token, width: measured }];
+    }
+
+    const parts: WrappedToken[] = [];
+    let buffer = '';
+    for (const char of Array.from(textValue)) {
+      const tentative = buffer + char;
+      const tentativeWidth = measureTokenWidth(tentative);
+      if (tentativeWidth > effectiveMaxWidth && buffer) {
+        parts.push({ ...token, text: buffer, width: measureTokenWidth(buffer) });
+        buffer = char;
+      } else {
+        buffer = tentative;
+      }
+    }
+    if (buffer) {
+      parts.push({ ...token, text: buffer, width: measureTokenWidth(buffer) });
+    }
+    if (parts.length === 0) {
+      parts.push({ ...token, text: textValue, width: measured });
+    }
+    return parts;
+  };
+
+  for (const token of tokens) {
+    if (token.text === '\n') {
+      pushCurrentLine();
+      continue;
+    }
+
+    const brokenTokens = breakTokenIfNeeded(token);
+
+    for (const piece of brokenTokens) {
+      if (!piece.text) {
+        continue;
+      }
+      const isWhitespace = /^\s+$/.test(piece.text);
+      if (currentTokens.length === 0 && isWhitespace && !piece.isMarker) {
+        continue;
+      }
+
+      if (currentWidth + piece.width <= effectiveMaxWidth || currentTokens.length === 0) {
+        currentTokens.push(piece);
+        currentWidth += piece.width;
+      } else {
+        pushCurrentLine();
+        if (!(isWhitespace && !piece.isMarker)) {
+          currentTokens.push(piece);
+          currentWidth += piece.width;
+        }
+      }
+    }
+  }
+
+  if (currentTokens.length > 0 || lines.length === 0) {
+    pushCurrentLine();
+  }
+
+  const maxLineWidth = lines.reduce((max, line) => Math.max(max, line.width), 0);
+  const textHeight = Math.max(lineHeight, lines.length * lineHeight);
+
+  return {
+    lines,
+    maxLineWidth,
+    lineHeight,
+    textHeight
+  };
+}
+
+export function getMarkerPrefixTokens(node: MindMapNode): RawTextToken[] {
+  const meta = node.markdownMeta;
+  if (!meta) {
+    return [];
+  }
+
+  let marker = '';
+  if (meta.type === 'heading') {
+    marker = '#';
+  } else if (meta.type === 'unordered-list') {
+    marker = '-';
+  } else if (meta.type === 'ordered-list') {
+    marker = '1.';
+  }
+
+  if (!marker) {
+    return [];
+  }
+
+  return [
+    { text: marker, isMarker: true },
+    { text: ' ', isMarker: true }
+  ];
+}
+
 /**
  * ノードのアイコンレイアウトを計算
  */
@@ -151,10 +404,11 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
 }
 
 export function calculateNodeSize(
-  node: MindMapNode, 
-  editText?: string, 
+  node: MindMapNode,
+  editText?: string,
   isEditing: boolean = false,
-  globalFontSize?: number
+  globalFontSize?: number,
+  wrapConfig?: NodeTextWrapConfig
 ): NodeSize {
   // Table node sizing - 動的サイズ更新に対応
   if (node.kind === 'table') {
@@ -232,26 +486,22 @@ export function calculateNodeSize(
   }
 
   // 画像の有無とサイズを確認（添付 or ノート埋め込み画像）
-  // 添付画像は廃止。ノート内画像のみ検出
   const noteStr: string = (node as any)?.note || '';
-  const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr) );
+  const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
   const hasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
-  const hasImages = !!(hasNoteImages || hasMermaid);
-  
+  const hasImages = hasNoteImages || hasMermaid;
+
   let imageHeight = 0;
   let imageWidth = 0;
-  
+
   if (hasImages) {
-    // カスタムサイズを優先
     if (node.customImageWidth && node.customImageHeight) {
       imageWidth = node.customImageWidth;
       imageHeight = node.customImageHeight;
     } else {
-      // ノート内の<img>幅/高さを使用（最初に見つかったもの）
       let noteW: number | null = null;
       let noteH: number | null = null;
       if (noteStr) {
-        // 画像: <img>サイズ指定を反映
         const tagMatch = noteStr.match(/<img[^>]*>/i);
         if (tagMatch) {
           const tag = tagMatch[0];
@@ -261,7 +511,8 @@ export function calculateNodeSize(
             const w = parseInt(wMatch[1], 10);
             const h = parseInt(hMatch[1], 10);
             if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
-              noteW = w; noteH = h;
+              noteW = w;
+              noteH = h;
             }
           }
         }
@@ -270,138 +521,89 @@ export function calculateNodeSize(
         imageWidth = noteW;
         imageHeight = noteH;
       } else {
-        // デフォルトのコンテンツサイズを使用（画像/mermaid）
         imageWidth = 150;
         imageHeight = 105;
       }
     }
   }
-  
-  // マークダウンリンク検出関数
+
   const isMarkdownLink = (text: string): boolean => {
     const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
     return markdownLinkPattern.test(text);
   };
 
-  // マークダウンリンクから表示テキストを抽出
   const getDisplayTextFromMarkdownLink = (text: string): string => {
     const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
     return match ? match[1] : text;
   };
 
-  // 編集中は editText の長さ、非編集時は表示用の長さを使用
-  let effectiveText: string;
-  if (isEditing && editText !== undefined) {
-    effectiveText = editText;
-  } else {
-    // 非編集時：マークダウンリンクの場合は表示テキストのみ使用
-    const baseText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
-    // インラインMarkdownフォーマット記号を除去した実際の表示テキストを使用
-    effectiveText = stripInlineMarkdown(baseText);
-  }
-  
-  // フォント設定を取得
+  const resolvedEditText = editText ?? node.text;
+  const baseDisplayText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
+
+  const displayText = isEditing ? resolvedEditText : baseDisplayText;
+  const measurementText = isEditing ? resolvedEditText : stripInlineMarkdown(baseDisplayText);
+
   const fontSize = globalFontSize || node.fontSize || 14;
   const fontFamily = node.fontFamily || 'system-ui, -apple-system, sans-serif';
   const fontWeight = node.fontWeight || 'normal';
   const fontStyle = node.fontStyle || 'normal';
-  
-  // Canvas APIを使用して実際のテキスト幅を測定（マーカーを含む）
-  let actualTextWidth: number;
-  if (isEditing) {
-    // 編集中は実際のテキスト幅を計算し、最小幅を確保
-    const measuredWidth = measureTextWidth(effectiveText, fontSize, fontFamily, fontWeight, fontStyle);
-    const minWidth = fontSize * 8; // 最小8文字分の幅
-    actualTextWidth = Math.max(measuredWidth, minWidth);
-  } else {
-    // 非編集時は実際のテキスト幅を計算（マーカーを含む）
-    let displayText = effectiveText;
 
-    // マーカーがある場合は追加
-    if (node.markdownMeta) {
-      let marker = '';
-      if (node.markdownMeta.type === 'heading') {
-        marker = '# ';
-      } else if (node.markdownMeta.type === 'unordered-list') {
-        marker = '- ';
-      } else if (node.markdownMeta.type === 'ordered-list') {
-        marker = '1. ';
-      }
-      displayText = marker + effectiveText;
-    }
+  const resolvedWrap = wrapConfig ?? resolveNodeTextWrapConfig(undefined, fontSize);
+  const wrapEnabled = resolvedWrap.enabled !== false;
+  const wrapMaxWidth = wrapEnabled ? Math.max(20, resolvedWrap.maxWidth) : Number.MAX_SAFE_INTEGER;
 
-    const measuredWidth = measureTextWidth(displayText, fontSize, fontFamily, fontWeight, fontStyle);
-    const minWidth = fontSize * 2; // 最小2文字分の幅に縮小
-    actualTextWidth = Math.max(measuredWidth, minWidth);
+  const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0);
+  const ICON_WIDTH = 22;
+  const minIconWidth = hasLinks ? ICON_WIDTH : 0;
 
-    // 非常に長いテキスト（特に全角文字）に対する安全マージンを追加
-    // Canvas測定とSVGレンダリングの微小な差異を補正
-    if (displayText.length > 100) {
-      const safetyMargin = measuredWidth * 0.02; // 測定幅の2%の安全マージン
-      actualTextWidth = Math.max(measuredWidth + safetyMargin, minWidth);
-    }
-
-    // 非常に長いテキストの場合のデバッグ（開発時のみ）
-    if (displayText.length > 100 && process.env.NODE_ENV === 'development') {
-      console.log(`Long text debug - Length: ${displayText.length}, Measured: ${measuredWidth}, Font: ${fontSize}px`);
-    }
-  }
-  
-  // アイコンレイアウトに必要な最小幅を計算（リンクのみ、添付ファイル機能は廃止）
-  const noteStr2 = (node as any)?.note as string | undefined;
-  const hasLinks = hasInternalMarkdownLinks(noteStr2) || (extractExternalLinksFromMarkdown(noteStr2).length > 0);
-  const ICON_WIDTH = 22; // 実際のアイコン幅に合わせる
-
-  let minIconWidth = 0;
-  if (hasLinks) {
-    minIconWidth = ICON_WIDTH; // リンクアイコンのみ
-  }
-  
-  // チェックボックスノードの場合の幅調整
   const isCheckboxNode = node.markdownMeta?.isCheckbox;
   const checkboxSize = 16;
   const checkboxMargin = 8;
   const checkboxWidth = isCheckboxNode ? checkboxSize + checkboxMargin : 0;
 
-  // パディングを追加（左右に余白を持たせる）
-  // 編集時はinputにpadding(左右各10px) + border(各1px)があり、foreignObject自体にも内側余白(-8)を設けているため
-  // コンテンツ幅 >= 実測テキスト幅 となるように実質的な左右合計パディングを広めに確保する
-  // 非編集時：テキスト長に応じて適応的なパディングを計算（SVGテキストレンダリングの安全性確保）
-  let H_PADDING: number;
+  const paddingTextLength = displayText.length;
+  const horizontalPadding = getNodeHorizontalPadding(paddingTextLength, isEditing);
+
+  let textContentWidth = 0;
+  let textBlockHeight = Math.max(fontSize + 8, 22);
+
   if (isEditing) {
-    H_PADDING = 34; // 編集時は合計約30px + 余裕4px
+    const measuredWidth = measureTextWidth(measurementText, fontSize, fontFamily, fontWeight, fontStyle);
+    const minWidth = fontSize * 8;
+    textContentWidth = Math.max(measuredWidth, minWidth);
+    textBlockHeight = Math.max(fontSize + 8, 22);
   } else {
-    // 非編集時：基本パディング + テキスト長による適応的パディング
-    const basePadding = 12; // 基本12px（左右各6px）
-    const textLength = editText ? editText.length : node.text.length;
-    const textLengthFactor = Math.min(textLength / 25, 1); // 25文字で1倍、最大1倍
-    const additionalPadding = textLengthFactor * 13; // 最大13px追加（25px総計）
-    H_PADDING = basePadding + additionalPadding;
+    const markerTokens = getMarkerPrefixTokens(node);
+    const wrapResult = wrapNodeText(displayText, {
+      fontSize,
+      fontFamily,
+      fontWeight,
+      fontStyle,
+      maxWidth: wrapMaxWidth,
+      prefixTokens: markerTokens
+    });
+    textContentWidth = wrapResult.maxLineWidth;
+    textBlockHeight = wrapEnabled ? Math.max(wrapResult.textHeight, fontSize + 8) : Math.max(fontSize + 8, 22);
   }
-  const textBasedWidth = Math.max(actualTextWidth + H_PADDING + checkboxWidth, Math.max(fontSize * 2, 24));
-  
-  // ノードの高さは最小限に（フォントサイズ + 少しの上下パディング）
-  const baseNodeHeight = Math.max(fontSize + 8, 22); // 元の高さに戻す
-  
-  // アイコンとテキストが共存する場合の幅計算
-  let finalWidth: number;
-  
+
+  const textBasedWidth = Math.max(textContentWidth + horizontalPadding + checkboxWidth, Math.max(fontSize * 2, 24));
+  let baseNodeHeight = Math.max(fontSize + 8, 22);
+  if (!isEditing) {
+    baseNodeHeight = textBlockHeight;
+  }
+
+  const imageBasedWidth = hasImages ? imageWidth + 10 : 0;
+  let finalWidth;
+
   if (minIconWidth > 0) {
-    // アイコンがある場合：テキスト幅 + アイコン幅 + 余白を確保
-    const TEXT_ICON_SPACING = 1; // テキストとアイコンの最小間隔
     const combinedWidth = textBasedWidth + minIconWidth + TEXT_ICON_SPACING;
-    const imageBasedWidth = hasImages ? imageWidth + 10 : 0;
     finalWidth = Math.max(combinedWidth, imageBasedWidth);
   } else {
-    // アイコンがない場合：従来通り
-    const imageBasedWidth = hasImages ? imageWidth + 10 : 0;
     finalWidth = Math.max(textBasedWidth, imageBasedWidth);
   }
-  
-  const nodeWidth = finalWidth;
-  // 画像マージンはレイアウト計算に含めず、描画時のみ使用
-  const nodeHeight = baseNodeHeight + imageHeight;
 
+  const nodeWidth = finalWidth;
+  const nodeHeight = baseNodeHeight + imageHeight;
   return {
     width: nodeWidth,
     height: nodeHeight,
@@ -458,13 +660,19 @@ export function getNodeBounds(node: MindMapNode, nodeSize: NodeSize) {
   };
 }
 
-export function getToggleButtonPosition(node: MindMapNode, rootNode: MindMapNode, nodeSize?: NodeSize, globalFontSize?: number) {
+export function getToggleButtonPosition(
+  node: MindMapNode,
+  rootNode: MindMapNode,
+  nodeSize?: NodeSize,
+  globalFontSize?: number,
+  wrapConfig?: NodeTextWrapConfig
+) {
   // ルートノード自身の場合は常に右側に配置
   const isRootNodeItself = node.id === rootNode.id;
   const isOnRight = isRootNodeItself ? true : node.x > rootNode.x;
 
   // 一貫したノードサイズ計算を使用（引数で渡されない場合は内部で計算）
-  const actualNodeSize = nodeSize || calculateNodeSize(node, undefined, false, globalFontSize);
+  const actualNodeSize = nodeSize || calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
 
   // フォントサイズとノードサイズに応じた動的なマージン調整
   const fontSize = globalFontSize || 14;
@@ -537,15 +745,21 @@ export function getDynamicNodeSpacing(parentNodeSize: NodeSize, childNodeSize: N
  * 親ノードの右端から子ノードの左端までの距離に基づいて子ノードのX座標を計算
  * トグルボタンの位置を考慮して重なりを防ぐ
  */
-export function calculateChildNodeX(parentNode: MindMapNode, childNodeSize: NodeSize, edgeToEdgeDistance: number, globalFontSize?: number): number {
-  const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize);
+export function calculateChildNodeX(
+  parentNode: MindMapNode,
+  childNodeSize: NodeSize,
+  edgeToEdgeDistance: number,
+  globalFontSize?: number,
+  wrapConfig?: NodeTextWrapConfig
+): number {
+  const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize, wrapConfig);
   const parentRightEdge = getNodeRightX(parentNode, parentNodeSize.width);
 
   // 基本的な子ノード位置計算
   const basicChildLeftEdge = parentRightEdge + edgeToEdgeDistance;
 
   // トグルボタンの位置を計算（getToggleButtonPositionと同じロジック）
-  const togglePosition = getToggleButtonPosition(parentNode, parentNode, parentNodeSize, globalFontSize);
+  const togglePosition = getToggleButtonPosition(parentNode, parentNode, parentNodeSize, globalFontSize, wrapConfig);
   const toggleButtonWidth = 20; // トグルボタンの幅
   const minToggleToChildSpacing = 15; // トグルボタンと子ノードの最小間隔
   const requiredChildLeftEdge = togglePosition.x + toggleButtonWidth / 2 + minToggleToChildSpacing;

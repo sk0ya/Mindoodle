@@ -3,7 +3,7 @@ import CanvasConnections from './CanvasConnections';
 import CanvasDragGuide from './CanvasDragGuide';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
-import { calculateNodeSize } from '@mindmap/utils';
+import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
@@ -96,6 +96,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onImageClick
 }) => {
   const { settings } = useMindMapStore();
+  const wrapConfig = resolveNodeTextWrapConfig(settings, settings.fontSize);
 
 
   // SVGのwheelイベントを非passiveで設定
@@ -202,7 +203,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
             if (showLinkListForNode) {
               const targetNode = allNodes.find(node => node.id === showLinkListForNode);
               if (targetNode) {
-                const nodeSize = calculateNodeSize(targetNode, editText, editingNodeId === targetNode.id, settings.fontSize);
+                const nodeSize = calculateNodeSize(targetNode, editText, editingNodeId === targetNode.id, settings.fontSize, wrapConfig);
                 return (
                   <SelectedNodeLinkList
                     key={`link-list-${showLinkListForNode}`}

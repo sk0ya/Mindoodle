@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode, calculateNodeSize } from '@mindmap/utils';
+import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
@@ -233,8 +233,10 @@ export function useShortcutHandlers(args: Args) {
         const currentPan = ui.pan;
 
         // Edge-aware: use node visual bounds
-        const fontSize = (useMindMapStore.getState() as any)?.settings?.fontSize ?? 14;
-        const nodeSize = calculateNodeSize(node as any, undefined as any, false, fontSize);
+        const storeState = useMindMapStore.getState() as any;
+        const fontSize = storeState?.settings?.fontSize ?? 14;
+        const wrapConfig = resolveNodeTextWrapConfig(storeState?.settings, fontSize);
+        const nodeSize = calculateNodeSize(node as any, undefined as any, false, fontSize, wrapConfig);
         const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
         const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
 

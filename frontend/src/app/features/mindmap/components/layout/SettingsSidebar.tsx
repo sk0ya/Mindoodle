@@ -142,6 +142,44 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               ノード間の縦方向の間隔を設定します（1-50px）
             </div>
           </div>
+
+          <div className="settings-toggle" style={{ marginTop: '12px' }}>
+            <input
+              type="checkbox"
+              id="node-text-wrap-enabled"
+              checked={settings.nodeTextWrapEnabled}
+              onChange={(e) => handleSettingChange('nodeTextWrapEnabled', e.target.checked)}
+            />
+            <label htmlFor="node-text-wrap-enabled" className="settings-toggle-label">
+              ノードテキストの折り返し
+            </label>
+          </div>
+          <div className="settings-description">
+            長いテキストを自動的に複数行で表示します
+          </div>
+
+          {settings.nodeTextWrapEnabled && (
+            <div className="settings-input-group" style={{ marginTop: '12px' }}>
+              <label className="settings-input-label">折り返し幅 (px)</label>
+              <input
+                type="number"
+                min="120"
+                max="600"
+                value={settings.nodeTextWrapWidth}
+                onChange={(e) => {
+                  const parsed = parseInt(e.target.value, 10);
+                  const clamped = Number.isNaN(parsed)
+                    ? settings.nodeTextWrapWidth
+                    : Math.max(120, Math.min(600, parsed));
+                  handleSettingChange('nodeTextWrapWidth', clamped);
+                }}
+                className="settings-input"
+              />
+              <div className="settings-description">
+                折り返しを行う最大行幅を指定します（120-600px）
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

@@ -20,7 +20,7 @@ import {
 import { generateNodeId } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import { COLORS } from '@shared/constants';
-import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX } from '../../utils';
+import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, resolveNodeTextWrapConfig } from '../../utils';
 import type { MindMapStore } from './types';
 
 // Helper function to create new node
@@ -157,11 +157,12 @@ export const createNodeSlice: StateCreator<
         
         // Initial position: place relative to parent uniformly for all depths (root is just another parent)
         try {
-          const fontSize = state.settings?.fontSize;
-          const parentSize = calculateNodeSize(parentNode as any, undefined, false, fontSize);
-          const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize);
+          const fontSize = state.settings?.fontSize ?? 14;
+          const wrapConfig = resolveNodeTextWrapConfig(state.settings, fontSize);
+          const parentSize = calculateNodeSize(parentNode as any, undefined, false, fontSize, wrapConfig);
+          const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize, wrapConfig);
           const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
-          newNode.x = calculateChildNodeX(parentNode as any, childSize as any, edge);
+          newNode.x = calculateChildNodeX(parentNode as any, childSize as any, edge, fontSize, wrapConfig);
           newNode.y = parentNode.y; // Y is refined by autoLayout later
         } catch (_e) {
           // Fallback: overlap parent if anything goes wrong
@@ -417,12 +418,13 @@ export const createNodeSlice: StateCreator<
           
           // Initial position relative to the same parent (consistent for all depths)
           try {
-            const fontSize = state.settings?.fontSize;
+            const fontSize = state.settings?.fontSize ?? 14;
+            const wrapConfig = resolveNodeTextWrapConfig(state.settings, fontSize);
             const pNode = state.normalizedData.nodes[parentId];
-            const parentSize = calculateNodeSize(pNode as any, undefined, false, fontSize);
-            const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize);
+            const parentSize = calculateNodeSize(pNode as any, undefined, false, fontSize, wrapConfig);
+            const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize, wrapConfig);
             const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
-            newNode.x = calculateChildNodeX(pNode as any, childSize as any, edge);
+            newNode.x = calculateChildNodeX(pNode as any, childSize as any, edge, fontSize, wrapConfig);
             newNode.y = pNode.y; // Y refined later by autoLayout
           } catch (_e) {
             newNode.x = currentNode.x;

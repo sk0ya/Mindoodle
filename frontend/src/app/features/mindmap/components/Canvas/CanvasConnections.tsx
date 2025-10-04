@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import Connection from '../Connection';
-import { calculateNodeSize, getToggleButtonPosition, getBranchColor, getNodeLeftX, getNodeRightX } from '@mindmap/utils';
+import { calculateNodeSize, getToggleButtonPosition, getBranchColor, getNodeLeftX, getNodeRightX, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import type { MindMapNode, MindMapData } from '@shared/types';
 
@@ -27,6 +27,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
   onToggleCollapse
 }) => {
   const { settings, normalizedData } = useMindMapStore();
+  const wrapConfig = resolveNodeTextWrapConfig(settings, settings.fontSize);
   const connections: ConnectionData[] = [];
 
   // ノードの親を見つける関数
@@ -68,8 +69,8 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
       if (!node.collapsed) {
         if (isRootNode) {
           // ルートノードの場合もトグルボタン経由で接続
-          const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize);
-          const togglePosition = getToggleButtonPosition(node, node, nodeSize, settings.fontSize);
+          const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
+          const togglePosition = getToggleButtonPosition(node, node, nodeSize, settings.fontSize, wrapConfig);
           const toggleX = togglePosition.x;
           const toggleY = togglePosition.y;
 
@@ -94,7 +95,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           // トグルボタンから各子要素への線
           node.children.forEach((child: MindMapNode) => {
             const color = normalizedData ? getBranchColor(child.id, normalizedData, settings.edgeColorSet) : (child.color || '#666');
-            const childSize = calculateNodeSize(child, undefined, false, settings.fontSize);
+            const childSize = calculateNodeSize(child, undefined, false, settings.fontSize, wrapConfig);
             const childLeftX = getNodeLeftX(child, childSize.width);
 
             connections.push({
@@ -107,9 +108,9 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           });
         } else {
           // 非ルートノードの場合はトグルボタン経由
-          const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize);
+          const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
           const rootNodeForNode = findRootNodeForNode(node.id);
-          const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize);
+          const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize, wrapConfig);
           const toggleX = togglePosition.x;
           const toggleY = togglePosition.y;
 
@@ -137,7 +138,7 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
           // トグルボタンから各子要素への線
           node.children.forEach((child: MindMapNode) => {
             const childColor = normalizedData ? getBranchColor(child.id, normalizedData, settings.edgeColorSet) : (child.color || '#666');
-            const childSize = calculateNodeSize(child, undefined, false, settings.fontSize);
+            const childSize = calculateNodeSize(child, undefined, false, settings.fontSize, wrapConfig);
             const childLeftX = getNodeLeftX(child, childSize.width);
 
             connections.push({
@@ -150,9 +151,9 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
         }
       } else {
         // 折りたたまれている場合
-        const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize);
+        const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
         const rootNodeForNode = findRootNodeForNode(node.id);
-        const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize);
+        const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize, wrapConfig);
         const toggleX = togglePosition.x;
         const toggleY = togglePosition.y;
 

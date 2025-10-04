@@ -4,7 +4,7 @@ import { logger, LRUCache, memoryManager } from '@shared/utils';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
-import { calculateNodeSize, getNodeTopY, getNodeBottomY } from '../../utils/nodeUtils';
+import { calculateNodeSize, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig } from '../../utils/nodeUtils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
 import type { MindMapStore } from './types';
 import type { DataState } from '@shared/types/nodeTypes';
@@ -191,6 +191,8 @@ export const createDataSlice: StateCreator<
         firstNodeId: rootNodes[0]?.id
       });
 
+      const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
+
       // Memoized node size calculation using global cache
       const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
         // Include node kind and table data for proper cache invalidation of table nodes
@@ -201,7 +203,7 @@ export const createDataSlice: StateCreator<
         if (cached) {
           return cached;
         }
-        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize);
+        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize, wrapConfig);
         nodeSizeCache.set(cacheKey, size);
         return size;
       };
@@ -254,6 +256,8 @@ export const createDataSlice: StateCreator<
         return count;
       };
 
+      const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
+
       // Apply layout to each root node separately
       const layoutedRootNodes: MindMapNode[] = [];
       let previousSubtreeBottom = 0;
@@ -265,7 +269,8 @@ export const createDataSlice: StateCreator<
           globalFontSize: state.settings.fontSize,
           nodeSpacing: (state.settings as any).nodeSpacing || 8,
           sidebarCollapsed: state.ui.sidebarCollapsed,
-          activeView: state.ui.activeView
+          activeView: state.ui.activeView,
+          wrapConfig: layoutWrapConfig
         });
 
         if (!layoutedNode) continue;
@@ -407,6 +412,8 @@ export const createDataSlice: StateCreator<
         firstNodeId: rootNodes[0]?.id
       });
       
+      const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
+
       // Memoized node size calculation using global cache
       const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
         // Include node kind and table data for proper cache invalidation of table nodes
@@ -417,7 +424,7 @@ export const createDataSlice: StateCreator<
         if (cached) {
           return cached;
         }
-        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize);
+        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize, wrapConfig);
         nodeSizeCache.set(cacheKey, size);
         return size;
       };
@@ -470,6 +477,8 @@ export const createDataSlice: StateCreator<
         return count;
       };
 
+      const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
+
       // Apply layout to each root node separately
       const layoutedRootNodes: MindMapNode[] = [];
       let previousSubtreeBottom = 0;
@@ -481,7 +490,8 @@ export const createDataSlice: StateCreator<
           globalFontSize: state.settings.fontSize,
           nodeSpacing: (state.settings as any).nodeSpacing || 8,
           sidebarCollapsed: state.ui.sidebarCollapsed,
-          activeView: state.ui.activeView
+          activeView: state.ui.activeView,
+          wrapConfig: layoutWrapConfig
         });
 
         if (!layoutedNode) continue;
