@@ -208,16 +208,17 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
             <div className="preview-empty-message">読み込み中...</div>
           </div>
         ) : (
-          <MarkdownEditor
-            value={mapMarkdown}
-            onChange={handleMapMarkdownChange}
-            className={EDITOR_CLASS_NAME}
-            autoFocus={false}
-            readOnly={false}
-            onResize={handleResize}
-            onCursorLineChange={handleCursorLineChange}
-            onFocusChange={setEditorFocused}
-          />
+        <MarkdownEditor
+          value={mapMarkdown}
+          onChange={handleMapMarkdownChange}
+          className={EDITOR_CLASS_NAME}
+          autoFocus={false}
+          readOnly={false}
+          onResize={handleResize}
+          onCursorLineChange={handleCursorLineChange}
+          onFocusChange={setEditorFocused}
+          mapIdentifier={currentMapIdentifier || null}
+        />
         )}
       </div>
 

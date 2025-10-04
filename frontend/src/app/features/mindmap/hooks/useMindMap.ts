@@ -376,7 +376,8 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const readImageAsDataURL = useCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    // Resolve adapter per workspace when possible (cloud/local)
+    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
     if (adapter && typeof adapter.readImageAsDataURL === 'function') {
       return await adapter.readImageAsDataURL(relativePath, workspaceId);
     }

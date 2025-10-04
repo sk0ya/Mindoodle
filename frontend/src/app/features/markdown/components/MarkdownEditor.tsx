@@ -27,6 +27,8 @@ interface MarkdownEditorProps {
   // Cursor sync hooks
   onCursorLineChange?: (line: number) => void;
   onFocusChange?: (focused: boolean) => void;
+  // Optional context for resolving relative image paths (cloud)
+  mapIdentifier?: { mapId: string; workspaceId?: string | null } | null;
 }
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
@@ -39,7 +41,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   autoFocus = false,
   readOnly = false,
   onResize,
-  onCursorLineChange, onFocusChange
+  onCursorLineChange, onFocusChange,
+  mapIdentifier
 }) => {
   const editorRef = useRef<editor.IStandaloneCodeEditor | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -53,6 +56,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   // Editor is controlled by `value`; no internal mirror state is needed
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings, clearMermaidRelatedCaches } = useMindMapStore();
+  const cloudApiEndpoint = settings.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
 
   // Extract mermaid code blocks from markdown
   const extractMermaidBlocks = useCallback((text: string): string[] => {
@@ -205,6 +209,65 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     };
     processHtml();
   }, [previewHtml, processMermaidInHtml]);
+
+  // After HTML is rendered, resolve relative image sources for cloud workspaces
+  useEffect(() => {
+    const fn = async () => {
+      try {
+        if (!previewPaneRef.current) return;
+        if (!mapIdentifier || mapIdentifier.workspaceId !== 'cloud') return;
+
+        const container = previewPaneRef.current.querySelector('.markdown-preview') as HTMLElement | null;
+        if (!container) return;
+
+        const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
+        if (imgs.length === 0) return;
+
+        const token = (() => {
+          try { return localStorage.getItem('mindoodle-auth-token'); } catch { return null; }
+        })();
+
+        // Compute map directory from mapId (exclude last segment)
+        const parts = (mapIdentifier.mapId || '').split('/').filter(Boolean);
+        const mapDir = parts.length > 1 ? parts.slice(0, -1).join('/') + '/' : '';
+
+        for (const img of imgs) {
+          try {
+            if (!img || img.getAttribute('data-inline-loaded') === '1') continue;
+            const src = img.getAttribute('src') || '';
+            const lower = src.toLowerCase();
+            if (!src || lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('data:') || lower.startsWith('blob:')) {
+              img.setAttribute('data-inline-loaded', '1');
+              continue;
+            }
+            // Normalize relative path
+            const rel = src.replace(/^\.\/*/, '');
+            const cloudPath = `${mapDir}${rel}`.replace(/\/+/, '/');
+
+            const url = `${cloudApiEndpoint}/api/images/${encodeURIComponent(cloudPath)}`;
+            const res = await fetch(url, {
+              headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+            });
+            if (!res.ok) {
+              img.setAttribute('data-inline-loaded', '1');
+              continue;
+            }
+            const json = await res.json().catch(() => null) as any;
+            const base64 = json?.data as string | undefined;
+            const ct = json?.contentType as string | undefined;
+            if (base64 && ct) {
+              img.src = `data:${ct};base64,${base64}`;
+              img.setAttribute('data-inline-loaded', '1');
+            } else {
+              img.setAttribute('data-inline-loaded', '1');
+            }
+          } catch {}
+        }
+      } catch {}
+    };
+    // Run after DOM update
+    setTimeout(fn, 0);
+  }, [processedHtml, mapIdentifier, cloudApiEndpoint]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;

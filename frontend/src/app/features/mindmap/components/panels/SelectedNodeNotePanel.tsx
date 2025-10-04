@@ -164,6 +164,13 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     };
   }, []);
 
+  const currentMapIdentifier = (() => {
+    try {
+      const st = useMindMapStore.getState() as any;
+      return st?.data?.mapIdentifier || null;
+    } catch { return null; }
+  })();
+
   return (
     <div ref={containerRef} className="selected-node-note-panel" style={{ height, left: leftOffset, right: rightOffset }}>
       <div ref={handleRef} className={`drag-handle ${isResizing ? 'resizing' : ''}`} onMouseDown={handleResizeStart} />
@@ -186,6 +193,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
           onResize={() => {}}
           onCursorLineChange={() => {}}
           onFocusChange={() => {}}
+          mapIdentifier={currentMapIdentifier}
         />
       </div>
 

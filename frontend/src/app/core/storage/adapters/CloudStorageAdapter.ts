@@ -591,6 +591,25 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
+  // Read image and return as data URL (for rendering in <img>)
+  async readImageAsDataURL?(relativePath: string, _workspaceId?: string): Promise<string | null> {
+    if (!this.isAuthenticated) {
+      return null;
+    }
+
+    try {
+      const response = await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`);
+      if (response?.success && response?.data) {
+        const ct = response.contentType || 'image/png';
+        return `data:${ct};base64,${response.data}`;
+      }
+      return null;
+    } catch (error) {
+      logger.warn('CloudStorageAdapter: Failed to read image as data URL', error);
+      return null;
+    }
+  }
+
   async deleteImageFile?(relativePath: string, _workspaceId?: string): Promise<void> {
     if (!this.isAuthenticated) {
       throw new Error('Not authenticated');
