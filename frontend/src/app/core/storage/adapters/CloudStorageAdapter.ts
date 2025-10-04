@@ -27,6 +27,9 @@ export class CloudStorageAdapter implements StorageAdapter {
     this.baseUrl = baseUrl;
   }
 
+  // Note: Frontend sends a cloud-root-relative path (e.g., "category/Resources/file.png" or "Resources/file.png").
+  // Backend is responsible for prefixing with maps/{user}/ when persisting.
+
   get isInitialized(): boolean {
     return this._isInitialized;
   }
@@ -67,10 +70,14 @@ export class CloudStorageAdapter implements StorageAdapter {
 
   private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
     const url = `${this.baseUrl}${endpoint}`;
+    const isFormData = typeof FormData !== 'undefined' && (options.body as any) instanceof FormData;
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...((options.headers as Record<string, string>) || {})
     };
+    // Only set JSON content-type when not sending FormData and not explicitly provided
+    if (!isFormData && !('Content-Type' in headers)) {
+      headers['Content-Type'] = 'application/json';
+    }
 
     if (this.authToken) {
       headers.Authorization = `Bearer ${this.authToken}`;
@@ -82,10 +89,16 @@ export class CloudStorageAdapter implements StorageAdapter {
     });
 
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ error: 'Network error' }));
-      throw new Error(errorData.error || `HTTP ${response.status}`);
+      // Try to parse JSON error, otherwise use status text
+      let errMsg = response.statusText || 'Network error';
+      try {
+        const errorData = await response.json();
+        errMsg = errorData.error || errMsg;
+      } catch {}
+      throw new Error(errMsg || `HTTP ${response.status}`);
     }
 
+    // Default to JSON response; callers using non-JSON should not use makeRequest
     return await response.json();
   }
 
@@ -479,33 +492,71 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Convert File to base64 for JSON transfer
-      const reader = new FileReader();
-      const base64Data = await new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const result = reader.result as string;
-          // Remove data URL prefix (e.g., "data:image/png;base64,")
-          const base64 = result.split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
+      // Strategy 1: multipart/form-data (preferred)
+      const tryMultipart = async (): Promise<void> => {
+        const form = new FormData();
+        form.append('path', relativePath);
+        form.append('file', file, (file && file.name) ? file.name : 'image');
 
-      // Upload to R2 via backend API
-      await this.makeRequest('/api/images/upload', {
-        method: 'POST',
-        body: JSON.stringify({
-          path: relativePath,
-          data: base64Data,
-          contentType: file.type
-        })
-      });
+        const res = await fetch(`${this.baseUrl}/api/images/upload`, {
+          method: 'POST',
+          headers: this.authToken ? { Authorization: `Bearer ${this.authToken}` } as Record<string, string> : undefined,
+          body: form,
+        });
 
-      logger.info(`CloudStorageAdapter: Uploaded image to R2: ${relativePath}`);
+        if (!res.ok) {
+          let errMsg = res.statusText || `HTTP ${res.status}`;
+          try { const j = await res.json(); errMsg = j?.error || errMsg; } catch {}
+          const e = new Error(errMsg);
+          (e as any).status = res.status;
+          throw e;
+        }
+
+        try {
+          const j = await res.json();
+          if (j && j.success === false) {
+            throw new Error(j.error || 'Upload failed');
+          }
+        } catch {
+          // If body isn't JSON, assume OK based on status
+        }
+        logger.info(`CloudStorageAdapter: Uploaded image via multipart: ${relativePath}`);
+      };
+
+      // Strategy 2: JSON base64 (fallback)
+      const tryJsonBase64 = async (): Promise<void> => {
+        const reader = new FileReader();
+        const base64Data: string = await new Promise((resolve, reject) => {
+          reader.onload = () => {
+            try {
+              const result = reader.result as string;
+              const base64 = result.includes(',') ? result.split(',')[1] : result;
+              resolve(base64);
+            } catch (e) { reject(e); }
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
+
+        await this.makeRequest('/api/images/upload', {
+          method: 'POST',
+          body: JSON.stringify({ path: relativePath, data: base64Data, contentType: file.type || 'image/png' })
+        });
+
+        logger.info(`CloudStorageAdapter: Uploaded image via JSON base64: ${relativePath}`);
+      };
+
+      try {
+        await tryMultipart();
+      } catch (e) {
+        // If server errors on multipart, fall back to JSON base64
+        logger.warn('CloudStorageAdapter: Multipart upload failed, falling back to JSON', e);
+        await tryJsonBase64();
+      }
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to upload image', error);
-      throw error;
+      const msg = error instanceof Error ? error.message : 'Internal server error during upload';
+      throw new Error(msg);
     }
   }
 
@@ -515,7 +566,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Download from R2 via backend API
+      // Download from R2 via backend API (backend applies user prefix)
       const response = await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`);
 
       if (response.success && response.data) {

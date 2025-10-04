@@ -51,7 +51,7 @@ export interface CommandContext {
     // Clipboard operations
     copyNode: (nodeId: string) => void;
     pasteNode: (parentId: string) => Promise<void>;
-    pasteImageFromClipboard: (nodeId: string) => Promise<void>;
+    pasteImageFromClipboard: (nodeId: string, file?: File) => Promise<void>;
 
     // Undo/Redo
     undo: () => void;

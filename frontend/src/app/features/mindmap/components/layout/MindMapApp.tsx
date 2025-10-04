@@ -1170,7 +1170,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     selectNode,
     setPan,
     applyAutoLayout,
-    pasteImageFromClipboard: async (nodeId?: string) => {
+    pasteImageFromClipboard: async (nodeId?: string, fileOverride?: File) => {
       try {
         // Use provided nodeId or currently selected node
         const targetNodeId = nodeId || selectedNodeId;
@@ -1197,7 +1197,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           targetNodeId,
           storageAdapter,
           data?.mapIdentifier?.workspaceId,
-          data?.mapIdentifier?.mapId
+          data?.mapIdentifier?.mapId,
+          fileOverride
         );
 
         // Add image markdown to the end of the node's note

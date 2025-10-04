@@ -30,7 +30,7 @@ interface Args {
   selectNode: (id: string) => void;
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   applyAutoLayout?: () => void;
-  pasteImageFromClipboard: (nodeId: string) => Promise<void>;
+  pasteImageFromClipboard: (nodeId: string, file?: File) => Promise<void>;
   pasteNodeFromClipboard: (parentId: string) => Promise<void>;
   changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;

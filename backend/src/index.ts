@@ -211,30 +211,40 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const body = await request.json() as { path?: string; data?: string; contentType?: string };
-        const { path: imagePath, data, contentType } = body;
-
-        if (!imagePath || !data || !contentType) {
-          return jsonResponse({ success: false, error: 'Path, data, and contentType are required' }, 400, request);
-        }
-
+        const contentType = request.headers.get('Content-Type') || '';
         try {
-          // Convert base64 to binary
-          const binaryString = atob(data);
-          const bytes = new Uint8Array(binaryString.length);
-          for (let i = 0; i < binaryString.length; i++) {
-            bytes[i] = binaryString.charCodeAt(i);
-          }
-
-          // Upload to R2 with user-specific path
-          const r2Key = `${session.userId}/${imagePath}`;
-          await env.MAPS_BUCKET.put(r2Key, bytes, {
-            httpMetadata: {
-              contentType: contentType
+          if (contentType.includes('multipart/form-data')) {
+            // Multipart: expect 'path' and 'file'
+            const form = await (request as any).formData();
+            const imagePath = (form.get('path') as string) || '';
+            const file = form.get('file') as File | null;
+            if (!imagePath || !file) {
+              return jsonResponse({ success: false, error: 'path and file are required' }, 400, request);
             }
-          });
 
-          return jsonResponse({ success: true, path: imagePath }, 200, request);
+            const r2Key = `maps/${session.userId}/${imagePath}`;
+            const arrayBuffer = await file.arrayBuffer();
+            await env.MAPS_BUCKET.put(r2Key, arrayBuffer, {
+              httpMetadata: { contentType: (file as any).type || 'application/octet-stream' }
+            });
+            return jsonResponse({ success: true, path: imagePath }, 200, request);
+          } else {
+            // JSON base64 fallback
+            const body = await request.json() as { path?: string; data?: string; contentType?: string };
+            const { path: imagePath, data, contentType } = body;
+
+            if (!imagePath || !data || !contentType) {
+              return jsonResponse({ success: false, error: 'Path, data, and contentType are required' }, 400, request);
+            }
+
+            const binaryString = atob(data);
+            const bytes = new Uint8Array(binaryString.length);
+            for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+            const r2Key = `maps/${session.userId}/${imagePath}`;
+            await env.MAPS_BUCKET.put(r2Key, bytes, { httpMetadata: { contentType } });
+            return jsonResponse({ success: true, path: imagePath }, 200, request);
+          }
         } catch (error) {
           console.error('Image upload error:', error);
           return jsonResponse({ success: false, error: 'Failed to upload image' }, 500, request);
@@ -253,7 +263,7 @@ export default {
         }
 
         try {
-          const r2Key = `${session.userId}/${imagePath}`;
+          const r2Key = `maps/${session.userId}/${imagePath}`;
           const object = await env.MAPS_BUCKET.get(r2Key);
 
           if (!object) {
@@ -292,7 +302,7 @@ export default {
         }
 
         try {
-          const r2Key = `${session.userId}/${imagePath}`;
+          const r2Key = `maps/${session.userId}/${imagePath}`;
           await env.MAPS_BUCKET.delete(r2Key);
 
           return jsonResponse({ success: true }, 200, request);
@@ -311,12 +321,13 @@ export default {
         const directoryPath = url.searchParams.get('path') || '';
 
         try {
-          const prefix = `${session.userId}/${directoryPath}`;
+          const prefix = `maps/${session.userId}/${directoryPath}`;
           const listed = await env.MAPS_BUCKET.list({ prefix });
 
           const files = listed.objects.map(obj => {
-            // Remove user ID prefix from the key
-            return obj.key.substring(`${session.userId}/`.length);
+            // Remove maps/{userId} prefix from the key
+            const removePrefix = `maps/${session.userId}/`;
+            return obj.key.startsWith(removePrefix) ? obj.key.substring(removePrefix.length) : obj.key;
           });
 
           return jsonResponse({ success: true, files }, 200, request);

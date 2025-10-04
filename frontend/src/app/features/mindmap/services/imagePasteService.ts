@@ -1,8 +1,15 @@
 import { readClipboardImageAsFile } from '@shared/utils/clipboard';
 import { StorageAdapter } from '@core/types';
+import { WorkspaceService } from '@shared/services/WorkspaceService';
 
 export interface ImagePasteService {
-  pasteImageToNode(nodeId: string, storageAdapter: StorageAdapter, workspaceId?: string, mapId?: string): Promise<string>;
+  pasteImageToNode(
+    nodeId: string,
+    storageAdapter: StorageAdapter,
+    workspaceId?: string,
+    mapId?: string,
+    imageFileOverride?: File
+  ): Promise<string>;
 }
 
 /**
@@ -16,10 +23,16 @@ export class ImagePasteServiceImpl implements ImagePasteService {
    * @param workspaceId - Optional workspace ID
    * @returns Promise<string> - The relative path to the saved image
    */
-  async pasteImageToNode(_nodeId: string, storageAdapter: StorageAdapter, workspaceId?: string, mapId?: string): Promise<string> {
+  async pasteImageToNode(
+    _nodeId: string,
+    storageAdapter: StorageAdapter,
+    workspaceId?: string,
+    mapId?: string,
+    imageFileOverride?: File
+  ): Promise<string> {
     try {
-      // Read image from clipboard
-      const imageFile = await readClipboardImageAsFile('image');
+      // Use provided file when available, otherwise read from clipboard
+      const imageFile = imageFileOverride ?? await readClipboardImageAsFile('image');
 
       // Generate descriptive filename with timestamp
       const now = new Date();
@@ -49,13 +62,29 @@ export class ImagePasteServiceImpl implements ImagePasteService {
       }
 
       // Create full path relative to workspace: mapDirectory + Resources/filename
-      const fullImagePath = `${mapDirectory}Resources/${filename}`;
+      let fullImagePath = `${mapDirectory}Resources/${filename}`;
       // Relative path from map file: Resources/filename
       const relativeImagePath = `Resources/${filename}`;
 
-      // Save image file using storage adapter
-      if ('saveImageFile' in storageAdapter && typeof storageAdapter.saveImageFile === 'function') {
-        await (storageAdapter as any).saveImageFile(fullImagePath, imageFile, workspaceId);
+      // Resolve correct adapter for target workspace (consider cloud)
+      let usedWorkspaceSpecificAdapter = false;
+      const effectiveAdapter: any = (() => {
+        if (workspaceId) {
+          // Try to get adapter bound to the workspace (e.g., 'cloud')
+          try {
+            const wsAdapter = WorkspaceService.getInstance().getStorageAdapterForWorkspace(workspaceId);
+            if (wsAdapter) { usedWorkspaceSpecificAdapter = true; return wsAdapter; }
+          } catch {}
+        }
+        return storageAdapter as any;
+      })();
+
+      // Keep cloud path as map-relative; backend prefixes maps/{user}/
+
+      // Save image file using resolved storage adapter
+      if (effectiveAdapter && typeof effectiveAdapter.saveImageFile === 'function') {
+        const wsIdArg = usedWorkspaceSpecificAdapter ? workspaceId : undefined;
+        await effectiveAdapter.saveImageFile(fullImagePath, imageFile, wsIdArg);
       } else {
         throw new Error('Storage adapter does not support image saving');
       }

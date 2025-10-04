@@ -43,7 +43,7 @@ interface KeyboardShortcutHandlers {
   setShowKeyboardHelper: (_show: boolean) => void;
   copyNode: (_nodeId: string) => void;
   pasteNode: (_parentId: string) => Promise<void>;
-  pasteImageFromClipboard: (_nodeId: string) => Promise<void>;
+  pasteImageFromClipboard: (_nodeId: string, _file?: File) => Promise<void>;
   findNodeById: (_nodeId: string) => MindMapNode | null;
   closeAttachmentAndLinkLists: () => void;
   onMarkdownNodeType?: (_nodeId: string, _newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
@@ -125,8 +125,7 @@ function handleStandardShortcut(
         commands.execute('copy');
         return true;
       case 'v':
-        event.preventDefault();
-        commands.execute('paste');
+        // Defer paste handling to 'paste' event to support image paste
         return true;
       case 'z':
         event.preventDefault();
@@ -175,8 +174,7 @@ function handleNonVimShortcut(
         commands.execute('copy');
         return true;
       case 'v':
-        event.preventDefault();
-        commands.execute('paste');
+        // Defer paste handling to 'paste' event to support image paste
         return true;
       case 'z':
         event.preventDefault();
@@ -213,6 +211,73 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
   });
 
   useEffect(() => {
+    const handlePaste = (event: ClipboardEvent) => {
+      try {
+        // If Monaco or text inputs have focus, let them handle paste
+        const activeEl = (document.activeElement as HTMLElement | null);
+        const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
+        const isInTextInput = !!activeEl && (
+          activeEl.tagName === 'INPUT' ||
+          activeEl.tagName === 'TEXTAREA' ||
+          activeEl.contentEditable === 'true'
+        );
+        if (monacoFocused || isInTextInput) {
+          return;
+        }
+
+        // Require a selection to paste into
+        if (!handlers.selectedNodeId) return;
+
+        const dt = event.clipboardData;
+        if (!dt) return;
+
+        // Prefer image from clipboard
+        const items = dt.items || [] as any;
+        let imageItem: DataTransferItem | null = null;
+        for (let i = 0; i < items.length; i++) {
+          const it = items[i];
+          if (it && it.kind === 'file' && it.type && it.type.startsWith('image/')) {
+            imageItem = it;
+            break;
+          }
+        }
+
+        // Fallback: check files collection
+        if (!imageItem && dt.files && dt.files.length > 0) {
+          for (let i = 0; i < dt.files.length; i++) {
+            const f = dt.files[i];
+            if (f && f.type && f.type.startsWith('image/')) {
+              // Convert File to DataTransferItem-like via Blob (already a File)
+              // We will use this file directly
+              // Prevent default and handle image paste via service
+              event.preventDefault();
+              handlers.pasteImageFromClipboard(handlers.selectedNodeId, f as unknown as File);
+              return;
+            }
+          }
+        }
+
+        if (imageItem) {
+          const type = imageItem.type || 'image/png';
+          const blob = imageItem.getAsFile();
+          if (blob) {
+            event.preventDefault();
+            const ext = (type.split('/')[1] || 'png');
+            const file = new File([blob], `image-${Date.now()}.${ext}`, { type });
+            handlers.pasteImageFromClipboard(handlers.selectedNodeId, file);
+            return;
+          }
+        }
+
+        // No image detected: treat as node paste
+        event.preventDefault();
+        commands.execute('paste');
+      } catch {
+        // On any error, try to fallback to node paste to keep UX consistent
+        try { event.preventDefault(); commands.execute('paste'); } catch {}
+      }
+    };
+
     const handleKeyDown = (event: KeyboardEvent) => {
       // Strong guard: if Monaco markdown editor has focus, do not handle anything here (including Vim)
       try {
@@ -472,9 +537,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     };
 
     document.addEventListener('keydown', handleKeyDown, true);
+    document.addEventListener('paste', handlePaste, true);
 
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true);
+      document.removeEventListener('paste', handlePaste, true);
     };
   }, [handlers, vim, commands]);
 };
