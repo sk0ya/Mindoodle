@@ -441,9 +441,12 @@ export const useMindMap = (
         throw new Error('workspaceId is required for creating a map');
       }
 
-      // mapIdentifierをcategory、titleから作成（workspaceIdは含めない）
-      const mapId = category ? `${category}/${title}` : title;
-      const mapIdentifier: MapIdentifier = { mapId, workspaceId };
+      // mapIdentifier の初期値をストレージ別に決定
+      // - cloud: R2のパスとして category/title を使う（.md なし）。
+      // - local(markdown-folder): 同様に category/title を使う。
+      const desiredCategory = category || '';
+      const initialMapId = desiredCategory ? `${desiredCategory}/${title}` : title;
+      const mapIdentifier: MapIdentifier = { mapId: initialMapId, workspaceId };
 
       // adapterを通じてファイルを作成
       const adapter = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
@@ -480,6 +483,7 @@ export const useMindMap = (
 
           // selectMapByIdと同じロジックでcategoryを抽出
           const actualMapId = mapIdentifier.mapId;
+          // mapId からカテゴリを抽出
           const parts = (actualMapId || '').split('/').filter(Boolean);
           const extractedCategory = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
 

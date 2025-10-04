@@ -4,7 +4,9 @@ export class MapStorageService {
   constructor(private env: Env) {}
 
   private getMapKey(userId: string, mapId: string): string {
-    return `maps/${userId}/${mapId}.md`;
+    // Allow nested paths in mapId; ensure no leading slash and append .md
+    const clean = (mapId || '').replace(/^\/+/, '').replace(/\.+$/, '');
+    return `maps/${userId}/${clean}.md`;
   }
 
   private generateMapId(): string {
@@ -97,7 +99,7 @@ export class MapStorageService {
       const prefix = `maps/${userId}/`;
       const listed = await this.env.MAPS_BUCKET.list({ prefix });
 
-      const maps = [];
+      const maps = [] as Array<{ id: string; title: string; createdAt: string; updatedAt: string }>;
       for (const object of listed.objects) {
         // Only process .md files
         if (!object.key.endsWith('.md')) {
@@ -114,7 +116,10 @@ export class MapStorageService {
             const titleMatch = content.match(/^#\s+(.+)$/m);
             const title = titleMatch ? titleMatch[1] : 'Untitled';
 
-            const mapId = object.key.split('/').pop()?.replace('.md', '') || '';
+            // Map id is the full path relative to maps/{userId}/, without .md
+            const prefix = `maps/${userId}/`;
+            const rel = object.key.startsWith(prefix) ? object.key.substring(prefix.length) : object.key;
+            const mapId = rel.replace(/\.md$/i, '');
             maps.push({
               id: mapId,
               title,

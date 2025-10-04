@@ -881,7 +881,8 @@ const ExplorerView: React.FC<{
   // Helper function to extract category path excluding workspace folder
   const extractCategoryFromPath = (path: string): string => {
     if (!path) return '';
-    const wsMatch = path.match(/^\/?(ws_[^/]+)\/?(.*)$/);
+    // Support both local workspaces (ws_*) and cloud workspace
+    const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
     if (wsMatch) {
       return wsMatch[2] || '';
     }
@@ -1017,9 +1018,10 @@ const ExplorerView: React.FC<{
 
     const handleDragStart = (e: React.DragEvent) => {
       // Calculate relative path by removing workspace ID prefix
+      // Strip workspace prefix for both local (ws_*) and cloud
       const relativePath = item.path.startsWith('/ws_')
         ? item.path.replace(/^\/ws_[^/]+\//, '')
-        : item.path;
+        : item.path.replace(/^\/cloud\//, '');
 
       // Set the relative path for file system operations (without workspaceId prefix)
       e.dataTransfer.setData('mindoodle/path', relativePath);
@@ -1059,9 +1061,10 @@ const ExplorerView: React.FC<{
           const sourceWorkspaceId = e.dataTransfer.getData('mindoodle/workspaceId');
 
           // Calculate target relative path
+          // Calculate target relative path for both local (ws_*) and cloud
           const targetRelativePath = item.path.startsWith('/ws_')
             ? item.path.replace(/^\/ws_[^/]+\//, '')
-            : item.path;
+            : item.path.replace(/^\/cloud\//, '');
 
           if (sourcePath && sourcePath !== targetRelativePath) {
 

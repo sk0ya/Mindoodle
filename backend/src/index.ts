@@ -143,13 +143,15 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const body = await request.json() as { title?: string; content?: string };
-        const { title, content } = body;
+        const body = await request.json() as { id?: string; title?: string; content?: string };
+        const { id, title, content } = body;
         if (!title || !content) {
           return jsonResponse({ success: false, error: 'Title and content are required' }, 400, request);
         }
 
-        const result = await mapStorageService.saveMap(session.userId, null, title, content);
+        // If client specifies an id (relative path like `Folder/name`), honor it; otherwise generate an id
+        const initialId = id && id.trim() ? id.trim() : null;
+        const result = await mapStorageService.saveMap(session.userId, initialId, title, content);
         return jsonResponse(result, 200, request);
       }
 
@@ -159,7 +161,8 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const mapId = path.split('/')[3];
+        // Support nested map IDs with slashes by taking the full suffix after /api/maps/
+        const mapId = decodeURIComponent(path.substring('/api/maps/'.length));
         if (!mapId) {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
@@ -174,7 +177,7 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const mapId = path.split('/')[3];
+        const mapId = decodeURIComponent(path.substring('/api/maps/'.length));
         if (!mapId) {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
@@ -195,7 +198,7 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const mapId = path.split('/')[3];
+        const mapId = decodeURIComponent(path.substring('/api/maps/'.length));
         if (!mapId) {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }

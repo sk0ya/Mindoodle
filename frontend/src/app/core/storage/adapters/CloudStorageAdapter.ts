@@ -259,30 +259,14 @@ export class CloudStorageAdapter implements StorageAdapter {
         markdown += nodeToMarkdown(node, 0);
       });
 
-      if (map.mapIdentifier.mapId && map.mapIdentifier.mapId !== 'new') {
-        // Update existing map
-        await this.makeRequest(`/api/maps/${map.mapIdentifier.mapId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            title: map.title,
-            content: markdown
-          })
-        });
-      } else {
-        // Create new map
-        const response = await this.makeRequest('/api/maps', {
-          method: 'POST',
-          body: JSON.stringify({
-            title: map.title,
-            content: markdown
-          })
-        });
-
-        if (response.success && response.map) {
-          // Update the map identifier with the new ID from server
-          map.mapIdentifier.mapId = response.map.id;
-        }
+      const mapPath = (map.mapIdentifier.mapId || '').trim();
+      if (!mapPath || mapPath === 'new') {
+        throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
+      await this.makeRequest(`/api/maps/${mapPath}` , {
+        method: 'PUT',
+        body: JSON.stringify({ title: map.title, content: markdown })
+      });
 
       logger.info(`CloudStorageAdapter: Saved map ${map.title} to cloud`);
     } catch (error) {
@@ -297,7 +281,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      await this.makeRequest(`/api/maps/${id.mapId}`, {
+      await this.makeRequest(`/api/maps/${id.mapId}` , {
         method: 'DELETE'
       });
 
@@ -414,12 +398,13 @@ export class CloudStorageAdapter implements StorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    // Extract map ID from path: /cloud/[folders...]/mapId.md
-    const pathParts = path.split('/').filter(p => p.trim());
-    const fileName = pathParts[pathParts.length - 1];
-
-    // Remove .md extension to get map ID
-    const mapId = fileName.replace(/\.md$/, '');
+    // Extract map ID from full cloud path: /cloud/[folders...]/mapId.md
+    const clean = (path || '').replace(/^\/+/, '');
+    let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
+    // Remove leading slash if any
+    rel = rel.replace(/^\/+/, '');
+    // Remove .md extension to get full map ID including folders
+    const mapId = rel.replace(/\.md$/i, '');
 
     try {
       await this.makeRequest(`/api/maps/${mapId}`, {
@@ -477,30 +462,17 @@ export class CloudStorageAdapter implements StorageAdapter {
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1] : 'Untitled';
 
-      if (id.mapId && id.mapId !== 'new') {
-        // Update existing map
-        await this.makeRequest(`/api/maps/${id.mapId}`, {
-          method: 'PUT',
-          body: JSON.stringify({
-            title,
-            content: markdown
-          })
-        });
-      } else {
-        // Create new map
-        const response = await this.makeRequest('/api/maps', {
-          method: 'POST',
-          body: JSON.stringify({
-            title,
-            content: markdown
-          })
-        });
-
-        if (response.success && response.map) {
-          // Update the map identifier with the new ID from server
-          id.mapId = response.map.id;
-        }
+      const idPath = (id.mapId || '').trim();
+      if (!idPath || idPath === 'new') {
+        // Do not create with random server ID implicitly; require caller to provide path-like id
+        throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
+
+      // Upsert by path/id (Workers R2 put will create or overwrite)
+      await this.makeRequest(`/api/maps/${idPath}` , {
+        method: 'PUT',
+        body: JSON.stringify({ title, content: markdown })
+      });
 
       logger.info(`CloudStorageAdapter: Saved markdown for map ${id.mapId}`);
     } catch (error) {
