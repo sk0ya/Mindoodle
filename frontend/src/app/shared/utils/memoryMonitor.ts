@@ -1,4 +1,7 @@
 /**
+ * @deprecated Use `memoryService` from '@/app/core/services' instead
+ * This file is kept for backward compatibility and will be removed in a future version
+ *
  * 開発環境でのメモリ使用量監視とレポート
  * パフォーマンス問題の早期発見
  */

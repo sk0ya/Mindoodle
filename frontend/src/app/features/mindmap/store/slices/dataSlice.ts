@@ -1,6 +1,7 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapData, MindMapNode } from '@shared/types';
-import { logger, LRUCache, memoryManager } from '@shared/utils';
+import { logger, LRUCache } from '@shared/utils';
+import { memoryService } from '@/app/core/services';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
@@ -20,7 +21,7 @@ const nodeCountCache = new LRUCache<string, number>(200, 600000); // 200 items, 
 
 // Periodic cache cleanup using managed timer
 if (typeof window !== 'undefined') {
-  memoryManager.createManagedInterval(() => {
+  memoryService.createManagedInterval(() => {
     const before = {
       nodeSize: nodeSizeCache.size(),
       bounds: boundsCache.size(),
