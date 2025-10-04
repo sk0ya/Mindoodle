@@ -1,6 +1,7 @@
 import React, { memo, useEffect } from 'react';
 import CanvasConnections from './CanvasConnections';
 import CanvasDragGuide from './CanvasDragGuide';
+import InMapLinkConnections from './InMapLinkConnections';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
 import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
@@ -159,6 +160,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
             onToggleCollapse={onToggleCollapse}
           />
 
+
           <g className="nodes">
             {allNodes.map(node => (
               <Node
@@ -194,6 +196,11 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
               />
             ))}
           </g>
+
+          {/* In-map link visualization (dashed arrows) - render above nodes */}
+          {settings.visualizeInMapLinks && (
+            <InMapLinkConnections data={data} allNodes={allNodes} />
+          )}
 
           {/* アイコンクリック時の一覧表示（添付一覧は廃止） */}
           {(() => {

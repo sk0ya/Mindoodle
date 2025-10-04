@@ -34,6 +34,10 @@ export interface AppSettings {
 
   // 接続線の色設定
   edgeColorSet: string; // カラーセット名（vibrant, gentle, pastel, nord, warm, cool, monochrome, sunset）
+
+  // 表示設定
+  // マップ内のリンクを可視化（点線の矢印で表示）
+  visualizeInMapLinks: boolean;
 }
 
 export interface SettingsSlice {
@@ -61,6 +65,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   previewMode: false,
   addBlankLineAfterHeading: true, // デフォルトで見出し後に空行を追加
   edgeColorSet: 'vibrant', // デフォルトのカラーセット
+  visualizeInMapLinks: false, // デフォルトは非表示
 };
 
 export const createSettingsSlice: StateCreator<

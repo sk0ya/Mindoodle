@@ -180,6 +180,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               </div>
             </div>
           )}
+
+          <div className="settings-toggle" style={{ marginTop: '12px' }}>
+            <input
+              type="checkbox"
+              id="visualize-inmap-links"
+              checked={settings.visualizeInMapLinks}
+              onChange={(e) => handleSettingChange('visualizeInMapLinks', e.target.checked)}
+            />
+            <label htmlFor="visualize-inmap-links" className="settings-toggle-label">
+              マップ内リンクの可視化（点線の矢印）
+            </label>
+          </div>
+          <div className="settings-description">
+            同一マップ内のリンク関係を点線の矢印で表示します
+          </div>
         </div>
       </div>
 
