@@ -278,6 +278,13 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
       return [{ ...token, width: 0 }];
     }
 
+    // Do not let marker tokens consume wrapping width.
+    // This keeps the marker (e.g., "#", "-", "1.") inline with the first line
+    // without forcing a separate wrapped line just for the marker.
+    if ((token as any).isMarker) {
+      return [{ ...token, width: 0 }];
+    }
+
     const measured = measureTokenWidth(textValue);
     if (measured <= effectiveMaxWidth) {
       return [{ ...token, width: measured }];
