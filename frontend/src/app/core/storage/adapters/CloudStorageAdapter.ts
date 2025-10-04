@@ -333,42 +333,75 @@ export class CloudStorageAdapter implements StorageAdapter {
 
   async getExplorerTree?(): Promise<ExplorerItem> {
     if (!this.isAuthenticated) {
-      return {
-        type: 'folder',
-        name: 'Cloud',
-        path: '/cloud',
-        children: []
-      };
+      return { type: 'folder', name: 'Cloud', path: '/cloud', children: [] };
     }
 
     try {
-      // Load all maps to build a flat list
-      const maps = await this.loadAllMaps();
+      // Ask backend for a list of all keys under maps/{user}/ (relative paths)
+      const listResp = await this.makeRequest(`/api/images/list?path=${encodeURIComponent('')}`);
+      const keys: string[] = Array.isArray(listResp?.files) ? listResp.files : [];
 
-      const children: ExplorerItem[] = maps.map(map => ({
-        type: 'file' as const,
-        name: `${map.title}.md`,
-        path: `/cloud/${map.mapIdentifier.mapId}.md`,
-        isMarkdown: true
-      }));
+      // Build a folder/file tree from keys
+      type Node = { name: string; children?: Map<string, Node>; isFile?: boolean; path?: string; isMarkdown?: boolean };
+      const root: Node = { name: 'cloud', children: new Map() };
 
-      // Sort files alphabetically
-      children.sort((a, b) => a.name.localeCompare(b.name));
-
-      return {
-        type: 'folder',
-        name: 'Cloud',
-        path: '/cloud',
-        children
+      const ensureDir = (dir: Node, segment: string): Node => {
+        if (!dir.children) dir.children = new Map();
+        if (!dir.children.has(segment)) {
+          dir.children.set(segment, { name: segment, children: new Map() });
+        }
+        return dir.children.get(segment)!;
       };
+
+      const addFile = (dir: Node, fileName: string, fullPath: string) => {
+        if (!dir.children) dir.children = new Map();
+        dir.children.set(fileName, {
+          name: fileName,
+          isFile: true,
+          path: `/cloud/${fullPath}`,
+          isMarkdown: /\.md$/i.test(fileName)
+        });
+      };
+
+      for (const key of keys) {
+        // Skip empty or unexpected keys
+        const clean = (key || '').replace(/^\/+/, '').replace(/\/+$/, '');
+        if (!clean) continue;
+
+        const parts = clean.split('/');
+        let cursor = root;
+        for (let i = 0; i < parts.length; i++) {
+          const seg = parts[i];
+          const isLast = i === parts.length - 1;
+          if (isLast) {
+            addFile(cursor, seg, clean);
+          } else {
+            cursor = ensureDir(cursor, seg);
+          }
+        }
+      }
+
+      // Convert Node tree to ExplorerItem tree
+      const toExplorer = (node: Node, currentPath: string): ExplorerItem => {
+        if (node.isFile) {
+          return { type: 'file', name: node.name, path: node.path!, isMarkdown: node.isMarkdown } as ExplorerItem;
+        }
+        const children: ExplorerItem[] = [];
+        for (const child of (node.children?.values() || [])) {
+          children.push(toExplorer(child, currentPath ? `${currentPath}/${child.name}` : child.name));
+        }
+        // Sort: folders first by name, then files by name
+        children.sort((a, b) => {
+          if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+          return a.name.localeCompare(b.name);
+        });
+        return { type: 'folder', name: currentPath ? node.name : 'Cloud', path: currentPath ? `/cloud/${currentPath}` : '/cloud', children } as ExplorerItem;
+      };
+
+      return toExplorer(root, '');
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to build explorer tree', error);
-      return {
-        type: 'folder',
-        name: 'Cloud',
-        path: '/cloud',
-        children: []
-      };
+      return { type: 'folder', name: 'Cloud', path: '/cloud', children: [] };
     }
   }
 
