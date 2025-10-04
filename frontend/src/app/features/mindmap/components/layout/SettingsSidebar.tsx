@@ -25,9 +25,14 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const handleStorageModeChange = (mode: typeof settings.storageMode) => {
     console.log('handleStorageModeChange called with mode:', mode);
     if (mode === 'local+cloud') {
-      console.log('Creating cloud adapter for local+cloud mode');
-      // Create cloud adapter and trigger auth modal via global event
-      const adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
+      console.log('Preparing cloud adapter for local+cloud mode');
+      // Reuse a single shared adapter from WorkspaceService; create only if missing
+      const workspaceService = WorkspaceService.getInstance();
+      let adapter = workspaceService.getCloudAdapter();
+      if (!adapter) {
+        adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
+        workspaceService.setCloudAdapter(adapter);
+      }
       setCloudAdapter(adapter);
       setIsAuthModalOpen(true);
       console.log('Set cloudAdapter and isAuthModalOpen to true');

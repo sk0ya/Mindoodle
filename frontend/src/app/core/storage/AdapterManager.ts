@@ -29,21 +29,27 @@ export class AdapterManager {
     // Initialize cloud adapter if in local+cloud mode
     if (this.config.mode === 'local+cloud') {
       const workspaceService = WorkspaceService.getInstance();
-      const existingCloudAdapter = workspaceService.getCloudAdapter();
+      let existingCloudAdapter = workspaceService.getCloudAdapter();
 
-      if (existingCloudAdapter && existingCloudAdapter.isAuthenticated) {
+      if (existingCloudAdapter) {
         this.cloudAdapter = existingCloudAdapter;
-        logger.info('AdapterManager: Using existing authenticated cloud adapter');
+        // Ensure initialized once; safe if unauthenticated (no network unless token exists)
+        if (!this.cloudAdapter.isInitialized && typeof this.cloudAdapter.initialize === 'function') {
+          await this.cloudAdapter.initialize();
+        }
+        logger.info(`AdapterManager: Using existing cloud adapter (authenticated=${this.cloudAdapter.isAuthenticated})`);
       } else {
-        // Always create cloud adapter in local+cloud mode, even if not authenticated yet
+        // Create a single shared adapter and register it in WorkspaceService
         const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
         this.cloudAdapter = new CloudStorageAdapter(apiEndpoint);
+        workspaceService.setCloudAdapter(this.cloudAdapter);
         await this.cloudAdapter.initialize();
 
         // If it becomes authenticated after initialization, register it with WorkspaceService
         if (this.cloudAdapter.isAuthenticated) {
           workspaceService.addCloudWorkspace(this.cloudAdapter);
         }
+        logger.info('AdapterManager: Created and initialized shared cloud adapter');
       }
     }
 

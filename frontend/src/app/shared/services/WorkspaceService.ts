@@ -138,6 +138,15 @@ export class WorkspaceService {
     return this.cloudAdapter;
   }
 
+  // Set (or replace) the cloud adapter instance without registering a workspace.
+  // Use this to ensure a single shared adapter instance app-wide before auth.
+  setCloudAdapter(cloudAdapter: CloudStorageAdapter): void {
+    this.cloudAdapter = cloudAdapter;
+    // Do not persist or add a workspace here; that happens on successful auth.
+    this.notifyListeners();
+    logger.info('WorkspaceService: Cloud adapter reference set');
+  }
+
   // Check if user is authenticated with cloud
   isCloudAuthenticated(): boolean {
     const cloudWorkspace = this.workspaces.get('cloud');
