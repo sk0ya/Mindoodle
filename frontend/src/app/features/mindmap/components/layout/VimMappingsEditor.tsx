@@ -14,6 +14,10 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<any>(null);
   const applyTimerRef = useRef<number | null>(null);
+  // Track whether user actually edited text (to avoid overwriting settings on tab switch)
+  const isDirtyRef = useRef<boolean>(false);
+  // Suppress onDidChangeModelContent for programmatic updates (setValue)
+  const suppressChangeRef = useRef<boolean>(false);
   const applyRef = useRef<() => void>(() => {});
   // keep for future diagnostics (errors/warnings)
   const [, setStatus] = useState<{ errors: number; warnings: number }>();
@@ -127,6 +131,8 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
           // Apply leader + compiled mappings
           updateSetting(leaderKey as any, parsed.leader as any);
           updateSetting(mappingsKey as any, parsed.mappings as any);
+          // Applied successfully; clear dirty flag
+          isDirtyRef.current = false;
         } catch {
           // ignore
         }
@@ -135,6 +141,8 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
 
       const sub = editor.onDidChangeModelContent(() => {
         // debounce local timer; also flush on blur/unmount
+        if (suppressChangeRef.current) return;
+        isDirtyRef.current = true;
         if (applyTimerRef.current) window.clearTimeout(applyTimerRef.current);
         applyTimerRef.current = window.setTimeout(apply, 250);
       });
@@ -145,7 +153,10 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
           window.clearTimeout(applyTimerRef.current);
           applyTimerRef.current = null;
         }
-        apply();
+        // Only apply if user actually edited
+        if (isDirtyRef.current) {
+          apply();
+        }
       });
 
       // initial parse/apply
@@ -157,7 +168,12 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
       }, 0);
 
       // Global flush listener (used by tab switch)
-      const onFlush = () => { try { applyRef.current?.(); } catch {} };
+      const onFlush = () => {
+        try {
+          // Only flush to settings if there are pending edits
+          if (isDirtyRef.current) applyRef.current?.();
+        } catch {}
+      };
       window.addEventListener('mindoodle:vim-mapping-flush', onFlush as EventListener);
 
       return () => {
@@ -167,8 +183,9 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
           if (applyTimerRef.current) {
             window.clearTimeout(applyTimerRef.current);
             applyTimerRef.current = null;
-            apply();
           }
+          // Apply on unmount only if dirty; avoid overwriting with stale text
+          if (isDirtyRef.current) apply();
         } catch {}
         try { window.removeEventListener('mindoodle:vim-mapping-flush', onFlush as EventListener); } catch {}
         try { sub.dispose(); } catch {}
@@ -193,7 +210,13 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
         const hasFocus = ed.hasTextFocus?.() ?? false;
         // If user is actively editing (focus + pending timer), do not override
         if (current !== source && !(hasFocus && applyTimerRef.current != null)) {
-          ed.setValue(source);
+          try {
+            suppressChangeRef.current = true;
+            ed.setValue(source);
+          } finally {
+            // Let monaco emit change then re-enable
+            setTimeout(() => { suppressChangeRef.current = false; }, 0);
+          }
         }
       }
     } catch {}
