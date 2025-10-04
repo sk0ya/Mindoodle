@@ -31,6 +31,7 @@ export const createUISlice: StateCreator<
     showTutorial: false,
     showNotesPanel: false,
     showNodeNotePanel: false,
+    showVimSettingsPanel: false,
     markdownPanelWidth: 0,
     nodeNotePanelHeight: 0,
     fileMenuPosition: { x: 0, y: 0 },
@@ -128,6 +129,19 @@ export const createUISlice: StateCreator<
   setShowNodeNotePanel: (show: boolean) => {
     set((state) => {
       state.ui.showNodeNotePanel = show;
+    });
+  },
+
+  // Vim Settings Panel
+  setShowVimSettingsPanel: (show: boolean) => {
+    set((state) => {
+      (state.ui as any).showVimSettingsPanel = show;
+    });
+  },
+
+  toggleVimSettingsPanel: () => {
+    set((state) => {
+      (state.ui as any).showVimSettingsPanel = !(state.ui as any).showVimSettingsPanel;
     });
   },
 
@@ -231,6 +245,7 @@ export const createUISlice: StateCreator<
       state.ui.showFileActionMenu = false;
       state.ui.showTutorial = false;
       state.ui.showLinkListForNode = null;
+      (state.ui as any).showVimSettingsPanel = false;
       // Note: showNotesPanel は意図的に closeAllPanels から除外
       // Note: showNodeNotePanel も除外（ユーザーが明示的に閉じる）
     });

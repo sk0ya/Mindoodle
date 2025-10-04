@@ -22,6 +22,7 @@ export interface UIState {
   showTutorial: boolean;
   showNotesPanel: boolean;
   showNodeNotePanel?: boolean;
+  showVimSettingsPanel?: boolean;
 
   // Overlay dimensions (virtual state, not DOM queries)
   markdownPanelWidth?: number; // right panel width in px
@@ -85,6 +86,8 @@ export interface UIActions {
   toggleNotesPanel: () => void;
   setShowNodeNotePanel?: (show: boolean) => void;
   toggleNodeNotePanel?: () => void;
+  setShowVimSettingsPanel?: (show: boolean) => void;
+  toggleVimSettingsPanel?: () => void;
 
   // Overlay dimension setters
   setMarkdownPanelWidth?: (width: number) => void;

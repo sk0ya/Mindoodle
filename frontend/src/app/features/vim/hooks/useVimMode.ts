@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo, useEffect } from 'react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import type { MindMapNode } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
+// import { parseVimMappingsText } from '../utils/parseVimMappings';
 
 export type VimMode = 'normal' | 'insert' | 'visual' | 'command' | 'search' | 'jumpy';
 
@@ -132,7 +133,142 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     const store = useMindMapStore.getState() as any;
 
     try {
+      // Helper to rebuild editor source from current settings (editor is source of truth)
+      const rebuildMappingsSource = () => {
+        try {
+          const st = useMindMapStore.getState() as any;
+          const { vimLeader, vimCustomKeybindings, vimMappingsSource } = st.settings || {};
+          const baseSrc: string = vimMappingsSource || '';
+          const lines = (baseSrc || '').split(/\r?\n/);
+          let idx = 0;
+          while (idx < lines.length) {
+            const t = (lines[idx] || '').trim();
+            if (t === '' || t.startsWith('"')) idx++; else break;
+          }
+          const commentBlock = lines.slice(0, idx).join('\n');
+          const leaderStr = (vimLeader === ' ' ? '<Space>' : (vimLeader || ','));
+          const maps = Object.entries((vimCustomKeybindings as Record<string,string>) || {}).sort(([a],[b]) => a.localeCompare(b));
+          const body = [
+            `set leader ${leaderStr}`,
+            '',
+            ...maps.map(([k,v]) => `map ${k} ${v}`)
+          ].join('\n');
+          const rebuilt = `${commentBlock ? commentBlock + '\n' : ''}${body}\n`;
+          st.updateSetting('vimMappingsSource', rebuilt);
+        } catch {}
+      };
+
       switch (cmd) {
+        case 'set': {
+          // :set leader=,  or  :set leader ,  or :set leader <Space>
+          const [opt, rawVal] = [args[0], args[1] ?? ''];
+          if (!opt) {
+            setCommandOutput('Usage: set leader <key>');
+            break;
+          }
+          if (opt === 'leader') {
+            const valPart = rawVal || (cmd.includes('=') ? cmd.split('=')[1] : '');
+            let leader = valPart.trim();
+            if (!leader && args.length >= 1 && (args[0] || '').includes('=')) {
+              // handle `set leader=,` form parsed as single arg
+              const m = (args[0] || '').split('=');
+              leader = (m[1] || '').trim();
+            }
+            // Normalize <Space> token
+            if (/^<\s*space\s*>$/i.test(leader)) leader = ' ';
+            if (leader.length !== 1) {
+              setCommandOutput('Error: leader must be a single character or <Space>');
+              break;
+            }
+            const store = useMindMapStore.getState() as any;
+            store.updateSetting('vimLeader', leader);
+            setCommandOutput(`Leader set to "${leader === ' ' ? '<Space>' : leader}"`);
+            // Sync back into editor text
+            rebuildMappingsSource();
+          } else {
+            setCommandOutput('Unknown option. Supported: leader');
+          }
+          break;
+        }
+
+        case 'nmap':
+        case 'nnoremap':
+        case 'noremap':
+        case 'map': {
+          // :map <lhs> <command>
+          if (args.length < 2) {
+            setCommandOutput('Usage: map <lhs> <command>');
+            break;
+          }
+          const lhs = args[0];
+          const rhs = args.slice(1).join(' ');
+          if (!lhs || !rhs) {
+            setCommandOutput('Usage: map <lhs> <command>');
+            break;
+          }
+          const store = useMindMapStore.getState() as any;
+          const current: Record<string, string> = { ...(store.settings?.vimCustomKeybindings || {}) };
+          current[lhs] = rhs;
+          store.updateSetting('vimCustomKeybindings', current);
+          setCommandOutput(`Mapped ${lhs} -> ${rhs}`);
+          rebuildMappingsSource();
+          break;
+        }
+
+        case 'unmap':
+        case 'nunmap':
+        case 'unmap!': {
+          if (args.length < 1) {
+            setCommandOutput('Usage: unmap <lhs>');
+            break;
+          }
+          const lhs = args[0];
+          const store = useMindMapStore.getState() as any;
+          const current: Record<string, string> = { ...(store.settings?.vimCustomKeybindings || {}) };
+          if (lhs in current) {
+            delete current[lhs];
+            store.updateSetting('vimCustomKeybindings', current);
+            setCommandOutput(`Unmapped ${lhs}`);
+            rebuildMappingsSource();
+          } else {
+            setCommandOutput(`No mapping for ${lhs}`);
+          }
+          break;
+        }
+
+        case 'mapclear':
+        case 'unmapall': {
+          const store = useMindMapStore.getState() as any;
+          store.updateSetting('vimCustomKeybindings', {});
+          setCommandOutput('Cleared all custom mappings');
+          rebuildMappingsSource();
+          break;
+        }
+
+        case 'maps':
+        case 'maplist': {
+          const store = useMindMapStore.getState() as any;
+          const m: Record<string, string> = store.settings?.vimCustomKeybindings || {};
+          const entries = Object.entries(m);
+          if (entries.length === 0) {
+            setCommandOutput('No custom mappings');
+          } else {
+            const list = entries.map(([k,v]) => `${k} -> ${v}`).join(', ');
+            setCommandOutput(list);
+          }
+          break;
+        }
+
+        case 'mapshow': {
+          // :mapshow <lhs>
+          if (args.length < 1) { setCommandOutput('Usage: mapshow <lhs>'); break; }
+          const lhs = args[0];
+          const store = useMindMapStore.getState() as any;
+          const m: Record<string, string> = store.settings?.vimCustomKeybindings || {};
+          const rhs = m[lhs];
+          setCommandOutput(rhs ? `${lhs} -> ${rhs}` : `No mapping for ${lhs}`);
+          break;
+        }
         case 'u':
         case 'undo': {
           // Vim-style undo

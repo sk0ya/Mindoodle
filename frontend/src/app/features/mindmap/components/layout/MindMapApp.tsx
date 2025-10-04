@@ -655,6 +655,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             />
           )}
 
+          
+
           {uiStore.showNodeNotePanel && (
             <SelectedNodeNotePanel
               nodeId={selectedNodeId}

@@ -4,6 +4,7 @@ import { stopPropagationOnly } from '@shared/utils';
 import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
 import '@shared/styles/ui/KeyboardShortcutHelper.css';
 import { viewportService } from '@/app/core/services';
+import { useMindMapStore } from '../store/mindMapStore';
 
 interface ShortcutItem {
   keys: (string | React.ReactNode)[];
@@ -60,6 +61,7 @@ function formatShortcutKeys(shortcut: ShortcutDefinition): (string | React.React
 const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisible, onClose }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('all');
+  const { settings } = useMindMapStore();
 
   // Generate shortcuts from SHORTCUT_COMMANDS
   const allShortcuts: ShortcutCategory[] = useMemo(() => {
@@ -81,6 +83,22 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
       categoriesMap.get(category)!.push(item);
     });
 
+    // Append custom Vim mappings (if any)
+    const custom: Record<string,string> = (settings as any)?.vimCustomKeybindings || {};
+    const leader: string = ((settings as any)?.vimLeader && typeof (settings as any).vimLeader === 'string' && (settings as any).vimLeader.length === 1)
+      ? (settings as any).vimLeader
+      : ',';
+    const expand = (lhs: string) => lhs.replace(/<\s*leader\s*>/ig, leader).replace(/<\s*space\s*>/ig, ' ');
+    const customItems: ShortcutItem[] = Object.entries(custom).map(([lhs, cmd]) => ({
+      keys: [expand(lhs)],
+      description: `ユーザー定義: ${cmd}`,
+      context: 'Vimモード時'
+    }));
+    if (customItems.length > 0) {
+      const existing = categoriesMap.get('vim') || [];
+      categoriesMap.set('vim', [...existing, ...customItems]);
+    }
+
     // Convert to array and sort by category order
     const categoryOrder = ['vim', 'navigation', 'editing', 'application', 'ui', 'utility'];
     return categoryOrder
@@ -89,7 +107,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
         category: CATEGORY_LABELS[cat] || cat,
         items: categoriesMap.get(cat)!
       }));
-  }, []);
+  }, [settings]);
 
   // Filter shortcuts by active tab
   const shortcuts = useMemo(() => {

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Keyboard, Cloud, HardDrive } from 'lucide-react';
+import { Cloud, HardDrive } from 'lucide-react';
 import { useMindMapStore } from '../../store';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 import { WorkspaceService } from '@shared/services';
@@ -204,42 +204,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
       </div>
 
 
-      <div className="settings-section">
-        <h3 className="settings-section-title">エディタ設定</h3>
-        <div className="settings-section-content">
-          <div className="settings-toggle">
-            <input
-              type="checkbox"
-              id="vim-mindmap"
-              checked={(settings as any).vimMindMap}
-              onChange={(e) => handleSettingChange('vimMindMap' as keyof typeof settings, e.target.checked as any)}
-            />
-            <label htmlFor="vim-mindmap" className="settings-toggle-label">
-              <span className="settings-icon"><Keyboard size={16} /></span>
-              マインドマップ Vim
-            </label>
-          </div>
-          <div className="settings-description">
-            マインドマップ上での Vim ライク操作（hjkl 移動、i で編集開始など）を有効にします
-          </div>
-
-          <div className="settings-toggle" style={{ marginTop: '8px' }}>
-            <input
-              type="checkbox"
-              id="vim-editor"
-              checked={(settings as any).vimEditor}
-              onChange={(e) => handleSettingChange('vimEditor' as keyof typeof settings, e.target.checked as any)}
-            />
-            <label htmlFor="vim-editor" className="settings-toggle-label">
-              <span className="settings-icon"><Keyboard size={16} /></span>
-              エディタ Vim（Monaco）
-            </label>
-          </div>
-          <div className="settings-description">
-            右側のマークダウンエディタで Vim キーバインドを有効にします
-          </div>
-        </div>
-      </div>
+      {/* Vim editor toggles moved to Vim mappings sidebar */}
 
       <div className="settings-section">
         <h3 className="settings-section-title">マークダウン設定</h3>

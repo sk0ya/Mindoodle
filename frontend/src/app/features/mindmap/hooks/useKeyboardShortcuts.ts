@@ -396,6 +396,23 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       // Vim mode handling through command system
       if (vim && vim.isEnabled && vim.mode === 'normal') {
+        // Fetch custom vim mappings and leader dynamically
+        const { settings } = useMindMapStore.getState() as any;
+        const customMap: Record<string, string> = (settings?.vimCustomKeybindings || {}) as Record<string, string>;
+        let leader: string = (settings?.vimLeader ?? ',') as string;
+        if (typeof leader !== 'string' || leader.length !== 1) leader = ',';
+
+        // Expand tokens in LHS, currently supports <leader> and <Space>
+        const expandLhs = (lhs: string): string => {
+          let out = lhs.replace(/<\s*leader\s*>/ig, leader);
+          out = out.replace(/<\s*space\s*>/ig, ' ');
+          return out;
+        };
+
+        // Build expanded mapping table and prefix set for fast checks
+        const expandedEntries = Object.entries(customMap).map(([lhs, cmd]) => [expandLhs(lhs), cmd]) as Array<[string,string]>;
+        const expandedKeysStart = new Set(expandedEntries.map(([lhs]) => (lhs[0] || '')));
+
         // Handle Ctrl+U and Ctrl+D scroll commands, and map switching Ctrl+P/N
         if (isModifier) {
           const lower = key.toLowerCase();
@@ -470,9 +487,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           // Preserve case for letters to support uppercase commands like 'M'
           const normalizedKey = specialKeyMap[key] || key;
 
-          // Prevent browser shortcuts for vim keys
+          // Prevent browser shortcuts for vim keys and custom leader-prefixed keys
           const vimKeys = commands.getVimKeys();
-          if (vimKeys.includes(normalizedKey)) {
+          if (vimKeys.includes(normalizedKey) || expandedKeysStart.has(normalizedKey)) {
             event.preventDefault();
             event.stopPropagation();
           }
@@ -480,9 +497,41 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           // Handle special keys directly
           // No direct special key handling; fall through to sequence handling / standard shortcuts
 
-          // Handle vim sequences through command system
+          // 1) Try custom mappings first (with buffer)
           const currentBuffer = vim.commandBuffer;
           const testSequence = currentBuffer + normalizedKey;
+
+          // Check complete match
+          const complete = expandedEntries.find(([lhs]) => lhs === testSequence);
+          if (complete) {
+            const [, rhs] = complete;
+            try {
+              handlers.closeAttachmentAndLinkLists();
+              // RHS can be either a command name or a built-in vim sequence
+              const isCmd = commands.isValidCommand(rhs);
+              if (isCmd) {
+                commands.execute(rhs);
+              } else {
+                const seqRes = commands.parseVimSequence(rhs);
+                if (seqRes.isComplete && seqRes.command) {
+                  commands.executeVimCommand(seqRes.command);
+                } else {
+                  // Fallback: try executing as command anyway
+                  commands.execute(rhs);
+                }
+              }
+            } catch {}
+            vim.clearCommandBuffer();
+            return;
+          }
+          // Check partial match
+          const hasPartial = expandedEntries.some(([lhs]) => lhs.startsWith(testSequence));
+          if (hasPartial) {
+            vim.appendToCommandBuffer(normalizedKey);
+            return;
+          }
+
+          // Handle vim sequences through command system
           const result = commands.parseVimSequence(testSequence);
 
           if (result.isComplete && result.command) {

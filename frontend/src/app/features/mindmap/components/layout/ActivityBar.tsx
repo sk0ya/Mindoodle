@@ -1,5 +1,5 @@
 import React from 'react';
-import { Workflow, Search, Bot, Settings, Keyboard, Palette } from 'lucide-react';
+import { Workflow, Search, Bot, Settings, Keyboard, Palette, Command } from 'lucide-react';
 import '@shared/styles/layout/ActivityBar.css';
 
 interface ActivityBarItem {
@@ -40,6 +40,12 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
       icon: <Palette size={16} />,
       label: '色設定',
       isActive: activeView === 'colors'
+    },
+    {
+      id: 'vim',
+      icon: <Command size={16} />,
+      label: 'Vim 設定',
+      isActive: activeView === 'vim'
     },
     {
       id: 'settings',

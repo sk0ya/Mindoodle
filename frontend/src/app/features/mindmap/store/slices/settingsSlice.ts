@@ -27,6 +27,15 @@ export interface AppSettings {
   // Split Vim settings
   vimMindMap: boolean; // Mind map canvas Vim (default ON)
   vimEditor: boolean;  // Markdown editor Vim (default OFF)
+  // Vim customization
+  // Leader key and custom keybindings for Vim mode on the mind map canvas
+  vimLeader: string; // single character leader (default ',')
+  vimCustomKeybindings: Record<string, string>; // e.g. { '<leader>h': 'left' }
+  vimMappingsSource: string; // text-based mapping source (vim-like)
+  // Monaco Editor Vim mapping (separate from mind map mappings)
+  vimEditorLeader: string;
+  vimEditorCustomKeybindings: Record<string, string>;
+  vimEditorMappingsSource: string;
   previewMode: boolean;
 
   // マークダウン設定
@@ -62,6 +71,12 @@ const DEFAULT_SETTINGS: AppSettings = {
   cloudApiEndpoint: 'https://mindoodle-backend-production.shigekazukoya.workers.dev',
   vimMindMap: true,
   vimEditor: false,
+  vimLeader: ',',
+  vimCustomKeybindings: {},
+  vimMappingsSource: `" Vim-style mappings for Mindoodle\n" Lines starting with '"' are comments.\n\nset leader ,\n\n" Examples:\n" map <leader>h left\n" map <leader>j down\n" map <leader>k up\n" map <leader>l right\n` ,
+  vimEditorLeader: ',',
+  vimEditorCustomKeybindings: {},
+  vimEditorMappingsSource: `" Vim-style mappings for Monaco editor (experimental)\nset leader ,\n` ,
   previewMode: false,
   addBlankLineAfterHeading: true, // デフォルトで見出し後に空行を追加
   edgeColorSet: 'vibrant', // デフォルトのカラーセット

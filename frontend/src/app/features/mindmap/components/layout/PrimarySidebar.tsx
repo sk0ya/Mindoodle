@@ -4,6 +4,7 @@ import SettingsSidebar from './SettingsSidebar';
 import ColorSettingsSidebar from './ColorSettingsSidebar';
 import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
+import VimSidebar from './VimSidebar';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import '@shared/styles/layout/PrimarySidebar.css';
@@ -108,6 +109,9 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
           <SettingsSidebar
           />
         );
+
+      case 'vim':
+        return <VimSidebar />;
 
       default:
         return null;

@@ -579,3 +579,16 @@ export default defineConfig({
 [⬆ Back to Top](#%EF%B8%8F-mindoodle-architecture-overview)
 
 </div>
+### Vim Mode Customization (Mindmap)
+
+You can customize Vim keybindings for the mind map canvas and set a leader key via the Vim command line (press `:` in NORMAL mode):
+
+- Set leader: `:set leader ,` or `:set leader <Space>`
+- Add mapping: `:map <lhs> <command>` (e.g., `:map <leader>h left`)
+- Remove mapping: `:unmap <lhs>`
+- List mappings: `:maps`
+- Clear all mappings: `:mapclear`
+
+Notes:
+- `<leader>` expands to your configured leader (default `,`). `<Space>` is supported.
+- `<command>` is a command name (e.g., `left`, `down`, `cut`, `paste`, `center`, `add-child`, etc.). Mappings are applied before built-in Vim sequences.

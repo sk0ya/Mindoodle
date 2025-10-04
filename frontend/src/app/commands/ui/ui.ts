@@ -127,6 +127,38 @@ export const toggleNodeNotePanelCommand: Command = {
   }
 };
 
+// Toggle Vim Settings Panel (right panel)
+export const toggleVimSettingsPanelCommand: Command = {
+  name: 'toggle-vim-settings',
+  aliases: ['vim-settings', 'vim-panel'],
+  description: 'Toggle Vim settings panel visibility',
+  category: 'ui',
+  examples: ['toggle-vim-settings', 'vim-settings'],
+
+  execute(context: CommandContext): CommandResult {
+    try {
+      const canToggle = typeof (context.handlers as any).toggleVimSettingsPanel === 'function';
+      const canSet = typeof (context.handlers as any).setShowVimSettingsPanel === 'function';
+      const hasState = typeof (context.handlers as any).showVimSettingsPanel === 'boolean';
+
+      if (canToggle) {
+        ((context.handlers as any).toggleVimSettingsPanel as () => void)();
+      } else if (canSet && hasState) {
+        ((context.handlers as any).setShowVimSettingsPanel as (b: boolean) => void)(!(context.handlers as any).showVimSettingsPanel);
+      } else {
+        return { success: false, error: 'Vim settings panel controls are not available' };
+      }
+
+      return { success: true, message: 'Toggled Vim settings panel' };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to toggle Vim settings panel'
+      };
+    }
+  }
+};
+
 // Start editing current node
 export const startEditCommand: Command = {
   name: 'start-edit',
