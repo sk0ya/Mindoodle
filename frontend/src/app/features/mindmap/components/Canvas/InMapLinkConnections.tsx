@@ -85,9 +85,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         const dstEdgeX = goingRight ? getNodeLeftX(dst, dstSize.width) : getNodeRightX(dst, dstSize.width);
 
         // Calculate Y position on node edge based on relative positions
-        const dx = dstEdgeX - srcEdgeX;
         const dy = dst.y - src.y;
-        const angle = Math.atan2(dy, dx);
 
         // Use node height to find edge intersection point
         const srcHalfHeight = srcSize.height / 2;
