@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useAIOperations } from '@mindmap/hooks';
+import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useAIOperations, useMarkdownOperations, useEditorEffects, useCommandExecution } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
 import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
@@ -304,11 +304,21 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   const handleAIGenerate = aiOps.handleAIGenerate;
 
-  // File operations (loadMapData, onLoadRelativeImage) moved to useMindMapFileOps hook
+  // Markdown operations hook
+  const markdownOps = useMarkdownOperations({
+    data,
+    markdownSync,
+    store,
+    selectNode,
+  });
 
-  // Title editing disabled in UI (no-op removed)
-
-  // インポート/エクスポート機能は削除済み
+  // Editor effects hook (autosave, vim mode)
+  useEditorEffects({
+    mindMap,
+    showNotesPanel: uiStore.showNotesPanel,
+    vim,
+    editingNodeId,
+  });
 
   // Event handlers hook
   useMindMapEvents({ mindMap, selectMapById });
@@ -472,52 +482,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     applyAutoLayout,
     pasteImageFromClipboard: clipboardOps.pasteImageFromClipboard,
     pasteNodeFromClipboard: clipboardOps.pasteNodeFromClipboard,
-    changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
-      if (data?.rootNodes?.[0]) {
-        markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
-          // 変換エラーをチェック
-          if ((updatedNodes as any).__conversionError) {
-            const errorMessage = (updatedNodes as any).__conversionError;
-            const typeDisplayName = newType === 'heading' ? '見出し' :
-              newType === 'unordered-list' ? '箇条書きリスト' : '番号付きリスト';
-            statusMessages.customError(`${typeDisplayName}への変換に失敗しました: ${errorMessage}`);
-            return;
-          }
-
-          // ルートノードを置き換え（履歴に積む）
-          (store as any).setRootNodes(updatedNodes, { emit: true, source: 'changeNodeType' });
-          // Ensure unified auto-layout after markdown-driven structure changes
-          try { store.applyAutoLayout(); } catch {}
-          // 選択状態は維持しつつ再描画。明示的な selectNode(null) は行わない
-          setTimeout(() => {
-            selectNode(nodeId);
-          }, 0);
-        });
-      }
-    },
+    changeNodeType: markdownOps.changeNodeType,
     changeSiblingOrder: store.changeSiblingOrder,
   });
-
-  // Toggle autosave based on right markdown panel visibility to avoid feedback loops
-  const setAutoSaveFnRef = React.useRef<null | ((enabled: boolean) => void)>(null);
-  React.useEffect(() => {
-    const fn = (mindMap as any)?.setAutoSaveEnabled;
-    setAutoSaveFnRef.current = (typeof fn === 'function') ? fn : null;
-  }, [mindMap]);
-  React.useEffect(() => {
-    try {
-      setAutoSaveFnRef.current?.(!uiStore.showNotesPanel);
-    } catch {}
-  }, [uiStore.showNotesPanel]);
-
-  // Ensure Vim mode returns to normal when editing ends (e.g., blur)
-  React.useEffect(() => {
-    if (vim.isEnabled && !editingNodeId && vim.mode !== 'normal' && vim.mode !== 'search' &&
-      vim.mode !== 'jumpy' && vim.mode !== 'command'
-    ) {
-      vim.setMode('normal');
-    }
-  }, [vim.isEnabled, vim.mode, editingNodeId, vim.setMode]);
 
   useKeyboardShortcuts(shortcutHandlers as any, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
@@ -530,22 +497,11 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     handlers: shortcutHandlers as any, // 型が複雑で完全に一致しないため、anyで回避
   });
 
-  // Handle command execution from palette
-  const handleExecuteCommand = useCallback(async (commandName: string, _args?: Record<string, any>) => {
-    try {
-      const result = await commands.execute(commandName);
-      if (result.success) {
-        if (result.message) {
-          showNotification('success', result.message);
-        }
-      } else {
-        showNotification('error', result.error || 'コマンドの実行に失敗しました');
-      }
-    } catch (error) {
-      console.error('Command execution failed:', error);
-      showNotification('error', 'コマンドの実行中にエラーが発生しました');
-    }
-  }, [commands, showNotification]);
+  // Command execution hook
+  const { handleExecuteCommand } = useCommandExecution({
+    commands,
+    showNotification,
+  });
 
   // Outline save feature removed
 
