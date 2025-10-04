@@ -338,11 +338,13 @@ frontend/src/
 - [x] Hook creation and migration
 - [x] All files already migrated to ViewportService
 
-**Phase 2: MindMapApp Split (3-5 days)** ✅ COMPLETED
+**Phase 2: MindMapApp Split (3-5 days)** 🔄 IN PROGRESS
 - [x] Extract link handlers to useMindMapLinks hook
 - [x] Extract file operations to useMindMapFileOps hook
-- [x] Refactor main component (1730→1559 lines, -171 lines)
+- [x] Extract event handlers to useMindMapEvents hook
+- [x] Refactor main component (1730→1434 lines, -296 lines)
 - [x] Type-check validation passed
+- [ ] Extract keyboard/clipboard/resize operations (remaining)
 
 **Phase 3: Memory Management (2-3 days)**
 - [ ] Design MemoryService API

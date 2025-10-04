@@ -8,3 +8,4 @@ export * from './useMindMapPersistence';
 export * from './useMindMapUI';
 export * from './useMindMapLinks';
 export * from './useMindMapFileOps';
+export * from './useMindMapEvents';
