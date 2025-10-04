@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents } from '@mindmap/hooks';
+import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
-import { findNodeById, findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import ActivityBar from './ActivityBar';
 import PrimarySidebarContainer from './PrimarySidebarContainer';
@@ -27,11 +27,9 @@ import MindMapProviders from './MindMapProviders';
 import { logger, statusMessages } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
-import { viewportService } from '@/app/core/services';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
 import { JumpyLabels } from "../../../vim";
 import VimStatusBar from "../VimStatusBar";
-import { imagePasteService } from '../../services/imagePasteService';
 import CommandPalette from '@shared/components/CommandPalette';
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
@@ -390,6 +388,38 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     handleError,
   });
 
+  // Clipboard operations hook
+  const clipboardOps = useMindMapClipboard({
+    data,
+    clipboard: uiStore.clipboard,
+    selectedNodeId,
+    storageAdapter,
+    updateNode,
+    addChildNode: (parentId: string, text: string) => {
+      return store.addChildNode(parentId, text);
+    },
+    selectNode,
+    showNotification,
+    refreshMapList,
+  });
+
+  // Viewport/resize operations hook
+  const viewportOps = useMindMapViewport({
+    data,
+    activeView,
+    uiStore: {
+      sidebarCollapsed: uiStore.sidebarCollapsed ?? false,
+      showNotesPanel: uiStore.showNotesPanel ?? false,
+      markdownPanelWidth: uiStore.markdownPanelWidth || 0,
+      showNodeNotePanel: uiStore.showNodeNotePanel ?? false,
+      nodeNotePanelHeight: uiStore.nodeNotePanelHeight || 0,
+      zoom: uiStore.zoom,
+      pan: uiStore.pan,
+    },
+    settings: (store as any).settings || {},
+    setPan,
+  });
+
   // Wrapper functions to maintain existing interface
   const handleAddLink = (nodeId: string) => linkOps.handleAddLink(nodeId);
   const handleEditLink = (link: NodeLink, nodeId: string) => linkOps.handleEditLink(link, nodeId);
@@ -402,391 +432,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     await linkOps.handleDeleteLink(linkModalNodeId, linkId);
   };
 
-  // Ensure selected node remains visible with minimal pan (no centering)
-  const ensureSelectedNodeVisible = React.useCallback(() => {
-    try {
-      const st = useMindMapStore.getState() as any;
-      const selId: string | null = st.selectedNodeId || null;
-      const mapData = st.data || null;
-      if (!selId || !mapData) return;
-      const roots = mapData.rootNodes || [];
-      const targetNode = findNodeInRoots(roots, selId);
-      if (!targetNode) return;
-
-      // Get current UI state from store (not from component closure)
-      const currentUI = st.ui || {};
-      const currentActiveView = currentUI.activeView;
-      const currentSidebarCollapsed = currentUI.sidebarCollapsed;
-
-
-      const mindmapContainer = document.querySelector('.mindmap-canvas-container') ||
-                               document.querySelector('.workspace-container') ||
-                               document.querySelector('.mindmap-app');
-
-      let { width: effectiveWidth, height: effectiveHeight } = viewportService.getSize();
-      let offsetX = 0;
-      let offsetY = 0;
-
-
-      if (mindmapContainer) {
-        const rect = mindmapContainer.getBoundingClientRect();
-        effectiveWidth = rect.width;
-        effectiveHeight = rect.height;
-        offsetX = rect.left;
-        offsetY = rect.top;
-
-        // Even when using container, we need to check if sidebar should be considered
-        // Container might already account for sidebar, but let's verify the offsetX
-        if (currentActiveView && !currentSidebarCollapsed && offsetX === 0) {
-          // Container doesn't account for sidebar, so we need to adjust
-          const ACTIVITY_BAR_WIDTH = 48;
-          const sidebarPanel = document.querySelector('.mindmap-sidebar') as HTMLElement | null;
-          let sidebarWidth = 0;
-          if (sidebarPanel) {
-            try {
-              const sidebarRect = sidebarPanel.getBoundingClientRect();
-              sidebarWidth = sidebarRect.width;
-            } catch {}
-          } else {
-            sidebarWidth = 280; // fallback
-          }
-          const totalLeftOffset = ACTIVITY_BAR_WIDTH + sidebarWidth;
-          offsetX = totalLeftOffset;
-        }
-      } else {
-        // Left sidebar - use same pattern as panels: DOM first, fallback to store/fixed values
-        const ACTIVITY_BAR_WIDTH = 48;
-        const SIDEBAR_WIDTH = 280; // fallback
-        let leftPanelWidth = ACTIVITY_BAR_WIDTH;
-
-        if (currentActiveView && !currentSidebarCollapsed) {
-          // Try to get actual sidebar width from DOM first (like panels)
-          const sidebarPanel = document.querySelector('.mindmap-sidebar') as HTMLElement | null;
-          if (sidebarPanel) {
-            try {
-              const sidebarRect = sidebarPanel.getBoundingClientRect();
-              leftPanelWidth += sidebarRect.width;
-            } catch {}
-          } else {
-            // Fallback to fixed width if DOM not available
-            leftPanelWidth += SIDEBAR_WIDTH;
-          }
-        }
-
-
-        effectiveWidth -= leftPanelWidth;
-        offsetX = leftPanelWidth;
-
-        // Right-side markdown panel (primary right panel in this app)
-        const markdownPanel = document.querySelector('.markdown-panel') as HTMLElement | null;
-        if (markdownPanel) {
-          try {
-            const pr = markdownPanel.getBoundingClientRect();
-            effectiveWidth -= pr.width;
-          } catch {}
-        } else if (currentUI.showNotesPanel && currentUI.markdownPanelWidth) {
-          // Fallback to store width if DOM not yet available
-          const w = Math.max(0, currentUI.markdownPanelWidth);
-          effectiveWidth -= w;
-        }
-      }
-
-      // Bottom overlays (apply regardless of container measurement):
-      // selected-node-note-panel is fixed overlay and not part of container height
-      try {
-        const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
-        const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
-        effectiveHeight -= noteH;
-      } catch {}
-      // Vim status bar height
-      effectiveHeight -= 24;
-
-      const currentZoom = (st.ui?.zoom || 1) * 1.5; // Match CanvasRenderer transform
-      const currentPan = st.ui?.pan || { x: 0, y: 0 };
-
-      // Compute node size to align edges to bounds
-      const fontSize = (st.settings?.fontSize ?? 14) as number;
-      const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
-      const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize, wrapConfig);
-      const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
-      const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
-
-      // Node center in screen coords relative to effective viewport origin
-      const screenX = currentZoom * (targetNode.x + currentPan.x) - offsetX;
-      const screenY = currentZoom * (targetNode.y + currentPan.y) - offsetY;
-
-      const margin = 0;
-      const topMargin = 0; // symmetric top/bottom
-      const bottomExtra = (function() {
-        // If no note panel height (not visible), keep 6px breathing room above Vim bar
-        try {
-          const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
-          const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
-          return noteH === 0 ? 6 : 0;
-        } catch { return 0; }
-      })();
-      const leftBound = margin;
-      const rightBound = effectiveWidth - margin;
-      const topBound = topMargin;
-      const bottomBound = effectiveHeight - topMargin - bottomExtra;
-
-      const isOutsideLeft = (screenX - halfW) < leftBound;
-      const isOutsideRight = (screenX + halfW) > rightBound;
-      const isOutsideTop = (screenY - halfH) < topBound;
-      const isOutsideBottom = (screenY + halfH) > bottomBound;
-
-      if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
-        let newPanX = currentPan.x;
-        let newPanY = currentPan.y;
-
-        if (isOutsideLeft) {
-          // Align node's left edge to leftBound
-          newPanX = ((leftBound + offsetX + halfW) / currentZoom) - targetNode.x;
-        } else if (isOutsideRight) {
-          // Align node's right edge to rightBound
-          newPanX = ((rightBound + offsetX - halfW) / currentZoom) - targetNode.x;
-        }
-
-        if (isOutsideTop) {
-          // Align node's top edge to topBound
-          newPanY = ((topBound + offsetY + halfH) / currentZoom) - targetNode.y;
-        } else if (isOutsideBottom) {
-          // Align node's bottom edge to bottomBound
-          newPanY = ((bottomBound + offsetY - halfH) / currentZoom) - targetNode.y;
-        }
-
-        const setPanLocal = (st.setPan || setPan);
-        setPanLocal({ x: newPanX, y: newPanY });
-      }
-    } catch {}
-  }, [activeView, uiStore.sidebarCollapsed, uiStore.showNotesPanel, uiStore.markdownPanelWidth]);
-
-  // ノードが見切れないように最小限のスクロールで可視範囲に入れる
-  const centerNodeInView = useCallback((nodeId: string, animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
-
-    if (!data) return;
-
-    // Check if special positioning mode is requested
-    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && (fallbackCoords as any).mode === 'left';
-    const isCenterMode = fallbackCoords && 'mode' in fallbackCoords && (fallbackCoords as any).mode === 'center';
-
-
-    // ルートノードの場合は最適化（検索を省略）
-    const rootNodes = data.rootNodes || [];
-    let targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
-      ? rootNodes[0]
-      : findNodeInRoots(rootNodes, nodeId);
-
-    // UI状態に基づいて実際の利用可能な領域を計算
-    const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
-
-    // 左側パネル幅はUI状態から推定（固定値を使用）
-    const ACTIVITY_BAR_WIDTH = 48;
-    const SIDEBAR_WIDTH = 280;
-    const leftPanelWidth = ACTIVITY_BAR_WIDTH + (activeView && !uiStore.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
-
-    // 右側はUI状態から取得された実幅（パネル自体がストアへwidthを反映）
-    const rightPanelWidth = uiStore.showNotesPanel ? (uiStore.markdownPanelWidth || 0) : 0;
-
-    // 実際の利用可能なマップエリアを計算
-    // 上端はツールバー固定高（CSSと一致させる）
-    const VIM_HEIGHT = 24;
-    const defaultNoteHeight = viewportService.getDefaultNoteHeight();
-    // Prefer store height, but unconditionally read DOM to avoid stale flags
-    let noteHeight = uiStore.showNodeNotePanel
-      ? (uiStore.nodeNotePanelHeight && uiStore.nodeNotePanelHeight > 0 ? uiStore.nodeNotePanelHeight : defaultNoteHeight)
-      : 0;
-    let domNoteHeight = 0;
-    try {
-      const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
-      domNoteHeight = el ? Math.round(el.getBoundingClientRect().height) : 0;
-    } catch {}
-    if (domNoteHeight > 0 && domNoteHeight !== noteHeight) {
-      noteHeight = domNoteHeight;
-      try { console.warn('[Viewport] noteHeight override via DOM', { domNoteHeight }); } catch {}
-    }
-    const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
-
-    const mapAreaRect = new DOMRect(
-      leftPanelWidth,
-      0,
-      Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
-      Math.max(0, viewportHeight - bottomOverlay)
-    );
-
-    if (!targetNode) {
-      if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
-        // フォールバック座標を使用してセンタリング
-        const nodeX = fallbackCoords.x;
-        const nodeY = fallbackCoords.y;
-
-        const positionRatio = isLeftMode ? 0.1 : 0.5; // 左寄り10%または中央50%
-        const targetX = mapAreaRect.left + (mapAreaRect.width * positionRatio);
-        const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-        const currentZoom = ui.zoom * 1.5;
-
-        const newPanX = targetX / currentZoom - nodeX;
-        const newPanY = targetY / currentZoom - nodeY;
-
-        setPan({ x: newPanX, y: newPanY });
-      }
-      return;
-    }
-
-    // ノードの現在の座標
-    const nodeX = targetNode.x || 0;
-    const nodeY = targetNode.y || 0;
-
-    // 現在のズーム率を取得（SVGでは1.5倍されている）
-    const currentZoom = uiStore.zoom * 1.5;
-
-    // isLeftMode: 特例として左寄せに配置
-    if (isLeftMode) {
-      const targetX = mapAreaRect.left + (mapAreaRect.width * 0.1);
-      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-      const newPanX = targetX / currentZoom - nodeX;
-      const newPanY = targetY / currentZoom - nodeY;
-
-      if (animate) {
-        const currentPan = uiStore.pan;
-        const steps = 16;
-        const duration = 250;
-        const stepDuration = duration / steps;
-        const deltaX = (newPanX - currentPan.x) / steps;
-        const deltaY = (newPanY - currentPan.y) / steps;
-        let step = 0;
-        const animateStep = () => {
-          if (step < steps) {
-            step++;
-            const currentX = currentPan.x + (deltaX * step);
-            const currentY = currentPan.y + (deltaY * step);
-            if (step % 2 === 0 || step === steps) {
-              setPan({ x: currentX, y: currentY });
-            }
-            window.setTimeout(animateStep, stepDuration);
-          }
-        };
-        window.setTimeout(animateStep, 0);
-      } else {
-        setPan({ x: newPanX, y: newPanY });
-      }
-      return;
-    }
-
-    // isCenterMode: 正確に中央に配置（zz 対応）
-    if (isCenterMode) {
-      const targetX = mapAreaRect.left + (mapAreaRect.width / 2);
-      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-      const newPanX = targetX / currentZoom - nodeX;
-      const newPanY = targetY / currentZoom - nodeY;
-
-      if (animate) {
-        const currentPan = uiStore.pan;
-        const steps = 16;
-        const duration = 250;
-        const stepDuration = duration / steps;
-        const deltaX = (newPanX - currentPan.x) / steps;
-        const deltaY = (newPanY - currentPan.y) / steps;
-        let step = 0;
-        const animateStep = () => {
-          if (step < steps) {
-            step++;
-            const currentX = currentPan.x + (deltaX * step);
-            const currentY = currentPan.y + (deltaY * step);
-            if (step % 2 === 0 || step === steps) {
-              setPan({ x: currentX, y: currentY });
-            }
-            window.setTimeout(animateStep, stepDuration);
-          }
-        };
-        window.setTimeout(animateStep, 0);
-      } else {
-        setPan({ x: newPanX, y: newPanY });
-      }
-      return;
-    }
-
-    // 通常モード: 最小パンで可視域に入れる（ノードサイズも考慮）
-      const margin = 0; // 余白なし（上下左右）
-    const fontSize = ((store as any).settings?.fontSize ?? 14) as number;
-    const wrapConfig = resolveNodeTextWrapConfig((store as any).settings, fontSize);
-    const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize, wrapConfig);
-    const halfW = (nodeSize?.width || 80) / 2 * currentZoom;
-    const halfH = (nodeSize?.height || 24) / 2 * currentZoom;
-    // 現在のスクリーン座標（ノード中心）
-    const screenX = currentZoom * (nodeX + uiStore.pan.x);
-    const screenY = currentZoom * (nodeY + uiStore.pan.y);
-    const leftBound = mapAreaRect.left + margin;
-    const rightBound = mapAreaRect.right - margin;
-    const topBound = mapAreaRect.top + margin;
-    // If no note panel is visible, keep 6px breathing room above the Vim bar
-    const bottomExtra = noteHeight > 0 ? 0 : 6;
-    const bottomBound = mapAreaRect.bottom - (margin + bottomExtra);
-
-    
-
-    let deltaScreenX = 0;
-    let deltaScreenY = 0;
-    const epsilon = 0; // 余計なゆとりを排除
-    // 左右
-    if ((screenX - halfW) < (leftBound + epsilon)) {
-      deltaScreenX = (leftBound + epsilon) - (screenX - halfW);
-    } else if ((screenX + halfW) > (rightBound - epsilon)) {
-      deltaScreenX = (rightBound - epsilon) - (screenX + halfW);
-    }
-    // 上下
-    if ((screenY - halfH) < (topBound + epsilon)) {
-      deltaScreenY = (topBound + epsilon) - (screenY - halfH);
-    } else if ((screenY + halfH) > (bottomBound - epsilon)) {
-      deltaScreenY = (bottomBound - epsilon) - (screenY + halfH);
-    }
-
-    
-
-    if (deltaScreenX === 0 && deltaScreenY === 0) {
-      try { logger.debug('[Viewport] no pan needed'); } catch {}
-      return; // 既に可視範囲
-    }
-
-    const newPanX = uiStore.pan.x + (deltaScreenX / currentZoom);
-    const newPanY = uiStore.pan.y + (deltaScreenY / currentZoom);
-
-    if (animate) {
-      // 非同期アニメーション（ユーザー操作をブロックしない）
-      const currentPan = uiStore.pan;
-      const steps = 16; // ステップ数
-      const duration = 250; // 短時間
-      const stepDuration = duration / steps;
-
-      const deltaX = (newPanX - currentPan.x) / steps;
-      const deltaY = (newPanY - currentPan.y) / steps;
-
-      let step = 0;
-
-      const animateStep = () => {
-        if (step < steps) {
-          step++;
-          const currentX = currentPan.x + (deltaX * step);
-          const currentY = currentPan.y + (deltaY * step);
-
-          // setState を間引いて負荷軽減（2ステップごと）
-          if (step % 2 === 0 || step === steps) {
-            setPan({ x: currentX, y: currentY });
-          }
-
-          // setTimeout で間隔を空けてブロッキングを防ぐ
-          window.setTimeout(animateStep, stepDuration);
-        }
-      };
-
-      // 最初のステップを開始
-      window.setTimeout(animateStep, 0);
-    } else {
-      // 即座にパンを更新
-      setPan({ x: newPanX, y: newPanY });
-      
-    }
-  }, [data, uiStore.zoom, uiStore.pan, setPan]);
+  // Use viewport operations from hook
+  const ensureSelectedNodeVisible = viewportOps.ensureSelectedNodeVisible;
+  const centerNodeInView = viewportOps.centerNodeInView;
 
   // ルートノードを左端中央に表示するハンドラー
   const handleCenterRootNode = useCallback(() => {
@@ -873,68 +521,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     selectNode,
     setPan,
     applyAutoLayout,
-    pasteImageFromClipboard: async (nodeId?: string, fileOverride?: File) => {
-      try {
-        // Use provided nodeId or currently selected node
-        const targetNodeId = nodeId || selectedNodeId;
-        if (!targetNodeId) {
-          showNotification('warning', '画像を貼り付けるノードを選択してください');
-          return;
-        }
-
-        // Check if storage adapter is available
-        if (!storageAdapter) {
-          showNotification('error', 'ストレージが初期化されていません');
-          return;
-        }
-
-        // Find the target node
-        const targetNode = findNodeInRoots(data?.rootNodes || [], targetNodeId);
-        if (!targetNode) {
-          showNotification('error', 'ノードが見つかりません');
-          return;
-        }
-
-        // Save image and get relative path
-        const imagePath = await imagePasteService.pasteImageToNode(
-          targetNodeId,
-          storageAdapter,
-          data?.mapIdentifier?.workspaceId,
-          data?.mapIdentifier?.mapId,
-          fileOverride
-        );
-
-        // Add image markdown to the end of the node's note
-        const currentNote = targetNode.note || '';
-        const imageMarkdown = `![](${imagePath})`;
-        const newNote = currentNote
-          ? `${currentNote}\n\n${imageMarkdown}`
-          : imageMarkdown;
-
-        // Update the node with new note
-        updateNode(targetNodeId, { note: newNote });
-
-        // Refresh the explorer to show the new image file
-        await refreshMapList();
-
-        showNotification('success', '画像を貼り付けました');
-      } catch (error) {
-        console.error('Failed to paste image:', error);
-        const message = error instanceof Error ? error.message : '画像の貼り付けに失敗しました';
-        showNotification('error', message);
-      }
-    },
-    pasteNodeFromClipboard: async (parentId: string) => {
-      const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
-      await pasteFromClipboard(
-        parentId,
-        uiStore.clipboard,
-        (parent: string, text: string) => store.addChildNode(parent, text),
-        updateNode,
-        selectNode,
-        showNotification
-      );
-    },
+    pasteImageFromClipboard: clipboardOps.pasteImageFromClipboard,
+    pasteNodeFromClipboard: clipboardOps.pasteNodeFromClipboard,
     changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
       if (data?.rootNodes?.[0]) {
         markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
