@@ -278,14 +278,82 @@ frontend/src/
 
 ---
 
-### 🏗️ Refactoring Proposals
+### 🏗️ Refactoring Plan
 
-#### 10. Centralize Viewport Information Retrieval
-- **Issue:** Code for retrieving current screen info is scattered throughout codebase
-- **Recommendation:**
-  - Create `ViewportService` class
-  - Use singleton pattern for centralized state management
-  - Place in `frontend/src/app/core/services/`
+## 🔴 High Priority Refactoring (Immediate Action Required)
+
+#### 1. ViewportService Implementation ⭐ **IN PROGRESS**
+- **Issue:** `window.innerWidth`/`window.innerHeight` used directly in 8 files
+- **Files affected:** LinkActionMenu.tsx, navigation.ts, MindMapApp.tsx, ContextMenu.tsx, useShortcutHandlers.ts, KeyboardShortcutHelper.tsx, SelectedNodeNotePanel.tsx, CanvasViewportHandler.ts
+- **Impact:** ~30 lines of duplicated code, inconsistent responsive behavior, difficult to test
+- **Implementation:**
+  - Create `ViewportService` class in `frontend/src/app/core/services/`
+  - Add `useViewport` hook for reactive viewport tracking
+  - Migrate all 8 files to use centralized service
+- **Expected Benefits:** Code deduplication, consistent responsive behavior, testability
+
+#### 2. MindMapApp.tsx Component Split (1731 lines → multiple files)
+- **Issue:** Single file with 1731 lines - unmaintainable
+- **Split plan:**
+  ```
+  MindMapApp.tsx (core logic ~300-400 lines)
+  ├── hooks/useMindMapEvents.ts (event handling)
+  ├── hooks/useMindMapKeyboard.ts (keyboard handling)
+  ├── hooks/useMindMapClipboard.ts (clipboard operations)
+  └── hooks/useMindMapResize.ts (resize handling)
+  ```
+- **Expected Benefits:** Better separation of concerns, improved HMR performance, easier testing
+
+## 🟡 Medium Priority Refactoring
+
+#### 3. Memory Management Utilities Consolidation
+- **Issue:** Three overlapping utilities: `memoryManager.ts`, `memoryMonitor.ts`, `memoryUtils.ts`
+- **Solution:** Merge into single `MemoryService` class
+- **Location:** `frontend/src/app/core/services/MemoryService.ts`
+
+#### 4. Large File Refactoring (Progressive)
+- `MindMapSidebar.tsx` (1277 lines)
+- `MarkdownFolderAdapter.ts` (1193 lines)
+- `markdownImporter.ts` (1140 lines)
+- `NodeRenderer.tsx` (1070 lines)
+- **Target:** 500-700 lines per file
+
+## 🟢 Low Priority Improvements
+
+#### 5. Type Definition Cleanup
+- Consolidate `MindMapNode` and `MindMapData` type definitions
+- Resolve circular dependencies
+- Single source of truth for core types
+
+#### 6. Hooks Optimization
+- Remove unused hooks
+- Optimize dependency arrays
+- Follow ARCHITECTURE_GUIDELINES.md patterns
+
+## 📅 Implementation Roadmap
+
+**Phase 1: ViewportService (1-2 days)** - Current phase
+- [x] Analysis complete
+- [ ] ViewportService implementation
+- [ ] Hook creation and migration
+- [ ] Testing and validation
+
+**Phase 2: MindMapApp Split (3-5 days)**
+- [ ] Extract event handlers to hooks
+- [ ] Extract keyboard handlers to hooks
+- [ ] Extract clipboard handlers to hooks
+- [ ] Refactor main component
+- [ ] End-to-end testing
+
+**Phase 3: Memory Management (2-3 days)**
+- [ ] Design MemoryService API
+- [ ] Migrate existing functionality
+- [ ] Remove old utilities
+- [ ] Update documentation
+
+**Phase 4: Large Files (Continuous)**
+- [ ] Prioritize and schedule splits
+- [ ] Progressive refactoring
 
 ---
 
