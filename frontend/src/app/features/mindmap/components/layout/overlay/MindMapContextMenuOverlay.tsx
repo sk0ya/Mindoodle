@@ -27,7 +27,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onCopyNode,
   onPasteNode,
   onAIGenerate,
-  onMarkdownNodeType,
+  onMarkdownNodeType: _onMarkdownNodeType,
   onEditTable,
   onClose,
 }) => {

@@ -256,31 +256,6 @@ export const useMindMap = (
             return true;
           })();
 
-          // sameStructureExceptKind: t/lvl/ind match; kind is ignored
-          const sameStructureExceptKind = (() => {
-            if (prevFlat.length !== nextFlat.length) return false;
-            for (let i = 0; i < prevFlat.length; i++) {
-              const a = prevFlat[i];
-              const b = nextFlat[i];
-              if (a.t !== b.t) return false;
-              if (a.lvl !== b.lvl) return false;
-              if ((a.t === 'unordered-list' || a.t === 'ordered-list')) {
-                const ia = typeof a.ind === 'number' ? a.ind : 0;
-                const ib = typeof b.ind === 'number' ? b.ind : 0;
-                if (ia !== ib) return false;
-              }
-            }
-            return true;
-          })();
-
-          const hasKindDiff = (() => {
-            if (prevFlat.length !== nextFlat.length) return false;
-            for (let i = 0; i < prevFlat.length; i++) {
-              if (prevFlat[i].k !== nextFlat[i].k) return true;
-            }
-            return false;
-          })();
-
           if (sameStructure) {
             // Update only changed text/note fields
             for (let i = 0; i < prevFlat.length; i++) {
