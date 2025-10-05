@@ -81,11 +81,20 @@ Visit `http://localhost:5174` to see your local instance.
 
 ### 🔧 Workspace Management
 - **Multi-Workspace**: Switch between different project folders
-- **Local Storage**: Automatic workspace detection and management
+- **Local Storage**: File System Access API or IndexedDB
+- **Cloud Sync**: Optional Cloudflare Workers backend with KV and R2
+- **Workspace Switching**: Quick navigation with Ctrl+P/N
 
 ### 🤖 AI Integration (Optional)
 - **Ollama Support**: Generate child node suggestions with local AI
 - **Privacy-First**: AI processing happens locally on your machine
+
+### 🎨 Advanced Features
+- **Mermaid Diagrams**: Embed and render Mermaid diagrams in nodes
+- **Image Support**: Paste and attach images with cloud storage
+- **Hierarchical Colors**: Visual organization with color-coded connections
+- **Search & Navigation**: Powerful search with IME support
+- **Inline Markdown**: Format text with markdown syntax in nodes
 
 ## 🛠️ Built With
 
@@ -104,8 +113,15 @@ Visit `http://localhost:5174` to see your local instance.
 - **State Management**: Zustand 5.0 + Immer 10.1
 - **Editor**: Monaco Editor 0.52 with Monaco Vim 0.4
 - **Markdown**: Marked 16.2 for parsing and rendering
+- **Diagrams**: Mermaid 10.9 for diagram rendering
 - **File Handling**: JSZip 3.10 for import/export
 - **Icons**: Lucide React 0.544 for beautiful UI
+
+### Project Statistics
+- **Total Files**: 277 TypeScript files
+- **Lines of Code**: ~38,000 lines of TypeScript
+- **Architecture**: Command-driven, feature-based organization
+- **Storage**: Local-first with optional cloud sync (Cloudflare Workers)
 
 ## 📖 Documentation
 
