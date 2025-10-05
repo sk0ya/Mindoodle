@@ -352,18 +352,18 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const raf = () => requestAnimationFrame(() => ensureSelectedNodeVisible());
     const id = window.setTimeout(raf, 0);
     return () => { window.clearTimeout(id); };
-  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId, ensureSelectedNodeVisible]);
+  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId]);
 
   React.useEffect(() => {
     const handler = () => { ensureSelectedNodeVisible(); };
     window.addEventListener('node-note-panel-resize', handler as EventListener);
     return () => window.removeEventListener('node-note-panel-resize', handler as EventListener);
-  }, [ensureSelectedNodeVisible]);
+  }, []);
 
   React.useEffect(() => {
     if (!selectedNodeId) return;
     ensureSelectedNodeVisible();
-  }, [uiStore.nodeNotePanelHeight, selectedNodeId, ensureSelectedNodeVisible]);
+  }, [uiStore.nodeNotePanelHeight, selectedNodeId]);
 
 
   const handleLinkNavigate2 = async (link: NodeLink) => {
