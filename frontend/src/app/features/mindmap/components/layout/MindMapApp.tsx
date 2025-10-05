@@ -126,13 +126,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     });
   }, []);
 
-  // Initialize controller (placeholder for migrating effects/wiring)
-  React.useEffect(() => {
-    try {
-      const controller = new MindMapController();
-      controller.initialize();
-    } catch { /* ignore */ }
-  }, []);
+  // Controller initialization removed (no-op)
 
   const handleAuthModalClose = () => {
     setIsAuthModalOpen(false);
@@ -169,8 +163,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     addNode,
     updateNode,
     deleteNode,
-    moveNode,
-    moveNodeWithPosition,
+    // movement handled by strategies: moveNode, moveNodeWithPosition
     selectNode,
     startEditing,
     startEditingWithCursorAtEnd,
@@ -182,7 +175,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setZoom,
     setPan,
     setEditText,
-    changeSiblingOrder,
+    // changeSiblingOrder handled by strategies
     toggleNodeCollapse,
 
     // マップ操作
@@ -625,9 +618,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             }}
             onStartEdit={startEditing}
             onFinishEdit={finishEditing}
-            onMoveNode={moveNode}
-            onMoveNodeWithPosition={moveNodeWithPosition}
-            onChangeSiblingOrder={changeSiblingOrder}
+            // movement handled via event strategies
             onAddChild={(parentId) => { addNode(parentId); }}
             onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
             onDeleteNode={deleteNode}

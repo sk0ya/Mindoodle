@@ -53,9 +53,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onSelectNode,
     onStartEdit,
     onFinishEdit,
-    onChangeParent,
-    onChangeSiblingOrder,
-    onMoveNodeWithPosition,
+    // movement callbacks deprecated (handled by strategies)
     onRightClick,
     onToggleCollapse,
     onShowLinkActionMenu,
@@ -101,9 +99,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     zoom,
     pan,
     svgRef,
-    onChangeParent,
-    onChangeSiblingOrder,
-    onMoveNodeWithPosition,
     rootNodes
   });
 

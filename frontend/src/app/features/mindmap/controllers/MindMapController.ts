@@ -3,9 +3,6 @@
 
 export class MindMapController {
   // Future: constructor(deps: {...}) {}
-  initialize(): void {
-    // no-op for now
-  }
 
   /**
    * Attach global explorer helpers for Vim and external integrations.

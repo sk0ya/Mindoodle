@@ -12,9 +12,7 @@ interface MindMapWorkspaceProps {
   onSelectNode: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  onMoveNode: (nodeId: string, newParentId: string) => void;
-  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
-  onChangeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
+  // Movement callbacks no longer required (handled via event strategies)
   onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
@@ -49,9 +47,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onSelectNode,
   onStartEdit,
   onFinishEdit,
-  onMoveNode,
-  onMoveNodeWithPosition,
-  onChangeSiblingOrder,
+  // movement callbacks removed
   onRightClick,
   onToggleCollapse,
   onShowLinkActionMenu,
@@ -81,9 +77,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onSelectNode={onSelectNode}
         onStartEdit={onStartEdit}
         onFinishEdit={onFinishEdit}
-        onChangeParent={onMoveNode}
-        onMoveNodeWithPosition={onMoveNodeWithPosition}
-        onChangeSiblingOrder={onChangeSiblingOrder}
+        // movement handled via strategies
         onRightClick={onRightClick}
         onToggleCollapse={onToggleCollapse}
         onNavigateToDirection={(_direction: 'up' | 'down' | 'left' | 'right') => {}}
