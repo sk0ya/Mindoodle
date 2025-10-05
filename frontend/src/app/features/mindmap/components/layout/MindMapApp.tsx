@@ -323,7 +323,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   });
 
   const handleAddLink = (nodeId: string) => linkOps.handleAddLink(nodeId);
-  const handleEditLink = (link: NodeLink, nodeId: string) => linkOps.handleEditLink(link, nodeId);
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {
     if (!linkModalNodeId) return;
     await linkOps.handleSaveLink(linkData, linkModalNodeId);
@@ -706,8 +705,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         linkActionMenuData={linkActionMenuData as any}
         onCloseLinkActionMenu={handleCloseLinkActionMenu}
         onNavigate={handleLinkNavigate2}
-        onEditLink={handleEditLink}
-        onDeleteLinkFromMenu={handleDeleteLink}
       />
 
       {/* Outline Editor removed */}

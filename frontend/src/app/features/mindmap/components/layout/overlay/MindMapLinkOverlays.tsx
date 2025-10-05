@@ -26,8 +26,6 @@ type Props = {
   linkActionMenuData: { link: NodeLink; position: { x: number; y: number } } | null;
   onCloseLinkActionMenu: () => void;
   onNavigate: (link: NodeLink) => void | Promise<void>;
-  onEditLink: (link: NodeLink, nodeId: string) => void;
-  onDeleteLinkFromMenu: (linkId: string) => void | Promise<void>;
 };
 
 const MindMapLinkOverlays: React.FC<Props> = ({
@@ -45,8 +43,6 @@ const MindMapLinkOverlays: React.FC<Props> = ({
   linkActionMenuData,
   onCloseLinkActionMenu,
   onNavigate,
-  onEditLink,
-  onDeleteLinkFromMenu,
 }) => {
   return (
     <>
@@ -72,16 +68,6 @@ const MindMapLinkOverlays: React.FC<Props> = ({
           link={linkActionMenuData.link}
           onClose={onCloseLinkActionMenu}
           onNavigate={onNavigate}
-          onEdit={(link: NodeLink) => {
-            if (linkModalNodeId) onEditLink(link, linkModalNodeId);
-            onCloseLinkActionMenu();
-          }}
-          onDelete={(linkId: string) => {
-            onDeleteLinkFromMenu(linkId);
-            onCloseLinkActionMenu();
-          }}
-          availableMaps={allMaps}
-          currentMapData={currentMapData}
         />
       )}
     </>

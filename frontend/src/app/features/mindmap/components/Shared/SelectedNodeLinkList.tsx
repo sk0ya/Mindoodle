@@ -16,7 +16,7 @@ interface SelectedNodeLinkListProps {
   onLinkNavigate?: (link: NodeLink) => void;
   // リンク表示用の追加データ
   availableMaps?: { id: string; title: string }[];
-  currentMapData?: { id: string; rootNode: any };
+  currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
 }
 
 const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
@@ -82,17 +82,24 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     } catch {}
     const ids = Array.from(idsSet);
 
-    const slugify = (t: string) => (t || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const findByText = (root: any, text: string): MindMapNode | null => {
       if (!root || !text) return null;
-      const targetSlug = slugify(text);
+      const normalizedTarget = text.trim();
       const stack: MindMapNode[] = [root];
       while (stack.length) {
         const n = stack.pop()!;
         if (!n) continue;
-        if (n.text === text) return n;
-        if (slugify(n.text) === targetSlug) return n;
+        const normalizedNode = (n.text || '').trim();
+        if (normalizedNode === normalizedTarget) return n;
         if (n.children && n.children.length) stack.push(...n.children);
+      }
+      return null;
+    };
+
+    const findByTextInRoots = (roots: any[], text: string): MindMapNode | null => {
+      for (const root of roots) {
+        const found = findByText(root, text);
+        if (found) return found;
       }
       return null;
     };
@@ -103,12 +110,26 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
       if (/^#/.test(href) || /^node:/i.test(href)) {
         const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
         let nodeId: string | undefined;
-        if (currentMapData?.rootNode) {
-          const byAnchor = resolveAnchorToNode(currentMapData.rootNode, anchor);
-          if (byAnchor) nodeId = byAnchor.id;
-          else {
-            const n = findByText(currentMapData.rootNode, anchor);
-            if (n) nodeId = n.id;
+
+        // 複数ルートノード対応: rootNodes があればそれを使用、なければ rootNode をフォールバック
+        const roots = currentMapData?.rootNodes || (currentMapData?.rootNode ? [currentMapData.rootNode] : []);
+
+        if (roots.length > 0) {
+          // 各ルートで resolveAnchorToNode を試行
+          for (const root of roots) {
+            const byAnchor = resolveAnchorToNode(root, anchor);
+            if (byAnchor) {
+              nodeId = byAnchor.id;
+              break;
+            }
+          }
+
+          // 見つからなければテキスト検索
+          if (!nodeId) {
+            const n = findByTextInRoots(roots, anchor);
+            if (n) {
+              nodeId = n.id;
+            }
           }
         }
         return { kind: 'internal' as const, index: p.index, label: p.label, anchorText: anchor, nodeId };
@@ -127,6 +148,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     node.note,
     (currentMapData as any)?.mapIdentifier?.mapId,
     currentMapData?.rootNode,
+    currentMapData?.rootNodes,
     availableMaps
   ]);
 
@@ -209,7 +231,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 onClick={(e) => {
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
-                      id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
+                      id: `internal-${entry.index}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       createdAt: '',
                       updatedAt: ''
@@ -217,7 +239,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     handleLinkClick(e, link);
                   } else if (entry.kind === 'map') {
                     const link: NodeLink = {
-                      id: `map|${entry.mapId}|${entry.anchorText || ''}`,
+                      id: `map-${entry.index}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
                       createdAt: '',
@@ -232,7 +254,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 onDoubleClick={() => {
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
-                      id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
+                      id: `internal-${entry.index}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       createdAt: '',
                       updatedAt: ''
@@ -240,7 +262,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     handleLinkDoubleClick(link);
                   } else if (entry.kind === 'map') {
                     const nodeLink: NodeLink = {
-                      id: `map|${entry.mapId}|${entry.anchorText || ''}`,
+                      id: `map-${entry.index}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
                       createdAt: '',
@@ -265,7 +287,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       const target = resolveHrefToMapTarget(href, currentId2, ids);
                       if (target && onLinkNavigate) {
                         const nodeLink: NodeLink = {
-                          id: `map|${target.mapId}|${target.anchorText || ''}`,
+                          id: `external-${entry.index}`,
                           targetMapId: target.mapId,
                           targetNodeId: target.anchorText ? `text:${target.anchorText}` : undefined,
                           createdAt: '',
@@ -286,7 +308,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 onContextMenu={(e) => {
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
-                      id: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
+                      id: `internal-${entry.index}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
                       createdAt: '',
                       updatedAt: ''
@@ -294,7 +316,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     handleLinkContextMenu(e, link);
                   } else if (entry.kind === 'map') {
                     const link: NodeLink = {
-                      id: `map|${entry.mapId}|${entry.anchorText || ''}`,
+                      id: `map-${entry.index}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
                       createdAt: '',

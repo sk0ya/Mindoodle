@@ -45,7 +45,7 @@ interface CanvasRendererProps {
   
   // Link display data
   availableMaps?: { id: string; title: string }[];
-  currentMapData?: { id: string; rootNode: any };
+  currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
   
   // Link navigation
   onLinkNavigate?: (link: NodeLink) => void;

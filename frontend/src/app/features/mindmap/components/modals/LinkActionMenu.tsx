@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useCallback } from 'react';
-import { Link, Edit3, Trash2 } from 'lucide-react';
+import { Link } from 'lucide-react';
 import type { NodeLink } from '@shared/types';
 import { viewportService } from '@/app/core/services';
 
@@ -9,11 +9,6 @@ interface LinkActionMenuProps {
   link: NodeLink;
   onClose: () => void;
   onNavigate: (link: NodeLink) => void;
-  onEdit: (link: NodeLink) => void;
-  onDelete: (linkId: string) => void;
-  // リンク表示用の追加データ
-  availableMaps?: { mapIdentifier: { mapId: string; workspaceId: string }; title: string }[];
-  currentMapData?: { mapIdentifier: { mapId: string; workspaceId: string }; rootNode: any };
 }
 
 const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
@@ -22,10 +17,6 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
   link,
   onClose,
   onNavigate,
-  onEdit,
-  onDelete,
-  availableMaps = [],
-  currentMapData
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -85,61 +76,9 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
     onClose();
   }, [link, onNavigate, onClose]);
 
-  const handleEdit = useCallback(() => {
-    onEdit(link);
-    onClose();
-  }, [link, onEdit, onClose]);
-
-
-  // リンク情報を取得するヘルパー関数
-  const getLinkDisplayInfo = useCallback(() => {
-    if (!link.targetMapId) {
-      // 現在のマップ内のリンク
-      return {
-        mapTitle: '現在のマップ',
-        nodeText: link.targetNodeId ? getNodeText(currentMapData?.rootNode, link.targetNodeId) : 'ルートノード'
-      };
-    } else {
-      // 他のマップへのリンク
-      const targetMap = availableMaps.find(map => map.mapIdentifier.mapId === link.targetMapId);
-      return {
-        mapTitle: targetMap?.title || `マップID: ${link.targetMapId}`,
-        nodeText: link.targetNodeId ? `ノードID: ${link.targetNodeId}` : 'ルートノード'
-      };
-    }
-  }, [link, availableMaps, currentMapData]);
-
-  // ノードテキストを取得するヘルパー関数
-  const getNodeText = (rootNode: any, nodeId: string): string => {
-    if (!rootNode) return 'ノードが見つかりません';
-    
-    const findNode = (node: any): string | null => {
-      if (node.id === nodeId) return node.text;
-      if (node.children) {
-        for (const child of node.children) {
-          const result = findNode(child);
-          if (result) return result;
-        }
-      }
-      return null;
-    };
-    
-    return findNode(rootNode) || 'ノードが見つかりません';
-  };
-
-  const handleDelete = useCallback(() => {
-    const { mapTitle, nodeText } = getLinkDisplayInfo();
-    const linkDisplayText = `${mapTitle} > ${nodeText}`;
-    if (confirm(`リンク「${linkDisplayText}」を削除しますか？`)) {
-      onDelete(link.id);
-      onClose();
-    }
-  }, [link, onDelete, onClose, getLinkDisplayInfo]);
-
   if (!isOpen) return null;
 
   const pos = adjustedPosition();
-  const { mapTitle, nodeText } = getLinkDisplayInfo();
 
   return (
     <div
@@ -152,29 +91,10 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
         zIndex: 10001
       }}
     >
-      <div className="menu-header">
-        <div className="link-title">{mapTitle}</div>
-        <div className="link-description">{nodeText}</div>
-      </div>
-
-      <div className="menu-divider" />
-
       <div className="menu-items">
         <button className="menu-item primary" onClick={handleNavigate}>
           <span className="menu-icon"><Link size={14} /></span>
           <span className="menu-text">リンク先に移動</span>
-        </button>
-
-        <button className="menu-item" onClick={handleEdit}>
-          <span className="menu-icon"><Edit3 size={14} /></span>
-          <span className="menu-text">編集</span>
-        </button>
-
-        <div className="menu-divider" />
-
-        <button className="menu-item danger" onClick={handleDelete}>
-          <span className="menu-icon"><Trash2 size={14} /></span>
-          <span className="menu-text">削除</span>
         </button>
       </div>
 
