@@ -1,16 +1,7 @@
 import React, { memo, useState } from 'react';
-import ContextMenu from '../ContextMenu';
 import AIGenerationModal from './AIGenerationModal';
 import ImageModal from './ImageModal';
-import {
-  MindMapModalsProvider,
-  useMindMapModals,
-  useSelectedNode,
-  useNodeOperations,
-  useUIOperations,
-  useMindMapUI,
-  type MindMapModalsProviderProps
-} from './MindMapModalsContext';
+import { MindMapModalsProvider, useMindMapModals, type MindMapModalsProviderProps } from './MindMapModalsContext';
 import type { MindMapNode } from '../../../../shared';
 
 /**
@@ -89,30 +80,6 @@ const useAIModal = () => {
 };
 
 
-/**
- * コンテキストメニューコンポーネント
- */
-const ContextMenuModal: React.FC<{ onAIGenerate: (node: MindMapNode) => void }> = ({ onAIGenerate }) => {
-  const ui = useMindMapUI();
-  const selectedNode = useSelectedNode();
-  const { onDeleteNode, onCopyNode, onPasteNode } = useNodeOperations();
-  const { onCloseContextMenu } = useUIOperations();
-
-  if (!ui.showContextMenu) return null;
-
-  return (
-    <ContextMenu
-      visible={true}
-      position={ui.contextMenuPosition}
-      selectedNode={selectedNode}
-      onDelete={onDeleteNode}
-      onCopy={onCopyNode}
-      onPaste={onPasteNode}
-      onAIGenerate={onAIGenerate}
-      onClose={onCloseContextMenu}
-    />
-  );
-};
 
 /**
  * AI生成モーダルコンポーネント
@@ -138,13 +105,7 @@ const AIGenerationModalComponent: React.FC<{
  * メインのモーダル管理コンポーネント（内部実装）
  */
 const MindMapModalsInternal: React.FC = () => {
-  const {
-    showAIModal,
-    aiTargetNode,
-    handleAIGenerate,
-    handleAIGenerationComplete,
-    closeAIModal
-  } = useAIModal();
+  const { showAIModal, aiTargetNode, handleAIGenerationComplete, closeAIModal } = useAIModal();
 
   const {
     showImageModal,
@@ -166,7 +127,6 @@ const MindMapModalsInternal: React.FC = () => {
 
   return (
     <>
-      <ContextMenuModal onAIGenerate={handleAIGenerate} />
       <AIGenerationModalComponent
         showAIModal={showAIModal}
         aiTargetNode={aiTargetNode}

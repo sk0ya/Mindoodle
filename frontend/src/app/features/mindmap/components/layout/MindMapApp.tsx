@@ -35,7 +35,7 @@ import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
-import * as panelManager from '@mindmap/state/panelManager';
+// panelManager usage removed for node right-click; strategies handle gating
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
@@ -238,16 +238,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
 
 
-  const handleRightClick = (e: React.MouseEvent, nodeId: string) => {
-    e.preventDefault();
-
-    // Use centralized panel manager policy for context menu visibility
-    const canOpenContext = panelManager.canOpen(uiStore.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
-    if (!canOpenContext) return;
-    store.setContextMenuPosition({ x: e.clientX, y: e.clientY });
-    (store as any).openPanel?.('contextMenu');
-    selectNode(nodeId); // Select the node when right-clicking
-  };
+  // Node right-click is handled by event strategies; no local handler needed
 
   const handleContextMenuClose = () => {
     (store as any).closePanel?.('contextMenu');
@@ -613,7 +604,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             onAddChild={(parentId) => { addNode(parentId); }}
             onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
             onDeleteNode={deleteNode}
-            onRightClick={handleRightClick}
             onToggleCollapse={toggleNodeCollapse}
             onShowLinkActionMenu={handleShowLinkActionMenu}
             onAddLink={handleAddLink}

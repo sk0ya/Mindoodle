@@ -15,7 +15,6 @@ type Props = {
   onAddChild: (parentId: string) => void;
   onAddSibling: (nodeId: string) => void;
   onDeleteNode: (nodeId: string) => void;
-  onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
