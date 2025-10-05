@@ -38,6 +38,11 @@ Vim 風のショートカット一覧です。
 | I | Start editing at the beginning of the node text |
 | dd | Cut the selected node (copy then delete) |
 | cut-node | Cut the selected node (copy then delete) |
+| bold | Toggle bold formatting (**text**) |
+| B | Toggle bold formatting (**text**) |
+| strikethrough | Toggle strikethrough formatting (~~text~~) |
+| strike | Toggle strikethrough formatting (~~text~~) |
+| S | Toggle strikethrough formatting (~~text~~) |
 | i | Start editing at the beginning of node text (vim i) |
 | insert-start | Start editing at the beginning of node text (vim i) |
 | a | Start editing at the end of node text (vim a) |
@@ -75,4 +80,4 @@ Vim 風のショートカット一覧です。
 
 
 
-最終更新: 2025-09-30
+最終更新: 2025-10-05

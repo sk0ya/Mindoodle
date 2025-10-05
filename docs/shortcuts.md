@@ -35,6 +35,10 @@
 |---|---|
 | delete-node | Delete the selected node |
 | remove | Delete the selected node |
+| italic | Toggle italic formatting (*text*) |
+| i-format | Toggle italic formatting (*text*) |
+| paste-sibling-after | Paste as younger sibling (after selected node) |
+| paste-sibling-before | Paste as elder sibling (before selected node) |
 | edit-start | Start editing the selected node |
 | edit-end | Start editing with cursor at the end of node text |
 | convert-markdown | Convert markdown heading to list |
@@ -79,7 +83,9 @@
 | md-panel | Toggle Markdown panel visibility |
 | toggle-node-note | Toggle Selected Node Note panel visibility |
 | node-note-panel | Toggle Selected Node Note panel visibility |
+| vim-settings | Toggle Vim settings panel visibility |
+| vim-panel | Toggle Vim settings panel visibility |
 
 
 
-最終更新: 2025-09-30
+最終更新: 2025-10-05

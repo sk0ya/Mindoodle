@@ -3,7 +3,7 @@
  * Defines the structure and interfaces for the command-based operation system
  */
 
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, UIMode, PanelId } from '@shared/types';
 import type { VimModeHook } from '@vim/hooks/useVimMode';
 
 // Command argument type definitions
@@ -22,6 +22,9 @@ export interface CommandContext {
   selectedNodeId: string | null;
   editingNodeId: string | null;
   vim?: VimModeHook;
+  // Optional UI context for guards
+  mode?: UIMode;
+  openPanels?: Partial<Record<PanelId, boolean>>;
   // Handler functions from useShortcutHandlers
   handlers: {
     // Node operations
@@ -104,6 +107,8 @@ export interface Command {
   args?: CommandArg[];
   examples?: string[];
   category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility' | 'ui';
+  // Optional guard to centralize preconditions
+  guard?: (context: CommandContext, args: Record<string, any>) => boolean;
   execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
 }
 
@@ -130,6 +135,7 @@ export interface CommandRegistry {
   getAll: () => Command[];
   getByCategory: (category: string) => Command[];
   search: (query: string) => Command[];
+  execute: (nameOrAlias: string, context: CommandContext, args?: Record<string, any>) => Promise<CommandResult>;
 }
 
 // Command execution options

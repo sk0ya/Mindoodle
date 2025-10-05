@@ -2,6 +2,8 @@ import type { StateCreator } from 'zustand';
 import type { Position, MindMapNode } from '@shared/types';
 import type { UIMode, PanelId } from '@shared/types';
 import type { MindMapStore } from './types';
+import { nextMode } from '@mindmap/state/uiModeMachine';
+import * as panelManager from '@mindmap/state/panelManager';
 import type { UIState, UIActions } from '@shared/types';
 
 export interface UISlice extends UIActions {
@@ -49,7 +51,8 @@ export const createUISlice: StateCreator<
   // Mode management
   setMode: (mode: UIMode) => {
     set((state) => {
-      state.ui.mode = mode;
+      const current = (state.ui.mode ?? 'normal') as UIMode;
+      state.ui.mode = nextMode(current, mode);
     });
   },
 
@@ -272,10 +275,13 @@ export const createUISlice: StateCreator<
   // Centralized panel manager helpers (optional)
   openPanel: (id: PanelId) => {
     set((state) => {
-      state.ui.openPanels = { ...(state.ui.openPanels ?? {}), [id]: true };
+      // Example exclusivity: contextMenu should not open when linkList is open
+      const opts = id === 'contextMenu' ? { exclusiveWith: ['linkList'] as PanelId[] } : {};
+      state.ui.openPanels = panelManager.applyOpen(state.ui.openPanels, id, opts);
+
       // Reflect to legacy booleans for compatibility
       switch (id) {
-        case 'contextMenu': state.ui.showContextMenu = true; break;
+        case 'contextMenu': state.ui.showContextMenu = panelManager.isOpen(state.ui.openPanels, id); break;
         case 'shortcutHelper': state.ui.showShortcutHelper = true; break;
         case 'mapList': state.ui.showMapList = true; break;
         case 'localStorage': state.ui.showLocalStoragePanel = true; break;
@@ -291,7 +297,7 @@ export const createUISlice: StateCreator<
   },
   closePanel: (id: PanelId) => {
     set((state) => {
-      state.ui.openPanels = { ...(state.ui.openPanels ?? {}), [id]: false };
+      state.ui.openPanels = panelManager.applyClose(state.ui.openPanels, id);
       switch (id) {
         case 'contextMenu': state.ui.showContextMenu = false; break;
         case 'shortcutHelper': state.ui.showShortcutHelper = false; break;
@@ -309,14 +315,28 @@ export const createUISlice: StateCreator<
   },
   togglePanel: (id: PanelId) => {
     set((state) => {
-      const open = !!(state.ui.openPanels ?? {})[id];
-      (state as any).closePanel?.(id);
-      if (!open) (state as any).openPanel?.(id);
+      const opts = id === 'contextMenu' ? { exclusiveWith: ['linkList'] as PanelId[] } : {};
+      state.ui.openPanels = panelManager.applyToggle(state.ui.openPanels, id, opts);
+
+      const nowOpen = panelManager.isOpen(state.ui.openPanels, id);
+      switch (id) {
+        case 'contextMenu': state.ui.showContextMenu = nowOpen; break;
+        case 'shortcutHelper': state.ui.showShortcutHelper = nowOpen; break;
+        case 'mapList': state.ui.showMapList = nowOpen; break;
+        case 'localStorage': state.ui.showLocalStoragePanel = nowOpen; break;
+        case 'tutorial': state.ui.showTutorial = nowOpen; break;
+        case 'notes': state.ui.showNotesPanel = nowOpen; break;
+        case 'nodeNote': state.ui.showNodeNotePanel = nowOpen; break;
+        case 'vimSettings': (state.ui as any).showVimSettingsPanel = nowOpen; break;
+        case 'imageModal': state.ui.showImageModal = nowOpen; break;
+        case 'fileActionMenu': state.ui.showFileActionMenu = nowOpen; break;
+        case 'linkList': if (!nowOpen) state.ui.showLinkListForNode = null; break;
+      }
     });
   },
   closeAllPanelsManaged: () => {
     set((state) => {
-      state.ui.openPanels = {};
+      state.ui.openPanels = panelManager.closeAll();
       state.ui.showContextMenu = false;
       state.ui.showShortcutHelper = false;
       state.ui.showMapList = false;

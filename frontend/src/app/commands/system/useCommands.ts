@@ -164,8 +164,8 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         };
       }
 
-      // Execute command
-      const result = await command.execute(context, validationResult.command.args);
+      // Execute via registry to apply guard uniformly
+      const result = await registry.execute(command.name, context, validationResult.command.args);
 
       if (options.verbose && result.success) {
         logger.debug(`Command executed: ${commandString}`, result);

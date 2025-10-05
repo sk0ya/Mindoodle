@@ -3,7 +3,7 @@
  * Manages registration, lookup, and organization of available commands
  */
 
-import type { Command, CommandRegistry } from './types';
+import type { Command, CommandRegistry, CommandContext, CommandResult } from './types';
 
 /**
  * Implementation of the command registry
@@ -115,6 +115,27 @@ export class CommandRegistryImpl implements CommandRegistry {
     return results
       .sort((a, b) => b.score - a.score)
       .map(result => result.command);
+  }
+
+  /**
+   * Execute a command by name or alias with optional guard check
+   */
+  async execute(nameOrAlias: string, context: CommandContext, args: Record<string, any> = {}): Promise<CommandResult> {
+    const command = this.get(nameOrAlias);
+    if (!command) {
+      return { success: false, error: `Command '${nameOrAlias}' not found` };
+    }
+
+    if (command.guard && !command.guard(context, args)) {
+      return { success: false, error: 'Command guard rejected execution' };
+    }
+
+    try {
+      const res = await command.execute(context, args);
+      return res;
+    } catch (e) {
+      return { success: false, error: e instanceof Error ? e.message : 'Unknown command error' };
+    }
   }
 
   /**

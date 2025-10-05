@@ -44,6 +44,7 @@
       "@/*": ["src/*"],
       "@shared/*": ["src/app/shared/*"],
       "@core/*": ["src/app/core/*"],
+      "@commands": ["src/app/commands/index.ts"],
       "@commands/*": ["src/app/commands/*"],
       "@mindmap/*": ["src/app/features/mindmap/*"],
       "@ai/*": ["src/app/features/ai/*"],
