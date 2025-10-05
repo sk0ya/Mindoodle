@@ -3,6 +3,7 @@ import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import { useDragHandler } from '@mindmap/handlers/BaseDragHandler';
 import { convertScreenToSVG } from '@mindmap/handlers';
+import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 
 interface NodeDragHandlerProps {
   node: MindMapNode;
@@ -28,12 +29,14 @@ export const useNodeDragHandler = ({
     {
       onDragStart: (nodeId) => {
         logger.debug('Node ドラッグ開始:', { nodeId });
+        try { dispatchCanvasEvent({ type: 'nodeDragStart', x: 0, y: 0, targetNodeId: nodeId }); } catch {}
         if (onDragStart) {
           onDragStart(nodeId);
         }
       },
       onDragMove: (_nodeId, position) => {
         logger.debug('Node ドラッグ中:', { nodeId: node.id, clientX: position.x, clientY: position.y });
+        try { dispatchCanvasEvent({ type: 'nodeDragMove', x: position.x, y: position.y, targetNodeId: node.id }); } catch {}
         if (onDragMove) {
           onDragMove(position.x, position.y);
         }
@@ -52,6 +55,7 @@ export const useNodeDragHandler = ({
           newX,
           newY
         });
+        try { dispatchCanvasEvent({ type: 'nodeDragEnd', x: newX, y: newY, targetNodeId: node.id }); } catch {}
 
         if (onDragEnd) {
           onDragEnd(node.id, newX, newY);

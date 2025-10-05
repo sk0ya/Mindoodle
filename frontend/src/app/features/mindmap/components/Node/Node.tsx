@@ -3,6 +3,7 @@ import NodeRenderer, { NodeSelectionBorder } from './NodeRenderer';
 import NodeEditor, { isMarkdownLink, isUrl } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX, resolveNodeTextWrapConfig } from '@mindmap/utils/nodeUtils';
+import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 import { stopEventPropagation } from '@shared/utils';
 import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
@@ -89,6 +90,7 @@ const Node: React.FC<NodeProps> = ({
 
   const handleClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
+    try { dispatchCanvasEvent({ type: 'nodeClick', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
 
     // ドラッグが発生していない場合のみクリック処理
     if (!isDragging) {
@@ -112,6 +114,7 @@ const Node: React.FC<NodeProps> = ({
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
+    try { dispatchCanvasEvent({ type: 'nodeDoubleClick', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
     // ダブルクリック時: 背景（テキスト以外）なら編集開始
     // テキスト上のダブルクリックは NodeEditor 側で stopPropagation + ナビゲーション処理
     if ((node as any).kind !== 'table') {
@@ -232,6 +235,7 @@ const Node: React.FC<NodeProps> = ({
 
   const handleRightClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
+    try { dispatchCanvasEvent({ type: 'nodeContextMenu', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
     if (onRightClick) {
       onRightClick(e, node.id);
     }

@@ -19,5 +19,13 @@ export class InsertModeStrategy implements EventStrategy {
         store.setShowContextMenu(false);
       } catch { /* ignore */ }
     }
+
+    if (event.type === 'nodeClick' && event.targetNodeId) {
+      try {
+        const store = useMindMapStore.getState() as any;
+        store.selectNode?.(event.targetNodeId);
+      } catch { /* ignore */ }
+      return;
+    }
   }
 }

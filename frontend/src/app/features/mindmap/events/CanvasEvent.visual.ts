@@ -20,5 +20,13 @@ export class VisualModeStrategy implements EventStrategy {
         (store as any).openPanel?.('contextMenu');
       } catch { /* ignore */ }
     }
+
+    if (event.type === 'nodeClick' && event.targetNodeId) {
+      try {
+        const store = useMindMapStore.getState() as any;
+        store.selectNode?.(event.targetNodeId);
+      } catch { /* ignore */ }
+      return;
+    }
   }
 }
