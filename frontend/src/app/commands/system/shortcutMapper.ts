@@ -41,7 +41,8 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   // Vim editing - delete/cut/copy/paste
   { key: 'dd', command: 'cut', category: 'vim', description: 'ノードをカット' },
   { key: 'yy', command: 'copy', category: 'vim', description: 'ノードをコピー' },
-  { key: 'p', command: 'paste', category: 'vim', description: 'ノードを貼り付け' },
+  { key: 'p', command: 'paste-sibling-after', category: 'vim', description: '弟ノードとして貼り付け（下に）' },
+  { key: 'P', command: 'paste-sibling-before', category: 'vim', description: '兄ノードとして貼り付け（上に）' },
   { key: 'x', command: 'toggle-checkbox', category: 'vim', description: 'チェックボックス切替' },
   { key: 'X', command: 'insert-checkbox-child', category: 'vim', description: 'チェックボックス付き子追加' },
   { key: 'u', command: 'undo', category: 'vim', description: '元に戻す' },
