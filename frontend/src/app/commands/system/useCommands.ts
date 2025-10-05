@@ -101,6 +101,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   }, []);
 
   // Create command context
+  const uiStore = useMindMapStore();
   const context = useMemo((): CommandContext => {
     // Strip undefineds from handlers to satisfy exactOptionalPropertyTypes
     const cleanHandlers = Object.entries(handlers).reduce((acc, [k, v]) => {
@@ -108,12 +109,18 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       return acc;
     }, {} as Partial<CommandContext['handlers']>) as CommandContext['handlers'];
 
-    const base = { selectedNodeId, editingNodeId, handlers: cleanHandlers } as CommandContext;
+    const base = {
+      selectedNodeId,
+      editingNodeId,
+      handlers: cleanHandlers,
+      mode: (uiStore as any)?.ui?.mode,
+      openPanels: (uiStore as any)?.ui?.openPanels
+    } as CommandContext;
     if (vim !== undefined) {
       (base as any).vim = vim;
     }
     return base;
-  }, [selectedNodeId, editingNodeId, vim, handlers]);
+  }, [selectedNodeId, editingNodeId, vim, handlers, uiStore]);
 
   // Parse command string
   const parse = useCallback((commandString: string): ParseResult => {
