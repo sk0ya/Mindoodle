@@ -19,6 +19,7 @@ interface ContextMenuProps {
   onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
   onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onEditTable?: (nodeId: string) => void;
   onClose: () => void;
 }
 
@@ -32,6 +33,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onAIGenerate,
   onAddLink,
   onMarkdownNodeType,
+  onEditTable,
   onClose
 }) => {
   // メニュー外クリックで閉じる
@@ -74,6 +76,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         onAIGenerate={onAIGenerate}
         onAddLink={onAddLink}
         onMarkdownNodeType={onMarkdownNodeType}
+        onEditTable={onEditTable}
         onClose={onClose}
       />
       

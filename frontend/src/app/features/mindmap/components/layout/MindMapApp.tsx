@@ -37,6 +37,7 @@ import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 // panelManager usage removed for node right-click; strategies handle gating
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
+import TableEditorModal from '../../../markdown/components/TableEditorModal';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
@@ -91,6 +92,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setCurrentImageAlt(altText || '');
     setShowImageModal(true);
   }, []);
+
+  // Table editor modal state
+  const [showTableEditor, setShowTableEditor] = useState(false);
+  const [editingTableNodeId, setEditingTableNodeId] = useState<string | null>(null);
 
   const commandPalette = useCommandPalette({
     enabled: true,
@@ -244,6 +249,28 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     (store as any).closePanel?.('contextMenu');
     store.setShowContextMenu(false);
   };
+
+  // Handle table editing
+  const handleEditTable = useCallback((nodeId: string) => {
+    setEditingTableNodeId(nodeId);
+    setShowTableEditor(true);
+    handleContextMenuClose();
+  }, []);
+
+  const handleTableEditorSave = useCallback((newMarkdown: string) => {
+    if (!editingTableNodeId) return;
+
+    const node = findNodeInRoots(data?.rootNodes || [], editingTableNodeId);
+    if (!node) return;
+
+    // Update node text with new markdown table
+    // For table nodes, the markdown is stored in the text property
+    updateNode(editingTableNodeId, { text: newMarkdown });
+
+    setShowTableEditor(false);
+    setEditingTableNodeId(null);
+    showNotification('success', 'テーブルを更新しました');
+  }, [editingTableNodeId, data, updateNode, showNotification]);
 
   const aiOps = useAIOperations({
     ai,
@@ -731,6 +758,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
           handleContextMenuClose();
         }}
+        onEditTable={handleEditTable}
         onMarkdownNodeType={(nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
           if (data?.rootNodes?.[0]) {
             // コンテキストメニューをすぐに閉じる
@@ -790,6 +818,21 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           onSuccess={handleAuthModalSuccess}
         />
       )}
+
+      {/* Table Editor Modal */}
+      <TableEditorModal
+        isOpen={showTableEditor}
+        onClose={() => {
+          setShowTableEditor(false);
+          setEditingTableNodeId(null);
+        }}
+        onSave={handleTableEditorSave}
+        initialMarkdown={
+          editingTableNodeId
+            ? (findNodeInRoots(data?.rootNodes || [], editingTableNodeId)?.text || '')
+            : ''
+        }
+      />
     </div>
   );
 };

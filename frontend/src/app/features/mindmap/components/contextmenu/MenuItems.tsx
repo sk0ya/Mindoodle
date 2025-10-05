@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Copy, Clipboard, Link, Trash2, Clock, List } from 'lucide-react';
+import { Bot, Copy, Clipboard, Link, Trash2, Clock, List, Table } from 'lucide-react';
 import { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '../../store';
 
@@ -26,6 +26,7 @@ interface MenuItemsProps {
   onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
   onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onEditTable?: (nodeId: string) => void;
   onClose: () => void;
 }
 
@@ -37,6 +38,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   onAIGenerate,
   onAddLink,
   onMarkdownNodeType,
+  onEditTable,
   onClose
 }) => {
   const store = useMindMapStore();
@@ -91,6 +93,19 @@ const MenuItems: React.FC<MenuItemsProps> = ({
           onClose();
         },
         shortcut: 'Ctrl+M / m'
+      },
+      { type: 'separator' as const }
+    ] : []),
+
+    // テーブル編集メニュー（テーブルノードのみ）
+    ...((selectedNode as any).kind === 'table' && onEditTable ? [
+      {
+        icon: <Table size={16} />,
+        label: 'テーブルを編集',
+        action: () => {
+          onEditTable(selectedNode.id);
+          onClose();
+        }
       },
       { type: 'separator' as const }
     ] : []),

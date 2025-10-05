@@ -712,7 +712,7 @@ interface NodeRendererProps {
               <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
                    onClick={(e) => { e.stopPropagation(); if (!isSelected && onSelectNode) onSelectNode(node.id); }}
                    onDoubleClick={(e) => { e.stopPropagation(); }}
-                   onContextMenu={(e) => { e.stopPropagation(); e.preventDefault(); }}
+                   onContextMenu={onContextMenu}
                    onMouseEnter={handleMouseEnter}
                    onMouseLeave={handleMouseLeave}
               >

@@ -1,6 +1,6 @@
 // moved to layout/overlay
 import React from 'react';
-import { Copy, Link, Trash2, Sparkles } from 'lucide-react';
+import { Copy, Link, Trash2, Sparkles, Table } from 'lucide-react';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
@@ -15,6 +15,7 @@ type Props = {
   onPasteNode: (parentId: string) => Promise<void>;
   onAIGenerate?: (node: MindMapNode) => void;
   onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onEditTable?: (nodeId: string) => void;
   onClose: () => void;
 };
 
@@ -27,6 +28,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onPasteNode,
   onAIGenerate,
   onMarkdownNodeType,
+  onEditTable,
   onClose,
 }) => {
   const store = useMindMapStore();
@@ -66,6 +68,17 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
       icon: <Sparkles size={14} />,
       label: 'AI生成',
       onClick: () => onAIGenerate(selectedNode),
+    });
+  }
+
+  // テーブル編集メニュー（テーブルノードのみ）
+  const isTableNode = (selectedNode as any).kind === 'table';
+  if (isTableNode && onEditTable) {
+    items.push({ separator: true });
+    items.push({
+      icon: <Table size={14} />,
+      label: 'テーブルを編集',
+      onClick: () => onEditTable(selectedNode.id),
     });
   }
 
