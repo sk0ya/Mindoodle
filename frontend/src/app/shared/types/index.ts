@@ -48,7 +48,9 @@ export type {
   ContextMenuState,
   ModalStates,
   UIActions,
-  UISlice
+  UISlice,
+  UIMode,
+  PanelId
 } from './ui.types';
 
 // Legacy compatibility - maintaining old import paths

@@ -1,5 +1,6 @@
 import type { StateCreator } from 'zustand';
 import type { Position, MindMapNode } from '@shared/types';
+import type { UIMode, PanelId } from '@shared/types';
 import type { MindMapStore } from './types';
 import type { UIState, UIActions } from '@shared/types';
 
@@ -19,6 +20,7 @@ export const createUISlice: StateCreator<
 > = (set) => ({
   // Initial UI state
   ui: {
+    mode: 'normal' as UIMode,
     zoom: 1,
     pan: { x: 0, y: 0 },
     showContextMenu: false,
@@ -41,6 +43,14 @@ export const createUISlice: StateCreator<
     showLinkListForNode: null,
     searchHighlightedNodes: new Set<string>(),
     searchQuery: '',
+    openPanels: {},
+  },
+
+  // Mode management
+  setMode: (mode: UIMode) => {
+    set((state) => {
+      state.ui.mode = mode;
+    });
   },
 
   // Zoom and Pan Actions
@@ -246,6 +256,8 @@ export const createUISlice: StateCreator<
       state.ui.showTutorial = false;
       state.ui.showLinkListForNode = null;
       (state.ui as any).showVimSettingsPanel = false;
+      // Managed panels reset
+      state.ui.openPanels = {};
       // Note: showNotesPanel は意図的に closeAllPanels から除外
       // Note: showNodeNotePanel も除外（ユーザーが明示的に閉じる）
     });
@@ -257,5 +269,64 @@ export const createUISlice: StateCreator<
     });
   },
 
+  // Centralized panel manager helpers (optional)
+  openPanel: (id: PanelId) => {
+    set((state) => {
+      state.ui.openPanels = { ...(state.ui.openPanels ?? {}), [id]: true };
+      // Reflect to legacy booleans for compatibility
+      switch (id) {
+        case 'contextMenu': state.ui.showContextMenu = true; break;
+        case 'shortcutHelper': state.ui.showShortcutHelper = true; break;
+        case 'mapList': state.ui.showMapList = true; break;
+        case 'localStorage': state.ui.showLocalStoragePanel = true; break;
+        case 'tutorial': state.ui.showTutorial = true; break;
+        case 'notes': state.ui.showNotesPanel = true; break;
+        case 'nodeNote': state.ui.showNodeNotePanel = true; break;
+        case 'vimSettings': (state.ui as any).showVimSettingsPanel = true; break;
+        case 'imageModal': state.ui.showImageModal = true; break;
+        case 'fileActionMenu': state.ui.showFileActionMenu = true; break;
+        case 'linkList': /* nodeId 管理は別API */ break;
+      }
+    });
+  },
+  closePanel: (id: PanelId) => {
+    set((state) => {
+      state.ui.openPanels = { ...(state.ui.openPanels ?? {}), [id]: false };
+      switch (id) {
+        case 'contextMenu': state.ui.showContextMenu = false; break;
+        case 'shortcutHelper': state.ui.showShortcutHelper = false; break;
+        case 'mapList': state.ui.showMapList = false; break;
+        case 'localStorage': state.ui.showLocalStoragePanel = false; break;
+        case 'tutorial': state.ui.showTutorial = false; break;
+        case 'notes': state.ui.showNotesPanel = false; break;
+        case 'nodeNote': state.ui.showNodeNotePanel = false; break;
+        case 'vimSettings': (state.ui as any).showVimSettingsPanel = false; break;
+        case 'imageModal': state.ui.showImageModal = false; break;
+        case 'fileActionMenu': state.ui.showFileActionMenu = false; break;
+        case 'linkList': state.ui.showLinkListForNode = null; break;
+      }
+    });
+  },
+  togglePanel: (id: PanelId) => {
+    set((state) => {
+      const open = !!(state.ui.openPanels ?? {})[id];
+      (state as any).closePanel?.(id);
+      if (!open) (state as any).openPanel?.(id);
+    });
+  },
+  closeAllPanelsManaged: () => {
+    set((state) => {
+      state.ui.openPanels = {};
+      state.ui.showContextMenu = false;
+      state.ui.showShortcutHelper = false;
+      state.ui.showMapList = false;
+      state.ui.showLocalStoragePanel = false;
+      state.ui.showImageModal = false;
+      state.ui.showFileActionMenu = false;
+      state.ui.showTutorial = false;
+      state.ui.showLinkListForNode = null;
+      (state.ui as any).showVimSettingsPanel = false;
+    });
+  },
 
 });

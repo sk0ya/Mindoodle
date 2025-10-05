@@ -5,8 +5,28 @@
 import type { Position } from './base.types';
 import type { MindMapNode } from './data.types';
 
+// UI modes (discrete)
+export type UIMode = 'normal' | 'insert' | 'visual' | 'menu';
+
+// Managed panels (centralized visibility control)
+export type PanelId =
+  | 'contextMenu'
+  | 'shortcutHelper'
+  | 'mapList'
+  | 'localStorage'
+  | 'tutorial'
+  | 'notes'
+  | 'nodeNote'
+  | 'vimSettings'
+  | 'imageModal'
+  | 'fileActionMenu'
+  | 'linkList';
+
 // UI状態
 export interface UIState {
+  // Discrete UI mode
+  mode?: UIMode;
+
   // Basic UI state
   zoom: number;
   pan: Position;
@@ -45,6 +65,9 @@ export interface UIState {
 
   // Mermaid cache management
   lastMermaidCacheCleared?: number;
+
+  // Centralized panel visibility state (normalized)
+  openPanels?: Partial<Record<PanelId, boolean>>;
 }
 
 // Context menu state
@@ -68,6 +91,9 @@ export interface ModalStates {
 
 // UI Actions interface
 export interface UIActions {
+  // Mode management
+  setMode?: (mode: UIMode) => void;
+
   // Zoom and Pan
   setZoom: (zoom: number) => void;
   setPan: (pan: Position) => void;
@@ -114,6 +140,12 @@ export interface UIActions {
   // Composite Actions
   closeAllPanels: () => void;
   toggleSidebar: () => void;
+
+  // Centralized panel manager helpers (optional use)
+  openPanel?: (id: PanelId) => void;
+  closePanel?: (id: PanelId) => void;
+  togglePanel?: (id: PanelId) => void;
+  closeAllPanelsManaged?: () => void;
 }
 
 // Combined UI interface
