@@ -36,6 +36,7 @@ import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 import * as panelManager from '@mindmap/state/panelManager';
+import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
@@ -654,7 +655,11 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               getMapMarkdown={(mindMap as any).getMapMarkdown}
               onMapMarkdownInput={(mindMap as any).onMapMarkdownInput}
               subscribeMarkdownFromNodes={(mindMap as any).subscribeMarkdownFromNodes}
-              getNodeIdByMarkdownLine={(mindMap as any).getNodeIdByMarkdownLine}
+              getNodeIdByMarkdownLine={(line: number) => {
+                try {
+                  return selectNodeIdByMarkdownLine(data?.rootNodes || [], line);
+                } catch { return null; }
+              }}
               onSelectNode={selectNode}
             />
           )}
