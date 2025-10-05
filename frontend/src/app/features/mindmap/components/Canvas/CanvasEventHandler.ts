@@ -2,10 +2,9 @@ import { useCallback } from 'react';
 import { logger } from '@shared/utils';
 import { useMindMapStore } from '../../store';
 import { useBaseEventHandler } from '@mindmap/handlers';
-import type { CanvasEvent } from '@mindmap/events/EventStrategy';
-import { NormalModeStrategy } from '@mindmap/events/CanvasEvent.normal';
-import { InsertModeStrategy } from '@mindmap/events/CanvasEvent.insert';
-import { VisualModeStrategy } from '@mindmap/events/CanvasEvent.visual';
+// Strategy event type import kept for reference if needed in future
+// import type { CanvasEvent } from '@mindmap/events/EventStrategy';
+import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 
 interface CanvasEventHandlerProps {
   editingNodeId: string | null;
@@ -42,7 +41,7 @@ export const useCanvasEventHandler = ({
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     wasPanning = getIsPanning ? getIsPanning() : false;
     baseHandleMouseDown(e);
-    dispatchToStrategy({ type: 'mousedown', x: e.clientX, y: e.clientY });
+    dispatchCanvasEvent({ type: 'mousedown', x: e.clientX, y: e.clientY });
   }, [getIsPanning, baseHandleMouseDown]);
 
   // Background click handler
@@ -55,19 +54,19 @@ export const useCanvasEventHandler = ({
       onFinishEdit(editingNodeId, editText);
     }
     // Delegate bgclick behavior to strategy (selection/close panels etc.)
-    dispatchToStrategy({ type: 'bgclick', x: 0, y: 0 });
+    dispatchCanvasEvent({ type: 'bgclick', x: 0, y: 0 });
   }, [editingNodeId, editText, onFinishEdit]);
 
   // Handle mouse up with background click detection
   const handleMouseUp = useCallback((e: React.MouseEvent) => {
     baseHandleMouseUp(e, handleBackgroundClick);
-    dispatchToStrategy({ type: 'mouseup', x: e.clientX, y: e.clientY });
+    dispatchCanvasEvent({ type: 'mouseup', x: e.clientX, y: e.clientY });
   }, [baseHandleMouseUp, handleBackgroundClick]);
 
   // Handle context menu
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     baseHandleContextMenu(e);
-    dispatchToStrategy({ type: 'contextmenu', x: e.clientX, y: e.clientY });
+    dispatchCanvasEvent({ type: 'contextmenu', x: e.clientX, y: e.clientY });
   }, [baseHandleContextMenu]);
 
   // ノード選択時に編集を確定する処理
@@ -96,22 +95,4 @@ export const useCanvasEventHandler = ({
 
 export type { CanvasEventHandlerProps };
 
-function getStrategy(mode: 'normal' | 'insert' | 'visual' | 'menu') {
-  switch (mode) {
-    case 'insert': return new InsertModeStrategy();
-    case 'visual': return new VisualModeStrategy();
-    case 'normal':
-    default: return new NormalModeStrategy();
-  }
-}
-
-function dispatchToStrategy(event: CanvasEvent) {
-  try {
-    // Retrieve mode inline to avoid stale closures if store changes frequently
-    const currentMode = (useMindMapStore.getState()?.ui?.mode ?? 'normal') as 'normal'|'insert'|'visual'|'menu';
-    const strategy = getStrategy(currentMode);
-    strategy.handle(event);
-  } catch {
-    // no-op on dispatch failures to keep UI responsive
-  }
-}
+// Event strategy dispatch moved to '@mindmap/events/dispatcher'
