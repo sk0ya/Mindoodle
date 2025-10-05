@@ -75,6 +75,14 @@
 | close | Close all open panels and overlays |
 | escape | Close all open panels and overlays |
 
+## アプリケーション
+
+| キー | 動作 |
+|---|---|
+| map-next | Switch current map by id or direction |
+| map-prev | Switch current map by id or direction |
+| switchmap | Switch current map by id or direction |
+
 ## UI
 
 | キー | 動作 |

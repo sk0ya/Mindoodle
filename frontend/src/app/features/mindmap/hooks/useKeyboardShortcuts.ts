@@ -100,19 +100,13 @@ function handleStandardShortcut(
     // Map switching: Ctrl+P (prev), Ctrl+N (next)
     switch (key.toLowerCase()) {
       case 'p':
-        if (handlers.switchToPrevMap) {
-          event.preventDefault();
-          handlers.switchToPrevMap();
-          return true;
-        }
-        break;
+        event.preventDefault();
+        commands.execute('switch-map --direction prev');
+        return true;
       case 'n':
-        if (handlers.switchToNextMap) {
-          event.preventDefault();
-          handlers.switchToNextMap();
-          return true;
-        }
-        break;
+        event.preventDefault();
+        commands.execute('switch-map --direction next');
+        return true;
     }
 
     // Node-related modifier shortcuts require a selection
