@@ -369,6 +369,84 @@ frontend/src/
 - [ ] NodeRenderer.tsx (1070 lines)
 - **Target:** 500-700 lines per file
 
+**Phase 5: Code Duplication Elimination** 📋 **PLANNED**
+- [x] Code duplication analysis complete
+- [ ] ID generation logic unification (~40 lines)
+- [ ] localStorage operation consolidation (~120 lines)
+- [ ] JSON.parse/stringify safety wrapper adoption (~80 lines)
+- [ ] useState<boolean> replacement with useBooleanState (~25 lines)
+- **Target:** 200-330 lines reduction
+
+---
+
+## 🔍 Code Duplication Analysis Results
+
+### 🔴 High Priority Duplications (Immediate Action Required)
+
+#### 1. ID Generation Logic Duplication (~40 lines reducible)
+**Issue:** `Math.random().toString(36)` pattern scattered across 4 files
+- ✅ Centralized: `frontend/src/app/shared/utils/idGenerator.ts`
+- ❌ Duplicates:
+  - `frontend/src/app/shared/utils/eventManager.ts:167`
+  - `frontend/src/app/features/markdown/components/MarkdownEditor.tsx:136`
+  - `frontend/src/app/features/mindmap/components/Node/MermaidRenderer.tsx:70`
+
+**Action:** Replace all duplicates with `idGenerator` functions
+
+#### 2. localStorage Direct Access (~120 lines reducible)
+**Issue:** 8 files directly accessing localStorage despite having wrappers
+- ✅ Available wrappers:
+  - `frontend/src/app/core/storage/localStorage.ts`
+  - `frontend/src/app/shared/utils/safeJson.ts`
+- ❌ Direct access in:
+  - `CloudStorageAdapter.ts` (6 occurrences - auth tokens)
+  - `MarkdownEditor.tsx` (1 occurrence - token retrieval)
+  - `WorkspaceService.ts` (2 occurrences - workspace data)
+  - `ErrorBoundary.tsx` (2 occurrences - error logs)
+  - `useBooleanState.ts` (3 occurrences - boolean persistence)
+  - `SelectedNodeNotePanel.tsx` (2 occurrences - panel height)
+
+**Action:** Migrate all to localStorage.ts or safeJson.ts wrappers
+
+### 🟡 Medium Priority Duplications (Recommended)
+
+#### 3. Unsafe JSON Operations (~80 lines reducible)
+**Issue:** 15 files using JSON.parse/stringify without error handling
+- ✅ Available wrapper: `frontend/src/app/shared/utils/safeJson.ts`
+- ❌ Unsafe usage in 15 files
+
+**Action:** Replace critical JSON operations with safeJson utilities
+
+#### 4. Boolean State Management (~25 lines reducible)
+**Issue:** 5 files using `useState<boolean>` instead of custom hook
+- ✅ Available hook: `frontend/src/app/shared/hooks/ui/useBooleanState.ts`
+- ❌ Manual useState in:
+  - ImageResizePanel.tsx
+  - KeyboardShortcutHelper.tsx
+  - NodeNotesPanel.tsx
+  - useFolderGuide.ts
+  - TitleEditor.tsx
+
+**Action:** Replace with useBooleanState hook where beneficial
+
+### 🟢 Low Priority (Acceptable as-is)
+
+#### 5. addEventListener Usage (25 files)
+Most usage is legitimate. EventManager should only be used for complex lifecycle management.
+
+#### 6. node.children Pattern (6 files)
+Defensive coding pattern - no consolidation needed.
+
+### 📊 Expected Impact
+
+| Refactoring | Lines Saved | Difficulty | Priority |
+|-------------|-------------|------------|----------|
+| ID generation | 30-50 | Low | 🔴 High |
+| localStorage | 100-150 | Medium | 🔴 High |
+| JSON safety | 50-100 | Low | 🟡 Medium |
+| Boolean state | 20-30 | Low | 🟡 Medium |
+| **TOTAL** | **200-330** | - | - |
+
 ---
 
 ### 💡 Additional Ideas
