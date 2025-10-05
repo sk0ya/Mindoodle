@@ -82,7 +82,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     } catch {}
     const ids = Array.from(idsSet);
 
-    const slugify = (t: string) => (t || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+    const slugify = (t: string) => (t || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const findByText = (root: any, text: string): MindMapNode | null => {
       if (!root || !text) return null;
       const targetSlug = slugify(text);

@@ -8,8 +8,7 @@ import { WorkspaceService } from '@shared/services';
 interface SettingsSidebarProps {
 }
 
-const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
-}) => {
+const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   const { settings, updateSetting } = useMindMapStore();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [cloudAdapter, setCloudAdapter] = useState<CloudStorageAdapter | null>(null);
