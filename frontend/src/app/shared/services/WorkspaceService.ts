@@ -1,5 +1,6 @@
 import type { CloudStorageAdapter } from '../../core/storage/adapters/CloudStorageAdapter';
 import { logger } from '../utils';
+import { setLocalStorage, getLocalStorage, STORAGE_KEYS } from '@shared/utils';
 
 export interface Workspace {
   id: string;
@@ -169,7 +170,7 @@ export class WorkspaceService {
         hasCloudWorkspace: this.workspaces.has('cloud')
       };
 
-      localStorage.setItem('mindoodle-workspaces', JSON.stringify(persistentData));
+      setLocalStorage(STORAGE_KEYS.WORKSPACES, persistentData);
     } catch (error) {
       logger.error('Failed to persist workspaces:', error);
     }
@@ -178,11 +179,8 @@ export class WorkspaceService {
   // Load workspace configuration from localStorage
   private loadPersistedWorkspaces(): void {
     try {
-      const saved = localStorage.getItem('mindoodle-workspaces');
-      if (!saved) return;
-
-      // Parse saved data but don't use it in new design
-      JSON.parse(saved);
+      const saved = getLocalStorage<any>(STORAGE_KEYS.WORKSPACES);
+      if (!saved.success || !saved.data) return;
 
       // Skip local workspaces - they are not used in new design
       // Only cloud workspace is managed by WorkspaceService
@@ -190,7 +188,7 @@ export class WorkspaceService {
       // Note: Cloud workspace will be restored when CloudStorageAdapter initializes
       // and finds a valid auth token in localStorage
 
-      logger.info(`Loaded ${this.workspaces.size} persisted workspaces`);
+      logger.info(`Loaded persisted workspaces config`);
     } catch (error) {
       logger.error('Failed to load persisted workspaces:', error);
     }

@@ -3,6 +3,7 @@
  * 複数のコンポーネントが同じイベントを監視する場合の効率化
  */
 import { memoryService } from '@/app/core/services';
+import { generateId } from './idGenerator';
 import { isDevelopment } from './env';
 
 type EventHandler = (event: Event) => void;
@@ -28,7 +29,7 @@ class EventManager {
     handler: EventHandler,
     description?: string
   ): string {
-    const id = this.generateId();
+    const id = generateId('listener');
 
     const listener: ManagedEventListener = {
       element,
@@ -51,7 +52,7 @@ class EventManager {
     event: string,
     handler: EventHandler
   ): string {
-    const id = this.generateId();
+    const id = generateId('listener');
 
     if (!this.globalHandlers.has(event)) {
       this.globalHandlers.set(event, new Set());
@@ -163,9 +164,7 @@ class EventManager {
     };
   }
 
-  private generateId(): string {
-    return `listener_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
+  // Note: ID generation is centralized via shared utils
 }
 
 // グローバルインスタンス

@@ -7,6 +7,7 @@ import { Component, ReactNode, ErrorInfo } from 'react';
 import { isDevelopment } from '../utils/env';
 import { logger } from '../utils/logger';
 import { generateErrorId } from '../utils/idGenerator';
+import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '../utils';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -48,13 +49,14 @@ class ErrorReporter {
 
     // Store error locally for debugging
     try {
-      const storedErrors = JSON.parse(localStorage.getItem('mindflow_errors') || '[]');
+      const res = getLocalStorage<any[]>(STORAGE_KEYS.ERROR_LOGS, []);
+      const storedErrors = Array.isArray(res.data) ? res.data : [];
       storedErrors.push(errorReport);
       // Keep only last 10 errors
       if (storedErrors.length > 10) {
         storedErrors.splice(0, storedErrors.length - 10);
       }
-      localStorage.setItem('mindflow_errors', JSON.stringify(storedErrors));
+      setLocalStorage(STORAGE_KEYS.ERROR_LOGS, storedErrors);
     } catch (e) {
       logger.warn('Failed to store error report:', e);
     }

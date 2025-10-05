@@ -1,4 +1,5 @@
 import { useCallback, useState, useEffect, useRef } from 'react';
+import { parseStoredJson, storeJson } from '@shared/utils';
 
 export interface BooleanStateOptions {
   initialValue?: boolean;
@@ -329,12 +330,12 @@ export const usePersistedState = <T>(
 
   const [state, setState] = useState<T>(() => {
     try {
-      const item = localStorage.getItem(key);
-      if (item) {
-        const parsed = serializer.deserialize(item);
-        if (validator ? validator(parsed) : true) {
-          return parsed;
-        }
+      const raw = parseStoredJson<string | T>(key, undefined as any);
+      if (typeof raw === 'string') {
+        const parsed = serializer.deserialize(raw);
+        if (validator ? validator(parsed) : true) return parsed;
+      } else if (raw !== undefined) {
+        if (validator ? validator(raw) : true) return raw as T;
       }
     } catch (error) {
       console.warn(`Failed to load persisted state for key "${key}":`, error);
@@ -346,7 +347,12 @@ export const usePersistedState = <T>(
     setState(current => {
       const newValue = typeof value === 'function' ? (value as (prev: T) => T)(current) : value;
       try {
-        localStorage.setItem(key, serializer.serialize(newValue));
+        const serialized = serializer.serialize(newValue);
+        if (typeof serialized === 'string') {
+          storeJson(key, serialized);
+        } else {
+          storeJson(key, newValue as unknown as object);
+        }
       } catch (error) {
         console.warn(`Failed to save persisted state for key "${key}":`, error);
       }

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RotateCcw } from 'lucide-react';
 import type { MindMapNode } from '@shared/types';
+import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 interface ImageResizePanelProps {
   node: MindMapNode;
@@ -13,7 +14,7 @@ const ImageResizePanel: React.FC<ImageResizePanelProps> = ({
 }) => {
   const [width, setWidth] = useState<number>(node.customImageWidth || 150);
   const [height, setHeight] = useState<number>(node.customImageHeight || 105);
-  const [maintainAspectRatio, setMaintainAspectRatio] = useState<boolean>(true);
+  const { value: maintainAspectRatio, setValue: setMaintainAspectRatio } = useBooleanState({ initialValue: true });
 
   // 初期アスペクト比を計算
   const initialAspectRatio = (node.customImageWidth || 150) / (node.customImageHeight || 105);

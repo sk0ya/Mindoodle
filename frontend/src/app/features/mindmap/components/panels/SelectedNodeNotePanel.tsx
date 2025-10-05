@@ -3,6 +3,7 @@ import { StickyNote } from 'lucide-react';
 import MarkdownEditor from '../../../markdown/components/MarkdownEditor';
 import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
+import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import { viewportService } from '@/app/core/services';
 
 type Props = {
@@ -13,7 +14,7 @@ type Props = {
   onClose?: () => void;
 };
 
-const HEIGHT_KEY = 'mindoodle_node_note_panel_height';
+const HEIGHT_KEY = STORAGE_KEYS.NODE_NOTE_PANEL_HEIGHT;
 
 const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
   const [height, setHeight] = useState<number>(viewportService.getDefaultNoteHeight());
@@ -27,13 +28,11 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
   // Restore saved height
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(HEIGHT_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (typeof parsed === 'number') {
-          const restored = Math.min(Math.max(120, parsed), viewportService.getMaxNoteHeight());
-          setHeight(restored);
-        }
+      const res = getLocalStorage<number>(HEIGHT_KEY);
+      const value = typeof res.data === 'number' ? res.data : undefined;
+      if (typeof value === 'number') {
+        const restored = Math.min(Math.max(120, value), viewportService.getMaxNoteHeight());
+        setHeight(restored);
       }
     } catch {}
   }, []);
@@ -59,7 +58,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       stopResizing();
       document.removeEventListener('mousemove', onMove, true);
       document.removeEventListener('mouseup', onUp, true);
-      try { window.localStorage.setItem(HEIGHT_KEY, JSON.stringify(height)); } catch {}
+      try { setLocalStorage(HEIGHT_KEY, height); } catch {}
 
       // force editor layout pass after resize settles
       setTimeout(() => {

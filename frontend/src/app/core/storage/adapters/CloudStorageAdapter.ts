@@ -1,6 +1,6 @@
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
-import { logger } from '@shared/utils';
+import { logger, getLocalStorage, setLocalStorage, removeLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import { WorkspaceService } from '@shared/services';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
@@ -41,12 +41,12 @@ export class CloudStorageAdapter implements StorageAdapter {
   async initialize(): Promise<void> {
     // Try to restore auth token from localStorage
     try {
-      const savedToken = localStorage.getItem('mindoodle-auth-token');
-      const savedUser = localStorage.getItem('mindoodle-auth-user');
+      const tokenRes = getLocalStorage<string>(STORAGE_KEYS.AUTH_TOKEN);
+      const userRes = getLocalStorage<CloudUser>(STORAGE_KEYS.AUTH_USER);
 
-      if (savedToken && savedUser) {
-        this.authToken = savedToken;
-        this.user = JSON.parse(savedUser);
+      if (tokenRes.success && tokenRes.data && userRes.success && userRes.data) {
+        this.authToken = tokenRes.data;
+        this.user = userRes.data;
 
         // Verify token is still valid
         const isValid = await this.verifyAuth();
@@ -173,16 +173,16 @@ export class CloudStorageAdapter implements StorageAdapter {
 
   private saveAuth(): void {
     if (this.authToken && this.user) {
-      localStorage.setItem('mindoodle-auth-token', this.authToken);
-      localStorage.setItem('mindoodle-auth-user', JSON.stringify(this.user));
+      setLocalStorage(STORAGE_KEYS.AUTH_TOKEN, this.authToken);
+      setLocalStorage(STORAGE_KEYS.AUTH_USER, this.user);
     }
   }
 
   private clearAuth(): void {
     this.authToken = null;
     this.user = null;
-    localStorage.removeItem('mindoodle-auth-token');
-    localStorage.removeItem('mindoodle-auth-user');
+    removeLocalStorage(STORAGE_KEYS.AUTH_TOKEN);
+    removeLocalStorage(STORAGE_KEYS.AUTH_USER);
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {

@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 import { useActivityLifecycle } from '../../hooks/useEditingState';
 
 interface TitleEditorProps {
@@ -10,30 +11,30 @@ const TitleEditor: React.FC<TitleEditorProps> = ({
   title,
   onTitleChange
 }) => {
-  const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
+  const { value: isEditingTitle, setTrue: startEditing, setFalse: stopEditing } = useBooleanState({ initialValue: false });
   const [tempTitle, setTempTitle] = useState<string>(title);
   
   // 編集状態を追跡（タイトル編集時のみ）
   useActivityLifecycle('typing', isEditingTitle);
 
   const handleTitleClick = useCallback((): void => {
-    setIsEditingTitle(true);
+    startEditing();
     setTempTitle(title);
-  }, [title]);
+  }, [title, startEditing]);
 
   const handleTitleSave = useCallback((): void => {
     onTitleChange(tempTitle);
-    setIsEditingTitle(false);
-  }, [tempTitle, onTitleChange]);
+    stopEditing();
+  }, [tempTitle, onTitleChange, stopEditing]);
 
   const handleTitleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>): void => {
     if (e.key === 'Enter') {
       handleTitleSave();
     } else if (e.key === 'Escape') {
-      setIsEditingTitle(false);
+      stopEditing();
       setTempTitle(title);
     }
-  }, [handleTitleSave, title]);
+  }, [handleTitleSave, title, stopEditing]);
 
   const handleTitleBlur = useCallback((): void => {
     handleTitleSave();

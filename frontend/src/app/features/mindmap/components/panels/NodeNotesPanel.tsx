@@ -5,6 +5,7 @@ import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 import { useResizingState } from '@/app/shared/hooks';
 import { useMindMapStore } from '../../store';
+import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 interface MarkdownPanelProps {
   currentMapIdentifier?: MapIdentifier | null;
@@ -30,9 +31,9 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const { setMarkdownPanelWidth } = useMindMapStore();
   const [mapMarkdown, setMapMarkdown] = useState<string>('');
-  const [loadingMapMd, setLoadingMapMd] = useState<boolean>(false);
+  const { value: loadingMapMd, setTrue: startLoading, setFalse: stopLoading } = useBooleanState({ initialValue: false });
   const [resizeCounter, setResizeCounter] = useState<number>(0);
-  const [editorFocused, setEditorFocused] = useState<boolean>(false);
+  const { value: editorFocused, setTrue: setEditorFocusedTrue, setFalse: setEditorFocusedFalse } = useBooleanState({ initialValue: false });
   const editorFocusedRef = useRef<boolean>(false);
   const pendingNodesTextRef = useRef<string | null>(null);
 
@@ -42,7 +43,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     if (!currentMapIdentifier || !getMapMarkdown) return;
     if (lastLoadedMapIdRef.current === currentMapIdentifier.mapId) return;
 
-    setLoadingMapMd(true);
+    startLoading();
     getMapMarkdown(currentMapIdentifier)
       .then(text => {
         setMapMarkdown(text || '');
@@ -53,7 +54,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         setMapMarkdown('');
       })
       .finally(() => {
-        setLoadingMapMd(false);
+        stopLoading();
       });
   }, [currentMapIdentifier, getMapMarkdown]);
 
@@ -216,7 +217,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
           readOnly={false}
           onResize={handleResize}
           onCursorLineChange={handleCursorLineChange}
-          onFocusChange={setEditorFocused}
+          onFocusChange={(f) => (f ? setEditorFocusedTrue() : setEditorFocusedFalse())}
           mapIdentifier={currentMapIdentifier || null}
         />
         )}

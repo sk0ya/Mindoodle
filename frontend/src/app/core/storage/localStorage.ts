@@ -34,6 +34,17 @@ export const STORAGE_KEYS = {
 
   // UI state
   FOLDER_GUIDE_DISMISSED: 'mindoodle_guide_dismissed',
+  NODE_NOTE_PANEL_HEIGHT: 'mindoodle_node_note_panel_height',
+
+  // Auth
+  AUTH_TOKEN: 'mindoodle-auth-token',
+  AUTH_USER: 'mindoodle-auth-user',
+
+  // Workspace persistence
+  WORKSPACES: 'mindoodle-workspaces',
+
+  // Error logs
+  ERROR_LOGS: 'mindflow_errors',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];

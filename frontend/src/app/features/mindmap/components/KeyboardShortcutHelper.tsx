@@ -5,6 +5,7 @@ import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/sho
 import '@shared/styles/ui/KeyboardShortcutHelper.css';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store/mindMapStore';
+import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 interface ShortcutItem {
   keys: (string | React.ReactNode)[];
@@ -237,13 +238,13 @@ interface ShortcutTooltipProps {
 }
 
 export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({ shortcut, children, description }) => {
-  const [isHovered, setIsHovered] = useState<boolean>(false);
+  const { value: isHovered, setTrue: show, setFalse: hide } = useBooleanState({ initialValue: false });
   const [tooltipPosition, setTooltipPosition] = useState<'top' | 'bottom'>('bottom');
   const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
   const containerRef = React.useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = () => {
-    setIsHovered(true);
+    show();
     
     // ツールチップの表示位置を動的に決定
     if (containerRef.current) {
@@ -297,7 +298,7 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({ shortcut, chil
       ref={containerRef}
       className="shortcut-tooltip-container"
       onMouseEnter={handleMouseEnter}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseLeave={hide}
     >
       {children}
       {isHovered && (

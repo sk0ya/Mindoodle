@@ -6,7 +6,7 @@ import { FileText } from 'lucide-react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import { mermaidSVGCache } from '../../mindmap/utils/mermaidCache';
 import { loadMonacoVim, getVimFromModule, initVimMode as adapterInitVimMode, loadDirectVimApi } from '../vim/adapter';
-import { logger } from '@shared/utils';
+import { logger, generateId, getLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import mermaid from 'mermaid';
 
 // Constants to prevent re-renders
@@ -133,7 +133,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           }
 
           // Generate new SVG
-          const id = `mmd-preview-${Math.random().toString(36).slice(2, 10)}`;
+          const id = generateId('mermaid');
           const { svg } = await mermaid.render(id, mermaidCode);
 
           // Parse and normalize SVG
@@ -230,7 +230,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         if (imgs.length === 0) return;
 
         const token = (() => {
-          try { return localStorage.getItem('mindoodle-auth-token'); } catch { return null; }
+          try {
+            const res = getLocalStorage<string>(STORAGE_KEYS.AUTH_TOKEN);
+            return res.success ? (res.data ?? null) : null;
+          } catch { return null; }
         })();
 
         // Compute map directory from mapId (exclude last segment)

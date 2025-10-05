@@ -1,4 +1,14 @@
-export type IdType = 'node' | 'map' | 'link' | 'notification' | 'file' | 'error' | 'workspace' | 'url';
+export type IdType =
+  | 'node'
+  | 'map'
+  | 'link'
+  | 'notification'
+  | 'file'
+  | 'error'
+  | 'workspace'
+  | 'url'
+  | 'listener'
+  | 'mermaid';
 
 const ID_PREFIXES: Record<IdType, string> = {
   node: 'node',
@@ -8,7 +18,9 @@ const ID_PREFIXES: Record<IdType, string> = {
   file: 'file',
   error: 'err',
   workspace: 'ws',
-  url: 'url'
+  url: 'url',
+  listener: 'listener',
+  mermaid: 'mmd'
 };
 
 export function generateId(type: IdType = 'node'): string {

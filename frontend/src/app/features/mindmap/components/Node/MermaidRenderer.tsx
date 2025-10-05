@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import mermaid from 'mermaid';
+import { generateId } from '@shared/utils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
 import { useMindMapStore } from '../../store';
 
@@ -67,7 +68,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
         }
 
         // Generate new SVG if not cached
-        const id = `mmd-${Math.random().toString(36).slice(2, 10)}`;
+        const id = generateId('mermaid');
         const { svg } = await mermaid.render(id, cleanedCode);
         if (cancelled) return;
 

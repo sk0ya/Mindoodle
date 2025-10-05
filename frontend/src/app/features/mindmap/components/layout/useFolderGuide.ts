@@ -1,19 +1,20 @@
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
+import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 const STORAGE_KEY = STORAGE_KEYS.FOLDER_GUIDE_DISMISSED;
 
 export function useFolderGuide() {
-  const [showFolderGuide, setShowFolderGuide] = useState<boolean>(() => {
+  const initial = (() => {
     const result = getLocalStorage<string>(STORAGE_KEY);
     return result.success ? result.data !== '1' : true;
-  });
+  })();
+  const { value: showFolderGuide, setTrue: openGuide, setFalse } = useBooleanState({ initialValue: initial });
 
-  const openGuide = useCallback(() => setShowFolderGuide(true), []);
   const closeGuide = useCallback(() => {
-    setShowFolderGuide(false);
+    setFalse();
     setLocalStorage(STORAGE_KEY, '1');
-  }, []);
+  }, [setFalse]);
 
   const markDismissed = useCallback(() => {
     setLocalStorage(STORAGE_KEY, '1');
@@ -21,4 +22,3 @@ export function useFolderGuide() {
 
   return { showFolderGuide, openGuide, closeGuide, markDismissed };
 }
-
