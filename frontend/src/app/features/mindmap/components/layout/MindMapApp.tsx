@@ -852,24 +852,10 @@ const MindMapAppWrapper: React.FC<MindMapAppProps> = (props) => {
 
   // Make Explorer's createFolder and createAndSelectMap available globally for Vim
   React.useEffect(() => {
-    (window as any).mindoodleCreateFolder = async (path: string) => {
-      if (typeof (mindMap as any).createFolder === 'function') {
-        const wsMatch = path.match(/^\/?(ws_[^/]+)\/?(.*)$/);
-        if (wsMatch) {
-          const workspaceId = wsMatch[1];
-          const relativePath = wsMatch[2] || '';
-          await (mindMap as any).createFolder(relativePath, workspaceId);
-        } else {
-          await (mindMap as any).createFolder(path);
-        }
-      }
-    };
-
-    (window as any).mindoodleCreateAndSelectMap = async (title: string, workspaceId: string, category?: string) => {
-      if (typeof (mindMap as any).createAndSelectMap === 'function') {
-        await (mindMap as any).createAndSelectMap(title, workspaceId, category);
-      }
-    };
+    try {
+      const controller = new MindMapController();
+      controller.attachExplorerGlobals(mindMap);
+    } catch { /* ignore */ }
   }, [mindMap]);
 
   return (
