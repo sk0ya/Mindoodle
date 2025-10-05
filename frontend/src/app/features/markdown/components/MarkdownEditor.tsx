@@ -507,7 +507,6 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
       // Helper: apply one mapping based on RHS semantics
       const applyOneMapping = (Vim: any, lhs: string, rhs: string) => {
-        const isLikelyVimSeq = /<[^>]+>|^[:a-zA-Z0-9]/.test(rhs);
         const toVimRhs = (s: string): string => {
           // Keywords to Vim equivalents
           const kw = s.trim().toLowerCase();
