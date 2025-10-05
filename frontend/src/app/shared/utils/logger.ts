@@ -79,6 +79,7 @@ class Logger {
         console.log(prefix, message, ...maskedArgs);
         break;
       case 'info':
+        // eslint-disable-next-line no-console
         console.info(prefix, message, ...maskedArgs);
         break;
       case 'warn':

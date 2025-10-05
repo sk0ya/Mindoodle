@@ -98,7 +98,6 @@ export const createNodeSlice: StateCreator<
   },
 
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => {
-    try { console.debug('[node] updateNode', { nodeId, hasKind: Object.prototype.hasOwnProperty.call(updates, 'kind') }); } catch {}
     set((state) => {
       if (!state.normalizedData) return;
 

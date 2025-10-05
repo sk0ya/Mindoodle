@@ -281,7 +281,6 @@ export const useMindMap = (
             return false;
           })();
 
-          console.debug('[md-sync] structure compare', { sameStructure, sameStructureExceptKind, hasKindDiff, prevCount: prevFlat.length, nextCount: nextFlat.length });
           if (sameStructure) {
             // Update only changed text/note fields
             for (let i = 0; i < prevFlat.length; i++) {
@@ -300,7 +299,6 @@ export const useMindMap = (
             }
           } else {
             // Structure changed: replace root nodes and record in history (including kind changes)
-            console.debug('[md-sync] applying structural change', { emit: true });
             (dataHook as any).setRootNodes(safeRootNodes, { emit: true });
             // Apply unified auto-layout after structural markdown changes.
             // Positions are not serialized to markdown, so this won't cause loops.

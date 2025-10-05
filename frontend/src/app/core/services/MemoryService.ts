@@ -355,16 +355,20 @@ class MemoryService {
   printReport(): void {
     const report = this.generateReport();
 
+    // eslint-disable-next-line no-console
     console.group('📊 Memory Service Report');
     console.log('Summary:', report.summary);
     console.log('Trends:', report.trends);
 
     if (report.recommendations.length > 0) {
+      // eslint-disable-next-line no-console
       console.group('💡 Recommendations:');
       report.recommendations.forEach(rec => console.log(`• ${rec}`));
+      // eslint-disable-next-line no-console
       console.groupEnd();
     }
 
+    // eslint-disable-next-line no-console
     console.groupEnd();
   }
 

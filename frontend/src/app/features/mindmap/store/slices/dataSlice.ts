@@ -91,8 +91,6 @@ export const createDataSlice: StateCreator<
 
     // Clear Mermaid caches when loading a new map to prevent stale diagram rendering
     get().clearMermaidRelatedCaches();
-
-    console.debug('[data] setData (initial load)', { title: data?.title, roots: data?.rootNodes?.length });
   },
 
   // Replace the entire rootNodes without resetting history (for Markdown-driven structure updates)
@@ -111,7 +109,6 @@ export const createDataSlice: StateCreator<
     get().clearMermaidRelatedCaches();
 
     const shouldEmit = options?.emit !== false;
-    console.debug('[data] setRootNodes', { emit: shouldEmit, source: options?.source, reason: options?.reason, count: rootNodes?.length });
     if (shouldEmit) {
       try { mindMapEvents.emit({ type: 'model.changed', source: options?.source || 'unknown' }); } catch {}
     }
@@ -128,7 +125,6 @@ export const createDataSlice: StateCreator<
       };
     });
     // Intentionally no history event; metadata is not part of node undo/redo
-    try { console.debug('[data] updateMapMetadata', { updates }); } catch {}
   },
 
   // Update normalized data from current tree
@@ -156,7 +152,6 @@ export const createDataSlice: StateCreator<
 
     // Emit a model changed event so subscribers can commit snapshots
     try {
-      console.debug('[data] syncToMindMapData -> emit model.changed');
       mindMapEvents.emit({ type: 'model.changed', source: 'syncToMindMapData' });
     } catch { /* noop */ }
   },

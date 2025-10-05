@@ -32,7 +32,6 @@ mindMapEvents.subscribe((e) => {
   try {
     if (e.type !== 'model.changed') {
       // ignore layout-only or others for history granularity
-      console.debug('[events] ignored event', { type: e.type, source: e.source });
       return;
     }
     const state: any = useMindMapStore.getState();
@@ -40,11 +39,9 @@ mindMapEvents.subscribe((e) => {
     if (depth > 0) {
       // mark dirty but don't commit yet
       state._groupDirty = true;
-      console.debug('[history] group dirty set (no commit yet)', { source: e.source, depth });
     } else {
       const { scheduleCommitSnapshot } = state as { scheduleCommitSnapshot?: () => void };
       if (typeof scheduleCommitSnapshot === 'function') {
-        console.debug('[history] scheduling commit (model.changed)', { source: e.source });
         scheduleCommitSnapshot();
       }
     }
