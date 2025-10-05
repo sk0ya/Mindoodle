@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode } from '@mindmap/utils';
+import { findNodeById, getFirstVisibleChild, findNodeInRoots } from '@mindmap/utils';
+import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
@@ -154,7 +155,7 @@ export function useShortcutHandlers(args: Args) {
         }
         case 'up':
         case 'down': {
-          const { siblings, currentIndex } = getSiblingNodes(currentRoot, selectedNodeId);
+          const { siblings, currentIndex } = selGetSiblingNodes(currentRoot, selectedNodeId);
           if (siblings.length > 1 && currentIndex !== -1) {
             let targetIndex = -1;
             if (direction === 'up' && currentIndex > 0) targetIndex = currentIndex - 1;
@@ -322,11 +323,7 @@ export function useShortcutHandlers(args: Args) {
     },
     findParentNode: (nodeId: string) => {
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
-      for (const root of roots) {
-        const parent = findParentNode(root, nodeId);
-        if (parent) return parent;
-      }
-      return null;
+      return selFindParentNode(roots, nodeId);
     },
   }), [
     data, ui, store, logger, showNotification,

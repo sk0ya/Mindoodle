@@ -4,6 +4,7 @@ import { useCanvasDragHandler } from '../Canvas';
 import { useCanvasViewportHandler } from '../Canvas';
 import { useCanvasEventHandler } from '../Canvas';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
+import { flattenVisibleNodes } from '@mindmap/selectors/mindMapSelectors';
 
 interface MindMapCanvasProps {
   data?: MindMapData | null;
@@ -66,20 +67,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   } = props;
 
   const svgRef = useRef<SVGSVGElement>(null);
-  
-  // ノードの平坦化
-  const flattenVisibleNodes = (node: MindMapNode): MindMapNode[] => {
-    const result: MindMapNode[] = [];
-    // 全てのノードを表示対象とする（複数ルートノード対応）
-    result.push(node);
-
-    if (!node?.collapsed && node?.children) {
-      node.children.forEach((child: MindMapNode) => {
-        result.push(...flattenVisibleNodes(child));
-      });
-    }
-    return result;
-  };
   
   // Only use rootNodes array - no fallback to single rootNode
   const rootNodes = data?.rootNodes || [];
