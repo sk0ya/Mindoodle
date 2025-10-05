@@ -11,15 +11,15 @@ import * as insertCommands from './editing/insert';
 import * as formatCommands from './editing/format';
 
 // structure
-import * as structureCommands from './structure/structure';
-import * as toggleCommands from './structure/toggle';
+import * as structureCommands from './structure';
+import * as toggleCommands from './toggle';
 
 // application
 import * as applicationCommands from './application/application';
 import * as mindmapCommands from './application/mindmap';
 
 // ui
-import * as uiCommands from './ui/ui';
+import * as uiCommands from './ui';
 
 // system
 export { useCommands } from './system/useCommands';

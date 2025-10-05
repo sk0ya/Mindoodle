@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { stopPropagationOnly } from '@shared/utils';
 import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
-import '@shared/styles/ui/KeyboardShortcutHelper.css';
+import './KeyboardShortcutHelper.css';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store/mindMapStore';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';

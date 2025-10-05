@@ -1,12 +1,5 @@
 {
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "exactOptionalPropertyTypes": true,
-    "noUncheckedIndexedAccess": true,
-    "strictPropertyInitialization": true,
-    "noPropertyAccessFromIndexSignature": true,
-    "noUncheckedSideEffectImports": true
-  },
+  "extends": "./tsconfig.strict.json",
   "include": [
     "src/vite-env.d.ts",
     "src/app/core/commands/**/*",
@@ -19,4 +12,3 @@
     "src/app/shared/utils/nodeTreeUtils.ts"
   ]
 }
-

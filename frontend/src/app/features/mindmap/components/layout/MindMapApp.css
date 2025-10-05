@@ -1,0 +1,231 @@
+.mindmap-app {
+  min-height: 100vh;
+  background: var(--bg-primary);
+  position: relative;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: row;
+}
+
+/* ローカルモード表示 */
+.local-mode-status {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: var(--bg-secondary);
+  border-radius: 6px;
+  margin-left: auto;
+}
+
+.mode-indicator {
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* メインレイアウト（サイドバー + コンテンツ） */
+.main-layout {
+  display: flex;
+  flex: 1;
+  height: 100%;
+}
+
+.sidebar-container {
+  width: 300px;
+  flex-shrink: 0;
+  border-right: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+}
+
+/* VSCode風メインコンテンツエリア */
+.mindmap-main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-primary);
+  transition: margin-left 0.3s ease;
+  margin: 0;
+  padding: 0;
+  gap: 0;
+}
+
+.mindmap-main-content.with-sidebar {
+  /* サイドバーが表示されている場合の調整 */
+}
+
+.workspace-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+}
+
+.container {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  transition: margin-left 0.3s ease;
+  padding: 0 0 24px 0;
+  margin: 0;
+  height: 100%;
+}
+
+.container.sidebar-expanded {
+  margin-left: 280px;
+}
+
+.container.sidebar-collapsed {
+  margin-left: 50px;
+}
+
+
+.sync-status {
+  display: flex;
+  align-items: center;
+}
+
+.save-message {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  background: #10b981;
+  color: white;
+  padding: 16px 24px;
+  border-radius: 12px;
+  z-index: 1000;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+@media (max-width: 1024px) {
+  .container {
+    padding: 6px;
+  }
+  
+  .container.sidebar-expanded {
+    margin-left: 250px;
+  }
+
+
+  .stats {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 4px;
+  }
+  
+  .container.sidebar-expanded {
+    margin-left: 250px;
+  }
+
+
+  .stats {
+    font-size: 13px;
+  }
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--bg-primary);
+  overflow-x: hidden;
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+button, input, select {
+  font-family: inherit;
+  outline: none;
+}
+
+/* ローディング画面 */
+.loading-screen {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg-primary);
+}
+
+.loading-content {
+  text-align: center;
+  max-width: 400px;
+  padding: 2rem;
+}
+
+.loading-spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #e9ecef;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: loading-spin 1s linear infinite;
+  margin: 0 auto 1rem;
+}
+
+@keyframes loading-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.loading-content h2 {
+  color: var(--text-primary);
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.loading-content p {
+  color: var(--text-secondary);
+  margin: 0;
+  font-size: 1rem;
+}
+
+/* Empty State共通スタイル */
+.notes-empty-state,
+.settings-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.notes-empty-icon,
+.settings-empty-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.7;
+}
+
+.notes-empty-title,
+.settings-empty-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-primary);
+}
+
+.notes-empty-description,
+.settings-empty-description {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+/* moved from @shared/styles/layout to co-locate with component */

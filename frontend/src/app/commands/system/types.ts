@@ -106,7 +106,7 @@ export interface Command {
   description: string;
   args?: CommandArg[];
   examples?: string[];
-  category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility' | 'ui';
+  category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility' | 'ui' | 'application';
   // Optional guard to centralize preconditions
   guard?: (context: CommandContext, args: Record<string, any>) => boolean;
   execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
