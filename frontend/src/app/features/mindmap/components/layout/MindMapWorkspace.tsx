@@ -13,7 +13,6 @@ interface MindMapWorkspaceProps {
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
   // Movement callbacks no longer required (handled via event strategies)
-  onRightClick: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
@@ -48,7 +47,6 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onStartEdit,
   onFinishEdit,
   // movement callbacks removed
-  onRightClick,
   onToggleCollapse,
   onShowLinkActionMenu,
   onAddLink,
@@ -78,9 +76,8 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onStartEdit={onStartEdit}
         onFinishEdit={onFinishEdit}
         // movement handled via strategies
-        onRightClick={onRightClick}
         onToggleCollapse={onToggleCollapse}
-        onNavigateToDirection={(_direction: 'up' | 'down' | 'left' | 'right') => {}}
+        
         onShowLinkActionMenu={onShowLinkActionMenu}
         onAddLink={onAddLink}
         onUpdateNode={onUpdateNode}

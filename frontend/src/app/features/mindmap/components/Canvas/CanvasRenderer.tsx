@@ -38,7 +38,6 @@ interface CanvasRendererProps {
   onNodeSelect: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
@@ -81,7 +80,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onNodeSelect,
   onStartEdit,
   onFinishEdit,
-  onRightClick,
   onToggleCollapse,
   onShowLinkActionMenu,
   onUpdateNode,
@@ -175,7 +173,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onDragStart={onDragStart}
                 onDragMove={onDragMove}
                 onDragEnd={onDragEnd}
-                onRightClick={onRightClick}
+                
                 editText={editText}
                 setEditText={setEditText}
                 onShowLinkActionMenu={onShowLinkActionMenu}

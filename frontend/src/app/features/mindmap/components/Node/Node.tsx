@@ -20,7 +20,6 @@ interface NodeProps {
   onDragStart?: (nodeId: string) => void;
   onDragMove?: (x: number, y: number) => void;
   onDragEnd?: (nodeId: string, x: number, y: number) => void;
-  onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onUpdateNode?: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
@@ -49,7 +48,6 @@ const Node: React.FC<NodeProps> = ({
   onDragStart,
   onDragMove,
   onDragEnd,
-  onRightClick,
   onUpdateNode,
   onAutoLayout,
   editText,
@@ -236,10 +234,7 @@ const Node: React.FC<NodeProps> = ({
   const handleRightClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
     try { dispatchCanvasEvent({ type: 'nodeContextMenu', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
-    if (onRightClick) {
-      onRightClick(e, node.id);
-    }
-  }, [node.id, onRightClick]);
+  }, [node.id]);
 
 
   // ノードのサイズ計算（共有ユーティリティ関数を使用、グローバルフォントサイズを適用）

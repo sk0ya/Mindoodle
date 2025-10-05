@@ -14,12 +14,7 @@ interface MindMapCanvasProps {
   onSelectNode: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  onChangeParent?: (nodeId: string, newParentId: string) => void;
-  onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
-  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
-  onRightClick?: (e: React.MouseEvent, nodeId: string) => void;
   onToggleCollapse: (nodeId: string) => void;
-  onNavigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
@@ -54,7 +49,6 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onStartEdit,
     onFinishEdit,
     // movement callbacks deprecated (handled by strategies)
-    onRightClick,
     onToggleCollapse,
     onShowLinkActionMenu,
     onUpdateNode,
@@ -163,7 +157,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
       onNodeSelect={handleNodeSelect}
       onStartEdit={onStartEdit}
       onFinishEdit={onFinishEdit}
-      onRightClick={onRightClick}
+      
       onToggleCollapse={onToggleCollapse}
       onShowLinkActionMenu={onShowLinkActionMenu}
       onUpdateNode={onUpdateNode}
