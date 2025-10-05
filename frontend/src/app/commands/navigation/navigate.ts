@@ -28,6 +28,12 @@ export const navigateCommand: Command = {
       description: 'Direction to navigate: up, down, left, right (or u, d, l, r)'
     }
   ],
+  guard: (context) => {
+    // Require a selected node and avoid navigation while in insert mode
+    if (!context.selectedNodeId) return false;
+    if (context.mode === 'insert') return false;
+    return true;
+  },
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
     const directionInput = (args as any)['direction'] || (args as any)['_0']; // Support positional arg
@@ -77,6 +83,7 @@ export const upCommand: Command = {
   description: 'Navigate up to the previous sibling node',
   category: 'navigation',
   examples: ['up', 'k'],
+  guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'up' });
   }
@@ -88,6 +95,7 @@ export const downCommand: Command = {
   description: 'Navigate down to the next sibling node',
   category: 'navigation',
   examples: ['down', 'j', 'd'],
+  guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'down' });
   }
@@ -99,6 +107,7 @@ export const leftCommand: Command = {
   description: 'Navigate left to the parent node',
   category: 'navigation',
   examples: ['left', 'h', 'parent'],
+  guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'left' });
   }
@@ -110,6 +119,7 @@ export const rightCommand: Command = {
   description: 'Navigate right to the first child node',
   category: 'navigation',
   examples: ['right', 'l'],
+  guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'right' });
   }
