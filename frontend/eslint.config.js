@@ -63,7 +63,10 @@ export default [
       'no-undef': 'off', // TypeScriptで処理
       
       // Import/Export
-      'no-duplicate-imports': 'warn'
+      'no-duplicate-imports': 'warn',
+
+      // Error handling
+      'no-empty': ['error', { allowEmptyCatch: true }]
     },
     settings: {
       react: {

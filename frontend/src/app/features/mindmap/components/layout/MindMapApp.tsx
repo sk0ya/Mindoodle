@@ -198,7 +198,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const activeView = uiStore.activeView;
   const setActiveView = store.setActiveView;
 
-  const explorerTree = (mindMap as any).explorerTree || null;
+  const explorerTree = (mindMap).explorerTree || null;
   useWindowGlobalsBridge({
     workspaces,
     addWorkspace,
@@ -371,7 +371,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       currentMapId,
       dataRoot: null,
       selectMapById,
-      currentWorkspaceId: (data as any)?.mapIdentifier?.workspaceId as string,
+      currentWorkspaceId: (data)?.mapIdentifier?.workspaceId as string,
       selectNode,
       centerNodeInView,
       notify: showNotification,
@@ -479,23 +479,23 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onRenameMap={(id, title) => updateMapMetadata(id, { title })}
         onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
-        workspaces={workspaces as any}
-        currentWorkspaceId={currentWorkspaceId as any}
-        onAddWorkspace={addWorkspace as any}
-        onRemoveWorkspace={removeWorkspace as any}
-        onSwitchWorkspace={switchWorkspace as any}
-        explorerTree={(mindMap as any).explorerTree || null}
+        workspaces={workspaces}
+        currentWorkspaceId={currentWorkspaceId}
+        onAddWorkspace={addWorkspace}
+        onRemoveWorkspace={removeWorkspace}
+        onSwitchWorkspace={switchWorkspace}
+        explorerTree={(mindMap).explorerTree || null}
         onCreateFolder={async (path: string) => {
-          if (typeof (mindMap as any).createFolder === 'function') {
+          if (typeof (mindMap).createFolder === 'function') {
             // フルパスからworkspaceIdと相対パスを分離
             const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
             if (wsMatch) {
               const workspaceId = wsMatch[1];
               const relativePath = wsMatch[2] || '';
-              await (mindMap as any).createFolder(relativePath, workspaceId);
+              await (mindMap).createFolder(relativePath, workspaceId);
             } else {
               // フォールバック: 相対パスとして処理
-              await (mindMap as any).createFolder(path);
+              await (mindMap).createFolder(path);
             }
           }
         }}
@@ -624,9 +624,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           {uiStore.showNotesPanel && (
             <MarkdownPanelContainer
               currentMapIdentifier={data ? data.mapIdentifier : null}
-              getMapMarkdown={(mindMap as any).getMapMarkdown}
-              onMapMarkdownInput={(mindMap as any).onMapMarkdownInput}
-              subscribeMarkdownFromNodes={(mindMap as any).subscribeMarkdownFromNodes}
+              getMapMarkdown={(mindMap).getMapMarkdown}
+              onMapMarkdownInput={(mindMap).onMapMarkdownInput}
+              subscribeMarkdownFromNodes={(mindMap).subscribeMarkdownFromNodes}
               getNodeIdByMarkdownLine={(line: number) => {
                 try {
                   return selectNodeIdByMarkdownLine(data?.rootNodes || [], line);

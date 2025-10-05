@@ -44,7 +44,7 @@ export class LRUCache<K, V> {
     } else if (this.cache.size >= this.maxSize) {
       // Remove least recently used item (guard undefined)
       const iterator = this.cache.keys().next();
-      const firstKey = iterator.value as K | undefined;
+      const firstKey = iterator.value;
       if (firstKey !== undefined) {
         this.cache.delete(firstKey);
         this.timestamps.delete(firstKey);

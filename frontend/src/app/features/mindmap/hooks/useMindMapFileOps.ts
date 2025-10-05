@@ -64,7 +64,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
   const onLoadRelativeImage = useCallback(
     async (relativePath: string): Promise<string | null> => {
       try {
-        if (typeof (mindMap as any).readImageAsDataURL !== 'function') {
+        if (typeof (mindMap).readImageAsDataURL !== 'function') {
           return null;
         }
 
@@ -99,7 +99,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         };
 
         const resolvedPath = resolvePath(currentMapId, relativePath);
-        const dataURL = await (mindMap as any).readImageAsDataURL(resolvedPath, workspaceId);
+        const dataURL = await (mindMap).readImageAsDataURL(resolvedPath, workspaceId);
 
         return dataURL || null;
       } catch (error) {
@@ -139,8 +139,8 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         logger.debug(`Batch updating ${updatedMaps.length} maps`);
 
         // Force refresh map list to reflect UI immediately
-        if (typeof (mindMap as any).refreshMapList === 'function') {
-          await (mindMap as any).refreshMapList();
+        if (typeof (mindMap).refreshMapList === 'function') {
+          await (mindMap).refreshMapList();
         }
 
         logger.debug(`Successfully batch updated ${updatedMaps.length} maps`);
@@ -148,8 +148,8 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         console.error('Failed to batch update map categories:', error);
 
         // Try to sync state even on error
-        if (typeof (mindMap as any).refreshMapList === 'function') {
-          await (mindMap as any).refreshMapList();
+        if (typeof (mindMap).refreshMapList === 'function') {
+          await (mindMap).refreshMapList();
         }
       }
     },
@@ -162,8 +162,8 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
   const handleSelectFolder = useCallback(
     async (onSuccess?: () => void) => {
       try {
-        if (typeof (mindMap as any).selectRootFolder === 'function') {
-          const ok = await (mindMap as any).selectRootFolder();
+        if (typeof (mindMap).selectRootFolder === 'function') {
+          const ok = await (mindMap).selectRootFolder();
           if (ok && onSuccess) {
             onSuccess();
           } else if (!ok) {

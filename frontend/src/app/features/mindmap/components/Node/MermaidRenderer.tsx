@@ -149,7 +149,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
       onMouseLeave={onMouseLeave}
       aria-label="Mermaid diagram"
     >
-      {/* eslint-disable-next-line react/no-danger */}
+      { }
       <div
         style={{ width: '100%', height: '100%' }}
         dangerouslySetInnerHTML={{ __html: svg }}

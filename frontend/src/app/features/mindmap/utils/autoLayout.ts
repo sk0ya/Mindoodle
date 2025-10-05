@@ -156,7 +156,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         currentOffset += childInfo.actualHeight;
         if (index < childrenWithHeights.length - 1) {
           // ユーザー設定のノード間隔を使用
-          let spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
+          const spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
           currentOffset += spacing;
         }
       });
@@ -221,7 +221,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       currentOffset += childInfo.actualHeight;
       if (index < childrenWithHeights.length - 1) {
         // ユーザー設定のノード間隔を使用
-        let spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
+        const spacing = Math.max(nodeSpacing, 2); // 設定値または最小2px
         currentOffset += spacing;
       }
     });

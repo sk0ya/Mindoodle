@@ -373,7 +373,7 @@ export const createNodeSlice: StateCreator<
                     isCheckbox: true,
                     isChecked: false
                   })
-                } as any;
+                };
               }
             }
             // Fallback: heading level 1 (safer than forcing list)
@@ -398,7 +398,7 @@ export const createNodeSlice: StateCreator<
           // Set markdownMeta same as current root sibling node (skip if current is table)
           // markdownMeta inheritance / fallback
           const derivedMeta = deriveSiblingMarkdownMeta();
-          if (derivedMeta) newNode.markdownMeta = { ...(derivedMeta as any), lineNumber: -1 } as any;
+          if (derivedMeta) newNode.markdownMeta = { ...(derivedMeta as any), lineNumber: -1 };
 
           // 新しいルートノードを追加
           state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
@@ -434,7 +434,7 @@ export const createNodeSlice: StateCreator<
           // Set markdownMeta same as current sibling node (skip if current is table)
           // markdownMeta inheritance / fallback
           const derivedMeta2 = deriveSiblingMarkdownMeta();
-          if (derivedMeta2) newNode.markdownMeta = { ...(derivedMeta2 as any), lineNumber: -1 } as any;
+          if (derivedMeta2) newNode.markdownMeta = { ...(derivedMeta2 as any), lineNumber: -1 };
 
           // Add sibling node first to establish parent-child relationship
           state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, insertAfter);

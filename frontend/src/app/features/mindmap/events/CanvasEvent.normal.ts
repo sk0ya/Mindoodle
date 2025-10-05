@@ -27,7 +27,7 @@ export class NormalModeStrategy implements EventStrategy {
     if (event.type === 'nodeContextMenu' && event.targetNodeId) {
       try {
         const store = useMindMapStore.getState() as any;
-        const ui = store.ui as any;
+        const ui = store.ui;
         const canOpen = panelManager.canOpen(ui.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
         if (!canOpen) return;
         store.selectNode?.(event.targetNodeId);

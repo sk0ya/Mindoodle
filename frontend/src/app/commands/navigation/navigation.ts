@@ -152,18 +152,11 @@ export const zoomInCommand: Command = {
   examples: ['zoom-in', 'zoom+', 'zi'],
 
   execute(): CommandResult {
-    try {
-      // This would require implementing zoom controls
-      return {
-        success: true,
-        message: 'Zoomed in (Zoom API needs implementation)'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to zoom in'
-      };
-    }
+    // This would require implementing zoom controls
+    return {
+      success: true,
+      message: 'Zoomed in (Zoom API needs implementation)'
+    };
   }
 };
 
@@ -175,18 +168,11 @@ export const zoomOutCommand: Command = {
   examples: ['zoom-out', 'zoom-'],
 
   execute(): CommandResult {
-    try {
-      // This would require implementing zoom controls
-      return {
-        success: true,
-        message: 'Zoomed out (Zoom API needs implementation)'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to zoom out'
-      };
-    }
+    // This would require implementing zoom controls
+    return {
+      success: true,
+      message: 'Zoomed out (Zoom API needs implementation)'
+    };
   }
 };
 
@@ -198,18 +184,11 @@ export const zoomResetCommand: Command = {
   examples: ['zoom-reset', 'fit', 'zoom-fit'],
 
   execute(): CommandResult {
-    try {
-      // This would require implementing zoom controls
-      return {
-        success: true,
-        message: 'Reset zoom to fit (Zoom API needs implementation)'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to reset zoom'
-      };
-    }
+    // This would require implementing zoom controls
+    return {
+      success: true,
+      message: 'Reset zoom to fit (Zoom API needs implementation)'
+    };
   }
 };
 
@@ -459,7 +438,7 @@ export const selectBottomNodeCommand: Command = {
       const rootNode = roots[roots.length - 1];
 
       // Pick the deepest descendant by always choosing the last child until leaf
-      let bottom = rootNode as any;
+      let bottom = rootNode;
       while (bottom && Array.isArray(bottom.children) && bottom.children.length > 0) {
         bottom = bottom.children[bottom.children.length - 1];
       }

@@ -82,7 +82,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
         // Primary sidebar might be hidden; count width only if visible in layout
         const style = side ? window.getComputedStyle(side) : null;
         const isSideVisible = !!side && style?.display !== 'none' && style?.visibility !== 'hidden';
-        const leftB = isSideVisible ? (side!.offsetWidth || 0) : 0;
+        const leftB = isSideVisible ? (side.offsetWidth || 0) : 0;
 
         const md = document.querySelector<HTMLElement>('.markdown-panel');
         const rightW = md?.offsetWidth || 0;

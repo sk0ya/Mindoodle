@@ -29,7 +29,7 @@ export class AdapterManager {
     // Initialize cloud adapter if in local+cloud mode
     if (this.config.mode === 'local+cloud') {
       const workspaceService = WorkspaceService.getInstance();
-      let existingCloudAdapter = workspaceService.getCloudAdapter();
+      const existingCloudAdapter = workspaceService.getCloudAdapter();
 
       if (existingCloudAdapter) {
         this.cloudAdapter = existingCloudAdapter;

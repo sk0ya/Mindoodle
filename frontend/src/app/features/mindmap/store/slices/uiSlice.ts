@@ -51,7 +51,7 @@ export const createUISlice: StateCreator<
   // Mode management
   setMode: (mode: UIMode) => {
     set((state) => {
-      const current = (state.ui.mode ?? 'normal') as UIMode;
+      const current = (state.ui.mode ?? 'normal');
       state.ui.mode = nextMode(current, mode);
     });
   },

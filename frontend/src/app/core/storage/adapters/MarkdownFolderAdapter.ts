@@ -61,7 +61,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     try {
       // Persist as a new workspace entry
       const id = this.generateWorkspaceId();
-      const name = (handle as any)?.name || 'workspace';
+      const name = (handle)?.name || 'workspace';
       await this.persistWorkspace({ id, name, handle });
       await this.restoreWorkspaces();
       this.rootHandle = this.workspaces[0]?.handle || handle;
@@ -75,7 +75,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   get selectedFolderName(): string | null {
     try {
       if (this.workspaces.length > 0) return this.workspaces[0].name;
-      return (this.rootHandle as any)?.name ?? null;
+      return (this.rootHandle)?.name ?? null;
     } catch {
       return null;
     }
@@ -94,13 +94,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const maps: MindMapData[] = [];
     logger.debug('📄️ Starting to load maps...');
     logger.debug('📄️ Available workspaces:', this.workspaces.length);
-    const targets = this.workspaces.length > 0 ? this.workspaces.map(w => ({ handle: w.handle, id: w.id, name: w.name })) : [{ handle: this.rootHandle as any, id: '__default__', name: (this.rootHandle as any)?.name || '' }];
+    const targets = this.workspaces.length > 0 ? this.workspaces.map(w => ({ handle: w.handle, id: w.id, name: w.name })) : [{ handle: this.rootHandle, id: '__default__', name: (this.rootHandle)?.name || '' }];
     
     for (const t of targets) {
       logger.debug(`📄️ Processing workspace: ${t.name} (${t.id})`);
       
       // Try to ensure permission - if it fails, show the workspace but skip loading
-      const hasPermission = await this.ensurePermission(t.handle as any, 'readwrite');
+      const hasPermission = await this.ensurePermission(t.handle, 'readwrite');
       logger.debug(`📄️ Permission check for ${t.name}: ${hasPermission}`);
       
       if (!hasPermission) {
@@ -116,9 +116,9 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       logger.debug(`📄️ Loading maps from workspace: ${t.name}`);
       try {
         let workspaceMapsCount = 0;
-        for await (const fileHandle of this.iterateMarkdownFiles(t.handle as any)) {
+        for await (const fileHandle of this.iterateMarkdownFiles(t.handle)) {
           try {
-            const data = await this.loadMapFromFile(fileHandle, t.handle as any, '', t.id);
+            const data = await this.loadMapFromFile(fileHandle, t.handle, '', t.id);
             if (data) {
               workspaceMapsCount++;
               logger.debug('📄️ Loading map from file:', data.mapIdentifier.mapId, data.title);
@@ -144,10 +144,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
       
       try {
-        for await (const entry of (t.handle as any).values?.() || this.iterateEntries(t.handle)) {
+        for await (const entry of (t.handle).values?.() || this.iterateEntries(t.handle)) {
           if (entry.kind === 'directory') {
             logger.debug(`📄️ Scanning directory: ${entry.name}`);
-            await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle as any }, entry, entry.name ?? '', maps);
+            await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle }, entry, entry.name ?? '', maps);
           }
         }
       } catch (e) {
@@ -203,8 +203,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
     if (target) {
       try {
-        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName)
-          ?? await (target.dir as any).getFileHandle(target.fileName);
+        const fh: FileHandle = await (target.dir).getFileHandle?.(target.fileName)
+          ?? await (target.dir).getFileHandle(target.fileName);
         const file = await fh.getFile();
         return await file.text();
       } catch (e) {
@@ -219,7 +219,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const base = parts.pop() as string;
       const ws = this.workspaces.find(w => w.id === id.workspaceId);
       if (!ws) return null;
-      let dir: DirHandle = ws.handle as any;
+      let dir: DirHandle = ws.handle;
       for (const p of parts) {
         const next = await this.getExistingDirectory(dir, p);
         if (!next) return null;
@@ -243,18 +243,18 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const mapId = id.mapId;
       const target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
       if (target) {
-        const fh: FileHandle = await (target.dir as any).getFileHandle?.(target.fileName)
-          ?? await (target.dir as any).getFileHandle(target.fileName);
+        const fh: FileHandle = await (target.dir).getFileHandle?.(target.fileName)
+          ?? await (target.dir).getFileHandle(target.fileName);
         const file = await fh.getFile();
         // @ts-ignore
-        return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file as any)?.lastModified || null;
+        return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file)?.lastModified || null;
       }
       const parts = (mapId || '').split('/').filter(Boolean);
       if (parts.length === 0) return null;
       const base = parts.pop() as string;
       const ws = this.workspaces.find(w => w.id === id.workspaceId);
       if (!ws) return null;
-      let dir: DirHandle = ws.handle as any;
+      let dir: DirHandle = ws.handle;
       for (const p of parts) {
         const next = await this.getExistingDirectory(dir, p);
         if (!next) return null;
@@ -264,7 +264,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (!fh) return null;
       const file = await fh.getFile();
       // @ts-ignore
-      return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file as any)?.lastModified || null;
+      return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file)?.lastModified || null;
     } catch {
       return null;
     }
@@ -295,7 +295,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       logger.debug('saveMapMarkdown: Starting doSave() for', id.mapId);
       const mapId = id.mapId;
       // 1) Try saveTargets first (most reliable)
-      let target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
+      const target = Array.from(this.saveTargets.entries()).find(([k]) => k.endsWith(`::${mapId}`))?.[1] || this.saveTargets.get(mapId);
       let dir: DirHandle | null = null;
       let fileName: string | null = null;
       let fileHandle: FileHandle | null = null;
@@ -321,7 +321,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
           throw new Error('Workspace not found for save');
         }
         logger.debug('saveMapMarkdown: Found workspace', ws.id);
-        dir = ws.handle as any;
+        dir = ws.handle;
         for (const p of parts) {
           logger.debug('saveMapMarkdown: Creating directory', p);
           dir = await this.getOrCreateDirectory(dir, p);
@@ -337,8 +337,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (!fileHandle) {
         logger.debug('saveMapMarkdown: Getting file handle for', fileName);
         try {
-          fileHandle = await (dir as any).getFileHandle?.(fileName, { create: true })
-            ?? await (dir as any).getFileHandle(fileName, { create: true });
+          fileHandle = await (dir).getFileHandle?.(fileName, { create: true })
+            ?? await (dir).getFileHandle(fileName, { create: true });
           logger.debug('saveMapMarkdown: Got file handle');
         } catch (error) {
           console.error('saveMapMarkdown: Failed to get file handle:', error);
@@ -348,7 +348,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       
       logger.debug('saveMapMarkdown: Creating writable stream');
       try {
-        const writable = await (fileHandle as any).createWritable();
+        const writable = await (fileHandle).createWritable();
         await writable.write(markdown);
         await writable.close();
         logger.debug('saveMapMarkdown: Successfully wrote file');
@@ -386,7 +386,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
 
 
-    let dir: DirHandle = wsHandle as any;
+    let dir: DirHandle = wsHandle;
     const parts = (relativePath || '').split('/').filter(Boolean);
     for (const part of parts) {
       dir = await this.getOrCreateDirectory(dir, part);
@@ -416,7 +416,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         }
       } catch {}
     }
-    for await (const entry of (dir as any).values?.() || this.iterateEntries(dir)) {
+    for await (const entry of (dir).values?.() || this.iterateEntries(dir)) {
       if (entry.kind === 'directory') {
         const sub = categoryPath ? `${categoryPath}/${entry.name}` : entry.name;
         await this.collectMapsForWorkspace(ws, entry, sub, out);
@@ -495,7 +495,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private async writeTextFile(dir: DirHandle, name: string, content: string): Promise<void> {
     const fileHandle: FileHandle = await dir.getFileHandle?.(name, { create: true })
-      ?? await (dir as any).getFileHandle(name, { create: true });
+      ?? await (dir).getFileHandle(name, { create: true });
     const writable = await fileHandle.createWritable();
     await writable.write(content);
     await writable.close();
@@ -524,7 +524,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
 
     // Navigate to/create directory structure
-    let currentDir: DirHandle = wsHandle as any;
+    let currentDir: DirHandle = wsHandle;
     const fileName = parts.pop() as string;
 
     for (const part of parts) {
@@ -533,7 +533,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
     // Create and write the image file
     const fileHandle: FileHandle = await currentDir.getFileHandle?.(fileName, { create: true })
-      ?? await (currentDir as any).getFileHandle(fileName, { create: true });
+      ?? await (currentDir).getFileHandle(fileName, { create: true });
     
     const writable = await fileHandle.createWritable();
     await writable.write(imageBlob);
@@ -542,7 +542,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private async copyFileHandle(srcFileHandle: FileHandle, dstDir: DirHandle, name: string): Promise<void> {
     const dstHandle: FileHandle = await dstDir.getFileHandle?.(name, { create: true })
-      ?? await (dstDir as any).getFileHandle(name, { create: true });
+      ?? await (dstDir).getFileHandle(name, { create: true });
     const writable = await dstHandle.createWritable();
     const blob = await srcFileHandle.getFile();
     await writable.write(blob);
@@ -550,7 +550,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   private async getFileName(fileHandle: FileHandle): Promise<string> {
-    if ((fileHandle as any).name) return (fileHandle as any).name as string;
+    if ((fileHandle).name) return (fileHandle).name as string;
     try {
       const file = await fileHandle.getFile?.();
       if (file?.name) return file.name as string;
@@ -623,9 +623,9 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       // Permission will be checked when actually accessing the workspace
       for (const { id, rec } of items) {
         if (!rec) continue;
-        const handle = rec.handle as DirHandle;
+        const handle = rec.handle;
         // Always add workspace to list - don't filter by permission here
-        const name = (handle as any)?.name || rec.name || 'workspace';
+        const name = (handle)?.name || rec.name || 'workspace';
         this.workspaces.push({ id, name, handle });
       }
     } catch (error) {
@@ -636,13 +636,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private async getOrCreateDirectory(parent: DirHandle, name: string): Promise<DirHandle> {
     return await parent.getDirectoryHandle?.(name, { create: true })
-      ?? await (parent as any).getDirectoryHandle(name, { create: true });
+      ?? await (parent).getDirectoryHandle(name, { create: true });
   }
 
   private async getExistingFile(dir: DirHandle, name: string): Promise<FileHandle | null> {
     try {
       const handle = await dir.getFileHandle?.(name)
-        ?? await (dir as any).getFileHandle(name);
+        ?? await (dir).getFileHandle(name);
       return handle;
     } catch {
       return null;
@@ -652,7 +652,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private async getExistingDirectory(dir: DirHandle, name: string): Promise<DirHandle | null> {
     try {
       const handle = await dir.getDirectoryHandle?.(name)
-        ?? await (dir as any).getDirectoryHandle(name);
+        ?? await (dir).getDirectoryHandle(name);
       return handle;
     } catch {
       return null;
@@ -671,7 +671,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const workspaceId = parts[0];
       const workspace = this.workspaces.find(ws => ws.id === workspaceId);
       if (workspace?.handle) {
-        baseHandle = workspace.handle as any;
+        baseHandle = workspace.handle;
         pathParts = parts.slice(1); // Remove workspace ID from path
       }
     }
@@ -685,7 +685,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (pathParts.length === 0) return null;
 
     const name = pathParts.pop() as string;
-    let dir: DirHandle = baseHandle as any;
+    let dir: DirHandle = baseHandle;
 
     for (const part of pathParts) {
       const next = await this.getExistingDirectory(dir, part);
@@ -700,7 +700,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const resolved = await this.resolveParentDirAndName(path);
     if (!resolved) throw new Error('Path not found');
     const { dir, name } = resolved;
-    const remover = (dir as any).removeEntry?.bind(dir);
+    const remover = (dir).removeEntry?.bind(dir);
     if (!remover) throw new Error('removeEntry not supported');
     try {
       await remover(name, { recursive: true });
@@ -720,7 +720,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       const fileData = await (await file.getFile()).text();
       const targetName = /\.md$/i.test(newName) ? newName : `${newName}.md`;
       await this.writeTextFile(dir, targetName, fileData);
-      const remover = (dir as any).removeEntry?.bind(dir);
+      const remover = (dir).removeEntry?.bind(dir);
       if (remover) await remover(name);
       return;
     }
@@ -729,7 +729,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (!srcDir) throw new Error('Item not found');
     const dstDir = await this.getOrCreateDirectory(dir, newName);
     await this.copyDirectoryRecursive(srcDir, dstDir);
-    const remover = (dir as any).removeEntry?.bind(dir);
+    const remover = (dir).removeEntry?.bind(dir);
     if (remover) await remover(name, { recursive: true });
   }
 
@@ -748,13 +748,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
       if (kind === 'file') {
         // @ts-ignore
-        const fh = await src.getFileHandle?.(name) ?? await (src as any).getFileHandle(name);
+        const fh = await src.getFileHandle?.(name) ?? await (src).getFileHandle(name);
         const data = await (await fh.getFile()).text();
         await this.writeTextFile(dst, name, data);
       } else if (kind === 'directory') {
         const dstSub = await this.getOrCreateDirectory(dst, name);
         // @ts-ignore
-        const srcSub = await src.getDirectoryHandle?.(name) ?? await (src as any).getDirectoryHandle(name);
+        const srcSub = await src.getDirectoryHandle?.(name) ?? await (src).getDirectoryHandle(name);
         await this.copyDirectoryRecursive(srcSub, dstSub);
       }
     }
@@ -783,10 +783,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (this.workspaces.length > 0) {
       const root: ExplorerItem = { type: 'folder', name: 'workspaces', path: '', children: [] };
       for (const ws of this.workspaces) {
-        const hasPermission = await this.ensurePermission(ws.handle as any, 'readwrite');
+        const hasPermission = await this.ensurePermission(ws.handle, 'readwrite');
         const node: ExplorerItem = { type: 'folder', name: ws.name, path: `/${ws.id}`, children: [] };
         if (hasPermission) {
-          node.children = await this.buildExplorerItems(ws.handle as any, `/${ws.id}`);
+          node.children = await this.buildExplorerItems(ws.handle, `/${ws.id}`);
         } else {
           // Show workspace but mark as inaccessible
           node.children = [];
@@ -798,16 +798,16 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return root;
     }
     // Fallback to legacy single root
-    const hasPermission = await this.ensurePermission(this.rootHandle as any, 'readwrite');
+    const hasPermission = await this.ensurePermission(this.rootHandle, 'readwrite');
     if (!hasPermission) {
       if (!this.permissionWarned) {
         logger.warn('MarkdownFolderAdapter: Root folder permission is not granted. Please reselect the folder.');
         this.permissionWarned = true;
       }
-      return { type: 'folder', name: (this.rootHandle as any).name || '', path: '', children: [] };
+      return { type: 'folder', name: (this.rootHandle).name || '', path: '', children: [] };
     }
-    const root: ExplorerItem = { type: 'folder', name: (this.rootHandle as any).name || '', path: '', children: [] };
-    root.children = await this.buildExplorerItems(this.rootHandle as any, '');
+    const root: ExplorerItem = { type: 'folder', name: (this.rootHandle).name || '', path: '', children: [] };
+    root.children = await this.buildExplorerItems(this.rootHandle, '');
     return root;
   }
 
@@ -820,7 +820,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       for await (const entry of dir.values()) {
         if (entry.kind === 'directory') {
           const path = basePath ? `${basePath}/${entry.name}` : entry.name;
-          const childDir = await dir.getDirectoryHandle?.(entry.name) ?? await (dir as any).getDirectoryHandle(entry.name);
+          const childDir = await dir.getDirectoryHandle?.(entry.name) ?? await (dir).getDirectoryHandle(entry.name);
           const children = await this.buildExplorerItems(childDir, path);
           items.push({ type: 'folder', name: entry.name, path, children });
         } else if (entry.kind === 'file') {
@@ -838,7 +838,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         if (entry.kind === 'directory') {
           const path = basePath ? `${basePath}/${name}` : name;
           // @ts-ignore
-          const childDir = await dir.getDirectoryHandle?.(name) ?? await (dir as any).getDirectoryHandle(name);
+          const childDir = await dir.getDirectoryHandle?.(name) ?? await (dir).getDirectoryHandle(name);
           const children = await this.buildExplorerItems(childDir, path);
           items.push({ type: 'folder', name, path, children });
         } else if (entry.kind === 'file') {
@@ -934,8 +934,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       await this.restoreWorkspaces();
       for (const ws of this.workspaces) {
         try {
-          if (typeof (handle as any).isSameEntry === 'function') {
-            const same = await (handle as any).isSameEntry(ws.handle);
+          if (typeof (handle).isSameEntry === 'function') {
+            const same = await (handle).isSameEntry(ws.handle);
             if (same) {
               logger.info('📁 MarkdownFolderAdapter: Workspace already added; skipping');
               return;
@@ -945,7 +945,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
     } catch {}
     const id = this.generateWorkspaceId();
-    const name = (handle as any)?.name || 'workspace';
+    const name = (handle)?.name || 'workspace';
     await this.persistWorkspace({ id, name, handle });
     await this.restoreWorkspaces();
   }
@@ -1004,7 +1004,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (parts.length === 0) return null;
 
       // Navigate to directory
-      let currentDir: DirHandle = wsHandle as any;
+      let currentDir: DirHandle = wsHandle;
       const fileName = parts.pop() as string;
 
       for (const part of parts) {
@@ -1104,7 +1104,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         if (entry.kind === 'file' && /\.md$/i.test(entry.name || '')) {
           try {
             // @ts-ignore
-            const fh = await dir.getFileHandle?.(entry.name) ?? await (dir as any).getFileHandle(entry.name);
+            const fh = await dir.getFileHandle?.(entry.name) ?? await (dir).getFileHandle(entry.name);
             if (fh) yield fh;
           } catch (e) {
             // NotFound or race condition during rename/move: ignore
@@ -1121,7 +1121,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         if (entry.kind === 'file' && /\.md$/i.test(name)) {
           try {
             // @ts-ignore
-            const fh = await dir.getFileHandle?.(name) ?? await (dir as any).getFileHandle(name);
+            const fh = await dir.getFileHandle?.(name) ?? await (dir).getFileHandle(name);
             if (fh) yield fh;
           } catch (e) {
             // NotFound or race: ignore
@@ -1137,7 +1137,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (!resolved) throw new Error('Source path not found');
     const { dir: srcParent, name } = resolved;
     // Resolve/ensure target folder
-    let dstDir: DirHandle = this.rootHandle as any;
+    let dstDir: DirHandle = this.rootHandle;
     const parts = (targetFolderPath || '').split('/').filter(Boolean);
     for (const part of parts) {
       dstDir = await this.getOrCreateDirectory(dstDir, part);
@@ -1150,7 +1150,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (srcFile) {
       const uniqueName = await this.ensureUniqueName(dstDir, name);
       await this.copyFileHandle(srcFile, dstDir, uniqueName);
-      const remover = (srcParent as any).removeEntry?.bind(srcParent);
+      const remover = (srcParent).removeEntry?.bind(srcParent);
       if (remover) await remover(name);
       return;
     }
@@ -1160,7 +1160,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const uniqueFolderName = await this.ensureUniqueFolderName(dstDir, name);
     const dstSub = await this.getOrCreateDirectory(dstDir, uniqueFolderName);
     await this.copyDirectoryRecursive(srcDir, dstSub);
-    const remover = (srcParent as any).removeEntry?.bind(srcParent);
+    const remover = (srcParent).removeEntry?.bind(srcParent);
     if (remover) await remover(name, { recursive: true });
   }
 

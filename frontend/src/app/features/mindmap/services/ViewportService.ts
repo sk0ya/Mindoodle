@@ -49,7 +49,7 @@ export function ensureVisible(nodeId: string, ui: EnsureVisibleUI, setPan: (pan:
 
   let noteH = 0;
   try {
-    const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+    const notePanel = document.querySelector('.selected-node-note-panel');
     noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
     effectiveHeight -= noteH;
   } catch {}

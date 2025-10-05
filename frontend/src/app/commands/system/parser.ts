@@ -31,7 +31,7 @@ export function parseCommand(input: string): ParseResult {
       };
     }
 
-    const commandName = tokens[0]!;
+    const commandName = tokens[0];
     const args = parseArguments(tokens.slice(1));
 
     const parsedCommand: ParsedCommand = {

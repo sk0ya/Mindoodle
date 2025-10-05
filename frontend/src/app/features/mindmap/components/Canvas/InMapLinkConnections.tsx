@@ -56,7 +56,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
       y: 0,
       fontSize: settings.fontSize,
       fontWeight: 'normal',
-      children: roots as MindMapNode[],
+      children: roots,
     } as unknown as MindMapNode;
     return root;
   }, [data?.rootNodes, settings.fontSize]);
@@ -64,7 +64,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
   const paths: LinkPath[] = useMemo(() => {
     const result: LinkPath[] = [];
     for (const src of allNodes) {
-      const links: NodeLink[] = (src.links || []) as NodeLink[];
+      const links: NodeLink[] = (src.links || []);
       if (!links || links.length === 0) continue;
       const srcSize = calculateNodeSize(src, undefined, false, settings.fontSize, wrapConfig);
 

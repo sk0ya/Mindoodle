@@ -271,7 +271,7 @@ export function resolveHrefToMapTarget(
     const qIndex = trimmed.indexOf('?');
     const cutIndex = (i: number) => (i >= 0 ? i : Infinity);
     const endIndex = Math.min(cutIndex(hashIndex), cutIndex(qIndex));
-    let pathPart = endIndex === Infinity ? trimmed : trimmed.slice(0, endIndex);
+    const pathPart = endIndex === Infinity ? trimmed : trimmed.slice(0, endIndex);
     const anchorText = hashIndex >= 0 ? decodeURIComponent(trimmed.slice(hashIndex + 1)) : undefined;
 
     // If no path (e.g. just "#anchor"), target current map

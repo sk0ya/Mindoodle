@@ -68,7 +68,7 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
               // suggest commands for RHS
               try {
                 const { commands } = await import('@/app/commands');
-                const names = Array.from(new Set((commands as any[]).map((c: any) => c?.name).filter(Boolean)));
+                const names = Array.from(new Set((commands).map((c: any) => c?.name).filter(Boolean)));
                 names.sort();
                 names.forEach((n: string) => suggestions.push({ label: n, kind: monaco.languages.CompletionItemKind.Function, insertText: n }));
               } catch {}
@@ -80,7 +80,7 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
         }
       });
 
-      const editor = monaco.editor.create(containerRef.current!, {
+      const editor = monaco.editor.create(containerRef.current, {
         value: source,
         language: LANG_ID,
         automaticLayout: true,
@@ -233,8 +233,8 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
         if (ed) {
           ed.updateOptions({ fontSize, fontFamily });
           if (!vimEditorEnabled && vimEnabledRef.current) {
-            const vm = (ed as any)._vimMode; if (vm) { try { vm.dispose(); } catch {} }
-            delete (ed as any)._vimMode;
+            const vm = (ed)._vimMode; if (vm) { try { vm.dispose(); } catch {} }
+            delete (ed)._vimMode;
             vimEnabledRef.current = false;
           }
         }

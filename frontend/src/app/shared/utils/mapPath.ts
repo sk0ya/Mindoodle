@@ -1,5 +1,5 @@
 export function relPathBetweenMapIds(fromId: string, toId: string): string {
-  const fromSegs = (fromId.split('/') as string[]);
+  const fromSegs = (fromId.split('/'));
   fromSegs.pop();
   const toSegs = toId.split('/');
   let i = 0;
@@ -11,7 +11,7 @@ export function relPathBetweenMapIds(fromId: string, toId: string): string {
 }
 
 export function relFilePathFromMap(fromMapId: string, filePath: string): string {
-  const fromSegs = (fromMapId.split('/') as string[]);
+  const fromSegs = (fromMapId.split('/'));
   fromSegs.pop();
   const toSegs = filePath.split('/');
   let i = 0;

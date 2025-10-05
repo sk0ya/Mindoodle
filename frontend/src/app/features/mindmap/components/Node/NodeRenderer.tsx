@@ -302,7 +302,7 @@ interface NodeRendererProps {
     if (!note) return note;
     const entry = displayEntries[index];
     if (!entry) return note;
-    if ((entry as any).kind && (entry as DisplayEntry).kind !== 'image') return note;
+    if ((entry as any).kind && (entry).kind !== 'image') return note;
     const width = Math.round(w);
     const height = Math.round(h);
     let replacement: string;
@@ -579,7 +579,7 @@ interface NodeRendererProps {
   }
 
   // 現在のスロットがMermaidかどうか
-  const showMermaid = !!currentEntry && (currentEntry as DisplayEntry).kind === 'mermaid';
+  const showMermaid = !!currentEntry && (currentEntry).kind === 'mermaid';
 
   // Table node flag
   const isTableNode = node.kind === 'table';
@@ -621,7 +621,7 @@ interface NodeRendererProps {
             {showMermaid ? (
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <MermaidRenderer
-                  code={(currentEntry as Extract<DisplayEntry, { kind: 'mermaid' }>).code}
+                  code={(currentEntry).code}
                   onLoadedDimensions={(w, h) => {
                     // mimic image load sizing behavior
                     handleImageLoadDimensions(w, h);
@@ -779,12 +779,12 @@ interface NodeRendererProps {
                           {hasHeaders && (
                             <thead>
                               <tr>
-                                {headers!.map((cell: string, ci: number) => (
+                                {headers.map((cell: string, ci: number) => (
                                   <th
                                     key={ci}
                                     style={{
                                       border: 0,
-                                      borderRight: ci < headers!.length - 1 ? '1px solid rgba(255,255,255,0.3)' : undefined,
+                                      borderRight: ci < headers.length - 1 ? '1px solid rgba(255,255,255,0.3)' : undefined,
                                       padding: '12px 16px',
                                       verticalAlign: 'middle',
                                       fontWeight: 600,
@@ -793,7 +793,7 @@ interface NodeRendererProps {
                                       borderBottom: '2px solid #e2e8f0',
                                       textAlign: 'left',
                                       borderTopLeftRadius: ci === 0 ? '10px' : undefined,
-                                      borderTopRightRadius: ci === headers!.length - 1 ? '10px' : undefined,
+                                      borderTopRightRadius: ci === headers.length - 1 ? '10px' : undefined,
                                       whiteSpace: 'nowrap'
                                     }}
                                   >{cell}</th>

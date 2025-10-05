@@ -57,8 +57,8 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
   useEffect(() => {
     const doRefresh = () => {
       try {
-        if (typeof (mindMap as any).refreshMapList === 'function') {
-          void (mindMap as any).refreshMapList();
+        if (typeof (mindMap).refreshMapList === 'function') {
+          void (mindMap).refreshMapList();
         }
       } catch (e) {
         console.error('Explorer refresh failed:', e);
@@ -85,8 +85,8 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
       try {
         const oldPath = e?.detail?.oldPath;
         const newName = e?.detail?.newName;
-        if (oldPath && newName && typeof (mindMap as any).renameItem === 'function') {
-          void (mindMap as any).renameItem(oldPath, newName).then(() => {
+        if (oldPath && newName && typeof (mindMap).renameItem === 'function') {
+          void (mindMap).renameItem(oldPath, newName).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
           }).catch((err: unknown) => console.error('Rename failed:', err));
         }
@@ -97,8 +97,8 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     const onDelete = (e: any) => {
       try {
         const path = e?.detail?.path;
-        if (path && typeof (mindMap as any).deleteItem === 'function') {
-          void (mindMap as any).deleteItem(path).then(() => {
+        if (path && typeof (mindMap).deleteItem === 'function') {
+          void (mindMap).deleteItem(path).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
           }).catch((err: unknown) => console.error('Delete failed:', err));
         }
@@ -121,8 +121,8 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
         const src = e?.detail?.sourcePath;
         const dst = e?.detail?.targetFolderPath ?? '';
 
-        if (src !== undefined && typeof (mindMap as any).moveItem === 'function') {
-          void (mindMap as any).moveItem(src, dst).then(() => {
+        if (src !== undefined && typeof (mindMap).moveItem === 'function') {
+          void (mindMap).moveItem(src, dst).then(() => {
             window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
           }).catch((err: unknown) => console.error('Move failed:', err));
         }

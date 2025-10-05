@@ -387,7 +387,7 @@ export const useMindMap = (
   const getSelectedFolderLabel = useCallback((): string | null => {
     const adapter: any = persistenceHook.storageAdapter as any;
     if (adapter && 'selectedFolderName' in adapter) {
-      return (adapter as any).selectedFolderName ?? null;
+      return (adapter).selectedFolderName ?? null;
     }
     return null;
   }, [persistenceHook]);
@@ -456,7 +456,7 @@ export const useMindMap = (
       }
 
       if (adapter.saveMapMarkdown) {
-        let initialMarkdown = `# ${title}\n`;
+        const initialMarkdown = `# ${title}\n`;
         try {
           await adapter.saveMapMarkdown(mapIdentifier, initialMarkdown);
           await persistenceHook.refreshMapList();
@@ -555,7 +555,7 @@ export const useMindMap = (
           // continue to use file data instead of cached data
         }
         
-        let actualMapId = mapId;
+        const actualMapId = mapId;
         
         const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
         const parts = (actualMapId || '').split('/').filter(Boolean);
@@ -597,7 +597,6 @@ export const useMindMap = (
 
           if (stillNotExists) {
             await persistenceHook.addMapToList(parsed);
-          } else {
           }
         } catch (e) {
           logger.error('Failed to add map to list:', e);

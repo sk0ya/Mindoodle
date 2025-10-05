@@ -62,7 +62,7 @@ export class ImagePasteServiceImpl implements ImagePasteService {
       }
 
       // Create full path relative to workspace: mapDirectory + Resources/filename
-      let fullImagePath = `${mapDirectory}Resources/${filename}`;
+      const fullImagePath = `${mapDirectory}Resources/${filename}`;
       // Relative path from map file: Resources/filename
       const relativeImagePath = `Resources/${filename}`;
 

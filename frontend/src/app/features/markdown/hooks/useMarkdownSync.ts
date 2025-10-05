@@ -268,7 +268,7 @@ export const useMarkdownSync = () => {
         // 前文ノードからは継承しない（通常のノードタイプのみ）
         const inheritableType = siblingMeta.type === 'preface' ? 'heading' : (siblingMeta.type || 'heading');
         newNodeMeta = {
-          type: inheritableType as 'heading' | 'unordered-list' | 'ordered-list',
+          type: inheritableType,
           level: siblingMeta.level || 1,
           originalFormat: siblingMeta.originalFormat || '',
           indentLevel: siblingMeta.indentLevel || 0,
@@ -305,7 +305,7 @@ export const useMarkdownSync = () => {
           // 前文ノードの場合は見出しにフォールバック
           const parentType = parentMeta.type === 'preface' ? 'heading' : (parentMeta.type || 'heading');
           newNodeMeta = {
-            type: parentType as 'heading' | 'unordered-list' | 'ordered-list',
+            type: parentType,
             level: (parentMeta.level || 1) + 1,
             originalFormat: parentMeta.originalFormat || '',
             indentLevel: (parentMeta.indentLevel || 0) + 2, // 2スペース追加

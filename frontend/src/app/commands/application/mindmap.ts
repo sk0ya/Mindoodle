@@ -68,18 +68,11 @@ export const clearMindmapCommand: Command = {
       };
     }
 
-    try {
-      // This would clear the mindmap
-      return {
-        success: true,
-        message: 'Clear mindmap - Clear API needs implementation'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to clear mindmap'
-      };
-    }
+    // This would clear the mindmap
+    return {
+      success: true,
+      message: 'Clear mindmap - Clear API needs implementation'
+    };
   }
 };
 
@@ -92,18 +85,11 @@ export const statsCommand: Command = {
   examples: ['stats', 'statistics', 'info'],
 
   execute(_context: CommandContext): CommandResult {
-    try {
-      // This would calculate and display stats
-      return {
-        success: true,
-        message: 'Show mindmap statistics - Stats API needs implementation'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to get statistics'
-      };
-    }
+    // This would calculate and display stats
+    return {
+      success: true,
+      message: 'Show mindmap statistics - Stats API needs implementation'
+    };
   }
 };
 
@@ -127,18 +113,11 @@ export const autoLayoutCommand: Command = {
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
     const algorithm = (args as any)['algorithm'];
 
-    try {
-      // This would apply auto-layout
-      return {
-        success: true,
-        message: `Apply ${algorithm} layout - Auto-layout API needs implementation`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to apply layout'
-      };
-    }
+    // This would apply auto-layout
+    return {
+      success: true,
+      message: `Apply ${algorithm} layout - Auto-layout API needs implementation`
+    };
   }
 };
 
@@ -161,18 +140,11 @@ export const themeCommand: Command = {
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
     const themeName = (args as any)['themeName'];
 
-    try {
-      // This would change the theme
-      return {
-        success: true,
-        message: `Set theme to "${themeName}" - Theme API needs implementation`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to change theme'
-      };
-    }
+    // This would change the theme
+    return {
+      success: true,
+      message: `Set theme to "${themeName}" - Theme API needs implementation`
+    };
   }
 };
 

@@ -352,7 +352,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   useEffect(() => {
     const container = explorerRef.current;
     if (!container || !selectedExplorerPath) return;
-    const el = container.querySelector(`.explorer-item[data-path="${selectedExplorerPath}"]`) as HTMLElement | null;
+    const el = container.querySelector(`.explorer-item[data-path="${selectedExplorerPath}"]`);
     if (el) {
       el.scrollIntoView({ block: 'nearest' });
     }
@@ -366,7 +366,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     if (!nodes || nodes.length === 0) return;
     if (!selectedNodeId) {
       const hasCurrent = currentNodeId && nodes.some(n => n.id === currentNodeId);
-      setSelectedNodeId(hasCurrent ? (currentNodeId as string) : nodes[0].id);
+      setSelectedNodeId(hasCurrent ? (currentNodeId) : nodes[0].id);
     }
   }, [isOpen, selectedMapId, availableNodes, currentNodeId, selectedNodeId]);
 
@@ -374,7 +374,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   useEffect(() => {
     const container = headingsRef.current;
     if (!container || !selectedNodeId) return;
-    const el = container.querySelector(`.heading-item[data-node-id="${selectedNodeId}"]`) as HTMLElement | null;
+    const el = container.querySelector(`.heading-item[data-node-id="${selectedNodeId}"]`);
     if (el) {
       el.scrollIntoView({ block: 'nearest' });
     }

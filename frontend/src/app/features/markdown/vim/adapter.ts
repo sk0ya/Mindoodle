@@ -17,11 +17,11 @@ export function getVimFromModule(mod: MonacoVimModule | null): any | null {
   try {
     if (!mod) return (window as any)?.Vim || (window as any)?.MonacoVim?.Vim || null;
     // Prefer package export VimMode (which is keymap_vim default export)
-    if ((mod as any)?.VimMode) return (mod as any).VimMode;
+    if ((mod)?.VimMode) return (mod).VimMode;
     // Fallbacks for various bundlings
-    if ((mod as any)?.Vim) return (mod as any).Vim;
-    if ((mod as any)?.default?.VimMode) return (mod as any).default.VimMode;
-    if ((mod as any)?.default?.Vim) return (mod as any).default.Vim;
+    if ((mod)?.Vim) return (mod).Vim;
+    if ((mod)?.default?.VimMode) return (mod).default.VimMode;
+    if ((mod)?.default?.Vim) return (mod).default.Vim;
     if ((window as any)?.Vim) return (window as any).Vim;
     if ((window as any)?.MonacoVim?.Vim) return (window as any).MonacoVim.Vim;
     return null;
@@ -43,7 +43,7 @@ export async function loadDirectVimApi(): Promise<any | null> {
 
 export function initVimMode(mod: MonacoVimModule | null, ed: MonacoNS.IStandaloneCodeEditor, statusEl?: HTMLElement | null): any | null {
   try {
-    const init = (mod as any)?.initVimMode || (mod as any)?.default || (mod as any);
+    const init = (mod)?.initVimMode || (mod)?.default || (mod);
     if (typeof init !== 'function') return null;
     return init(ed, statusEl || undefined);
   } catch {

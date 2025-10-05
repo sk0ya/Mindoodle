@@ -117,7 +117,7 @@ export class MarkdownImporter {
     const elements: StructureElement[] = [];
     let currentContent: string[] = [];
     let currentElement: StructureElement | null = null;
-    let prefaceLines: string[] = [];
+    const prefaceLines: string[] = [];
     let foundFirstStructureElement = false;
 
     for (let i = 0; i < lines.length; i++) {

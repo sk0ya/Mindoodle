@@ -3,7 +3,6 @@
 
 // Import worker constructors via Vite's ?worker bundling
 // These imports must stay as top-level to allow bundling
-// eslint-disable-next-line import/no-duplicates
 // @ts-ignore - Vite worker import typings
 import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
 // @ts-ignore

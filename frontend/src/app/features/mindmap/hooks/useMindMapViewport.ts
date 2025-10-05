@@ -22,7 +22,7 @@ interface ViewportOperationsParams {
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
+ 
 
 /**
  * Hook for handling viewport and resize operations
@@ -73,7 +73,7 @@ export function useMindMapViewport({
         if (currentActiveView && !currentSidebarCollapsed && offsetX === 0) {
           // Container doesn't account for sidebar, so we need to adjust
           const ACTIVITY_BAR_WIDTH = 48;
-          const sidebarPanel = document.querySelector('.mindmap-sidebar') as HTMLElement | null;
+          const sidebarPanel = document.querySelector('.mindmap-sidebar');
           let sidebarWidth = 0;
           if (sidebarPanel) {
             try {
@@ -94,7 +94,7 @@ export function useMindMapViewport({
 
         if (currentActiveView && !currentSidebarCollapsed) {
           // Try to get actual sidebar width from DOM first (like panels)
-          const sidebarPanel = document.querySelector('.mindmap-sidebar') as HTMLElement | null;
+          const sidebarPanel = document.querySelector('.mindmap-sidebar');
           if (sidebarPanel) {
             try {
               const sidebarRect = sidebarPanel.getBoundingClientRect();
@@ -110,7 +110,7 @@ export function useMindMapViewport({
         offsetX = leftPanelWidth;
 
         // Right-side markdown panel (primary right panel in this app)
-        const markdownPanel = document.querySelector('.markdown-panel') as HTMLElement | null;
+        const markdownPanel = document.querySelector('.markdown-panel');
         if (markdownPanel) {
           try {
             const pr = markdownPanel.getBoundingClientRect();
@@ -126,7 +126,7 @@ export function useMindMapViewport({
       // Bottom overlays (apply regardless of container measurement):
       // selected-node-note-panel is fixed overlay and not part of container height
       try {
-        const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+        const notePanel = document.querySelector('.selected-node-note-panel');
         const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
         effectiveHeight -= noteH;
       } catch {}
@@ -152,7 +152,7 @@ export function useMindMapViewport({
       const bottomExtra = (function() {
         // If no note panel height (not visible), keep 6px breathing room above Vim bar
         try {
-          const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+          const notePanel = document.querySelector('.selected-node-note-panel');
           const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
           return noteH === 0 ? 6 : 0;
         } catch { return 0; }
@@ -196,7 +196,7 @@ export function useMindMapViewport({
   /**
    * Center node in view with optional positioning modes
    */
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+   
   const centerNodeInView = useCallback((nodeId: string, _animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
     if (!data) return;
 
@@ -205,7 +205,7 @@ export function useMindMapViewport({
 
     // Find root node or search in tree
     const rootNodes = data.rootNodes || [];
-    let targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
+    const targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
       ? rootNodes[0]
       : findNodeInRoots(rootNodes, nodeId);
 
@@ -230,7 +230,7 @@ export function useMindMapViewport({
     // Read DOM for actual height
     let domNoteHeight = 0;
     try {
-      const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+      const el = document.querySelector('.selected-node-note-panel');
       domNoteHeight = el ? Math.round(el.getBoundingClientRect().height) : 0;
     } catch {}
     if (domNoteHeight > 0 && domNoteHeight !== noteHeight) {

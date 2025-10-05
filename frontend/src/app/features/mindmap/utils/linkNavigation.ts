@@ -1,6 +1,6 @@
 import type { MindMapNode, MapIdentifier, NodeLink } from '@shared/types';
 
-const slugify = (text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-]/g, '');
+const slugify = (text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
 function findNodeByTextLoose(root: MindMapNode, targetText: string): MindMapNode | null {
   if (!root || !targetText) return null;
@@ -56,7 +56,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
 
         if (roots.length === 0) { return; }
 
-        const tn = link.targetNodeId!;
+        const tn = link.targetNodeId;
         if (tn.startsWith('text:')) {
           const targetText = tn.slice(5);
           const node = findNodeByTextInMultipleRoots(roots, targetText);
@@ -84,7 +84,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
         const singleRoot = dataRoot || getCurrentRootNode() || null;
         const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
         if (roots.length > 0) {
-          const node = findNodeByTextInMultipleRoots(roots as MindMapNode[], targetText);
+          const node = findNodeByTextInMultipleRoots(roots, targetText);
           if (node) {
             selectNode(node.id);
             centerNodeInView(node.id);

@@ -24,10 +24,10 @@ export function useCloudImageResolver({
         if (!previewPaneRef.current) return;
         if (!mapIdentifier || mapIdentifier.workspaceId !== 'cloud') return;
 
-        const container = previewPaneRef.current.querySelector('.markdown-preview') as HTMLElement | null;
+        const container = previewPaneRef.current.querySelector('.markdown-preview');
         if (!container) return;
 
-        const imgs = Array.from(container.querySelectorAll('img')) as HTMLImageElement[];
+        const imgs = Array.from(container.querySelectorAll('img'));
         if (imgs.length === 0) return;
 
         const token = (() => {

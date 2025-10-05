@@ -404,7 +404,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         };
 
         // Build expanded mapping table and prefix set for fast checks
-        const expandedEntries = Object.entries(customMap).map(([lhs, cmd]) => [expandLhs(lhs), cmd]) as Array<[string,string]>;
+        const expandedEntries = Object.entries(customMap).map(([lhs, cmd]) => [expandLhs(lhs), cmd]);
         const expandedKeysStart = new Set(expandedEntries.map(([lhs]) => (lhs[0] || '')));
 
         // Handle Ctrl+U and Ctrl+D scroll commands, and map switching Ctrl+P/N
