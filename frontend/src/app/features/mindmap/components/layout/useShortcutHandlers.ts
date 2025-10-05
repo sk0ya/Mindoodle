@@ -1,9 +1,10 @@
 import { useMemo } from 'react';
-import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { findNodeById, getSiblingNodes, getFirstVisibleChild, findNodeInRoots, findParentNode } from '@mindmap/utils';
 import { useMindMapStore } from '../../store';
 import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
-import { viewportService } from '@/app/core/services';
+// viewportService import retained if needed elsewhere; currently ensureVisible uses dedicated service
+import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportService';
 
 interface Args {
   data: { rootNode: MindMapNode } | null;
@@ -184,93 +185,7 @@ export function useShortcutHandlers(args: Args) {
       // Helper function to ensure node is visible without centering
       function ensureNodeVisible(nodeId: string) {
         const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
-        const node = findNodeInRoots(roots, nodeId);
-        if (!node || !setPan) return;
-
-        // Get actual viewport dimensions considering sidebar and panels
-        const mindmapContainer = document.querySelector('.mindmap-canvas-container') ||
-                                 document.querySelector('.workspace-container') ||
-                                 document.querySelector('.mindmap-app');
-
-        let { width: effectiveWidth, height: effectiveHeight } = viewportService.getSize();
-        let offsetX = 0;
-        let offsetY = 0;
-
-        if (mindmapContainer) {
-          const rect = mindmapContainer.getBoundingClientRect();
-          effectiveWidth = rect.width;
-          effectiveHeight = rect.height;
-          offsetX = rect.left;
-          offsetY = rect.top;
-        } else {
-          // Fallback: account for primary left and right panels
-          const sidebar = document.querySelector('.primary-sidebar');
-          if (sidebar) {
-            const r = sidebar.getBoundingClientRect();
-            effectiveWidth -= r.width;
-            offsetX = r.width;
-          }
-          const md = document.querySelector('.markdown-panel');
-          if (md) {
-            const r = md.getBoundingClientRect();
-            effectiveWidth -= r.width;
-          }
-        }
-
-        // Bottom overlays (fixed): subtract selected-node-note-panel + Vim bar 24px
-        let noteH = 0;
-        try {
-          const notePanel = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
-          noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
-          effectiveHeight -= noteH;
-        } catch {}
-        effectiveHeight -= 24;
-        // If note panel is not visible (height=0), keep a small 6px margin above Vim bar
-        const bottomExtra = noteH === 0 ? 6 : 0;
-        effectiveHeight -= bottomExtra;
-
-        const currentZoom = ui.zoom * 1.5; // Match the transform scale from CanvasRenderer
-        const currentPan = ui.pan;
-
-        // Edge-aware: use node visual bounds
-        const storeState = useMindMapStore.getState() as any;
-        const fontSize = storeState?.settings?.fontSize ?? 14;
-        const wrapConfig = resolveNodeTextWrapConfig(storeState?.settings, fontSize);
-        const nodeSize = calculateNodeSize(node as any, undefined as any, false, fontSize, wrapConfig);
-        const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
-        const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
-
-        const screenX = currentZoom * (node.x + currentPan.x) - offsetX;
-        const screenY = currentZoom * (node.y + currentPan.y) - offsetY;
-
-        const leftBound = 0;
-        const rightBound = effectiveWidth;
-        const topBound = 0;
-        const bottomBound = effectiveHeight;
-
-        const isOutsideLeft = (screenX - halfW) < leftBound;
-        const isOutsideRight = (screenX + halfW) > rightBound;
-        const isOutsideTop = (screenY - halfH) < topBound;
-        const isOutsideBottom = (screenY + halfH) > bottomBound;
-
-        if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
-          let newPanX = currentPan.x;
-          let newPanY = currentPan.y;
-
-          if (isOutsideLeft) {
-            newPanX = ((leftBound + offsetX + halfW) / currentZoom) - node.x;
-          } else if (isOutsideRight) {
-            newPanX = ((rightBound + offsetX - halfW) / currentZoom) - node.x;
-          }
-
-          if (isOutsideTop) {
-            newPanY = ((topBound + offsetY + halfH) / currentZoom) - node.y;
-          } else if (isOutsideBottom) {
-            newPanY = ((bottomBound + offsetY - halfH) / currentZoom) - node.y;
-          }
-
-          setPan({ x: newPanX, y: newPanY });
-        }
+        ensureNodeVisibleSvc(nodeId, ui, (p: any) => setPan(p), roots);
       }
     },
     showMapList: ui.showMapList,
