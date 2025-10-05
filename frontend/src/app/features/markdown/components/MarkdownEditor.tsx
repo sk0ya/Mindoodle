@@ -5,6 +5,7 @@ import { marked } from 'marked';
 import { FileText } from 'lucide-react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import { mermaidSVGCache } from '../../mindmap/utils/mermaidCache';
+import { loadMonacoVim, getVimFromModule, initVimMode as adapterInitVimMode, loadDirectVimApi } from '../vim/adapter';
 import { logger } from '@shared/utils';
 import mermaid from 'mermaid';
 
@@ -52,6 +53,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const hoveredRef = useRef(false);
   // Tracks whether Vim is currently enabled on the Monaco instance
   const [isVimEnabled, setIsVimEnabled] = useState(false);
+  const hasVimMapApiRef = useRef<boolean>(false);
+  const fallbackKeydownDisposableRef = useRef<any>(null);
+  const vimApiRef = useRef<any>(null);
   // Track applied custom mappings to allow unmapping/reapply on changes
   const appliedEditorMappingsRef = useRef<string[]>([]);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
@@ -352,16 +356,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
   const enableVimMode = async (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')): Promise<boolean> => {
     try {
-      // Dynamically import monaco-vim for Vim mode support
-      const mod: any = await import('monaco-vim');
-      const init: any = mod?.initVimMode || mod?.default || mod;
-      if (typeof init !== 'function') {
-        throw new Error('monaco-vim init function not found');
-      }
-
-      // Initialize Vim mode (status bar element optional)
-      const vimMode = init(editor);
-
+      // Load monaco-vim via adapter
+      const mod = await loadMonacoVim();
+      // Initialize Vim mode
+      const vimMode = adapterInitVimMode(mod, editor, null);
+      
       // Add Vim commands if available in this version
       try {
         if (vimMode && typeof (vimMode as any).defineEx === 'function') {
@@ -480,21 +479,110 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       (editor as any)._vimModeCommandIds = commandIds;
 
       // Resolve Vim API from monaco-vim module or window (varies by build)
-      const resolveVimApi = (): any | null => {
+      const resolveVimApi = async (): Promise<any | null> => {
+        let Vim: any = getVimFromModule(mod);
+        if (Vim) return Vim;
+        // Try direct internal import fallback
+        Vim = await loadDirectVimApi();
+        return Vim;
+      };
+
+      // Helper: register editor actions in Vim (idempotent)
+      const installEditorActions = (Vim: any) => {
         try {
-          if ((mod as any)?.Vim) return (mod as any).Vim;
-          if ((mod as any)?.VimMode?.Vim) return (mod as any).VimMode.Vim;
-          if ((mod as any)?.default?.Vim) return (mod as any).default.Vim;
-          if ((window as any)?.Vim) return (window as any).Vim;
-          if ((window as any)?.MonacoVim?.Vim) return (window as any).MonacoVim.Vim;
+          if ((editor as any)._vimActionsInstalled) return;
+          const define = (name: string, handler: () => void) => {
+            try { Vim.defineAction?.(name, handler); } catch {}
+          };
+          define('md_save', () => { try { onSave?.(); } catch {} });
+          define('md_copy', () => { try { editor.trigger('vim', 'editor.action.clipboardCopyAction', null); } catch {} });
+          define('md_cut', () => { try { editor.trigger('vim', 'editor.action.clipboardCutAction', null); } catch {} });
+          define('md_paste', () => { try { editor.trigger('vim', 'editor.action.clipboardPasteAction', null); } catch {} });
+          define('md_selectAll', () => { try { editor.trigger('vim', 'editor.action.selectAll', null); } catch {} });
+          define('md_undo', () => { try { editor.trigger('vim', 'undo', null); } catch {} });
+          define('md_redo', () => { try { editor.trigger('vim', 'redo', null); } catch {} });
+          (editor as any)._vimActionsInstalled = true;
         } catch {}
-        return null;
+      };
+
+      // Helper: apply one mapping based on RHS semantics
+      const applyOneMapping = (Vim: any, lhs: string, rhs: string) => {
+        const isLikelyVimSeq = /<[^>]+>|^[:a-zA-Z0-9]/.test(rhs);
+        const toVimRhs = (s: string): string => {
+          // Keywords to Vim equivalents
+          const kw = s.trim().toLowerCase();
+          switch (kw) {
+            case 'save': return ':w<CR>';
+            case 'undo': return 'u';
+            case 'redo': return '<C-r>';
+            case 'esc': return '<Esc>';
+            default: return s;
+          }
+        };
+
+        // action keywords mapped via defineAction/mapCommand
+        const actionMap: Record<string, string> = {
+          'save': 'md_save',
+          'copy': 'md_copy',
+          'cut': 'md_cut',
+          'paste': 'md_paste',
+          'selectall': 'md_selectAll',
+          'undo': 'md_undo',
+          'redo': 'md_redo',
+        };
+
+        const kw = rhs.trim().toLowerCase().replace(/[-_\s]/g, '');
+        if (actionMap[kw] && typeof Vim.mapCommand === 'function') {
+          try { Vim.mapCommand(lhs, 'action', actionMap[kw], { context: 'normal' }); return; } catch {}
+        }
+
+        // Prefer key-to-key mapping API if available
+        try {
+          if (typeof Vim.mapKeyToKey === 'function') {
+            Vim.mapKeyToKey(lhs, rhs, 'normal');
+            try { Vim.mapKeyToKey(lhs, rhs, 'visual'); } catch {}
+            return;
+          }
+        } catch {}
+
+        // Vim-style mapping fallback
+        try {
+          const r = toVimRhs(rhs);
+          if (typeof Vim.map === 'function') {
+            Vim.map(lhs, r, 'normal');
+            try { Vim.map(lhs, r, 'visual'); } catch {}
+          } else if (typeof Vim.mapCommand === 'function') {
+            // Map to an action that simulates feeding the rhs when possible
+            const action = `md_feed_${lhs.replace(/[^a-zA-Z0-9]/g, '')}`;
+            try {
+              Vim.defineAction?.(action, () => {
+                try {
+                  if (typeof (Vim as any).handleKey === 'function') {
+                    (Vim as any).handleKey(editor, r);
+                  } else {
+                    // Fallback to monaco cursor commands for simple hjkl
+                    const rr = r.trim();
+                    if (rr === 'j') editor.trigger('vim', 'cursorDown', null);
+                    else if (rr === 'k') editor.trigger('vim', 'cursorUp', null);
+                    else if (rr === 'h') editor.trigger('vim', 'cursorLeft', null);
+                    else if (rr === 'l') editor.trigger('vim', 'cursorRight', null);
+                  }
+                } catch {}
+              });
+              Vim.mapCommand(lhs, 'action', action, { context: 'normal' });
+            } catch {}
+          }
+        } catch {}
       };
 
       // Apply Editor-specific Vim leader and custom mappings from settings (if Vim API is available)
       try {
-        const Vim: any = resolveVimApi();
-        if (Vim) {
+        const VimAny: any = await resolveVimApi();
+        if (VimAny) {
+          // Normalize to API object (some builds export Vim as a function returning the API)
+          const Vim = typeof VimAny === 'function' ? VimAny() : VimAny;
+          vimApiRef.current = Vim;
+          installEditorActions(Vim);
           // Set leader
           const leader = (settings as any).vimEditorLeader || ',';
           Vim.mapleader = leader === ' ' ? ' ' : String(leader).slice(0, 1);
@@ -516,19 +604,13 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           for (const [lhsRaw, rhsRaw] of entries) {
             const lhs = expand(lhsRaw);
             const rhs = expand(rhsRaw);
-            try {
-              // Prefer mapping in normal mode; also try visual if available
-              if (typeof Vim.map === 'function') {
-                Vim.map(lhs, rhs, 'normal');
-                appliedEditorMappingsRef.current.push(lhs);
-                try { Vim.map(lhs, rhs, 'insert'); } catch {}
-                try { Vim.map(lhs, rhs, 'visual'); } catch {}
-              }
-            } catch {}
+            try { applyOneMapping(Vim, lhs, rhs); appliedEditorMappingsRef.current.push(lhs); } catch {}
           }
+          hasVimMapApiRef.current = typeof Vim?.map === 'function' || typeof (Vim as any)?.mapCommand === 'function';
         } else {
           // No Vim API found; leave Vim enabled but log once
           try { console.warn('[MarkdownEditor] Vim API not found; editor custom mappings will not apply'); } catch {}
+          hasVimMapApiRef.current = false;
         }
       } catch {}
       return true;
@@ -577,9 +659,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     const applyMappings = async () => {
       if (!isVimEnabled || !editorRef.current) return;
       try {
-        const mod: any = await import('monaco-vim');
-        const Vim: any = (mod as any)?.Vim || (mod as any)?.VimMode?.Vim || (mod as any)?.default?.Vim || (window as any)?.Vim || (window as any)?.MonacoVim?.Vim;
-        if (!Vim) return;
+        const mod = await loadMonacoVim();
+        let VimAny: any = getVimFromModule(mod);
+        if (!VimAny) VimAny = await loadDirectVimApi();
+        if (!VimAny) return;
+        const Vim = typeof VimAny === 'function' ? VimAny() : VimAny;
+        vimApiRef.current = Vim;
+        // Ensure actions are installed
+        try {
+          if (!(editorRef.current as any)._vimActionsInstalled) {
+            try { Vim.defineAction?.('md_save', () => { try { onSave?.(); } catch {} }); } catch {}
+            try { Vim.defineAction?.('md_copy', () => { try { editorRef.current?.trigger('vim', 'editor.action.clipboardCopyAction', null); } catch {} }); } catch {}
+            try { Vim.defineAction?.('md_cut', () => { try { editorRef.current?.trigger('vim', 'editor.action.clipboardCutAction', null); } catch {} }); } catch {}
+            try { Vim.defineAction?.('md_paste', () => { try { editorRef.current?.trigger('vim', 'editor.action.clipboardPasteAction', null); } catch {} }); } catch {}
+            try { Vim.defineAction?.('md_selectAll', () => { try { editorRef.current?.trigger('vim', 'editor.action.selectAll', null); } catch {} }); } catch {}
+            try { Vim.defineAction?.('md_undo', () => { try { editorRef.current?.trigger('vim', 'undo', null); } catch {} }); } catch {}
+            try { Vim.defineAction?.('md_redo', () => { try { editorRef.current?.trigger('vim', 'redo', null); } catch {} }); } catch {}
+            (editorRef.current as any)._vimActionsInstalled = true;
+          }
+        } catch {}
         // Update leader
         const leader = (settings as any).vimEditorLeader || ',';
         Vim.mapleader = leader === ' ' ? ' ' : String(leader).slice(0, 1);
@@ -601,17 +699,81 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           const lhs = expand(lhsRaw);
           const rhs = expand(rhsRaw);
           try {
-            if (typeof Vim.map === 'function') {
-              Vim.map(lhs, rhs, 'normal');
+            // Reuse the same mapping logic
+            const toKw = (s: string) => s.trim().toLowerCase().replace(/[-_\s]/g, '');
+            const am: Record<string,string> = { save:'md_save', copy:'md_copy', cut:'md_cut', paste:'md_paste', selectall:'md_selectAll', undo:'md_undo', redo:'md_redo' };
+            const kw = toKw(rhs);
+            if (am[kw] && typeof Vim.mapCommand === 'function') {
+              Vim.mapCommand(lhs, 'action', am[kw], { context: 'normal' });
               appliedEditorMappingsRef.current.push(lhs);
-              try { Vim.map(lhs, rhs, 'insert'); } catch {}
-              try { Vim.map(lhs, rhs, 'visual'); } catch {}
+            } else if (typeof Vim.map === 'function') {
+              const normalize = (s: string) => {
+                const k = toKw(s);
+                if (k === 'save') return ':w<CR>';
+                if (k === 'undo') return 'u';
+                if (k === 'redo') return '<C-r>';
+                if (k === 'esc') return '<Esc>';
+                return s;
+              };
+              const r = normalize(rhs);
+              Vim.map(lhs, r, 'normal');
+              try { Vim.map(lhs, r, 'insert'); } catch {}
+              try { Vim.map(lhs, r, 'visual'); } catch {}
+              appliedEditorMappingsRef.current.push(lhs);
             }
           } catch {}
         }
+        hasVimMapApiRef.current = typeof Vim?.map === 'function' || typeof (Vim as any)?.mapCommand === 'function';
       } catch {}
     };
     applyMappings();
+  }, [isVimEnabled, (settings as any).vimEditorLeader, (settings as any).vimEditorCustomKeybindings]);
+
+  // Fallback key mapping layer (Monaco onKeyDown) when Vim API lacks map support.
+  useEffect(() => {
+    const ed: any = editorRef.current as any;
+    if (!ed) return;
+    // Dispose previous fallback
+    try { fallbackKeydownDisposableRef.current?.dispose?.(); } catch {}
+    fallbackKeydownDisposableRef.current = null;
+    if (!isVimEnabled) return;
+    if (hasVimMapApiRef.current) return; // Vim API covers mappings
+
+    const expand = (s: string, leader: string) => String(s)
+      .replace(/<\s*leader\s*>/ig, leader)
+      .replace(/<\s*space\s*>/ig, ' ');
+
+    const disposable = ed.onKeyDown((e: any) => {
+      try {
+        // Only in normal/visual-like modes
+        const vm = (ed as any)?._vimMode;
+        const mode = vm?.state?.mode || null;
+        if (mode && mode !== 'normal' && mode !== 'visual') return;
+        const ev: KeyboardEvent = e.browserEvent as KeyboardEvent;
+        if (ev.ctrlKey || ev.metaKey || ev.altKey) return;
+        const key = ev.key;
+        if (!key || key.length !== 1) return;
+        const leader = ((settings as any).vimEditorLeader || ',');
+        const maps: Record<string,string> = (settings as any).vimEditorCustomKeybindings || {};
+        for (const [lhsRaw, rhsRaw] of Object.entries(maps)) {
+          const lhs = expand(lhsRaw, leader);
+          const rhs = expand(rhsRaw, leader);
+          if (lhs.length === 1 && rhs.length === 1 && lhs === key) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (rhs === 'j') { ed.trigger('vim-map', 'cursorDown', null); return; }
+            if (rhs === 'k') { ed.trigger('vim-map', 'cursorUp', null); return; }
+            if (rhs === 'h') { ed.trigger('vim-map', 'cursorLeft', null); return; }
+            if (rhs === 'l') { ed.trigger('vim-map', 'cursorRight', null); return; }
+            if (rhs === 'x') { ed.trigger('vim-map', 'deleteRight', null); return; }
+            if (rhs === 'u') { ed.trigger('vim-map', 'undo', null); return; }
+            return;
+          }
+        }
+      } catch {}
+    });
+    fallbackKeydownDisposableRef.current = disposable;
+    return () => { try { disposable?.dispose?.(); } catch {} };
   }, [isVimEnabled, (settings as any).vimEditorLeader, (settings as any).vimEditorCustomKeybindings]);
 
   // Memoized Monaco Editor props to prevent re-renders

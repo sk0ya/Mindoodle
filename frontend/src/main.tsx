@@ -1,4 +1,6 @@
 import { createRoot } from 'react-dom/client';
+// Ensure Monaco workers are configured before any editor mounts
+import './shared/monaco/setupWorkers';
 import App from './App.tsx';
 import './index.css';
 

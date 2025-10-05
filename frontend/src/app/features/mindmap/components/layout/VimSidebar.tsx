@@ -7,8 +7,11 @@ const VimSidebar: React.FC = () => {
   const { settings, updateSetting } = useMindMapStore();
   const toggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap' as any, e.target.checked as any);
   const toggleEditorVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor' as any, e.target.checked as any);
+  // Temporarily disable the Editor tab
+  const editorTabEnabled = false;
 
   const flushAndSetTab = (next: 'mindmap' | 'editor') => {
+    if (next === 'editor' && !editorTabEnabled) return;
     try { window.dispatchEvent(new CustomEvent('mindoodle:vim-mapping-flush')); } catch {}
     // Slight defer to ensure state store updates before mount new editor
     setTimeout(() => setTab(next), 0);
@@ -29,9 +32,22 @@ const VimSidebar: React.FC = () => {
           </label>
         </div>
         <div role="tablist" aria-label="Vim mappings scope" className="vim-tabs">
-          <button role="tab" aria-selected={tab === 'mindmap'} className={`vim-tab ${tab === 'mindmap' ? 'active' : ''}`} onClick={() => flushAndSetTab('mindmap')}>Mind Map</button>
-          <button role="tab" aria-selected={tab === 'editor'} className={`vim-tab ${tab === 'editor' ? 'active' : ''}`} onClick={() => flushAndSetTab('editor')}>Editor</button>
+          <button
+            role="tab"
+            aria-selected={tab === 'mindmap'}
+            className={`vim-tab ${tab === 'mindmap' ? 'active' : ''}`}
+            onClick={() => flushAndSetTab('mindmap')}
+          >Mind Map</button>
+          <button
+            role="tab"
+            aria-selected={false}
+            aria-disabled={true}
+            disabled
+            className={`vim-tab disabled`}
+            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+          >Editor</button>
         </div>
+        
         <div className="settings-section-content" style={{ flex: 1, minHeight: 0, padding: 0 }}>
           {tab === 'mindmap' ? (
             <VimMappingsEditor
@@ -65,6 +81,10 @@ const VimSidebar: React.FC = () => {
             background: var(--bg-tertiary);
             border-color: var(--accent-color);
             box-shadow: 0 0 0 1px var(--accent-color) inset;
+          }
+          .vim-tab.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
           }
         `}</style>
       </div>
