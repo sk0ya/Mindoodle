@@ -1,5 +1,6 @@
 // moved to layout/overlay
 import React from 'react';
+import { Copy, Link, Trash2, Sparkles } from 'lucide-react';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
@@ -44,45 +45,37 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
 
   const items: ContextMenuItem[] = [
     {
-      label: 'Delete',
-      onClick: () => onDelete(selectedNode.id),
-    },
-    {
-      label: 'Add Link',
-      onClick: () => onAddLink(selectedNode.id),
-    },
-    {
-      label: 'Copy',
+      icon: <Copy size={14} />,
+      label: 'コピー',
       onClick: () => onCopyNode(selectedNode.id),
     },
     {
-      label: 'Paste',
+      icon: <Copy size={14} />,
+      label: '貼り付け',
       onClick: () => void onPasteNode(selectedNode.id),
+    },
+    {
+      icon: <Link size={14} />,
+      label: 'リンクを追加',
+      onClick: () => onAddLink(selectedNode.id),
     },
   ];
 
   if (onAIGenerate) {
     items.push({
-      label: 'AI Generate',
+      icon: <Sparkles size={14} />,
+      label: 'AI生成',
       onClick: () => onAIGenerate(selectedNode),
     });
   }
 
-  if (onMarkdownNodeType) {
-    items.push({ separator: true });
-    items.push({
-      label: 'Heading',
-      onClick: () => onMarkdownNodeType(selectedNode.id, 'heading'),
-    });
-    items.push({
-      label: 'Unordered List',
-      onClick: () => onMarkdownNodeType(selectedNode.id, 'unordered-list'),
-    });
-    items.push({
-      label: 'Ordered List',
-      onClick: () => onMarkdownNodeType(selectedNode.id, 'ordered-list'),
-    });
-  }
+  items.push({ separator: true });
+  items.push({
+    icon: <Trash2 size={14} />,
+    label: '削除',
+    onClick: () => onDelete(selectedNode.id),
+    danger: true,
+  });
 
   return (
     <ContextMenu
