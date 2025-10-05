@@ -2,10 +2,9 @@ import React from 'react';
 import ContextMenu from '../ContextMenu';
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
+import { useMindMapStore } from '@mindmap/store';
 
 type Props = {
-  visible: boolean;
-  position: { x: number; y: number };
   dataRoot: MindMapNode | null;
   dataRoots?: MindMapNode[];
   onDelete: (nodeId: string) => void;
@@ -15,12 +14,9 @@ type Props = {
   onAIGenerate?: (node: MindMapNode) => void;
   onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   onClose: () => void;
-  nodeId: string | null;
 };
 
 const MindMapContextMenuOverlay: React.FC<Props> = ({
-  visible,
-  position,
   dataRoot,
   dataRoots,
   onDelete,
@@ -30,11 +26,17 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onAIGenerate,
   onMarkdownNodeType,
   onClose,
-  nodeId,
 }) => {
+  const store = useMindMapStore();
+  const ui = store.ui;
+  const visible = ui.showContextMenu;
+  const position = ui.contextMenuPosition;
+  const nodeId = store.selectedNodeId;
+
   const roots = (dataRoots && dataRoots.length > 0)
     ? dataRoots
     : (dataRoot ? [dataRoot] : []);
+
   if (!visible || !nodeId || roots.length === 0) return null;
   const selectedNode = findNodeInRoots(roots, nodeId);
   if (!selectedNode) return null;

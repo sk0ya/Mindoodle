@@ -73,13 +73,11 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   useGlobalErrorHandlers(handleError);
   const {
-    // showLoginModal削除済み
     showLinkModal, setShowLinkModal,
     editingLink, setEditingLink,
     linkModalNodeId, setLinkModalNodeId,
     showLinkActionMenu,
     linkActionMenuData,
-    contextMenu, setContextMenu,
     closeLinkModal,
     openLinkActionMenu, closeLinkActionMenu,
   } = useMindMapModals();
@@ -246,21 +244,14 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     // Use centralized panel manager policy for context menu visibility
     const canOpenContext = panelManager.canOpen(uiStore.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
     if (!canOpenContext) return;
-
-    setContextMenu({
-      visible: true,
-      position: { x: e.clientX, y: e.clientY },
-      nodeId: nodeId
-    });
+    store.setContextMenuPosition({ x: e.clientX, y: e.clientY });
+    (store as any).openPanel?.('contextMenu');
     selectNode(nodeId); // Select the node when right-clicking
   };
 
   const handleContextMenuClose = () => {
-    setContextMenu({
-      visible: false,
-      position: { x: 0, y: 0 },
-      nodeId: null
-    });
+    (store as any).closePanel?.('contextMenu');
+    store.setShowContextMenu(false);
   };
 
   const aiOps = useAIOperations({
@@ -732,11 +723,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       {/* Outline Editor removed */}
 
       <MindMapContextMenuOverlay
-        visible={contextMenu.visible}
-        position={contextMenu.position}
         dataRoot={data?.rootNodes?.[0] || null}
         dataRoots={data?.rootNodes || []}
-        nodeId={contextMenu.nodeId}
         onDelete={deleteNode}
         onAddLink={(nodeId) => {
           setLinkModalNodeId(nodeId);
