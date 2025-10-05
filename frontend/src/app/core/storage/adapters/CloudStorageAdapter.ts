@@ -209,7 +209,7 @@ export class CloudStorageAdapter implements StorageAdapter {
         try {
           // Get full map data with markdown content
           logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
-          const fullMapResponse = await this.makeRequest(`/api/maps/${cloudMap.id}`);
+          const fullMapResponse = await this.makeRequest(`/api/maps/${encodeURIComponent(cloudMap.id)}`);
           if (fullMapResponse.success && fullMapResponse.map) {
             const markdown = fullMapResponse.map.content || '';
             const parseResult = MarkdownImporter.parseMarkdownToNodes(markdown);
@@ -263,7 +263,8 @@ export class CloudStorageAdapter implements StorageAdapter {
       if (!mapPath || mapPath === 'new') {
         throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
-      await this.makeRequest(`/api/maps/${mapPath}` , {
+      // Encode the full mapPath to preserve slashes in folder structure
+      await this.makeRequest(`/api/maps/${encodeURIComponent(mapPath)}` , {
         method: 'PUT',
         body: JSON.stringify({ title: map.title, content: markdown })
       });
@@ -281,7 +282,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      await this.makeRequest(`/api/maps/${id.mapId}` , {
+      await this.makeRequest(`/api/maps/${encodeURIComponent(id.mapId)}` , {
         method: 'DELETE'
       });
 
@@ -407,7 +408,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     const mapId = rel.replace(/\.md$/i, '');
 
     try {
-      await this.makeRequest(`/api/maps/${mapId}`, {
+      await this.makeRequest(`/api/maps/${encodeURIComponent(mapId)}`, {
         method: 'DELETE'
       });
 
@@ -426,7 +427,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest(`/api/maps/${id.mapId}`);
+      const response = await this.makeRequest(`/api/maps/${encodeURIComponent(id.mapId)}`);
       if (response.success && response.map) {
         return response.map.content;
       }
@@ -441,7 +442,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest(`/api/maps/${id.mapId}`);
+      const response = await this.makeRequest(`/api/maps/${encodeURIComponent(id.mapId)}`);
       if (response.success && response.map) {
         return new Date(response.map.updatedAt).getTime();
       }
@@ -469,7 +470,8 @@ export class CloudStorageAdapter implements StorageAdapter {
       }
 
       // Upsert by path/id (Workers R2 put will create or overwrite)
-      await this.makeRequest(`/api/maps/${idPath}` , {
+      // Encode the full idPath to preserve slashes in folder structure
+      await this.makeRequest(`/api/maps/${encodeURIComponent(idPath)}` , {
         method: 'PUT',
         body: JSON.stringify({ title, content: markdown })
       });

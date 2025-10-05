@@ -414,11 +414,26 @@ export const useMindMap = (
         throw new Error('workspaceId is required for creating a map');
       }
 
+      // If title contains '/', treat it as a full path (category/title)
+      // Otherwise, use the provided category parameter
+      let actualTitle: string;
+      let actualCategory: string;
+
+      if (title.includes('/')) {
+        // title is a full path like "folder1/map1"
+        const parts = title.split('/').filter(Boolean);
+        actualTitle = parts[parts.length - 1]; // Last part is the title
+        actualCategory = parts.slice(0, -1).join('/'); // Everything before is the category
+      } else {
+        // title is just the map name
+        actualTitle = title;
+        actualCategory = category || '';
+      }
+
       // mapIdentifier の初期値をストレージ別に決定
       // - cloud: R2のパスとして category/title を使う（.md なし）。
       // - local(markdown-folder): 同様に category/title を使う。
-      const desiredCategory = category || '';
-      const initialMapId = desiredCategory ? `${desiredCategory}/${title}` : title;
+      const initialMapId = actualCategory ? `${actualCategory}/${actualTitle}` : actualTitle;
       const mapIdentifier: MapIdentifier = { mapId: initialMapId, workspaceId };
 
       // adapterを通じてファイルを作成
@@ -429,7 +444,7 @@ export const useMindMap = (
       }
 
       if (adapter.saveMapMarkdown) {
-        const initialMarkdown = `# ${title}\n`;
+        const initialMarkdown = `# ${actualTitle}\n`;
         try {
           await adapter.saveMapMarkdown(mapIdentifier, initialMarkdown);
           await persistenceHook.refreshMapList();
@@ -463,7 +478,7 @@ export const useMindMap = (
           const now = new Date().toISOString();
 
           const loadedMapData: MindMapData = {
-            title: title,
+            title: actualTitle,
             category: extractedCategory || '',
             rootNodes: parseResult.rootNodes,
             createdAt: now,
