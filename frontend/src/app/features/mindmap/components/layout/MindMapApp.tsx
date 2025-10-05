@@ -23,6 +23,7 @@ import { useAI } from '../../../ai/hooks/useAI';
 import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
+import { MindMapController } from '@mindmap/controllers/MindMapController';
 import { logger, statusMessages } from '@shared/utils';
 import MindMapOverlays from './MindMapOverlays';
 import '@shared/styles/layout/MindMapApp.css';
@@ -127,6 +128,14 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     return () => {
       window.removeEventListener('mindoodle:showAuthModal', handleShowAuthModal as EventListener);
     };
+  }, []);
+
+  // Initialize controller (placeholder for migrating effects/wiring)
+  React.useEffect(() => {
+    try {
+      const controller = new MindMapController();
+      controller.initialize();
+    } catch { /* ignore */ }
   }, []);
 
   const handleAuthModalClose = () => {
