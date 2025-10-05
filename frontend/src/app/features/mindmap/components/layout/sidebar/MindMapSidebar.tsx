@@ -1,6 +1,6 @@
 // moved to layout/sidebar
 import React, { memo } from 'react';
-import { Workflow } from 'lucide-react';
+import { Workflow, Cloud, CloudOff } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from '../../../styles/SidebarStyles';
@@ -8,6 +8,9 @@ import ContextMenu from '../overlay/ContextMenu';
 import { ExplorerView } from './ExplorerView';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
+import { useMindMapStore } from '@mindmap/store';
+import { CloudStorageAdapter } from '@/app/core/storage/adapters';
+import { WorkspaceService } from '@shared/services';
 
 // Custom hooks
 import { useSidebarFolderOps } from '../../../hooks/sidebar.folderOps';
@@ -53,6 +56,41 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   explorerTree,
   onCreateFolder
 }) => {
+  const { settings, updateSetting } = useMindMapStore();
+  const isCloudConnected = workspaces.some(ws => ws.id === 'cloud');
+
+  // Handle cloud connection toggle
+  const handleToggleCloud = () => {
+    const workspaceService = WorkspaceService.getInstance();
+
+    if (isCloudConnected) {
+      updateSetting('storageMode', 'local');
+      workspaceService.logoutFromCloud();
+    } else {
+      // Connect: always show auth modal
+      let adapter = workspaceService.getCloudAdapter();
+      if (!adapter) {
+        adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
+        workspaceService.setCloudAdapter(adapter);
+      }
+
+      // Dispatch global event for auth modal
+      window.dispatchEvent(new CustomEvent('mindoodle:showAuthModal', {
+        detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess }
+      }));
+    }
+  };
+
+  const handleAuthSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
+    if (!authenticatedAdapter?.isAuthenticated) {
+      return;
+    }
+
+    const workspaceService = WorkspaceService.getInstance();
+    workspaceService.addCloudWorkspace(authenticatedAdapter);
+    updateSetting('storageMode', 'local+cloud');
+  };
+
   // Folder operations hook
   const {
     emptyFolders,
@@ -163,7 +201,17 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       <div className="workspaces-header" style={{ padding: '8px 8px 4px 8px', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>workspaces</div>
-          <div>
+          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+            <button
+              className="maps-action-button"
+              onClick={handleToggleCloud}
+              title={isCloudConnected ? "Disconnect from cloud" : "Connect to cloud"}
+              style={{
+                color: isCloudConnected ? 'var(--accent-color)' : 'var(--text-secondary)'
+              }}
+            >
+              {isCloudConnected ? <Cloud size={14} /> : <CloudOff size={14} />}
+            </button>
             <button className="maps-action-button" onClick={() => onAddWorkspace && onAddWorkspace()} title="Add workspace">＋</button>
           </div>
         </div>

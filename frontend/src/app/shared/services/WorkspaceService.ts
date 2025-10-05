@@ -116,22 +116,24 @@ export class WorkspaceService {
   }
 
   // Logout from cloud (removes cloud workspace)
-  async logoutFromCloud(): Promise<void> {
+  logoutFromCloud(): void {
     const cloudWorkspace = this.workspaces.get('cloud');
-    if (cloudWorkspace?.cloudAdapter) {
-      try {
-        await cloudWorkspace.cloudAdapter.logout();
-        logger.info('Successfully logged out from cloud');
-      } catch (error) {
-        logger.error('Error during cloud logout:', error);
-      }
-    }
 
+    // Immediately remove from UI
     this.workspaces.delete('cloud');
     this.cloudAdapter = null;
     this.persistWorkspaces();
     this.notifyListeners();
     logger.info('Removed cloud workspace');
+
+    // Logout in background
+    if (cloudWorkspace?.cloudAdapter) {
+      cloudWorkspace.cloudAdapter.logout().then(() => {
+        logger.info('Successfully logged out from cloud');
+      }).catch((error) => {
+        logger.error('Error during cloud logout:', error);
+      });
+    }
   }
 
   // Get cloud adapter

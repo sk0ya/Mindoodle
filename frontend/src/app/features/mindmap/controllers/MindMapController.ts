@@ -47,7 +47,8 @@ export class MindMapController {
         const detail = (event as CustomEvent).detail || {};
         const { cloudAdapter, onSuccess } = detail;
         handlers.setAuthCloudAdapter(cloudAdapter);
-        handlers.setAuthOnSuccess(onSuccess || null);
+        // Wrap function in arrow function to prevent React from calling it immediately
+        handlers.setAuthOnSuccess(() => onSuccess || null);
         handlers.setIsAuthModalOpen(true);
       } catch { /* ignore */ }
     };

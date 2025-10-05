@@ -1,104 +1,19 @@
 // moved to layout/sidebar
-import React, { useState } from 'react';
-import { Cloud, HardDrive } from 'lucide-react';
+import React from 'react';
 import { useMindMapStore } from '@mindmap/store';
-import { CloudStorageAdapter } from '@/app/core/storage/adapters';
-import { WorkspaceService } from '@shared/services';
 
 interface SettingsSidebarProps {
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   const { settings, updateSetting } = useMindMapStore();
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [cloudAdapter, setCloudAdapter] = useState<CloudStorageAdapter | null>(null);
-
-  // Debug logging
-  React.useEffect(() => {
-    console.log('SettingsSidebar state:', { cloudAdapter: !!cloudAdapter, isAuthModalOpen });
-  }, [cloudAdapter, isAuthModalOpen]);
 
   const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
   };
 
-  const handleStorageModeChange = (mode: typeof settings.storageMode) => {
-    console.log('handleStorageModeChange called with mode:', mode);
-    if (mode === 'local+cloud') {
-      console.log('Preparing cloud adapter for local+cloud mode');
-      // Reuse a single shared adapter from WorkspaceService; create only if missing
-      const workspaceService = WorkspaceService.getInstance();
-      let adapter = workspaceService.getCloudAdapter();
-      if (!adapter) {
-        adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
-        workspaceService.setCloudAdapter(adapter);
-      }
-      setCloudAdapter(adapter);
-      setIsAuthModalOpen(true);
-      console.log('Set cloudAdapter and isAuthModalOpen to true');
-
-      // Dispatch global event for auth modal
-      window.dispatchEvent(new CustomEvent('mindoodle:showAuthModal', {
-        detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess }
-      }));
-    } else {
-      console.log('Switching to local mode');
-      // Switch to local mode
-      handleSettingChange('storageMode', mode);
-    }
-  };
-
-  const handleAuthSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
-    // Successfully authenticated, update storage mode
-    handleSettingChange('storageMode', 'local+cloud');
-
-    // Add cloud workspace to workspace service
-    const workspaceService = WorkspaceService.getInstance();
-    workspaceService.addCloudWorkspace(authenticatedAdapter);
-  };
-
   return (
     <div className="settings-sidebar">
-      <div className="settings-section">
-        <h3 className="settings-section-title">ストレージ設定</h3>
-        <div className="settings-section-content">
-          <div className="settings-radio-group">
-            <label className="settings-radio-option">
-              <input
-                type="radio"
-                name="storageMode"
-                value="local"
-                checked={settings.storageMode === 'local'}
-                onChange={() => handleStorageModeChange('local')}
-              />
-              <span className="settings-radio-label">
-                <span className="settings-icon"><HardDrive size={16} /></span>
-                ローカルのみ
-              </span>
-            </label>
-            <label className="settings-radio-option">
-              <input
-                type="radio"
-                name="storageMode"
-                value="local+cloud"
-                checked={settings.storageMode === 'local+cloud'}
-                onChange={() => handleStorageModeChange('local+cloud')}
-              />
-              <span className="settings-radio-label">
-                <span className="settings-icon"><Cloud size={16} /></span>
-                ローカル + クラウド
-              </span>
-            </label>
-          </div>
-          <div className="settings-description">
-            クラウドストレージを選択すると、データをクラウドに同期できます。
-          </div>
-        </div>
-      </div>
-
-      {/* Workspace selection moved to Maps sidebar */}
-
-
       <div className="settings-section">
         <h3 className="settings-section-title">フォント設定</h3>
         <div className="settings-section-content">

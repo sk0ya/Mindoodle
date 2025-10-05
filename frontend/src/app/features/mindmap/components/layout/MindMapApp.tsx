@@ -129,7 +129,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const handleAuthModalClose = () => {
     setIsAuthModalOpen(false);
     setAuthCloudAdapter(null);
-    setAuthOnSuccess(null);
+    setAuthOnSuccess(() => null);
   };
 
   const handleAuthModalSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
