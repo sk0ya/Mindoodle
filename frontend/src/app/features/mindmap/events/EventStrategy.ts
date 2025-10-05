@@ -1,5 +1,5 @@
 export type CanvasEvent = {
-  type: 'click' | 'dblclick' | 'contextmenu' | 'mousemove' | 'mousedown' | 'mouseup' | 'wheel';
+  type: 'click' | 'dblclick' | 'contextmenu' | 'mousemove' | 'mousedown' | 'mouseup' | 'wheel' | 'bgclick';
   x: number;
   y: number;
   targetNodeId?: string;
@@ -8,4 +8,3 @@ export type CanvasEvent = {
 export interface EventStrategy {
   handle(event: CanvasEvent): void;
 }
-

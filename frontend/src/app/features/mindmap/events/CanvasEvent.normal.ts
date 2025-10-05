@@ -4,6 +4,15 @@ import * as panelManager from '@mindmap/state/panelManager';
 
 export class NormalModeStrategy implements EventStrategy {
   handle(event: CanvasEvent): void {
+    if (event.type === 'bgclick') {
+      try {
+        const store = useMindMapStore.getState() as any;
+        store.closeAttachmentAndLinkLists?.();
+        store.selectNode?.(null);
+        store.setShowContextMenu?.(false);
+      } catch { /* ignore */ }
+      return;
+    }
     if (event.type === 'contextmenu') {
       try {
         const store = useMindMapStore.getState();

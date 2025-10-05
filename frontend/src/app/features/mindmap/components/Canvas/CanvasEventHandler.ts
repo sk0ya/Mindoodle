@@ -48,19 +48,15 @@ export const useCanvasEventHandler = ({
   // Background click handler
   const handleBackgroundClick = useCallback(() => {
     // Skip if was panning
-    if (wasPanning) {
-      return;
-    }
+    if (wasPanning) return;
 
-    // Finish editing if active
+    // Finish editing if active (keep in handler due to prop callback)
     if (editingNodeId) {
       onFinishEdit(editingNodeId, editText);
     }
-    // Clear node selection
-    onSelectNode(null);
-    // Close attachment and link lists
-    store.closeAttachmentAndLinkLists();
-  }, [editingNodeId, editText, onFinishEdit, onSelectNode, store]);
+    // Delegate bgclick behavior to strategy (selection/close panels etc.)
+    dispatchToStrategy({ type: 'bgclick', x: 0, y: 0 });
+  }, [editingNodeId, editText, onFinishEdit]);
 
   // Handle mouse up with background click detection
   const handleMouseUp = useCallback((e: React.MouseEvent) => {

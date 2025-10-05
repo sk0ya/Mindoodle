@@ -35,4 +35,26 @@ export class MindMapController {
       // ignore globals failure
     }
   }
+
+  /**
+   * Bridge for Auth modal via window event to decouple from view.
+   * Returns an unsubscribe function.
+   */
+  attachAuthModalBridge(handlers: {
+    setAuthCloudAdapter: (a: any) => void;
+    setAuthOnSuccess: (fn: ((a: any) => void) | null) => void;
+    setIsAuthModalOpen: (open: boolean) => void;
+  }): () => void {
+    const listener = (event: Event) => {
+      try {
+        const detail = (event as CustomEvent).detail || {};
+        const { cloudAdapter, onSuccess } = detail;
+        handlers.setAuthCloudAdapter(cloudAdapter);
+        handlers.setAuthOnSuccess(onSuccess || null);
+        handlers.setIsAuthModalOpen(true);
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('mindoodle:showAuthModal', listener as EventListener);
+    return () => window.removeEventListener('mindoodle:showAuthModal', listener as EventListener);
+  }
 }

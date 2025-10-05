@@ -117,17 +117,12 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const [authOnSuccess, setAuthOnSuccess] = useState<((adapter: CloudStorageAdapter) => void) | null>(null);
 
   React.useEffect(() => {
-    const handleShowAuthModal = (event: CustomEvent) => {
-      const { cloudAdapter, onSuccess } = event.detail;
-      setAuthCloudAdapter(cloudAdapter);
-      setAuthOnSuccess(() => onSuccess);
-      setIsAuthModalOpen(true);
-    };
-
-    window.addEventListener('mindoodle:showAuthModal', handleShowAuthModal as EventListener);
-    return () => {
-      window.removeEventListener('mindoodle:showAuthModal', handleShowAuthModal as EventListener);
-    };
+    const controller = new MindMapController();
+    return controller.attachAuthModalBridge({
+      setAuthCloudAdapter,
+      setAuthOnSuccess,
+      setIsAuthModalOpen,
+    });
   }, []);
 
   // Initialize controller (placeholder for migrating effects/wiring)
