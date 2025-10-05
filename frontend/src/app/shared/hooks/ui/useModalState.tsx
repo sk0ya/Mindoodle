@@ -29,17 +29,6 @@ interface UseModalStateReturn {
   } | null;
   setLinkActionMenuData: (data: { link: NodeLink; position: { x: number; y: number }; } | null) => void;
   
-  // Context menu state
-  contextMenu: {
-    visible: boolean;
-    position: { x: number; y: number };
-    nodeId: string | null;
-  };
-  setContextMenu: (menu: {
-    visible: boolean;
-    position: { x: number; y: number };
-    nodeId: string | null;
-  }) => void;
 }
 
 export const useModalState = (): UseModalStateReturn => {
@@ -57,17 +46,6 @@ export const useModalState = (): UseModalStateReturn => {
     position: { x: number; y: number };
   } | null>(null);
   
-  // Context menu state
-  const [contextMenu, setContextMenu] = useState<{
-    visible: boolean;
-    position: { x: number; y: number };
-    nodeId: string | null;
-  }>({
-    visible: false,
-    position: { x: 0, y: 0 },
-    nodeId: null
-  });
-
   return {
     // Simple modals using new hook pattern
     showExportModal: exportModal.isOpen,
@@ -92,7 +70,5 @@ export const useModalState = (): UseModalStateReturn => {
     setShowLinkActionMenu: linkActionMenu.setValue,
     linkActionMenuData,
     setLinkActionMenuData,
-    contextMenu,
-    setContextMenu
   };
 };
