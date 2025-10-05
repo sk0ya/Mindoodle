@@ -34,6 +34,7 @@ import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
+import * as panelManager from '@mindmap/state/panelManager';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
@@ -244,10 +245,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const handleRightClick = (e: React.MouseEvent, nodeId: string) => {
     e.preventDefault();
 
-    // リンクリストまたは添付ファイルリスト表示中は右クリックコンテキストメニューを無効化
-    if (uiStore.showLinkListForNode) {
-      return;
-    }
+    // Use centralized panel manager policy for context menu visibility
+    const canOpenContext = panelManager.canOpen(uiStore.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
+    if (!canOpenContext) return;
 
     setContextMenu({
       visible: true,
