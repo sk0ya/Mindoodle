@@ -17,6 +17,8 @@ export type CanvasEvent = {
   x: number;
   y: number;
   targetNodeId?: string;
+  draggedNodeId?: string;
+  dropPosition?: 'before' | 'after' | 'child' | null;
 };
 
 export interface EventStrategy {

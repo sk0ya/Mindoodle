@@ -38,5 +38,13 @@ export class VisualModeStrategy implements EventStrategy {
       } catch { /* ignore */ }
       return;
     }
+
+    if (event.type === 'nodeDragEnd' && event.targetNodeId && event.draggedNodeId && event.dropPosition) {
+      try {
+        const store = useMindMapStore.getState() as any;
+        store.moveNodeWithPosition?.(event.draggedNodeId, event.targetNodeId, event.dropPosition);
+      } catch { /* ignore */ }
+      return;
+    }
   }
 }

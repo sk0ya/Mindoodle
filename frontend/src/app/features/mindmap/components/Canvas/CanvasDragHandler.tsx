@@ -1,6 +1,7 @@
 import React, { useCallback, useState } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
+import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 
 interface DragState {
   isDragging: boolean;
@@ -180,6 +181,16 @@ export const useCanvasDragHandler = ({
         prevState.dropTargetId !== prevState.draggedNodeId &&
         prevState.draggedNodeId &&
         prevState.dropAction) {
+        try {
+          dispatchCanvasEvent({
+            type: 'nodeDragEnd',
+            x: 0,
+            y: 0,
+            targetNodeId: prevState.dropTargetId,
+            draggedNodeId: prevState.draggedNodeId,
+            dropPosition: prevState.dropPosition || null
+          });
+        } catch { /* ignore */ }
 
         if (prevState.dropAction === 'reorder-sibling') {
           // 位置指定付き親変更を使用（before/after/child対応）
