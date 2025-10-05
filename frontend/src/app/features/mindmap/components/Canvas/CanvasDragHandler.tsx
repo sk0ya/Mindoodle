@@ -17,6 +17,7 @@ interface CanvasDragHandlerProps {
   zoom: number;
   pan: { x: number; y: number };
   svgRef: React.RefObject<SVGSVGElement>;
+  // Callbacks are deprecated in favor of strategy dispatch; kept optional for compatibility
   onChangeParent?: (nodeId: string, newParentId: string) => void;
   onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
   onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
@@ -28,9 +29,7 @@ export const useCanvasDragHandler = ({
   zoom,
   pan,
   svgRef,
-  onChangeParent,
-  onChangeSiblingOrder,
-  onMoveNodeWithPosition,
+  // Deprecated callbacks (not used): onChangeParent, onChangeSiblingOrder, onMoveNodeWithPosition,
   rootNodes
 }: CanvasDragHandlerProps) => {
   const [dragState, setDragState] = useState<DragState>({
@@ -200,23 +199,14 @@ export const useCanvasDragHandler = ({
             position: prevState.dropPosition
           });
 
-          // 新しいmoveNodeWithPosition関数を使用
-          if (onMoveNodeWithPosition && prevState.dropPosition) {
-            onMoveNodeWithPosition(
-              prevState.draggedNodeId,
-              prevState.dropTargetId,
-              prevState.dropPosition
-            );
-          }
+          // Movement is handled via strategy dispatch (nodeDragEnd)
         } else if (prevState.dropAction === 'move-parent') {
           // 親変更
           logger.debug('親変更実行:', {
             draggedNodeId: prevState.draggedNodeId,
             newParentId: prevState.dropTargetId
           });
-          if (onChangeParent) {
-            onChangeParent(prevState.draggedNodeId, prevState.dropTargetId);
-          }
+          // Parent movement is handled via strategy dispatch (nodeDragEnd)
         }
       }
 
@@ -229,7 +219,7 @@ export const useCanvasDragHandler = ({
         dragOffset: { x: 0, y: 0 }
       };
     });
-  }, [onChangeParent, onChangeSiblingOrder, onMoveNodeWithPosition]);
+  }, []);
 
   return {
     dragState,
