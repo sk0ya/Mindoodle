@@ -3,7 +3,7 @@ import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../store';
 import { calculateIconLayout, wrapNodeText, resolveNodeTextWrapConfig, getMarkerPrefixTokens, TEXT_ICON_SPACING } from '@mindmap/utils';
 import type { WrappedToken } from '@mindmap/utils';
-import { extractInternalNodeLinksFromMarkdown, extractExternalLinksFromMarkdown } from '../../../markdown';
+import { extractAllMarkdownLinksDetailed } from '../../../markdown';
 import type { MindMapNode } from '@shared/types';
 
 interface NodeEditorProps {
@@ -46,7 +46,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onRightClick
 }) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  const { ui, settings, data, clearMermaidRelatedCaches } = useMindMapStore();
+  const { ui, settings, clearMermaidRelatedCaches } = useMindMapStore();
 
   // Table nodes render their own content; no text editor overlay
   if (node.kind === 'table') {
@@ -220,9 +220,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     };
 
     const actualImageHeight = getActualImageHeight();
-    const internalLinks = extractInternalNodeLinksFromMarkdown(node.note, data?.rootNodes?.[0]) || [];
-    const externalLinks = extractExternalLinksFromMarkdown(node.note) || [];
-    const hasLinks = (internalLinks.length + externalLinks.length) > 0;
+    const allLinks = extractAllMarkdownLinksDetailed(node.note);
+    const hasLinks = allLinks.length > 0;
 
     const iconLayout = calculateIconLayout(node, nodeWidth);
     const linkIconPosition = iconLayout.linkIcon;
@@ -501,7 +500,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
                   userSelect: 'none'
                 }}
               >
-                {internalLinks.length + externalLinks.length}
+                {allLinks.length}
               </text>
             </g>
           );

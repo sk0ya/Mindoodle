@@ -200,9 +200,11 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
           {combined.map((entry: any, idx: number) => {
             const key = entry.kind === 'legacy' ? entry.item.id : `${entry.kind}-${idx}-${entry.index}`;
+            // For plain URLs (label === href), show shortened label
+            const isPlainUrl = entry.kind === 'external' && entry.label === entry.href;
             const title = entry.kind === 'internal' ? entry.label
               : entry.kind === 'map' ? entry.label
-              : entry.kind === 'external' ? entry.label
+              : entry.kind === 'external' ? (isPlainUrl ? '🔗 Webページ' : entry.label)
               : 'リンク';
             const subtitle = entry.kind === 'internal' ? `#${entry.anchorText}`
               : entry.kind === 'map' ? `${entry.mapId}${entry.anchorText ? `#${entry.anchorText}` : ''}`

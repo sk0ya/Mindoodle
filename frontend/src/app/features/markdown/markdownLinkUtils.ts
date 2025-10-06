@@ -246,12 +246,36 @@ export interface ParsedMarkdownLink {
 
 export function extractAllMarkdownLinksDetailed(note: string | undefined): ParsedMarkdownLink[] {
   if (!note || !note.trim()) return [];
-  const re = /\[([^\]]+)\]\(([^)]+)\)/g;
   const out: ParsedMarkdownLink[] = [];
+
+  // Extract markdown-style links [text](url)
+  const mdRe = /\[([^\]]+)\]\(([^)]+)\)/g;
   let m: RegExpExecArray | null;
-  while ((m = re.exec(note)) !== null) {
+  while ((m = mdRe.exec(note)) !== null) {
     out.push({ label: m[1].trim(), href: m[2].trim(), index: m.index });
   }
+
+  // Extract plain URLs (http://, https://)
+  // Match URLs that are NOT inside markdown link syntax [text](url)
+  // We check if the URL is preceded by ]( to skip markdown link URLs
+  const urlRe = /https?:\/\/[^\s<>"{}|\\^`\[\]]+/g;
+  let urlMatch: RegExpExecArray | null;
+  while ((urlMatch = urlRe.exec(note)) !== null) {
+    const url = urlMatch[0];
+    const matchIndex = urlMatch.index;
+
+    // Check if this URL is inside markdown link syntax by looking backwards
+    const precedingText = note.slice(Math.max(0, matchIndex - 2), matchIndex);
+    const isInsideMarkdownLink = precedingText === '](';
+
+    if (!isInsideMarkdownLink) {
+      out.push({ label: url, href: url, index: matchIndex });
+    }
+  }
+
+  // Sort by appearance order
+  out.sort((a, b) => a.index - b.index);
+
   return out;
 }
 
