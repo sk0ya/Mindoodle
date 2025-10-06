@@ -8,8 +8,8 @@ const VimSidebar: React.FC = () => {
   const { settings, updateSetting } = useMindMapStore();
   const toggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap' as any, e.target.checked as any);
   const toggleEditorVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor' as any, e.target.checked as any);
-  // Temporarily disable the Editor tab
-  const editorTabEnabled = false;
+  // Enable the Editor tab
+  const editorTabEnabled = true;
 
   const flushAndSetTab = (next: 'mindmap' | 'editor') => {
     if (next === 'editor' && !editorTabEnabled) return;
@@ -41,11 +41,11 @@ const VimSidebar: React.FC = () => {
           >Mind Map</button>
           <button
             role="tab"
-            aria-selected={false}
-            aria-disabled={true}
-            disabled
-            className={`vim-tab disabled`}
-            onClick={(e) => { e.preventDefault(); e.stopPropagation(); }}
+            aria-selected={tab === 'editor'}
+            aria-disabled={!editorTabEnabled}
+            disabled={!editorTabEnabled}
+            className={`vim-tab ${tab === 'editor' ? 'active' : ''} ${!editorTabEnabled ? 'disabled' : ''}`}
+            onClick={() => flushAndSetTab('editor')}
           >Editor</button>
         </div>
         
