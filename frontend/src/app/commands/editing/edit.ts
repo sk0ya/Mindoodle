@@ -323,6 +323,7 @@ export const cutCommand: Command = {
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
     const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+    const count = context.count ?? 1;
 
     if (!nodeId) {
       return {
@@ -331,32 +332,32 @@ export const cutCommand: Command = {
       };
     }
 
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
-    }
-
-    // Check if this is the root node
-    if (node.id === 'root') {
-      return {
-        success: false,
-        error: 'Cannot cut the root node'
-      };
-    }
-
     try {
-      // First copy the node to clipboard
-      context.handlers.copyNode(nodeId);
-      
-      // Then delete the node
-      context.handlers.deleteNode(nodeId);
-      
+      // Cut count times
+      let cutCount = 0;
+
+      for (let i = 0; i < count; i++) {
+        const currentNode = context.handlers.findNodeById(nodeId);
+        if (!currentNode || currentNode.id === 'root') break;
+
+        // First copy the node to clipboard
+        context.handlers.copyNode(nodeId);
+
+        // Then delete the node
+        context.handlers.deleteNode(nodeId);
+        cutCount++;
+      }
+
+      if (cutCount === 0) {
+        return {
+          success: false,
+          error: 'No nodes to cut'
+        };
+      }
+
       return {
         success: true,
-        message: `Cut node "${node.text}"`
+        message: cutCount > 1 ? `Cut ${cutCount} nodes` : `Cut node`
       };
     } catch (error) {
       return {
@@ -364,5 +365,7 @@ export const cutCommand: Command = {
         error: error instanceof Error ? error.message : 'Failed to cut node'
       };
     }
-  }
+  },
+  countable: true,
+  repeatable: true
 };

@@ -61,11 +61,25 @@ export const navigateCommand: Command = {
       };
     }
 
+    // Support count for navigation (e.g., 3j means jump 3 nodes down)
+    const count = context.count ?? 1;
+
     try {
-      context.handlers.navigateToDirection(direction);
+      // For left/right, navigate step by step (count times)
+      // For up/down, jump directly to the Nth sibling
+      if (direction === 'left' || direction === 'right') {
+        // Left/Right: repeat navigation count times
+        for (let i = 0; i < count; i++) {
+          context.handlers.navigateToDirection(direction);
+        }
+      } else {
+        // Up/Down: jump directly to the Nth sibling
+        context.handlers.navigateToDirection(direction, count);
+      }
+
       return {
         success: true,
-        message: `Navigated ${direction}`
+        message: count > 1 ? `Navigated ${direction} ${count} step${count > 1 ? 's' : ''}` : `Navigated ${direction}`
       };
     } catch (error) {
       return {
@@ -73,7 +87,9 @@ export const navigateCommand: Command = {
         error: error instanceof Error ? error.message : `Failed to navigate ${direction}`
       };
     }
-  }
+  },
+  countable: true,
+  repeatable: false  // Navigation is not typically repeated with dot
 };
 
 // Individual direction commands for convenience
@@ -86,7 +102,9 @@ export const upCommand: Command = {
   guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'up' });
-  }
+  },
+  countable: true,
+  repeatable: false
 };
 
 export const downCommand: Command = {
@@ -98,7 +116,9 @@ export const downCommand: Command = {
   guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'down' });
-  }
+  },
+  countable: true,
+  repeatable: false
 };
 
 export const leftCommand: Command = {
@@ -110,7 +130,9 @@ export const leftCommand: Command = {
   guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'left' });
-  }
+  },
+  countable: true,
+  repeatable: false
 };
 
 export const rightCommand: Command = {
@@ -122,7 +144,9 @@ export const rightCommand: Command = {
   guard: (context) => !!context.selectedNodeId && context.mode !== 'insert',
   async execute(context: CommandContext): Promise<CommandResult> {
     return await navigateCommand.execute(context, { direction: 'right' });
-  }
+  },
+  countable: true,
+  repeatable: false
 };
 
 /**

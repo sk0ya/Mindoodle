@@ -1,7 +1,8 @@
-import { useState, useCallback, useMemo, useEffect } from 'react';
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import type { MindMapNode } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
+import { VimCountBuffer, VimRepeatRegistry } from '../services';
 // import { parseVimMappingsText } from '../utils/parseVimMappings';
 
 export type VimMode = 'normal' | 'insert' | 'visual' | 'command' | 'search' | 'jumpy';
@@ -18,6 +19,7 @@ interface VimState {
   currentSearchIndex: number;
   jumpyLabels: Array<{ nodeId: string; label: string }>;
   jumpyBuffer: string;
+  countBuffer: string; // Display-only: current count buffer (e.g., "10")
 }
 
 interface VimActions {
@@ -44,12 +46,24 @@ interface VimActions {
   executeCommandLine: (_command: string) => Promise<void>;
   exitCommandLine: () => void;
   setCommandOutput: (_output: string) => void;
+  // Count and repeat actions
+  appendToCountBuffer: (_digit: string) => void;
+  clearCountBuffer: () => void;
+  getCount: () => number | undefined;
+  hasCount: () => boolean;
+  getCountBuffer: () => VimCountBuffer;
+  getRepeatRegistry: () => VimRepeatRegistry;
 }
 
 export interface VimModeHook extends VimState, VimActions {}
 
 export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   const { settings, updateSetting, setSearchQuery: setUISearchQuery } = useMindMapStore();
+
+  // Persistent services (survive re-renders)
+  const countBufferRef = useRef(new VimCountBuffer());
+  const repeatRegistryRef = useRef(new VimRepeatRegistry());
+
   const [state, setState] = useState<Omit<VimState, 'isEnabled'>>({
     mode: 'normal',
     lastCommand: '',
@@ -60,7 +74,8 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     searchResults: [],
     currentSearchIndex: -1,
     jumpyLabels: [],
-    jumpyBuffer: ''
+    jumpyBuffer: '',
+    countBuffer: ''
   });
 
   const setMode = useCallback((mode: VimMode) => {
@@ -693,6 +708,39 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     }
   }, [state.jumpyLabels, state.jumpyBuffer, exitJumpy]);
 
+  // Count buffer methods
+  const appendToCountBuffer = useCallback((digit: string) => {
+    countBufferRef.current.append(digit);
+    setState(prev => ({
+      ...prev,
+      countBuffer: countBufferRef.current.getBuffer()
+    }));
+  }, []);
+
+  const clearCountBuffer = useCallback(() => {
+    countBufferRef.current.clear();
+    setState(prev => ({
+      ...prev,
+      countBuffer: ''
+    }));
+  }, []);
+
+  const getCount = useCallback(() => {
+    return countBufferRef.current.getCount();
+  }, []);
+
+  const hasCount = useCallback(() => {
+    return countBufferRef.current.hasCount();
+  }, []);
+
+  const getCountBuffer = useCallback(() => {
+    return countBufferRef.current;
+  }, []);
+
+  const getRepeatRegistry = useCallback(() => {
+    return repeatRegistryRef.current;
+  }, []);
+
   // Clear command output when mode changes away from normal
   useEffect(() => {
     if (state.mode !== 'normal') {
@@ -725,7 +773,14 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     updateCommandLineBuffer,
     executeCommandLine,
     exitCommandLine,
-    setCommandOutput
+    setCommandOutput,
+    // Count and repeat methods
+    appendToCountBuffer,
+    clearCountBuffer,
+    getCount,
+    hasCount,
+    getCountBuffer,
+    getRepeatRegistry
   }), [
     state,
     (settings as any).vimMindMap,
@@ -750,6 +805,12 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     updateCommandLineBuffer,
     executeCommandLine,
     exitCommandLine,
-    setCommandOutput
+    setCommandOutput,
+    appendToCountBuffer,
+    clearCountBuffer,
+    getCount,
+    hasCount,
+    getCountBuffer,
+    getRepeatRegistry
   ]);
 };;

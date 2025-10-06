@@ -22,6 +22,8 @@ export interface CommandContext {
   selectedNodeId: string | null;
   editingNodeId: string | null;
   vim?: VimModeHook;
+  // Optional count for repeatable commands (e.g., 10j in vim mode)
+  count?: number;
   // Optional UI context for guards
   mode?: UIMode;
   openPanels?: Partial<Record<PanelId, boolean>>;
@@ -35,7 +37,7 @@ export interface CommandContext {
 
     // Navigation
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
-    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
+    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count?: number) => void;
     selectNode: (nodeId: string | null) => void;
     setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 
@@ -110,6 +112,9 @@ export interface Command {
   // Optional guard to centralize preconditions
   guard?: (context: CommandContext, args: Record<string, any>) => boolean;
   execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
+  // Vim-specific metadata
+  repeatable?: boolean; // Whether this command can be repeated with dot (.)
+  countable?: boolean;  // Whether this command accepts numeric prefix (e.g., 10j)
 }
 
 // Parsed command from user input

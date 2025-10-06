@@ -80,7 +80,7 @@ export interface UseCommandsReturn {
   getSuggestions: (partialInput: string) => string[];
   getHelp: (commandName?: string) => string;
   isValidCommand: (commandName: string) => boolean;
-  executeVimCommand: (vimKey: string) => Promise<CommandResult>;
+  executeVimCommand: (vimKey: string, count?: number) => Promise<CommandResult>;
   parseVimSequence: (sequence: string) => VimSequenceResult;
   getVimKeys: () => string[];
 }
@@ -188,7 +188,32 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   }, [context, registry]);
 
   // Execute vim-specific commands
-  const executeVimCommand = useCallback(async (vimKey: string): Promise<CommandResult> => {
+  const executeVimCommand = useCallback(async (vimKey: string, count?: number): Promise<CommandResult> => {
+    // Handle dot repeat command
+    if (vimKey === '.') {
+      if (!vim) {
+        return { success: false, error: 'Vim mode not available' };
+      }
+      const repeatRegistry = vim.getRepeatRegistry();
+      const lastChange = repeatRegistry.getLastChange();
+
+      if (!lastChange) {
+        return { success: false, error: 'No previous change to repeat' };
+      }
+
+      // Repeat the last change with its original count or new count
+      const repeatCount = count ?? lastChange.count;
+      const contextWithCount = { ...context, count: repeatCount };
+
+      const command = registry.get(lastChange.commandName);
+      if (!command) {
+        return { success: false, error: `Command not found: ${lastChange.commandName}` };
+      }
+
+      const result = await registry.execute(lastChange.commandName, contextWithCount, {});
+      return result;
+    }
+
     // Numeric-prefixed ordered-list conversion: "<number>m"
     // parseVimSequence encodes as 'm:<num>'
     if (/^m:\d+$/.test(vimKey)) {
@@ -319,16 +344,42 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     const commandName = vimCommandMap[vimKey];
 
     if (!commandName) {
-      console.error('Unknown vim command:', vimKey);
       return {
         success: false,
         error: `Unknown vim command: ${vimKey}`
       };
     }
 
-    const result = await execute(commandName);
+    // Create context with count if provided
+    const contextWithCount = count ? { ...context, count } : context;
+
+    // Get the command to check if it's repeatable
+    const command = registry.get(commandName);
+    if (!command) {
+      return {
+        success: false,
+        error: `Command not found: ${commandName}`
+      };
+    }
+
+    // Execute the command
+    const result = await registry.execute(commandName, contextWithCount, {});
+
+    // Record repeatable operations
+    if (result.success && command.repeatable && vim) {
+      const repeatRegistry = vim.getRepeatRegistry();
+      repeatRegistry.record({
+        commandName,
+        count: count ?? 1,
+        context: {
+          selectedNodeId: context.selectedNodeId,
+          editingNodeId: context.editingNodeId
+        }
+      });
+    }
+
     return result;
-  }, [execute, vim]);
+  }, [execute, vim, context, registry]);
 
   // Get available command names
   const getAvailableCommands = useCallback((): string[] => {

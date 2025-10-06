@@ -30,7 +30,7 @@ interface KeyboardShortcutHandlers {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  navigateToDirection: (_direction: 'up' | 'down' | 'left' | 'right') => void;
+  navigateToDirection: (_direction: 'up' | 'down' | 'left' | 'right', _count?: number) => void;
   selectNode: (_nodeId: string | null) => void;
   setPan?: (_pan: { x: number; y: number } | ((_prev: { x: number; y: number }) => { x: number; y: number })) => void;
   showMapList: boolean;
@@ -491,8 +491,23 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           // Handle special keys directly
           // No direct special key handling; fall through to sequence handling / standard shortcuts
 
-          // 1) Try custom mappings first (with buffer)
+          // Handle count digits (1-9 for starting count, 0-9 for continuing)
+          // If no command buffer and key is a digit 1-9, start count buffer
+          // If count buffer exists and key is 0-9, append to count buffer
           const currentBuffer = vim.commandBuffer;
+          const currentCount = vim.countBuffer;
+
+          if (/^[1-9]$/.test(normalizedKey) && !currentBuffer && !currentCount) {
+            // Start count buffer with 1-9
+            vim.appendToCountBuffer(normalizedKey);
+            return;
+          } else if (/^[0-9]$/.test(normalizedKey) && currentCount && !currentBuffer) {
+            // Continue count buffer
+            vim.appendToCountBuffer(normalizedKey);
+            return;
+          }
+
+          // 1) Try custom mappings first (with buffer)
           const testSequence = currentBuffer + normalizedKey;
 
           // Check complete match
@@ -508,7 +523,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
               } else {
                 const seqRes = commands.parseVimSequence(rhs);
                 if (seqRes.isComplete && seqRes.command) {
-                  commands.executeVimCommand(seqRes.command);
+                  // Pass the count from the parsed sequence (e.g., "10j" -> count=10)
+                  commands.executeVimCommand(seqRes.command, seqRes.count);
                 } else {
                   // Fallback: try executing as command anyway
                   commands.execute(rhs);
@@ -531,8 +547,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           if (result.isComplete && result.command) {
             // Complete command - execute and clear buffer
             handlers.closeAttachmentAndLinkLists();
-            commands.executeVimCommand(result.command);
+            // Get count from vim's count buffer if available, otherwise use parsed count
+            const count = vim.hasCount() ? vim.getCount() : result.count;
+            commands.executeVimCommand(result.command, count);
             vim.clearCommandBuffer();
+            vim.clearCountBuffer(); // Clear count buffer after use
             return;
           } else if (result.isPartial) {
             // Partial command - add to buffer and wait for more keys
@@ -555,7 +574,10 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           const singleKeyResult = commands.parseVimSequence(normalizedKey);
           if (singleKeyResult.isComplete && singleKeyResult.command) {
             handlers.closeAttachmentAndLinkLists();
-            commands.executeVimCommand(singleKeyResult.command);
+            // Get count from vim's count buffer if available, otherwise use parsed count
+            const count = vim.hasCount() ? vim.getCount() : singleKeyResult.count;
+            commands.executeVimCommand(singleKeyResult.command, count);
+            vim.clearCountBuffer(); // Clear count buffer after use
             return;
           }
         }

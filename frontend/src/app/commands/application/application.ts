@@ -116,7 +116,9 @@ export const copyCommand: Command = {
         error: error instanceof Error ? error.message : 'Failed to copy node'
       };
     }
-  }
+  },
+  repeatable: true,
+  countable: false  // Copy doesn't use count
 };
 
 // Paste command
@@ -328,7 +330,9 @@ export const pasteSiblingAfterCommand: Command = {
     }
 
     return { success: false, error: 'Clipboard is empty' };
-  }
+  },
+  repeatable: true,
+  countable: false
 };
 
 /**
@@ -422,7 +426,9 @@ export const pasteSiblingBeforeCommand: Command = {
     }
 
     return { success: false, error: 'Clipboard is empty' };
-  }
+  },
+  repeatable: true,
+  countable: false
 };
 // Add workspace command
 export const addWorkspaceCommand: Command = {

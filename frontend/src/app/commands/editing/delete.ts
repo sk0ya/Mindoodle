@@ -34,6 +34,7 @@ export const deleteCommand: Command = {
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
     const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
     const skipConfirm = (args as any)['confirm'];
+    const count = context.count ?? 1;
 
     if (!nodeId) {
       return {
@@ -67,10 +68,25 @@ export const deleteCommand: Command = {
     }
 
     try {
-      context.handlers.deleteNode(nodeId);
+      // Delete count times (for vim dd with count)
+      let deletedCount = 0;
+
+      for (let i = 0; i < count; i++) {
+        const currentNode = context.handlers.findNodeById(nodeId);
+        if (!currentNode || currentNode.id === 'root') break;
+
+        context.handlers.deleteNode(nodeId);
+        deletedCount++;
+
+        // After deletion, select the next sibling or stay at current position
+        // The handler should handle this automatically
+      }
+
       return {
         success: true,
-        message: `Deleted node "${node.text}"`
+        message: deletedCount > 1
+          ? `Deleted ${deletedCount} nodes`
+          : `Deleted node "${node.text}"`
       };
     } catch (error) {
       return {
@@ -78,5 +94,7 @@ export const deleteCommand: Command = {
         error: error instanceof Error ? error.message : 'Failed to delete node'
       };
     }
-  }
+  },
+  countable: true,
+  repeatable: true
 };

@@ -7,7 +7,10 @@ export interface VimSequenceResult {
   isComplete: boolean;
   isPartial: boolean;
   command?: string;
+  count?: number;
   shouldClear?: boolean;
+  isCountDigit?: boolean; // True if this is a count digit (0-9)
+  isDotRepeat?: boolean; // True if this is a dot repeat command
 }
 
 // Vim command patterns with their key sequences
@@ -62,6 +65,7 @@ const VIM_COMMAND_PATTERNS = {
   'S': { keys: ['S'], command: 'S' },  // Toggle strikethrough
   'B': { keys: ['B'], command: 'B' },  // Toggle bold
   '~': { keys: ['~'], command: '~' },  // Toggle italic
+  '.': { keys: ['.'], command: '.' },  // Dot repeat
 } as const;;
 
 // Generate all possible partial sequences
@@ -87,42 +91,65 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
   // Don't normalize case to preserve uppercase commands like 'M'
   const normalizedSequence = sequence.trim();
 
-  // Support numeric prefix for ordered-list conversion: "<number>m"
-  // - Partial when only digits (wait for trailing 'm')
-  // - Complete when digits followed by 'm'
-  if (/^\d+$/.test(normalizedSequence)) {
-    return {
-      isComplete: false,
-      isPartial: true
-    };
+  // Extract count prefix if present (e.g., "10j" -> count=10, command="j")
+  // Count must start with 1-9, not 0 (0 is a separate command for "select-current-root")
+  const countMatch = normalizedSequence.match(/^([1-9]\d*)(.*)$/);
+  let count: number | undefined;
+  let commandPart = normalizedSequence;
+
+  if (countMatch) {
+    const [, countStr, rest] = countMatch;
+    count = parseInt(countStr, 10);
+    commandPart = rest;
+
+    // If only digits (no command part yet), it's partial
+    if (!commandPart) {
+      return {
+        isComplete: false,
+        isPartial: true,
+        count
+      };
+    }
   }
-  if (/^(\d+)m$/.test(normalizedSequence)) {
-    const m = normalizedSequence.match(/^(\d+)m$/);
-    const num = m ? m[1] : '';
+
+  // Special case: ordered-list conversion "<number>m"
+  if (commandPart === 'm' && count !== undefined) {
     return {
       isComplete: true,
       isPartial: false,
-      // Encode numeric argument in the command string
-      command: `m:${num}`
+      command: `m:${count}`,
+      count
+    };
+  }
+
+  // Special case: dot repeat command
+  if (commandPart === '.') {
+    return {
+      isComplete: true,
+      isPartial: false,
+      command: '.',
+      isDotRepeat: true
     };
   }
 
   // Check for complete commands
   for (const [key, pattern] of Object.entries(VIM_COMMAND_PATTERNS)) {
-    if (key === normalizedSequence) {
+    if (key === commandPart) {
       return {
         isComplete: true,
         isPartial: false,
-        command: pattern.command
+        command: pattern.command,
+        count
       };
     }
   }
 
   // Check for partial commands
-  if (PARTIAL_SEQUENCES.has(normalizedSequence)) {
+  if (PARTIAL_SEQUENCES.has(commandPart)) {
     return {
       isComplete: false,
-      isPartial: true
+      isPartial: true,
+      count
     };
   }
 

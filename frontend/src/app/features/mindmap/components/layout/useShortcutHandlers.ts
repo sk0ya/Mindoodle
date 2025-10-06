@@ -91,12 +91,14 @@ export function useShortcutHandlers(args: Args) {
     canRedo,
     selectNode,
     setPan,
-    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => {
-      if (!selectedNodeId) return;
+    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count: number = 1) => {
+      // Get the latest selectedNodeId from store to avoid stale closure
+      const currentSelectedNodeId = useMindMapStore.getState().selectedNodeId;
+      if (!currentSelectedNodeId) return;
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
-      const currentRoot = roots.find(r => !!findNodeById(r, selectedNodeId)) || roots[0];
+      const currentRoot = roots.find(r => !!findNodeById(r, currentSelectedNodeId)) || roots[0];
       if (!currentRoot) return;
-      const currentNode = findNodeById(currentRoot, selectedNodeId);
+      const currentNode = findNodeById(currentRoot, currentSelectedNodeId);
       if (!currentNode) return;
       let nextNodeId: string | null = null;
       switch (direction) {
@@ -105,7 +107,7 @@ export function useShortcutHandlers(args: Args) {
           const stack: MindMapNode[] = currentRoot ? [currentRoot] as MindMapNode[] : [];
           while (stack.length) {
             const node = stack.pop()!;
-            if (node.children?.some(c => c.id === selectedNodeId)) { nextNodeId = node.id; break; }
+            if (node.children?.some(c => c.id === currentSelectedNodeId)) { nextNodeId = node.id; break; }
             if (node.children) stack.push(...node.children);
           }
           break;
@@ -132,7 +134,7 @@ export function useShortcutHandlers(args: Args) {
             }
           }
           else if (currentNode.children?.length && currentNode.collapsed) {
-            updateNode(selectedNodeId, { collapsed: false });
+            updateNode(currentSelectedNodeId, { collapsed: false });
             // 展開時も中央に近い子ノードを選択
             const children = currentNode.children;
             if (children.length > 1) {
@@ -155,12 +157,18 @@ export function useShortcutHandlers(args: Args) {
         }
         case 'up':
         case 'down': {
-          const { siblings, currentIndex } = selGetSiblingNodes(currentRoot, selectedNodeId);
+          const { siblings, currentIndex } = selGetSiblingNodes(currentRoot, currentSelectedNodeId);
           if (siblings.length > 1 && currentIndex !== -1) {
             let targetIndex = -1;
-            if (direction === 'up' && currentIndex > 0) targetIndex = currentIndex - 1;
-            else if (direction === 'down' && currentIndex < siblings.length - 1) targetIndex = currentIndex + 1;
-            if (targetIndex !== -1) nextNodeId = siblings[targetIndex].id;
+            // Jump directly to the Nth sibling (vim-style: 3j = jump 3 nodes down)
+            if (direction === 'up') {
+              targetIndex = Math.max(0, currentIndex - count);
+            } else if (direction === 'down') {
+              targetIndex = Math.min(siblings.length - 1, currentIndex + count);
+            }
+            if (targetIndex !== -1 && targetIndex !== currentIndex) {
+              nextNodeId = siblings[targetIndex].id;
+            }
           }
           // If no intra-root sibling, allow crossing to adjacent root node
           if (!nextNodeId) {
@@ -176,7 +184,7 @@ export function useShortcutHandlers(args: Args) {
           break;
         }
       }
-      if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(selectedNodeId, direction, currentRoot);
+      if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(currentSelectedNodeId, direction, currentRoot);
       if (nextNodeId) {
         selectNode(nextNodeId);
         // Ensure the newly selected node is visible (but don't center it)
