@@ -1,5 +1,5 @@
 import React, { memo, useMemo } from 'react';
-import { calculateNodeSize, getNodeLeftX, getNodeRightX, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 import { useMindMapStore } from '../../store';
 import { extractInternalMarkdownLinksDetailed } from '../../../markdown/markdownLinkUtils';
@@ -14,6 +14,50 @@ type LinkPath = {
   key: string;
   isBidirectional?: boolean;
 };
+
+/**
+ * Calculate connection point on node boundary
+ * Returns the point where a line from nodeCenter to targetPoint intersects the node rectangle
+ */
+function getNodeBoundaryPoint(
+  node: { x: number; y: number },
+  nodeSize: { width: number; height: number },
+  targetPoint: { x: number; y: number }
+): { x: number; y: number } {
+  const centerX = node.x;
+  const centerY = node.y;
+  const halfWidth = nodeSize.width / 2;
+  const halfHeight = nodeSize.height / 2;
+
+  // Vector from node center to target
+  const dx = targetPoint.x - centerX;
+  const dy = targetPoint.y - centerY;
+
+  // Avoid division by zero
+  if (dx === 0 && dy === 0) {
+    return { x: centerX + halfWidth, y: centerY };
+  }
+
+  // Calculate intersection with rectangle edges
+  // Check which edge the line intersects first
+  const absRatioX = dx === 0 ? Infinity : Math.abs(halfWidth / dx);
+  const absRatioY = dy === 0 ? Infinity : Math.abs(halfHeight / dy);
+
+  let intersectX: number;
+  let intersectY: number;
+
+  if (absRatioX < absRatioY) {
+    // Intersects with left or right edge
+    intersectX = centerX + (dx > 0 ? halfWidth : -halfWidth);
+    intersectY = centerY + dy * absRatioX;
+  } else {
+    // Intersects with top or bottom edge
+    intersectX = centerX + dx * absRatioY;
+    intersectY = centerY + (dy > 0 ? halfHeight : -halfHeight);
+  }
+
+  return { x: intersectX, y: intersectY };
+}
 
 // Create subtle curved path for visual elegance
 function createSmoothPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
@@ -103,26 +147,17 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         // Check for bidirectional link
         const isBidirectional = hasReverseLink(src.id, dst.id);
 
-        // Calculate edge connection points on node boundaries
-        const goingRight = dst.x >= src.x;
-        const srcEdgeX = goingRight ? getNodeRightX(src, srcSize.width) : getNodeLeftX(src, srcSize.width);
-        const dstEdgeX = goingRight ? getNodeLeftX(dst, dstSize.width) : getNodeRightX(dst, dstSize.width);
-
-        // Calculate Y position on node edge based on relative positions
-        const dy = dst.y - src.y;
-
-        // Use node height to find edge intersection point
-        const srcHalfHeight = srcSize.height / 2;
-        const dstHalfHeight = dstSize.height / 2;
-
-        const from = {
-          x: srcEdgeX,
-          y: src.y + Math.min(Math.max(dy * 0.3, -srcHalfHeight), srcHalfHeight),
-        };
-        const to = {
-          x: dstEdgeX,
-          y: dst.y - Math.min(Math.max(dy * 0.3, -dstHalfHeight), dstHalfHeight),
-        };
+        // Calculate connection points on node boundaries
+        const from = getNodeBoundaryPoint(
+          { x: src.x, y: src.y },
+          srcSize,
+          { x: dst.x, y: dst.y }
+        );
+        const to = getNodeBoundaryPoint(
+          { x: dst.x, y: dst.y },
+          dstSize,
+          { x: src.x, y: src.y }
+        );
 
         result.push({
           d: createSmoothPath(from, to),
@@ -157,23 +192,17 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
           .some(l => l.nodeId === src.id);
         const isBidirectional = hasMdReverseLink || hasReverseLink(src.id, dst.id);
 
-        // Calculate edge connection points (same logic as above)
-        const goingRight = dst.x >= src.x;
-        const srcEdgeX = goingRight ? getNodeRightX(src, srcSize.width) : getNodeLeftX(src, srcSize.width);
-        const dstEdgeX = goingRight ? getNodeLeftX(dst, dstSize.width) : getNodeRightX(dst, dstSize.width);
-
-        const dy = dst.y - src.y;
-        const srcHalfHeight = srcSize.height / 2;
-        const dstHalfHeight = dstSize.height / 2;
-
-        const from = {
-          x: srcEdgeX,
-          y: src.y + Math.min(Math.max(dy * 0.3, -srcHalfHeight), srcHalfHeight),
-        };
-        const to = {
-          x: dstEdgeX,
-          y: dst.y - Math.min(Math.max(dy * 0.3, -dstHalfHeight), dstHalfHeight),
-        };
+        // Calculate connection points on node boundaries
+        const from = getNodeBoundaryPoint(
+          { x: src.x, y: src.y },
+          srcSize,
+          { x: dst.x, y: dst.y }
+        );
+        const to = getNodeBoundaryPoint(
+          { x: dst.x, y: dst.y },
+          dstSize,
+          { x: src.x, y: src.y }
+        );
         result.push({
           d: createSmoothPath(from, to),
           key: `${src.id}->${dst.id}:md:${m.id}`,
@@ -197,17 +226,17 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
   return (
     <g className="inmap-link-connections" style={{ pointerEvents: 'none' }}>
       <defs>
-        {/* Crisp arrow marker for unidirectional links */}
-        <marker id="inmap-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-          <path d="M 0 0 L 10 4 L 0 8 L 2 4 z" fill={strokeColor} />
+        {/* Soft arrow marker for unidirectional links */}
+        <marker id="inmap-arrow" markerWidth="6" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M 0 0 L 5 3.5 L 0 7 L 1 3.5 z" fill={strokeColor} opacity="0.6" />
         </marker>
-        {/* Arrow marker for bidirectional links - start */}
-        <marker id="inmap-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto">
-          <path d="M 10 0 L 0 4 L 10 8 L 8 4 z" fill={strokeColor} />
+        {/* Soft arrow marker for bidirectional links - start */}
+        <marker id="inmap-arrow-start" markerWidth="6" markerHeight="7" refX="1" refY="3.5" orient="auto">
+          <path d="M 5 0 L 0 3.5 L 5 7 L 4 3.5 z" fill={strokeColor} opacity="0.6" />
         </marker>
-        {/* Arrow marker for bidirectional links - end */}
-        <marker id="inmap-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
-          <path d="M 0 0 L 10 4 L 0 8 L 2 4 z" fill={strokeColor} />
+        {/* Soft arrow marker for bidirectional links - end */}
+        <marker id="inmap-arrow-end" markerWidth="6" markerHeight="7" refX="5" refY="3.5" orient="auto">
+          <path d="M 0 0 L 5 3.5 L 0 7 L 1 3.5 z" fill={strokeColor} opacity="0.6" />
         </marker>
       </defs>
 
