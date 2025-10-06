@@ -148,7 +148,7 @@ export const useMindMap = (
     } catch (e) {
       console.error('❌ Nodes->Markdown conversion error:', e);
     }
-  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId]);
+  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
 
   // When markdown changes from editor, rebuild nodes (md -> nodes)
   // Keep this effect lightweight; heavy parsing only on 'editor' source
@@ -346,6 +346,13 @@ export const useMindMap = (
       await persistenceHook.refreshMapList();
     }
   }, [persistenceHook]);
+
+  // Stabilize markdown subscription to prevent excessive re-subscriptions
+  const subscribeMarkdownFromNodes = useCallback((cb: (text: string) => void) => {
+    return subscribeMd((text: string, source: any) => {
+      if (source === 'nodes') cb(text);
+    });
+  }, [subscribeMd]);
 
   const moveItem = useCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
     const adapter: any = persistenceHook.storageAdapter as any;
@@ -751,7 +758,7 @@ export const useMindMap = (
     getMapMarkdown,
     getMapLastModified,
     saveMapMarkdown,
-    subscribeMarkdownFromNodes: (cb: (text: string) => void) => subscribeMd((text: string, source: any) => { if (source === 'nodes') cb(text); }),
+    subscribeMarkdownFromNodes,
     // live markdown input -> stream
     onMapMarkdownInput: (text: string) => setFromEditor(text),
     // mapping helper (editor -> node only)
