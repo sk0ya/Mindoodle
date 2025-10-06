@@ -1,5 +1,5 @@
 import React, { memo, useCallback, useMemo } from 'react';
-import { Link, ExternalLink } from 'lucide-react';
+import { Link, ExternalLink, Eye } from 'lucide-react';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { calculateLinkListHeight } from '@shared/utils';
 import { extractAllMarkdownLinksDetailed, resolveHrefToMapTarget, resolveAnchorToNode } from '../../../markdown';
@@ -14,6 +14,7 @@ interface SelectedNodeLinkListProps {
   onLinkDoubleClick?: (link: NodeLink) => void;
   onLinkContextMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onLinkNavigate?: (link: NodeLink) => void;
+  onPreviewUrl?: (url: string) => void;
   // リンク表示用の追加データ
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
@@ -28,10 +29,12 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   onLinkDoubleClick,
   onLinkContextMenu,
   onLinkNavigate,
+  onPreviewUrl,
   availableMaps = [],
   currentMapData
 }) => {
   const { showNotification } = useNotification();
+
   const handleLinkClick = useCallback((e: React.MouseEvent, link: NodeLink) => {
     // 右クリックの場合は処理しない
     if (e.button === 2) {
@@ -298,11 +301,12 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       }
                     } catch {}
 
-                    // Not resolvable to any known map: notify via status bar
-                    try {
+                    // Not resolvable to any known map: open as external URL
+                    if (/^https?:\/\//i.test(href)) {
+                      window.open(href, '_blank', 'noopener,noreferrer');
+                    } else {
                       showNotification('warning', '対応するマップが見つかりません');
-                    } catch {}
-                    return;
+                    }
                   }
                 }}
                 onContextMenu={(e) => {
@@ -386,6 +390,40 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                 >
                   {entry.kind !== 'external' ? '右クリック' : 'ダブルクリック'}
                 </div>
+
+                {/* プレビューボタン（外部リンクのみ） */}
+                {entry.kind === 'external' && /^https?:\/\//i.test(entry.href) && onPreviewUrl && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onPreviewUrl(entry.href);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '4px',
+                      marginLeft: '4px',
+                      backgroundColor: 'transparent',
+                      border: '1px solid transparent',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      color: '#656d76',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.backgroundColor = '#f6f8fa';
+                      e.currentTarget.style.borderColor = '#d0d7de';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.backgroundColor = 'transparent';
+                      e.currentTarget.style.borderColor = 'transparent';
+                    }}
+                    title="プレビュー"
+                  >
+                    <Eye size={12} />
+                  </button>
+                )}
               </div>
             );
           })}

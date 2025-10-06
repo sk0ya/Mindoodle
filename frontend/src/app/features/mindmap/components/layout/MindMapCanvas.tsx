@@ -1,10 +1,11 @@
-import React, { useRef, memo, useCallback } from 'react';
+import React, { useRef, memo, useCallback, useState } from 'react';
 import { CanvasRenderer } from '../Canvas';
 import { useCanvasDragHandler } from '../Canvas';
 import { useCanvasViewportHandler } from '../Canvas';
 import { useCanvasEventHandler } from '../Canvas';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 import { flattenVisibleNodes } from '@mindmap/selectors/mindMapSelectors';
+import WebPreviewModal from '../Shared/WebPreviewModal';
 
 interface MindMapCanvasProps {
   data?: MindMapData | null;
@@ -67,7 +68,8 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   } = props;
 
   const svgRef = useRef<SVGSVGElement>(null);
-  
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
   // Only use rootNodes array - no fallback to single rootNode
   const rootNodes = data?.rootNodes || [];
 
@@ -125,40 +127,52 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   }, [handleCanvasMouseDown, handleMouseDown]);
 
   return (
-    <CanvasRenderer
-      svgRef={svgRef}
-      data={data}
-      allNodes={allNodes}
-      selectedNodeId={selectedNodeId}
-      editingNodeId={editingNodeId}
-      editText={editText}
-      setEditText={setEditText}
-      zoom={zoom}
-      pan={pan}
-      cursor={getCursor()}
-      dragState={dragState}
-      onWheel={handleWheel}
-      onMouseDown={combinedHandleMouseDown}
-      onMouseUp={handleCanvasMouseUp}
-      onContextMenu={handleContextMenu}
-      onNodeSelect={handleNodeSelect}
-      onStartEdit={onStartEdit}
-      onFinishEdit={onFinishEdit}
-      
-      onToggleCollapse={onToggleCollapse}
-      onShowLinkActionMenu={onShowLinkActionMenu}
-      onUpdateNode={onUpdateNode}
-      onAutoLayout={onAutoLayout}
-      availableMaps={availableMaps}
-      currentMapData={currentMapData}
-      onLinkNavigate={onLinkNavigate}
-      onDragStart={handleDragStartAdapter}
-      onDragMove={handleDragMoveAdapter}
-      onDragEnd={handleDragEndAdapter}
-      onToggleLinkList={onToggleLinkList}
-      onLoadRelativeImage={onLoadRelativeImage}
-      onImageClick={onImageClick}
-    />
+    <>
+      <CanvasRenderer
+        svgRef={svgRef}
+        data={data}
+        allNodes={allNodes}
+        selectedNodeId={selectedNodeId}
+        editingNodeId={editingNodeId}
+        editText={editText}
+        setEditText={setEditText}
+        zoom={zoom}
+        pan={pan}
+        cursor={getCursor()}
+        dragState={dragState}
+        onWheel={handleWheel}
+        onMouseDown={combinedHandleMouseDown}
+        onMouseUp={handleCanvasMouseUp}
+        onContextMenu={handleContextMenu}
+        onNodeSelect={handleNodeSelect}
+        onStartEdit={onStartEdit}
+        onFinishEdit={onFinishEdit}
+
+        onToggleCollapse={onToggleCollapse}
+        onShowLinkActionMenu={onShowLinkActionMenu}
+        onUpdateNode={onUpdateNode}
+        onAutoLayout={onAutoLayout}
+        availableMaps={availableMaps}
+        currentMapData={currentMapData}
+        onLinkNavigate={onLinkNavigate}
+        onDragStart={handleDragStartAdapter}
+        onDragMove={handleDragMoveAdapter}
+        onDragEnd={handleDragEndAdapter}
+        onToggleLinkList={onToggleLinkList}
+        onLoadRelativeImage={onLoadRelativeImage}
+        onImageClick={onImageClick}
+        onPreviewUrl={setPreviewUrl}
+      />
+
+      {/* Webページプレビュー */}
+      {previewUrl && (
+        <WebPreviewModal
+          url={previewUrl}
+          isOpen={!!previewUrl}
+          onClose={() => setPreviewUrl(null)}
+        />
+      )}
+    </>
   );
 };
 

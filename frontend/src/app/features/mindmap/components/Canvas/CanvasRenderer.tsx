@@ -59,6 +59,7 @@ interface CanvasRendererProps {
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string, altText?: string) => void;
+  onPreviewUrl?: (url: string) => void;
 }
 
 const CanvasRenderer: React.FC<CanvasRendererProps> = ({
@@ -92,7 +93,8 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onDragEnd,
   onToggleLinkList,
   onLoadRelativeImage,
-  onImageClick
+  onImageClick,
+  onPreviewUrl
 }) => {
   const { settings } = useMindMapStore();
   const wrapConfig = resolveNodeTextWrapConfig(settings, settings.fontSize);
@@ -223,6 +225,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                       onShowLinkActionMenu(link, position);
                     }}
                     onLinkNavigate={onLinkNavigate}
+                    onPreviewUrl={onPreviewUrl}
                     availableMaps={availableMaps}
                     currentMapData={currentMapData}
                   />
