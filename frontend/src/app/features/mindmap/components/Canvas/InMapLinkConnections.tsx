@@ -12,6 +12,7 @@ type InMapLinkConnectionsProps = {
 type LinkPath = {
   d: string;
   key: string;
+  isBidirectional?: boolean;
 };
 
 // Create subtle curved path for visual elegance
@@ -63,6 +64,22 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
 
   const paths: LinkPath[] = useMemo(() => {
     const result: LinkPath[] = [];
+    const processedPairs = new Set<string>();
+
+    // Helper function to create a sorted pair key
+    const getPairKey = (id1: string, id2: string) => {
+      return id1 < id2 ? `${id1}|${id2}` : `${id2}|${id1}`;
+    };
+
+    // Helper function to check if reverse link exists
+    const hasReverseLink = (srcId: string, dstId: string): boolean => {
+      const dstNode = nodeById[dstId];
+      if (!dstNode) return false;
+
+      const dstLinks = dstNode.links || [];
+      return dstLinks.some(l => l.targetNodeId === srcId);
+    };
+
     for (const src of allNodes) {
       const links: NodeLink[] = (src.links || []);
       if (!links || links.length === 0) continue;
@@ -77,7 +94,14 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         const dst = nodeById[link.targetNodeId];
         if (!dst) continue; // target not visible/exists
 
+        // Check if this pair has been processed
+        const pairKey = getPairKey(src.id, dst.id);
+        if (processedPairs.has(pairKey)) continue;
+
         const dstSize = calculateNodeSize(dst, undefined, false, settings.fontSize, wrapConfig);
+
+        // Check for bidirectional link
+        const isBidirectional = hasReverseLink(src.id, dst.id);
 
         // Calculate edge connection points on node boundaries
         const goingRight = dst.x >= src.x;
@@ -103,7 +127,13 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         result.push({
           d: createSmoothPath(from, to),
           key: `${src.id}->${dst.id}:${link.id}`,
+          isBidirectional,
         });
+
+        // Mark this pair as processed
+        if (isBidirectional) {
+          processedPairs.add(pairKey);
+        }
       }
     }
     // Also derive links from markdown note content (internal anchors only)
@@ -115,7 +145,17 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         if (!m.nodeId) continue;
         const dst = nodeById[m.nodeId];
         if (!dst) continue;
+
+        // Check if this pair has been processed
+        const pairKey = getPairKey(src.id, dst.id);
+        if (processedPairs.has(pairKey)) continue;
+
         const dstSize = calculateNodeSize(dst, undefined, false, settings.fontSize, wrapConfig);
+
+        // Check for bidirectional link (markdown links)
+        const hasMdReverseLink = extractInternalMarkdownLinksDetailed((dst as any).note, syntheticRoot)
+          .some(l => l.nodeId === src.id);
+        const isBidirectional = hasMdReverseLink || hasReverseLink(src.id, dst.id);
 
         // Calculate edge connection points (same logic as above)
         const goingRight = dst.x >= src.x;
@@ -134,7 +174,16 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
           x: dstEdgeX,
           y: dst.y - Math.min(Math.max(dy * 0.3, -dstHalfHeight), dstHalfHeight),
         };
-        result.push({ d: createSmoothPath(from, to), key: `${src.id}->${dst.id}:md:${m.id}` });
+        result.push({
+          d: createSmoothPath(from, to),
+          key: `${src.id}->${dst.id}:md:${m.id}`,
+          isBidirectional
+        });
+
+        // Mark this pair as processed
+        if (isBidirectional) {
+          processedPairs.add(pairKey);
+        }
       }
     }
     return result;
@@ -148,8 +197,16 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
   return (
     <g className="inmap-link-connections" style={{ pointerEvents: 'none' }}>
       <defs>
-        {/* Crisp arrow marker */}
+        {/* Crisp arrow marker for unidirectional links */}
         <marker id="inmap-arrow" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+          <path d="M 0 0 L 10 4 L 0 8 L 2 4 z" fill={strokeColor} />
+        </marker>
+        {/* Arrow marker for bidirectional links - start */}
+        <marker id="inmap-arrow-start" markerWidth="10" markerHeight="8" refX="1" refY="4" orient="auto">
+          <path d="M 10 0 L 0 4 L 10 8 L 8 4 z" fill={strokeColor} />
+        </marker>
+        {/* Arrow marker for bidirectional links - end */}
+        <marker id="inmap-arrow-end" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
           <path d="M 0 0 L 10 4 L 0 8 L 2 4 z" fill={strokeColor} />
         </marker>
       </defs>
@@ -163,7 +220,8 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
           fill="none"
           opacity={0.55}
           strokeLinecap="round"
-          markerEnd="url(#inmap-arrow)"
+          markerStart={p.isBidirectional ? "url(#inmap-arrow-start)" : undefined}
+          markerEnd={p.isBidirectional ? "url(#inmap-arrow-end)" : "url(#inmap-arrow)"}
         />
       ))}
     </g>
