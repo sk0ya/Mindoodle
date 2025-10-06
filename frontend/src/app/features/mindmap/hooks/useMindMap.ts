@@ -307,13 +307,22 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const createFolder = useCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
-    const adapter: any = workspaceId && (persistenceHook as any).getAdapterForWorkspace
-      ? (persistenceHook as any).getAdapterForWorkspace(workspaceId)
-      : persistenceHook.storageAdapter;
+    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
 
     if (adapter && typeof adapter.createFolder === 'function') {
       await adapter.createFolder(relativePath, workspaceId);
-      await persistenceHook.refreshMapList();
+
+      // Refresh explorer tree to show virtual folders
+      const isCloudAdapter = adapter.constructor.name === 'CloudStorageAdapter';
+      if (isCloudAdapter) {
+        // For cloud, refresh only explorer tree (virtual folders)
+        if (typeof (persistenceHook as any).loadExplorerTree === 'function') {
+          await (persistenceHook as any).loadExplorerTree();
+        }
+      } else {
+        // For local, refresh full map list
+        await persistenceHook.refreshMapList();
+      }
     }
   }, [persistenceHook]);
 
@@ -330,9 +339,7 @@ export const useMindMap = (
     const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)/);
     const workspaceId = wsMatch ? wsMatch[1] : null;
 
-    const adapter: any = workspaceId && (persistenceHook as any).getAdapterForWorkspace
-      ? (persistenceHook as any).getAdapterForWorkspace(workspaceId)
-      : persistenceHook.storageAdapter;
+    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
 
     if (adapter && typeof adapter.deleteItem === 'function') {
       await adapter.deleteItem(path);

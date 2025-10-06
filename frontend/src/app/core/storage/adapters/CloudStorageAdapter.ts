@@ -22,6 +22,7 @@ export class CloudStorageAdapter implements StorageAdapter {
   private baseUrl: string;
   private authToken: string | null = null;
   private user: CloudUser | null = null;
+  private virtualFolders: Set<string> = new Set();
 
   constructor(baseUrl = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
     this.baseUrl = baseUrl;
@@ -313,7 +314,11 @@ export class CloudStorageAdapter implements StorageAdapter {
   async createFolder?(relativePath: string, workspaceId?: string): Promise<void> {
     // Virtual folders - no actual folder creation needed
     // Folders are derived from map categories
-    logger.info('CloudStorageAdapter: Virtual folder created (no-op)', { relativePath, workspaceId });
+    // Add to virtual folders set for UI display
+    if (relativePath) {
+      this.virtualFolders.add(relativePath);
+      logger.info('CloudStorageAdapter: Virtual folder added', { relativePath, workspaceId });
+    }
   }
 
   async getExplorerTree?(): Promise<ExplorerItem> {
@@ -363,6 +368,17 @@ export class CloudStorageAdapter implements StorageAdapter {
           } else {
             cursor = ensureDir(cursor, seg);
           }
+        }
+      }
+
+      // Add virtual folders that don't have any files yet
+      for (const virtualPath of this.virtualFolders) {
+        const parts = virtualPath.split('/').filter(p => p.trim());
+        if (parts.length === 0) continue;
+
+        let cursor = root;
+        for (const seg of parts) {
+          cursor = ensureDir(cursor, seg);
         }
       }
 

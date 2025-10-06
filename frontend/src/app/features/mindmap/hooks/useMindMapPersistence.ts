@@ -354,6 +354,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     switchWorkspace,
     addWorkspace,
     removeWorkspace,
+    loadExplorerTree,
 
     // Adapter access
     storageAdapter: adapterManager?.getCurrentAdapter() || null,
