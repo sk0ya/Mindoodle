@@ -250,10 +250,16 @@ export const createNodeSlice: StateCreator<
         logger.error('addChildNode error:', error);
       }
     });
-    
+
     // Sync to tree structure and add to history
     get().syncToMindMapData();
-    
+
+    // Always commit immediately since addChildNode doesn't start editing
+    // Editing is started separately by commands if needed
+    if (!pasteInProgress) {
+      try { (get() as any).endHistoryGroup?.(true); } catch {}
+    }
+
     // Apply auto layout if enabled
     const { data } = get();
     logger.debug('🔍 Auto layout check (addChildNode):', {
@@ -273,7 +279,7 @@ export const createNodeSlice: StateCreator<
     } else {
       logger.debug('❌ Auto layout disabled or settings missing');
     }
-    
+
     return newNodeId;
   },
 
@@ -452,10 +458,16 @@ export const createNodeSlice: StateCreator<
         logger.error('addSiblingNode error:', error);
       }
     });
-    
+
     // Sync to tree structure and add to history
     get().syncToMindMapData();
-    
+
+    // Always commit immediately since addSiblingNode doesn't start editing
+    // Editing is started separately by commands if needed
+    if (!pasteInProgress) {
+      try { (get() as any).endHistoryGroup?.(true); } catch {}
+    }
+
     // Apply auto layout if enabled
     const { data } = get();
     logger.debug('🔍 Auto layout check (addSiblingNode):', {
@@ -475,16 +487,19 @@ export const createNodeSlice: StateCreator<
     } else {
       logger.debug('❌ Auto layout disabled or settings missing');
     }
-    
+
     return newNodeId;
   },
 
   deleteNode: (nodeId: string) => {
     let nextNodeToSelect: string | null = null;
-    
+
+    // Begin history group for delete operation
+    try { (get() as any).beginHistoryGroup?.('delete-node'); } catch {}
+
     set((state) => {
       if (!state.normalizedData) return;
-      
+
       try {
         // Before deleting, find the next node to select based on the node being removed
         const parentId = state.normalizedData.parentMap[nodeId];
@@ -507,7 +522,7 @@ export const createNodeSlice: StateCreator<
             }
           }
         }
-        
+
         state.normalizedData = deleteNormalizedNode(state.normalizedData, nodeId);
         
         // Set new selection: if the deleted node was selected, or nothing is selected, choose a reasonable next
@@ -527,10 +542,13 @@ export const createNodeSlice: StateCreator<
         logger.error('deleteNode error:', error);
       }
     });
-    
+
     // Sync to tree structure and add to history
     get().syncToMindMapData();
-    
+
+    // End history group and commit
+    try { (get() as any).endHistoryGroup?.(true); } catch {}
+
     // Apply auto layout if enabled
     const { data } = get();
     logger.debug('🔍 Auto layout check (deleteNode):', {
@@ -682,7 +700,6 @@ export const createNodeSlice: StateCreator<
   },
 
   finishEditing: (nodeId: string, text: string) => {
-    
     // If text is empty, delete the node and select parent
     if (!text) {
       // Get parent info before deleting
@@ -691,7 +708,7 @@ export const createNodeSlice: StateCreator<
       if (normalizedData) {
         parentId = normalizedData.parentMap[nodeId] || null;
       }
-      
+
       // Delete the empty node
       get().deleteNode(nodeId);
       // End group without commit (cancelled new-node)
@@ -763,6 +780,8 @@ export const createNodeSlice: StateCreator<
       state.editText = '';
       state.editingMode = null;
     });
+    // End history group without commit if editing was cancelled
+    try { (get() as any).endHistoryGroup?.(false); } catch {}
   },
 
   setEditText: (text: string) => {

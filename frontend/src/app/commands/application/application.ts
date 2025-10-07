@@ -243,6 +243,7 @@ export const pasteSiblingAfterCommand: Command = {
   examples: ['paste-sibling-after'],
 
   async execute(context: CommandContext): Promise<CommandResult> {
+    // Early validation before setting flags
     const refNodeId = context.selectedNodeId;
     if (!refNodeId) {
       return { success: false, error: 'No node selected' };
@@ -251,6 +252,12 @@ export const pasteSiblingAfterCommand: Command = {
     if (!refNode) {
       return { success: false, error: `Reference node ${refNodeId} not found` };
     }
+
+    // Begin history group for paste operation and set paste flag
+    try {
+      useMindMapStore.setState({ _pasteInProgress: true } as any);
+      (useMindMapStore.getState() as any).beginHistoryGroup?.('paste');
+    } catch {}
 
     // Get internal UI clipboard node
     const uiClipboard: MindMapNode | null = ((): MindMapNode | null => {
@@ -269,8 +276,18 @@ export const pasteSiblingAfterCommand: Command = {
             const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, true, context);
             if (newId) {
               context.handlers.selectNode(newId);
+              // End history group and commit, clear paste flag
+              try {
+                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as any);
+              } catch {}
               return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
             }
+            // End history group without commit on error, clear paste flag
+            try {
+              (useMindMapStore.getState() as any).endHistoryGroup?.(false);
+              useMindMapStore.setState({ _pasteInProgress: false } as any);
+            } catch {}
             return { success: false, error: 'Failed to paste (sibling-after)' };
           }
 
@@ -281,6 +298,12 @@ export const pasteSiblingAfterCommand: Command = {
               const newId = await pasteTreeAsSibling(parsed, refNodeId, true, context);
               if (newId) {
                 context.handlers.selectNode(newId);
+                // End history group and commit, clear paste flag
+                try {
+                  const state: any = useMindMapStore.getState();
+                  state._pasteInProgress = false;
+                  state.endHistoryGroup?.(true);
+                } catch {}
                 return { success: true, message: `Pasted MindMeister as sibling after "${refNode.text}"` };
               }
             }
@@ -307,6 +330,11 @@ export const pasteSiblingAfterCommand: Command = {
             if (lastId) {
               context.handlers.selectNode(lastId);
               const msg = lines.length === 1 ? `Pasted "${lines[0]}" as sibling after` : `Pasted ${lines.length} lines as siblings after`;
+              // End history group and commit, clear paste flag
+              try {
+                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as any);
+              } catch {}
               return { success: true, message: `${msg} "${refNode.text}"` };
             }
           }
@@ -319,10 +347,21 @@ export const pasteSiblingAfterCommand: Command = {
       const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, true, context);
       if (newId) {
         context.handlers.selectNode(newId);
+        // End history group and commit, clear paste flag
+        try {
+          const state: any = useMindMapStore.getState();
+          state._pasteInProgress = false;
+          state.endHistoryGroup?.(true);
+        } catch {}
         return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
       }
     }
 
+    // End history group without commit on error, clear paste flag
+    try {
+      (useMindMapStore.getState() as any).endHistoryGroup?.(false);
+      useMindMapStore.setState({ _pasteInProgress: false } as any);
+    } catch {}
     return { success: false, error: 'Clipboard is empty' };
   },
   repeatable: true,
@@ -339,6 +378,7 @@ export const pasteSiblingBeforeCommand: Command = {
   examples: ['paste-sibling-before'],
 
   async execute(context: CommandContext): Promise<CommandResult> {
+    // Early validation before setting flags
     const refNodeId = context.selectedNodeId;
     if (!refNodeId) {
       return { success: false, error: 'No node selected' };
@@ -347,6 +387,12 @@ export const pasteSiblingBeforeCommand: Command = {
     if (!refNode) {
       return { success: false, error: `Reference node ${refNodeId} not found` };
     }
+
+    // Begin history group for paste operation and set paste flag
+    try {
+      useMindMapStore.setState({ _pasteInProgress: true } as any);
+      (useMindMapStore.getState() as any).beginHistoryGroup?.('paste');
+    } catch {}
 
     const uiClipboard: MindMapNode | null = ((): MindMapNode | null => {
       try {
@@ -363,8 +409,18 @@ export const pasteSiblingBeforeCommand: Command = {
             const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
             if (newId) {
               context.handlers.selectNode(newId);
+              // End history group and commit, clear paste flag
+              try {
+                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as any);
+              } catch {}
               return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
             }
+            // End history group without commit on error, clear paste flag
+            try {
+              (useMindMapStore.getState() as any).endHistoryGroup?.(false);
+              useMindMapStore.setState({ _pasteInProgress: false } as any);
+            } catch {}
             return { success: false, error: 'Failed to paste (sibling-before)' };
           }
 
@@ -374,6 +430,12 @@ export const pasteSiblingBeforeCommand: Command = {
               const newId = await pasteTreeAsSibling(parsed, refNodeId, false, context);
               if (newId) {
                 context.handlers.selectNode(newId);
+                // End history group and commit, clear paste flag
+                try {
+                  const state: any = useMindMapStore.getState();
+                  state._pasteInProgress = false;
+                  state.endHistoryGroup?.(true);
+                } catch {}
                 return { success: true, message: `Pasted MindMeister as sibling before "${refNode.text}"` };
               }
             }
@@ -399,6 +461,11 @@ export const pasteSiblingBeforeCommand: Command = {
             if (lastId) {
               context.handlers.selectNode(lastId);
               const msg = lines.length === 1 ? `Pasted "${lines[0]}" as sibling before` : `Pasted ${lines.length} lines as siblings before`;
+              // End history group and commit, clear paste flag
+              try {
+                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as any);
+              } catch {}
               return { success: true, message: `${msg} "${refNode.text}"` };
             }
           }
@@ -410,10 +477,21 @@ export const pasteSiblingBeforeCommand: Command = {
       const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
       if (newId) {
         context.handlers.selectNode(newId);
+        // End history group and commit, clear paste flag
+        try {
+          const state: any = useMindMapStore.getState();
+          state._pasteInProgress = false;
+          state.endHistoryGroup?.(true);
+        } catch {}
         return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
       }
     }
 
+    // End history group without commit on error, clear paste flag
+    try {
+      (useMindMapStore.getState() as any).endHistoryGroup?.(false);
+      useMindMapStore.setState({ _pasteInProgress: false } as any);
+    } catch {}
     return { success: false, error: 'Clipboard is empty' };
   },
   repeatable: true,
