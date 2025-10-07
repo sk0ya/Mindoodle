@@ -179,6 +179,7 @@ export const openCommand: Command = {
       }
 
       // Create new sibling node after the current node and start editing
+      // Note: addSiblingNode already handles history grouping internally
       const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true);
 
       if (!newNodeId) {
@@ -255,6 +256,7 @@ export const openAboveCommand: Command = {
       }
 
       // Create a new elder sibling node before the current node (insertAfter: false)
+      // Note: addSiblingNode already handles history grouping internally
       const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true, false);
 
       if (!newNodeId) {
@@ -336,7 +338,7 @@ export const insertCheckboxChildCommand: Command = {
       // 最初に見出しノードの位置を特定
       const currentSiblings = parentNode.children || [];
       let targetInsertIndex = -1; // 見出しノードの位置
-      
+
       for (let i = 0; i < currentSiblings.length; i++) {
         const sibling = currentSiblings[i];
         if (sibling.markdownMeta?.type === 'heading') {
@@ -346,6 +348,7 @@ export const insertCheckboxChildCommand: Command = {
       }
 
       // 通常のadd-childでノードを追加（最後に追加される）
+      // Note: addChildNode already handles history grouping internally
       const newNodeId = await context.handlers.addChildNode(parentId, text, false); // 編集は後で
 
       if (!newNodeId) {
@@ -358,7 +361,7 @@ export const insertCheckboxChildCommand: Command = {
       // チェックボックスのメタデータを設定
       let level = 1;
       let indentLevel = 0;
-      
+
       if (parentNode.markdownMeta) {
         if (parentNode.markdownMeta.type === 'heading') {
           level = 1;
@@ -380,8 +383,8 @@ export const insertCheckboxChildCommand: Command = {
       };
 
       // チェックボックスメタデータを設定
-      context.handlers.updateNode(newNodeId, { 
-        markdownMeta: checkboxMarkdownMeta 
+      context.handlers.updateNode(newNodeId, {
+        markdownMeta: checkboxMarkdownMeta
       });
 
       // 見出しノードより上に移動させる

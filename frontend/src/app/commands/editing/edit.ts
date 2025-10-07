@@ -4,6 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
+import { useMindMapStore } from '@mindmap/store';
 
 export const editCommand: Command = {
   name: 'edit',
@@ -333,6 +334,9 @@ export const cutCommand: Command = {
     }
 
     try {
+      // Begin history group for cut operation
+      try { (useMindMapStore.getState() as any).beginHistoryGroup?.('cut'); } catch {}
+
       // Cut count times
       let cutCount = 0;
 
@@ -348,6 +352,9 @@ export const cutCommand: Command = {
         cutCount++;
       }
 
+      // End history group and commit
+      try { (useMindMapStore.getState() as any).endHistoryGroup?.(true); } catch {}
+
       if (cutCount === 0) {
         return {
           success: false,
@@ -360,6 +367,8 @@ export const cutCommand: Command = {
         message: cutCount > 1 ? `Cut ${cutCount} nodes` : `Cut node`
       };
     } catch (error) {
+      // End history group without commit on error
+      try { (useMindMapStore.getState() as any).endHistoryGroup?.(false); } catch {}
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to cut node'
