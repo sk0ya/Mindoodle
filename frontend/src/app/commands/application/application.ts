@@ -173,6 +173,7 @@ export const pasteCommand: Command = {
 
 /**
  * Paste as sibling helper (internal)
+ * Reuses pasteNodeTree for children to ensure consistent tree structure
  */
 async function pasteTreeAsSibling(
   source: MindMapNode,
@@ -183,6 +184,7 @@ async function pasteTreeAsSibling(
   // Add root as sibling relative to reference node
   const rootId = await context.handlers.addSiblingNode(refNodeId, source.text, false, insertAfter);
   if (!rootId) return null;
+
   // Copy basic styles/metadata
   context.handlers.updateNode(rootId, {
     fontSize: source.fontSize,
@@ -193,10 +195,17 @@ async function pasteTreeAsSibling(
     markdownMeta: source.markdownMeta
   });
 
-  // Recursively add children under the newly created root
-  const pasteChildren = async (node: MindMapNode, parentId: string): Promise<void> => {
-    const newId = await context.handlers.addChildNode(parentId, node.text, false);
+  // Wrapper to unwrap Promise from async addChildNode
+  const addChildSync = async (parentId: string, text: string): Promise<string | undefined> => {
+    const result = await context.handlers.addChildNode(parentId, text, false);
+    return result || undefined;
+  };
+
+  // Recursively paste children using the same pattern as pasteNodeTree
+  const pasteSubtreeSync = async (node: MindMapNode, parentId: string): Promise<void> => {
+    const newId = await addChildSync(parentId, node.text);
     if (!newId) return;
+
     context.handlers.updateNode(newId, {
       fontSize: node.fontSize,
       fontWeight: node.fontWeight,
@@ -205,32 +214,23 @@ async function pasteTreeAsSibling(
       note: node.note,
       markdownMeta: node.markdownMeta
     });
-    if (node.children && node.children.length) {
+
+    // Recursively paste all children
+    if (node.children && node.children.length > 0) {
       for (const child of node.children) {
-        await pasteChildren(child, newId);
+        await pasteSubtreeSync(child, newId);
       }
     }
   };
 
-  if (source.children && source.children.length) {
+  // Paste all children of the source node
+  if (source.children && source.children.length > 0) {
     for (const child of source.children) {
-      await pasteChildren(child, rootId);
+      await pasteSubtreeSync(child, rootId);
     }
   }
-  return rootId;
-}
 
-// Utility to render node to markdown (for internal clipboard equivalence check)
-function nodeToMarkdownForCompare(node: MindMapNode, level = 0): string {
-  const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-  let md = `${prefix}${node.text}\n`;
-  if (node.note !== null && node.note !== undefined && node.note !== '') md += `${node.note}\n`;
-  if (node.children && node.children.length) {
-    for (const child of node.children) {
-      md += nodeToMarkdownForCompare(child, level + 1);
-    }
-  }
-  return md;
+  return rootId;
 }
 
 /**
@@ -264,20 +264,14 @@ export const pasteSiblingAfterCommand: Command = {
       if (navigator.clipboard && navigator.clipboard.readText) {
         const clipboardText = await navigator.clipboard.readText();
         if (clipboardText && clipboardText.trim()) {
-          // Prefer internal node if it matches the system clipboard representation
+          // If we have internal clipboard with structure, prefer it over plain text
           if (uiClipboard) {
-            try {
-              const expectedMarkdown = nodeToMarkdownForCompare(uiClipboard).trim();
-              const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
-              if (expectedMarkdown === normalizedClipboard) {
-                const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, true, context);
-                if (newId) {
-                  context.handlers.selectNode(newId);
-                  return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
-                }
-                return { success: false, error: 'Failed to paste (sibling-after)' };
-              }
-            } catch { /* ignore compare errors */ }
+            const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, true, context);
+            if (newId) {
+              context.handlers.selectNode(newId);
+              return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
+            }
+            return { success: false, error: 'Failed to paste (sibling-after)' };
           }
 
           // MindMeister markdown format
@@ -364,19 +358,14 @@ export const pasteSiblingBeforeCommand: Command = {
       if (navigator.clipboard && navigator.clipboard.readText) {
         const clipboardText = await navigator.clipboard.readText();
         if (clipboardText && clipboardText.trim()) {
+          // If we have internal clipboard with structure, prefer it over plain text
           if (uiClipboard) {
-            try {
-              const expectedMarkdown = nodeToMarkdownForCompare(uiClipboard).trim();
-              const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
-              if (expectedMarkdown === normalizedClipboard) {
-                const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
-                if (newId) {
-                  context.handlers.selectNode(newId);
-                  return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
-                }
-                return { success: false, error: 'Failed to paste (sibling-before)' };
-              }
-            } catch { /* ignore compare errors */ }
+            const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
+            if (newId) {
+              context.handlers.selectNode(newId);
+              return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
+            }
+            return { success: false, error: 'Failed to paste (sibling-before)' };
           }
 
           if (isMindMeisterFormat(clipboardText)) {
