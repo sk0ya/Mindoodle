@@ -418,11 +418,6 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             event.preventDefault();
             commands.executeVimCommand('ctrl-d');
             return;
-          } else if (lower === 'r' && ctrlKey) {
-            // Only handle Ctrl+R in vim mode for redo
-            event.preventDefault();
-            commands.executeVimCommand('ctrl-r');
-            return;
           } else if (lower === 'p' && ctrlKey && handlers.switchToPrevMap) {
             event.preventDefault();
             handlers.switchToPrevMap();

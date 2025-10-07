@@ -32,10 +32,9 @@ const VIM_COMMAND_PATTERNS = {
   'ciw': { keys: ['c', 'i', 'w'], command: 'ciw' },
   '>>': { keys: ['>', '>'], command: '>>' },
   '<<': { keys: ['<', '<'], command: '<<' },
-  // Ctrl sequences (handled specially)
-  'ctrl-r': { keys: ['ctrl-r'], command: 'ctrl-r' },
 
   // Single-key commands
+  'r': { keys: ['r'], command: 'r' },  // Redo (changed from ctrl-r)
   'h': { keys: ['h'], command: 'h' },
   'j': { keys: ['j'], command: 'j' },
   'k': { keys: ['k'], command: 'k' },
