@@ -81,6 +81,10 @@ export interface CommandContext {
     showNodeNotePanel?: boolean;
     setShowNodeNotePanel?: (show: boolean) => void;
     toggleNodeNotePanel?: () => void;
+    // Knowledge graph modal visibility
+    showKnowledgeGraph?: boolean;
+    setShowKnowledgeGraph?: (show: boolean) => void;
+    toggleKnowledgeGraph?: () => void;
 
     // UI operations
     closeAttachmentAndLinkLists: () => void;

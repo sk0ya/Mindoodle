@@ -87,6 +87,9 @@
 
 | キー | 動作 |
 |---|---|
+| knowledge-graph | Show workspace knowledge graph in 3D |
+| kg | Show workspace knowledge graph in 3D |
+| graph | Show workspace knowledge graph in 3D |
 | toggle-md | Toggle Markdown panel visibility |
 | md-panel | Toggle Markdown panel visibility |
 | toggle-node-note | Toggle Selected Node Note panel visibility |

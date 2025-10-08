@@ -79,6 +79,9 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: '1m', command: 'convert-ordered-1', category: 'vim', description: '1. 番号付きリスト' },
   { key: '2m', command: 'convert-ordered-2', category: 'vim', description: '2. 番号付きリスト' },
 
+  // Vim UI
+  { key: 'gv', command: 'show-knowledge-graph', category: 'vim', description: 'Knowledge Graph表示 (graph view)' },
+
   // Arrow navigation
   { key: 'ArrowUp', command: 'arrow-navigate', args: { direction: 'up' }, category: 'navigation', description: 'Navigate up' },
   { key: 'ArrowDown', command: 'arrow-navigate', args: { direction: 'down' }, category: 'navigation', description: 'Navigate down' },

@@ -43,6 +43,7 @@ export interface UIState {
   showNotesPanel: boolean;
   showNodeNotePanel?: boolean;
   showVimSettingsPanel?: boolean;
+  showKnowledgeGraph?: boolean;
 
   // Overlay dimensions (virtual state, not DOM queries)
   markdownPanelWidth?: number; // right panel width in px

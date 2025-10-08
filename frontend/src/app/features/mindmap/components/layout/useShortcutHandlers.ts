@@ -244,6 +244,10 @@ export function useShortcutHandlers(args: Args) {
     showNodeNotePanel: !!useMindMapStore.getState().ui?.showNodeNotePanel,
     setShowNodeNotePanel: (show: boolean) => store.setShowNodeNotePanel?.(show),
     toggleNodeNotePanel: () => store.toggleNodeNotePanel?.(),
+    // Knowledge graph modal visibility control for commands
+    showKnowledgeGraph: !!useMindMapStore.getState().ui?.showKnowledgeGraph,
+    setShowKnowledgeGraph: (show: boolean) => store.setShowKnowledgeGraph?.(show),
+    toggleKnowledgeGraph: () => store.toggleKnowledgeGraph?.(),
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,
     centerNodeInView,

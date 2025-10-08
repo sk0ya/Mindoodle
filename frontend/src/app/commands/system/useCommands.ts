@@ -306,6 +306,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'gg': 'select-root',
       'gt': 'next-map',
       'gT': 'prev-map',
+      'gv': 'show-knowledge-graph',
       'ctrl-u': 'scroll-up',
       'ctrl-d': 'scroll-down',
       'r': 'redo',      // r for redo (changed from ctrl-r)

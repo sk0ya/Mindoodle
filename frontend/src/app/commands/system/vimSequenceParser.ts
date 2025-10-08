@@ -29,6 +29,7 @@ const VIM_COMMAND_PATTERNS = {
   'gg': { keys: ['g', 'g'], command: 'gg' },
   'gt': { keys: ['g', 't'], command: 'gt' },
   'gT': { keys: ['g', 'T'], command: 'gT' },
+  'gv': { keys: ['g', 'v'], command: 'gv' },
   'ciw': { keys: ['c', 'i', 'w'], command: 'ciw' },
   '>>': { keys: ['>', '>'], command: '>>' },
   '<<': { keys: ['<', '<'], command: '<<' },

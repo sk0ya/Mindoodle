@@ -4,6 +4,7 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
+export { showKnowledgeGraphCommand } from './showKnowledgeGraph';
 
 // Show/hide keyboard helper
 export const helpCommand: Command = {

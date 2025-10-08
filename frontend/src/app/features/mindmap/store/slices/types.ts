@@ -86,6 +86,8 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   toggleNodeNotePanel?: () => void;
   setShowVimSettingsPanel?: (show: boolean) => void;
   toggleVimSettingsPanel?: () => void;
+  setShowKnowledgeGraph?: (show: boolean) => void;
+  toggleKnowledgeGraph?: () => void;
   setMarkdownPanelWidth?: (width: number) => void;
   setNodeNotePanelHeight?: (height: number) => void;
   setFileMenuPosition: (position: Position) => void;

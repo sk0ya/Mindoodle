@@ -31,6 +31,8 @@
   "license": "MIT",
   "dependencies": {
     "@monaco-editor/react": "^4.7.0",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@types/jszip": "^3.4.0",
     "immer": "^10.1.1",
     "jszip": "^3.10.1",
@@ -41,6 +43,7 @@
     "monaco-vim": "^0.4.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "three": "^0.169.0",
     "zustand": "^5.0.6"
   },
   "devDependencies": {

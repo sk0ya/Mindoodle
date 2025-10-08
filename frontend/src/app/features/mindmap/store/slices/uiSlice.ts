@@ -164,6 +164,18 @@ export const createUISlice: StateCreator<
     });
   },
 
+  setShowKnowledgeGraph: (show: boolean) => {
+    set((state) => {
+      (state.ui as any).showKnowledgeGraph = show;
+    });
+  },
+
+  toggleKnowledgeGraph: () => {
+    set((state) => {
+      (state.ui as any).showKnowledgeGraph = !(state.ui as any).showKnowledgeGraph;
+    });
+  },
+
   // Overlay dimension setters
   setMarkdownPanelWidth: (width: number) => {
     set((state) => {
