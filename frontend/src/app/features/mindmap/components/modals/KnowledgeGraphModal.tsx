@@ -1,6 +1,7 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Text, Line } from '@react-three/drei';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
+import { OrbitControls, Text } from '@react-three/drei';
+import * as THREE from 'three';
 import type { MindMapData, NodeLink, MindMapNode } from '@shared/types';
 import { resolveHrefToMapTarget, extractAllMarkdownLinksDetailed } from '../../../markdown/markdownLinkUtils';
 
@@ -11,6 +12,7 @@ export interface GraphNode {
   type: 'map' | 'node';
   mapId?: string;
   position: [number, number, number];
+  velocity?: [number, number, number];
   links?: NodeLink[];
 }
 
@@ -26,31 +28,171 @@ interface KnowledgeGraphModalProps {
   allMapsData: MindMapData[];
 }
 
-// 3D Graph Component
+// Force-directed layout physics
+const applyForces = (nodes: GraphNode[], edges: GraphEdge[], iterations: number = 50) => {
+  const simulatedNodes = nodes.map(node => ({
+    ...node,
+    velocity: node.velocity || [0, 0, 0] as [number, number, number],
+  }));
+
+  for (let iter = 0; iter < iterations; iter++) {
+    // Reset forces
+    simulatedNodes.forEach(node => {
+      node.velocity = [0, 0, 0];
+    });
+
+    // Repulsion between all nodes (prevent overlap)
+    for (let i = 0; i < simulatedNodes.length; i++) {
+      for (let j = i + 1; j < simulatedNodes.length; j++) {
+        const nodeA = simulatedNodes[i];
+        const nodeB = simulatedNodes[j];
+
+        const dx = nodeB.position[0] - nodeA.position[0];
+        const dy = nodeB.position[1] - nodeA.position[1];
+        const dz = nodeB.position[2] - nodeA.position[2];
+        const distSq = dx * dx + dy * dy + dz * dz + 0.01;
+        const dist = Math.sqrt(distSq);
+
+        // Stronger repulsion for closer nodes
+        const repulsionStrength = (nodeA.type === 'map' && nodeB.type === 'map') ? 15 : 8;
+        const force = repulsionStrength / distSq;
+
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        const fz = (dz / dist) * force;
+
+        nodeA.velocity[0] -= fx;
+        nodeA.velocity[1] -= fy;
+        nodeA.velocity[2] -= fz;
+        nodeB.velocity[0] += fx;
+        nodeB.velocity[1] += fy;
+        nodeB.velocity[2] += fz;
+      }
+    }
+
+    // Attraction along edges (spring forces)
+    edges.forEach(edge => {
+      const sourceNode = simulatedNodes.find(n => n.id === edge.source);
+      const targetNode = simulatedNodes.find(n => n.id === edge.target);
+
+      if (!sourceNode || !targetNode) return;
+
+      const dx = targetNode.position[0] - sourceNode.position[0];
+      const dy = targetNode.position[1] - sourceNode.position[1];
+      const dz = targetNode.position[2] - sourceNode.position[2];
+      const dist = Math.sqrt(dx * dx + dy * dy + dz * dz + 0.01);
+
+      // Ideal spring length depends on node types
+      const idealLength = (sourceNode.type === 'map' && targetNode.type === 'map') ? 6 : 2.5;
+      const springStrength = 0.1;
+      const force = (dist - idealLength) * springStrength;
+
+      const fx = (dx / dist) * force;
+      const fy = (dy / dist) * force;
+      const fz = (dz / dist) * force;
+
+      sourceNode.velocity[0] += fx;
+      sourceNode.velocity[1] += fy;
+      sourceNode.velocity[2] += fz;
+      targetNode.velocity[0] -= fx;
+      targetNode.velocity[1] -= fy;
+      targetNode.velocity[2] -= fz;
+    });
+
+    // Apply velocities with damping
+    const damping = 0.5;
+    simulatedNodes.forEach(node => {
+      node.position[0] += node.velocity[0] * damping;
+      node.position[1] += node.velocity[1] * damping;
+      node.position[2] += node.velocity[2] * damping;
+    });
+  }
+
+  return simulatedNodes;
+};
+
+// Animated node component
+const GraphNodeComponent: React.FC<{ node: GraphNode }> = ({ node }) => {
+  const meshRef = useRef<THREE.Mesh>(null);
+  const [hovered, setHovered] = useState(false);
+
+  useFrame(() => {
+    if (meshRef.current) {
+      // Scale on hover
+      const targetScale = hovered ? 1.15 : 1;
+      meshRef.current.scale.lerp(new THREE.Vector3(targetScale, targetScale, targetScale), 0.15);
+    }
+  });
+
+  const size = node.type === 'map' ? 0.8 : 0.35;
+  const segments = node.type === 'map' ? 32 : 20;
+
+  return (
+    <group position={[node.position[0], node.position[1], node.position[2]]}>
+      <mesh
+        ref={meshRef}
+        onPointerOver={() => setHovered(true)}
+        onPointerOut={() => setHovered(false)}
+      >
+        <sphereGeometry args={[size, segments, segments]} />
+        <meshStandardMaterial
+          color={node.type === 'map' ? '#6366f1' : '#ec4899'}
+          emissive={node.type === 'map' ? '#4f46e5' : '#db2777'}
+          emissiveIntensity={hovered ? 0.8 : 0.4}
+          roughness={0.3}
+          metalness={0.6}
+        />
+      </mesh>
+
+      <Text
+        position={[0, node.type === 'map' ? 1.2 : 0.6, 0]}
+        fontSize={node.type === 'map' ? 0.5 : 0.25}
+        color="white"
+        anchorX="center"
+        anchorY="middle"
+        outlineWidth={0.05}
+        outlineColor="#000000"
+      >
+        {node.label}
+      </Text>
+    </group>
+  );
+};
+
+// Animated edge component
+const GraphEdgeComponent: React.FC<{
+  source: GraphNode;
+  target: GraphNode;
+}> = ({ source, target }) => {
+  const points = [
+    new THREE.Vector3(...source.position),
+    new THREE.Vector3(...target.position),
+  ];
+
+  const geometry = new THREE.BufferGeometry().setFromPoints(points);
+
+  return (
+    <primitive
+      object={new THREE.Line(
+        geometry,
+        new THREE.LineBasicMaterial({
+          color: '#94a3b8',
+          transparent: true,
+          opacity: 0.6,
+          linewidth: 2,
+        })
+      )}
+    />
+  );
+};
+
+// 3D Graph Component with physics
 const KnowledgeGraph3D: React.FC<{ nodes: GraphNode[]; edges: GraphEdge[] }> = ({ nodes, edges }) => {
   return (
     <>
       {/* Render nodes */}
       {nodes.map((node) => (
-        <mesh key={node.id} position={node.position}>
-          <sphereGeometry args={node.type === 'map' ? [0.5, 32, 32] : [0.2, 16, 16]} />
-          <meshStandardMaterial
-            color={node.type === 'map' ? '#4a9eff' : '#ff6b6b'}
-            emissive={node.type === 'map' ? '#2563eb' : '#dc2626'}
-            emissiveIntensity={0.3}
-          />
-          <Text
-            position={[0, node.type === 'map' ? 0.8 : 0.4, 0]}
-            fontSize={node.type === 'map' ? 0.3 : 0.15}
-            color="white"
-            anchorX="center"
-            anchorY="middle"
-            outlineWidth={0.02}
-            outlineColor="#000000"
-          >
-            {node.label}
-          </Text>
-        </mesh>
+        <GraphNodeComponent key={node.id} node={node} />
       ))}
 
       {/* Render edges */}
@@ -61,20 +203,19 @@ const KnowledgeGraph3D: React.FC<{ nodes: GraphNode[]; edges: GraphEdge[] }> = (
         if (!sourceNode || !targetNode) return null;
 
         return (
-          <Line
+          <GraphEdgeComponent
             key={`${edge.source}-${edge.target}-${index}`}
-            points={[sourceNode.position, targetNode.position]}
-            color="#888888"
-            lineWidth={1}
-            dashed={false}
+            source={sourceNode}
+            target={targetNode}
           />
         );
       })}
 
-      {/* Lighting */}
-      <ambientLight intensity={0.6} />
-      <pointLight position={[10, 10, 10]} intensity={0.8} />
-      <pointLight position={[-10, -10, -10]} intensity={0.4} />
+      {/* Enhanced lighting */}
+      <ambientLight intensity={0.8} />
+      <directionalLight position={[10, 10, 10]} intensity={1.5} />
+      <directionalLight position={[-10, -10, -10]} intensity={0.8} />
+      <pointLight position={[0, 10, 0]} intensity={1.0} />
     </>
   );
 };
@@ -233,7 +374,10 @@ const KnowledgeGraphModal: React.FC<KnowledgeGraphModalProps> = ({
       }
     });
 
-    setGraphData({ nodes, edges });
+    // Apply force-directed layout to stabilize positions
+    const optimizedNodes = applyForces(nodes, edges, 100);
+
+    setGraphData({ nodes: optimizedNodes, edges });
   }, [allMapsData]);
 
   useEffect(() => {
@@ -282,10 +426,19 @@ const KnowledgeGraphModal: React.FC<KnowledgeGraphModalProps> = ({
           ) : (
             <>
               <Canvas
-                camera={{ position: [0, 10, 15], fov: 60 }}
+                camera={{ position: [0, 8, 20], fov: 75 }}
                 style={{ background: '#0a0a0a' }}
               >
-                <OrbitControls enablePan enableZoom enableRotate />
+                <OrbitControls
+                  enablePan
+                  enableZoom
+                  enableRotate
+                  zoomSpeed={1.2}
+                  panSpeed={0.8}
+                  rotateSpeed={0.5}
+                  minDistance={5}
+                  maxDistance={50}
+                />
                 <KnowledgeGraph3D nodes={graphData.nodes} edges={graphData.edges} />
               </Canvas>
               {graphData.edges.length === 0 && (
@@ -450,11 +603,11 @@ const KnowledgeGraphModal: React.FC<KnowledgeGraphModalProps> = ({
         }
 
         .legend-color.map-color {
-          background: #4a9eff;
+          background: #6366f1;
         }
 
         .legend-color.node-color {
-          background: #ff6b6b;
+          background: #ec4899;
         }
 
         .stats {
