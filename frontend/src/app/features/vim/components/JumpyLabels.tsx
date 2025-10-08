@@ -90,17 +90,17 @@ const JumpyLabels: React.FC<Props> = ({ vim }) => {
         }
 
         .jumpy-label {
-          background: #f97316;
-          color: white;
-          padding: 2px 6px;
-          border-radius: 4px;
+          background: #fed7aa;
+          color: #000000;
+          padding: 0px 3px;
+          border-radius: 2px;
           font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
           font-size: 12px;
           font-weight: bold;
           text-transform: uppercase;
-          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-          border: 1px solid #ea580c;
-          min-width: 20px;
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+          border: 1px solid #fdba74;
+          min-width: 16px;
           text-align: center;
           line-height: 1.2;
         }
