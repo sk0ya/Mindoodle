@@ -1,15 +1,63 @@
 // moved to layout/sidebar
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMindMapStore } from '@mindmap/store';
+import { embeddingService } from '@core/services/EmbeddingService';
 
 interface SettingsSidebarProps {
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   const { settings, updateSetting } = useMindMapStore();
+  const [isInitializingEmbedding, setIsInitializingEmbedding] = useState(false);
+  const [embeddingProgress, setEmbeddingProgress] = useState<string>('');
+  const [embeddingError, setEmbeddingError] = useState<string>('');
 
   const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
+  };
+
+  // モデルダウンロード進捗リスナー
+  useEffect(() => {
+    const handleProgress = (e: CustomEvent) => {
+      const progress = e.detail;
+      if (progress.status === 'progress' && progress.file) {
+        const percent = progress.progress ? Math.round(progress.progress * 100) : 0;
+        setEmbeddingProgress(`Downloading ${progress.file}: ${percent}%`);
+      } else if (progress.status === 'done') {
+        setEmbeddingProgress('Model loaded successfully!');
+        setTimeout(() => {
+          setEmbeddingProgress('');
+          setIsInitializingEmbedding(false);
+        }, 2000);
+      }
+    };
+
+    window.addEventListener('embedding-progress', handleProgress as EventListener);
+    return () => {
+      window.removeEventListener('embedding-progress', handleProgress as EventListener);
+    };
+  }, []);
+
+  // ナレッジグラフ有効化時にモデル初期化
+  const handleKnowledgeGraphToggle = async (enabled: boolean) => {
+    handleSettingChange('knowledgeGraph', { ...settings.knowledgeGraph, enabled });
+
+    if (enabled && !settings.knowledgeGraph.modelDownloaded) {
+      setIsInitializingEmbedding(true);
+      setEmbeddingError('');
+      setEmbeddingProgress('Initializing embedding model...');
+
+      try {
+        await embeddingService.initialize();
+        handleSettingChange('knowledgeGraph', { enabled: true, modelDownloaded: true });
+      } catch (error) {
+        console.error('Failed to initialize embedding service:', error);
+        setEmbeddingError(error instanceof Error ? error.message : 'Failed to initialize');
+        setIsInitializingEmbedding(false);
+        // 失敗したら設定を戻す
+        handleSettingChange('knowledgeGraph', { enabled: false, modelDownloaded: false });
+      }
+    }
   };
 
   return (
@@ -138,6 +186,46 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
           <div className="settings-description">
             見出しノードの下に子ノードを追加したとき、マークダウンで空行を自動的に挿入します
           </div>
+        </div>
+      </div>
+
+      <div className="settings-section">
+        <h3 className="settings-section-title">ナレッジグラフ設定</h3>
+        <div className="settings-section-content">
+          <div className="settings-toggle">
+            <input
+              type="checkbox"
+              id="knowledge-graph-enabled"
+              checked={settings.knowledgeGraph.enabled}
+              onChange={(e) => handleKnowledgeGraphToggle(e.target.checked)}
+              disabled={isInitializingEmbedding}
+            />
+            <label htmlFor="knowledge-graph-enabled" className="settings-toggle-label">
+              ナレッジグラフ機能を有効化
+            </label>
+          </div>
+          <div className="settings-description">
+            ONにすると、.mdファイルを多言語対応AIモデルでベクトル化し、2D空間で類似ファイルを可視化できます。
+            初回は約100MBのモデルダウンロードが必要です。
+          </div>
+
+          {isInitializingEmbedding && (
+            <div className="settings-description" style={{ marginTop: '8px', color: 'var(--accent-color)' }}>
+              {embeddingProgress || 'Initializing...'}
+            </div>
+          )}
+
+          {embeddingError && (
+            <div className="settings-description" style={{ marginTop: '8px', color: '#ff6b6b' }}>
+              Error: {embeddingError}
+            </div>
+          )}
+
+          {settings.knowledgeGraph.enabled && !isInitializingEmbedding && (
+            <div className="settings-description" style={{ marginTop: '8px', color: 'var(--accent-color)' }}>
+              ✓ 有効化されました。ファイル編集時に自動でベクトル化されます。
+            </div>
+          )}
         </div>
       </div>
 

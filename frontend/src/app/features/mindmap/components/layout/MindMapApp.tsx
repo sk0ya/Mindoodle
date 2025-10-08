@@ -38,9 +38,10 @@ import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 // panelManager usage removed for node right-click; strategies handle gating
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 import TableEditorModal from '../../../markdown/components/TableEditorModal';
-import KnowledgeGraphModal from '../modals/KnowledgeGraphModal';
+import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
+import { EmbeddingIntegration } from '@core/services/EmbeddingIntegration';
 
-import type { MindMapNode, NodeLink, MapIdentifier, MindMapData } from '@shared/types';
+import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
@@ -98,41 +99,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const [showTableEditor, setShowTableEditor] = useState(false);
   const [editingTableNodeId, setEditingTableNodeId] = useState<string | null>(null);
 
-  // Knowledge graph modal state
-  const [allMapsDataForGraph, setAllMapsDataForGraph] = useState<MindMapData[]>([]);
-
-  // Collect all maps data when knowledge graph modal is opened
-  React.useEffect(() => {
-    if (store.ui.showKnowledgeGraph) {
-      const collectAllMaps = async () => {
-        try {
-          // Get storage adapter from mindMap instance
-          const adapter = mindMap?.storageAdapter;
-          logger.info('Knowledge Graph: Collecting maps from adapter', {
-            hasAdapter: !!adapter,
-            hasLoadAllMaps: !!(adapter && typeof adapter.loadAllMaps === 'function'),
-            adapterType: adapter?.constructor?.name
-          });
-
-          if (adapter && typeof adapter.loadAllMaps === 'function') {
-            const allMaps = await adapter.loadAllMaps();
-            logger.info('Knowledge Graph: Loaded maps', {
-              count: allMaps.length,
-              mapIds: allMaps.map(m => m.mapIdentifier.mapId)
-            });
-            setAllMapsDataForGraph(allMaps);
-          } else {
-            logger.warn('Storage adapter or loadAllMaps not available');
-            setAllMapsDataForGraph([]);
-          }
-        } catch (error) {
-          logger.error('Failed to collect maps for knowledge graph:', error);
-          setAllMapsDataForGraph([]);
-        }
-      };
-      collectAllMaps();
-    }
-  }, [store.ui.showKnowledgeGraph, mindMap]);
+  // Note: Knowledge Graph 2D doesn't need allMapsDataForGraph anymore
+  // It loads vectors directly from IndexedDB
 
   const commandPalette = useCommandPalette({
     enabled: true,
@@ -872,11 +840,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       />
 
       {/* Knowledge Graph Modal */}
-      <KnowledgeGraphModal
+      <KnowledgeGraphModal2D
         isOpen={!!store.ui.showKnowledgeGraph}
         onClose={() => store.setShowKnowledgeGraph?.(false)}
-        allMapsData={allMapsDataForGraph}
+        storageAdapter={storageAdapter}
+        currentMapId={data?.mapIdentifier?.mapId}
       />
+
+      {/* Embedding Integration (監視のみ、レンダリングなし) */}
+      <EmbeddingIntegration />
     </div>
   );
 };

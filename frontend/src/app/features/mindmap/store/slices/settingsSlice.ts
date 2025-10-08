@@ -47,6 +47,12 @@ export interface AppSettings {
   // 表示設定
   // マップ内のリンクを可視化（点線の矢印で表示）
   visualizeInMapLinks: boolean;
+
+  // ナレッジグラフ設定
+  knowledgeGraph: {
+    enabled: boolean; // グラフ表示機能のON/OFF（デフォルト: false）
+    modelDownloaded: boolean; // モデルダウンロード済みフラグ（内部管理用）
+  };
 }
 
 export interface SettingsSlice {
@@ -81,6 +87,10 @@ const DEFAULT_SETTINGS: AppSettings = {
   addBlankLineAfterHeading: true, // デフォルトで見出し後に空行を追加
   edgeColorSet: 'vibrant', // デフォルトのカラーセット
   visualizeInMapLinks: false, // デフォルトは非表示
+  knowledgeGraph: {
+    enabled: false, // デフォルトはOFF
+    modelDownloaded: false,
+  },
 };
 
 export const createSettingsSlice: StateCreator<
