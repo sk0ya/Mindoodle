@@ -202,36 +202,43 @@
 
 ---
 
-### フェーズ3: イベント処理の中央集約 🔶 中優先度
+### フェーズ3: イベント処理の中央集約 🔶 中優先度（進行中）
 
 **期間**: 2-3日
 **リスク**: 中（イベント処理の変更）
 **影響**: 大（多数のコンポーネントに影響）
-**価値**: 高（38箇所の重複削減）
+**価値**: 高（59箇所の重複削減）
 
-#### ステップ3.1: useEventListenerフックの作成
+#### ステップ3.1: useEventListenerフックの作成 ✅ 完了
+
+**実施日**: 2025-10-10
 
 **目標**: イベントリスナー管理を統合
 
-```typescript
-// shared/hooks/system/useEventListener.ts
-export function useEventListener<K extends keyof WindowEventMap>(
-  eventName: K,
-  handler: (event: WindowEventMap[K]) => void,
-  options?: {
-    target?: Window | Document | HTMLElement | null;
-    capture?: boolean;
-    passive?: boolean;
-    enabled?: boolean;
-  }
-): void {
-  // Implementation
-}
+```text
+完了内容:
+1. ✅ shared/hooks/system/useEventListener.ts を作成
+2. ✅ TypeScript型安全なオーバーロード実装
+   - WindowEventMap, DocumentEventMap, HTMLElementEventMap対応
+3. ✅ 機能実装
+   - 自動クリーンアップ（unmount時にremoveEventListener）
+   - useRefで安定したハンドラー参照
+   - enabled オプションで条件付き有効化
+   - capture, passive オプション対応
+4. ✅ shared/hooks/index.ts でエクスポート
+5. ✅ 型チェック成功確認
 ```
+
+**成果**:
+
+- 型安全なイベントリスナーフック
+- 手動クリーンアップ不要
+- 再利用可能な標準パターン確立
 
 #### ステップ3.2: 既存のaddEventListenerを置き換え
 
-**対象**: 19個のファイル、38箇所
+**状況**: 未実施（次回セッションで実施予定）
+**対象**: 31個のファイル、59箇所（調査済み）
 
 ```
 タスク:
