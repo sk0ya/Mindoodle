@@ -40,6 +40,7 @@ export interface AppSettings {
 
   // マークダウン設定
   addBlankLineAfterHeading: boolean; // 見出しノード追加時に空行を追加（デフォルト: true）
+  defaultCollapseDepth?: number; // デフォルトで折りたたむ階層の深さ (0=折りたたまない, 1=1階層目から, 2=2階層目から)
 
   // 接続線の色設定
   edgeColorSet: string; // カラーセット名（vibrant, gentle, pastel, nord, warm, cool, monochrome, sunset）
@@ -85,6 +86,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   vimEditorMappingsSource: `" Vim-style mappings for Monaco editor (experimental)\nset leader ,\n` ,
   previewMode: false,
   addBlankLineAfterHeading: true, // デフォルトで見出し後に空行を追加
+  defaultCollapseDepth: 2, // デフォルトで2階層目から折りたたむ
   edgeColorSet: 'vibrant', // デフォルトのカラーセット
   visualizeInMapLinks: false, // デフォルトは非表示
   knowledgeGraph: {

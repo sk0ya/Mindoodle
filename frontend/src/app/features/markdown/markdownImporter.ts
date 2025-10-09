@@ -53,6 +53,7 @@ export class MarkdownImporter {
       startY?: number;
       horizontalSpacing?: number;
       verticalSpacing?: number;
+      defaultCollapseDepth?: number; // デフォルトで折りたたむ階層の深さ
     }
   ): { rootNodes: MindMapNode[]; headingLevelByText: Record<string, number> } {
     if (DEBUG_MD) {
@@ -89,8 +90,8 @@ export class MarkdownImporter {
       }
     });
 
-    // ノード構造を構築（改行コード情報を渡す）
-    const rootNodes = this.buildNodeHierarchy(elements, detectedLineEnding);
+    // ノード構造を構築（改行コード情報と折りたたみ深度を渡す）
+    const rootNodes = this.buildNodeHierarchy(elements, detectedLineEnding, options?.defaultCollapseDepth);
 
     // 位置を調整（オプション未指定でも最小の仮配置を適用して見た目を安定化）
     this.adjustNodePositions(rootNodes, options || {});
@@ -300,9 +301,9 @@ export class MarkdownImporter {
    * 見出しが親、リストがその子という正しい階層関係を構築
    * リスト項目同士もインデントレベルに基づいて親子関係を構築
    */
-  private static buildNodeHierarchy(elements: StructureElement[], defaultLineEnding?: string): MindMapNode[] {
+  private static buildNodeHierarchy(elements: StructureElement[], defaultLineEnding?: string, defaultCollapseDepth?: number): MindMapNode[] {
     const rootNodes: MindMapNode[] = [];
-    const headingStack: { node: MindMapNode; level: number }[] = [];
+    const headingStack: { node: MindMapNode; level: number; depth: number }[] = [];
     const listStack: { node: MindMapNode; indentLevel: number }[] = [];
     let currentHeading: MindMapNode | null = null;
 
@@ -387,6 +388,9 @@ export class MarkdownImporter {
           headingStack.pop();
         }
 
+        // 現在の深さを計算
+        const currentDepth = headingStack.length;
+
         if (headingStack.length === 0) {
           // 親見出しがない → ルートノード
           rootNodes.push(newNode);
@@ -401,8 +405,18 @@ export class MarkdownImporter {
           if (pendingSiblingTableNode) parentHeading.children.push(pendingSiblingTableNode);
         }
 
+        // defaultCollapseDepth設定に基づいて折りたたみ状態を決定
+        // defaultCollapseDepth が未設定またはundefinedの場合は、デフォルト値2を使用
+        // defaultCollapseDepth = 0: 折りたたまない
+        // defaultCollapseDepth = 1: 1階層目から折りたたむ（ルートの子から）
+        // defaultCollapseDepth = 2: 2階層目から折りたたむ（ルートの孫から）
+        const collapseDepth = defaultCollapseDepth !== undefined ? defaultCollapseDepth : 2;
+        if (collapseDepth > 0 && currentDepth >= collapseDepth) {
+          newNode.collapsed = true;
+        }
+
         // 現在の見出しとしてスタックに追加
-        headingStack.push({ node: newNode, level: element.level });
+        headingStack.push({ node: newNode, level: element.level, depth: currentDepth });
         currentHeading = newNode;
 
       } else {

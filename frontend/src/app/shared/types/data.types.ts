@@ -96,6 +96,7 @@ export interface MindMapSettings {
   autoLayout: boolean;
   showGrid: boolean;
   animationEnabled: boolean;
+  defaultCollapseDepth?: number; // デフォルトで折りたたむ階層の深さ (0=折りたたまない, 1=1階層目から, 2=2階層目から)
 }
 
 // MindMap Data interface

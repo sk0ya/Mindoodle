@@ -186,6 +186,26 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
           <div className="settings-description">
             見出しノードの下に子ノードを追加したとき、マークダウンで空行を自動的に挿入します
           </div>
+
+          <div className="settings-input-group" style={{ marginTop: '16px' }}>
+            <label className="settings-input-label">デフォルト折りたたみ階層</label>
+            <select
+              value={settings.defaultCollapseDepth ?? 2}
+              onChange={(e) => handleSettingChange('defaultCollapseDepth' as keyof typeof settings, parseInt(e.target.value) as any)}
+              className="settings-select"
+            >
+              <option value="0">折りたたまない</option>
+              <option value="1">1階層目から折りたたむ</option>
+              <option value="2">2階層目から折りたたむ</option>
+              <option value="3">3階層目から折りたたむ</option>
+              <option value="4">4階層目から折りたたむ</option>
+              <option value="5">5階層目から折りたたむ</option>
+              <option value="6">6階層目から折りたたむ</option>
+            </select>
+            <div className="settings-description">
+              マークダウン読み込み時に、指定した階層より深いノードを自動的に折りたたみます
+            </div>
+          </div>
         </div>
       </div>
 

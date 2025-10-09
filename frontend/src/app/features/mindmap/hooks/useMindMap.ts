@@ -12,6 +12,7 @@ import type { StorageConfig } from '@core/types';
 import type { MindMapData } from '@shared/types';
 import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
 import { statusMessages } from '@shared/utils';
+import { useMindMapStore } from '@mindmap/store';
 
 /**
  * 統合MindMapHook - 新しいアーキテクチャ
@@ -29,6 +30,7 @@ export const useMindMap = (
   const actionsHook = useMindMapActions();
   const persistenceHook = useMindMapPersistence(storageConfig);
   const { showNotification } = useNotification();
+  const settings = useMindMapStore((state) => state.settings);
   // const { mergeWithExistingNodes } = useMarkdownSync();
 
   useDataReset(resetKey, {
@@ -169,7 +171,9 @@ export const useMindMap = (
 
         // Immediate reflection: let the parser decide how to handle incomplete structures.
 
-        const parsed = MarkdownImporter.parseMarkdownToNodes(markdown);
+        const parsed = MarkdownImporter.parseMarkdownToNodes(markdown, {
+          defaultCollapseDepth: settings.defaultCollapseDepth
+        });
 
         // Build line<->node maps from parsed nodes
         const lineToNode: Record<number, string> = {};
@@ -481,7 +485,9 @@ export const useMindMap = (
         const loadedMarkdown = await adapter.getMapMarkdown(mapIdentifier);
 
         if (loadedMarkdown) {
-          const parseResult = MarkdownImporter.parseMarkdownToNodes(loadedMarkdown);
+          const parseResult = MarkdownImporter.parseMarkdownToNodes(loadedMarkdown, {
+            defaultCollapseDepth: settings.defaultCollapseDepth
+          });
 
           // selectMapByIdと同じロジックでcategoryを抽出
           const actualMapId = mapIdentifier.mapId;
@@ -558,8 +564,10 @@ export const useMindMap = (
         }
         
         const actualMapId = mapId;
-        
-        const parseResult = MarkdownImporter.parseMarkdownToNodes(text);
+
+        const parseResult = MarkdownImporter.parseMarkdownToNodes(text, {
+          defaultCollapseDepth: settings.defaultCollapseDepth
+        });
         const parts = (actualMapId || '').split('/').filter(Boolean);
         const category = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
         
