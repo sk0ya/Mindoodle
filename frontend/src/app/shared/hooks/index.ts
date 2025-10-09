@@ -19,6 +19,7 @@ export { useErrorBoundary } from './system/useErrorBoundary';
 export { useErrorHandler, ErrorHandlerProvider, type ErrorInfo } from './system/useErrorHandler';
 export { useGlobalErrorHandlers } from './system/useGlobalErrorHandlers';
 export { useInitializationWaiter } from './system/useInitializationWaiter';
+export { useEventListener, type UseEventListenerOptions } from './system/useEventListener';
 
 // Network Hooks
 export { useConnectionTest } from './network/useConnectionTest';
