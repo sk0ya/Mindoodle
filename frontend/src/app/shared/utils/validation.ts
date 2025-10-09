@@ -1,34 +1,20 @@
-import type { MindMapData, MindMapNode } from '../types';
+import type { MindMapData } from '../types';
+import { isMindMapNode, validateMindMapNode } from '@mindmap/utils/nodeOperations';
 
 /**
  * 型ガード関数 - ランタイム型チェック
  */
 export const isMindMapData = (data: unknown): data is MindMapData => {
   if (!data || typeof data !== 'object') return false;
-  
+
   const obj = data as Record<string, unknown>;
-  
+
   return (
     typeof obj.id === 'string' &&
     typeof obj.title === 'string' &&
     typeof obj.rootNode === 'object' &&
     obj.rootNode !== null &&
     isMindMapNode(obj.rootNode)
-  );
-};
-
-export const isMindMapNode = (node: unknown): node is MindMapNode => {
-  if (!node || typeof node !== 'object') return false;
-  
-  const obj = node as Record<string, unknown>;
-  
-  return (
-    typeof obj.id === 'string' &&
-    typeof obj.text === 'string' &&
-    typeof obj.x === 'number' &&
-    typeof obj.y === 'number' &&
-    Array.isArray(obj.children) &&
-    obj.children.every((child: unknown) => isMindMapNode(child))
   );
 };
 
@@ -78,56 +64,6 @@ export const validateMindMapData = (data: unknown): DataValidationResult => {
 
   if (obj.updatedAt && typeof obj.updatedAt !== 'string') {
     errors.push('Invalid updatedAt field');
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
-
-/**
- * MindMapNodeの詳細バリデーション
- * @deprecated Use validateMindMapNode from @mindmap/utils instead
- * This function is kept for backward compatibility only.
- */
-export const validateMindMapNode = (node: unknown): DataValidationResult => {
-  const errors: string[] = [];
-
-  if (!node || typeof node !== 'object') {
-    errors.push('Node must be an object');
-    return { isValid: false, errors };
-  }
-
-  const obj = node as Record<string, unknown>;
-
-  // 必須フィールドのチェック
-  if (!obj.id || typeof obj.id !== 'string') {
-    errors.push('Missing or invalid node id');
-  }
-
-  if (typeof obj.text !== 'string') {
-    errors.push('Missing or invalid node text');
-  }
-
-  if (typeof obj.x !== 'number' || isNaN(obj.x)) {
-    errors.push('Missing or invalid node x coordinate');
-  }
-
-  if (typeof obj.y !== 'number' || isNaN(obj.y)) {
-    errors.push('Missing or invalid node y coordinate');
-  }
-
-  // 子ノードのバリデーション
-  if (!Array.isArray(obj.children)) {
-    errors.push('Node children must be an array');
-  } else {
-    obj.children.forEach((child, index) => {
-      const childValidation = validateMindMapNode(child);
-      if (!childValidation.isValid) {
-        errors.push(`Invalid child node at index ${index}: ${childValidation.errors.join(', ')}`);
-      }
-    });
   }
 
   return {

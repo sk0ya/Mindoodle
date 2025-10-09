@@ -14,8 +14,6 @@ export * from './eventManager';
 export * from './lodash-utils';
 export * from './logger';
 export * from './mapPath';
-// Navigation functions moved to @mindmap/utils/nodeOperations
-// export * from './navigation';
 export * from './pathOperations';
 export * from './safeEmitStatus';
 export * from './safeJson';

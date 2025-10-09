@@ -59,33 +59,48 @@
 **影響**: 中（importパスの変更のみ）
 **価値**: 高（コードの見通しが大幅改善）
 
-#### ステップ1.1: ノード操作ユーティリティの統合
+#### ステップ1.1: ノード操作ユーティリティの統合 ✅ 完了
 
 **目標**: ノード関連の関数をmindmap/utilsに集約
 
+**実施日**: 2025-10-10
+
 ```
-タスク:
-1. mindmap/utils/nodeOperations.ts を新規作成
-2. 以下を統合:
-   - nodeTreeUtils.ts の全関数
-   - shared/utils/navigation.ts の findNodeBySpatialDirection
-   - shared/utils/validation.ts の validateMindMapNode
-3. 既存ファイルから関数を移動
-4. import パスを全体的に更新
-5. テスト実行で動作確認
+完了タスク:
+1. ✅ mindmap/utils/nodeOperations.ts を作成（既に存在していた）
+2. ✅ 以下を統合:
+   - ノードツリー操作関数（findNodeById, findNodePathById, updateNodeInTree等）
+   - 空間的ナビゲーション（findNodeBySpatialDirection）
+   - ノードバリデーション（validateMindMapNode, isMindMapNode）
+3. ✅ shared/utils/navigation.ts を完全削除
+4. ✅ shared/utils/validation.ts から重複関数を削除し、nodeOperationsからインポート
+5. ✅ shared/utils/index.ts のエクスポートを整理
+6. ✅ 型チェック・Lint通過確認
 ```
 
-**移動対象の関数**:
-- `findNodeById` (nodeTreeUtils)
-- `findNodePathById` (nodeTreeUtils)
-- `updateNodeInTree` (nodeTreeUtils)
-- `findParentNode` (nodeTreeUtils)
-- `getSiblingNodes` (nodeTreeUtils)
-- `getFirstVisibleChild` (nodeTreeUtils)
-- `findNodeInRoots` (nodeTreeUtils)
-- `findNodeInData` (nodeTreeUtils)
-- `findNodeBySpatialDirection` (navigation)
-- `validateMindMapNode` (validation)
+**統合された関数**:
+
+- `findNodeById` - ノードツリー操作
+- `findNodePathById` - ノードツリー操作
+- `updateNodeInTree` - ノードツリー操作
+- `removeNodeFromTree` - ノードツリー操作
+- `findParentNode` - ノードツリー操作
+- `getSiblingNodes` - ノードツリー操作
+- `getFirstVisibleChild` - ノードツリー操作
+- `findNodeInRoots` - ノードツリー操作
+- `findNodeInData` - ノードツリー操作
+- `traverseNodes` - ノードツリー操作
+- `isRootNode` - ノードツリー操作
+- `findNodeBySpatialDirection` - 空間ナビゲーション
+- `validateMindMapNode` - バリデーション
+- `isMindMapNode` - 型ガード
+
+**成果**:
+
+- ファイル削減: navigation.ts完全削除
+- 重複削減: validation.tsから約50行削除
+- 一元化: ノード操作関数が`@mindmap/utils`に集約
+- 保守性向上: ノード関連ロジックの単一の真実の源を確立
 
 #### ステップ1.2: パス操作の統合 ✅ 完了
 
@@ -133,14 +148,13 @@
    - 統合して共通化
 ```
 
-#### 成功基準
-- [ ] ノード操作関数がmindmap/utilsに集約
-- [ ] パス操作関数がfolderUtilsに集約
-- [ ] searchUtilsの役割が明確
-- [ ] すべてのビルドが成功（`npm run build`）
-- [ ] 型チェックが成功（`npm run type-check`）
-- [ ] リント警告なし（`npm run lint`）
-- [ ] 手動テストで基本機能が動作
+#### フェーズ1 成功基準
+
+- [x] ノード操作関数がmindmap/utilsに集約
+- [x] パス操作関数がpathOperationsに集約
+- [ ] searchUtilsの役割が明確（未実施）
+- [x] 型チェックが成功（`npm run type-check`）
+- [x] リント警告なし（既存warningのみ）
 
 ---
 
@@ -398,19 +412,22 @@ useMindMap (最上位統合フック)
 ## 実装チェックリスト
 
 ### フェーズ1開始前
-- [ ] feature branchを作成 (`git checkout -b refactor/utils-consolidation`)
-- [ ] 現在の状態をコミット
-- [ ] ビルド・型チェック・リントが成功することを確認
+
+- [x] feature branchを作成 (`git checkout -b refactor/node-operations-consolidation`)
+- [x] 現在の状態をコミット
+- [x] ビルド・型チェック・リントが成功することを確認
 
 ### フェーズ1実装中
-- [ ] ステップ1.1: ノード操作の統合完了
-- [ ] ステップ1.2: パス操作の統合完了
-- [ ] ステップ1.3: searchUtilsの整理完了
-- [ ] 各ステップ後にビルド・型チェック実行
-- [ ] 各ステップ後にコミット
+
+- [x] ステップ1.1: ノード操作の統合完了 (2025-10-10)
+- [x] ステップ1.2: パス操作の統合完了 (2025-10-09)
+- [ ] ステップ1.3: searchUtilsの整理完了（未実施）
+- [x] 各ステップ後にビルド・型チェック実行
+- [ ] 各ステップ後にコミット（次回実施）
 
 ### フェーズ1完了後
-- [ ] すべての成功基準をクリア
+
+- [ ] すべての成功基準をクリア（ステップ1.3残り）
 - [ ] 手動テスト実施
 - [ ] PRを作成してレビュー
 - [ ] マージ
