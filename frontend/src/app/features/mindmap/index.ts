@@ -27,7 +27,7 @@ export * from './utils/canvasCoordinateUtils';
 export * from './utils/clipboardPaste';
 export * from './utils/linkNavigation';
 export * from './utils/linkUtils';
-export * from './utils/nodeTreeUtils';
+export * from './utils/nodeOperations';
 export * from './utils/nodeUtils';
 export * from './utils/pasteTree';
 

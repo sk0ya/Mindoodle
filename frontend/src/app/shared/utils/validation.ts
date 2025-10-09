@@ -88,6 +88,8 @@ export const validateMindMapData = (data: unknown): DataValidationResult => {
 
 /**
  * MindMapNodeの詳細バリデーション
+ * @deprecated Use validateMindMapNode from @mindmap/utils instead
+ * This function is kept for backward compatibility only.
  */
 export const validateMindMapNode = (node: unknown): DataValidationResult => {
   const errors: string[] = [];

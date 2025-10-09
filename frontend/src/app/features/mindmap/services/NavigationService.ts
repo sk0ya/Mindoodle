@@ -1,6 +1,5 @@
 import type { MindMapNode } from '@shared/types';
-import { findNodeById, getFirstVisibleChild, getSiblingNodes } from '@mindmap/utils';
-import { findNodeBySpatialDirection } from '@shared/utils';
+import { findNodeById, getFirstVisibleChild, getSiblingNodes, findNodeBySpatialDirection } from '@mindmap/utils';
 
 export function getNextNodeId(direction: 'up'|'down'|'left'|'right', selectedNodeId: string, roots: MindMapNode[]): string | null {
   const currentRoot = roots.find(r => !!findNodeById(r, selectedNodeId)) || roots[0];

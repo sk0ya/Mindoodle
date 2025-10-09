@@ -1,8 +1,7 @@
 import { useMemo } from 'react';
-import { findNodeById, getFirstVisibleChild, findNodeInRoots } from '@mindmap/utils';
+import { findNodeById, getFirstVisibleChild, findNodeInRoots, findNodeBySpatialDirection } from '@mindmap/utils';
 import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
 import { useMindMapStore } from '../../store';
-import { findNodeBySpatialDirection } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
 // viewportService import retained if needed elsewhere; currently ensureVisible uses dedicated service
 import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportService';

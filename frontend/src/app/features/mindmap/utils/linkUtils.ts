@@ -1,6 +1,6 @@
 import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
 import { generateId as generateLinkId } from '@shared/utils';
-import { findNodeInRoots } from './nodeTreeUtils';
+import { findNodeInRoots } from './nodeOperations';
 
 // ノードにリンクを追加する関数
 export const addLinkToNode = (

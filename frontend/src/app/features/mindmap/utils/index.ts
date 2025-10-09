@@ -4,7 +4,8 @@ export * from './canvasCoordinateUtils';
 export * from './clipboardPaste';
 export * from './linkNavigation';
 export * from './linkUtils';
-export * from './nodeTreeUtils';
+// Node operations consolidated into nodeOperations.ts
+export * from './nodeOperations';
 export * from './nodeUtils';
 export * from './pasteTree';
 export * from './searchUtils';

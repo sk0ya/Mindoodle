@@ -14,13 +14,22 @@ export * from './eventManager';
 export * from './lodash-utils';
 export * from './logger';
 export * from './mapPath';
-export * from './navigation';
+// Navigation functions moved to @mindmap/utils/nodeOperations
+// export * from './navigation';
 export * from './safeEmitStatus';
 export * from './safeJson';
 export * from './searchUtils';
 export * from './stringUtils';
 export * from './typeUtils';
-export * from './validation';
+// Validation - exclude isMindMapNode and validateMindMapNode to avoid conflicts with @mindmap/utils
+export {
+  isMindMapData,
+  validateMindMapData,
+  isValidFileExtension,
+  isValidUrl,
+  isSafeString,
+  type DataValidationResult
+} from './validation';
 
 // Storage utilities (avoid type conflicts) - direct import since index.ts removed
 export {
