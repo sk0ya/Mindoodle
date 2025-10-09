@@ -4,12 +4,12 @@
  */
 
 import type { MindMapNode } from '@shared/types';
-import { useEffect } from 'react';
 import type { VimModeHook } from '../../vim/hooks/useVimMode';
 import { useCommands } from '@commands/system/useCommands';
 import type { UseCommandsReturn } from '@commands/system/useCommands';
 import { useMindMapStore } from '../store/mindMapStore';
 import { JUMP_CHARS } from '../../vim/constants';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface KeyboardShortcutHandlers {
   selectedNodeId: string | null;
@@ -204,8 +204,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     } as any
   });
 
-  useEffect(() => {
-    const handlePaste = (event: ClipboardEvent) => {
+  const handlePaste = (event: ClipboardEvent) => {
       try {
         // If Monaco or text inputs have focus, let them handle paste
         const activeEl = (document.activeElement as HTMLElement | null);
@@ -272,7 +271,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       }
     };
 
-    const handleKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = (event: KeyboardEvent) => {
       // Strong guard: if Monaco markdown editor has focus, do not handle anything here (including Vim)
       try {
         const activeEl = (document.activeElement as HTMLElement | null);
@@ -596,14 +595,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       }
     };
 
-    document.addEventListener('keydown', handleKeyDown, true);
-    document.addEventListener('paste', handlePaste, true);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown, true);
-      document.removeEventListener('paste', handlePaste, true);
-    };
-  }, [handlers, vim, commands]);
+  // Register event listeners using useEventListener hook
+  useEventListener('keydown', handleKeyDown, { target: document, capture: true });
+  useEventListener('paste', handlePaste, { target: document, capture: true });
 };
 
 export default useKeyboardShortcuts;

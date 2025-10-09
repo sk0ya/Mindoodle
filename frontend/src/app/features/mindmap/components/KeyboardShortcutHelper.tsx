@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { stopPropagationOnly } from '@shared/utils';
 import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
@@ -6,6 +6,7 @@ import './KeyboardShortcutHelper.css';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store/mindMapStore';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface ShortcutItem {
   keys: (string | React.ReactNode)[];
@@ -129,19 +130,13 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
     )
   })).filter(category => category.items.length > 0);
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && isVisible) {
-        onClose();
-      }
-    };
+  const handleKeyDown = (e: KeyboardEvent) => {
+    if (e.key === 'Escape' && isVisible) {
+      onClose();
+    }
+  };
 
-    document.addEventListener('keydown', handleKeyDown);
-
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [isVisible, onClose]);
+  useEventListener('keydown', handleKeyDown, { target: document, enabled: isVisible });
 
   if (!isVisible) return null;
 

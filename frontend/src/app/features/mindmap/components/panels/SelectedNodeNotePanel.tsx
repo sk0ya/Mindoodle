@@ -5,6 +5,7 @@ import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import { viewportService } from '@/app/core/services';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 type Props = {
   nodeId?: string | null;
@@ -112,20 +113,32 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     observeEl('.primary-sidebar');
     observeEl('.markdown-panel');
 
-    // Also listen to window resize
-    const onWin = () => calcOffsets();
-    window.addEventListener('resize', onWin);
-
     // Fallback: mutation observer to catch DOM add/remove of panels
     const mo = new MutationObserver(() => calcOffsets());
     mo.observe(document.body, { childList: true, subtree: true });
 
     return () => {
       observers.forEach(o => { try { o.disconnect(); } catch {} });
-      window.removeEventListener('resize', onWin);
       try { mo.disconnect(); } catch {}
     };
   }, []);
+
+  // Listen to window resize
+  const onWinResize = useCallback(() => {
+    // Trigger offset recalculation (access calcOffsets from previous effect)
+    try {
+      const act = document.querySelector<HTMLElement>('.activity-bar');
+      const leftA = act?.offsetWidth || 0;
+      const sidebar = document.querySelector<HTMLElement>('.primary-sidebar');
+      const leftB = (sidebar?.offsetWidth || 0);
+      setLeftOffset(leftA + leftB);
+      const mdPanel = document.querySelector<HTMLElement>('.markdown-panel');
+      const rightA = mdPanel?.offsetWidth || 0;
+      setRightOffset(rightA);
+    } catch {}
+  }, []);
+
+  useEventListener('resize', onWinResize);
 
   // When internal height state changes (programmatic), store height then notify listeners
   useEffect(() => {

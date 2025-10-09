@@ -1,8 +1,9 @@
 // moved to layout/sidebar
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Bot, Plug, CheckCircle, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
 import { useAI } from '@/app/features/ai/hooks/useAI';
 import { useConnectionTest, useModelLoader } from '@shared/hooks';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 const AISidebar: React.FC = () => {
   const {
@@ -50,35 +51,30 @@ const AISidebar: React.FC = () => {
   const { errors: validationErrors } = validateSettings();
   
   // 拡張機能の検出
-  useEffect(() => {
-    const checkExtension = () => {
-      const isAvailable = typeof window !== 'undefined' && 
-                         !!window.MindFlowOllamaBridge && 
-                         window.MindFlowOllamaBridge.available === true;
-      setExtensionAvailable(isAvailable);
-    };
-    
-    // 初期チェック
+  const checkExtension = () => {
+    const isAvailable = typeof window !== 'undefined' &&
+                       !!window.MindFlowOllamaBridge &&
+                       window.MindFlowOllamaBridge.available === true;
+    setExtensionAvailable(isAvailable);
+  };
+
+  // 初期チェック
+  React.useEffect(() => {
     checkExtension();
-    
-    // 拡張機能の準備完了イベントをリッスン
-    const handleExtensionReady = () => {
-      checkExtension();
-    };
-    
-    window.addEventListener('mindflowOllamaBridgeReady', handleExtensionReady);
-    
+
     // 定期的にチェック（拡張機能が後から読み込まれる場合）
     const interval = setInterval(checkExtension, 1000);
-    
+
     return () => {
-      window.removeEventListener('mindflowOllamaBridgeReady', handleExtensionReady);
       clearInterval(interval);
     };
   }, []);
+
+  // 拡張機能の準備完了イベントをリッスン
+  useEventListener('mindflowOllamaBridgeReady' as keyof WindowEventMap, checkExtension as any, { target: window });
   
   // AI機能が有効になった時にモデル一覧を取得
-  useEffect(() => {
+  React.useEffect(() => {
     if (aiSettings.enabled && availableModels.length === 0) {
       loadModels();
     }

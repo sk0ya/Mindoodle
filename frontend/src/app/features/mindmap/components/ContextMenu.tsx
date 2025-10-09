@@ -1,8 +1,9 @@
-import React, { useEffect, memo } from 'react';
+import React, { useCallback, memo } from 'react';
 import { MindMapNode } from '@shared/types';
 import MenuItems from './contextmenu/MenuItems';
 import ContextMenuStyles from '../styles/ContextMenuStyles';
 import { useClickOutside } from '@shared/utils';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface Position {
   x: number;
@@ -40,20 +41,13 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const menuRef = useClickOutside<HTMLDivElement>(onClose, visible);
 
   // ESCキーで閉じる
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    if (visible) {
-      document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+  const handleKeyDown = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      onClose();
     }
-    
-    return undefined;
-  }, [visible, onClose]);
+  }, [onClose]);
+
+  useEventListener('keydown', handleKeyDown, { target: document, enabled: visible });
 
   if (!visible || !selectedNode) return null;
 

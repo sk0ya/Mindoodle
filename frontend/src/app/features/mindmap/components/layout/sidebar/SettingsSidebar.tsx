@@ -1,7 +1,8 @@
 // moved to layout/sidebar
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMindMapStore } from '@mindmap/store';
 import { embeddingService } from '@core/services/EmbeddingService';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface SettingsSidebarProps {
 }
@@ -17,26 +18,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   };
 
   // モデルダウンロード進捗リスナー
-  useEffect(() => {
-    const handleProgress = (e: CustomEvent) => {
-      const progress = e.detail;
-      if (progress.status === 'progress' && progress.file) {
-        const percent = progress.progress ? Math.round(progress.progress * 100) : 0;
-        setEmbeddingProgress(`Downloading ${progress.file}: ${percent}%`);
-      } else if (progress.status === 'done') {
-        setEmbeddingProgress('Model loaded successfully!');
-        setTimeout(() => {
-          setEmbeddingProgress('');
-          setIsInitializingEmbedding(false);
-        }, 2000);
-      }
-    };
+  const handleProgress = (e: CustomEvent) => {
+    const progress = e.detail;
+    if (progress.status === 'progress' && progress.file) {
+      const percent = progress.progress ? Math.round(progress.progress * 100) : 0;
+      setEmbeddingProgress(`Downloading ${progress.file}: ${percent}%`);
+    } else if (progress.status === 'done') {
+      setEmbeddingProgress('Model loaded successfully!');
+      setTimeout(() => {
+        setEmbeddingProgress('');
+        setIsInitializingEmbedding(false);
+      }, 2000);
+    }
+  };
 
-    window.addEventListener('embedding-progress', handleProgress as EventListener);
-    return () => {
-      window.removeEventListener('embedding-progress', handleProgress as EventListener);
-    };
-  }, []);
+  useEventListener('embedding-progress' as keyof WindowEventMap, handleProgress as any, { target: window });
 
   // ナレッジグラフ有効化時にモデル初期化
   const handleKnowledgeGraphToggle = async (enabled: boolean) => {

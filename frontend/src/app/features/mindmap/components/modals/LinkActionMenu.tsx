@@ -1,7 +1,8 @@
-import React, { useRef, useEffect, useCallback } from 'react';
+import React, { useRef, useCallback } from 'react';
 import { Link } from 'lucide-react';
 import type { NodeLink } from '@shared/types';
 import { viewportService } from '@/app/core/services';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface LinkActionMenuProps {
   isOpen: boolean;
@@ -21,29 +22,20 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   // メニュー外クリックで閉じる
-  useEffect(() => {
-    if (!isOpen) return;
+  const handleClickOutside = useCallback((event: MouseEvent) => {
+    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      onClose();
+    }
+  }, [onClose]);
 
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
-        onClose();
-      }
-    };
+  const handleEscape = useCallback((event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      onClose();
+    }
+  }, [onClose]);
 
-    const handleEscape = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        onClose();
-      }
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleEscape);
-    
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleEscape);
-    };
-  }, [isOpen, onClose]);
+  useEventListener('mousedown', handleClickOutside, { target: document, enabled: isOpen });
+  useEventListener('keydown', handleEscape, { target: document, enabled: isOpen });
 
   // メニュー位置の調整
   const adjustedPosition = useCallback(() => {

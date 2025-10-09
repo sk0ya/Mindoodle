@@ -1,6 +1,7 @@
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FileAttachment } from '@shared/types';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -45,16 +46,15 @@ const ImageModal: React.FC<ImageModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
-      document.addEventListener('keydown', handleKeyDown);
       document.body.style.overflow = 'hidden';
-      return () => {
-        document.removeEventListener('keydown', handleKeyDown);
-        document.body.style.overflow = 'unset';
-      };
     }
 
-    return undefined;
-  }, [isOpen, handleKeyDown]);
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isOpen]);
+
+  useEventListener('keydown', handleKeyDown, { target: document, enabled: isOpen });
 
   const handleImageLoad = () => {
     setLoading(false);
