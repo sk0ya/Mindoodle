@@ -3,13 +3,17 @@
   flex-direction: column;
   width: 280px;
   height: calc(100vh);
-  background-color: var(--bg-secondary);
+  background-color: #ffffff;
   border-right: 1px solid var(--border-color);
   position: fixed;
   left: 48px;
   top: 0;
   z-index: 950;
   color: var(--text-primary);
+}
+
+[data-theme="dark"] .primary-sidebar {
+  background-color: var(--bg-secondary);
 }
 
 .primary-sidebar-header {
@@ -35,7 +39,8 @@
 }
 
 /* MindMapSidebarを Primary Sidebar内で適切に表示 */
-.primary-sidebar .mindmap-sidebar {
+.primary-sidebar .mindmap-sidebar,
+.primary-sidebar .mind-map-sidebar {
   background: none !important;
   border: none !important;
   width: 100% !important;

@@ -2,6 +2,7 @@ import React from 'react';
 
 const SidebarStyles: React.FC = () => (
   <style>{`
+    .mind-map-sidebar,
     .mindmap-sidebar {
       width: 280px;
       height: calc(100vh);
@@ -18,12 +19,14 @@ const SidebarStyles: React.FC = () => (
       padding-bottom: 24px;
     }
 
+    [data-theme="dark"] .mind-map-sidebar,
     [data-theme="dark"] .mindmap-sidebar {
       background: #1f2937;
       border-right: 1px solid rgba(75, 85, 99, 0.3);
       box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.2);
     }
 
+    .mind-map-sidebar.collapsed,
     .mindmap-sidebar.collapsed {
       width: 50px;
       height: 100vh;
@@ -40,6 +43,7 @@ const SidebarStyles: React.FC = () => (
       overflow: hidden;
     }
 
+    [data-theme="dark"] .mind-map-sidebar.collapsed,
     [data-theme="dark"] .mindmap-sidebar.collapsed {
       background: linear-gradient(to bottom, #374151, #4b5563);
       border-right: 2px solid #6b7280;
@@ -371,6 +375,37 @@ const SidebarStyles: React.FC = () => (
       flex: 1;
       overflow-y: auto;
       padding: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+    }
+
+    .maps-content::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .maps-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .maps-content::-webkit-scrollbar-thumb {
+      background-color: rgba(148, 163, 184, 0.5);
+      border-radius: 4px;
+    }
+
+    .maps-content::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(148, 163, 184, 0.7);
+    }
+
+    [data-theme="dark"] .maps-content {
+      scrollbar-color: rgba(107, 114, 128, 0.5) transparent;
+    }
+
+    [data-theme="dark"] .maps-content::-webkit-scrollbar-thumb {
+      background-color: rgba(107, 114, 128, 0.5);
+    }
+
+    [data-theme="dark"] .maps-content::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(107, 114, 128, 0.7);
     }
 
     .maps-content-wrapper {
@@ -378,6 +413,37 @@ const SidebarStyles: React.FC = () => (
       overflow-y: auto;
       position: relative;
       min-height: 0;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
+    }
+
+    .maps-content-wrapper::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    .maps-content-wrapper::-webkit-scrollbar-track {
+      background: transparent;
+    }
+
+    .maps-content-wrapper::-webkit-scrollbar-thumb {
+      background-color: rgba(148, 163, 184, 0.5);
+      border-radius: 4px;
+    }
+
+    .maps-content-wrapper::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(148, 163, 184, 0.7);
+    }
+
+    [data-theme="dark"] .maps-content-wrapper {
+      scrollbar-color: rgba(107, 114, 128, 0.5) transparent;
+    }
+
+    [data-theme="dark"] .maps-content-wrapper::-webkit-scrollbar-thumb {
+      background-color: rgba(107, 114, 128, 0.5);
+    }
+
+    [data-theme="dark"] .maps-content-wrapper::-webkit-scrollbar-thumb:hover {
+      background-color: rgba(107, 114, 128, 0.7);
     }
 
     .maps-content-wrapper.drag-over-root {
