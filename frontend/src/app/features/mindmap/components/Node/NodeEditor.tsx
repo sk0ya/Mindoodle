@@ -415,6 +415,29 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         });
     };
 
+    // ===== ここから追加: 各行幅を計測して最長行の左端に合わせる =====
+    const measureText = (() => {
+      let canvas: HTMLCanvasElement | null = null;
+      let ctx: CanvasRenderingContext2D | null = null;
+      return (text: string) => {
+        if (!canvas) {
+          canvas = document.createElement('canvas');
+          ctx = canvas.getContext('2d');
+        }
+        if (!ctx) return (text?.length || 0) * (Number(fontSize) || 14) * 0.6;
+        ctx.font = `${fontStyleValue} ${fontWeightValue} ${fontSize}px ${fontFamily}`;
+        return ctx.measureText(text ?? '').width;
+      };
+    })();
+
+    const getLineWidth = (line: any) => {
+      if (typeof line.width === 'number') return line.width;
+      return line.tokens.reduce((w: number, t: any) => w + (typeof t.width === 'number' ? t.width : measureText(t.text || '')), 0);
+    };
+
+    const maxLineWidth = Math.max(...lines.map(getLineWidth));
+    // ===== 追加ここまで =====
+
     return (
       <>
         <text
@@ -442,7 +465,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           {lines.map((line, lineIndex) => (
             <tspan
               key={`line-${lineIndex}`}
-              x={textX}
+              // ▼ 各行の中心 x をずらして、左端を最長行の左端にそろえる
+              x={(() => {
+                const lw = getLineWidth(line);
+                return textX - (maxLineWidth - lw) / 2; // centerXForThisLine
+              })()}
               dy={lineIndex === 0 ? firstLineDy : lineHeight}
             >
               {line.tokens.reduce<React.ReactNode[]>((acc, token, tokenIndex) => {
