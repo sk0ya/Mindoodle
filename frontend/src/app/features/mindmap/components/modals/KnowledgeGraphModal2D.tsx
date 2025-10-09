@@ -28,6 +28,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [nodes, setNodes] = useState<Node2D[]>([]);
   const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [selectedNode, setSelectedNode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vectorizationProgress, setVectorizationProgress] = useState<{
@@ -158,6 +159,22 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   }, [isOpen, loadAndLayout, runInitialVectorization, storageAdapter]);
 
   /**
+   * 現在のマップを選択状態にする
+   */
+  useEffect(() => {
+    if (isOpen && currentMapId && nodes.length > 0) {
+      const currentNodeId = `${currentMapId}.md`;
+      const nodeExists = nodes.some(n => n.id === currentNodeId);
+      if (nodeExists) {
+        setSelectedNode(currentNodeId);
+      } else if (nodes.length > 0) {
+        // 現在のマップがない場合は最初のノードを選択
+        setSelectedNode(nodes[0].id);
+      }
+    }
+  }, [isOpen, currentMapId, nodes]);
+
+  /**
    * Canvasに描画
    */
   useEffect(() => {
@@ -173,35 +190,38 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     // ノード描画
     for (const node of nodes) {
       const isHovered = hoveredNode === node.id;
+      const isSelected = selectedNode === node.id;
       const fileName = node.id.split('/').pop()?.replace('.md', '') || node.id;
       const mapId = node.id.replace('.md', '');
       const isCurrent = currentMapId && mapId === currentMapId;
 
       // ノード円
       ctx.beginPath();
-      const nodeRadius = isHovered ? 12 : isCurrent ? 10 : 6;
+      const nodeRadius = isHovered ? 12 : (isSelected || isCurrent) ? 10 : 6;
       ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
 
       // ノード描画
       if (isHovered) {
         ctx.fillStyle = '#3b82f6';
+      } else if (isSelected) {
+        ctx.fillStyle = '#8b5cf6'; // 紫色で選択状態
       } else {
         ctx.fillStyle = '#6b7280';
       }
       ctx.fill();
 
-      // ホバー時は枠線
-      if (isHovered) {
+      // ホバーまたは選択時は枠線
+      if (isHovered || isSelected) {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.stroke();
       }
 
       // ラベル配置の計算
-      ctx.font = isHovered || isCurrent ? 'bold 13px sans-serif' : '11px sans-serif';
+      ctx.font = (isHovered || isSelected || isCurrent) ? 'bold 13px sans-serif' : '11px sans-serif';
       const textWidth = ctx.measureText(fileName).width;
       const padding = 4;
-      const textHeight = (isHovered || isCurrent) ? 18 : 14;
+      const textHeight = (isHovered || isSelected || isCurrent) ? 18 : 14;
 
       // ラベル位置を決定（画面内に収まるように調整）
       let labelX = node.x;
@@ -283,7 +303,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       }
       ctx.fillText(fileName, labelX, labelY);
     }
-  }, [nodes, hoveredNode, currentMapId]);
+  }, [nodes, hoveredNode, selectedNode, currentMapId]);
 
   /**
    * マウスムーブでホバー検出
@@ -307,14 +327,12 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   }, [nodes]);
 
   /**
-   * ダブルクリックでマップを開く
+   * マップを開く共通処理
    */
-  const handleDoubleClick = useCallback(async () => {
-    if (!hoveredNode) return;
-
+  const openMap = useCallback(async (nodeId: string) => {
     try {
       // ファイルパスからマップIDを抽出（例: "mapId.md" → "mapId"）
-      const mapId = hoveredNode.replace('.md', '');
+      const mapId = nodeId.replace('.md', '');
 
       // コマンドレジストリを使ってマップを切り替え
       const registry = getCommandRegistry();
@@ -331,7 +349,124 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     } catch (error) {
       console.error('Failed to open map:', error);
     }
-  }, [hoveredNode, onClose]);
+  }, [onClose]);
+
+  /**
+   * クリックで選択状態を変更
+   */
+  const handleClick = useCallback(() => {
+    if (hoveredNode) {
+      setSelectedNode(hoveredNode);
+    }
+  }, [hoveredNode]);
+
+  /**
+   * ダブルクリックでマップを開く
+   */
+  const handleDoubleClick = useCallback(async () => {
+    if (!hoveredNode) return;
+    await openMap(hoveredNode);
+  }, [hoveredNode, openMap]);
+
+  /**
+   * 方向キーで選択ノードを移動
+   */
+  const moveSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
+    if (!selectedNode || nodes.length === 0) return;
+
+    const currentNode = nodes.find(n => n.id === selectedNode);
+    if (!currentNode) return;
+
+    // 方向に応じて最も近いノードを探す
+    let closestNode: Node2D | null = null;
+    let minDistance = Infinity;
+
+    for (const node of nodes) {
+      if (node.id === selectedNode) continue;
+
+      const dx = node.x - currentNode.x;
+      const dy = node.y - currentNode.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      // 方向チェック
+      let isInDirection = false;
+      switch (direction) {
+        case 'up':
+          isInDirection = dy < -20; // 上方向
+          break;
+        case 'down':
+          isInDirection = dy > 20; // 下方向
+          break;
+        case 'left':
+          isInDirection = dx < -20; // 左方向
+          break;
+        case 'right':
+          isInDirection = dx > 20; // 右方向
+          break;
+      }
+
+      if (isInDirection && distance < minDistance) {
+        minDistance = distance;
+        closestNode = node;
+      }
+    }
+
+    if (closestNode) {
+      setSelectedNode(closestNode.id);
+    }
+  }, [selectedNode, nodes]);
+
+  /**
+   * キーボードイベントハンドラ
+   */
+  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+    if (!isOpen) return;
+
+    // Enterキーで選択ノードを開く
+    if (e.key === 'Enter' && selectedNode) {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      openMap(selectedNode);
+      return;
+    }
+
+    // 方向キー
+    if (e.key === 'ArrowUp' || e.key === 'k') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      moveSelection('up');
+    } else if (e.key === 'ArrowDown' || e.key === 'j') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      moveSelection('down');
+    } else if (e.key === 'ArrowLeft' || e.key === 'h') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      moveSelection('left');
+    } else if (e.key === 'ArrowRight' || e.key === 'l') {
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      moveSelection('right');
+    }
+  }, [isOpen, selectedNode, openMap, moveSelection]);
+
+  /**
+   * キーボードイベントリスナーを登録（キャプチャフェーズで優先的に処理）
+   */
+  useEffect(() => {
+    if (!isOpen) return;
+
+    // キャプチャフェーズで登録することで、他のリスナーより先に実行
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+    };
+  }, [isOpen, handleKeyDown]);
 
   if (!isOpen) return null;
 
@@ -339,7 +474,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     <div className="knowledge-graph-modal-overlay" onClick={onClose}>
       <div className="knowledge-graph-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="knowledge-graph-modal-header">
-          <h2 className="knowledge-graph-modal-title">Knowledge Graph (2D)</h2>
+          <h2 className="knowledge-graph-modal-title">Knowledge Graph</h2>
           <button
             onClick={onClose}
             className="knowledge-graph-modal-close"
@@ -378,11 +513,12 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
               height={CANVAS_HEIGHT}
               className="knowledge-graph-canvas"
               onMouseMove={handleMouseMove}
+              onClick={handleClick}
               onDoubleClick={handleDoubleClick}
             />
 
             <div className="knowledge-graph-modal-info">
-              {nodes.length} files visualized. Hover over nodes to see filenames. Double-click to open.
+              {nodes.length} files visualized. Use arrow keys or hjkl to navigate. Press Enter or double-click to open.
             </div>
           </>
         )}
