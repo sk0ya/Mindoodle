@@ -10,6 +10,7 @@ import { ForceDirectedLayout, type Node2D } from '../../utils/forceDirectedLayou
 import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
 import type { StorageAdapter } from '@core/types';
+import { getCommandRegistry } from '@commands/system/registry';
 
 interface KnowledgeGraphModal2DProps {
   isOpen: boolean;
@@ -79,7 +80,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   }, []);
 
   /**
-   * 初回ベクトル化処理
+   * 初回ベクトル化処理（既存のベクトルをスキップ）
    */
   const runInitialVectorization = useCallback(async () => {
     if (!storageAdapter) {
@@ -88,16 +89,28 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
 
     try {
-      setVectorizationProgress({ current: 0, total: 0 });
+      // 既存のベクトルを取得
+      const existingVectors = await vectorStore.getAllVectors();
 
       // 全マップを取得
       const allMaps = await storageAdapter.loadAllMaps();
-      const totalMaps = allMaps.length;
-      setVectorizationProgress({ current: 0, total: totalMaps });
+
+      // ベクトル化が必要なマップのみフィルタリング
+      const mapsToVectorize = allMaps.filter(mapData => {
+        const filePath = `${mapData.mapIdentifier.mapId}.md`;
+        return !existingVectors.has(filePath);
+      });
+
+      // すでに全てベクトル化済みなら何もしない
+      if (mapsToVectorize.length === 0) {
+        return;
+      }
+
+      setVectorizationProgress({ current: 0, total: mapsToVectorize.length });
 
       // 各マップをベクトル化（順次処理）
-      for (let i = 0; i < allMaps.length; i++) {
-        const mapData = allMaps[i];
+      for (let i = 0; i < mapsToVectorize.length; i++) {
+        const mapData = mapsToVectorize[i];
 
         if (mapData && mapData.rootNodes) {
           const markdown = mapData.rootNodes.map(node => nodeToMarkdown(node)).join('\n');
@@ -113,7 +126,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
           }
         }
 
-        setVectorizationProgress({ current: i + 1, total: totalMaps });
+        setVectorizationProgress({ current: i + 1, total: mapsToVectorize.length });
       }
 
       setVectorizationProgress(null);
@@ -128,9 +141,9 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
    * モーダルが開かれたら初回ベクトル化とレイアウト計算
    */
   useEffect(() => {
-    if (isOpen) {
-      // 初回のみベクトル化実行
-      if (!hasRunInitialVectorization.current && storageAdapter) {
+    if (isOpen && storageAdapter) {
+      // セッション中に一度だけベクトル化チェックを実行
+      if (!hasRunInitialVectorization.current) {
         hasRunInitialVectorization.current = true;
         runInitialVectorization().then(() => {
           loadAndLayout();
@@ -138,6 +151,9 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       } else {
         loadAndLayout();
       }
+    } else if (isOpen) {
+      // storageAdapterがない場合はレイアウトのみ
+      loadAndLayout();
     }
   }, [isOpen, loadAndLayout, runInitialVectorization, storageAdapter]);
 
@@ -291,16 +307,31 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   }, [nodes]);
 
   /**
-   * クリックでファイルを開く
+   * ダブルクリックでマップを開く
    */
-  const handleClick = useCallback(() => {
-    if (hoveredNode) {
-      // ファイルを開くイベントを発火
-      window.dispatchEvent(new CustomEvent('open-file', {
-        detail: { filePath: hoveredNode }
-      }));
+  const handleDoubleClick = useCallback(async () => {
+    if (!hoveredNode) return;
+
+    try {
+      // ファイルパスからマップIDを抽出（例: "mapId.md" → "mapId"）
+      const mapId = hoveredNode.replace('.md', '');
+
+      // コマンドレジストリを使ってマップを切り替え
+      const registry = getCommandRegistry();
+      // ダミーコンテキスト（switch-mapコマンドは_contextを使用しない）
+      const context = {
+        selectedNodeId: null,
+        editingNodeId: null,
+        handlers: {} as any,
+      };
+      await registry.execute('switch-map', context, { mapId });
+
+      // モーダルを閉じる
+      onClose();
+    } catch (error) {
+      console.error('Failed to open map:', error);
     }
-  }, [hoveredNode]);
+  }, [hoveredNode, onClose]);
 
   if (!isOpen) return null;
 
@@ -347,11 +378,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
               height={CANVAS_HEIGHT}
               className="knowledge-graph-canvas"
               onMouseMove={handleMouseMove}
-              onClick={handleClick}
+              onDoubleClick={handleDoubleClick}
             />
 
             <div className="knowledge-graph-modal-info">
-              {nodes.length} files visualized. Hover over nodes to see filenames. Click to open.
+              {nodes.length} files visualized. Hover over nodes to see filenames. Double-click to open.
             </div>
           </>
         )}
