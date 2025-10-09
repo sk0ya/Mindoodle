@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { MindMapData } from '@shared/types';
+import { extractParentPaths } from '@shared/utils/pathOperations';
 
 interface UseSidebarFilteringOptions {
   mindMaps: MindMapData[];
@@ -68,11 +69,7 @@ export const useSidebarFiltering = ({
         foldersToShow.add(category);
 
         // 親フォルダも追加（階層構造を維持するため）
-        const parts = category.split('/');
-        for (let i = 1; i < parts.length; i++) {
-          const parentPath = parts.slice(0, i).join('/');
-          foldersToShow.add(parentPath);
-        }
+        extractParentPaths(category).forEach(parentPath => foldersToShow.add(parentPath));
       });
 
       // フォルダ名が検索条件にマッチするフォルダも追加（workspaceフォルダは除外）
@@ -83,11 +80,7 @@ export const useSidebarFiltering = ({
           foldersToShow.add(folder);
 
           // その親フォルダも追加
-          const parts = folder.split('/');
-          for (let i = 1; i < parts.length; i++) {
-            const parentPath = parts.slice(0, i).join('/');
-            foldersToShow.add(parentPath);
-          }
+          extractParentPaths(folder).forEach(parentPath => foldersToShow.add(parentPath));
         }
       });
     } else {
@@ -96,11 +89,7 @@ export const useSidebarFiltering = ({
 
       // 中間の祖先フォルダをすべて追加
       const addAncestors = (path: string) => {
-        const parts = path.split('/');
-        for (let i = 1; i < parts.length; i++) {
-          const parentPath = parts.slice(0, i).join('/');
-          if (parentPath) foldersToShow.add(parentPath);
-        }
+        extractParentPaths(path).forEach(parentPath => foldersToShow.add(parentPath));
       };
       Object.keys(grouped).forEach(addAncestors);
       Array.from(emptyFolders).forEach(addAncestors);

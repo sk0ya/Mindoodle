@@ -16,6 +16,7 @@ export * from './logger';
 export * from './mapPath';
 // Navigation functions moved to @mindmap/utils/nodeOperations
 // export * from './navigation';
+export * from './pathOperations';
 export * from './safeEmitStatus';
 export * from './safeJson';
 export * from './searchUtils';

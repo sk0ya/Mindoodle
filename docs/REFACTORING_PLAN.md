@@ -87,22 +87,38 @@
 - `findNodeBySpatialDirection` (navigation)
 - `validateMindMapNode` (validation)
 
-#### ステップ1.2: パス操作の統合
+#### ステップ1.2: パス操作の統合 ✅ 完了
 
-**目標**: パス関連関数をfolderUtilsに集約
+**目標**: パス関連関数を統合し、重複を削減
+
+**実施日**: 2025-10-09
 
 ```
-タスク:
-1. shared/utils/folderUtils.ts を確認
-2. stringUtils.ts から以下を移動:
-   - getLastPathSegment
-   - getParentPath
-   - getDirectoryPath
-   - getPathDepth
-3. folderUtils で再エクスポート
-4. stringUtils から削除（または非推奨マーク）
-5. import パスを更新
+完了タスク:
+1. ✅ shared/utils/pathOperations.ts を新規作成
+2. ✅ 以下の統合関数を実装:
+   - extractWorkspaceId() - ワークスペースID抽出
+   - parseWorkspacePath() - ワークスペースIDと相対パス分離
+   - isWorkspacePath() - ワークスペースパス判定
+   - cleanWorkspacePath() - ワークスペースID除去
+   - buildWorkspacePath() - ワークスペースIDとパス結合
+   - buildChildPath() - 親パスと子要素からパス構築
+   - extractParentPaths() - 全親パス抽出
+   - normalizePathSeparators() - パスセパレータ正規化
+   - resolveWorkspaceId() - ワークスペースID解決（フォールバック付き）
+3. ✅ 以下のファイルの重複ロジックを置き換え:
+   - sidebar.mapOps.ts (17行 → 3行、82%削減)
+   - sidebar.folderOps.ts (14行 → 5行、64%削減)
+   - sidebar.filtering.ts (親パス抽出ロジック3箇所を統合)
+4. ✅ shared/utils/index.ts でエクスポート
+5. ✅ 型チェック・Lint通過確認
 ```
+
+**成果**:
+
+- 重複コード: 約60〜80行削減
+- 保守性: パス操作ロジックが単一の真実の源に統合
+- 可読性: 関数名で意図が明確に表現
 
 #### ステップ1.3: searchUtils の整理
 

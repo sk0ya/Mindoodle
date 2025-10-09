@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { createChildFolderPath, logger, getLastPathSegment, splitPath } from '@shared/utils';
+import { logger, getLastPathSegment, splitPath } from '@shared/utils';
+import { parseWorkspacePath, buildChildPath, buildWorkspacePath } from '@shared/utils/pathOperations';
 
 interface UseSidebarFolderOpsOptions {
   mindMaps: MindMapData[];
@@ -26,16 +27,8 @@ export const useSidebarFolderOps = ({
   // workspaceIdを除去してcategoryを作成するヘルパー関数
   const extractCategory = useCallback((fullPath: string | null): string | undefined => {
     if (!fullPath) return undefined;
-
-    // workspaceIdのパターンにマッチするかチェック (ws_xxx or cloud)
-    const wsMatch = fullPath.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
-    if (wsMatch) {
-      const [, , categoryPart] = wsMatch;
-      return categoryPart || undefined;
-    }
-
-    // workspaceIdパターンでない場合はそのまま返す
-    return fullPath || undefined;
+    const { relativePath } = parseWorkspacePath(fullPath);
+    return relativePath || undefined;
   }, []);
 
   const toggleCategoryCollapse = useCallback((category: string) => {
@@ -51,29 +44,17 @@ export const useSidebarFolderOps = ({
     // eslint-disable-next-line no-alert
     const newFolderName = window.prompt(`新しいフォルダ名を入力してください${parentInfo}:`, '');
     if (newFolderName && newFolderName.trim()) {
-      // parentPathからworkspaceIdを抽出
-      let workspaceId: string;
-      let cleanParentPath: string | null = null;
+      // parentPathからworkspaceIdと相対パスを分離
+      const { workspaceId: extractedWorkspaceId, relativePath: cleanParentPath } = parseWorkspacePath(parentPath);
 
-      if (parentPath) {
-        const wsMatch = parentPath.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
-        if (wsMatch) {
-          workspaceId = wsMatch[1];
-          cleanParentPath = wsMatch[2] || null;
-        } else {
-          // ワークスペース情報が含まれていない場合、現在のワークスペースを使用
-          workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'local');
-          cleanParentPath = parentPath;
-        }
-      } else {
-        // parentPathがnullの場合、適切なワークスペースを決定
-        workspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : 'local');
-      }
+      // workspaceIdを解決（フォールバック付き）
+      const fallbackWorkspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : null);
+      const workspaceId = extractedWorkspaceId || fallbackWorkspaceId || 'local';
 
-      const newFolderPath = createChildFolderPath(cleanParentPath, newFolderName.trim());
+      const newFolderPath = buildChildPath(cleanParentPath, newFolderName.trim());
 
       if (onCreateFolder) {
-        const fullPath = `/${workspaceId}/${newFolderPath}`;
+        const fullPath = buildWorkspacePath(workspaceId, newFolderPath);
         Promise.resolve(onCreateFolder(fullPath)).then(() => {
           // Successfully created folder - update UI state
           setEmptyFolders(prev => new Set([...prev, newFolderPath]));

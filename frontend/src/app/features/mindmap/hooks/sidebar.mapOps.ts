@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
+import { resolveWorkspaceId } from '@shared/utils/pathOperations';
 
 interface UseSidebarMapOpsOptions {
   mindMaps: MindMapData[];
@@ -37,30 +38,9 @@ export const useSidebarMapOps = ({
     // eslint-disable-next-line no-alert
     const mapName = window.prompt(`新しいマインドマップの名前を入力してください${parentInfo}:`, '新しいマインドマップ');
     if (mapName && mapName.trim()) {
-      // parentPathからworkspaceIdを抽出
-      // Pattern: /ws_xxx or /cloud
-      let workspaceId: string | null = null;
-
-      if (parentPath) {
-        // Try to match workspace ID at the start of path
-        const pathMatch = parentPath.match(/^\/?(ws_[^/]+|cloud)/);
-        if (pathMatch) {
-          workspaceId = pathMatch[1];
-        }
-      }
-
-      // parentPathがnullまたはworkspaceIdが抽出できなかった場合
-      if (!workspaceId) {
-        if (currentWorkspaceId) {
-          workspaceId = currentWorkspaceId;
-        } else if (mindMaps.length > 0) {
-          // 既存のマップから最初のワークスペースIDを取得
-          workspaceId = mindMaps[0].mapIdentifier.workspaceId;
-        } else {
-          // デフォルトでローカルワークスペースを使用
-          workspaceId = 'local';
-        }
-      }
+      // parentPathからworkspaceIdを解決（フォールバック付き）
+      const fallbackWorkspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : null);
+      const workspaceId = resolveWorkspaceId(parentPath, fallbackWorkspaceId, 'local');
 
       onCreateMap(mapName.trim(), workspaceId, category);
 
