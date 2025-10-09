@@ -158,37 +158,47 @@
 
 ---
 
-### フェーズ2: Services層の命名整理 ⭐ 高優先度
+### フェーズ2: Services層の命名整理 ✅ 完了
 
-**期間**: 0.5-1日
+**期間**: 0.5日
 **リスク**: 低（リネームが主）
 **影響**: 小（importパスの変更のみ）
 **価値**: 中（混乱の解消）
 
-#### タスク
+**実施日**: 2025-10-10
+
+#### 実施内容
 
 ```
-1. ViewportService (mindmap) を ViewportScrollService にリネーム
+完了タスク:
+1. ✅ ViewportService → ViewportScrollService
    - mindmap/services/ViewportService.ts → ViewportScrollService.ts
-   - ensureVisible 関数の役割を明確化
+   - ensureVisible 関数の役割を明確化（スクロールによる可視化）
 
-2. ClipboardService (mindmap) を NodeClipboardService にリネーム
+2. ✅ ClipboardService → NodeClipboardService
    - mindmap/services/ClipboardService.ts → NodeClipboardService.ts
    - ノードのクリップボード操作に特化していることを明示
 
-3. NavigationService (mindmap) を NodeNavigationService にリネーム
+3. ✅ NavigationService → NodeNavigationService
    - mindmap/services/NavigationService.ts → NodeNavigationService.ts
    - ノード間のナビゲーションに特化していることを明示
 
-4. 全 import パスを更新
-5. 型定義も合わせて更新
+4. ✅ import パスを更新（useShortcutHandlers.ts）
+5. ✅ 型チェック成功確認
 ```
 
+#### 成果
+
+- **命名の明確化**: サービス名が役割を正確に反映
+- **衝突解消**: core/servicesとの命名衝突を完全に解消
+- **保守性向上**: サービスの専門性が名前から即座に理解可能
+
 #### 成功基準
-- [ ] Service名が役割を明確に反映
-- [ ] 命名の衝突が解消
-- [ ] 全importパスが正しく更新
-- [ ] ビルド・型チェック・リント成功
+
+- [x] Service名が役割を明確に反映
+- [x] 命名の衝突が解消
+- [x] 全importパスが正しく更新
+- [x] ビルド・型チェック・リント成功
 
 ---
 
