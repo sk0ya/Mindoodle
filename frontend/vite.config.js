@@ -27,7 +27,25 @@ export default defineConfig(({ command }) => ({
   },
   build: {
     outDir: 'dist',
-    sourcemap: true
+    sourcemap: true,
+    // メモリ使用量を削減するための最適化
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Monaco Editorを個別チャンクに分離（101MB）
+          'monaco-editor': ['monaco-editor', '@monaco-editor/react'],
+          'monaco-vim': ['monaco-vim'],
+          // Transformersとonnxruntimeを個別チャンクに分離（111MB）
+          'ml-runtime': ['@xenova/transformers'],
+          // その他の大きな依存を分離
+          'mermaid': ['mermaid'],
+          'vendor': ['react', 'react-dom', 'zustand', 'immer'],
+          'utils': ['marked', 'jszip', 'lucide-react']
+        }
+      }
+    },
+    // チャンクサイズ警告の閾値を上げる（大きな依存があるため）
+    chunkSizeWarningLimit: 1000
   },
   base: command === 'serve' ? '/' : '/Mindoodle/',
 }))
