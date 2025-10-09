@@ -4,7 +4,7 @@ import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentN
 import { useMindMapStore } from '../../store';
 import type { MindMapNode } from '@shared/types';
 // viewportService import retained if needed elsewhere; currently ensureVisible uses dedicated service
-import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportService';
+import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportScrollService';
 
 interface Args {
   data: { rootNode: MindMapNode } | null;
