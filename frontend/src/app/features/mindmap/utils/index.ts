@@ -8,4 +8,4 @@ export * from './linkUtils';
 export * from './nodeOperations';
 export * from './nodeUtils';
 export * from './pasteTree';
-export * from './searchUtils';
+export * from './mapSearch';

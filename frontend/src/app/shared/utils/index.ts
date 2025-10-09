@@ -19,7 +19,7 @@ export * from './mapPath';
 export * from './pathOperations';
 export * from './safeEmitStatus';
 export * from './safeJson';
-export * from './searchUtils';
+export * from './globalSearch';
 export * from './stringUtils';
 export * from './typeUtils';
 // Validation - exclude isMindMapNode and validateMindMapNode to avoid conflicts with @mindmap/utils
