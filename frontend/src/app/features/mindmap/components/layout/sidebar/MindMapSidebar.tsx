@@ -12,12 +12,8 @@ import { useMindMapStore } from '@mindmap/store';
 import { CloudStorageAdapter } from '@/app/core/storage/adapters';
 import { WorkspaceService } from '@shared/services';
 
-// Custom hooks
-import { useSidebarFolderOps } from '../../../hooks/sidebar.folderOps';
-import { useSidebarMapOps } from '../../../hooks/sidebar.mapOps';
-import { useSidebarFiltering } from '../../../hooks/sidebar.filtering';
-import { useSidebarExplorerTree } from '../../../hooks/sidebar.explorerTree';
-import { useSidebarContextMenu } from '../../../hooks/sidebar.contextMenu';
+// Unified sidebar hook (Phase 4.1 consolidation)
+import { useSidebar } from '../../../hooks/useSidebar';
 
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
@@ -91,61 +87,39 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     updateSetting('storageMode', 'local+cloud');
   };
 
-  // Folder operations hook
-  const {
-    emptyFolders,
-    setEmptyFolders,
-    collapsedCategories,
-    extractCategory,
-    toggleCategoryCollapse,
-    handleCreateFolder,
-    handleDeleteFolder,
-    handleRenameFolder
-  } = useSidebarFolderOps({
+  // Unified sidebar hook - consolidates all sidebar operations (Phase 4.1)
+  const sidebar = useSidebar({
     mindMaps,
     currentWorkspaceId,
+    onSelectMap,
+    onCreateMap,
+    onDeleteMap,
     onChangeCategory,
-    onCreateFolder
+    onCreateFolder,
+    explorerTree
   });
 
-  // Map operations hook
+  // Destructure only the values used in this component
   const {
+    // Map operations (used in ExplorerView)
     editingMapId,
     editingTitle,
     setEditingTitle,
-    handleStartRename,
     handleCancelRename,
-    handleCreateMap
-  } = useSidebarMapOps({
-    mindMaps,
-    currentWorkspaceId,
-    onCreateMap,
-    extractCategory,
-    setEmptyFolders
-  });
-
-  // Filtering hook
-  const {
+    // Filtering (used in SidebarHeader and empty state)
     searchTerm,
     setSearchTerm,
-    filteredMaps
-  } = useSidebarFiltering({
-    mindMaps,
-    emptyFolders,
-    currentWorkspaceId,
-    extractCategory
-  });
-
-  // Explorer tree hook
-  const {
+    filteredMaps,
+    // Explorer tree (used in ExplorerView and useEffect)
     enhancedExplorerTree,
     explorerCollapsed,
-    setExplorerCollapsed
-  } = useSidebarExplorerTree({
-    explorerTree,
-    emptyFolders,
-    currentWorkspaceId
-  });
+    setExplorerCollapsed,
+    // Context menu (used in ContextMenu component)
+    contextMenu,
+    contextMenuItems,
+    setContextMenu,
+    closeContextMenu
+  } = sidebar;
 
   // Initialize default collapsed state: collapse all folders except workspace roots
   React.useEffect(() => {
@@ -171,26 +145,6 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       return next;
     });
   }, [explorerTree, enhancedExplorerTree, setExplorerCollapsed]);
-
-  // Context menu hook
-  const {
-    contextMenu,
-    contextMenuItems,
-    setContextMenu,
-    closeContextMenu
-  } = useSidebarContextMenu({
-    mindMaps,
-    collapsedCategories,
-    onSelectMap,
-    onDeleteMap,
-    handleCreateMap,
-    handleCreateFolder,
-    handleRenameFolder,
-    handleDeleteFolder,
-    handleStartRename,
-    toggleCategoryCollapse,
-    extractCategory
-  });
 
   if (isCollapsed) {
     return <SidebarCollapsed onToggleCollapse={onToggleCollapse} />;

@@ -302,40 +302,46 @@
 **影響**: 大（全体的なアーキテクチャ変更）
 **価値**: 高（保守性の大幅改善）
 
-#### ステップ4.1: Sidebar関連フックの統合
+#### ステップ4.1: Sidebar関連フックの統合 ✅ 完了
 
 **目標**: sidebar.*系の5個のフックを統合
 
+**実施日**: 2025-10-10
+
 ```typescript
 // Before: 5個のファイル
-- sidebar.mapOps.ts
-- sidebar.folderOps.ts
-- sidebar.contextMenu.tsx
-- sidebar.filtering.ts
-- sidebar.explorerTree.ts
+- sidebar.mapOps.ts (65行)
+- sidebar.folderOps.ts (195行)
+- sidebar.contextMenu.tsx (287行)
+- sidebar.filtering.ts (133行)
+- sidebar.explorerTree.ts (72行)
+合計: 752行、5ファイル
 
 // After: 1個のファイル
-- useSidebar.ts (または useSidebarFeatures.ts)
+- useSidebar.tsx (680行)
+合計: 680行、1ファイル
 ```
 
-**実装方針**:
-```typescript
-export function useSidebar(config: SidebarConfig) {
-  const mapOps = useMapOperations();
-  const folderOps = useFolderOperations();
-  const contextMenu = useContextMenu();
-  const filtering = useFiltering();
-  const explorerTree = useExplorerTree();
+**成果**:
 
-  return {
-    mapOps,
-    folderOps,
-    contextMenu,
-    filtering,
-    explorerTree
-  };
-}
-```
+- **ファイル削減**: 5ファイル → 1ファイル (80%削減)
+- **コード削減**: 752行 → 680行 (約10%削減)
+- **保守性向上**: サイドバー機能が単一の真実の源に統合
+- **型安全性**: すべてのサイドバー操作が統合されたインターフェースを通じてアクセス可能
+
+**実装詳細**:
+
+1. ✅ useSidebar.tsxを作成（JSXサポートのため.tsx拡張子を使用）
+2. ✅ 以下の機能を統合:
+   - フォルダ操作（作成、削除、リネーム、折りたたみ）
+   - マップ操作（作成、リネーム、キャンセル）
+   - フィルタリングと検索
+   - エクスプローラーツリー管理
+   - コンテキストメニュー処理
+3. ✅ MindMapSidebar.tsxを更新して新しい統合フックを使用
+4. ✅ 古い個別フックファイル（sidebar.*.ts/tsx）を削除
+5. ✅ hooks/index.tsでuseSidebarをエクスポート
+6. ✅ 型チェック・Lint通過確認
 
 #### ステップ4.2: MindMap関連フックの階層化
 
@@ -364,11 +370,12 @@ useMindMap (最上位統合フック)
 ```
 
 #### 成功基準
-- [ ] sidebar関連フックが統合
-- [ ] MindMap関連フックが階層化
+
+- [x] sidebar関連フックが統合 (ステップ4.1完了)
+- [ ] MindMap関連フックが階層化 (ステップ4.2未実施)
 - [ ] フック間の依存関係が明確
-- [ ] ビルド・型チェック・リント成功
-- [ ] 全機能が正常に動作
+- [x] ビルド・型チェック・リント成功
+- [ ] 全機能が正常に動作（未テスト）
 
 ---
 

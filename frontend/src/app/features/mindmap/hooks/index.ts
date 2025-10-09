@@ -16,3 +16,4 @@ export * from './useAIOperations';
 export * from './useMarkdownOperations';
 export * from './useEditorEffects';
 export * from './useCommandExecution';
+export * from './useSidebar.tsx'; // Phase 4.1: Unified sidebar hook (TSX for JSX support)
