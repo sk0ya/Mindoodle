@@ -119,9 +119,9 @@ function ensureMeasureContext(): CanvasRenderingContext2D | null {
  * @param fontStyle フォントスタイル
  * @returns 実際のピクセル幅
  */
-function measureTextWidth(
-  text: string, 
-  fontSize: number = 14, 
+export function measureTextWidth(
+  text: string,
+  fontSize: number = 14,
   fontFamily: string = 'system-ui, -apple-system, sans-serif',
   fontWeight: string = 'normal',
   fontStyle: string = 'normal'
@@ -200,6 +200,126 @@ export function getNodeHorizontalPadding(textLength: number, isEditing: boolean)
   return basePadding + additionalPadding;
 }
 
+/**
+ * Check if a character is a CJK (Chinese, Japanese, Korean) character
+ */
+function isCJKChar(char: string): boolean {
+  if (!char || char.length === 0) return false;
+  const code = char.charCodeAt(0);
+  return (
+    (code >= 0x4E00 && code <= 0x9FFF) ||   // CJK Unified Ideographs
+    (code >= 0x3040 && code <= 0x309F) ||   // Hiragana
+    (code >= 0x30A0 && code <= 0x30FF) ||   // Katakana
+    (code >= 0xFF00 && code <= 0xFFEF) ||   // Fullwidth characters
+    (code >= 0x3400 && code <= 0x4DBF) ||   // CJK Extension A
+    (code >= 0x20000 && code <= 0x2A6DF) || // CJK Extension B
+    (code >= 0xAC00 && code <= 0xD7AF)      // Hangul Syllables
+  );
+}
+
+/**
+ * Check if a character is a high-priority break point (punctuation)
+ */
+function isPrimaryBreak(char: string): boolean {
+  if (!char || char.length === 0) return false;
+  // Japanese and CJK punctuation marks (highest priority)
+  return /[、。，．！？：；）」』】〉》\]）｝〕〗〙〛〉》」』｝〕\])!?,.:;]/.test(char);
+}
+
+/**
+ * Check if a character is a Japanese particle (助詞) - secondary break point
+ */
+function isParticle(char: string): boolean {
+  if (!char || char.length === 0) return false;
+  // Common Japanese particles
+  // 格助詞: が/を/に/へ/と/から/まで/より
+  // 係助詞: は/も/こそ/でも/しか/さえ
+  // 副助詞: まで/だけ/ばかり/ほど/くらい/など/なんか/しか/すら/さえ
+  // 接続助詞: が/けれど/けれども/のに/ので/から/でも/ても/のに/ながら/して/とば
+  // 終助詞: か/な/ね/よ/さ/わ/かしら/かな
+  // 並立助詞: と/や/に/とか
+  // 提示助詞: は/も
+  // 準体助詞: の
+  // 間投助詞: よ/ね/さ/な
+  return /[がをにへとからまでよりはもこそでもしかさえだけばかりほどくらいなどなんかすらけれどけれどものにのでからてもながらしてとばかなねよさわかしらやとかの]$/.test(char);
+}
+
+/**
+ * Check if a character is any break point after (punctuation or particle)
+ */
+function isBreakAfter(char: string): boolean {
+  return isPrimaryBreak(char) || isParticle(char);
+}
+
+
+/**
+ * Split text into tokens considering CJK characters and punctuation
+ * CJK text breaks at punctuation boundaries, Latin text breaks at word boundaries
+ */
+function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boolean; strikethrough?: boolean }): RawTextToken[] {
+  const pieces: RawTextToken[] = [];
+  let buffer = '';
+  let isCJKBuffer = false;
+
+  const flushBuffer = () => {
+    if (buffer) {
+      pieces.push({
+        text: buffer,
+        ...formatting
+      });
+      buffer = '';
+      isCJKBuffer = false;
+    }
+  };
+
+  for (let i = 0; i < text.length; i++) {
+    const char = text[i];
+    const isCJK = isCJKChar(char);
+    const isWhitespace = /\s/.test(char);
+
+    // Whitespace handling: always split and preserve
+    if (isWhitespace) {
+      flushBuffer();
+      // Collect consecutive whitespace
+      let ws = char;
+      while (i + 1 < text.length && /\s/.test(text[i + 1])) {
+        ws += text[++i];
+      }
+      pieces.push({ text: ws, ...formatting });
+      continue;
+    }
+
+    // CJK text: accumulate until we hit punctuation that's a good break point
+    if (isCJK) {
+      // If we have Latin buffer, flush it first
+      if (buffer && !isCJKBuffer) {
+        flushBuffer();
+      }
+
+      buffer += char;
+      isCJKBuffer = true;
+
+      // Check if this character is a good break point (after punctuation)
+      if (isBreakAfter(char)) {
+        flushBuffer();
+      }
+      continue;
+    }
+
+    // Latin characters: accumulate into words
+    // If we have CJK buffer, flush it first
+    if (buffer && isCJKBuffer) {
+      flushBuffer();
+    }
+
+    buffer += char;
+    isCJKBuffer = false;
+  }
+
+  flushBuffer();
+  return pieces;
+}
+
 export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNodeTextResult {
   const {
     fontSize,
@@ -233,16 +353,13 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
         continue;
       }
 
-      const spaceSplit = piece.split(/(\s+)/);
-      for (const part of spaceSplit) {
-        if (!part) continue;
-        pieces.push({
-          text: part,
-          bold: segment.bold,
-          italic: segment.italic,
-          strikethrough: segment.strikethrough
-        });
-      }
+      // Use smart splitting that handles CJK and Latin text differently
+      const splitPieces = smartSplitText(piece, {
+        bold: segment.bold,
+        italic: segment.italic,
+        strikethrough: segment.strikethrough
+      });
+      pieces.push(...splitPieces);
     }
 
     return pieces;
@@ -290,6 +407,59 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
       return [{ ...token, width: measured }];
     }
 
+    // Token is too long and needs to be broken
+    // For CJK text, try to find good break points (after punctuation)
+    const hasCJK = Array.from(textValue).some(char => isCJKChar(char));
+
+    if (hasCJK) {
+      // CJK text: prefer breaking after punctuation
+      const parts: WrappedToken[] = [];
+      let buffer = '';
+      const chars = Array.from(textValue);
+
+      for (let i = 0; i < chars.length; i++) {
+        const char = chars[i];
+        const tentative = buffer + char;
+        const tentativeWidth = measureTokenWidth(tentative);
+
+        if (tentativeWidth > effectiveMaxWidth && buffer) {
+          // Need to break. Check if we should look back for a better break point
+          let breakPoint = buffer.length;
+
+          // Look back up to 5 characters for a punctuation mark
+          for (let j = Math.max(0, buffer.length - 5); j < buffer.length; j++) {
+            if (isBreakAfter(buffer[j])) {
+              breakPoint = j + 1; // Break after the punctuation
+              break;
+            }
+          }
+
+          // Split at the break point
+          const beforeBreak = buffer.substring(0, breakPoint);
+          const afterBreak = buffer.substring(breakPoint);
+
+          if (beforeBreak) {
+            parts.push({ ...token, text: beforeBreak, width: measureTokenWidth(beforeBreak) });
+          }
+
+          buffer = afterBreak + char;
+        } else {
+          buffer = tentative;
+        }
+      }
+
+      if (buffer) {
+        parts.push({ ...token, text: buffer, width: measureTokenWidth(buffer) });
+      }
+
+      if (parts.length === 0) {
+        parts.push({ ...token, text: textValue, width: measured });
+      }
+
+      return parts;
+    }
+
+    // Non-CJK text: break character by character as before
     const parts: WrappedToken[] = [];
     let buffer = '';
     for (const char of Array.from(textValue)) {
@@ -589,7 +759,10 @@ export function calculateNodeSize(
       maxWidth: wrapMaxWidth,
       prefixTokens: markerTokens
     });
-    textContentWidth = wrapResult.maxLineWidth;
+    // For multi-line wrapped text (left-aligned), use wrapMaxWidth to ensure node is wide enough
+    // For single-line text, use actual width
+    const hasMultipleLines = wrapResult.lines.length > 1;
+    textContentWidth = hasMultipleLines ? wrapMaxWidth : wrapResult.maxLineWidth;
     textBlockHeight = wrapEnabled ? Math.max(wrapResult.textHeight, fontSize + 8) : Math.max(fontSize + 8, 22);
   }
 
