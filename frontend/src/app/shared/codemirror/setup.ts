@@ -12,7 +12,6 @@ import { lintKeymap } from '@codemirror/lint';
 import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
 import { tags } from '@lezer/highlight';
 import { vim, Vim } from '@replit/codemirror-vim';
-import { githubLight, githubDark } from '@uiw/codemirror-theme-github';
 
 export interface EditorConfig {
   value: string;
@@ -28,26 +27,34 @@ export interface EditorConfig {
 }
 
 /**
- * Blue-based heading color scheme for markdown
+ * Custom syntax highlighting with blue headings
  */
-const blueHeadingHighlight = HighlightStyle.define([
-  // Light theme headings (blue gradient from darker to lighter)
+const lightThemeHighlight = HighlightStyle.define([
   { tag: tags.heading1, color: '#0052cc', fontWeight: 'bold', fontSize: '1.8em' },
   { tag: tags.heading2, color: '#0065ff', fontWeight: 'bold', fontSize: '1.5em' },
   { tag: tags.heading3, color: '#2684ff', fontWeight: 'bold', fontSize: '1.3em' },
   { tag: tags.heading4, color: '#4c9aff', fontWeight: 'bold', fontSize: '1.2em' },
   { tag: tags.heading5, color: '#79b8ff', fontWeight: 'bold', fontSize: '1.1em' },
   { tag: tags.heading6, color: '#b3d4ff', fontWeight: 'bold', fontSize: '1.0em' },
+  { tag: tags.strong, fontWeight: 'bold' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.link, color: '#0969da', textDecoration: 'underline' },
+  { tag: tags.monospace, fontFamily: 'monospace', backgroundColor: '#f6f8fa' },
+  { tag: tags.comment, color: '#6a737d', fontStyle: 'italic' },
 ]);
 
-const blueHeadingHighlightDark = HighlightStyle.define([
-  // Dark theme headings (lighter blues for better contrast)
+const darkThemeHighlight = HighlightStyle.define([
   { tag: tags.heading1, color: '#58a6ff', fontWeight: 'bold', fontSize: '1.8em' },
   { tag: tags.heading2, color: '#79c0ff', fontWeight: 'bold', fontSize: '1.5em' },
   { tag: tags.heading3, color: '#a5d6ff', fontWeight: 'bold', fontSize: '1.3em' },
   { tag: tags.heading4, color: '#b3d4ff', fontWeight: 'bold', fontSize: '1.2em' },
   { tag: tags.heading5, color: '#c2e0ff', fontWeight: 'bold', fontSize: '1.1em' },
   { tag: tags.heading6, color: '#d0ebff', fontWeight: 'bold', fontSize: '1.0em' },
+  { tag: tags.strong, fontWeight: 'bold' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.link, color: '#58a6ff', textDecoration: 'underline' },
+  { tag: tags.monospace, fontFamily: 'monospace', backgroundColor: '#161b22' },
+  { tag: tags.comment, color: '#8b949e', fontStyle: 'italic' },
 ]);
 
 /**
@@ -74,63 +81,39 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
     extensions.push(markdown());
   }
 
-  // Theme (apply first)
-  const theme = config.theme === 'dark' ? githubDark : githubLight;
-  extensions.push(theme);
+  // Syntax highlighting with blue headings
+  const highlight = config.theme === 'dark' ? darkThemeHighlight : lightThemeHighlight;
+  extensions.push(syntaxHighlighting(highlight));
 
-  // Blue heading colors for markdown (apply after theme with higher precedence)
-  const headingHighlight = config.theme === 'dark'
-    ? blueHeadingHighlightDark
-    : blueHeadingHighlight;
-  extensions.push(syntaxHighlighting(headingHighlight, { fallback: true }));
-
-  // Custom heading styles and editor spacing
+  // Base theme colors
   const isDark = config.theme === 'dark';
   extensions.push(
     EditorView.theme({
-      // Remove default padding/margin
       '&': {
         height: '100%',
-      },
-      '.cm-editor': {
-        height: '100%',
-      },
-      '.cm-scroller': {
-        overflow: 'auto',
+        backgroundColor: isDark ? '#0d1117' : '#ffffff',
+        color: isDark ? '#c9d1d9' : '#24292f',
       },
       '.cm-content': {
         padding: '0',
+        caretColor: isDark ? '#58a6ff' : '#0969da',
       },
-      // Override heading colors with blue theme
-      '.cm-line .tok-heading1': {
-        color: isDark ? '#58a6ff' : '#0052cc',
-        fontWeight: 'bold',
-        fontSize: '1.8em',
+      '.cm-cursor, .cm-dropCursor': {
+        borderLeftColor: isDark ? '#58a6ff' : '#0969da',
       },
-      '.cm-line .tok-heading2': {
-        color: isDark ? '#79c0ff' : '#0065ff',
-        fontWeight: 'bold',
-        fontSize: '1.5em',
+      '&.cm-focused .cm-selectionBackground, ::selection': {
+        backgroundColor: isDark ? '#388bfd26' : '#b6e3ff',
       },
-      '.cm-line .tok-heading3': {
-        color: isDark ? '#a5d6ff' : '#2684ff',
-        fontWeight: 'bold',
-        fontSize: '1.3em',
+      '.cm-activeLine': {
+        backgroundColor: isDark ? '#161b22' : '#f6f8fa',
       },
-      '.cm-line .tok-heading4': {
-        color: isDark ? '#b3d4ff' : '#4c9aff',
-        fontWeight: 'bold',
-        fontSize: '1.2em',
+      '.cm-gutters': {
+        backgroundColor: isDark ? '#0d1117' : '#ffffff',
+        color: isDark ? '#6e7681' : '#57606a',
+        border: 'none',
       },
-      '.cm-line .tok-heading5': {
-        color: isDark ? '#c2e0ff' : '#79b8ff',
-        fontWeight: 'bold',
-        fontSize: '1.1em',
-      },
-      '.cm-line .tok-heading6': {
-        color: isDark ? '#d0ebff' : '#b3d4ff',
-        fontWeight: 'bold',
-        fontSize: '1.0em',
+      '.cm-activeLineGutter': {
+        backgroundColor: isDark ? '#161b22' : '#f6f8fa',
       },
     })
   );
