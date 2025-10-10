@@ -9,6 +9,8 @@ import { markdown } from '@codemirror/lang-markdown';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
 import { searchKeymap, highlightSelectionMatches } from '@codemirror/search';
 import { lintKeymap } from '@codemirror/lint';
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 import { vim, Vim } from '@replit/codemirror-vim';
 import { githubLight, githubDark } from '@uiw/codemirror-theme-github';
 
@@ -24,6 +26,29 @@ export interface EditorConfig {
   onCursorLineChange?: (line: number) => void;
   onFocusChange?: (focused: boolean) => void;
 }
+
+/**
+ * Blue-based heading color scheme for markdown
+ */
+const blueHeadingHighlight = HighlightStyle.define([
+  // Light theme headings (blue gradient from darker to lighter)
+  { tag: tags.heading1, color: '#0052cc', fontWeight: 'bold', fontSize: '1.8em' },
+  { tag: tags.heading2, color: '#0065ff', fontWeight: 'bold', fontSize: '1.5em' },
+  { tag: tags.heading3, color: '#2684ff', fontWeight: 'bold', fontSize: '1.3em' },
+  { tag: tags.heading4, color: '#4c9aff', fontWeight: 'bold', fontSize: '1.2em' },
+  { tag: tags.heading5, color: '#79b8ff', fontWeight: 'bold', fontSize: '1.1em' },
+  { tag: tags.heading6, color: '#b3d4ff', fontWeight: 'bold', fontSize: '1.0em' },
+]);
+
+const blueHeadingHighlightDark = HighlightStyle.define([
+  // Dark theme headings (lighter blues for better contrast)
+  { tag: tags.heading1, color: '#58a6ff', fontWeight: 'bold', fontSize: '1.8em' },
+  { tag: tags.heading2, color: '#79c0ff', fontWeight: 'bold', fontSize: '1.5em' },
+  { tag: tags.heading3, color: '#a5d6ff', fontWeight: 'bold', fontSize: '1.3em' },
+  { tag: tags.heading4, color: '#b3d4ff', fontWeight: 'bold', fontSize: '1.2em' },
+  { tag: tags.heading5, color: '#c2e0ff', fontWeight: 'bold', fontSize: '1.1em' },
+  { tag: tags.heading6, color: '#d0ebff', fontWeight: 'bold', fontSize: '1.0em' },
+]);
 
 /**
  * Create base extensions for CodeMirror
@@ -52,6 +77,12 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
   // Theme
   const theme = config.theme === 'dark' ? githubDark : githubLight;
   extensions.push(theme);
+
+  // Blue heading colors for markdown
+  const headingHighlight = config.theme === 'dark'
+    ? blueHeadingHighlightDark
+    : blueHeadingHighlight;
+  extensions.push(syntaxHighlighting(headingHighlight));
 
   // Custom styling
   if (config.fontSize || config.fontFamily) {
