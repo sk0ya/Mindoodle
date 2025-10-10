@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
+import { useStableCallback } from '@shared/hooks';
 
 export interface AIOperationsParams {
   ai: {
@@ -24,7 +24,7 @@ export function useAIOperations({
   /**
    * Generate child nodes using AI based on parent node content
    */
-  const handleAIGenerate = useCallback(async (node: MindMapNode) => {
+  const handleAIGenerate = useStableCallback(async (node: MindMapNode) => {
     // 生成開始の通知
     showNotification('info', 'AI子ノード生成中... 🤖');
 
@@ -43,7 +43,7 @@ export function useAIOperations({
     } finally {
       onComplete?.();
     }
-  }, [ai, addNode, showNotification, onComplete]);
+  });
 
   return {
     handleAIGenerate,

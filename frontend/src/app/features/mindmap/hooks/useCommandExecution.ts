@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useStableCallback } from '@shared/hooks';
 
 interface CommandExecutionParams {
   commands: {
@@ -22,7 +22,7 @@ export function useCommandExecution({
   /**
    * Execute command from palette with error handling
    */
-  const handleExecuteCommand = useCallback(async (commandName: string, _args?: Record<string, any>) => {
+  const handleExecuteCommand = useStableCallback(async (commandName: string, _args?: Record<string, any>) => {
     try {
       const result = await commands.execute(commandName);
       if (result.success) {
@@ -36,7 +36,7 @@ export function useCommandExecution({
       console.error('Command execution failed:', error);
       showNotification('error', 'コマンドの実行中にエラーが発生しました');
     }
-  }, [commands, showNotification]);
+  });
 
   return {
     handleExecuteCommand,

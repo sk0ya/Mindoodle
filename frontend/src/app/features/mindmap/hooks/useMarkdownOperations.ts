@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { statusMessages } from '@shared/utils';
+import { useStableCallback } from '@shared/hooks';
 
 export interface MarkdownOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
@@ -32,7 +32,7 @@ export function useMarkdownOperations({
   /**
    * Change node type (heading, unordered-list, ordered-list)
    */
-  const changeNodeType = useCallback((
+  const changeNodeType = useStableCallback((
     nodeId: string,
     newType: 'heading' | 'unordered-list' | 'ordered-list'
   ) => {
@@ -59,7 +59,7 @@ export function useMarkdownOperations({
         }, 0);
       });
     }
-  }, [data, markdownSync, store, selectNode]);
+  });
 
   return {
     changeNodeType,

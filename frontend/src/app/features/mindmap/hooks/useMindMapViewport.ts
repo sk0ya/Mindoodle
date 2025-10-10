@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
 import { findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store';
 import type { MindMapNode } from '@shared/types';
+import { useStableCallback } from '@shared/hooks';
 
 export interface ViewportOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
@@ -38,7 +38,7 @@ export function useMindMapViewport({
   /**
    * Ensure selected node remains visible with minimal pan (no centering)
    */
-  const ensureSelectedNodeVisible = useCallback(() => {
+  const ensureSelectedNodeVisible = useStableCallback(() => {
     try {
       const st = useMindMapStore.getState() as any;
       const selId: string | null = st.selectedNodeId || null;
@@ -191,13 +191,13 @@ export function useMindMapViewport({
         setPanLocal({ x: newPanX, y: newPanY });
       }
     } catch {}
-  }, [activeView, uiStore.sidebarCollapsed, uiStore.showNotesPanel, uiStore.markdownPanelWidth, setPan]);
+  });
 
   /**
    * Center node in view with optional positioning modes
    */
-   
-  const centerNodeInView = useCallback((nodeId: string, _animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
+
+  const centerNodeInView = useStableCallback((nodeId: string, _animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
     if (!data) return;
 
     // Check if special positioning mode is requested
@@ -287,7 +287,7 @@ export function useMindMapViewport({
     const newPanX = targetX / currentZoom - nodeX;
     const newPanY = targetY / currentZoom - nodeY;
     setPan({ x: newPanX, y: newPanY });
-  }, [data, activeView, uiStore, setPan]);
+  });
 
   return {
     ensureSelectedNodeVisible,

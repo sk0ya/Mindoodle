@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
 import { findNodeInRoots } from '@mindmap/utils';
 import { imagePasteService } from '../services/imagePasteService';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import type { StorageAdapter } from '@core/types';
+import { useStableCallback } from '@shared/hooks';
 
 export interface ClipboardOperationsParams {
   data: { rootNodes: MindMapNode[]; mapIdentifier?: MapIdentifier } | null;
@@ -34,7 +34,7 @@ export function useMindMapClipboard({
   /**
    * Paste image from clipboard to a node
    */
-  const pasteImageFromClipboard = useCallback(async (nodeId?: string, fileOverride?: File) => {
+  const pasteImageFromClipboard = useStableCallback(async (nodeId?: string, fileOverride?: File) => {
     try {
       // Use provided nodeId or currently selected node
       const targetNodeId = nodeId || selectedNodeId;
@@ -84,12 +84,12 @@ export function useMindMapClipboard({
       const message = error instanceof Error ? error.message : '画像の貼り付けに失敗しました';
       showNotification('error', message);
     }
-  }, [selectedNodeId, storageAdapter, data, updateNode, refreshMapList, showNotification]);
+  });
 
   /**
    * Paste node from clipboard
    */
-  const pasteNodeFromClipboard = useCallback(async (parentId: string) => {
+  const pasteNodeFromClipboard = useStableCallback(async (parentId: string) => {
     const { pasteFromClipboard } = await import('../utils/clipboardPaste');
     await pasteFromClipboard(
       parentId,
@@ -99,7 +99,7 @@ export function useMindMapClipboard({
       selectNode,
       showNotification
     );
-  }, [clipboard, addChildNode, updateNode, selectNode, showNotification]);
+  });
 
   return {
     pasteImageFromClipboard,
