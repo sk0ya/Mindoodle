@@ -170,7 +170,7 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
   // Focus listener
   if (config.onFocusChange) {
     extensions.push(
-      EditorView.focusChangeEffect.of((state, focusing) => {
+      EditorView.focusChangeEffect.of((_state, focusing) => {
         config.onFocusChange!(focusing);
         return null;
       })

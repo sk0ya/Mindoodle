@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
-import { Loader, FileText } from 'lucide-react';
+import { Loader } from 'lucide-react';
 import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';

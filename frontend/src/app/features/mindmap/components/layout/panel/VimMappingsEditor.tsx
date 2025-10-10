@@ -2,10 +2,6 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useMindMapStore } from '@mindmap/store';
 import { parseVimMappingsText } from '@/app/features/vim/utils/parseVimMappings';
 import { CodeMirrorEditor, type CodeMirrorEditorRef } from '@shared/codemirror';
-import { EditorView } from '@codemirror/view';
-import { EditorState } from '@codemirror/state';
-import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
-import { tags } from '@lezer/highlight';
 
 type Props = {
   sourceKey: string;
@@ -34,8 +30,8 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
   const validateAndApply = (text: string) => {
     try {
       const result = parseVimMappingsText(text);
-      const errors = result.errors.filter(e => e.severity === 'error').length;
-      const warnings = result.errors.filter(e => e.severity === 'warning').length;
+      const errors = result.errors.length;
+      const warnings = result.warnings.length;
 
       setStatus({ errors, warnings });
 
@@ -49,7 +45,7 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
           if (!suppressChangeRef.current) {
             updateSetting(sourceKey as any, text);
             updateSetting(leaderKey as any, result.leader || ',');
-            updateSetting(mappingsKey as any, result.parsedMappings);
+            updateSetting(mappingsKey as any, result.mappings);
             isDirtyRef.current = false;
           }
         }, 500);
