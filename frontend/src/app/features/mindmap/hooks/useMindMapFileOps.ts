@@ -5,7 +5,7 @@
  * Extracted from MindMapApp.tsx to reduce component complexity.
  */
 
-import { useCallback } from 'react';
+import { useStableCallback } from '@shared/hooks';
 import { logger } from '@shared/utils';
 
 import type { MindMapData, MapIdentifier } from '@shared/types';
@@ -23,7 +23,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
   /**
    * Load map data by identifier
    */
-  const loadMapData = useCallback(
+  const loadMapData = useStableCallback(
     async (mapIdentifier: MapIdentifier): Promise<MindMapData | null> => {
       try {
         if (
@@ -54,14 +54,13 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         showNotification('error', 'マップデータの読み込みに失敗しました');
         return null;
       }
-    },
-    [data, allMindMaps, showNotification]
+    }
   );
 
   /**
    * Load relative image path and return data URL
    */
-  const onLoadRelativeImage = useCallback(
+  const onLoadRelativeImage = useStableCallback(
     async (relativePath: string): Promise<string | null> => {
       try {
         if (typeof (mindMap).readImageAsDataURL !== 'function') {
@@ -106,14 +105,13 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         logger.error('Failed to load relative image:', error);
         return null;
       }
-    },
-    [data, mindMap]
+    }
   );
 
   /**
    * Update multiple map categories in batch
    */
-  const updateMultipleMapCategories = useCallback(
+  const updateMultipleMapCategories = useStableCallback(
     async (mapUpdates: Array<{ id: string; category: string }>) => {
       logger.debug('Updating multiple map categories:', mapUpdates);
 
@@ -152,14 +150,13 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
           await (mindMap).refreshMapList();
         }
       }
-    },
-    [allMindMaps, mindMap]
+    }
   );
 
   /**
    * Handle folder selection for local storage mode
    */
-  const handleSelectFolder = useCallback(
+  const handleSelectFolder = useStableCallback(
     async (onSuccess?: () => void) => {
       try {
         if (typeof (mindMap).selectRootFolder === 'function') {
@@ -173,8 +170,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
       } catch (e) {
         console.error('Folder selection failed:', e);
       }
-    },
-    [mindMap]
+    }
   );
 
   return {

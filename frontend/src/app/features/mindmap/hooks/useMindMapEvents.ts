@@ -1,4 +1,5 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { useStableCallback } from '@shared/hooks';
 import { useMindMapStore } from '../store';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 
@@ -13,7 +14,7 @@ interface UseMindMapEventsParams {
  */
 export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsParams) {
   // Listen to explorer selection events
-  const handleSelectMapById = useCallback(async (e: any) => {
+  const handleSelectMapById = useStableCallback(async (e: any) => {
     const id = e?.detail?.mapId as string | undefined;
     const ws = e?.detail?.workspaceId as string;
     const source = e?.detail?.source as string | undefined;
@@ -48,12 +49,12 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
       // Default behavior
       await selectMapById({ mapId: id, workspaceId: ws });
     }
-  }, [selectMapById]);
+  });
 
   useEventListener('mindoodle:selectMapById' as any, handleSelectMapById as any, { target: window });
 
   // Refresh explorer/map list on external changes or when window regains focus
-  const doRefresh = useCallback(() => {
+  const doRefresh = useStableCallback(() => {
     try {
       if (typeof (mindMap).refreshMapList === 'function') {
         void (mindMap).refreshMapList();
@@ -61,13 +62,13 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     } catch (e) {
       console.error('Explorer refresh failed:', e);
     }
-  }, [mindMap]);
+  });
 
-  const onVisibility = useCallback(() => {
+  const onVisibility = useStableCallback(() => {
     if (!document.hidden) doRefresh();
-  }, [doRefresh]);
+  });
 
-  const onFocus = useCallback(() => doRefresh(), [doRefresh]);
+  const onFocus = useStableCallback(() => doRefresh());
 
   useEventListener('visibilitychange', onVisibility, { target: document });
   useEventListener('focus', onFocus, { target: window });
@@ -79,7 +80,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
   }, [doRefresh]);
 
   // Handle rename/delete events from explorer
-  const onRename = useCallback((e: any) => {
+  const onRename = useStableCallback((e: any) => {
     try {
       const oldPath = e?.detail?.oldPath;
       const newName = e?.detail?.newName;
@@ -91,9 +92,9 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     } catch (err) {
       console.error('Rename handler failed:', err);
     }
-  }, [mindMap]);
+  });
 
-  const onDelete = useCallback((e: any) => {
+  const onDelete = useStableCallback((e: any) => {
     try {
       const path = e?.detail?.path;
       if (path && typeof (mindMap).deleteItem === 'function') {
@@ -104,13 +105,13 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     } catch (err) {
       console.error('Delete handler failed:', err);
     }
-  }, [mindMap]);
+  });
 
   useEventListener('mindoodle:renameItem' as any, onRename as any, { target: window });
   useEventListener('mindoodle:deleteItem' as any, onDelete as any, { target: window });
 
   // Handle move events from explorer (drag & drop)
-  const onMove = useCallback((e: any) => {
+  const onMove = useStableCallback((e: any) => {
     try {
       const src = e?.detail?.sourcePath;
       const dst = e?.detail?.targetFolderPath ?? '';
@@ -123,7 +124,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     } catch (err) {
       console.error('Move handler failed:', err);
     }
-  }, [mindMap]);
+  });
 
   useEventListener('mindoodle:moveItem' as any, onMove as any, { target: window });
 }

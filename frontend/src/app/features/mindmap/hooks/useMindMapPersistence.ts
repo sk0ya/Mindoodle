@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import { useStableCallback } from '@shared/hooks';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { StorageConfig, ExplorerItem } from '@core/types';
 import { AdapterManager, type WorkspaceInfo } from '@core/storage/AdapterManager';
@@ -68,7 +69,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   }, [adapterManager]);
 
   // Load explorer tree from all workspaces
-  const loadExplorerTree = useCallback(async (): Promise<void> => {
+  const loadExplorerTree = useStableCallback(async (): Promise<void> => {
     if (!isInitialized || !adapterManager) {
       setExplorerTree(null);
       return;
@@ -132,10 +133,10 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       logger.warn('Failed to load explorer tree:', error);
       setExplorerTree(null);
     }
-  }, [isInitialized, adapterManager]);
+  });
 
   // Load workspaces from AdapterManager
-  const loadWorkspaces = useCallback(async (): Promise<void> => {
+  const loadWorkspaces = useStableCallback(async (): Promise<void> => {
     if (!isInitialized || !adapterManager) {
       setWorkspaces([]);
       return;
@@ -149,10 +150,10 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       logger.warn('Failed to load workspaces from AdapterManager:', error);
       setWorkspaces([]);
     }
-  }, [isInitialized, adapterManager]);
+  });
 
   // Refresh map list and workspaces
-  const refreshMapList = useCallback(async () => {
+  const refreshMapList = useStableCallback(async () => {
     if (!isInitialized || !adapterManager) {
       logger.warn('refreshMapList: Not initialized or no adapter manager');
       return;
@@ -183,10 +184,10 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     } else {
       logger.warn('refreshMapList: No current adapter available');
     }
-  }, [isInitialized, adapterManager, loadExplorerTree, loadWorkspaces, currentWorkspaceId]);
+  });
 
   // Switch workspace
-  const switchWorkspace = useCallback(async (workspaceId: string | null) => {
+  const switchWorkspace = useStableCallback(async (workspaceId: string | null) => {
     if (!adapterManager) {
       logger.warn('switchWorkspace: No adapter manager available');
       return;
@@ -204,7 +205,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     await refreshMapList();
 
     logger.info(`Successfully switched to workspace: ${workspaceId || 'default'}`);
-  }, [adapterManager, refreshMapList]);
+  });
 
   // Initialize data when AdapterManager is ready
   useEffect(() => {
@@ -242,7 +243,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   }, [adapterManager, config.mode, loadWorkspaces, refreshMapList]);
 
   // Map operations
-  const addMapToList = useCallback(async (newMap: MindMapData): Promise<void> => {
+  const addMapToList = useStableCallback(async (newMap: MindMapData): Promise<void> => {
     if (!isInitialized || !adapterManager) return;
 
     const currentAdapter = adapterManager.getCurrentAdapter();
@@ -256,9 +257,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       logger.error('Failed to add map to list:', error);
       throw error;
     }
-  }, [isInitialized, adapterManager]);
+  });
 
-  const removeMapFromList = useCallback(async (id: MapIdentifier): Promise<void> => {
+  const removeMapFromList = useStableCallback(async (id: MapIdentifier): Promise<void> => {
     if (!isInitialized || !adapterManager) return;
 
     const currentAdapter = adapterManager.getCurrentAdapter();
@@ -275,9 +276,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       logger.error('Failed to remove map from list:', error);
       throw error;
     }
-  }, [isInitialized, adapterManager]);
+  });
 
-  const addWorkspace = useCallback(async (): Promise<void> => {
+  const addWorkspace = useStableCallback(async (): Promise<void> => {
     if (!adapterManager) {
       logger.warn('Cannot add workspace: adapter manager not initialized');
       return;
@@ -300,9 +301,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       logger.error('Failed to add workspace:', error);
       throw error;
     }
-  }, [adapterManager, refreshMapList]);
+  });
 
-  const removeWorkspace = useCallback(async (id: string): Promise<void> => {
+  const removeWorkspace = useStableCallback(async (id: string): Promise<void> => {
     if (id === 'cloud') {
       // Handle cloud workspace removal
       const workspaceService = WorkspaceService.getInstance();
@@ -335,7 +336,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       }
     }
     logger.info(`Workspace ${id} removal requested`);
-  }, [adapterManager, currentWorkspaceId, switchWorkspace, refreshMapList]);
+  });
 
   return {
     // State

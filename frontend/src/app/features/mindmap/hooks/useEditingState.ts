@@ -1,4 +1,5 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect } from 'react';
+import { useStableCallback } from '@shared/hooks';
 import { EditingStateService, type EditingActivity } from '../services/EditingStateService';
 import { logger } from '@shared/utils';
 
@@ -17,17 +18,17 @@ export const useEditingState = () => {
   }, [editingStateService]);
 
   // アクティビティ開始
-  const startActivity = useCallback((activity: EditingActivity) => {
+  const startActivity = useStableCallback((activity: EditingActivity) => {
     editingStateService.startActivity(activity);
-  }, [editingStateService]);
+  });
 
-  const endActivity = useCallback((activity: EditingActivity) => {
+  const endActivity = useStableCallback((activity: EditingActivity) => {
     editingStateService.endActivity(activity);
-  }, [editingStateService]);
+  });
 
-  const isEditing = useCallback(() => {
+  const isEditing = useStableCallback(() => {
     return editingStateService.isEditing();
-  }, [editingStateService]);
+  });
 
   return {
     startActivity,
