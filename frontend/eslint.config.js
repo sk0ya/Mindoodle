@@ -3,6 +3,10 @@ import tsParser from '@typescript-eslint/parser';
 import tsPlugin from '@typescript-eslint/eslint-plugin';
 import reactPlugin from 'eslint-plugin-react';
 import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import sonarjs from 'eslint-plugin-sonarjs';
+
+// SonarJS の推奨設定を直接展開
+const sonarjsRecommended = sonarjs.configs.recommended;
 
 export default [
   js.configs.recommended,
@@ -14,30 +18,28 @@ export default [
       parserOptions: {
         ecmaVersion: 'latest',
         sourceType: 'module',
-        ecmaFeatures: {
-          jsx: true
-        },
+        ecmaFeatures: { jsx: true },
         project: './tsconfig.json'
       }
     },
     plugins: {
       '@typescript-eslint': tsPlugin,
-      'react': reactPlugin,
-      'react-hooks': reactHooksPlugin
+      react: reactPlugin,
+      'react-hooks': reactHooksPlugin,
+      sonarjs
     },
+    // Flat Config では "extends" の代わりに config オブジェクトをマージ
     rules: {
-      // 危険な型パターンを防止する最重要ルール
+      ...sonarjsRecommended.rules, // 🧩 SonarJS の推奨ルールを直接展開
+
+      // TypeScript安全性
       '@typescript-eslint/no-explicit-any': 'warn',
-      
-      // 型アサーション制限
       '@typescript-eslint/no-unnecessary-type-assertion': 'warn',
       '@typescript-eslint/prefer-as-const': 'warn',
-      
-      // null/undefined安全性 (IndexedDBでは初期化チェック後に!を使用)
       '@typescript-eslint/no-non-null-assertion': 'warn',
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
-      
-      // 未使用変数・関数
+
+      // 未使用検出
       '@typescript-eslint/no-unused-vars': ['warn', {
         argsIgnorePattern: '^_',
         varsIgnorePattern: '^_',
@@ -48,41 +50,45 @@ export default [
         varsIgnorePattern: '^_',
         ignoreRestSiblings: true
       }],
-      
+
       // React固有ルール
-      'react/prop-types': 'off', // TypeScriptで型チェックするため
+      'react/prop-types': 'off',
       'react-hooks/rules-of-hooks': 'warn',
       'react-hooks/exhaustive-deps': 'warn',
-      
-      // 基本的なJavaScript/TypeScriptルール
+
+      // 基本ルール
       'no-console': ['warn', { allow: ['warn', 'error', 'log'] }],
       'no-debugger': 'warn',
       'no-alert': 'warn',
       'no-var': 'warn',
       'prefer-const': 'warn',
-      'no-undef': 'off', // TypeScriptで処理
-      
+      'no-undef': 'off',
+
       // Import/Export
       'no-duplicate-imports': 'warn',
 
-      // Error handling
-      'no-empty': ['error', { allowEmptyCatch: true }]
+      // エラー処理
+      'no-empty': ['error', { allowEmptyCatch: true }],
+
+      // 🧠 複雑性・冗長性に関する SonarJS 強化ルール
+      'sonarjs/no-identical-conditions': 'error',
+      'sonarjs/no-all-duplicated-branches': 'error',
+      'sonarjs/no-collapsible-if': 'warn',
+      'sonarjs/cognitive-complexity': ['warn', 15],
+      'sonarjs/no-duplicated-branches': 'error',
+      'sonarjs/no-small-switch': 'warn'
     },
     settings: {
-      react: {
-        version: 'detect'
-      }
+      react: { version: 'detect' }
     }
   },
   {
-    // JavaScript files (less strict)
     files: ['**/*.js', '**/*.mjs'],
     rules: {
       '@typescript-eslint/no-var-requires': 'off'
     }
   },
   {
-    // Configuration files
     files: ['*.config.js', '.eslintrc.cjs'],
     languageOptions: {
       globals: {

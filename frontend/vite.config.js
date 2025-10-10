@@ -1,11 +1,18 @@
 ﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
+import { monacoEditorPlugin } from 'vite-plugin-monaco-editor';
 
 const PORT = parseInt(process.env.PORT || '5174', 10);
 
 export default defineConfig(({ command }) => ({
-  plugins: [react()],
+  plugins: [react(),
+  monacoEditorPlugin({
+    languageWorkers: ['editorWorkerService',  'markdown'],
+    customWorkers: [],
+    globalAPI: false,
+  }),
+],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
