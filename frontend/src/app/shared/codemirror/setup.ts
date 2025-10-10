@@ -74,24 +74,66 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
     extensions.push(markdown());
   }
 
-  // Theme
+  // Theme (apply first)
   const theme = config.theme === 'dark' ? githubDark : githubLight;
   extensions.push(theme);
 
-  // Blue heading colors for markdown
+  // Blue heading colors for markdown (apply after theme with higher precedence)
   const headingHighlight = config.theme === 'dark'
     ? blueHeadingHighlightDark
     : blueHeadingHighlight;
-  extensions.push(syntaxHighlighting(headingHighlight));
+  extensions.push(syntaxHighlighting(headingHighlight, { fallback: true }));
+
+  // Custom heading styles with EditorView.theme for higher specificity
+  const isDark = config.theme === 'dark';
+  extensions.push(
+    EditorView.theme({
+      // Override heading colors with blue theme
+      '.cm-line .tok-heading1': {
+        color: isDark ? '#58a6ff' : '#0052cc',
+        fontWeight: 'bold',
+        fontSize: '1.8em',
+      },
+      '.cm-line .tok-heading2': {
+        color: isDark ? '#79c0ff' : '#0065ff',
+        fontWeight: 'bold',
+        fontSize: '1.5em',
+      },
+      '.cm-line .tok-heading3': {
+        color: isDark ? '#a5d6ff' : '#2684ff',
+        fontWeight: 'bold',
+        fontSize: '1.3em',
+      },
+      '.cm-line .tok-heading4': {
+        color: isDark ? '#b3d4ff' : '#4c9aff',
+        fontWeight: 'bold',
+        fontSize: '1.2em',
+      },
+      '.cm-line .tok-heading5': {
+        color: isDark ? '#c2e0ff' : '#79b8ff',
+        fontWeight: 'bold',
+        fontSize: '1.1em',
+      },
+      '.cm-line .tok-heading6': {
+        color: isDark ? '#d0ebff' : '#b3d4ff',
+        fontWeight: 'bold',
+        fontSize: '1.0em',
+      },
+    })
+  );
 
   // Custom styling
   if (config.fontSize || config.fontFamily) {
+    const customStyles: Record<string, any> = {};
+    if (config.fontSize) {
+      customStyles.fontSize = `${config.fontSize}px`;
+    }
+    if (config.fontFamily) {
+      customStyles.fontFamily = config.fontFamily;
+    }
     extensions.push(
       EditorView.theme({
-        '&': {
-          fontSize: config.fontSize ? `${config.fontSize}px` : undefined,
-          fontFamily: config.fontFamily || undefined,
-        },
+        '&': customStyles,
       })
     );
   }
