@@ -1,5 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useBooleanState } from './useBooleanState';
+import { useStableCallback } from '../utilities';
 
 /**
  * 単一モーダルの状態管理フック
@@ -24,8 +25,8 @@ export const useModalWithData = <T,>(initialData: T | null = null) => {
   const [data, setData] = useState<T | null>(initialData);
   const isOpen = data !== null;
 
-  const open = useCallback((newData: T) => setData(newData), []);
-  const close = useCallback(() => setData(null), []);
+  const open = useStableCallback((newData: T) => setData(newData));
+  const close = useStableCallback(() => setData(null));
 
   return {
     isOpen,

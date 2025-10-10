@@ -1,5 +1,6 @@
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { logger } from '@shared/utils';
+import { useStableCallback } from '../utilities';
 
 export interface DataCleanupStats {
   indexedDBSize: number;
@@ -11,12 +12,12 @@ export const useDataCleanup = () => {
 
   // ローカルストレージのクリーンアップ
   // すべてのローカルデータをクリア
-  const clearAllData = useCallback(async (): Promise<void> => {
+  const clearAllData = useStableCallback(async (): Promise<void> => {
     setIsClearing(true);
     setError(null);
-    
+
     try {
-      
+
       logger.info('🧹 All local data cleared successfully');
     } catch (err) {
       // エラーは個別の関数で既に設定されている
@@ -25,10 +26,10 @@ export const useDataCleanup = () => {
     } finally {
       setIsClearing(false);
     }
-  }, []);
+  });
 
   // データ使用量の取得
-  const getDataStats = useCallback(async (): Promise<DataCleanupStats> => {
+  const getDataStats = useStableCallback(async (): Promise<DataCleanupStats> => {
     try {
 
       let indexedDBSize = 0;
@@ -51,7 +52,7 @@ export const useDataCleanup = () => {
         indexedDBSize: 0
       };
     }
-  }, []);
+  });
 
   return {
     clearAllData,

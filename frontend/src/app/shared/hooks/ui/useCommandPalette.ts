@@ -3,7 +3,8 @@
  * Manages command palette state and keyboard shortcuts
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
+import { useStableCallback } from '../utilities';
 
 export interface UseCommandPaletteOptions {
   /** Whether the command palette is enabled */
@@ -30,24 +31,24 @@ export function useCommandPalette(options: UseCommandPaletteOptions = {}): UseCo
   const { enabled = true, shortcut = 'ctrl+p' } = options;
   const [isOpen, setIsOpen] = useState(false);
 
-  const open = useCallback(() => {
+  const open = useStableCallback(() => {
     if (enabled) {
       setIsOpen(true);
     }
-  }, [enabled]);
+  });
 
-  const close = useCallback(() => {
+  const close = useStableCallback(() => {
     setIsOpen(false);
-  }, []);
+  });
 
-  const toggle = useCallback(() => {
+  const toggle = useStableCallback(() => {
     if (enabled) {
       setIsOpen(prev => !prev);
     }
-  }, [enabled]);
+  });
 
   // Parse keyboard shortcut
-  const parseShortcut = useCallback((shortcutString: string) => {
+  const parseShortcut = useStableCallback((shortcutString: string) => {
     const parts = shortcutString.toLowerCase().split('+');
     return {
       ctrl: parts.includes('ctrl') || parts.includes('cmd'),
@@ -55,7 +56,7 @@ export function useCommandPalette(options: UseCommandPaletteOptions = {}): UseCo
       shift: parts.includes('shift'),
       key: parts[parts.length - 1],
     };
-  }, []);
+  });
 
   // Handle keyboard shortcuts
   useEffect(() => {

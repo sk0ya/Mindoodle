@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import { useLatestRef } from '@shared/hooks';
 
 interface EditorEffectsParams {
   mindMap: any;
@@ -18,18 +19,15 @@ export function useEditorEffects({
 }: EditorEffectsParams) {
 
   // Toggle autosave based on right markdown panel visibility to avoid feedback loops
-  const setAutoSaveFnRef = useRef<null | ((enabled: boolean) => void)>(null);
-
-  useEffect(() => {
-    const fn = mindMap?.setAutoSaveEnabled;
-    setAutoSaveFnRef.current = (typeof fn === 'function') ? fn : null;
-  }, [mindMap]);
+  const setAutoSaveFnRef = useLatestRef<null | ((enabled: boolean) => void)>(
+    (typeof mindMap?.setAutoSaveEnabled === 'function') ? mindMap.setAutoSaveEnabled : null
+  );
 
   useEffect(() => {
     try {
       setAutoSaveFnRef.current?.(!showNotesPanel);
     } catch { }
-  }, [showNotesPanel]);
+  }, [showNotesPanel, setAutoSaveFnRef]);
 
   // Ensure Vim mode returns to normal when editing ends (e.g., blur)
   useEffect(() => {

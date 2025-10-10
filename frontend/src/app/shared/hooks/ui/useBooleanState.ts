@@ -1,5 +1,6 @@
-import { useCallback, useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { parseStoredJson, storeJson } from '@shared/utils';
+import { useStableCallback } from '../utilities';
 
 export interface BooleanStateOptions {
   initialValue?: boolean;
@@ -24,19 +25,19 @@ export const useBooleanState = (options: BooleanStateOptions = {}): BooleanState
   const { initialValue = false, onToggle, onTrue, onFalse } = options;
   const [value, setValue] = useState(initialValue);
 
-  const setTrue = useCallback(() => {
+  const setTrue = useStableCallback(() => {
     setValue(true);
     onToggle?.(true);
     onTrue?.();
-  }, [onToggle, onTrue]);
+  });
 
-  const setFalse = useCallback(() => {
+  const setFalse = useStableCallback(() => {
     setValue(false);
     onToggle?.(false);
     onFalse?.();
-  }, [onToggle, onFalse]);
+  });
 
-  const toggle = useCallback(() => {
+  const toggle = useStableCallback(() => {
     setValue(prev => {
       const newValue = !prev;
       onToggle?.(newValue);
@@ -47,9 +48,9 @@ export const useBooleanState = (options: BooleanStateOptions = {}): BooleanState
       }
       return newValue;
     });
-  }, [onToggle, onTrue, onFalse]);
+  });
 
-  const setValueCallback = useCallback((newValue: boolean) => {
+  const setValueCallback = useStableCallback((newValue: boolean) => {
     setValue(newValue);
     onToggle?.(newValue);
     if (newValue) {
@@ -57,7 +58,7 @@ export const useBooleanState = (options: BooleanStateOptions = {}): BooleanState
     } else {
       onFalse?.();
     }
-  }, [onToggle, onTrue, onFalse]);
+  });
 
   return {
     value,
@@ -173,12 +174,12 @@ export const useDrag = (options: UseDragOptions = {}) => {
   const [isDragging, setIsDragging] = useState(false);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useStableCallback((e: React.MouseEvent) => {
     e.preventDefault();
     setStartPos({ x: e.clientX, y: e.clientY });
-  }, []);
+  });
 
-  const handleMouseMove = useCallback((e: MouseEvent) => {
+  const handleMouseMove = useStableCallback((e: MouseEvent) => {
     if (!startPos) return;
 
     const currentPos = { x: e.clientX, y: e.clientY };
@@ -196,9 +197,9 @@ export const useDrag = (options: UseDragOptions = {}) => {
     } else {
       onDragMove?.(currentPos, deltaPos);
     }
-  }, [startPos, isDragging, dragThreshold, onDragStart, onDragMove]);
+  });
 
-  const handleMouseUp = useCallback((e: MouseEvent) => {
+  const handleMouseUp = useStableCallback((e: MouseEvent) => {
     if (startPos) {
       const endPos = { x: e.clientX, y: e.clientY };
       const totalDelta = {
@@ -213,7 +214,7 @@ export const useDrag = (options: UseDragOptions = {}) => {
 
     setIsDragging(false);
     setStartPos(null);
-  }, [startPos, isDragging, onDragEnd]);
+  });
 
   useMouseEvents(
     startPos !== null,
@@ -263,24 +264,24 @@ export const useResize = (options: UseResizeOptions) => {
     }
   }, [storageKey, minValue, maxValue]);
 
-  const handleResize = useCallback((startX: number, startValue: number, direction: 'horizontal' | 'vertical' = 'horizontal') => {
+  const handleResize = useStableCallback((startX: number, startValue: number, direction: 'horizontal' | 'vertical' = 'horizontal') => {
     return (e: MouseEvent) => {
       const delta = direction === 'horizontal' ? e.clientX - startX : e.clientY - startX;
       const newValue = Math.max(minValue, Math.min(maxValue, startValue + delta));
       setValue(newValue);
       onResize?.(newValue);
     };
-  }, [minValue, maxValue, onResize]);
+  });
 
-  const handleResizeEnd = useCallback((finalValue: number) => {
+  const handleResizeEnd = useStableCallback((finalValue: number) => {
     stopResizing();
     if (storageKey) {
       localStorage.setItem(storageKey, finalValue.toString());
     }
     onResizeEnd?.(finalValue);
-  }, [storageKey, onResizeEnd, stopResizing]);
+  });
 
-  const createResizeHandler = useCallback((direction: 'horizontal' | 'vertical' = 'horizontal') => {
+  const createResizeHandler = useStableCallback((direction: 'horizontal' | 'vertical' = 'horizontal') => {
     return (e: React.MouseEvent) => {
       e.preventDefault();
       startResizing();
@@ -298,7 +299,7 @@ export const useResize = (options: UseResizeOptions) => {
       document.addEventListener('mousemove', mouseMoveHandler);
       document.addEventListener('mouseup', mouseUpHandler);
     };
-  }, [value, startResizing, handleResize, handleResizeEnd]);
+  });
 
   return {
     value,
@@ -343,7 +344,7 @@ export const usePersistedState = <T>(
     return initialValue;
   });
 
-  const setValue = useCallback((value: T | ((prev: T) => T)) => {
+  const setValue = useStableCallback((value: T | ((prev: T) => T)) => {
     setState(current => {
       const newValue = typeof value === 'function' ? (value as (prev: T) => T)(current) : value;
       try {
@@ -358,7 +359,7 @@ export const usePersistedState = <T>(
       }
       return newValue;
     });
-  }, [key, serializer]);
+  });
 
   return [state, setValue] as const;
 };

@@ -1,5 +1,6 @@
-import React, { createContext, useContext, useCallback } from 'react';
+import React, { createContext, useContext } from 'react';
 import { useStatusBar } from './useStatusBar';
+import { useStableCallback } from '../utilities';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
@@ -16,10 +17,10 @@ interface NotificationProviderProps { children: React.ReactNode }
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const { showStatus } = useStatusBar();
 
-  const showNotification = useCallback((type: NotificationType, message: string, duration: number = 5000) => {
+  const showNotification = useStableCallback((type: NotificationType, message: string, duration: number = 5000) => {
     // Route all notifications to the status bar
     showStatus(type, message, duration > 0 ? duration : 3000);
-  }, [showStatus]);
+  });
 
   return (
     <NotificationContext.Provider value={{ showNotification }}>

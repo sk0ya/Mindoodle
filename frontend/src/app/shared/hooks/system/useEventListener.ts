@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useEffect } from 'react';
+import { useLatestRef } from '../utilities';
 
 /**
  * オプション設定
@@ -66,11 +67,7 @@ export function useEventListener<K extends keyof WindowEventMap>(
   } = options;
 
   // ハンドラーの最新版を保持（依存配列を安定させるため）
-  const handlerRef = useRef(handler);
-
-  useEffect(() => {
-    handlerRef.current = handler;
-  }, [handler]);
+  const handlerRef = useLatestRef(handler);
 
   useEffect(() => {
     // 無効化されている、またはターゲットが存在しない場合は何もしない
