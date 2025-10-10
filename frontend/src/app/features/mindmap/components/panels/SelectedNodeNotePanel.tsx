@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { StickyNote } from 'lucide-react';
-import MarkdownEditor from '../../../markdown/components/MarkdownEditor';
+import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
 import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';

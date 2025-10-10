@@ -1,6 +1,5 @@
 import { createRoot } from 'react-dom/client';
 
-import './shared/monaco/setupWorkers';
 import App from './App.tsx';
 import './index.css';
 

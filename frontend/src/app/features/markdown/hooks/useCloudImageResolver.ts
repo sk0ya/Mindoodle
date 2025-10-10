@@ -45,7 +45,7 @@ export function useCloudImageResolver({
             if (!img || img.getAttribute('data-inline-loaded') === '1') continue;
             const src = img.getAttribute('src') || '';
             const lower = src.toLowerCase();
-            if (!src || lower.startsWith('http:
+            if (!src || lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('data:')) {
               img.setAttribute('data-inline-loaded', '1');
               continue;
             }

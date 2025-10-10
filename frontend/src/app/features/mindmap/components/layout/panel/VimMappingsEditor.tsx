@@ -1,7 +1,11 @@
-
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useMindMapStore } from '@mindmap/store';
 import { parseVimMappingsText } from '@/app/features/vim/utils/parseVimMappings';
+import { CodeMirrorEditor, type CodeMirrorEditorRef } from '@shared/codemirror';
+import { EditorView } from '@codemirror/view';
+import { EditorState } from '@codemirror/state';
+import { syntaxHighlighting, HighlightStyle } from '@codemirror/language';
+import { tags } from '@lezer/highlight';
 
 type Props = {
   sourceKey: string;
@@ -12,15 +16,12 @@ type Props = {
 
 const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey }) => {
   const { settings, updateSetting } = useMindMapStore();
-  const containerRef = useRef<HTMLDivElement | null>(null);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<CodeMirrorEditorRef>(null);
   const applyTimerRef = useRef<number | null>(null);
-  
+
   const isDirtyRef = useRef<boolean>(false);
-  
   const suppressChangeRef = useRef<boolean>(false);
-  const applyRef = useRef<() => void>(() => {});
-  
+
   const [, setStatus] = useState<{ errors: number; warnings: number }>();
 
   const source = (settings as any)[sourceKey] as string || '';
@@ -28,223 +29,76 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
   const fontSize = (settings as any).fontSize || 12;
   const fontFamily = (settings as any).fontFamily || 'system-ui';
   const vimEditorEnabled = !!(settings as any).vimEditor;
-  const vimEnabledRef = useRef<boolean>(false);
 
-  
-  useEffect(() => {
-    let disposed = false;
-    (async () => {
-      const monaco = await import('monaco-editor');
-
-      if (disposed || !containerRef.current) return;
-
-      
-      const LANG_ID = 'vimmap';
-      monaco.languages.register({ id: LANG_ID });
-      monaco.languages.setMonarchTokensProvider(LANG_ID, {
-        tokenizer: {
-          root: [
-            [/^\s*".*/, 'comment'],
-            [/\b(set)\b/, 'keyword'],
-            [/\b(map|nmap|noremap|nnoremap|unmap|nunmap|unmap!)\b/, 'keyword'],
-            [/\b(leader)\b/, 'type'],
-          ],
-        },
-      } as any);
-
-      monaco.languages.registerCompletionItemProvider(LANG_ID, {
-        provideCompletionItems: async (model, position) => {
-          const textUntil = model.getValueInRange({ startLineNumber: position.lineNumber, startColumn: 1, endLineNumber: position.lineNumber, endColumn: position.column });
-          const tokens = textUntil.trim().split(/\s+/);
-          const suggestions: any[] = [];
-
-          if (tokens.length <= 1) {
-            ['set', 'map', 'nmap', 'noremap', 'nnoremap', 'unmap', 'nunmap', 'unmap!'].forEach(k => suggestions.push({ label: k, kind: monaco.languages.CompletionItemKind.Keyword, insertText: k }));
-          } else if (tokens[0] === 'set' && tokens[1] && 'leader'.startsWith(tokens[1])) {
-            suggestions.push({ label: 'leader ,', kind: monaco.languages.CompletionItemKind.Property, insertText: 'leader ,' });
-            suggestions.push({ label: 'leader <Space>', kind: monaco.languages.CompletionItemKind.Property, insertText: 'leader <Space>' });
-          } else if (['map','nmap','noremap','nnoremap'].includes(tokens[0])) {
-            if (tokens.length >= 3) {
-              
-              try {
-                const { commands } = await import('@/app/commands');
-                const names = Array.from(new Set((commands).map((c: any) => c?.name).filter(Boolean)));
-                names.sort();
-                names.forEach((n: string) => suggestions.push({ label: n, kind: monaco.languages.CompletionItemKind.Function, insertText: n }));
-              } catch {}
-              
-              ['zz','gg','dd','yy','za','zo','zc','zR','zM','gt','gT','ciw','h','j','k','l','p','x','u','M','G','0','/','n','N'].forEach(seq => suggestions.push({ label: seq, kind: monaco.languages.CompletionItemKind.Text, insertText: seq }));
-            }
-          }
-          return { suggestions };
-        }
-      });
-
-      const editor = monaco.editor.create(containerRef.current, {
-        value: source,
-        language: LANG_ID,
-        automaticLayout: true,
-        minimap: { enabled: false },
-        fontSize,
-        fontFamily,
-        lineNumbers: 'on',
-        wordWrap: 'on',
-        scrollBeyondLastLine: false,
-        renderLineHighlight: 'line',
-        glyphMargin: false,
-        guides: { indentation: false } as any,
-      });
-      editorRef.current = editor;
-
-      
-      monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
-
-      
-      const enableVim = async () => {
-        if (vimEnabledRef.current || !vimEditorEnabled) return;
-        try {
-          const mod: any = await import('monaco-vim');
-          const init: any = mod?.initVimMode || mod?.default || mod;
-          if (typeof init !== 'function') return;
-          const vm = init(editor);
-          (editor as any)._vimMode = vm;
-          vimEnabledRef.current = true;
-        } catch {}
-      };
-      const disableVim = () => {
-        const vm = (editor as any)._vimMode;
-        if (vm && typeof vm.dispose === 'function') {
-          try { vm.dispose(); } catch {}
-        }
-        delete (editor as any)._vimMode;
-        vimEnabledRef.current = false;
-      };
-
-      const focusDisp = editor.onDidFocusEditorText?.(async () => { if (vimEditorEnabled) await enableVim(); });
-      const blurDisp = editor.onDidBlurEditorText?.(() => { if (vimEnabledRef.current) disableVim(); });
-
-      const apply = () => {
-        try {
-          const text = editor.getValue();
-          updateSetting(sourceKey as any, text as any);
-          const parsed = parseVimMappingsText(text);
-          setStatus({ errors: parsed.errors.length, warnings: parsed.warnings.length });
-          
-          updateSetting(leaderKey as any, parsed.leader as any);
-          updateSetting(mappingsKey as any, parsed.mappings as any);
-          
-          isDirtyRef.current = false;
-        } catch {
-          
-        }
-      };
-      applyRef.current = apply;
-
-      const sub = editor.onDidChangeModelContent(() => {
-        
-        if (suppressChangeRef.current) return;
-        isDirtyRef.current = true;
-        if (applyTimerRef.current) window.clearTimeout(applyTimerRef.current);
-        applyTimerRef.current = window.setTimeout(apply, 250);
-      });
-
-      
-      const blurFlush = editor.onDidBlurEditorText?.(() => {
-        if (applyTimerRef.current) {
-          window.clearTimeout(applyTimerRef.current);
-          applyTimerRef.current = null;
-        }
-        
-        if (isDirtyRef.current) {
-          apply();
-        }
-      });
-
-      
-      setTimeout(() => {
-        try {
-          const parsed = parseVimMappingsText(source);
-          setStatus({ errors: parsed.errors.length, warnings: parsed.warnings.length });
-        } catch {}
-      }, 0);
-
-      
-      const onFlush = () => {
-        try {
-          
-          if (isDirtyRef.current) applyRef.current?.();
-        } catch {}
-      };
-      window.addEventListener('mindoodle:vim-mapping-flush', onFlush as EventListener);
-
-      return () => {
-        disposed = true;
-        
-        try {
-          if (applyTimerRef.current) {
-            window.clearTimeout(applyTimerRef.current);
-            applyTimerRef.current = null;
-          }
-          
-          if (isDirtyRef.current) apply();
-        } catch {}
-        try { window.removeEventListener('mindoodle:vim-mapping-flush', onFlush as EventListener); } catch {}
-        try { sub.dispose(); } catch {}
-        try { blurFlush?.dispose?.(); } catch {}
-        try { focusDisp?.dispose?.(); } catch {}
-        try { blurDisp?.dispose?.(); } catch {}
-        try {
-          const vm = (editor as any)?._vimMode; if (vm) vm.dispose?.();
-        } catch {}
-        try { editor.dispose(); } catch {}
-      };
-    })();
-  
-  }, []);
-
-  
-  useEffect(() => {
+  // Validation and auto-apply logic
+  const validateAndApply = (text: string) => {
     try {
-      const ed = editorRef.current;
-      if (ed) {
-        const current = ed.getValue();
-        const hasFocus = ed.hasTextFocus?.() ?? false;
-        
-        if (current !== source && !(hasFocus && applyTimerRef.current != null)) {
-          try {
-            suppressChangeRef.current = true;
-            ed.setValue(source);
-          } finally {
-            
-            setTimeout(() => { suppressChangeRef.current = false; }, 0);
-          }
+      const result = parseVimMappingsText(text);
+      const errors = result.errors.filter(e => e.severity === 'error').length;
+      const warnings = result.errors.filter(e => e.severity === 'warning').length;
+
+      setStatus({ errors, warnings });
+
+      // Auto-apply if no errors and editor is dirty
+      if (errors === 0 && isDirtyRef.current) {
+        if (applyTimerRef.current !== null) {
+          window.clearTimeout(applyTimerRef.current);
         }
+
+        applyTimerRef.current = window.setTimeout(() => {
+          if (!suppressChangeRef.current) {
+            updateSetting(sourceKey as any, text);
+            updateSetting(leaderKey as any, result.leader || ',');
+            updateSetting(mappingsKey as any, result.parsedMappings);
+            isDirtyRef.current = false;
+          }
+        }, 500);
       }
-    } catch {}
+    } catch (error) {
+      console.error('Validation error:', error);
+    }
+  };
+
+  // Handle editor changes
+  const handleChange = (newValue: string) => {
+    isDirtyRef.current = true;
+    validateAndApply(newValue);
+  };
+
+  // Sync external changes
+  useEffect(() => {
+    if (editorRef.current && !isDirtyRef.current) {
+      const currentValue = editorRef.current.getValue();
+      if (currentValue !== source) {
+        suppressChangeRef.current = true;
+        editorRef.current.setValue(source);
+        suppressChangeRef.current = false;
+      }
+    }
   }, [source]);
 
-  
+  // Cleanup
   useEffect(() => {
-    (async () => {
-      try {
-        const monaco = await import('monaco-editor');
-        monaco.editor.setTheme(isDark ? 'vs-dark' : 'vs');
-        const ed = editorRef.current;
-        if (ed) {
-          ed.updateOptions({ fontSize, fontFamily });
-          if (!vimEditorEnabled && vimEnabledRef.current) {
-            const vm = (ed)._vimMode; if (vm) { try { vm.dispose(); } catch {} }
-            delete (ed)._vimMode;
-            vimEnabledRef.current = false;
-          }
-        }
-      } catch {}
-    })();
-  }, [isDark, fontSize, fontFamily, vimEditorEnabled]);
+    return () => {
+      if (applyTimerRef.current !== null) {
+        window.clearTimeout(applyTimerRef.current);
+      }
+    };
+  }, []);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)', border: '1px solid var(--border-color)', borderRadius: 4 }}>
-      <div ref={containerRef} style={{ flex: 1, minHeight: 0 }} />
+    <div style={{ width: '100%', height: '100%', overflow: 'hidden' }}>
+      <CodeMirrorEditor
+        ref={editorRef}
+        value={source}
+        onChange={handleChange}
+        theme={isDark ? 'dark' : 'light'}
+        vimMode={vimEditorEnabled}
+        language="plain"
+        fontSize={fontSize}
+        fontFamily={fontFamily}
+        style={{ height: '100%' }}
+      />
     </div>
   );
 };

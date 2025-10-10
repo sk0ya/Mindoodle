@@ -1,18 +1,11 @@
 ﻿import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
-import { monacoEditorPlugin } from 'vite-plugin-monaco-editor';
 
 const PORT = parseInt(process.env.PORT || '5174', 10);
 
 export default defineConfig(({ command }) => ({
-  plugins: [react(),
-  monacoEditorPlugin({
-    languageWorkers: ['editorWorkerService',  'markdown'],
-    customWorkers: [],
-    globalAPI: false,
-  }),
-],
+  plugins: [react()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
@@ -39,9 +32,8 @@ export default defineConfig(({ command }) => ({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Monaco Editorを個別チャンクに分離（101MB）
-          'monaco-editor': ['monaco-editor', '@monaco-editor/react'],
-          'monaco-vim': ['monaco-vim'],
+          // CodeMirrorを個別チャンクに分離
+          'codemirror': ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/language', '@codemirror/lang-markdown', '@codemirror/autocomplete', '@codemirror/search', '@codemirror/lint', '@replit/codemirror-vim', '@uiw/codemirror-theme-github'],
           // Transformersとonnxruntimeを個別チャンクに分離（111MB）
           'ml-runtime': ['@xenova/transformers'],
           // その他の大きな依存を分離
