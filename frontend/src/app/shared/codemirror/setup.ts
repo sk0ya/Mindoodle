@@ -84,10 +84,23 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
     : blueHeadingHighlight;
   extensions.push(syntaxHighlighting(headingHighlight, { fallback: true }));
 
-  // Custom heading styles with EditorView.theme for higher specificity
+  // Custom heading styles and editor spacing
   const isDark = config.theme === 'dark';
   extensions.push(
     EditorView.theme({
+      // Remove default padding/margin
+      '&': {
+        height: '100%',
+      },
+      '.cm-editor': {
+        height: '100%',
+      },
+      '.cm-scroller': {
+        overflow: 'auto',
+      },
+      '.cm-content': {
+        padding: '0',
+      },
       // Override heading colors with blue theme
       '.cm-line .tok-heading1': {
         color: isDark ? '#58a6ff' : '#0052cc',
