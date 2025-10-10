@@ -378,7 +378,6 @@ MindMapApp.tsx → orchestrator専用
 ### 各Phaseごとの検証
 1. **ビルド確認**
    ```bash
-   npm run build
    npm run type-check
    npm run type-check:strict
    ```

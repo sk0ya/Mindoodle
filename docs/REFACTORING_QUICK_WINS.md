@@ -320,8 +320,8 @@ const adapter = persistenceHook.getAdapterForWorkspace(workspaceId);
 # 置き換え箇所の確認
 grep -r "getAdapterForWorkspace\?\.\(" frontend/src --include="*.ts" --include="*.tsx"
 
-# ビルド確認
-npm run build
+# 確認
+npm run type-check
 ```
 
 ### 2. useStableCallback
@@ -383,7 +383,6 @@ touch frontend/src/app/core/utils/adapterAccessor.ts
 # (useMindMap.ts などで使用開始)
 
 # 4. 確認
-npm run build
 npm run type-check
 npm run lint
 ```
