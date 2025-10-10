@@ -33,7 +33,7 @@ export default defineConfig(({ command }) => ({
       output: {
         manualChunks: {
           // CodeMirrorを個別チャンクに分離
-          'codemirror': ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/language', '@codemirror/lang-markdown', '@codemirror/autocomplete', '@codemirror/search', '@codemirror/lint', '@replit/codemirror-vim', '@uiw/codemirror-theme-github'],
+          'codemirror': ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/language', '@codemirror/lang-markdown', '@codemirror/autocomplete', '@codemirror/search', '@codemirror/lint', '@replit/codemirror-vim'],
           // Transformersとonnxruntimeを個別チャンクに分離（111MB）
           'ml-runtime': ['@xenova/transformers'],
           // その他の大きな依存を分離

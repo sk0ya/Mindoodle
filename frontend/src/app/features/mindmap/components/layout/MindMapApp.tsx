@@ -716,7 +716,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       <MindMapOverlays
         showKeyboardHelper={showKeyboardHelper}
         setShowKeyboardHelper={setShowKeyboardHelper}
-        vim={vim}
       />
 
       <JumpyLabels vim={vim} />
