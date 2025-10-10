@@ -26,7 +26,7 @@ const VimSettingsPanel: React.FC = () => {
     let value = e.target.value;
     if (/^<\s*space\s*>$/i.test(value)) value = ' ';
     if (value.length > 1) {
-      // keep last meaningful char or space token
+      
       const last = value[value.length - 1] || '';
       value = last;
     }

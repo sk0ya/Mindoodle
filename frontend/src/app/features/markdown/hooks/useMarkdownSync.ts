@@ -4,14 +4,8 @@ import { mergeNodesPreservingLayout } from '../markdownNodeMerge';
 import { type MindMapNode } from '@shared/types';
 import { statusMessages } from '@shared/utils';
 
-/**
- * マークダウンとノード構造の同期を管理するフック
- */
 export const useMarkdownSync = () => {
-  /**
-   * ノードのテキストを更新し、対応するマークダウンも更新
-   */
-  const updateNodeWithMarkdownSync = useCallback((
+    const updateNodeWithMarkdownSync = useCallback((
     nodes: MindMapNode[],
     nodeId: string,
     newText: string,
@@ -25,10 +19,10 @@ export const useMarkdownSync = () => {
         newText
       );
 
-      // ノード構造を更新
+      
       onNodesUpdate(updatedNodes);
 
-      // マークダウンも更新（必要に応じて）
+      
       if (onMarkdownUpdate) {
         onMarkdownUpdate(updatedMarkdown);
       }
@@ -41,10 +35,7 @@ export const useMarkdownSync = () => {
     }
   }, []);
 
-  /**
-   * マークダウンからノード構造を再構築（差分更新版）
-   */
-  const rebuildFromMarkdown = useCallback((
+    const rebuildFromMarkdown = useCallback((
     markdownText: string,
     onNodesUpdate: (nodes: MindMapNode[]) => void,
     onError?: (error: string) => void,
@@ -53,15 +44,15 @@ export const useMarkdownSync = () => {
       startY?: number;
       horizontalSpacing?: number;
       verticalSpacing?: number;
-      currentNodes?: MindMapNode[]; // 既存ノードの情報
-      preservePositions?: boolean; // 位置情報を保持するかどうか
+      currentNodes?: MindMapNode[]; 
+      preservePositions?: boolean; 
     }
   ) => {
     try {
       const { rootNodes } = MarkdownImporter.parseMarkdownToNodes(markdownText, options);
       let finalNodes = rootNodes;
 
-      // 既存ノードがある場合は差分更新を試行（レイアウトを保持しつつ構造を更新）
+      
       if (options?.currentNodes && options?.preservePositions) {
         finalNodes = mergeNodesPreservingLayout(options.currentNodes, rootNodes, null);
       }
@@ -85,14 +76,11 @@ export const useMarkdownSync = () => {
     }
   }, []);
 
-  /**
-   * 既存ノードと新しいノードをマージして差分更新
-   */
-  const mergeWithExistingNodes = useCallback((
+    const mergeWithExistingNodes = useCallback((
     newNodes: MindMapNode[],
     existingNodes: MindMapNode[]
   ): MindMapNode[] => {
-    // 既存ノードをテキストベースでマップ化
+    
     const existingNodeMap = new Map<string, MindMapNode>();
     
     const mapNodes = (nodes: MindMapNode[]) => {
@@ -106,13 +94,13 @@ export const useMarkdownSync = () => {
     
     mapNodes(existingNodes);
 
-    // 新しいノードに既存の位置情報やIDを適用
+    
     const mergeNodeData = (nodes: MindMapNode[]): MindMapNode[] => {
       return nodes.map(newNode => {
         const existingNode = existingNodeMap.get(newNode.text);
         
         if (existingNode) {
-          // 既存ノードが見つかった場合、位置情報とIDを保持しつつ、新しい構造属性を優先
+          
           const kind = (newNode as any)?.kind ?? (existingNode as any)?.kind;
           const tableData = (newNode as any)?.tableData ?? (existingNode as any)?.tableData;
 
@@ -121,7 +109,7 @@ export const useMarkdownSync = () => {
             id: existingNode.id,
             x: existingNode.x,
             y: existingNode.y,
-            // 編集系/外観は既存を優先（ユーザー操作を尊重）
+            
             color: existingNode.color || newNode.color,
             fontSize: existingNode.fontSize || newNode.fontSize,
             fontWeight: existingNode.fontWeight || newNode.fontWeight,
@@ -131,10 +119,10 @@ export const useMarkdownSync = () => {
             collapsed: existingNode.collapsed || newNode.collapsed,
           };
 
-          // kind/tableData は新パースを優先
+          
           if (kind) mergedNode.kind = kind;
           if (tableData) mergedNode.tableData = tableData;
-          // 表ノードはmeta不要、テキストも空でOK
+          
           if (mergedNode.kind === 'table') {
             delete mergedNode.markdownMeta;
             if (!mergedNode.text) mergedNode.text = '';
@@ -227,10 +215,7 @@ export const useMarkdownSync = () => {
     return updatedNodes;
   }, []);
 
-  /**
-   * 新しいノードに適切なマークダウンメタデータを追加
-   */
-  const addChildNodeWithMarkdownMeta = useCallback((
+    const addChildNodeWithMarkdownMeta = useCallback((
     nodes: MindMapNode[],
     parentId: string,
     newNodeText: string,
@@ -253,19 +238,19 @@ export const useMarkdownSync = () => {
 
     const newNode = createNewNode(newNodeText);
 
-    // 兄弟ノードと親ノードのマークダウンメタデータに基づいて子ノードのメタデータを設定
+    
     if (parentNode.markdownMeta || (parentNode.children && parentNode.children.length > 0)) {
       let newNodeMeta: import('@shared/types').MarkdownNodeMeta;
 
-      // まず兄弟ノードの最後のノードのmeta情報を確認
+      
       const lastSibling = parentNode.children && parentNode.children.length > 0
         ? parentNode.children[parentNode.children.length - 1]
         : null;
 
       if (lastSibling && lastSibling.markdownMeta) {
-        // 兄弟ノードがmarkdownMetaを持っている場合、同じタイプを継承
+        
         const siblingMeta = lastSibling.markdownMeta;
-        // 前文ノードからは継承しない（通常のノードタイプのみ）
+        
         const inheritableType = siblingMeta.type === 'preface' ? 'heading' : (siblingMeta.type || 'heading');
         newNodeMeta = {
           type: inheritableType,
@@ -281,7 +266,7 @@ export const useMarkdownSync = () => {
         if (parentMeta.type === 'heading') {
           const childLevel = (parentMeta.level || 1) + 1;
 
-          // レベル7以上になる場合はリストに変更
+          
           if (childLevel >= 7) {
             newNodeMeta = {
               type: 'unordered-list',
@@ -291,7 +276,7 @@ export const useMarkdownSync = () => {
               lineNumber: -1
             };
           } else {
-            // 見出しの子は見出し（レベル+1）
+            
             newNodeMeta = {
               type: 'heading',
               level: childLevel,
@@ -301,8 +286,8 @@ export const useMarkdownSync = () => {
             };
           }
         } else {
-          // リストの子は同じタイプで一段深いインデント
-          // 前文ノードの場合は見出しにフォールバック
+          
+          
           const parentType = parentMeta.type === 'preface' ? 'heading' : (parentMeta.type || 'heading');
           newNodeMeta = {
             type: parentType,
@@ -360,10 +345,7 @@ export const useMarkdownSync = () => {
     return updatedNodes;
   }, []);
 
-  /**
-   * ノードタイプを変更（見出し ↔ リスト）
-   */
-  const changeNodeType = useCallback((
+    const changeNodeType = useCallback((
     nodes: MindMapNode[],
     nodeId: string,
     newType: 'heading' | 'unordered-list' | 'ordered-list',
@@ -372,7 +354,7 @@ export const useMarkdownSync = () => {
     try {
       let updatedNodes = MarkdownImporter.changeNodeType(nodes, nodeId, newType);
 
-      // 順序ありリストに変更した場合は番号を再計算
+      
       if (newType === 'ordered-list') {
         updatedNodes = MarkdownImporter.renumberOrderedLists(updatedNodes);
       }
@@ -380,9 +362,9 @@ export const useMarkdownSync = () => {
       onNodesUpdate(updatedNodes);
       return updatedNodes;
     } catch (error) {
-      // エラーをキャッチして上位に伝える
+      
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      // エラーフラグ付きのオブジェクトを返す
+      
       const errorResult = {
         ...nodes,
         __conversionError: errorMessage
@@ -391,10 +373,7 @@ export const useMarkdownSync = () => {
     }
   }, []);
 
-  /**
-   * リストタイプを変更
-   */
-  const changeListType = useCallback((
+    const changeListType = useCallback((
     nodes: MindMapNode[],
     nodeId: string,
     newType: 'unordered-list' | 'ordered-list',
@@ -402,7 +381,7 @@ export const useMarkdownSync = () => {
   ) => {
     let updatedNodes = MarkdownImporter.changeListType(nodes, nodeId, newType);
 
-    // 順序ありリストに変更した場合は番号を再計算
+    
     if (newType === 'ordered-list') {
       updatedNodes = MarkdownImporter.renumberOrderedLists(updatedNodes);
     }

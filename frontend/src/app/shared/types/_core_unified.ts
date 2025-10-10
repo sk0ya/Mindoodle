@@ -3,7 +3,7 @@ export type MapId = string & { readonly __brand: 'MapId' };
 export type FileId = string & { readonly __brand: 'FileId' };
 export type UserId = string & { readonly __brand: 'UserId' };
 
-// Type guards and factory functions for branded types
+
 export const createNodeId = (id: string): NodeId => id as NodeId;
 export const createMapId = (id: string): MapId => id as MapId;
 export const createFileId = (id: string): FileId => id as FileId;
@@ -14,7 +14,7 @@ export const isMapId = (id: string): id is MapId => typeof id === 'string' && id
 export const isFileId = (id: string): id is FileId => typeof id === 'string' && id.length > 0;
 export const isUserId = (id: string): id is UserId => typeof id === 'string' && id.length > 0;
 
-// Base node interface that both modes can extend
+
 export interface MindMapNode {
   id: string;
   text: string;
@@ -22,49 +22,49 @@ export interface MindMapNode {
   y: number;
   children: MindMapNode[];
   
-  // Optional visual properties
+  
   fontSize?: number;
   fontFamily?: string;
   fontWeight?: string;
   fontStyle?: string;
   color?: string;
   
-  // Functional properties  
+  
   collapsed?: boolean;
   links?: NodeLink[];
   
-  // Image display properties
+  
   customImageWidth?: number;
   customImageHeight?: number;
   
-  // Markdown note for each node
+  
   note?: string;
 
-  // Markdown structure metadata
+  
   markdownMeta?: MarkdownNodeMeta;
 
-  // Line ending preference for markdown export (inherited from parent or detected from source)
+  
   lineEnding?: string;
 }
 
-// Markdown structure metadata for preserving original format
+
 export interface MarkdownNodeMeta {
   type: 'heading' | 'unordered-list' | 'ordered-list';
   level: number;
-  originalFormat: string; // #, ##, -, *, +, 1., 2. など
-  indentLevel?: number; // リストのインデントレベル（スペース数）
-  lineNumber: number; // 元の行番号
-  // Checkbox functionality for GitHub-style task lists
-  isCheckbox?: boolean; // Whether this list item is a checkbox
-  isChecked?: boolean;  // Checkbox state (true = checked, false = unchecked)
+  originalFormat: string; 
+  indentLevel?: number; 
+  lineNumber: number; 
+  
+  isCheckbox?: boolean; 
+  isChecked?: boolean;  
 }
 
-// Main mindmap data structure
+
 export interface MindMapData {
   title: string;
-  rootNodes: MindMapNode[]; // 複数ルートノード対応
+  rootNodes: MindMapNode[]; 
   category?: string;
-  // Unified identifier for storage routing
+  
   mapIdentifier: MapIdentifier;
   theme?: string;
   createdAt: string;
@@ -72,18 +72,18 @@ export interface MindMapData {
   settings: MindMapSettings;
 }
 
-// Default workspace ID for when no workspace is selected
+
 export const DEFAULT_WORKSPACE_ID = '__default__';
 
-// Unified identifier for maps (id + workspace)
+
 export interface MapIdentifier {
   mapId: string;
-  workspaceId: string; // always required
+  workspaceId: string; 
 }
 
-// No factory helper needed; maps hold the identifier directly
 
-// Settings configuration
+
+
 export interface MindMapSettings {
   autoSave: boolean;
   autoLayout: boolean;
@@ -91,17 +91,17 @@ export interface MindMapSettings {
   animationEnabled?: boolean;
 }
 
-// Node link interface for linking to other mindmaps or nodes
+
 export interface NodeLink {
   id: string;
-  targetMapId?: string; // ID of target mindmap
-  targetNodeId?: string; // ID of target node (optional, for root if not specified)
-  targetAnchor?: string; // Anchor text for the target node (for duplicate node names)
+  targetMapId?: string; 
+  targetNodeId?: string; 
+  targetAnchor?: string; 
   createdAt: string;
   updatedAt: string;
 }
 
-// UI State types
+
 export interface UIState {
   selectedNodeId: string | null;
   editingNodeId: string | null;
@@ -114,7 +114,7 @@ export interface UIState {
   panY: number;
 }
 
-// Utility types
+
 export interface Position {
   x: number;
   y: number;
@@ -157,10 +157,10 @@ export interface LayoutAlgorithm {
   description: string;
 }
 
-// Enum-like types
+
 export type StorageMode = 'local';
 
-// Event types for consistency
+
 export interface NodeEvent {
   nodeId: string;
   action: 'select' | 'edit' | 'create' | 'delete' | 'move';
@@ -173,7 +173,7 @@ export interface MapEvent {
   data?: unknown;
 }
 
-// Error types
+
 export interface AppError {
   code: string;
   message: string;
@@ -182,7 +182,7 @@ export interface AppError {
   timestamp: string;
 }
 
-// Hook return types for consistency
+
 export interface MindMapHookReturn {
   data: MindMapData | null;
   selectedNodeId: string | null;
@@ -191,7 +191,7 @@ export interface MindMapHookReturn {
   isLoading: boolean;
   error: string | null;
   
-  // Actions
+  
   setSelectedNodeId: (id: string | null) => void;
   setEditingNodeId: (id: string | null) => void;
   setEditText: (text: string) => void;
@@ -204,7 +204,7 @@ export interface MindMapHookReturn {
   updateTitle: (title: string) => void;
 }
 
-// Type guards for runtime type checking
+
 export const isValidMindMapNode = (obj: unknown): obj is MindMapNode => {
   if (!obj || typeof obj !== 'object') return false;
   const node = obj as Record<string, unknown>;

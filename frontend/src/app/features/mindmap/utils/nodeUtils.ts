@@ -4,12 +4,12 @@ import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../.
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import { stripInlineMarkdown, parseInlineMarkdown } from '../../markdown/parseInlineMarkdown';
 
-// アイコンレイアウト情報
+
 interface IconLayout {
-  totalWidth: number; // アイコン群の総幅
+  totalWidth: number; 
   linkIcon?: {
-    x: number; // ノード中心からの相対X座標
-    y: number; // ノード中心からの相対Y座標
+    x: number; 
+    y: number; 
   };
 }
 
@@ -78,17 +78,14 @@ export function resolveNodeTextWrapConfig(settings?: NodeTextWrapSettingsLike, f
   };
 }
 
-// Canvas要素を使用してテキストの実際の幅を測定するためのキャッシュ
+
 let measureCanvas: HTMLCanvasElement | null = null;
 let measureContext: CanvasRenderingContext2D | null = null;
 
-/**
- * 測定用Canvasコンテキストを確実に初期化する
- */
 function ensureMeasureContext(): CanvasRenderingContext2D | null {
   if (!measureCanvas || !measureContext) {
     measureCanvas = document.createElement('canvas');
-    // DOMの影響を受けないようにCanvasを完全に隠し、配置しない
+    
     measureCanvas.style.position = 'absolute';
     measureCanvas.style.left = '-9999px';
     measureCanvas.style.top = '-9999px';
@@ -102,7 +99,7 @@ function ensureMeasureContext(): CanvasRenderingContext2D | null {
       return null;
     }
     
-    // デフォルトのフォント設定でコンテキストをリセット
+    
     measureContext.font = '14px system-ui, -apple-system, sans-serif';
     measureContext.textBaseline = 'alphabetic';
     measureContext.textAlign = 'left';
@@ -110,15 +107,6 @@ function ensureMeasureContext(): CanvasRenderingContext2D | null {
   return measureContext;
 }
 
-/**
- * Canvas APIを使用してテキストの実際の幅を測定
- * @param text 計算対象のテキスト
- * @param fontSize フォントサイズ（px）
- * @param fontFamily フォントファミリー
- * @param fontWeight フォントウェイト
- * @param fontStyle フォントスタイル
- * @returns 実際のピクセル幅
- */
 export function measureTextWidth(
   text: string,
   fontSize: number = 14,
@@ -126,55 +114,50 @@ export function measureTextWidth(
   fontWeight: string = 'normal',
   fontStyle: string = 'normal'
 ): number {
-  // 空文字の場合は0を返す
+  
   if (!text) return 0;
   
-  // 測定用Canvasコンテキストを確実に取得
+  
   const context = ensureMeasureContext();
   
   if (!context) {
-    // Canvas APIが使用できない場合は従来の文字数ベースの計算にフォールバック
+    
     return calculateTextWidthFallback(text) * fontSize * 0.6;
   }
   
-  // フォント設定を適用（毎回明示的に設定して一貫性を保つ）
+  
   const fontString = `${fontStyle} ${fontWeight} ${fontSize}px ${fontFamily}`;
   context.font = fontString;
   
-  // 一貫した測定のためにベースラインとアラインメントを再設定
+  
   context.textBaseline = 'alphabetic';
   context.textAlign = 'left';
   
-  // テキストの実際の幅を測定
+  
   const metrics = context.measureText(text);
   return metrics.width;
 }
 
-/**
- * テキストの表示幅を計算（全角文字を考慮） - フォールバック用
- * @param text 計算対象のテキスト
- * @returns 表示幅（半角文字1文字を1とした単位）
- */
 function calculateTextWidthFallback(text: string): number {
   let width = 0;
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
     const code = char.charCodeAt(0);
     
-    // 全角文字の判定
+    
     if (
-      // 日本語文字（ひらがな、カタカナ、漢字）
-      (code >= 0x3040 && code <= 0x309F) || // ひらがな
-      (code >= 0x30A0 && code <= 0x30FF) || // カタカナ
-      (code >= 0x4E00 && code <= 0x9FAF) || // 漢字
-      // 全角記号・全角英数字
+      
+      (code >= 0x3040 && code <= 0x309F) || 
+      (code >= 0x30A0 && code <= 0x30FF) || 
+      (code >= 0x4E00 && code <= 0x9FAF) || 
+      
       (code >= 0xFF00 && code <= 0xFFEF) ||
-      // その他の全角文字
+      
       code > 0x007F
     ) {
-      width += 2; // 全角文字は2倍の幅
+      width += 2; 
     } else {
-      width += 1; // 半角文字は1倍の幅
+      width += 1; 
     }
   }
   return width;
@@ -200,62 +183,46 @@ export function getNodeHorizontalPadding(textLength: number, isEditing: boolean)
   return basePadding + additionalPadding;
 }
 
-/**
- * Check if a character is a CJK (Chinese, Japanese, Korean) character
- */
 function isCJKChar(char: string): boolean {
   if (!char || char.length === 0) return false;
   const code = char.charCodeAt(0);
   return (
-    (code >= 0x4E00 && code <= 0x9FFF) ||   // CJK Unified Ideographs
-    (code >= 0x3040 && code <= 0x309F) ||   // Hiragana
-    (code >= 0x30A0 && code <= 0x30FF) ||   // Katakana
-    (code >= 0xFF00 && code <= 0xFFEF) ||   // Fullwidth characters
-    (code >= 0x3400 && code <= 0x4DBF) ||   // CJK Extension A
-    (code >= 0x20000 && code <= 0x2A6DF) || // CJK Extension B
-    (code >= 0xAC00 && code <= 0xD7AF)      // Hangul Syllables
+    (code >= 0x4E00 && code <= 0x9FFF) ||   
+    (code >= 0x3040 && code <= 0x309F) ||   
+    (code >= 0x30A0 && code <= 0x30FF) ||   
+    (code >= 0xFF00 && code <= 0xFFEF) ||   
+    (code >= 0x3400 && code <= 0x4DBF) ||   
+    (code >= 0x20000 && code <= 0x2A6DF) || 
+    (code >= 0xAC00 && code <= 0xD7AF)      
   );
 }
 
-/**
- * Check if a character is a high-priority break point (punctuation)
- */
 function isPrimaryBreak(char: string): boolean {
   if (!char || char.length === 0) return false;
-  // Japanese and CJK punctuation marks (highest priority)
+  
   return /[、。，．！？：；）」』】〉》\]）｝〕〗〙〛〉》」』｝〕\])!?,.:;]/.test(char);
 }
 
-/**
- * Check if a character is a Japanese particle (助詞) - secondary break point
- */
 function isParticle(char: string): boolean {
   if (!char || char.length === 0) return false;
-  // Common Japanese particles
-  // 格助詞: が/を/に/へ/と/から/まで/より
-  // 係助詞: は/も/こそ/でも/しか/さえ
-  // 副助詞: まで/だけ/ばかり/ほど/くらい/など/なんか/しか/すら/さえ
-  // 接続助詞: が/けれど/けれども/のに/ので/から/でも/ても/のに/ながら/して/とば
-  // 終助詞: か/な/ね/よ/さ/わ/かしら/かな
-  // 並立助詞: と/や/に/とか
-  // 提示助詞: は/も
-  // 準体助詞: の
-  // 間投助詞: よ/ね/さ/な
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
   return /[がをにへとからまでよりはもこそでもしかさえだけばかりほどくらいなどなんかすらけれどけれどものにのでからてもながらしてとばかなねよさわかしらやとかの]$/.test(char);
 }
 
-/**
- * Check if a character is any break point after (punctuation or particle)
- */
 function isBreakAfter(char: string): boolean {
   return isPrimaryBreak(char) || isParticle(char);
 }
 
 
-/**
- * Split text into tokens considering CJK characters and punctuation
- * CJK text breaks at punctuation boundaries, Latin text breaks at word boundaries
- */
 function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boolean; strikethrough?: boolean }): RawTextToken[] {
   const pieces: RawTextToken[] = [];
   let buffer = '';
@@ -291,7 +258,7 @@ function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boo
 
     // CJK text: accumulate until we hit punctuation that's a good break point
     if (isCJK) {
-      // If we have Latin buffer, flush it first
+      
       if (buffer && !isCJKBuffer) {
         flushBuffer();
       }
@@ -299,15 +266,15 @@ function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boo
       buffer += char;
       isCJKBuffer = true;
 
-      // Check if this character is a good break point (after punctuation)
+      
       if (isBreakAfter(char)) {
         flushBuffer();
       }
       continue;
     }
 
-    // Latin characters: accumulate into words
-    // If we have CJK buffer, flush it first
+    
+    
     if (buffer && isCJKBuffer) {
       flushBuffer();
     }
@@ -353,7 +320,7 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
         continue;
       }
 
-      // Use smart splitting that handles CJK and Latin text differently
+      
       const splitPieces = smartSplitText(piece, {
         bold: segment.bold,
         italic: segment.italic,
@@ -551,23 +518,20 @@ export function getMarkerPrefixTokens(node: MindMapNode): RawTextToken[] {
   ];
 }
 
-/**
- * ノードのアイコンレイアウトを計算
- */
 export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconLayout {
   const noteStr = (node as any)?.note as string | undefined;
   const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0);
   
-  // アイコンの基本サイズ
+  
   const ICON_WIDTH = 22;
   const ICON_HEIGHT = 14;
-  const RIGHT_MARGIN = 2; // 右端との最小余白
+  const RIGHT_MARGIN = 2; 
   
   let totalWidth = 0;
   let linkIcon: { x: number; y: number } | undefined;
   
   if (hasLinks) {
-    // リンクのみ（添付ファイル機能は廃止されているため）
+    
     totalWidth = ICON_WIDTH;
     const startX = nodeWidth / 2 - totalWidth - RIGHT_MARGIN;
 
@@ -587,13 +551,13 @@ export function calculateNodeSize(
   globalFontSize?: number,
   wrapConfig?: NodeTextWrapConfig
 ): NodeSize {
-  // Table node sizing - 動的サイズ更新に対応
+  
   if (node.kind === 'table') {
-    // カスタムサイズが設定されている場合は、それを使用（動的更新済み）
+    
     if (node.customImageWidth && node.customImageHeight) {
       const contentWidth = node.customImageWidth;
       const contentHeight = node.customImageHeight;
-      // テーブル表示に適したパディング
+      
       const padding = 10;
       return {
         width: contentWidth + padding,
@@ -602,7 +566,7 @@ export function calculateNodeSize(
       };
     }
 
-    // カスタムサイズが未設定の場合のフォールバック計算
+    
     const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
       if (!src) return null;
       const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
@@ -642,16 +606,16 @@ export function calculateNodeSize(
       const dataRows = parsed.rows.length;
       const totalRows = headerRows + dataRows;
       // NodeRendererの新しいCSS: padding: '12px 16px', line-height: 1.5, fontSize: 14px * 0.95
-      // 実際の計算: (13.3px * 1.5) + (12px * 2) = 19.95px + 24px = 43.95px ≈ 44px
+      
       const rowHeight = 44;
-      return Math.max(70, totalRows * rowHeight + 12); // 最小70px + 適切なマージン
+      return Math.max(70, totalRows * rowHeight + 12); 
     };
 
     const calculatedHeight = calculateTableHeight(parsed);
-    const contentWidth = Math.max(150, 200); // 基本的な幅
+    const contentWidth = Math.max(150, 200); 
     const contentHeight = calculatedHeight;
 
-    const padding = 10; // テーブル表示に適したパディング
+    const padding = 10; 
     const nodeWidth = contentWidth + padding;
     const nodeHeight = contentHeight + padding;
 
@@ -662,7 +626,7 @@ export function calculateNodeSize(
     };
   }
 
-  // 画像の有無とサイズを確認（添付 or ノート埋め込み画像）
+  
   const noteStr: string = (node as any)?.note || '';
   const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
   const hasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
@@ -759,8 +723,8 @@ export function calculateNodeSize(
       maxWidth: wrapMaxWidth,
       prefixTokens: markerTokens
     });
-    // For multi-line wrapped text (left-aligned), use wrapMaxWidth to ensure node is wide enough
-    // For single-line text, use actual width
+    
+    
     const hasMultipleLines = wrapResult.lines.length > 1;
     textContentWidth = hasMultipleLines ? wrapMaxWidth : wrapResult.maxLineWidth;
     textBlockHeight = wrapEnabled ? Math.max(wrapResult.textHeight, fontSize + 8) : Math.max(fontSize + 8, 22);
@@ -791,42 +755,23 @@ export function calculateNodeSize(
   };
 }
 
-/**
- * ノードの座標計算ユーティリティ
- * 一貫性のある座標計算を提供
- */
 
-/**
- * ノードの左端X座標を計算
- */
 export function getNodeLeftX(node: MindMapNode, nodeWidth: number): number {
   return node.x - nodeWidth / 2;
 }
 
-/**
- * ノードの右端X座標を計算
- */
 export function getNodeRightX(node: MindMapNode, nodeWidth: number): number {
   return node.x + nodeWidth / 2;
 }
 
-/**
- * ノードの上端Y座標を計算
- */
 export function getNodeTopY(node: MindMapNode, nodeHeight: number): number {
   return node.y - nodeHeight / 2;
 }
 
-/**
- * ノードの下端Y座標を計算
- */
 export function getNodeBottomY(node: MindMapNode, nodeHeight: number): number {
   return node.y + nodeHeight / 2;
 }
 
-/**
- * ノードの境界を計算する（統一インターフェース）
- */
 export function getNodeBounds(node: MindMapNode, nodeSize: NodeSize) {
   return {
     left: getNodeLeftX(node, nodeSize.width),
@@ -847,19 +792,19 @@ export function getToggleButtonPosition(
   globalFontSize?: number,
   wrapConfig?: NodeTextWrapConfig
 ) {
-  // ルートノード自身の場合は常に右側に配置
+  
   const isRootNodeItself = node.id === rootNode.id;
   const isOnRight = isRootNodeItself ? true : node.x > rootNode.x;
 
-  // 一貫したノードサイズ計算を使用（引数で渡されない場合は内部で計算）
+  
   const actualNodeSize = nodeSize || calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
 
-  // フォントサイズとノードサイズに応じた動的なマージン調整
+  
   const fontSize = globalFontSize || 14;
-  // フォントサイズに比例した基本マージン
+  
   const base = Math.max(fontSize * 1.5, 20);
 
-  // Mermaidや表など「ビジュアルが大きいノード」はトグルを遠ざけ過ぎない
+  
   const note: string = (node as any)?.note || '';
   const hasMermaid = /```mermaid[\s\S]*?```/i.test(note);
   const isTable = (node as any)?.kind === 'table';
@@ -869,25 +814,25 @@ export function getToggleButtonPosition(
   let widthAdjustment = 0;
 
   if (!isVisualHeavy) {
-    // 画像の高さに応じた調整（軽微）
+    
     if (actualNodeSize.imageHeight > 100) {
-      baseMargin += Math.min((actualNodeSize.imageHeight - 100) * 0.08, 24); // 上限24px
+      baseMargin += Math.min((actualNodeSize.imageHeight - 100) * 0.08, 24); 
     }
-    // 幅に応じた追加調整（ノードサイズに比例させる）
-    // 基準となる幅をフォントサイズの4倍程度に設定（より現実的な値）
+    
+    
     const baseWidth = fontSize * 4;
-    // ノード幅が基準を超えた分の10%をマージンとして追加（より控えめ）
+    
     widthAdjustment = Math.max(0, (actualNodeSize.width - baseWidth) * 0.04);
-    widthAdjustment = Math.min(widthAdjustment, 20); // 上限20px（より控えめ）
+    widthAdjustment = Math.min(widthAdjustment, 20); 
   } else {
-    // ビジュアルが大きいノードは固定の小さめオフセット
+    
     baseMargin += 8;
   }
 
-  // 最終的なトグル余白をクランプ（より控えめな上限）
+  
   const totalMargin = Math.min(Math.max(baseMargin + widthAdjustment, 12), 35);
 
-  // ノードの右端から一定距離でトグルボタンを配置（統一された関数を使用）
+  
   const nodeRightEdge = getNodeRightX(node, actualNodeSize.width);
   const nodeLeftEdge = getNodeLeftX(node, actualNodeSize.width);
 
@@ -898,33 +843,25 @@ export function getToggleButtonPosition(
   return { x: toggleX, y: toggleY };
 }
 
-/**
- * 親ノードの右端から子ノードの左端までの水平距離を計算
- * トグルボタンの存在を考慮した間隔計算
- */
 export function getDynamicNodeSpacing(parentNodeSize: NodeSize, childNodeSize: NodeSize, _isRootChild: boolean = false): number {
-  // トグルボタンのサイズと最小間隔を考慮
-  const toggleButtonWidth = 20; // トグルボタンの幅
-  const minToggleToChildSpacing = 15; // トグルボタンと子ノードの最小間隔
+  
+  const toggleButtonWidth = 20; 
+  const minToggleToChildSpacing = 15; 
 
-  // 基本間隔（親ノード → トグルボタン → 子ノード）
+  
   const baseSpacing = 30;
 
-  // 親ノードと子ノードの幅を考慮した追加間隔
-  const parentWidthFactor = Math.min(parentNodeSize.width / 100, 1) * 5; // 最大5px追加
-  const childWidthFactor = Math.min(childNodeSize.width / 100, 1) * 5;   // 最大5px追加
+  
+  const parentWidthFactor = Math.min(parentNodeSize.width / 100, 1) * 5; 
+  const childWidthFactor = Math.min(childNodeSize.width / 100, 1) * 5;   
 
-  // トグルボタンのためのスペースを確保
+  
   const calculatedSpacing = baseSpacing + parentWidthFactor + childWidthFactor;
   const minRequiredSpacing = toggleButtonWidth + minToggleToChildSpacing;
 
   return Math.round(Math.max(calculatedSpacing, minRequiredSpacing));
 }
 
-/**
- * 親ノードの右端から子ノードの左端までの距離に基づいて子ノードのX座標を計算
- * トグルボタンの位置を考慮して重なりを防ぐ
- */
 export function calculateChildNodeX(
   parentNode: MindMapNode,
   childNodeSize: NodeSize,
@@ -935,30 +872,22 @@ export function calculateChildNodeX(
   const parentNodeSize = calculateNodeSize(parentNode, undefined, false, globalFontSize, wrapConfig);
   const parentRightEdge = getNodeRightX(parentNode, parentNodeSize.width);
 
-  // 基本的な子ノード位置計算
+  
   const basicChildLeftEdge = parentRightEdge + edgeToEdgeDistance;
 
-  // トグルボタンの位置を計算（getToggleButtonPositionと同じロジック）
+  
   const togglePosition = getToggleButtonPosition(parentNode, parentNode, parentNodeSize, globalFontSize, wrapConfig);
-  const toggleButtonWidth = 20; // トグルボタンの幅
-  const minToggleToChildSpacing = 15; // トグルボタンと子ノードの最小間隔
+  const toggleButtonWidth = 20; 
+  const minToggleToChildSpacing = 15; 
   const requiredChildLeftEdge = togglePosition.x + toggleButtonWidth / 2 + minToggleToChildSpacing;
 
-  // 基本計算と、トグルボタンを考慮した位置の、より右側を使用
+  
   const finalChildLeftEdge = Math.max(basicChildLeftEdge, requiredChildLeftEdge);
   const childCenterX = finalChildLeftEdge + childNodeSize.width / 2;
 
   return childCenterX;
 }
 
-/**
- * ノードのルートブランチを特定し、そのブランチに対応する色を返す
- * レベル0→1と1→2でのみ兄弟順位に応じて色を循環、レベル2以降は親の色を継承
- * @param nodeId ノードID
- * @param normalizedData 正規化されたデータ
- * @param colorSetName カラーセット名（オプション）
- * @returns ブランチカラー
- */
 export function getBranchColor(
   nodeId: string,
   normalizedData: NormalizedData,
@@ -966,15 +895,15 @@ export function getBranchColor(
 ): string {
   if (!normalizedData || !nodeId) return '#666';
 
-  // 現在のノードがルートノードかどうかを判定
+  
   const isRootNode = !normalizedData.parentMap[nodeId];
 
   if (isRootNode) {
-    // ルートノード自体はデフォルト色
+    
     return '#333';
   }
 
-  // ブランチのルートノードとレベルを見つける
+  
   let currentNodeId = nodeId;
   let branchRootId: string | null = null;
   let level = 0;
@@ -983,17 +912,17 @@ export function getBranchColor(
     const parentId = normalizedData.parentMap[currentNodeId];
 
     if (!parentId) {
-      // 親がいない = ルートノードに到達
+      
       break;
     }
 
     level++;
 
-    // 親がルートノードかどうかをチェック
+    
     const parentIsRoot = !normalizedData.parentMap[parentId];
 
     if (parentIsRoot) {
-      // 親がルートノード = 現在のノードがブランチルート
+      
       branchRootId = currentNodeId;
       break;
     }
@@ -1001,10 +930,10 @@ export function getBranchColor(
     currentNodeId = parentId;
   }
 
-  // ブランチルートが見つからない場合はデフォルト色
+  
   if (!branchRootId) return '#666';
 
-  // ルートノードを取得してその子ノード一覧からインデックスを特定
+  
   const parentOfBranchRoot = normalizedData.parentMap[branchRootId];
   if (!parentOfBranchRoot) return '#666';
 
@@ -1013,35 +942,32 @@ export function getBranchColor(
 
   if (branchIndex < 0) return '#666';
 
-  // カラーセットから色を取得
+  
   const colorSet = getColorSetColors(colorSetName || 'vibrant');
   const baseColor = colorSet[branchIndex % colorSet.length];
   const branchColors = generateBranchColors(baseColor);
 
-  // レベル1（ルート→ブランチルート）の場合は基本色
+  
   if (nodeId === branchRootId) {
-    return branchColors[0]; // 基本色
+    return branchColors[0]; 
   }
 
-  // レベル2（ブランチルート→その子）の場合は兄弟順位に応じて色を循環
+  
   const parentId = normalizedData.parentMap[nodeId];
   if (!parentId) return '#666';
 
   if (parentId === branchRootId) {
-    // 親がブランチルート = レベル2
+    
     const siblings = normalizedData.childrenMap[parentId] || [];
     const siblingIndex = siblings.indexOf(nodeId);
     if (siblingIndex < 0) return '#666';
     return branchColors[siblingIndex % branchColors.length];
   }
 
-  // レベル3以降: 親の色を継承
+  
   return getBranchColor(parentId, normalizedData, colorSetName);
 }
 
-/**
- * カラーセット名から色配列を取得
- */
 function getColorSetColors(colorSetName: string): string[] {
   const colorSets: Record<string, string[]> = {
     vibrant: ['#FF6B6B', '#4ECDC4', '#FECA57', '#54A0FF', '#FF9FF3', '#96CEB4'],
@@ -1057,11 +983,6 @@ function getColorSetColors(colorSetName: string): string[] {
   return colorSets[colorSetName] || colorSets.vibrant;
 }
 
-/**
- * ブランチ内の色配列を生成（基本色から類似色を生成）
- * @param baseColor 基本色（HEX形式）
- * @returns 類似色の配列
- */
 function generateBranchColors(baseColor: string): string[] {
   const hexToHSL = (hex: string) => {
     const cleanHex = hex.replace('#', '');
@@ -1133,12 +1054,12 @@ function generateBranchColors(baseColor: string): string[] {
   const baseHSL = hexToHSL(baseColor);
   const colors: string[] = [];
 
-  // 基本色（インデックス0）
+  
   colors.push(baseColor);
 
-  // 類似色を5つ生成（明度のみ変化、彩度は維持）
+  
   for (let i = 1; i < 6; i++) {
-    const lightnessShift = i * -4; // -4%, -8%, -12%, -16%, -20%
+    const lightnessShift = i * -4; 
 
     const newL = Math.max(20, Math.min(80, baseHSL.l + lightnessShift));
 

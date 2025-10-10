@@ -1,7 +1,4 @@
-/**
- * VimCountBuffer
- * Manages numeric prefix input for vim commands (e.g., "10j" for move down 10 times)
- */
+
 export class VimCountBuffer {
   private buffer = '';
 
@@ -16,10 +13,7 @@ export class VimCountBuffer {
     this.buffer += digit;
   }
 
-  /**
-   * Get the current count as a number
-   * @returns The parsed count, or undefined if no count is buffered
-   */
+  
   getCount(): number | undefined {
     if (this.buffer === '') {
       return undefined;
@@ -42,9 +36,7 @@ export class VimCountBuffer {
     return this.buffer !== '';
   }
 
-  /**
-   * Get the raw buffer string (for debugging/display)
-   */
+  
   getBuffer(): string {
     return this.buffer;
   }

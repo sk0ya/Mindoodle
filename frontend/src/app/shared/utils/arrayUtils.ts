@@ -1,11 +1,6 @@
-/**
- * 配列操作用のユーティリティ関数
- * 共通的な配列処理パターンを提供
- */
 
-/**
- * 型安全なfind操作
- */
+
+
 export function safeFindById<T extends { id: string }>(
   array: T[],
   id: string
@@ -13,9 +8,7 @@ export function safeFindById<T extends { id: string }>(
   return array.find(item => item.id === id);
 }
 
-/**
- * プロパティ値でアイテムを検索
- */
+
 export function findByProperty<T, K extends keyof T>(
   array: T[],
   key: K,
@@ -24,9 +17,7 @@ export function findByProperty<T, K extends keyof T>(
   return array.find(item => item[key] === value);
 }
 
-/**
- * 複数の条件でアイテムを検索
- */
+
 export function findByConditions<T>(
   array: T[],
   conditions: Partial<T>
@@ -38,9 +29,7 @@ export function findByConditions<T>(
   });
 }
 
-/**
- * 型安全なfilter操作（IDベース）
- */
+
 export function filterById<T extends { id: string }>(
   array: T[],
   idsToKeep: string[]
@@ -48,9 +37,7 @@ export function filterById<T extends { id: string }>(
   return array.filter(item => idsToKeep.includes(item.id));
 }
 
-/**
- * IDで除外するfilter操作
- */
+
 export function filterExcludeById<T extends { id: string }>(
   array: T[],
   idsToExclude: string[]
@@ -58,9 +45,7 @@ export function filterExcludeById<T extends { id: string }>(
   return array.filter(item => !idsToExclude.includes(item.id));
 }
 
-/**
- * プロパティ値でフィルタリング
- */
+
 export function filterByProperty<T, K extends keyof T>(
   array: T[],
   key: K,
@@ -69,9 +54,7 @@ export function filterByProperty<T, K extends keyof T>(
   return array.filter(item => item[key] === value);
 }
 
-/**
- * 複数の条件でフィルタリング
- */
+
 export function filterByConditions<T>(
   array: T[],
   conditions: Partial<T>
@@ -83,9 +66,7 @@ export function filterByConditions<T>(
   });
 }
 
-/**
- * 配列から重複を除去（IDベース）
- */
+
 export function uniqueById<T extends { id: string }>(array: T[]): T[] {
   const seen = new Set<string>();
   return array.filter(item => {
@@ -97,9 +78,7 @@ export function uniqueById<T extends { id: string }>(array: T[]): T[] {
   });
 }
 
-/**
- * プロパティ値で重複除去
- */
+
 export function uniqueByProperty<T, K extends keyof T>(
   array: T[],
   key: K
@@ -115,9 +94,7 @@ export function uniqueByProperty<T, K extends keyof T>(
   });
 }
 
-/**
- * 配列を指定したプロパティでソート
- */
+
 export function sortByProperty<T, K extends keyof T>(
   array: T[],
   key: K,
@@ -133,9 +110,7 @@ export function sortByProperty<T, K extends keyof T>(
   });
 }
 
-/**
- * 配列を分割（chunk）
- */
+
 export function chunk<T>(array: T[], size: number): T[][] {
   const chunks: T[][] = [];
   for (let i = 0; i < array.length; i += size) {
@@ -144,9 +119,7 @@ export function chunk<T>(array: T[], size: number): T[][] {
   return chunks;
 }
 
-/**
- * 配列のインデックスベースでアイテムを移動
- */
+
 export function moveArrayItem<T>(array: T[], fromIndex: number, toIndex: number): T[] {
   const result = [...array];
   const [removed] = result.splice(fromIndex, 1);
@@ -154,9 +127,7 @@ export function moveArrayItem<T>(array: T[], fromIndex: number, toIndex: number)
   return result;
 }
 
-/**
- * 安全な配列アクセス（範囲外チェック）
- */
+
 export function safeArrayAccess<T>(array: T[], index: number): T | undefined {
   if (index < 0 || index >= array.length) {
     return undefined;
@@ -164,16 +135,12 @@ export function safeArrayAccess<T>(array: T[], index: number): T | undefined {
   return array[index];
 }
 
-/**
- * 配列が空でないことを確認する型ガード
- */
+
 export function isNonEmptyArray<T>(array: T[]): array is [T, ...T[]] {
   return array.length > 0;
 }
 
-/**
- * 配列から最初と最後の要素を取得
- */
+
 export function getFirstAndLast<T>(array: T[]): { first?: T; last?: T } {
   if (array.length === 0) {
     return { first: undefined, last: undefined };

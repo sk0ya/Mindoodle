@@ -11,9 +11,7 @@ interface StorageConfigChangeDependencies {
   currentWorkspaceId?: string | null;
 }
 
-/**
- * ストレージ設定変更時のデータ再読み込みを管理するhook
- */
+
 export const useStorageConfigChange = (
   storageConfig: StorageConfig | undefined,
   dependencies: StorageConfigChangeDependencies

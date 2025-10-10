@@ -1,9 +1,4 @@
-/**
- * useMindMapFileOps
- *
- * Handles file and folder operations for MindMap.
- * Extracted from MindMapApp.tsx to reduce component complexity.
- */
+
 
 import { useStableCallback } from '@shared/hooks';
 import { logger } from '@shared/utils';
@@ -12,17 +7,15 @@ import type { MindMapData, MapIdentifier } from '@shared/types';
 
 export interface UseMindMapFileOpsParams {
   data: MindMapData | null;
-  allMindMaps: any[]; // Array of map metadata
-  mindMap: any; // mindMap instance with methods
+  allMindMaps: any[]; 
+  mindMap: any; 
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
 export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
   const { data, allMindMaps, mindMap, showNotification } = params;
 
-  /**
-   * Load map data by identifier
-   */
+  
   const loadMapData = useStableCallback(
     async (mapIdentifier: MapIdentifier): Promise<MindMapData | null> => {
       try {
@@ -31,11 +24,11 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
           mapIdentifier.mapId === data.mapIdentifier.mapId &&
           mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
         ) {
-          // Return current map data
+          
           return data;
         }
 
-        // Load other map data
+        
         const targetMap = allMindMaps.find(
           (map: any) =>
             map.mapIdentifier.mapId === mapIdentifier.mapId &&
@@ -57,9 +50,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     }
   );
 
-  /**
-   * Load relative image path and return data URL
-   */
+  
   const onLoadRelativeImage = useStableCallback(
     async (relativePath: string): Promise<string | null> => {
       try {
@@ -145,7 +136,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
       } catch (error) {
         console.error('Failed to batch update map categories:', error);
 
-        // Try to sync state even on error
+        
         if (typeof (mindMap).refreshMapList === 'function') {
           await (mindMap).refreshMapList();
         }
@@ -153,9 +144,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     }
   );
 
-  /**
-   * Handle folder selection for local storage mode
-   */
+  
   const handleSelectFolder = useStableCallback(
     async (onSuccess?: () => void) => {
       try {

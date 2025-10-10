@@ -1,18 +1,8 @@
-/**
- * Command Parser
- * Parses user input strings into structured command objects
- */
+
 
 import type { ParseResult, ParsedCommand, Command, CommandArg } from './types';
 
-/**
- * Parse a command string into name and arguments
- * Supports formats like:
- * - "center"
- * - "delete node-123"
- * - "navigate up"
- * - "add-child --text 'Hello World' --edit"
- */
+
 export function parseCommand(input: string): ParseResult {
   const trimmed = input.trim();
   if (!trimmed) {
@@ -52,9 +42,7 @@ export function parseCommand(input: string): ParseResult {
   }
 }
 
-/**
- * Validate parsed command arguments against command definition
- */
+
 export function validateCommand(parsed: ParsedCommand, command: Command): ParseResult {
   if (!command.args || command.args.length === 0) {
     return { success: true, command: parsed };
@@ -63,7 +51,7 @@ export function validateCommand(parsed: ParsedCommand, command: Command): ParseR
   const errors: string[] = [];
   const processedArgs: Record<string, any> = { ...parsed.args };
 
-  // Check required arguments
+  
   for (const argDef of command.args) {
     const value = processedArgs[argDef.name];
 
@@ -72,13 +60,13 @@ export function validateCommand(parsed: ParsedCommand, command: Command): ParseR
       continue;
     }
 
-    // Set default value if not provided
+    
     if (value === undefined && argDef.default !== undefined) {
       processedArgs[argDef.name] = argDef.default;
       continue;
     }
 
-    // Type validation
+    
     if (value !== undefined) {
       const validationError = validateArgumentType(value, argDef);
       if (validationError) {
@@ -103,9 +91,7 @@ export function validateCommand(parsed: ParsedCommand, command: Command): ParseR
   };
 }
 
-/**
- * Tokenize input string, handling quotes and escape sequences
- */
+
 function tokenize(input: string): string[] {
   const tokens: string[] = [];
   let current = '';
@@ -175,20 +161,20 @@ function parseArguments(tokens: string[]): Record<string, any> {
     if (token === undefined) { i++; continue; }
 
     if (token.startsWith('--')) {
-      // Named argument
+      
       const argName = token.slice(2);
       const next = tokens[i + 1];
       if (i + 1 < tokens.length && next !== undefined && !next.startsWith('--')) {
-        // Has value
+        
         args[argName] = parseValue(next);
         i += 2;
       } else {
-        // Boolean flag
+        
         args[argName] = true;
         i++;
       }
     } else {
-      // Positional argument - use index as key
+      
       args[`_${i}`] = parseValue(token);
       i++;
     }
@@ -197,15 +183,13 @@ function parseArguments(tokens: string[]): Record<string, any> {
   return args;
 }
 
-/**
- * Parse string value to appropriate type
- */
+
 function parseValue(value: string): any {
-  // Boolean
+  
   if (value === 'true') return true;
   if (value === 'false') return false;
 
-  // Number
+  
   if (/^-?\d+$/.test(value)) {
     return parseInt(value, 10);
   }
@@ -213,7 +197,7 @@ function parseValue(value: string): any {
     return parseFloat(value);
   }
 
-  // String (remove quotes if present)
+  
   if ((value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))) {
     return value.slice(1, -1);
@@ -222,9 +206,7 @@ function parseValue(value: string): any {
   return value;
 }
 
-/**
- * Validate argument type against definition
- */
+
 function validateArgumentType(value: any, argDef: CommandArg): string | null {
   switch (argDef.type) {
     case 'string':
@@ -251,9 +233,7 @@ function validateArgumentType(value: any, argDef: CommandArg): string | null {
   return null;
 }
 
-/**
- * Generate command suggestions based on partial input
- */
+
 export function generateSuggestions(input: string, availableCommands: Command[]): string[] {
   const trimmed = input.trim().toLowerCase();
   if (!trimmed) {
@@ -262,14 +242,14 @@ export function generateSuggestions(input: string, availableCommands: Command[])
 
   const suggestions: string[] = [];
 
-  // Direct name matches
+  
   for (const cmd of availableCommands) {
     if (cmd.name.toLowerCase().startsWith(trimmed)) {
       suggestions.push(cmd.name);
     }
   }
 
-  // Alias matches
+  
   for (const cmd of availableCommands) {
     if (cmd.aliases) {
       for (const alias of cmd.aliases) {
@@ -280,7 +260,7 @@ export function generateSuggestions(input: string, availableCommands: Command[])
     }
   }
 
-  // Fuzzy matches (for typos)
+  
   for (const cmd of availableCommands) {
     if (suggestions.length < 10 && levenshteinDistance(trimmed, cmd.name.toLowerCase()) <= 2) {
       suggestions.push(cmd.name);
@@ -290,9 +270,7 @@ export function generateSuggestions(input: string, availableCommands: Command[])
   return [...new Set(suggestions)].slice(0, 10);
 }
 
-/**
- * Calculate Levenshtein distance for fuzzy matching
- */
+
 function levenshteinDistance(a: string, b: string): number {
   if (a.length === 0) return b.length;
   if (b.length === 0) return a.length;
@@ -306,9 +284,9 @@ function levenshteinDistance(a: string, b: string): number {
     for (let i = 1; i <= a.length; i++) {
       const indicator = a[i - 1] === b[j - 1] ? 0 : 1;
       matrix[j][i] = Math.min(
-        matrix[j][i - 1] + 1,     // deletion
-        matrix[j - 1][i] + 1,     // insertion
-        matrix[j - 1][i - 1] + indicator // substitution
+        matrix[j][i - 1] + 1,     
+        matrix[j - 1][i] + 1,     
+        matrix[j - 1][i - 1] + indicator 
       );
     }
   }

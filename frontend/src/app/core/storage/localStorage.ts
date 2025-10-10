@@ -1,57 +1,48 @@
-/**
- * 統一されたlocalStorage操作ユーティリティ
- * エラーハンドリング、型安全性、ログ出力を提供
- */
+
 
 import { logger } from '@shared/utils';
 import { safeJsonParse, safeJsonStringify } from '@shared/utils';
 
-/**
- * localStorage操作の結果型
- */
+
 export type LocalStorageResult<T> = {
   success: boolean;
   data?: T;
   error?: string;
 };
 
-/**
- * localStorageの設定項目キー定数
- */
+
 export const STORAGE_KEYS = {
-  // App settings
+  
   APP_SETTINGS: 'mindflow_app_settings',
   STORAGE_MODE: 'mindflow_storage_mode',
   
-  // AI settings
+  
   AI_SETTINGS: 'mindflow_ai_settings',
   
-  // UI preferences
+  
   NOTES_PANEL_WIDTH: 'mindflow_notes_panel_width',
   
-  // Cleanup tracking
+  
   LAST_CLEANUP: 'mindflow_last_cleanup',
 
-  // UI state
+  
   FOLDER_GUIDE_DISMISSED: 'mindoodle_guide_dismissed',
   NODE_NOTE_PANEL_HEIGHT: 'mindoodle_node_note_panel_height',
 
-  // Auth
+  
   AUTH_TOKEN: 'mindoodle-auth-token',
   AUTH_USER: 'mindoodle-auth-user',
 
-  // Workspace persistence
+  
   WORKSPACES: 'mindoodle-workspaces',
 
-  // Error logs
+  
   ERROR_LOGS: 'mindflow_errors',
 } as const;
 
 export type StorageKey = typeof STORAGE_KEYS[keyof typeof STORAGE_KEYS];
 
-/**
- * 統一されたLocalStorageManager
- */
+
 export class LocalStorageManager {
   private static instance: LocalStorageManager;
   
@@ -64,9 +55,7 @@ export class LocalStorageManager {
     return LocalStorageManager.instance;
   }
   
-  /**
-   * 安全にlocalStorageに値を保存
-   */
+  
   setItem<T>(key: StorageKey, value: T): LocalStorageResult<T> {
     try {
       const stringifyResult = safeJsonStringify(value);
@@ -86,9 +75,7 @@ export class LocalStorageManager {
     }
   }
   
-  /**
-   * 安全にlocalStorageから値を取得
-   */
+  
   getItem<T>(key: StorageKey, defaultValue?: T): LocalStorageResult<T> {
     try {
       const item = localStorage.getItem(key);
@@ -116,9 +103,7 @@ export class LocalStorageManager {
     }
   }
   
-  /**
-   * localStorageから値を削除
-   */
+  
   removeItem(key: StorageKey): LocalStorageResult<void> {
     try {
       localStorage.removeItem(key);
@@ -131,9 +116,7 @@ export class LocalStorageManager {
     }
   }
   
-  /**
-   * 複数のキーを一括削除
-   */
+  
   removeItems(keys: StorageKey[]): LocalStorageResult<void> {
     try {
       keys.forEach(key => localStorage.removeItem(key));
@@ -146,9 +129,7 @@ export class LocalStorageManager {
     }
   }
   
-  /**
-   * 指定されたプレフィックスで始まるキーをすべて取得
-   */
+  
   getKeysWithPrefix(prefix: string): string[] {
     const keys: string[] = [];
     for (let i = 0; i < localStorage.length; i++) {
@@ -160,9 +141,7 @@ export class LocalStorageManager {
     return keys;
   }
   
-  /**
-   * localStorageの使用容量を取得（概算）
-   */
+  
   getStorageSize(): number {
     let total = 0;
     for (const key in localStorage) {
@@ -174,10 +153,10 @@ export class LocalStorageManager {
   }
 }
 
-// シングルトンインスタンスを作成してエクスポート
+
 export const localStorageManager = LocalStorageManager.getInstance();
 
-// 便利な関数をエクスポート
+
 export const setLocalStorage = <T>(key: StorageKey, value: T) => 
   localStorageManager.setItem(key, value);
 

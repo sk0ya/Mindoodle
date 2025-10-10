@@ -1,8 +1,5 @@
 import type { MindMapNode } from '@shared/types';
 
-/**
- * Convert node to markdown (same format as copyNode in useShortcutHandlers)
- */
 function nodeToMarkdown(node: MindMapNode, level = 0): string {
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
   let md = `${prefix}${node.text}\n`;
@@ -15,12 +12,9 @@ function nodeToMarkdown(node: MindMapNode, level = 0): string {
   return md;
 }
 
-/**
- * Check if system clipboard matches internal clipboard node
- */
 function systemClipboardMatchesNode(clipboardText: string, node: MindMapNode): boolean {
   const expectedMarkdown = nodeToMarkdown(node);
-  // Normalize line endings (convert \r\n to \n)
+  
   const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
   const normalizedExpected = expectedMarkdown.trim();
   return normalizedClipboard === normalizedExpected;
@@ -34,13 +28,13 @@ export async function pasteFromClipboard(
   selectNode: (id: string) => void,
   notify: (type: 'success'|'error'|'info'|'warning', message: string) => void
 ): Promise<void> {
-  // Check system clipboard first
+  
   try {
     if (navigator.clipboard && navigator.clipboard.readText) {
       const clipboardText = await navigator.clipboard.readText();
 
-      // If system clipboard matches our internal clipboard node,
-      // prioritize internal clipboard to preserve node structure (colors, fonts, etc.)
+      
+      
       if (clipboardText && uiClipboard && systemClipboardMatchesNode(clipboardText, uiClipboard)) {
         const { pasteNodeTree } = await import('./pasteTree');
         const newId = pasteNodeTree(uiClipboard, parentId, addChildNode, updateNode);
@@ -51,7 +45,7 @@ export async function pasteFromClipboard(
         return;
       }
 
-      // Check for MindMeister format
+      
       const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('../../markdown');
       if (clipboardText && isMindMeisterFormat(clipboardText)) {
         const parsedNode = parseMindMeisterMarkdown(clipboardText);
@@ -63,11 +57,11 @@ export async function pasteFromClipboard(
         }
       }
 
-      // If we have plain text from system clipboard, create child nodes
+      
       if (clipboardText && clipboardText.trim()) {
         const lines = clipboardText.split('\n')
           .map(line => {
-            // Remove markdown heading prefix (e.g., "# text" -> "text")
+            
             const trimmed = line.trim();
             const headingMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
             return headingMatch ? headingMatch[1] : trimmed;
@@ -77,7 +71,7 @@ export async function pasteFromClipboard(
         if (lines.length > 0) {
           let lastCreatedId: string | undefined;
 
-          // Create a child node for each line
+          
           for (const line of lines) {
             const newId = addChildNode(parentId, line);
             if (newId) {
@@ -85,7 +79,7 @@ export async function pasteFromClipboard(
             }
           }
 
-          // Select the last created node and notify
+          
           if (lastCreatedId) {
             selectNode(lastCreatedId);
             const message = lines.length === 1
@@ -98,10 +92,10 @@ export async function pasteFromClipboard(
       }
     }
   } catch (error) {
-    // Clipboard access might be denied or fail, try internal clipboard
+    
   }
 
-  // Fallback to internal clipboard (node copy/paste)
+  
   const source = uiClipboard;
   if (!source) {
     notify('warning', 'クリップボードにデータがありません');

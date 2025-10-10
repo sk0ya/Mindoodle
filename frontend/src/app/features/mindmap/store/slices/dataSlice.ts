@@ -10,16 +10,16 @@ import { mermaidSVGCache } from '../../utils/mermaidCache';
 import type { MindMapStore } from './types';
 import type { DataState } from '@shared/types/nodeTypes';
 
-// Debounce utility for autoLayout
+
 let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
 const AUTOLAYOUT_DEBOUNCE_MS = 50;
 
-// Global caches with memory limits to prevent memory leaks
-const nodeSizeCache = new LRUCache<string, { width: number; height: number }>(500, 300000); // 500 items, 5min TTL
-const boundsCache = new LRUCache<string, { minY: number; maxY: number }>(300, 300000); // 300 items, 5min TTL
-const nodeCountCache = new LRUCache<string, number>(200, 600000); // 200 items, 10min TTL
 
-// Periodic cache cleanup using managed timer
+const nodeSizeCache = new LRUCache<string, { width: number; height: number }>(500, 300000); 
+const boundsCache = new LRUCache<string, { minY: number; maxY: number }>(300, 300000); 
+const nodeCountCache = new LRUCache<string, number>(200, 600000); 
+
+
 if (typeof window !== 'undefined') {
   memoryService.createManagedInterval(() => {
     const before = {
@@ -46,12 +46,12 @@ if (typeof window !== 'undefined') {
 
     logger.debug('🧹 Cache cleanup completed', { before, after, cleaned });
 
-    // Force garbage collection in development (if available)
+    
     if (process.env.NODE_ENV === 'development' && (window as any).gc) {
       (window as any).gc();
       logger.debug('🗑️ Manual GC triggered');
     }
-  }, 120000, 'DataSlice cache cleanup'); // More frequent: every 2 minutes
+  }, 120000, 'DataSlice cache cleanup'); 
 }
 
 export interface DataSlice extends DataState {
@@ -70,7 +70,7 @@ export const createDataSlice: StateCreator<
   [],
   DataSlice
 > = (set, get) => ({
-  // Initial state
+  
   data: null,
   normalizedData: null,
   selectedNodeId: null,
@@ -114,7 +114,7 @@ export const createDataSlice: StateCreator<
     }
   },
 
-  // Update high-level map metadata (title/category) without touching history
+  
   updateMapMetadata: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
     set((state) => {
       if (!state.data) return;
@@ -124,10 +124,10 @@ export const createDataSlice: StateCreator<
         updatedAt: new Date().toISOString(),
       };
     });
-    // Intentionally no history event; metadata is not part of node undo/redo
+    
   },
 
-  // Update normalized data from current tree
+  
   updateNormalizedData: () => {
     set((state) => {
       if (state.data) {
@@ -136,7 +136,7 @@ export const createDataSlice: StateCreator<
     });
   },
 
-  // Sync normalized data back to tree structure (no history push here)
+  
   syncToMindMapData: () => {
     set((state) => {
       if (state.normalizedData && state.data) {
@@ -150,16 +150,16 @@ export const createDataSlice: StateCreator<
       }
     });
 
-    // Emit a model changed event so subscribers can commit snapshots
+    
     try {
       mindMapEvents.emit({ type: 'model.changed', source: 'syncToMindMapData' });
-    } catch { /* noop */ }
+    } catch {  }
   },
 
   applyAutoLayout: (immediate = false) => {
-    // If immediate execution is requested, skip debouncing
+    
     if (immediate) {
-      // Clear any pending debounced execution
+      
       if (autoLayoutTimeoutId) {
         clearTimeout(autoLayoutTimeoutId);
         autoLayoutTimeoutId = null;
@@ -175,7 +175,7 @@ export const createDataSlice: StateCreator<
       return;
     }
 
-    // Validate autoSelectLayout function exists
+    
     if (typeof autoSelectLayout !== 'function') {
       logger.error('❌ Auto layout: autoSelectLayout function not found');
       return;
@@ -189,9 +189,9 @@ export const createDataSlice: StateCreator<
 
       const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
 
-      // Memoized node size calculation using global cache
+      
       const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
-        // Include node kind and table data for proper cache invalidation of table nodes
+        
         const nodeKind = (node as any)?.kind || 'text';
         const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
         const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
@@ -204,9 +204,9 @@ export const createDataSlice: StateCreator<
         return size;
       };
 
-      // Optimized subtree bounds calculation using global cache
+      
       const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-        // Create cache key based on node id, position, and collapsed state
+        
         const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
 
         const cached = boundsCache.get(cacheKey);
@@ -223,7 +223,7 @@ export const createDataSlice: StateCreator<
         let maxY = nodeBottom;
 
         if (node.children && node.children.length > 0 && !node.collapsed) {
-          // Use parallel processing for children bounds calculation (only for non-collapsed nodes)
+          
           const childBounds = node.children.map(child => getSubtreeBounds(child));
           for (const bounds of childBounds) {
             minY = Math.min(minY, bounds.minY);
@@ -236,7 +236,7 @@ export const createDataSlice: StateCreator<
         return result;
       };
 
-      // Memoized node count calculation using global cache
+      
       const getNodeCount = (node: MindMapNode): number => {
         const cacheKey = `${node.id}_${node.collapsed || false}`;
         const cached = nodeCountCache.get(cacheKey);
@@ -254,11 +254,11 @@ export const createDataSlice: StateCreator<
 
       const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
 
-      // Apply layout to each root node separately
+      
       const layoutedRootNodes: MindMapNode[] = [];
       let previousSubtreeBottom = 0;
 
-      // Process root nodes sequentially but cache results
+      
       for (let index = 0; index < rootNodes.length; index++) {
         const rootNode = rootNodes[index];
         const layoutedNode = autoSelectLayout(rootNode, {
@@ -272,25 +272,25 @@ export const createDataSlice: StateCreator<
         if (!layoutedNode) continue;
 
         if (index > 0) {
-          // Calculate current subtree bounds
+          
           const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
           const currentSubtreeTop = currentSubtreeBounds.minY;
 
-          // Calculate adaptive spacing with cached node counts
+          
           const previousRoot = layoutedRootNodes[index - 1];
           const previousNodeCount = getNodeCount(previousRoot);
           const currentNodeCount = getNodeCount(layoutedNode);
 
-          // Optimized spacing calculation
+          
           const baseSpacing = 8;
           const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
           const adaptiveSpacing = baseSpacing + complexityFactor;
 
-          // Calculate and apply offset
+          
           const targetTopY = previousSubtreeBottom + adaptiveSpacing;
           const offsetY = targetTopY - currentSubtreeTop;
 
-          // Optimized offset application using iteration instead of recursion
+          
           const nodesToProcess = [layoutedNode];
           while (nodesToProcess.length > 0) {
             const currentNode = nodesToProcess.pop()!;
@@ -301,21 +301,21 @@ export const createDataSlice: StateCreator<
             }
           }
 
-          // Selectively invalidate only affected nodes instead of clearing all cache
+          
           const invalidateNodeBounds = (node: MindMapNode) => {
-            // Invalidate both collapsed and expanded cache entries for this node
+            
             const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
             const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
             boundsCache.delete(cacheKeyCollapsed);
             boundsCache.delete(cacheKeyExpanded);
 
-            // Also invalidate node count cache for both states
+            
             const countKeyCollapsed = `${node.id}_true`;
             const countKeyExpanded = `${node.id}_false`;
             nodeCountCache.delete(countKeyCollapsed);
             nodeCountCache.delete(countKeyExpanded);
 
-            // Invalidate node size cache
+            
             const nodeKind = (node as any)?.kind || 'text';
             const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
             const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
@@ -327,11 +327,11 @@ export const createDataSlice: StateCreator<
           };
           invalidateNodeBounds(layoutedNode);
 
-          // Calculate final bottom position
+          
           const finalBounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = finalBounds.maxY;
         } else {
-          // First root node
+          
           const bounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = bounds.maxY;
         }
@@ -348,7 +348,7 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
 
-      // Synchronous state update for immediate UI response (no history push)
+      
       set((draft) => {
         if (draft.data) {
           draft.data = {
@@ -356,7 +356,7 @@ export const createDataSlice: StateCreator<
             rootNodes: layoutedRootNodes
           };
 
-          // Update normalized data
+          
           try {
             draft.normalizedData = normalizeTreeData(layoutedRootNodes);
           } catch (normalizeError) {
@@ -365,10 +365,10 @@ export const createDataSlice: StateCreator<
         }
       });
 
-      // Emit layout event; history subscriber will capture snapshot
+      
       try {
         mindMapEvents.emit({ type: 'layout.applied' });
-      } catch { /* noop */ }
+      } catch {  }
 
       logger.debug('🎉 Auto layout applied successfully');
     } catch (error) {
@@ -377,10 +377,10 @@ export const createDataSlice: StateCreator<
       logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
     }
 
-      return; // Exit early for immediate execution
+      return; 
     }
 
-    // Clear any existing timeout to debounce rapid successive calls
+    
     if (autoLayoutTimeoutId) {
       clearTimeout(autoLayoutTimeoutId);
     }
@@ -396,7 +396,7 @@ export const createDataSlice: StateCreator<
       return;
     }
     
-    // Validate autoSelectLayout function exists
+    
     if (typeof autoSelectLayout !== 'function') {
       logger.error('❌ Auto layout: autoSelectLayout function not found');
       return;
@@ -410,9 +410,9 @@ export const createDataSlice: StateCreator<
       
       const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
 
-      // Memoized node size calculation using global cache
+      
       const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
-        // Include node kind and table data for proper cache invalidation of table nodes
+        
         const nodeKind = (node as any)?.kind || 'text';
         const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
         const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
@@ -425,9 +425,9 @@ export const createDataSlice: StateCreator<
         return size;
       };
 
-      // Optimized subtree bounds calculation using global cache
+      
       const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-        // Create cache key based on node id, position, and collapsed state
+        
         const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
 
         const cached = boundsCache.get(cacheKey);
@@ -444,7 +444,7 @@ export const createDataSlice: StateCreator<
         let maxY = nodeBottom;
 
         if (node.children && node.children.length > 0 && !node.collapsed) {
-          // Use parallel processing for children bounds calculation (only for non-collapsed nodes)
+          
           const childBounds = node.children.map(child => getSubtreeBounds(child));
           for (const bounds of childBounds) {
             minY = Math.min(minY, bounds.minY);
@@ -457,7 +457,7 @@ export const createDataSlice: StateCreator<
         return result;
       };
 
-      // Memoized node count calculation using global cache
+      
       const getNodeCount = (node: MindMapNode): number => {
         const cacheKey = `${node.id}_${node.collapsed || false}`;
         const cached = nodeCountCache.get(cacheKey);
@@ -475,11 +475,11 @@ export const createDataSlice: StateCreator<
 
       const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
 
-      // Apply layout to each root node separately
+      
       const layoutedRootNodes: MindMapNode[] = [];
       let previousSubtreeBottom = 0;
 
-      // Process root nodes sequentially but cache results
+      
       for (let index = 0; index < rootNodes.length; index++) {
         const rootNode = rootNodes[index];
         const layoutedNode = autoSelectLayout(rootNode, {
@@ -493,25 +493,25 @@ export const createDataSlice: StateCreator<
         if (!layoutedNode) continue;
 
         if (index > 0) {
-          // Calculate current subtree bounds
+          
           const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
           const currentSubtreeTop = currentSubtreeBounds.minY;
 
-          // Calculate adaptive spacing with cached node counts
+          
           const previousRoot = layoutedRootNodes[index - 1];
           const previousNodeCount = getNodeCount(previousRoot);
           const currentNodeCount = getNodeCount(layoutedNode);
 
-          // Optimized spacing calculation
+          
           const baseSpacing = 8;
           const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
           const adaptiveSpacing = baseSpacing + complexityFactor;
 
-          // Calculate and apply offset
+          
           const targetTopY = previousSubtreeBottom + adaptiveSpacing;
           const offsetY = targetTopY - currentSubtreeTop;
 
-          // Optimized offset application using iteration instead of recursion
+          
           const nodesToProcess = [layoutedNode];
           while (nodesToProcess.length > 0) {
             const currentNode = nodesToProcess.pop()!;
@@ -522,21 +522,21 @@ export const createDataSlice: StateCreator<
             }
           }
 
-          // Selectively invalidate only affected nodes instead of clearing all cache
+          
           const invalidateNodeBounds = (node: MindMapNode) => {
-            // Invalidate both collapsed and expanded cache entries for this node
+            
             const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
             const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
             boundsCache.delete(cacheKeyCollapsed);
             boundsCache.delete(cacheKeyExpanded);
 
-            // Also invalidate node count cache for both states
+            
             const countKeyCollapsed = `${node.id}_true`;
             const countKeyExpanded = `${node.id}_false`;
             nodeCountCache.delete(countKeyCollapsed);
             nodeCountCache.delete(countKeyExpanded);
 
-            // Invalidate node size cache
+            
             const nodeKind = (node as any)?.kind || 'text';
             const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
             const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
@@ -548,11 +548,11 @@ export const createDataSlice: StateCreator<
           };
           invalidateNodeBounds(layoutedNode);
           
-          // Calculate final bottom position
+          
           const finalBounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = finalBounds.maxY;
         } else {
-          // First root node
+          
           const bounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = bounds.maxY;
         }
@@ -569,7 +569,7 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
       
-      // Synchronous state update for immediate UI response (no history push)
+      
       set((draft) => {
         if (draft.data) {
           draft.data = {
@@ -577,7 +577,7 @@ export const createDataSlice: StateCreator<
             rootNodes: layoutedRootNodes
           };
           
-          // Update normalized data
+          
           try {
             draft.normalizedData = normalizeTreeData(layoutedRootNodes);
           } catch (normalizeError) {
@@ -586,10 +586,10 @@ export const createDataSlice: StateCreator<
         }
       });
 
-      // Emit layout event; history subscriber will capture snapshot
+      
       try {
         mindMapEvents.emit({ type: 'layout.applied' });
-      } catch { /* noop */ }
+      } catch {  }
       
       logger.debug('🎉 Auto layout applied successfully');
     } catch (error) {
@@ -601,20 +601,20 @@ export const createDataSlice: StateCreator<
   },
 
   clearMermaidRelatedCaches: () => {
-    // Clear mermaid SVG cache
+    
     if (typeof mermaidSVGCache?.clear === 'function') {
       mermaidSVGCache.clear();
     }
 
-    // Clear all node size cache to force re-calculation
-    // This is critical for mermaid nodes as size calculations trigger mermaid re-rendering
+    
+    
     nodeSizeCache.clear();
 
-    // Also clear bounds and count caches to ensure complete refresh
+    
     boundsCache.clear();
     nodeCountCache.clear();
 
-    // Force component re-render by updating a dummy timestamp
+    
     set((draft) => {
       draft.ui.lastMermaidCacheCleared = Date.now();
     });

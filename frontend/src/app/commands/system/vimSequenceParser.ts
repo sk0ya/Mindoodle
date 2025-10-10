@@ -1,7 +1,3 @@
-/**
- * Vim Key Sequence Parser
- * Handles parsing and validation of vim key sequences
- */
 
 export interface VimSequenceResult {
   isComplete: boolean;
@@ -9,14 +5,14 @@ export interface VimSequenceResult {
   command?: string;
   count?: number;
   shouldClear?: boolean;
-  isCountDigit?: boolean; // True if this is a count digit (0-9)
-  isDotRepeat?: boolean; // True if this is a dot repeat command
+  isCountDigit?: boolean; 
+  isDotRepeat?: boolean; 
 }
 
-// Vim command patterns with their key sequences
-// This must match the vimCommandMap in useCommands.ts
+
+
 const VIM_COMMAND_PATTERNS = {
-  // Multi-key commands
+  
   'zz': { keys: ['z', 'z'], command: 'zz' },
   'zt': { keys: ['z', 't'], command: 'zt' },
   'za': { keys: ['z', 'a'], command: 'za' },
@@ -34,8 +30,8 @@ const VIM_COMMAND_PATTERNS = {
   '>>': { keys: ['>', '>'], command: '>>' },
   '<<': { keys: ['<', '<'], command: '<<' },
 
-  // Single-key commands
-  'r': { keys: ['r'], command: 'r' },  // Redo (changed from ctrl-r)
+  
+  'r': { keys: ['r'], command: 'r' },  
   'h': { keys: ['h'], command: 'h' },
   'j': { keys: ['j'], command: 'j' },
   'k': { keys: ['k'], command: 'k' },
@@ -61,14 +57,14 @@ const VIM_COMMAND_PATTERNS = {
   's': { keys: ['s'], command: 's' },
   'x': { keys: ['x'], command: 'x' },
   'u': { keys: ['u'], command: 'u' },
-  // Text formatting commands
-  'S': { keys: ['S'], command: 'S' },  // Toggle strikethrough
-  'B': { keys: ['B'], command: 'B' },  // Toggle bold
-  '~': { keys: ['~'], command: '~' },  // Toggle italic
-  '.': { keys: ['.'], command: '.' },  // Dot repeat
+  
+  'S': { keys: ['S'], command: 'S' },  
+  'B': { keys: ['B'], command: 'B' },  
+  '~': { keys: ['~'], command: '~' },  
+  '.': { keys: ['.'], command: '.' },  
 } as const;;
 
-// Generate all possible partial sequences
+
 function generatePartialSequences(): Set<string> {
   const partials = new Set<string>();
 
@@ -91,8 +87,8 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
   // Don't normalize case to preserve uppercase commands like 'M'
   const normalizedSequence = sequence.trim();
 
-  // Extract count prefix if present (e.g., "10j" -> count=10, command="j")
-  // Count must start with 1-9, not 0 (0 is a separate command for "select-current-root")
+  
+  
   const countMatch = normalizedSequence.match(/^([1-9]\d*)(.*)$/);
   let count: number | undefined;
   let commandPart = normalizedSequence;
@@ -102,7 +98,7 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
     count = parseInt(countStr, 10);
     commandPart = rest;
 
-    // If only digits (no command part yet), it's partial
+    
     if (!commandPart) {
       return {
         isComplete: false,
@@ -112,7 +108,7 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
     }
   }
 
-  // Special case: ordered-list conversion "<number>m"
+  
   if (commandPart === 'm' && count !== undefined) {
     return {
       isComplete: true,
@@ -122,7 +118,7 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
     };
   }
 
-  // Special case: dot repeat command
+  
   if (commandPart === '.') {
     return {
       isComplete: true,
@@ -132,7 +128,7 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
     };
   }
 
-  // Check for complete commands
+  
   for (const [key, pattern] of Object.entries(VIM_COMMAND_PATTERNS)) {
     if (key === commandPart) {
       return {
@@ -144,7 +140,7 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
     }
   }
 
-  // Check for partial commands
+  
   if (PARTIAL_SEQUENCES.has(commandPart)) {
     return {
       isComplete: false,
@@ -153,7 +149,7 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
     };
   }
 
-  // Invalid sequence - should clear buffer
+  
   return {
     isComplete: false,
     isPartial: false,
@@ -161,14 +157,11 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
   };
 }
 
-/**
- * Check if a key can be part of a vim sequence
- */
 export function isValidVimKey(key: string): boolean {
-  // Don't normalize case to preserve uppercase commands like 'M'
+  
   const normalizedKey = key;
 
-  // Check if this key starts any command or continues any partial sequence
+  
   for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
     if (pattern.keys.some(k => k === normalizedKey)) {
       return true;
@@ -178,22 +171,19 @@ export function isValidVimKey(key: string): boolean {
   return false;
 }
 
-/**
- * Get all vim keys that should prevent default behavior
- */
 export function getVimKeys(): string[] {
   const keys = new Set<string>();
 
-  // Add all keys from patterns
+  
   for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
     pattern.keys.forEach(key => keys.add(key));
   }
 
-  // Add special keys (must match useCommands vimCommandMap)
-  // Let standard handler manage delete/backspace/tab/enter
+  
+  
   keys.add('escape');
 
-  // Allow digits for numeric-prefixed commands like "3m"
+  
   '0123456789'.split('').forEach(k => keys.add(k));
 
   return Array.from(keys);

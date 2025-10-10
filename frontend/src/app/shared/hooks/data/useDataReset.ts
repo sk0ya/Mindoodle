@@ -10,9 +10,7 @@ interface DataResetDependencies {
   currentWorkspaceId?: string | null;
 }
 
-/**
- * リセットキー変更時のデータリセット処理を管理するhook
- */
+
 export const useDataReset = (
   resetKey: number,
   dependencies: DataResetDependencies
@@ -38,7 +36,7 @@ export const useDataReset = (
       }
     }
 
-    // 初期化完了時に待機中のリセットがあれば実行
+    
     if (
       dependencies.isInitialized &&
       pendingResetKeyRef.current !== null &&

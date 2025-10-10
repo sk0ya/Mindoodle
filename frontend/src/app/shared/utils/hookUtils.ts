@@ -1,20 +1,13 @@
-/**
- * React Hooksのユーティリティ関数
- * 共通的なuseCallbackパターンを提供
- */
+
 
 import { useCallback } from 'react';
 
-/**
- * セッター関数のuseCallbackラッパー
- */
+
 export function useCallbackSetter<T>(setter: (value: T) => void) {
   return useCallback((value: T) => setter(value), [setter]);
 }
 
-/**
- * 真偽値セッター関数のuseCallbackラッパー
- */
+
 export function useBooleanSetters(
   setTrue: () => void,
   setFalse: () => void,
@@ -27,9 +20,7 @@ export function useBooleanSetters(
   };
 }
 
-/**
- * モード設定用のuseCallbackラッパー
- */
+
 export function useModeSetters<T extends string>(
   setMode: (mode: T) => void,
   modes: T[]
@@ -44,9 +35,7 @@ export function useModeSetters<T extends string>(
   return setters;
 }
 
-/**
- * UI状態リセット用のuseCallbackラッパー
- */
+
 export function useResetCallbacks<T extends Record<string, () => void>>(resetters: T): T {
   const callbacks = {} as T;
 
@@ -57,9 +46,7 @@ export function useResetCallbacks<T extends Record<string, () => void>>(resetter
   return callbacks;
 }
 
-/**
- * 条件付き実行のuseCallbackラッパー
- */
+
 export function useConditionalCallback(
   callback: () => void,
   condition: boolean | (() => boolean),
@@ -73,9 +60,7 @@ export function useConditionalCallback(
   }, [callback, condition, ...deps]);
 }
 
-/**
- * 非同期処理のuseCallbackラッパー
- */
+
 export function useAsyncCallback<T extends any[], R>(
   asyncFn: (...args: T) => Promise<R>,
   deps: React.DependencyList = []
@@ -85,9 +70,7 @@ export function useAsyncCallback<T extends any[], R>(
   }, deps);
 }
 
-/**
- * エラーハンドリング付きのuseCallbackラッパー
- */
+
 export function useSafeCallback<T extends any[]>(
   callback: (...args: T) => void,
   onError?: (error: Error) => void,
@@ -105,9 +88,7 @@ export function useSafeCallback<T extends any[]>(
   }, [callback, onError, ...deps]);
 }
 
-/**
- * デバウンス機能付きuseCallbackラッパー
- */
+
 export function useDebounceCallback<T extends any[]>(
   callback: (...args: T) => void,
   delay: number,
@@ -127,9 +108,7 @@ export function useDebounceCallback<T extends any[]>(
   }, [callback, delay, ...deps]);
 }
 
-/**
- * 一度だけ実行するuseCallbackラッパー
- */
+
 export function useOnceCallback<T extends any[]>(
   callback: (...args: T) => void,
   deps: React.DependencyList = []
@@ -144,9 +123,7 @@ export function useOnceCallback<T extends any[]>(
   }, [callback, ...deps]);
 }
 
-/**
- * ハンドラー関数群を一括でuseCallbackに変換
- */
+
 export function useHandlerCallbacks<T extends Record<string, (...args: any[]) => void>>(
   handlers: T,
   deps: React.DependencyList = []
@@ -160,9 +137,7 @@ export function useHandlerCallbacks<T extends Record<string, (...args: any[]) =>
   return callbacks;
 }
 
-/**
- * ゲッター関数のuseCallbackラッパー
- */
+
 export function useGetterCallback<T>(
   getter: () => T,
   deps: React.DependencyList = []

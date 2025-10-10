@@ -38,7 +38,7 @@ interface Ctx {
   resolveAnchorToNode?: (root: MindMapNode, anchor: string) => MindMapNode | null;
 }
 
-// NodeLink interface is imported from @shared/types
+
 
 export async function navigateLink(link: NodeLink, ctx: Ctx) {
   const { currentMapId, dataRoot, selectMapById, selectNode, centerNodeInView, notify, getCurrentRootNode } = ctx;
@@ -49,7 +49,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
       if (!ok) { notify('error', `マップ "${link.targetMapId}" が見つかりません`); return; }
       notify('success', `マップ "${link.targetMapId}" に移動しました`);
       if (link.targetNodeId) {
-        // 複数ルートノード対応
+        
         const allRoots = ctx.getAllRootNodes?.() || [];
         const singleRoot = getCurrentRootNode();
         const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
@@ -62,9 +62,9 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
           const node = findNodeByTextInMultipleRoots(roots, targetText);
           if (node) {
             selectNode(node.id);
-            // ノードの座標を保存してからセンタリング
+            
             const nodeCoords = { x: node.x || 0, y: node.y || 0 };
-            // 即座にセンタリング実行
+            
             centerNodeInView(node.id, true, nodeCoords);
           }
         } else {
@@ -79,7 +79,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
       const tn = link.targetNodeId;
       if (tn.startsWith('text:')) {
         const targetText = tn.slice(5);
-        // 複数ルート対応: getAllRootNodes があればそちらを優先
+        
         const allRoots = ctx.getAllRootNodes?.() || [];
         const singleRoot = dataRoot || getCurrentRootNode() || null;
         const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);

@@ -33,7 +33,7 @@ interface NodeProps {
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onLinkNavigate?: (link: NodeLink) => void;
   onImageClick?: (imageUrl: string, altText?: string) => void;
-  // Checkbox functionality
+  
   onToggleCheckbox?: (nodeId: string, checked: boolean) => void;
 }
 
@@ -65,7 +65,7 @@ const Node: React.FC<NodeProps> = ({
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const settings = useMindMapStore((state) => state.settings);
   
-  // ドラッグハンドラーを使用
+  
   const { isDragging, handleMouseDown } = useNodeDragHandler({
     node,
     zoom,
@@ -76,7 +76,7 @@ const Node: React.FC<NodeProps> = ({
   });
 
 
-  // コンポーネントアンマウント時のクリーンアップ
+  
   useEffect(() => {
     return () => {
       if (blurTimeoutRef.current) {
@@ -90,21 +90,21 @@ const Node: React.FC<NodeProps> = ({
     stopEventPropagation(e);
     try { dispatchCanvasEvent({ type: 'nodeClick', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
 
-    // ドラッグが発生していない場合のみクリック処理
+    
     if (!isDragging) {
       if (isSelected && !isEditing) {
-        // リンクノードの場合は編集モードに入らない
+        
         if (isMarkdownLink(node.text) || isUrl(node.text)) {
-          return; // リンクノードはシングルクリック時も編集モードに入らない
+          return; 
         }
-        // 表ノードは編集モードに入らない（ノード自体が表でありセル編集UIは別途）
+        
         if ((node as any).kind === 'table') {
           return;
         }
-        // 既に選択されている通常ノードの場合は編集モードに入る
+        
         onStartEdit(node.id);
       } else {
-        // 未選択の場合は選択のみ
+        
         onSelect(node.id);
       }
     }
@@ -113,20 +113,20 @@ const Node: React.FC<NodeProps> = ({
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
     try { dispatchCanvasEvent({ type: 'nodeDoubleClick', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
-    // ダブルクリック時: 背景（テキスト以外）なら編集開始
-    // テキスト上のダブルクリックは NodeEditor 側で stopPropagation + ナビゲーション処理
+    
+    
     if ((node as any).kind !== 'table') {
       onStartEdit(node.id);
     }
   }, [node.id, onStartEdit]);
 
-  // Sidebar -> node DnD: add map link on drop
+  
   const handleDragOver = useCallback((e: React.DragEvent) => {
-    // Accept map or explorer file drops
+    
     const types = e.dataTransfer.types;
     if (types.includes('text/map-id') || types.includes('mindoodle/path')) {
       e.preventDefault();
-      // Match the effectAllowed from drag source (move)
+      
       e.dataTransfer.dropEffect = 'move';
     }
   }, []);
@@ -146,7 +146,7 @@ const Node: React.FC<NodeProps> = ({
       : (getLastPathSegment(path) || 'リンク');
 
     try {
-      // Get current map id from store - this is the path of current map file
+      
       const currentData: any = useMindMapStore.getState().data;
       const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
 
@@ -209,7 +209,7 @@ const Node: React.FC<NodeProps> = ({
         }
       }
 
-      // If same file, just use the filename
+      
       if (href === '.md') {
         href = getLastPathSegment(targetPath) || 'file.md';
       }
@@ -237,7 +237,7 @@ const Node: React.FC<NodeProps> = ({
   }, [node.id]);
 
 
-  // ノードのサイズ計算（共有ユーティリティ関数を使用、グローバルフォントサイズを適用）
+  
   const effectiveFontSize = globalFontSize ?? settings.fontSize ?? 14;
   const wrapConfig = resolveNodeTextWrapConfig(settings, effectiveFontSize);
   const nodeSize = calculateNodeSize(node, editText, isEditing, globalFontSize, wrapConfig);
@@ -245,13 +245,13 @@ const Node: React.FC<NodeProps> = ({
   const nodeHeight = nodeSize.height;
   const imageHeight = nodeSize.imageHeight;
 
-  // 非編集時のノード幅を基準とした左端位置を計算（ノードの左端位置を固定するため）
+  
   const baseNodeSize = calculateNodeSize(node, node.text, false, globalFontSize, wrapConfig);
   const nodeLeftX = getNodeLeftX(node, baseNodeSize.width);
 
   return (
     <g data-node-id={node.id}>
-      {/* 1. ノード背景（最初に描画） */}
+      {}
       <NodeRenderer
         node={node}
         nodeLeftX={nodeLeftX}
@@ -269,26 +269,26 @@ const Node: React.FC<NodeProps> = ({
         onDragOver={handleDragOver}
         onDrop={handleDrop}
         onLoadRelativeImage={onLoadRelativeImage}
-        // Original NodeAttachments props
+        
         svgRef={svgRef}
         zoom={zoom}
         pan={pan}
         onSelectNode={onSelect}
         onShowImageModal={(file) => {
-          // Convert FileAttachment to URL for onImageClick
+          
           if (onImageClick && file) {
             const imageUrl = file.dataURL || file.data || '';
             const altText = file.name || 'Image';
             onImageClick(imageUrl, altText);
           }
         }}
-        onShowFileActionMenu={() => {}} // Placeholder for now
+        onShowFileActionMenu={() => {}} 
         onUpdateNode={onUpdateNode}
         onAutoLayout={onAutoLayout}
         onToggleCheckbox={onToggleCheckbox}
       />
 
-      {/* 3. テキスト */}
+      {}
       <NodeEditor
         node={node}
         nodeLeftX={nodeLeftX}
@@ -309,7 +309,7 @@ const Node: React.FC<NodeProps> = ({
         onRightClick={handleRightClick}
       />
 
-      {/* 4. 選択枠線（最後に描画して最前面に） */}
+      {}
       <NodeSelectionBorder
         node={node}
         nodeLeftX={nodeLeftX}
@@ -326,9 +326,9 @@ const Node: React.FC<NodeProps> = ({
   );
 };
 
-// React.memoでパフォーマンス最適化
+
 export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
-  // ノードの基本情報が変わった場合は再レンダリング
+  
   if (prevProps.node.id !== nextProps.node.id ||
       prevProps.node.text !== nextProps.node.text ||
       (prevProps.node as any).note !== (nextProps.node as any).note ||
@@ -343,36 +343,36 @@ export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
     return false;
   }
 
-  // リンクが変わった場合は再レンダリング
+  
   if (JSON.stringify(prevProps.node.links) !== JSON.stringify(nextProps.node.links)) {
     return false;
   }
 
-  // 選択・編集状態が変わった場合は再レンダリング
+  
   if (prevProps.isSelected !== nextProps.isSelected ||
       prevProps.isEditing !== nextProps.isEditing ||
       prevProps.isDragTarget !== nextProps.isDragTarget) {
     return false;
   }
 
-  // 編集テキストが変わった場合は再レンダリング
+  
   if (prevProps.editText !== nextProps.editText) {
     return false;
   }
 
-  // ズーム・パンが変わった場合は再レンダリング
+  
   if (prevProps.zoom !== nextProps.zoom ||
       prevProps.pan.x !== (nextProps as any).pan?.x ||
       prevProps.pan.y !== (nextProps as any).pan?.y) {
     return false;
   }
 
-  // グローバルフォントサイズが変わった場合は再レンダリング
+  
   if (prevProps.globalFontSize !== nextProps.globalFontSize) {
     return false;
   }
 
-  // その他の場合は再レンダリングしない
+  
   return true;
 });
 

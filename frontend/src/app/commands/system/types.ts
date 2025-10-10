@@ -1,12 +1,8 @@
-/**
- * Command System Types
- * Defines the structure and interfaces for the command-based operation system
- */
 
 import type { MindMapNode, UIMode, PanelId } from '@shared/types';
 import type { VimModeHook } from '@vim/hooks/useVimMode';
 
-// Command argument type definitions
+
 export type CommandArgType = 'string' | 'number' | 'boolean' | 'node-id';
 
 export interface CommandArg {
@@ -17,54 +13,54 @@ export interface CommandArg {
   default?: any;
 }
 
-// Command execution context
+
 export interface CommandContext {
   selectedNodeId: string | null;
   editingNodeId: string | null;
   vim?: VimModeHook;
-  // Optional count for repeatable commands (e.g., 10j in vim mode)
+  
   count?: number;
-  // Optional UI context for guards
+  
   mode?: UIMode;
   openPanels?: Partial<Record<PanelId, boolean>>;
-  // Handler functions from useShortcutHandlers
+  
   handlers: {
-    // Node operations
+    
     updateNode: (id: string, updates: Partial<MindMapNode>) => void;
     deleteNode: (id: string) => void;
     findNodeById: (nodeId: string) => MindMapNode | null;
     findParentNode?: (nodeId: string) => MindMapNode | null;
 
-    // Navigation
+    
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count?: number) => void;
     selectNode: (nodeId: string | null) => void;
     setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 
-    // Editing
+    
     startEdit: (nodeId: string) => void;
     startEditWithCursorAtStart: (nodeId: string) => void;
     startEditWithCursorAtEnd: (nodeId: string) => void;
 
-    // Structure operations
+    
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;
     changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
     moveNode?: (nodeId: string, newParentId: string) => Promise<void>;
     moveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => Promise<void>;
 
-    // Clipboard operations
+    
     copyNode: (nodeId: string) => void;
     pasteNode: (parentId: string) => Promise<void>;
     pasteImageFromClipboard: (nodeId: string, file?: File) => Promise<void>;
 
-    // Undo/Redo
+    
     undo: () => void;
     redo: () => void;
     canUndo: boolean;
     canRedo: boolean;
 
-    // UI state management
+    
     showKeyboardHelper: boolean;
     setShowKeyboardHelper: (show: boolean) => void;
     showMapList: boolean;
@@ -73,39 +69,39 @@ export interface CommandContext {
     setShowLocalStorage: (show: boolean) => void;
     showTutorial: boolean;
     setShowTutorial: (show: boolean) => void;
-    // Markdown panel (right-side) visibility
+    
     showNotesPanel?: boolean;
     setShowNotesPanel?: (show: boolean) => void;
     toggleNotesPanel?: () => void;
-    // Node note panel visibility
+    
     showNodeNotePanel?: boolean;
     setShowNodeNotePanel?: (show: boolean) => void;
     toggleNodeNotePanel?: () => void;
-    // Knowledge graph modal visibility
+    
     showKnowledgeGraph?: boolean;
     setShowKnowledgeGraph?: (show: boolean) => void;
     toggleKnowledgeGraph?: () => void;
 
-    // UI operations
+    
     closeAttachmentAndLinkLists: () => void;
 
-    // Markdown operations
+    
     onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
 
-    // Map switching operations
+    
     switchToNextMap?: () => void;
     switchToPrevMap?: () => void;
   };
 }
 
-// Command execution result
+
 export interface CommandResult {
   success: boolean;
   message?: string;
   error?: string;
 }
 
-// Command definition
+
 export interface Command {
   name: string;
   aliases?: string[];
@@ -113,22 +109,22 @@ export interface Command {
   args?: CommandArg[];
   examples?: string[];
   category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility' | 'ui' | 'application';
-  // Optional guard to centralize preconditions
+  
   guard?: (context: CommandContext, args: Record<string, any>) => boolean;
   execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
-  // Vim-specific metadata
-  repeatable?: boolean; // Whether this command can be repeated with dot (.)
-  countable?: boolean;  // Whether this command accepts numeric prefix (e.g., 10j)
+  
+  repeatable?: boolean; 
+  countable?: boolean;  
 }
 
-// Parsed command from user input
+
 export interface ParsedCommand {
   name: string;
   args: Record<string, any>;
   rawInput: string;
 }
 
-// Command parsing result
+
 export interface ParseResult {
   success: boolean;
   command?: ParsedCommand;
@@ -136,7 +132,7 @@ export interface ParseResult {
   suggestions?: string[];
 }
 
-// Command registry interface
+
 export interface CommandRegistry {
   register: (command: Command) => void;
   unregister: (name: string) => void;
@@ -147,7 +143,7 @@ export interface CommandRegistry {
   execute: (nameOrAlias: string, context: CommandContext, args?: Record<string, any>) => Promise<CommandResult>;
 }
 
-// Command execution options
+
 export interface ExecuteOptions {
   dryRun?: boolean;
   verbose?: boolean;

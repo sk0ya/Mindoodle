@@ -1,7 +1,3 @@
-/**
- * Keyboard shortcuts hook for MindMap application
- * Handles all keyboard interactions for efficient mindmap navigation and editing
- */
 
 import type { MindMapNode } from '@shared/types';
 import type { VimModeHook } from '../../vim/hooks/useVimMode';
@@ -48,14 +44,11 @@ interface KeyboardShortcutHandlers {
   closeAttachmentAndLinkLists: () => void;
   onMarkdownNodeType?: (_nodeId: string, _newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
-  // Map switching (optional)
+  
   switchToPrevMap?: () => void;
   switchToNextMap?: () => void;
 }
 
-/**
- * Handle standard shortcuts (when vim is disabled)
- */
 function handleStandardShortcut(
   event: KeyboardEvent,
   commands: UseCommandsReturn,
@@ -64,7 +57,7 @@ function handleStandardShortcut(
   const { key, ctrlKey, metaKey, shiftKey } = event;
   const isModifier = ctrlKey || metaKey;
 
-  // Arrow keys
+  
   if (!isModifier && handlers.selectedNodeId) {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
       event.preventDefault();
@@ -73,9 +66,9 @@ function handleStandardShortcut(
       return true;
     }
 
-    // Core editing shortcuts when Vim is disabled
+    
     if (key === 'Tab') {
-      // Prevent browser focus change
+      
       event.preventDefault();
       handlers.closeAttachmentAndLinkLists();
       commands.execute('add-child');
@@ -95,9 +88,9 @@ function handleStandardShortcut(
     }
   }
 
-  // Modifier shortcuts
+  
   if (isModifier) {
-    // Map switching: Ctrl+P (prev), Ctrl+N (next)
+    
     switch (key.toLowerCase()) {
       case 'p':
         event.preventDefault();
@@ -109,7 +102,7 @@ function handleStandardShortcut(
         return true;
     }
 
-    // Node-related modifier shortcuts require a selection
+    
     if (!handlers.selectedNodeId) {
       return false;
     }
@@ -119,7 +112,7 @@ function handleStandardShortcut(
         commands.execute('copy');
         return true;
       case 'v':
-        // Defer paste handling to 'paste' event to support image paste
+        
         return true;
       case 'z':
         event.preventDefault();
@@ -139,9 +132,6 @@ function handleStandardShortcut(
   return false;
 }
 
-/**
- * Handle non-vim shortcuts even in vim mode (arrows, modifiers)
- */
 function handleNonVimShortcut(
   event: KeyboardEvent,
   commands: UseCommandsReturn,
@@ -150,7 +140,7 @@ function handleNonVimShortcut(
   const { key, ctrlKey, metaKey, shiftKey } = event;
   const isModifier = ctrlKey || metaKey;
 
-  // Arrow keys work in vim mode too
+  
   if (!isModifier && handlers.selectedNodeId) {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
       event.preventDefault();
@@ -160,7 +150,7 @@ function handleNonVimShortcut(
     }
   }
 
-  // Modifier shortcuts work in vim mode too
+  
   if (isModifier && handlers.selectedNodeId) {
     switch (key.toLowerCase()) {
       case 'c':
@@ -168,7 +158,7 @@ function handleNonVimShortcut(
         commands.execute('copy');
         return true;
       case 'v':
-        // Defer paste handling to 'paste' event to support image paste
+        
         return true;
       case 'z':
         event.preventDefault();
@@ -191,14 +181,14 @@ function handleNonVimShortcut(
 
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
 
-  // Initialize command system
+  
   const commands = useCommands({
     selectedNodeId: handlers.selectedNodeId,
     editingNodeId: handlers.editingNodeId,
     vim,
     handlers: {
       ...handlers,
-      // Map switching operations
+      
       switchToNextMap: (handlers as any).switchToNextMap,
       switchToPrevMap: (handlers as any).switchToPrevMap,
     } as any
@@ -206,7 +196,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
   const handlePaste = (event: ClipboardEvent) => {
       try {
-        // If Monaco or text inputs have focus, let them handle paste
+        
         const activeEl = (document.activeElement as HTMLElement | null);
         const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
         const isInTextInput = !!activeEl && (
@@ -218,13 +208,13 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           return;
         }
 
-        // Require a selection to paste into
+        
         if (!handlers.selectedNodeId) return;
 
         const dt = event.clipboardData;
         if (!dt) return;
 
-        // Prefer image from clipboard
+        
         const items = dt.items || [] as any;
         let imageItem: DataTransferItem | null = null;
         for (let i = 0; i < items.length; i++) {
@@ -235,14 +225,14 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
         }
 
-        // Fallback: check files collection
+        
         if (!imageItem && dt.files && dt.files.length > 0) {
           for (let i = 0; i < dt.files.length; i++) {
             const f = dt.files[i];
             if (f && f.type && f.type.startsWith('image/')) {
-              // Convert File to DataTransferItem-like via Blob (already a File)
-              // We will use this file directly
-              // Prevent default and handle image paste via service
+              
+              
+              
               event.preventDefault();
               handlers.pasteImageFromClipboard(handlers.selectedNodeId, f as unknown as File);
               return;
@@ -262,25 +252,25 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
         }
 
-        // No image detected: treat as node paste
+        
         event.preventDefault();
         commands.execute('paste');
       } catch {
-        // On any error, try to fallback to node paste to keep UX consistent
+        
         try { event.preventDefault(); commands.execute('paste'); } catch {}
       }
     };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-      // Strong guard: if Monaco markdown editor has focus, do not handle anything here (including Vim)
+      
       try {
         const activeEl = (document.activeElement as HTMLElement | null);
         const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
         if (monacoFocused) {
-          return; // let markdown editor fully handle keys
+          return; 
         }
       } catch {}
-      // Check if in text input
+      
       const target = event.target as HTMLElement;
       const isInTextInput = target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
@@ -288,7 +278,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       const isInMonacoEditor = target.closest('.monaco-editor') !== null;
 
       if (isInTextInput || isInMonacoEditor) {
-        // Special handling for editing mode in mindmap nodes
+        
         if (handlers.editingNodeId && !isInMonacoEditor) {
           if (event.key === 'Enter') {
             event.preventDefault();
@@ -310,15 +300,15 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             return;
           }
         }
-        // For Monaco Editor or other text inputs, let them handle their own keys
+        
         return;
       }
 
       const { key, ctrlKey, metaKey, altKey } = event;
       const isModifier = ctrlKey || metaKey;
 
-      // Global: Toggle primary sidebar visibility (Ctrl/Cmd + B)
-      // Matches VS Code behavior: hide/show left sidebar
+      
+      
       if ((ctrlKey || metaKey) && !altKey && (key === 'b' || key === 'B')) {
         event.preventDefault();
         try {
@@ -329,30 +319,30 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
-      // Global: Toggle Node Note panel (Ctrl/Cmd + Shift + M)
+      
       if ((ctrlKey || metaKey) && !altKey && event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
         try { commands.execute('toggle-node-note-panel'); } catch {}
         return;
       }
 
-      // Global: Toggle Markdown panel (Ctrl/Cmd + M)
+      
       if ((ctrlKey || metaKey) && !altKey && !event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
         try {
-          // Use command system to toggle, so it stays consistent with handlers
+          
           commands.execute('toggle-markdown-panel');
         } catch {}
         return;
       }
 
-      // Handle search mode - now handled by input field in VimStatusBar
+      
       if (vim && vim.isEnabled && vim.mode === 'search') {
-        // Let the input field in VimStatusBar handle all keys
+        
         return;
       }
 
-      // Handle jumpy mode
+      
       if (vim && vim.isEnabled && vim.mode === 'jumpy') {
         const { key } = event;
 
@@ -362,7 +352,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           return;
         } else if (key === 'Enter' && vim.jumpyBuffer) {
           event.preventDefault();
-          // Jump to exact match if it exists
+          
           const exactMatch = vim.jumpyLabels.find(jl => jl.label === vim.jumpyBuffer);
           if (exactMatch) {
             const { selectNode } = useMindMapStore.getState() as any;
@@ -372,7 +362,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           return;
         } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
           event.preventDefault();
-          // Handle jump characters
+          
           if (JUMP_CHARS.includes(key.toLowerCase())) {
             vim.jumpToNode(key.toLowerCase());
             return;
@@ -381,28 +371,28 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         return;
       }
 
-      // Handle command mode - now handled by input field in VimStatusBar
+      
       if (vim && vim.isEnabled && vim.mode === 'command') {
-        // Let the input field in VimStatusBar handle all keys
+        
         return;
       }
 
-      // Vim mode handling through command system
+      
       if (vim && vim.isEnabled && vim.mode === 'normal') {
-        // Fetch custom vim mappings and leader dynamically
+        
         const { settings } = useMindMapStore.getState() as any;
         const customMap: Record<string, string> = (settings?.vimCustomKeybindings || {}) as Record<string, string>;
         let leader: string = (settings?.vimLeader ?? ',') as string;
         if (typeof leader !== 'string' || leader.length !== 1) leader = ',';
 
-        // Expand tokens in LHS, currently supports <leader> and <Space>
+        
         const expandLhs = (lhs: string): string => {
           let out = lhs.replace(/<\s*leader\s*>/ig, leader);
           out = out.replace(/<\s*space\s*>/ig, ' ');
           return out;
         };
 
-        // Build expanded mapping table and prefix set for fast checks
+        
         const expandedEntries = Object.entries(customMap).map(([lhs, cmd]) => [expandLhs(lhs), cmd]);
         const expandedKeysStart = new Set(expandedEntries.map(([lhs]) => (lhs[0] || '')));
 
@@ -434,10 +424,10 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             handlers.switchToNextMap();
             return;
           }
-          // Fall through to regular modifier handling
+          
         }
 
-        // Alt-based fallback for browsers that block Ctrl+N
+        
         if (altKey && !ctrlKey && !metaKey) {
           const lower = key.toLowerCase();
           if (lower === 'p' && handlers.switchToPrevMap) {
@@ -451,76 +441,76 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
         }
 
-        // Handle Escape key to clear search information in normal mode
+        
         if (key === 'Escape') {
           event.preventDefault();
-          // Clear search query and highlighting if there's an active search
+          
           if (vim.searchQuery || vim.searchResults.length > 0) {
             vim.exitSearch();
             return;
           }
         }
 
-        // Regular vim commands (non-modifier keys)
+        
         if (!isModifier) {
-          // Skip modifier keys themselves
+          
           if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(key)) {
             return;
           }
 
-          // Map special keys to lowercase
-          // No special keys handled by Vim here; let standard handler manage Tab/Enter/Delete/Backspace
+          
+          
           const specialKeyMap: Record<string, string> = {};
 
-          // Preserve case for letters to support uppercase commands like 'M'
+          
           const normalizedKey = specialKeyMap[key] || key;
 
-          // Prevent browser shortcuts for vim keys and custom leader-prefixed keys
+          
           const vimKeys = commands.getVimKeys();
           if (vimKeys.includes(normalizedKey) || expandedKeysStart.has(normalizedKey)) {
             event.preventDefault();
             event.stopPropagation();
           }
 
-          // Handle special keys directly
-          // No direct special key handling; fall through to sequence handling / standard shortcuts
+          
+          
 
-          // Handle count digits (1-9 for starting count, 0-9 for continuing)
-          // If no command buffer and key is a digit 1-9, start count buffer
-          // If count buffer exists and key is 0-9, append to count buffer
+          
+          
+          
           const currentBuffer = vim.commandBuffer;
           const currentCount = vim.countBuffer;
 
           if (/^[1-9]$/.test(normalizedKey) && !currentBuffer && !currentCount) {
-            // Start count buffer with 1-9
+            
             vim.appendToCountBuffer(normalizedKey);
             return;
           } else if (/^[0-9]$/.test(normalizedKey) && currentCount && !currentBuffer) {
-            // Continue count buffer
+            
             vim.appendToCountBuffer(normalizedKey);
             return;
           }
 
-          // 1) Try custom mappings first (with buffer)
+          
           const testSequence = currentBuffer + normalizedKey;
 
-          // Check complete match
+          
           const complete = expandedEntries.find(([lhs]) => lhs === testSequence);
           if (complete) {
             const [, rhs] = complete;
             try {
               handlers.closeAttachmentAndLinkLists();
-              // RHS can be either a command name or a built-in vim sequence
+              
               const isCmd = commands.isValidCommand(rhs);
               if (isCmd) {
                 commands.execute(rhs);
               } else {
                 const seqRes = commands.parseVimSequence(rhs);
                 if (seqRes.isComplete && seqRes.command) {
-                  // Pass the count from the parsed sequence (e.g., "10j" -> count=10)
+                  
                   commands.executeVimCommand(seqRes.command, seqRes.count);
                 } else {
-                  // Fallback: try executing as command anyway
+                  
                   commands.execute(rhs);
                 }
               }
@@ -528,35 +518,35 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             vim.clearCommandBuffer();
             return;
           }
-          // Check partial match
+          
           const hasPartial = expandedEntries.some(([lhs]) => lhs.startsWith(testSequence));
           if (hasPartial) {
             vim.appendToCommandBuffer(normalizedKey);
             return;
           }
 
-          // Handle vim sequences through command system
+          
           const result = commands.parseVimSequence(testSequence);
 
           if (result.isComplete && result.command) {
-            // Complete command - execute and clear buffer
+            
             handlers.closeAttachmentAndLinkLists();
-            // Get count from vim's count buffer if available, otherwise use parsed count
+            
             const count = vim.hasCount() ? vim.getCount() : result.count;
             commands.executeVimCommand(result.command, count);
             vim.clearCommandBuffer();
-            vim.clearCountBuffer(); // Clear count buffer after use
+            vim.clearCountBuffer(); 
             return;
           } else if (result.isPartial) {
-            // Partial command - add to buffer and wait for more keys
+            
             vim.appendToCommandBuffer(normalizedKey);
             return;
           } else if (result.shouldClear) {
-            // Invalid sequence - clear buffer
+            
             vim.clearCommandBuffer();
           }
 
-          // Handle colon key to enter command mode
+          
           if (normalizedKey === ':') {
             event.preventDefault();
             event.stopPropagation();
@@ -564,38 +554,38 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             return;
           }
 
-          // Try single-key commands
+          
           const singleKeyResult = commands.parseVimSequence(normalizedKey);
           if (singleKeyResult.isComplete && singleKeyResult.command) {
             handlers.closeAttachmentAndLinkLists();
-            // Get count from vim's count buffer if available, otherwise use parsed count
+            
             const count = vim.hasCount() ? vim.getCount() : singleKeyResult.count;
             commands.executeVimCommand(singleKeyResult.command, count);
-            vim.clearCountBuffer(); // Clear count buffer after use
+            vim.clearCountBuffer(); 
             return;
           }
         }
       }
 
-      // Handle non-vim shortcuts through command system
+      
       if (!vim || !vim.isEnabled || vim.mode !== 'normal') {
-        // Standard keyboard shortcuts when vim is disabled
+        
         if (handleStandardShortcut(event, commands, handlers)) {
           return;
         }
       } else {
-        // Even in vim mode, handle certain shortcuts like arrows and modifiers
+        
         if (handleNonVimShortcut(event, commands, handlers)) {
           return;
         }
-        // Also allow standard shortcuts (e.g., Tab/Enter) to run in Vim mode
+        
         if (handleStandardShortcut(event, commands, handlers)) {
           return;
         }
       }
     };
 
-  // Register event listeners using useEventListener hook
+  
   useEventListener('keydown', handleKeyDown, { target: document, capture: true });
   useEventListener('paste', handlePaste, { target: document, capture: true });
 };

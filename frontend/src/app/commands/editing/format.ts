@@ -1,15 +1,9 @@
-/**
- * Text Formatting Commands
- * Toggle inline markdown formatting (bold, italic, strikethrough)
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { toggleInlineMarkdown } from '../../features/markdown/parseInlineMarkdown';
 
-/**
- * Toggle Bold Command
- * Wraps selected text or entire node text with **bold** markdown
- */
+
 export const toggleBoldCommand: Command = {
   name: 'toggle-bold',
   aliases: ['bold', 'B'],
@@ -58,10 +52,7 @@ export const toggleBoldCommand: Command = {
   }
 };
 
-/**
- * Toggle Italic Command
- * Wraps selected text or entire node text with *italic* markdown
- */
+
 export const toggleItalicCommand: Command = {
   name: 'toggle-italic',
   aliases: ['italic', 'i-format'],
@@ -109,10 +100,7 @@ export const toggleItalicCommand: Command = {
   }
 };
 
-/**
- * Toggle Strikethrough Command
- * Wraps selected text or entire node text with ~~strikethrough~~ markdown
- */
+
 export const toggleStrikethroughCommand: Command = {
   name: 'toggle-strikethrough',
   aliases: ['strikethrough', 'strike', 'S'],

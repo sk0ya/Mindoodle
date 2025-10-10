@@ -1,11 +1,11 @@
-// moved to layout/sidebar
+
 import React from 'react';
 import PrimarySidebar from './PrimarySidebar';
 import type { MapIdentifier } from '@shared/types';
 
 type Props = {
   activeView: string | null;
-  // Mind map context
+  
   allMindMaps: any[];
   currentMapId: string | null;
   onSelectMap: (id: MapIdentifier) => void;
@@ -13,7 +13,7 @@ type Props = {
   onRenameMap: (id: MapIdentifier, title: string) => Promise<void> | void;
   onChangeCategory: (id: MapIdentifier, category: string) => Promise<void> | void;
   onChangeCategoryBulk: (updates: Array<{ id: string; category: string }>) => Promise<void>;
-  // Workspaces management
+  
   workspaces?: Array<{ id: string; name: string }>;
   currentWorkspaceId?: string | null;
   onAddWorkspace?: () => void;
@@ -24,7 +24,7 @@ type Props = {
   currentMapData: any;
   onMapSwitch: (mapIdentifier: MapIdentifier) => Promise<void>;
   onNodeSelectByLine: (lineNumber: number) => Promise<void>;
-  // Provide storage adapter to lazy-load all maps for search
+  
   storageAdapter?: any;
 };
 
@@ -52,7 +52,7 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
   } = props;
 
 
-  // onCreateMapをラップして適切なworkspaceIdを渡す
+  
   const handleCreateMap = React.useCallback((title: string, workspaceId: string, category?: string) => {
     return onCreateMap(title, workspaceId, category);
   }, [onCreateMap]);

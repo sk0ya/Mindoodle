@@ -1,8 +1,4 @@
-/**
- * KnowledgeGraphModal2D - 2Dベクトル空間可視化モーダル
- *
- * ベクトル類似度に基づいて、.mdファイルを2D空間に配置します。
- */
+
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { vectorStore } from '@core/services/VectorStore';
@@ -37,19 +33,17 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   } | null>(null);
   const hasRunInitialVectorization = useRef(false);
 
-  // Canvas サイズ
+  
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
 
-  /**
-   * ベクトルを読み込んでレイアウト計算
-   */
+  
   const loadAndLayout = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      // ベクトルを全て読み込み
+      
       const vectors = await vectorStore.getAllVectors();
 
       if (vectors.size === 0) {
@@ -63,14 +57,14 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
         vector,
       }));
 
-      // レイアウト計算
+      
       const layout = new ForceDirectedLayout({
         width: CANVAS_WIDTH,
         height: CANVAS_HEIGHT,
       });
 
       layout.setNodes(nodeData);
-      // PCAで既に最適配置されているのでシミュレーション不要
+      
       setNodes(layout.getNodes());
       setIsLoading(false);
     } catch (err) {
@@ -80,9 +74,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
   }, []);
 
-  /**
-   * 初回ベクトル化処理（既存のベクトルをスキップ）
-   */
+  
   const runInitialVectorization = useCallback(async () => {
     if (!storageAdapter) {
       console.warn('No storage adapter available for bulk vectorization');
@@ -90,26 +82,26 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
 
     try {
-      // 既存のベクトルを取得
+      
       const existingVectors = await vectorStore.getAllVectors();
 
-      // 全マップを取得
+      
       const allMaps = await storageAdapter.loadAllMaps();
 
-      // ベクトル化が必要なマップのみフィルタリング
+      
       const mapsToVectorize = allMaps.filter(mapData => {
         const filePath = `${mapData.mapIdentifier.mapId}.md`;
         return !existingVectors.has(filePath);
       });
 
-      // すでに全てベクトル化済みなら何もしない
+      
       if (mapsToVectorize.length === 0) {
         return;
       }
 
       setVectorizationProgress({ current: 0, total: mapsToVectorize.length });
 
-      // 各マップをベクトル化（順次処理）
+      
       for (let i = 0; i < mapsToVectorize.length; i++) {
         const mapData = mapsToVectorize[i];
 
@@ -118,12 +110,12 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
           const filePath = `${mapData.mapIdentifier.mapId}.md`;
 
           try {
-            // 直接ベクトル化を実行（順次処理を保証）
+            
             const vector = await embeddingService.embed(filePath, markdown);
             await vectorStore.saveVector(filePath, vector);
           } catch (error) {
             console.error(`Failed to vectorize ${filePath}:`, error);
-            // 個別のエラーは無視して続行
+            
           }
         }
 
@@ -138,12 +130,10 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
   }, [storageAdapter]);
 
-  /**
-   * モーダルが開かれたら初回ベクトル化とレイアウト計算
-   */
+  
   useEffect(() => {
     if (isOpen && storageAdapter) {
-      // セッション中に一度だけベクトル化チェックを実行
+      
       if (!hasRunInitialVectorization.current) {
         hasRunInitialVectorization.current = true;
         runInitialVectorization().then(() => {
@@ -153,14 +143,12 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
         loadAndLayout();
       }
     } else if (isOpen) {
-      // storageAdapterがない場合はレイアウトのみ
+      
       loadAndLayout();
     }
   }, [isOpen, loadAndLayout, runInitialVectorization, storageAdapter]);
 
-  /**
-   * 現在のマップを選択状態にする
-   */
+  
   useEffect(() => {
     if (isOpen && currentMapId && nodes.length > 0) {
       const currentNodeId = `${currentMapId}.md`;
@@ -168,15 +156,13 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       if (nodeExists) {
         setSelectedNode(currentNodeId);
       } else if (nodes.length > 0) {
-        // 現在のマップがない場合は最初のノードを選択
+        
         setSelectedNode(nodes[0].id);
       }
     }
   }, [isOpen, currentMapId, nodes]);
 
-  /**
-   * Canvasに描画
-   */
+  
   useEffect(() => {
     if (!canvasRef.current || nodes.length === 0) return;
 
@@ -184,10 +170,10 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    // クリア
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // ノード描画
+    
     for (const node of nodes) {
       const isHovered = hoveredNode === node.id;
       const isSelected = selectedNode === node.id;
@@ -204,50 +190,50 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       if (isHovered) {
         ctx.fillStyle = '#3b82f6';
       } else if (isSelected) {
-        ctx.fillStyle = '#8b5cf6'; // 紫色で選択状態
+        ctx.fillStyle = '#8b5cf6'; 
       } else {
         ctx.fillStyle = '#6b7280';
       }
       ctx.fill();
 
-      // ホバーまたは選択時は枠線
+      
       if (isHovered || isSelected) {
         ctx.strokeStyle = '#ffffff';
         ctx.lineWidth = 2;
         ctx.stroke();
       }
 
-      // ラベル配置の計算
+      
       ctx.font = (isHovered || isSelected || isCurrent) ? 'bold 13px sans-serif' : '11px sans-serif';
       const textWidth = ctx.measureText(fileName).width;
       const padding = 4;
       const textHeight = (isHovered || isSelected || isCurrent) ? 18 : 14;
 
-      // ラベル位置を決定（画面内に収まるように調整）
+      
       let labelX = node.x;
-      let labelY = node.y + nodeRadius + 4; // デフォルトは下
+      let labelY = node.y + nodeRadius + 4; 
       let textAlign: CanvasTextAlign = 'center';
       let textBaseline: CanvasTextBaseline = 'top';
 
-      // 下にはみ出る場合は上に配置
+      
       if (labelY + textHeight > canvas.height - 5) {
         labelY = node.y - nodeRadius - 4;
         textBaseline = 'bottom';
       }
 
-      // 左右にはみ出る場合は調整
+      
       const halfWidth = textWidth / 2;
       if (labelX - halfWidth < 5) {
-        // 左にはみ出る → 左揃えに変更
+        
         labelX = node.x + nodeRadius + 4;
         textAlign = 'left';
       } else if (labelX + halfWidth > canvas.width - 5) {
-        // 右にはみ出る → 右揃えに変更
+        
         labelX = node.x - nodeRadius - 4;
         textAlign = 'right';
       }
 
-      // 他のノードと重なりチェック（ホバー時のみ）
+      
       if (isHovered) {
         const labelBottom = textBaseline === 'top' ? labelY + textHeight : labelY;
         const labelTop = textBaseline === 'top' ? labelY : labelY - textHeight;
@@ -260,14 +246,14 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
             Math.pow(otherNode.y - (labelTop + labelBottom) / 2, 2)
           );
 
-          // 他のノードと近すぎる場合は横に配置
+          
           if (distance < 30) {
             labelX = node.x + nodeRadius + 8;
             labelY = node.y;
             textAlign = 'left';
             textBaseline = 'middle';
 
-            // 右にはみ出るなら左に
+            
             if (labelX + textWidth > canvas.width - 5) {
               labelX = node.x - nodeRadius - 8;
               textAlign = 'right';
@@ -280,7 +266,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       ctx.textAlign = textAlign;
       ctx.textBaseline = textBaseline;
 
-      // 背景を追加して読みやすく（ホバー時のみ）
+      
       if (isHovered && !isCurrent) {
         const bgX = textAlign === 'left' ? labelX - padding :
                     textAlign === 'right' ? labelX - textWidth - padding :
@@ -293,9 +279,9 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
         ctx.fillRect(bgX, bgY, textWidth + padding * 2, textHeight + padding);
       }
 
-      // テキスト描画（現在のマップは緑色）
+      
       if (isCurrent) {
-        ctx.fillStyle = '#22c55e'; // 緑色
+        ctx.fillStyle = '#22c55e'; 
       } else if (isHovered) {
         ctx.fillStyle = '#ffffff';
       } else {
@@ -305,9 +291,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
   }, [nodes, hoveredNode, selectedNode, currentMapId]);
 
-  /**
-   * マウスムーブでホバー検出
-   */
+  
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -316,7 +300,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
 
-    // ホバー検出
+    
     const hovered = nodes.find(n => {
       const dx = n.x - x;
       const dy = n.y - y;
@@ -326,12 +310,10 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     setHoveredNode(hovered?.id || null);
   }, [nodes]);
 
-  /**
-   * マップを開く共通処理
-   */
+  
   const openMap = useCallback(async (nodeId: string) => {
     try {
-      // ファイルパスからマップIDを抽出（例: "mapId.md" → "mapId"）
+      
       const mapId = nodeId.replace('.md', '');
 
       // コマンドレジストリを使ってマップを切り替え
@@ -344,40 +326,34 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       };
       await registry.execute('switch-map', context, { mapId });
 
-      // モーダルを閉じる
+      
       onClose();
     } catch (error) {
       console.error('Failed to open map:', error);
     }
   }, [onClose]);
 
-  /**
-   * クリックで選択状態を変更
-   */
+  
   const handleClick = useCallback(() => {
     if (hoveredNode) {
       setSelectedNode(hoveredNode);
     }
   }, [hoveredNode]);
 
-  /**
-   * ダブルクリックでマップを開く
-   */
+  
   const handleDoubleClick = useCallback(async () => {
     if (!hoveredNode) return;
     await openMap(hoveredNode);
   }, [hoveredNode, openMap]);
 
-  /**
-   * 方向キーで選択ノードを移動
-   */
+  
   const moveSelection = useCallback((direction: 'up' | 'down' | 'left' | 'right') => {
     if (!selectedNode || nodes.length === 0) return;
 
     const currentNode = nodes.find(n => n.id === selectedNode);
     if (!currentNode) return;
 
-    // 方向に応じて最も近いノードを探す
+    
     let closestNode: Node2D | null = null;
     let minDistance = Infinity;
 
@@ -388,20 +364,20 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       const dy = node.y - currentNode.y;
       const distance = Math.sqrt(dx * dx + dy * dy);
 
-      // 方向チェック
+      
       let isInDirection = false;
       switch (direction) {
         case 'up':
-          isInDirection = dy < -20; // 上方向
+          isInDirection = dy < -20; 
           break;
         case 'down':
-          isInDirection = dy > 20; // 下方向
+          isInDirection = dy > 20; 
           break;
         case 'left':
-          isInDirection = dx < -20; // 左方向
+          isInDirection = dx < -20; 
           break;
         case 'right':
-          isInDirection = dx > 20; // 右方向
+          isInDirection = dx > 20; 
           break;
       }
 
@@ -416,13 +392,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
   }, [selectedNode, nodes]);
 
-  /**
-   * キーボードイベントハンドラ
-   */
+  
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isOpen) return;
 
-    // Enterキーで選択ノードを開く
+    
     if (e.key === 'Enter' && selectedNode) {
       e.preventDefault();
       e.stopPropagation();
@@ -431,7 +405,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       return;
     }
 
-    // 方向キー
+    
     if (e.key === 'ArrowUp' || e.key === 'k') {
       e.preventDefault();
       e.stopPropagation();
@@ -455,13 +429,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     }
   }, [isOpen, selectedNode, openMap, moveSelection]);
 
-  /**
-   * キーボードイベントリスナーを登録（キャプチャフェーズで優先的に処理）
-   */
+  
   useEffect(() => {
     if (!isOpen) return;
 
-    // キャプチャフェーズで登録することで、他のリスナーより先に実行
+    
     window.addEventListener('keydown', handleKeyDown, true);
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);

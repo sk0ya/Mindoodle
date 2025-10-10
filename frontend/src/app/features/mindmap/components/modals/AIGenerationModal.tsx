@@ -44,7 +44,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
     setShowCustomPrompt(false);
     setStep('generating');
     clearError();
-  }, []); // 空の依存関係で固定
+  }, []); 
   
   const handleGenerate = useCallback(async () => {
     if (!parentNode) return;
@@ -60,18 +60,18 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
       setStep('selecting');
     } catch (error) {
       console.error('AI generation failed:', error);
-      // エラーが発生してもモーダルは開いたまま
+      
     }
-  }, []); // 空の依存関係で固定してループを防止
+  }, []); 
   
-  // モーダルが開かれたときに自動生成を開始 (無限ループを避けるため最低限の依存関係のみ)
+  
   useEffect(() => {
     if (isOpen && parentNode && aiSettings.enabled && isSettingsValid) {
       handleGenerate();
     }
   }, [isOpen]);
   
-  // モーダルが閉じられたときにリセット
+  
   useEffect(() => {
     if (!isOpen) {
       resetModal();
@@ -85,12 +85,12 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
     clearError();
     
     try {
-      // カスタムプロンプトを使用してテキスト生成
+      
       const fullPrompt = `${customPrompt}\n\n親ノード: ${parentNode.text}\nコンテキスト: ${contextNodes.map(n => n.text).join(', ')}`;
       
       const response = await generateText(fullPrompt);
       
-      // レスポンスをパースして子ノードに変換
+      
       const lines = LineEndingUtils.splitLines(response).filter((line: string) => !LineEndingUtils.isEmptyOrWhitespace(line));
       const childTexts = lines.slice(0, 5).map((line: string) => 
         line.replace(/^\d+\.\s*/, '').replace(/^[-*]\s*/, '').trim()

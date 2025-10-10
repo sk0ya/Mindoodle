@@ -1,9 +1,6 @@
-/**
- * Shared Types - 統一エクスポート
- * アプリケーション全体で使用される共通型をエクスポート
- */
 
-// Base types
+
+
 export type {
   Position,
   Size,
@@ -23,7 +20,7 @@ export {
   createFileId
 } from './base.types';
 
-// Data types
+
 export type {
   MapIdentifier,
   FileAttachment,
@@ -42,7 +39,7 @@ export {
 } from './data.types';
 
 
-// UI types
+
 export type {
   UIState,
   ContextMenuState,
@@ -53,15 +50,15 @@ export type {
   PanelId
 } from './ui.types';
 
-// Legacy compatibility - maintaining old import paths
-// These should eventually be migrated to use the new structure
+
+
 export type {
   MindMapNode as SharedMindMapNode,
   MindMapData as SharedMindMapData,
   MindMapSettings as SharedMindMapSettings
 } from './data.types';
 
-// Legacy types that still exist (maintaining backward compatibility)
+
 export type { Result } from './result';
 export { Success, Failure, isSuccess, isFailure, map, flatMap, match, collect, tryCatch, tryCatchAsync } from './result';
 
@@ -88,8 +85,8 @@ export {
 } from './errors';
 
 
-// Legacy unified types (for backward compatibility)
-// TODO: これらは段階的に新しい型構造に移行する
+
+
 export type {
   ValidationResult,
   StorageStats,

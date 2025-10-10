@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { MapIdentifier } from '@shared/types';
@@ -16,9 +16,9 @@ import '../SearchSidebar.css';
 interface SearchSidebarProps {
   onMapSwitch?: (mapIdentifier: MapIdentifier) => Promise<void>;
   onNodeSelectByLine?: (lineNumber: number) => Promise<void>;
-  // Storage adapter for file-based search
+  
   storageAdapter?: any;
-  // Workspaces for path display
+  
   workspaces?: Array<{ id: string; name: string }>;
 }
 

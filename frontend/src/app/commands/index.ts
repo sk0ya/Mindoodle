@@ -1,34 +1,34 @@
-// navigation
+
 import * as navigationCommands from './navigation/navigate';
 import * as centerCommands from './navigation/center';
 import * as navigationUtilCommands from './navigation/navigation';
 import * as navigationIndexCommands from './navigation/index';
 
-// editing
+
 import * as deleteCommands from './editing/delete';
 import * as editCommands from './editing/edit';
 import * as insertCommands from './editing/insert';
 import * as formatCommands from './editing/format';
 
-// structure
+
 import * as structureCommands from './structure';
 import * as toggleCommands from './toggle';
 
-// application
+
 import * as applicationCommands from './application/application';
 import * as mindmapCommands from './application/mindmap';
 
-// ui
+
 import * as uiCommands from './ui';
 
-// system
+
 export { useCommands } from './system/useCommands';
 export type { UseCommandsReturn } from './system/useCommands';
 
 
-// =============================
-// Flatten all commands
-// =============================
+
+
+
 export const allCommandModules = {
   navigation: { ...navigationCommands, ...centerCommands, ...navigationUtilCommands, ...navigationIndexCommands },
   editing: { ...deleteCommands, ...editCommands, ...insertCommands, ...formatCommands },
@@ -37,7 +37,7 @@ export const allCommandModules = {
   ui: uiCommands,
 } as const;
 
-// categoriesごとに配列化
+
 export const commandCategories = Object.fromEntries(
   Object.entries(allCommandModules).map(([key, mod]) => [
     key,
@@ -45,13 +45,13 @@ export const commandCategories = Object.fromEntries(
   ])
 ) as Record<string, any[]>;
 
-// すべてまとめた配列
+
 export const commands = Object.values(commandCategories).flat();
 
 
-// =============================
-// Registry Helper
-// =============================
+
+
+
 export function registerAllCommands(registry: any) {
   for (const command of commands) {
     try {

@@ -1,7 +1,7 @@
 import type { MindMapNode } from '@shared/types';
 import { generateNodeId } from '@shared/utils';
 
-// Helper functions for node creation and positioning
+
 const createNewNode = (text: string, parentLineEnding?: string): MindMapNode => ({
   id: generateNodeId(),
   text,
@@ -13,7 +13,7 @@ const createNewNode = (text: string, parentLineEnding?: string): MindMapNode => 
   lineEnding: parentLineEnding || '\n'
 });
 
-// Use even smaller provisional offsets; auto-layout will correct soon after
+
 const calculateNodePosition = (parentX: number, parentY: number, childIndex: number): { x: number; y: number } => ({
   x: parentX + 28,
   y: parentY + (childIndex * 28)
@@ -27,8 +27,8 @@ function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMa
     text: target.text,
     x: source.x,
     y: source.y,
-    children: [], // set later via recursion
-    // preserve visual/functional fields
+    children: [], 
+    
     fontSize: source.fontSize,
     fontFamily: source.fontFamily,
     fontWeight: source.fontWeight,
@@ -39,7 +39,7 @@ function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMa
     customImageWidth: source.customImageWidth,
     customImageHeight: source.customImageHeight,
     note: source.note,
-    // update markdown meta from parsed target
+    
     markdownMeta: target.markdownMeta
   };
   if (kind) cloned.kind = kind;
@@ -51,7 +51,7 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
   const result: MindMapNode[] = [];
   const usedExisting = new Set<number>();
 
-  // Build map from text to indexes for quick match; many nodes may share text, so keep multi-index
+  
   const textIndex = new Map<string, number[]>();
   existing.forEach((n, i) => {
     const list = textIndex.get(n.text) || [];
@@ -69,7 +69,7 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
   const claimExistingByText = (text: string): { node: MindMapNode; index: number } | null => {
     const list = textIndex.get(text);
     if (!list || list.length === 0) return null;
-    // find first unmatched index
+    
     for (let k = 0; k < list.length; k++) {
       const idx = list[k];
       if (!usedExisting.has(idx)) {
@@ -83,13 +83,13 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
   for (let i = 0; i < parsed.length; i++) {
     const p = parsed[i];
 
-    // 1) try exact text match first
+    
     const byText = claimExistingByText(p.text);
     let matched: MindMapNode | null = null;
     if (byText) {
       matched = byText.node;
     } else {
-      // 2) fall back to same index
+      
       matched = claimExistingByIndex(i);
     }
 
@@ -98,15 +98,15 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
       merged.children = mergeNodesPreservingLayout(matched.children || [], p.children || [], merged);
       result.push(merged);
     } else {
-      // New node: create preserving relative layout to parent
+      
       const base = createNewNode(p.text);
-      // place new child at reasonable position relative to parent and sibling index
+      
       if (parent) {
         const pos = calculateNodePosition(parent.x, parent.y, i);
         base.x = pos.x; base.y = pos.y;
       }
       base.markdownMeta = p.markdownMeta;
-      // carry table kind/data into new nodes
+      
       if ((p as any).kind) (base as any).kind = (p as any).kind;
       if ((p as any).tableData) (base as any).tableData = (p as any).tableData;
       base.children = mergeNodesPreservingLayout([], p.children || [], base);
@@ -114,6 +114,6 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
     }
   }
 
-  // Deletions: any existing not matched are dropped (no need to carry over)
+  
   return result;
 }

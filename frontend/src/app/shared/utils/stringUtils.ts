@@ -1,11 +1,6 @@
-/**
- * 文字列操作用のユーティリティ関数
- * 共通的な文字列処理パターンを提供
- */
 
-/**
- * パスから最後のセグメント（ファイル名など）を取得
- */
+
+
 export function getLastPathSegment(path: string, separator: string = '/'): string {
   if (!path) return '';
   return path.split(separator).pop() || '';
@@ -136,17 +131,13 @@ export function isRelativePath(path: string): boolean {
   return path.startsWith('./') || path.startsWith('../') || (!path.startsWith('/') && !path.includes('://'));
 }
 
-/**
- * 絶対パスかどうかを判定
- */
+
 export function isAbsolutePath(path: string): boolean {
   if (!path) return false;
   return path.startsWith('/') || path.includes('://');
 }
 
-/**
- * URLかどうかを判定
- */
+
 export function isUrl(str: string): boolean {
   if (!str) return false;
   try {
@@ -157,17 +148,13 @@ export function isUrl(str: string): boolean {
   }
 }
 
-/**
- * 文字列の最初の文字を大文字にする
- */
+
 export function capitalize(str: string): string {
   if (!str) return '';
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-/**
- * パスが特定の拡張子を持つかチェック
- */
+
 export function hasExtension(path: string, extensions: string | string[]): boolean {
   if (!path) return false;
   const ext = getFileExtension(path).toLowerCase();

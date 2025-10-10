@@ -4,15 +4,15 @@ import { useModal } from './useModal';
 import { useBooleanState } from './useBooleanState';
 
 interface UseModalStateReturn {
-  // Export/Import modals
+  
   showExportModal: boolean;
   setShowExportModal: (show: boolean) => void;
   showImportModal: boolean;
   setShowImportModal: (show: boolean) => void;
   
-  // Login modal (削除済み)
   
-  // Link modal states
+  
+  
   showLinkModal: boolean;
   setShowLinkModal: (show: boolean) => void;
   editingLink: NodeLink | null;
@@ -20,7 +20,7 @@ interface UseModalStateReturn {
   linkModalNodeId: string | null;
   setLinkModalNodeId: (nodeId: string | null) => void;
   
-  // Link action menu states
+  
   showLinkActionMenu: boolean;
   setShowLinkActionMenu: (show: boolean) => void;
   linkActionMenuData: {
@@ -32,12 +32,12 @@ interface UseModalStateReturn {
 }
 
 export const useModalState = (): UseModalStateReturn => {
-  // Using new useModal hook for simple modals
+  
   const exportModal = useModal();
   const importModal = useModal();
-  // loginModalは削除されました
+  
 
-  // Link-related states (keeping complex state as-is for now)
+  
   const [editingLink, setEditingLink] = useState<NodeLink | null>(null);
   const [linkModalNodeId, setLinkModalNodeId] = useState<string | null>(null);
   const linkActionMenu = useBooleanState();
@@ -47,14 +47,14 @@ export const useModalState = (): UseModalStateReturn => {
   } | null>(null);
   
   return {
-    // Simple modals using new hook pattern
+    
     showExportModal: exportModal.isOpen,
     setShowExportModal: (show: boolean) => show ? exportModal.open() : exportModal.close(),
     showImportModal: importModal.isOpen,
     setShowImportModal: (show: boolean) => show ? importModal.open() : importModal.close(),
-    // showLoginModal削除済み
     
-    // Complex modals (keeping existing pattern)
+    
+    
     showLinkModal: editingLink !== null || linkModalNodeId !== null,
     setShowLinkModal: (show: boolean) => {
       if (!show) {

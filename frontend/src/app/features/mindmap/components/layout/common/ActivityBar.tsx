@@ -1,4 +1,4 @@
-// moved to layout/common
+
 import React from 'react';
 import { Workflow, Search, Bot, Settings, Keyboard, Palette, Command } from 'lucide-react';
 import './ActivityBar.css';
@@ -60,7 +60,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
   ];
 
   const handleItemClick = (itemId: string) => {
-    // 同じアイテムをクリックした場合はトグル
+    
     if (activeView === itemId) {
       onViewChange(null);
     } else {

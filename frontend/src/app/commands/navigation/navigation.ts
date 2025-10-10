@@ -1,13 +1,10 @@
-/**
- * Navigation Commands
- * All node navigation and selection operations
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
 import { viewportService } from '@/app/core/services';
 
-// Arrow navigation command
+
 export const arrowNavigateCommand: Command = {
   name: 'arrow-navigate',
   aliases: ['arrow'],
@@ -57,7 +54,7 @@ export const arrowNavigateCommand: Command = {
   }
 };
 
-// Focus/select node command
+
 export const selectNodeCommand: Command = {
   name: 'select-node',
   aliases: ['select', 'focus'],
@@ -85,8 +82,8 @@ export const selectNodeCommand: Command = {
     }
 
     try {
-      // This would require extending the handlers interface
-      // For now, we'll note this as a potential enhancement
+      
+      
       return {
         success: true,
         message: `Selected node "${node.text}" (Note: Direct node selection API needs implementation)`
@@ -100,7 +97,7 @@ export const selectNodeCommand: Command = {
   }
 };
 
-// Find node command
+
 export const findNodeCommand: Command = {
   name: 'find-node',
   aliases: ['find', 'search'],
@@ -128,8 +125,8 @@ export const findNodeCommand: Command = {
     const exactMatch = (args as any)['exact'];
 
     try {
-      // This would require implementing a search function
-      // For now, we'll note this as a feature to implement
+      
+      
       return {
         success: true,
         message: `Search for "${searchText}" (${exactMatch ? 'exact' : 'partial'} match) - Search API needs implementation`
@@ -143,7 +140,7 @@ export const findNodeCommand: Command = {
   }
 };
 
-// Zoom commands
+
 export const zoomInCommand: Command = {
   name: 'zoom-in',
   aliases: ['zoom+', 'zi'],
@@ -152,7 +149,7 @@ export const zoomInCommand: Command = {
   examples: ['zoom-in', 'zoom+', 'zi'],
 
   execute(): CommandResult {
-    // This would require implementing zoom controls
+    
     return {
       success: true,
       message: 'Zoomed in (Zoom API needs implementation)'
@@ -168,7 +165,7 @@ export const zoomOutCommand: Command = {
   examples: ['zoom-out', 'zoom-'],
 
   execute(): CommandResult {
-    // This would require implementing zoom controls
+    
     return {
       success: true,
       message: 'Zoomed out (Zoom API needs implementation)'
@@ -184,7 +181,7 @@ export const zoomResetCommand: Command = {
   examples: ['zoom-reset', 'fit', 'zoom-fit'],
 
   execute(): CommandResult {
-    // This would require implementing zoom controls
+    
     return {
       success: true,
       message: 'Reset zoom to fit (Zoom API needs implementation)'
@@ -192,8 +189,8 @@ export const zoomResetCommand: Command = {
   }
 };
 
-// Select root node command (for gg vim command)
-// Pan up command (for Ctrl+U vim command)
+
+
 export const scrollUpCommand: Command = {
   name: 'scroll-up',
   aliases: ['ctrl-u'],
@@ -203,11 +200,11 @@ export const scrollUpCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      // Use the existing setPan functionality from the handlers
+      
       if (context.handlers.setPan && typeof context.handlers.setPan === 'function') {
-        const panAmount = 100; // logical units to pan up
+        const panAmount = 100; 
 
-        // Pan up by moving the view upward (increase y coordinate)
+        
         context.handlers.setPan((prev: { x: number; y: number }) => ({
           x: prev.x,
           y: prev.y + panAmount
@@ -232,7 +229,7 @@ export const scrollUpCommand: Command = {
   }
 };
 
-// Pan down command (for Ctrl+D vim command)
+
 export const scrollDownCommand: Command = {
   name: 'scroll-down',
   aliases: ['ctrl-d'],
@@ -242,11 +239,11 @@ export const scrollDownCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      // Use the existing setPan functionality from the handlers
+      
       if (context.handlers.setPan && typeof context.handlers.setPan === 'function') {
-        const panAmount = 100; // logical units to pan down
+        const panAmount = 100; 
 
-        // Pan down by moving the view downward (decrease y coordinate)
+        
         context.handlers.setPan((prev: { x: number; y: number }) => ({
           x: prev.x,
           y: prev.y - panAmount
@@ -271,7 +268,7 @@ export const scrollDownCommand: Command = {
   }
 };
 
-// Select root node command (for gg vim command)
+
 export const selectRootNodeCommand: Command = {
   name: 'select-root',
   aliases: ['root', 'go-root', 'gg'],
@@ -290,15 +287,15 @@ export const selectRootNodeCommand: Command = {
       }
       const rootNode = roots[0];
 
-      // Select the root node
+      
       context.handlers.selectNode(rootNode.id);
 
-      // Center the root node in view with animation
+      
       if (context.handlers.centerNodeInView) {
         context.handlers.centerNodeInView(rootNode.id, true);
       }
 
-      // Close any open panels
+      
       context.handlers.closeAttachmentAndLinkLists();
 
       return {
@@ -314,7 +311,7 @@ export const selectRootNodeCommand: Command = {
   }
 };
 
-// Select center visible node command (for M vim command)
+
 export const selectCenterNodeCommand: Command = {
   name: 'select-center',
   aliases: ['center-select', 'vim-m'],
@@ -325,7 +322,7 @@ export const selectCenterNodeCommand: Command = {
   execute(context: CommandContext): CommandResult {
     try {
 
-      // Compute viewport rect like centerNodeInView
+      
       const st = (useMindMapStore.getState() as any);
       const ui = st?.ui || {};
       const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
@@ -345,11 +342,11 @@ export const selectCenterNodeCommand: Command = {
         Math.max(0, viewportHeight - bottomOverlay - topOverlay)
       );
 
-      // Center of effective viewport (screen coords)
+      
       const centerScreenX = mapAreaRect.left + (mapAreaRect.width / 2);
       const centerScreenY = mapAreaRect.top + (mapAreaRect.height / 2);
 
-      // Function to find all visible nodes
+      
       function collectAllNodes(node: any): any[] {
         let nodes = [node];
         if (node.children && !node.collapsed) {
@@ -360,27 +357,27 @@ export const selectCenterNodeCommand: Command = {
         return nodes;
       }
 
-      // Gather nodes from all roots so selection considers the full map
+      
       const st2 = (useMindMapStore.getState() as any);
       const rootsForCollect = st2?.data?.rootNodes || [];
       const allNodes = ([] as any[]).concat(...rootsForCollect.map((r: any) => collectAllNodes(r)));
 
-      // Find the node closest to the center of the viewport
+      
       let closestNode = null;
       let closestDistance = Infinity;
 
-      // Use actual zoom/pan from UI store for accurate screen positions
-      const currentZoom = ((ui?.zoom) || 1) * 1.5; // match renderer scale
+      
+      const currentZoom = ((ui?.zoom) || 1) * 1.5; 
       const currentPan = ui?.pan || { x: 0, y: 0 };
 
       for (const node of allNodes) {
-        if (!node.x || !node.y) continue; // Skip nodes without position
+        if (!node.x || !node.y) continue; 
 
-        // Calculate node's screen position
+        
         const nodeScreenX = currentZoom * (node.x + currentPan.x);
         const nodeScreenY = currentZoom * (node.y + currentPan.y);
 
-        // Calculate distance from viewport center
+        
         const deltaX = nodeScreenX - centerScreenX;
         const deltaY = nodeScreenY - centerScreenY;
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
@@ -398,13 +395,13 @@ export const selectCenterNodeCommand: Command = {
         };
       }
 
-      // Select the closest node and bring it into view
+      
       context.handlers.selectNode(closestNode.id);
       if (context.handlers.centerNodeInView) {
         context.handlers.centerNodeInView(closestNode.id, true);
       }
 
-      // Close any open panels
+      
       context.handlers.closeAttachmentAndLinkLists();
 
       return {
@@ -420,7 +417,7 @@ export const selectCenterNodeCommand: Command = {
   }
 };
 
-// Select bottom-most visible node command (for Vim 'G')
+
 export const selectBottomNodeCommand: Command = {
   name: 'select-bottom',
   aliases: ['vim-G', 'G'],
@@ -434,10 +431,10 @@ export const selectBottomNodeCommand: Command = {
       if (!roots || roots.length === 0) {
         return { success: false, error: 'No root nodes found in current map' };
       }
-      // Start from the bottom-most root (last in order)
+      
       const rootNode = roots[roots.length - 1];
 
-      // Pick the deepest descendant by always choosing the last child until leaf
+      
       let bottom = rootNode;
       while (bottom && Array.isArray(bottom.children) && bottom.children.length > 0) {
         bottom = bottom.children[bottom.children.length - 1];
@@ -459,17 +456,14 @@ export const selectBottomNodeCommand: Command = {
   }
 };
 
-/**
- * Command to switch to next map (vim-style gt)
- * Uses existing switchToNextMap functionality
- */
+
 export const nextMapCommand: Command = {
   name: 'next-map',
   description: 'Switch to the next map in the workspace (vim gt)',
   category: 'navigation',
   execute: async (context: CommandContext) => {
     try {
-      // Use the existing switchToNextMap functionality
+      
       const handlers = (context as any).handlers;
       if (handlers && handlers.switchToNextMap) {
         handlers.switchToNextMap();
@@ -483,17 +477,14 @@ export const nextMapCommand: Command = {
   }
 };
 
-/**
- * Command to switch to previous map (vim-style gT)
- * Uses existing switchToPrevMap functionality
- */
+
 export const prevMapCommand: Command = {
   name: 'prev-map',
   description: 'Switch to the previous map in the workspace (vim gT)',
   category: 'navigation',
   execute: async (context: CommandContext) => {
     try {
-      // Use the existing switchToPrevMap functionality
+      
       const handlers = (context as any).handlers;
       if (handlers && handlers.switchToPrevMap) {
         handlers.switchToPrevMap();
@@ -507,10 +498,7 @@ export const prevMapCommand: Command = {
   }
 };
 
-/**
- * Command to select the root node of current selected node (vim '0')
- * Finds and selects the root node that contains the currently selected node
- */
+
 export const selectCurrentRootCommand: Command = {
   name: 'select-current-root',
   aliases: ['0', 'current-root'],
@@ -539,7 +527,7 @@ export const selectCurrentRootCommand: Command = {
         };
       }
 
-      // Find the root node that contains the selected node
+      
       function findRootNodeForNode(nodeId: string, nodes: any[]): any | null {
         for (const node of nodes) {
           if (node.id === nodeId) {
@@ -548,14 +536,14 @@ export const selectCurrentRootCommand: Command = {
           if (node.children && node.children.length > 0) {
             const found = findRootNodeForNode(nodeId, node.children);
             if (found) {
-              return node; // Return the root node, not the found child
+              return node; 
             }
           }
         }
         return null;
       }
 
-      // Check if the selected node is already a root node
+      
       const isAlreadyRoot = rootNodes.some((root: any) => root.id === selectedNodeId);
 
       if (isAlreadyRoot) {
@@ -565,7 +553,7 @@ export const selectCurrentRootCommand: Command = {
         };
       }
 
-      // Find which root node contains the selected node
+      
       const containingRootNode = findRootNodeForNode(selectedNodeId, rootNodes);
 
       if (!containingRootNode) {
@@ -575,15 +563,15 @@ export const selectCurrentRootCommand: Command = {
         };
       }
 
-      // Select the root node
+      
       context.handlers.selectNode(containingRootNode.id);
 
-      // Center the root node in view with animation
+      
       if (context.handlers.centerNodeInView) {
         context.handlers.centerNodeInView(containingRootNode.id, true);
       }
 
-      // Close any open panels
+      
       context.handlers.closeAttachmentAndLinkLists();
 
       return {

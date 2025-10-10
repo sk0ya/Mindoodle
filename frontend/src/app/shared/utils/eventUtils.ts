@@ -1,35 +1,24 @@
-/**
- * イベントハンドリング用のユーティリティ関数
- * 共通的なイベント処理パターンを提供
- */
+
 
 import { useCallback, useEffect, useRef } from 'react';
 
-/**
- * イベントの伝播を停止し、デフォルト動作を防ぐ
- */
+
 export function stopEventPropagation(e: Event | React.SyntheticEvent): void {
   e.preventDefault();
   e.stopPropagation();
 }
 
-/**
- * イベントの伝播のみを停止（デフォルト動作は継続）
- */
+
 export function stopPropagationOnly(e: Event | React.SyntheticEvent): void {
   e.stopPropagation();
 }
 
-/**
- * デフォルト動作のみを防ぐ（伝播は継続）
- */
+
 export function preventDefaultOnly(e: Event | React.SyntheticEvent): void {
   e.preventDefault();
 }
 
-/**
- * クリックアウトサイドハンドラーのカスタムフック
- */
+
 export function useClickOutside<T extends HTMLElement = HTMLElement>(
   callback: () => void,
   enabled: boolean = true
@@ -52,10 +41,7 @@ export function useClickOutside<T extends HTMLElement = HTMLElement>(
   return ref;
 }
 
-/**
- * 条件付きクリックハンドラー
- * 指定した条件が満たされた場合のみコールバックを実行
- */
+
 export function createConditionalClickHandler(
   condition: boolean | (() => boolean),
   callback: () => void
@@ -68,10 +54,7 @@ export function createConditionalClickHandler(
   };
 }
 
-/**
- * イベントハンドラーの組み合わせ
- * 複数のハンドラーを順次実行
- */
+
 export function combineEventHandlers<T extends Event | React.SyntheticEvent>(
   ...handlers: Array<(e: T) => void | undefined>
 ) {
@@ -84,9 +67,7 @@ export function combineEventHandlers<T extends Event | React.SyntheticEvent>(
   };
 }
 
-/**
- * 安全なクリックハンドラー（エラーハンドリング付き）
- */
+
 export function createSafeClickHandler(
   callback: () => void,
   onError?: (error: Error) => void
@@ -103,9 +84,7 @@ export function createSafeClickHandler(
   };
 }
 
-/**
- * ダブルクリック防止機能付きクリックハンドラー
- */
+
 export function createDebounceClickHandler(
   callback: () => void,
   delay: number = 300

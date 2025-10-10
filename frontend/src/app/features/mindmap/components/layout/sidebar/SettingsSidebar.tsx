@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React, { useState } from 'react';
 import { useMindMapStore } from '@mindmap/store';
 import { embeddingService } from '@core/services/EmbeddingService';
@@ -34,7 +34,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
 
   useEventListener('embedding-progress' as keyof WindowEventMap, handleProgress as any, { target: window });
 
-  // ナレッジグラフ有効化時にモデル初期化
+  
   const handleKnowledgeGraphToggle = async (enabled: boolean) => {
     handleSettingChange('knowledgeGraph', { ...settings.knowledgeGraph, enabled });
 
@@ -50,7 +50,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
         console.error('Failed to initialize embedding service:', error);
         setEmbeddingError(error instanceof Error ? error.message : 'Failed to initialize');
         setIsInitializingEmbedding(false);
-        // 失敗したら設定を戻す
+        
         handleSettingChange('knowledgeGraph', { enabled: false, modelDownloaded: false });
       }
     }
@@ -163,7 +163,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
       </div>
 
 
-      {/* Vim editor toggles moved to Vim mappings sidebar */}
+      {}
 
       <div className="settings-section">
         <h3 className="settings-section-title">マークダウン設定</h3>
@@ -582,7 +582,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
         }
       `}</style>
 
-      {/* Debug: console.log('Rendering SettingsSidebar:', { cloudAdapter: !!cloudAdapter, isAuthModalOpen }) */}
+      {}
     </div>
   );
 };

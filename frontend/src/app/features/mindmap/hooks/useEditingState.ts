@@ -3,21 +3,18 @@ import { useStableCallback } from '@shared/hooks';
 import { EditingStateService, type EditingActivity } from '../services/EditingStateService';
 import { logger } from '@shared/utils';
 
-/**
- * 編集状態を管理するHook
- * コンポーネントが編集アクティビティを開始/終了する際に使用
- */
+
 export const useEditingState = () => {
   const editingStateService = EditingStateService.getInstance();
 
-  // コンポーネントアンマウント時のクリーンアップ
+  
   useEffect(() => {
     return () => {
       editingStateService.endAllActivities();
     };
   }, [editingStateService]);
 
-  // アクティビティ開始
+  
   const startActivity = useStableCallback((activity: EditingActivity) => {
     editingStateService.startActivity(activity);
   });
@@ -37,9 +34,7 @@ export const useEditingState = () => {
   };
 };
 
-/**
- * 特定のアクティビティのライフサイクルを管理するHook
- */
+
 export const useActivityLifecycle = (activity: EditingActivity, isActive: boolean) => {
   const { startActivity, endActivity } = useEditingState();
 
@@ -52,7 +47,7 @@ export const useActivityLifecycle = (activity: EditingActivity, isActive: boolea
       logger.debug(`useActivityLifecycle: Ended ${activity}`);
     }
 
-    // クリーンアップ
+    
     return () => {
       endActivity(activity);
     };

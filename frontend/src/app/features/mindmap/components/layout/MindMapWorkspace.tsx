@@ -12,18 +12,18 @@ interface MindMapWorkspaceProps {
   onSelectNode: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  // Movement callbacks no longer required (handled via event strategies)
+  
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<import('@shared/types').MindMapNode>) => void;
   onAutoLayout?: () => void;
   
-  // Link display data
+  
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode: any };
   
-  // Link navigation
+  
   onLinkNavigate?: (link: NodeLink) => void;
   
   zoom: number;
@@ -31,7 +31,7 @@ interface MindMapWorkspaceProps {
   pan: Position;
   setPan: (pan: Position | ((prev: Position) => Position)) => void;
   
-  // Icon toggle handlers
+  
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string) => void;
@@ -46,7 +46,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onSelectNode,
   onStartEdit,
   onFinishEdit,
-  // movement callbacks removed
+  
   onToggleCollapse,
   onShowLinkActionMenu,
   onAddLink,
@@ -75,7 +75,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onSelectNode={onSelectNode}
         onStartEdit={onStartEdit}
         onFinishEdit={onFinishEdit}
-        // movement handled via strategies
+        
         onToggleCollapse={onToggleCollapse}
         
         onShowLinkActionMenu={onShowLinkActionMenu}

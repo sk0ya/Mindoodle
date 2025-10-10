@@ -1,4 +1,4 @@
-// Lightweight adapter to stabilize access to monaco-vim APIs
+
 
 import type { editor as MonacoNS } from 'monaco-editor';
 
@@ -16,9 +16,9 @@ export async function loadMonacoVim(): Promise<MonacoVimModule | null> {
 export function getVimFromModule(mod: MonacoVimModule | null): any | null {
   try {
     if (!mod) return (window as any)?.Vim || (window as any)?.MonacoVim?.Vim || null;
-    // Prefer package export VimMode (which is keymap_vim default export)
+    
     if ((mod)?.VimMode) return (mod).VimMode;
-    // Fallbacks for various bundlings
+    
     if ((mod)?.Vim) return (mod).Vim;
     if ((mod)?.default?.VimMode) return (mod).default.VimMode;
     if ((mod)?.default?.Vim) return (mod).default.Vim;
@@ -30,10 +30,10 @@ export function getVimFromModule(mod: MonacoVimModule | null): any | null {
   }
 }
 
-// Try direct import of internal module that actually exports Vim API
+
 export async function loadDirectVimApi(): Promise<any | null> {
   try {
-    // Some bundlers allow importing this internal path
+    
     const m: any = await import('monaco-vim/lib/cm/keymap_vim');
     return (m && (m.Vim || m.default?.Vim)) ? (m.Vim || m.default.Vim) : null;
   } catch {

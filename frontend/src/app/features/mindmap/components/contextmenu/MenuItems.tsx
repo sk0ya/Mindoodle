@@ -45,7 +45,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   const aiEnabled = store.aiSettings?.enabled || false;
   const isGenerating = store.isGenerating || false;
 
-  // マークダウンメタデータがあるかチェック
+  
   const isMarkdownNode = selectedNode.markdownMeta ? true : false;
   const markdownMeta = selectedNode.markdownMeta;
 
@@ -83,7 +83,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
     },
     { type: 'separator' as const },
 
-    // マークダウンノード変換メニュー（見出し→リストのみ）
+    
     ...(isMarkdownNode && onMarkdownNodeType && markdownMeta?.type === 'heading' ? [
       {
         icon: <List size={16} />,
@@ -97,7 +97,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       { type: 'separator' as const }
     ] : []),
 
-    // テーブル編集メニュー（テーブルノードのみ）
+    
     ...((selectedNode as any).kind === 'table' && onEditTable ? [
       {
         icon: <Table size={16} />,
@@ -110,7 +110,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       { type: 'separator' as const }
     ] : []),
 
-    // attachments removed
+    
     ...(onAddLink ? [{
       icon: <Link size={16} />,
       label: 'リンク追加',

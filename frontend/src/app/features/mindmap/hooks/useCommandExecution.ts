@@ -11,17 +11,13 @@ interface CommandExecutionParams {
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
-/**
- * Hook for command palette execution
- */
+
 export function useCommandExecution({
   commands,
   showNotification,
 }: CommandExecutionParams) {
 
-  /**
-   * Execute command from palette with error handling
-   */
+  
   const handleExecuteCommand = useStableCallback(async (commandName: string, _args?: Record<string, any>) => {
     try {
       const result = await commands.execute(commandName);

@@ -34,7 +34,7 @@ const WebPreviewModal: React.FC<WebPreviewModalProps> = ({ url, isOpen, onClose 
         transition: 'width 0.3s ease'
       }}
     >
-      {/* Header */}
+      {}
       <div
         style={{
           display: 'flex',
@@ -153,7 +153,7 @@ const WebPreviewModal: React.FC<WebPreviewModalProps> = ({ url, isOpen, onClose 
         </div>
       </div>
 
-      {/* Preview iframe */}
+      {}
       {!isCollapsed && (
         <div style={{ flex: 1, position: 'relative', backgroundColor: '#ffffff' }}>
           <iframe

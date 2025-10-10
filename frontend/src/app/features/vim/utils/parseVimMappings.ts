@@ -5,14 +5,6 @@ export interface ParsedMappings {
   warnings: string[];
 }
 
-/**
- * Parse a minimal Vim-like mappings text into leader + mapping table.
- * Supported lines:
- *  - set leader <char|<Space>>
- *  - map|nmap|noremap|nnoremap <lhs> <rhs>
- *  - unmap|nunmap|unmap! <lhs>
- *  - comments starting with '"'
- */
 export function parseVimMappingsText(src: string): ParsedMappings {
   const lines = (src || '').split(/\r?\n/);
   let leader = ',';
@@ -44,7 +36,7 @@ export function parseVimMappingsText(src: string): ParsedMappings {
       continue;
     }
 
-    // map variants
+    
     if (['map', 'nmap', 'noremap', 'nnoremap'].includes(cmd)) {
       if (parts.length < 3) {
         errors.push(`Line ${i + 1}: Usage: ${cmd} <lhs> <rhs>`);
@@ -56,7 +48,7 @@ export function parseVimMappingsText(src: string): ParsedMappings {
       continue;
     }
 
-    // unmap variants
+    
     if (['unmap', 'nunmap', 'unmap!'].includes(cmd)) {
       const lhs = parts[1];
       if (!lhs) {

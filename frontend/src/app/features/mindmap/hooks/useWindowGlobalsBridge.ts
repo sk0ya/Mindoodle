@@ -12,10 +12,7 @@ interface WindowGlobalsBridgeParams {
   mindMap: any;
 }
 
-/**
- * Hook to bridge workspace and map data to window globals for keyboard shortcuts
- * This is a temporary solution for quick wiring with keyboard shortcuts
- */
+
 export function useWindowGlobalsBridge({
   workspaces,
   addWorkspace,
@@ -27,7 +24,7 @@ export function useWindowGlobalsBridge({
   mindMap,
 }: WindowGlobalsBridgeParams) {
 
-  // Bridge workspaces to sidebar via globals (quick wiring)
+  
   useEffect(() => {
     (window as any).mindoodleWorkspaces = workspaces || [];
     (window as any).mindoodleAddWorkspace = async () => {
@@ -44,13 +41,13 @@ export function useWindowGlobalsBridge({
     };
   }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
-  // Expose map list and selector for keyboard shortcuts (Ctrl+P/N)
+  
   useEffect(() => {
     try {
       (window as any).mindoodleAllMaps = allMindMaps || [];
       (window as any).mindoodleCurrentMapId = currentMapId || null;
 
-      // Build ordered list of maps based on explorer tree (visual order)
+      
       const ordered: Array<{ mapId: string; workspaceId: string | undefined }> = [];
       const tree: any = explorerTree;
 
@@ -66,12 +63,12 @@ export function useWindowGlobalsBridge({
       };
 
       visit(tree);
-      (window as any).mindoodleOrderedMaps = ordered; // array of { mapId, workspaceId }
+      (window as any).mindoodleOrderedMaps = ordered; 
 
-      // Debounced selector to avoid heavy reflows when switching rapidly
+      
       (window as any).mindoodleSelectMapById = (mapId: string) => {
         try {
-          // Skip if selecting the same map (use latest reflected on window to avoid stale closure)
+          
           const curr: string | null = (window as any).mindoodleCurrentMapId || null;
           if (curr === mapId) return;
 
@@ -87,7 +84,7 @@ export function useWindowGlobalsBridge({
 
           (window as any).__mindoodleMapSwitchTimer = setTimeout(() => {
             try {
-              // Ensure latest pending is still this target
+              
               if ((window as any).__mindoodlePendingMapKey === pendingKey) {
                 selectMapById(target.mapIdentifier);
               }

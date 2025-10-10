@@ -4,9 +4,7 @@ import ImageModal from './ImageModal';
 import { MindMapModalsProvider, useMindMapModals, type MindMapModalsProviderProps } from './MindMapModalsContext';
 import type { MindMapNode } from '../../../../shared';
 
-/**
- * 画像モーダル管理フック
- */
+
 const useImageModal = () => {
   const [showImageModal, setShowImageModal] = useState(false);
   const [imageUrl, setImageUrl] = useState<string | null>(null);
@@ -143,10 +141,7 @@ const MindMapModalsInternal: React.FC = () => {
   );
 };
 
-/**
- * リファクタリング後のMindMapModalsコンポーネント
- * プロバイダーパターンを使用して複雑なpropsを整理
- */
+
 const MindMapModals: React.FC<Omit<MindMapModalsProviderProps, 'children'>> = (props) => {
   return (
     <MindMapModalsProvider {...props}>

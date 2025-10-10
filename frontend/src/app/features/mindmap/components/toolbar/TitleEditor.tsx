@@ -14,7 +14,7 @@ const TitleEditor: React.FC<TitleEditorProps> = ({
   const { value: isEditingTitle, setTrue: startEditing, setFalse: stopEditing } = useBooleanState({ initialValue: false });
   const [tempTitle, setTempTitle] = useState<string>(title);
   
-  // 編集状態を追跡（タイトル編集時のみ）
+  
   useActivityLifecycle('typing', isEditingTitle);
 
   const handleTitleClick = useCallback((): void => {

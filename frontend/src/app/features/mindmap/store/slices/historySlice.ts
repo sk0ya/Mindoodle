@@ -1,7 +1,7 @@
 import type { StateCreator } from 'zustand';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 
-// Debounced snapshot commit to control history granularity
+
 let historyCommitTimer: ReturnType<typeof setTimeout> | null = null;
 const HISTORY_DEBOUNCE_MS = 120;
 import type { MindMapStore, HistoryState } from './types';
@@ -24,14 +24,14 @@ export const createHistorySlice: StateCreator<
   [],
   HistorySlice
 > = (set, get) => ({
-  // Initial state
+  
   history: [],
   historyIndex: -1,
-  // Grouping state is tracked via internal fields (_groupDepth/_groupDirty) on the store instance
+  
 
-  // History operations
+  
   undo: () => {
-    // Avoid racing pending commit against undo
+    
     if (historyCommitTimer) { clearTimeout(historyCommitTimer); historyCommitTimer = null; }
     const state = get();
     if (state.canUndo()) {
@@ -42,10 +42,10 @@ export const createHistorySlice: StateCreator<
         draft.historyIndex = newIndex;
         draft.data = previousData;
         
-        // Only use rootNodes array
+        
         draft.normalizedData = normalizeTreeData(previousData.rootNodes);
         
-        // Clear editing state when undoing
+        
         draft.editingNodeId = null;
         draft.editText = '';
       });
@@ -83,7 +83,7 @@ export const createHistorySlice: StateCreator<
     const { history, historyIndex } = get();
     return historyIndex < history.length - 1;
   },
-  // Commit a snapshot of current normalized data to history
+  
   commitSnapshot: () => {
     const state = get();
     if (!state.normalizedData || !state.data) return;
@@ -91,10 +91,10 @@ export const createHistorySlice: StateCreator<
       if (!draft.normalizedData || !draft.data) return;
       const nextRootNodes = denormalizeTreeData(draft.normalizedData);
 
-      // Compare ignoring layout-only fields (x, y)
+      
       const stripLayout = (nodes: any[]): any[] =>
         (nodes || []).map((n) => ({
-          // keep structural and semantic fields only
+          
           id: n.id,
           text: n.text,
           fontSize: n.fontSize,
@@ -108,10 +108,10 @@ export const createHistorySlice: StateCreator<
           note: n.note,
           customImageWidth: n.customImageWidth,
           customImageHeight: n.customImageHeight,
-          // include kind/tableData so node kind changes are recorded in history
+          
           kind: n.kind,
           tableData: n.tableData,
-          // children recursively without x/y
+          
           children: stripLayout(n.children || []),
         }));
 
@@ -119,7 +119,7 @@ export const createHistorySlice: StateCreator<
       try {
         const lastKey = last ? JSON.stringify(stripLayout(last)) : null;
         const nextKey = JSON.stringify(stripLayout(nextRootNodes));
-        if (lastKey === nextKey) return; // avoid layout-only snapshot
+        if (lastKey === nextKey) return; 
       } catch {}
       const newData = {
         ...draft.data,
@@ -132,7 +132,7 @@ export const createHistorySlice: StateCreator<
     });
   },
 
-  // Schedule snapshot commit with debounce to coalesce bursts
+  
   scheduleCommitSnapshot: () => {
     if (historyCommitTimer) clearTimeout(historyCommitTimer);
     historyCommitTimer = setTimeout(() => {
@@ -144,7 +144,7 @@ export const createHistorySlice: StateCreator<
     }, HISTORY_DEBOUNCE_MS);
   },
 
-  // Allow callers to cancel pending commit explicitly
+  
   cancelPendingCommit: () => {
     if (historyCommitTimer) {
       clearTimeout(historyCommitTimer);
@@ -152,9 +152,9 @@ export const createHistorySlice: StateCreator<
     }
   },
 
-  // Begin a logical history group – suppress commits until ended
+  
   beginHistoryGroup: (_label?: string) => {
-    // store internal counters on the store object via set
+    
     set((draft: any) => {
       const depth = (draft._groupDepth || 0) + 1;
       draft._groupDepth = depth;
@@ -162,11 +162,11 @@ export const createHistorySlice: StateCreator<
         draft._groupDirty = false;
       }
     });
-    // cancel any pending auto-commit to avoid splitting this group
+    
     if (historyCommitTimer) { clearTimeout(historyCommitTimer); historyCommitTimer = null; }
   },
 
-  // End the logical history group and optionally commit if changes occurred
+  
   endHistoryGroup: (commit: boolean = true) => {
     const depth = (get() as any)._groupDepth || 0;
     if (depth <= 0) return;
@@ -174,10 +174,10 @@ export const createHistorySlice: StateCreator<
       draft._groupDepth = depth - 1;
     });
     const stillDepth = (get() as any)._groupDepth || 0;
-    if (stillDepth > 0) return; // nested groups still active
+    if (stillDepth > 0) return; 
     const dirty = (get() as any)._groupDirty || false;
     if (commit && dirty) {
-      // commit once for the whole group
+      
       (get() as any).commitSnapshot();
     }
     set((draft: any) => { draft._groupDirty = false; });

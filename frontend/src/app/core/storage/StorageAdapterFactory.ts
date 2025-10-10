@@ -32,7 +32,7 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
   }
 
   private async createCloudAdapter(config: StorageConfig): Promise<StorageAdapter> {
-    // Check if there's already an authenticated adapter in WorkspaceService
+    
     const workspaceService = WorkspaceService.getInstance();
     const existingAdapter = workspaceService.getCloudAdapter();
 
@@ -41,7 +41,7 @@ export class StorageAdapterFactory implements IStorageAdapterFactory {
       return existingAdapter;
     }
 
-    // Create new adapter if none exists or not authenticated
+    
     const adapter = new CloudStorageAdapter(config.cloudApiEndpoint);
     await adapter.initialize();
     logger.info('StorageAdapterFactory: Cloud storage adapter created');

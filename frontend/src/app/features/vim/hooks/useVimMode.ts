@@ -3,7 +3,7 @@ import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import type { MindMapNode } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
 import { VimCountBuffer, VimRepeatRegistry } from '../services';
-// import { parseVimMappingsText } from '../utils/parseVimMappings';
+
 
 export type VimMode = 'normal' | 'insert' | 'visual' | 'command' | 'search' | 'jumpy';
 
@@ -19,7 +19,7 @@ interface VimState {
   currentSearchIndex: number;
   jumpyLabels: Array<{ nodeId: string; label: string }>;
   jumpyBuffer: string;
-  countBuffer: string; // Display-only: current count buffer (e.g., "10")
+  countBuffer: string; 
 }
 
 interface VimActions {
@@ -40,13 +40,13 @@ interface VimActions {
   startJumpy: () => void;
   exitJumpy: () => void;
   jumpToNode: (_label: string) => void;
-  // Command line mode actions
+  
   startCommandLine: () => void;
   updateCommandLineBuffer: (_buffer: string) => void;
   executeCommandLine: (_command: string) => Promise<void>;
   exitCommandLine: () => void;
   setCommandOutput: (_output: string) => void;
-  // Count and repeat actions
+  
   appendToCountBuffer: (_digit: string) => void;
   clearCountBuffer: () => void;
   getCount: () => number | undefined;
@@ -60,7 +60,7 @@ export interface VimModeHook extends VimState, VimActions {}
 export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   const { settings, updateSetting, setSearchQuery: setUISearchQuery } = useMindMapStore();
 
-  // Persistent services (survive re-renders)
+  
   const countBufferRef = useRef(new VimCountBuffer());
   const repeatRegistryRef = useRef(new VimRepeatRegistry());
 
@@ -367,7 +367,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
         case 'w':
         case 'write':
-          // Save current map
+          
           if (store.data && store.saveMapMarkdown) {
             const markdown = store.subscribeMarkdownFromNodes ? 
               await new Promise<string>((resolve) => {
@@ -382,9 +382,9 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
           break;
 
         case 'pwd': {
-          // Show current workspace and map location
+          
           const currentMap = store.data?.mapIdentifier;
-          // Get workspaces from window global (set by MindMapApp.tsx)
+          
           const workspaces = (window as any).mindoodleWorkspaces || [];
           const workspaceName = workspaces.find((w: any) => w.id === currentMap?.workspaceId)?.name || 'Unknown';
 
@@ -393,7 +393,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
         }
 
         case 'ls': {
-          // List maps in current workspace
+          
           const currentWs = store.data?.mapIdentifier?.workspaceId;
           const maps = store.allMindMaps?.filter((map: any) => map.mapIdentifier.workspaceId === currentWs) || [];
           const mapList = maps.map((map: any) => {
@@ -768,13 +768,13 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     startJumpy,
     exitJumpy,
     jumpToNode,
-    // Command line methods
+    
     startCommandLine,
     updateCommandLineBuffer,
     executeCommandLine,
     exitCommandLine,
     setCommandOutput,
-    // Count and repeat methods
+    
     appendToCountBuffer,
     clearCountBuffer,
     getCount,

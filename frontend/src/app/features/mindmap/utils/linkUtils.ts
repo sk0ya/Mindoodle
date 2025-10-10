@@ -2,7 +2,7 @@ import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
 import { generateId as generateLinkId } from '@shared/utils';
 import { findNodeInRoots } from './nodeOperations';
 
-// ノードにリンクを追加する関数
+
 export const addLinkToNode = (
   node: MindMapNode, 
   linkData: Partial<NodeLink>
@@ -22,7 +22,7 @@ export const addLinkToNode = (
   };
 };;
 
-// ノードのリンクを更新する関数
+
 export const updateLinkInNode = (
   node: MindMapNode,
   linkId: string,
@@ -44,7 +44,7 @@ export const updateLinkInNode = (
   };
 };
 
-// ノードからリンクを削除する関数
+
 export const removeLinkFromNode = (
   node: MindMapNode,
   linkId: string
@@ -57,7 +57,7 @@ export const removeLinkFromNode = (
   };
 };
 
-// ツリー内のノードを検索してリンクを追加する関数
+
 export const addLinkToNodeInTree = (
   rootNode: MindMapNode,
   nodeId: string,
@@ -75,7 +75,7 @@ export const addLinkToNodeInTree = (
   };
 };
 
-// ツリー内のノードを検索してリンクを更新する関数
+
 export const updateLinkInNodeTree = (
   rootNode: MindMapNode,
   nodeId: string,
@@ -94,7 +94,7 @@ export const updateLinkInNodeTree = (
   };
 };
 
-// ツリー内のノードを検索してリンクを削除する関数
+
 export const removeLinkFromNodeTree = (
   rootNode: MindMapNode,
   nodeId: string,
@@ -113,7 +113,7 @@ export const removeLinkFromNodeTree = (
 };
 
 
-// リンクを検証する関数
+
 export const validateLink = (linkData: Partial<NodeLink>): {
   isValid: boolean;
   errors: string[];
@@ -135,7 +135,7 @@ export const validateLink = (linkData: Partial<NodeLink>): {
   };
 };
 
-// リンク先の情報を取得する関数
+
 export const getLinkTargetInfo = (
   link: NodeLink,
   currentData: MindMapData
@@ -161,7 +161,7 @@ export const getLinkTargetInfo = (
   };
 };
 
-// リンクのナビゲーション用URLを生成する関数
+
 export const generateLinkUrl = (link: NodeLink): string | null => {
   if (!link.targetMapId && !link.targetNodeId) {
     return null;
@@ -180,7 +180,7 @@ export const generateLinkUrl = (link: NodeLink): string | null => {
   return `${window.location.pathname}?${params.toString()}`;
 };
 
-// リンクの表示用テキストを生成する関数
+
 export const getLinkDisplayText = (link: NodeLink): string => {
   const parts: string[] = [];
   

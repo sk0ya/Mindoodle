@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React from 'react';
 import MindMapSidebar from './MindMapSidebar';
 import SettingsSidebar from './SettingsSidebar';
@@ -13,7 +13,7 @@ import '../PrimarySidebar.css';
 interface PrimarySidebarProps {
   activeView: string | null;
   isVisible: boolean;
-  // Maps view props
+  
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
   currentWorkspaceId?: string | null;
@@ -23,24 +23,24 @@ interface PrimarySidebarProps {
   onRenameMap?: (id: MapIdentifier, newTitle: string) => void;
   onChangeCategory?: (id: MapIdentifier, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
-  // Workspaces
+  
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
   onSwitchWorkspace?: (workspaceId: string | null) => void;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
-  // Search functionality props
+  
   onMapSwitch?: (mapIdentifier: MapIdentifier) => Promise<void>;
   onNodeSelectByLine?: (lineNumber: number) => Promise<void>;
-  // Storage adapter for file-based search
+  
   storageAdapter?: any;
 }
 
 const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   activeView,
   isVisible,
-  // Maps props
+  
   mindMaps = [],
   currentMapId,
   currentWorkspaceId,
@@ -56,7 +56,7 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onSwitchWorkspace,
   explorerTree,
   onCreateFolder,
-  // Search functionality props
+  
   onMapSwitch,
   onNodeSelectByLine,
   storageAdapter

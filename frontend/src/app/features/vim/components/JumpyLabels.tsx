@@ -17,7 +17,7 @@ const JumpyLabels: React.FC<Props> = ({ vim }) => {
     return null;
   }
 
-  // Get node positions from DOM elements
+  
   const getNodePosition = (nodeId: string): NodePosition | null => {
     const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
     if (!nodeElement) {
@@ -33,7 +33,7 @@ const JumpyLabels: React.FC<Props> = ({ vim }) => {
     };
   };
 
-  // Render label with highlighting
+  
   const renderLabel = (label: string, buffer: string) => {
     if (!buffer) {
       return <span>{label}</span>;
@@ -54,7 +54,7 @@ const JumpyLabels: React.FC<Props> = ({ vim }) => {
   return (
     <div className="jumpy-labels-overlay">
       {vim.jumpyLabels.map(({ nodeId, label }) => {
-        // Only show labels that start with the current buffer
+        
         if (vim.jumpyBuffer && !label.startsWith(vim.jumpyBuffer)) {
           return null;
         }

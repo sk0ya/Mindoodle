@@ -1,9 +1,7 @@
 import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '@core/data/normalizedStore';
 
-/**
- * Search for nodes containing the query string
- */
+
 export function searchNodesInCurrentMap(
   query: string,
   normalizedData: NormalizedData | null
@@ -15,7 +13,7 @@ export function searchNodesInCurrentMap(
   const matchingNodeIds = new Set<string>();
   const searchTerm = query.toLowerCase().trim();
 
-  // Search through all nodes in the normalized data
+  
   Object.values(normalizedData.nodes).forEach((node: MindMapNode) => {
     if (node && node.text) {
       const nodeText = node.text.toLowerCase();
@@ -28,9 +26,7 @@ export function searchNodesInCurrentMap(
   return matchingNodeIds;
 }
 
-/**
- * Get all ancestor node IDs for a given node
- */
+
 export function getAncestorNodeIds(
   nodeId: string,
   normalizedData: NormalizedData
@@ -51,9 +47,7 @@ export function getAncestorNodeIds(
   return ancestors;
 }
 
-/**
- * Get all descendant node IDs for a given node
- */
+
 export function getDescendantNodeIds(
   nodeId: string,
   normalizedData: NormalizedData
@@ -74,10 +68,7 @@ export function getDescendantNodeIds(
   return descendants;
 }
 
-/**
- * Expand search results to include related nodes (ancestors and descendants)
- * This helps ensure the search context is visible
- */
+
 export function expandSearchResults(
   matchingNodeIds: Set<string>,
   normalizedData: NormalizedData,
@@ -88,13 +79,13 @@ export function expandSearchResults(
 
   matchingNodeIds.forEach(nodeId => {
     if (includeAncestors) {
-      // Add ancestor nodes to show the path to matching nodes
+      
       const ancestors = getAncestorNodeIds(nodeId, normalizedData);
       ancestors.forEach(ancestorId => expandedIds.add(ancestorId));
     }
 
     if (includeDescendants) {
-      // Add descendant nodes if needed
+      
       const descendants = getDescendantNodeIds(nodeId, normalizedData);
       descendants.forEach(descendantId => expandedIds.add(descendantId));
     }
@@ -103,9 +94,7 @@ export function expandSearchResults(
   return expandedIds;
 }
 
-/**
- * Main search function that finds and optionally expands search results
- */
+
 export function performNodeSearch(
   query: string,
   normalizedData: NormalizedData | null,

@@ -10,8 +10,8 @@ export const useDataCleanup = () => {
   const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // ローカルストレージのクリーンアップ
-  // すべてのローカルデータをクリア
+  
+  
   const clearAllData = useStableCallback(async (): Promise<void> => {
     setIsClearing(true);
     setError(null);
@@ -20,7 +20,7 @@ export const useDataCleanup = () => {
 
       logger.info('🧹 All local data cleared successfully');
     } catch (err) {
-      // エラーは個別の関数で既に設定されている
+      
       logger.error('Failed to clear all data:', err);
       throw err;
     } finally {
@@ -28,7 +28,7 @@ export const useDataCleanup = () => {
     }
   });
 
-  // データ使用量の取得
+  
   const getDataStats = useStableCallback(async (): Promise<DataCleanupStats> => {
     try {
 
@@ -38,7 +38,7 @@ export const useDataCleanup = () => {
           const estimate = await navigator.storage.estimate();
           indexedDBSize = estimate.usage || 0;
         } catch {
-          // エラーの場合は0を返す
+          
           indexedDBSize = 0;
         }
       }

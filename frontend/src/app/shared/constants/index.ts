@@ -1,13 +1,10 @@
-/**
- * Unified constants for the Mindoodle application
- * All constants are consolidated here to eliminate duplication
- */
 
-// =============================================================================
-// COLORS
-// =============================================================================
+
+
+
+
 export const COLORS = {
-  // カラーセット定義（ルート→子ノードの接続線用）
+  
   COLOR_SETS: {
     vibrant: {
       name: '鮮やか',
@@ -51,10 +48,10 @@ export const COLORS = {
     }
   },
 
-  // デフォルトのノードカラー（後方互換性のため）
+  
   NODE_COLORS: ['#FF6B6B', '#4ECDC4', '#FECA57', '#54A0FF', '#FF9FF3', '#96CEB4'],
 
-  // システムカラー
+  
   PRIMARY: '#007BFF',
   SECONDARY: '#6C757D',
   SUCCESS: '#28A745',
@@ -62,14 +59,14 @@ export const COLORS = {
   ERROR: '#DC3545',
   INFO: '#17A2B8',
 
-  // 背景・境界線
+  
   BACKGROUND: '#FFFFFF',
   SURFACE: '#F8F9FA',
   BORDER: '#DEE2E6',
   TEXT: '#212529',
   MUTED: '#6C757D',
 
-  // エラー重要度カラー
+  
   SEVERITY: {
     low: '#3498db',
     medium: '#f39c12',
@@ -78,17 +75,17 @@ export const COLORS = {
   }
 } as const;
 
-// =============================================================================
-// LAYOUT & COORDINATES
-// =============================================================================
+
+
+
 export const LAYOUT = {
-  // 階層レイアウト
+  
   LEVEL_SPACING: 140,
   VERTICAL_SPACING: 80,
   VERTICAL_SPACING_MIN: 2,
   VERTICAL_SPACING_MAX: 45,
 
-  // ノード間隔
+  
   NODE_PADDING: 30,
   TOGGLE_TO_CHILD_DISTANCE: 60,
   ROOT_TO_CHILD_DISTANCE: 120,
@@ -98,18 +95,18 @@ export const LAYOUT = {
   CHILD_OFFSET_X: 200,
   CHILD_OFFSET_Y: 100,
 
-  // グリッド
+  
   GRID_SIZE: 20,
   SNAP_THRESHOLD: 10,
 
-  // キャンバス境界
+  
   MIN_ZOOM: 0.1,
   MAX_ZOOM: 5.0,
   DEFAULT_ZOOM: 1.0,
   ZOOM_STEP: 0.1,
   PAN_SENSITIVITY: 1.0,
 
-  // UI要素の高さ・幅
+  
   SIDEBAR_WIDTH: 280,
   PANEL_WIDTH: 300,
   PANEL_MIN_WIDTH: 200,
@@ -117,9 +114,9 @@ export const LAYOUT = {
   CONTEXT_MENU_WIDTH: 180
 } as const;
 
-// =============================================================================
-// TYPOGRAPHY
-// =============================================================================
+
+
+
 export const TYPOGRAPHY = {
   FONT_SIZES: {
     XS: 10,
@@ -142,42 +139,42 @@ export const TYPOGRAPHY = {
     LOOSE: 1.6
   },
 
-  // レガシー互換性
+  
   DEFAULT_FONT_SIZE: 16,
   MIN_FONT_SIZE: 10,
   MAX_FONT_SIZE: 48,
   DEFAULT_FONT_WEIGHT: 'normal',
   BOLD_FONT_WEIGHT: 'bold',
 
-  // テキスト制限
+  
   MAX_TEXT_LENGTH: 500,
   MAX_TITLE_LENGTH: 100
 } as const;
 
-// =============================================================================
-// UI & UX
-// =============================================================================
+
+
+
 export const UI = {
-  // アニメーション
+  
   ANIMATION_DURATION: 300,
   TRANSITION_DURATION: 200,
   EASING: 'ease-out',
   TRANSITION_DELAY: 50,
 
-  // Z-Index
+  
   MODAL_Z_INDEX: 1000,
 
-  // タイミング
+  
   TOOLTIP_DELAY: 500,
   NOTIFICATION_DURATION: 3000,
   ERROR_NOTIFICATION_DURATION: 5000,
 
-  // インタラクション
+  
   DOUBLE_CLICK_THRESHOLD: 300,
   LONG_PRESS_DURATION: 500,
   DRAG_THRESHOLD: 5,
 
-  // ボーダー・シャドウ
+  
   BORDER_RADIUS: {
     SMALL: 4,
     MEDIUM: 8,
@@ -190,11 +187,11 @@ export const UI = {
   }
 } as const;
 
-// =============================================================================
-// STORAGE & FILES
-// =============================================================================
+
+
+
 export const STORAGE = {
-  // LocalStorage keys
+  
   KEYS: {
     MINDMAPS: 'mindflow_mindmaps',
     CURRENT_MAP: 'mindflow_current_map',
@@ -203,7 +200,7 @@ export const STORAGE = {
     SETTINGS: 'mindflow_settings'
   },
 
-  // 画像最適化
+  
   IMAGE: {
     MAX_WIDTH: 800,
     MAX_HEIGHT: 600,
@@ -213,9 +210,9 @@ export const STORAGE = {
     COMPRESSION_MAX_HEIGHT: 1080
   },
 
-  // ファイル制限
+  
   FILE: {
-    MAX_SIZE: 10 * 1024 * 1024, // 10MB
+    MAX_SIZE: 10 * 1024 * 1024, 
     ALLOWED_TYPES: [
       'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp',
       'text/plain', 'application/pdf', 'application/json', 'text/markdown'
@@ -225,15 +222,15 @@ export const STORAGE = {
     ]
   },
 
-  // 履歴・自動保存
+  
   MAX_HISTORY_SIZE: 50,
-  AUTO_SAVE_INTERVAL: 5000, // 5秒
+  AUTO_SAVE_INTERVAL: 5000, 
   AUTO_SAVE_DELAY: 2000
 } as const;
 
-// =============================================================================
-// DEFAULTS
-// =============================================================================
+
+
+
 export const DEFAULTS = {
   MINDMAP: {
     TITLE: '新しいマインドマップ',
@@ -260,7 +257,7 @@ export const DEFAULTS = {
     PERFORMANCE_DASH_VISIBLE: false
   },
 
-  // Legacy compatibility - these will be removed in future versions
+  
   NEW_MAP_TITLE: '新しいマインドマップ',
   ROOT_NODE_TEXT: 'メインテーマ',
   AUTO_SAVE: true,
@@ -270,9 +267,9 @@ export const DEFAULTS = {
   ANIMATION_ENABLED: true
 } as const;
 
-// =============================================================================
-// KEYBOARD SHORTCUTS
-// =============================================================================
+
+
+
 export const KEYBOARD = {
   NAVIGATION: {
     SELECT_UP: 'ArrowUp',
@@ -281,7 +278,7 @@ export const KEYBOARD = {
     SELECT_RIGHT: 'ArrowRight'
   },
   EDITING: {
-    START_EDIT: ' ', // Space
+    START_EDIT: ' ', 
     FINISH_EDIT: 'Enter',
     CANCEL_EDIT: 'Escape',
     ADD_CHILD: 'Tab',
@@ -299,9 +296,9 @@ export const KEYBOARD = {
   }
 } as const;
 
-// =============================================================================
-// VALIDATION
-// =============================================================================
+
+
+
 export const VALIDATION = {
   NODE_TEXT: {
     MIN_LENGTH: 0,
@@ -320,50 +317,50 @@ export const VALIDATION = {
   }
 } as const;
 
-// =============================================================================
-// PERFORMANCE
-// =============================================================================
+
+
+
 export const PERFORMANCE = {
-  // レンダリング
-  RENDER_TIME_WARNING: 16, // ms (60fps threshold)
+  
+  RENDER_TIME_WARNING: 16, 
   MAX_VISIBLE_NODES: 1000,
   COLLISION_CHECK_LIMIT: 100,
   LAYOUT_BATCH_SIZE: 50,
   NODE_COUNT_WARNING: 1000,
 
-  // メモリ
-  MEMORY_WARNING: 100 * 1024 * 1024, // 100MB
+  
+  MEMORY_WARNING: 100 * 1024 * 1024, 
 
-  // タイミング
+  
   DEBOUNCE_DELAY: 300,
   THROTTLE_LIMIT: 100
 } as const;
 
-// =============================================================================
-// COORDINATES
-// =============================================================================
+
+
+
 export const COORDINATES = {
-  // Default coordinate constants
+  
   DEFAULT_X: 0,
   DEFAULT_Y: 0,
   CANVAS_PADDING: 50,
 
-  // Default canvas center (considering sidebar - root node positioned left)
-  DEFAULT_CENTER_X: 180, // Adjusted considering sidebar 280px + map area 20% position
+  
+  DEFAULT_CENTER_X: 180, 
   DEFAULT_CENTER_Y: 300,
 
-  // Root node default position (considering sidebar)
-  ROOT_NODE_X: 180, // Left center position considering sidebar width
+  
+  ROOT_NODE_X: 180, 
   ROOT_NODE_Y: 300,
 
-  // Child node initial offset
+  
   CHILD_OFFSET_X: 250,
   CHILD_OFFSET_Y: 350
 } as const;
 
-// =============================================================================
-// ERROR HANDLING
-// =============================================================================
+
+
+
 export const ERRORS = {
   RETRY_ATTEMPTS: 3,
   RETRY_DELAY: 1000,

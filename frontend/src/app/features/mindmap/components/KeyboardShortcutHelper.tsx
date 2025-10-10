@@ -24,7 +24,7 @@ interface KeyboardShortcutHelperProps {
   onClose: () => void;
 }
 
-// Category mapping for Japanese labels
+
 const CATEGORY_LABELS: Record<string, string> = {
   vim: 'Vimモード',
   navigation: 'ナビゲーション',
@@ -34,7 +34,7 @@ const CATEGORY_LABELS: Record<string, string> = {
   utility: 'ユーティリティ'
 };
 
-// Format shortcut definition to display keys
+
 function formatShortcutKeys(shortcut: ShortcutDefinition): (string | React.ReactNode)[] {
   const keys: (string | React.ReactNode)[] = [];
   const mods = shortcut.modifiers || {};
@@ -44,7 +44,7 @@ function formatShortcutKeys(shortcut: ShortcutDefinition): (string | React.React
   if (mods.alt) keys.push('Alt');
   if (mods.meta) keys.push('Meta');
 
-  // Handle special keys with icons
+  
   if (shortcut.key === 'ArrowUp') {
     keys.push(<ArrowUp key="arrow-up" size={14} />);
   } else if (shortcut.key === 'ArrowDown') {
@@ -65,7 +65,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
   const [activeTab, setActiveTab] = useState<string>('all');
   const { settings } = useMindMapStore();
 
-  // Generate shortcuts from SHORTCUT_COMMANDS
+  
   const allShortcuts: ShortcutCategory[] = useMemo(() => {
     const categoriesMap = new Map<string, ShortcutItem[]>();
 
@@ -85,7 +85,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
       categoriesMap.get(category)!.push(item);
     });
 
-    // Append custom Vim mappings (if any)
+    
     const custom: Record<string,string> = (settings as any)?.vimCustomKeybindings || {};
     const leader: string = ((settings as any)?.vimLeader && typeof (settings as any).vimLeader === 'string' && (settings as any).vimLeader.length === 1)
       ? (settings as any).vimLeader
@@ -101,7 +101,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
       categoriesMap.set('vim', [...existing, ...customItems]);
     }
 
-    // Convert to array and sort by category order
+    
     const categoryOrder = ['vim', 'navigation', 'editing', 'application', 'ui', 'utility'];
     return categoryOrder
       .filter(cat => categoriesMap.has(cat))
@@ -111,7 +111,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
       }));
   }, [settings]);
 
-  // Filter shortcuts by active tab
+  
   const shortcuts = useMemo(() => {
     if (activeTab === 'all') {
       return allShortcuts;
@@ -140,7 +140,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
 
   if (!isVisible) return null;
 
-  // Tab configuration
+  
   const tabs = [
     { id: 'all', label: 'すべて' },
     { id: 'vim', label: 'Vim' },
@@ -225,7 +225,7 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
   );
 };
 
-// ツールバーボタン用のショートカット表示コンポーネント
+
 interface ShortcutTooltipProps {
   shortcut?: string;
   children: React.ReactNode;
@@ -241,45 +241,45 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({ shortcut, chil
   const handleMouseEnter = () => {
     show();
     
-    // ツールチップの表示位置を動的に決定
+    
     if (containerRef.current) {
       const rect = containerRef.current.getBoundingClientRect();
       const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
       const spaceAbove = rect.top;
       const spaceBelow = viewportHeight - rect.bottom;
       
-      // 上下の表示位置を決定
+      
       let position: 'top' | 'bottom' = 'bottom';
       if (spaceAbove >= 80 && spaceBelow < 80) {
         position = 'top';
       } else if (spaceAbove >= 80 && spaceBelow >= 80) {
-        // 両方に十分なスペースがある場合は下を優先
+        
         position = 'bottom';
       } else if (spaceAbove < 80 && spaceBelow >= 80) {
         position = 'bottom';
       } else {
-        // どちらも狭い場合は広い方を選択
+        
         position = spaceAbove >= spaceBelow ? 'top' : 'bottom';
       }
       
       setTooltipPosition(position);
 
-      // 左右の位置調整（画面端からはみ出さないように）
-      const tooltipMaxWidth = 300; // 最大想定幅
+      
+      const tooltipMaxWidth = 300; 
       const centerPosition = rect.left + rect.width / 2;
       let leftPosition = centerPosition - tooltipMaxWidth / 2;
       
-      // 左端チェック
+      
       if (leftPosition < 8) {
         leftPosition = 8;
       }
       
-      // 右端チェック
+      
       if (leftPosition + tooltipMaxWidth > viewportWidth - 8) {
         leftPosition = viewportWidth - tooltipMaxWidth - 8;
       }
       
-      // 左の位置を調整（中央基準からの相対位置として計算）
+      
       const offsetFromCenter = leftPosition + tooltipMaxWidth / 2 - centerPosition;
       
       setTooltipStyle({

@@ -1,38 +1,38 @@
-// Custom error types for better error handling
+
 export enum ErrorCode {
-  // Node errors
+  
   NODE_NOT_FOUND = 'NODE_NOT_FOUND',
   NODE_INVALID_PARENT = 'NODE_INVALID_PARENT',
   NODE_CIRCULAR_REFERENCE = 'NODE_CIRCULAR_REFERENCE',
   NODE_INVALID_POSITION = 'NODE_INVALID_POSITION',
   
-  // Map errors
+  
   MAP_NOT_FOUND = 'MAP_NOT_FOUND',
   MAP_INVALID_TITLE = 'MAP_INVALID_TITLE',
   MAP_STORAGE_FULL = 'MAP_STORAGE_FULL',
   
-  // File errors
+  
   FILE_NOT_FOUND = 'FILE_NOT_FOUND',
   FILE_TOO_LARGE = 'FILE_TOO_LARGE',
   FILE_INVALID_TYPE = 'FILE_INVALID_TYPE',
   
-  // Storage errors
+  
   STORAGE_QUOTA_EXCEEDED = 'STORAGE_QUOTA_EXCEEDED',
   STORAGE_ACCESS_DENIED = 'STORAGE_ACCESS_DENIED',
   STORAGE_CORRUPTED = 'STORAGE_CORRUPTED',
   
-  // Validation errors
+  
   VALIDATION_REQUIRED = 'VALIDATION_REQUIRED',
   VALIDATION_INVALID_FORMAT = 'VALIDATION_INVALID_FORMAT',
   VALIDATION_TOO_LONG = 'VALIDATION_TOO_LONG',
   VALIDATION_TOO_SHORT = 'VALIDATION_TOO_SHORT',
   
-  // Network errors
+  
   NETWORK_TIMEOUT = 'NETWORK_TIMEOUT',
   NETWORK_OFFLINE = 'NETWORK_OFFLINE',
   NETWORK_SERVER_ERROR = 'NETWORK_SERVER_ERROR',
   
-  // Unknown error
+  
   UNKNOWN = 'UNKNOWN'
 }
 
@@ -60,12 +60,12 @@ export class MindFlowBaseError extends Error implements MindFlowError {
     this.details = details;
     this.timestamp = new Date().toISOString();
     
-    // Ensure proper prototype chain
+    
     Object.setPrototypeOf(this, MindFlowBaseError.prototype);
   }
 }
 
-// Specific error classes
+
 export class NodeError extends MindFlowBaseError {
   constructor(
     code: ErrorCode,
@@ -121,7 +121,7 @@ export class ValidationError extends MindFlowBaseError {
   }
 }
 
-// Error factory functions
+
 export const createNodeError = (
   code: ErrorCode,
   message: string,
@@ -152,7 +152,7 @@ export const createValidationError = (
   details?: Record<string, unknown>
 ): ValidationError => new ValidationError(code, message, details);
 
-// Error handling utilities
+
 export const isNodeError = (error: unknown): error is NodeError => {
   return error instanceof NodeError;
 };

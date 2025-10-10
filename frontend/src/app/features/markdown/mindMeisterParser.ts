@@ -1,6 +1,4 @@
-/**
- * MindMeisterのマークダウン形式をパースしてノード構造に変換するユーティリティ
- */
+
 
 import { MindMapNode } from '@shared/types';
 import { generateId } from '@shared/utils';
@@ -13,9 +11,7 @@ interface ParsedNode {
   isChecked?: boolean;
 }
 
-/**
- * MindMeisterのマークダウン形式からノード構造を解析
- */
+
 export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
   const lines = markdown.split(/\r\n|\r|\n/).filter(line => line.trim() !== '');
   
@@ -78,7 +74,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       if (checkboxMatch) {
         isCheckbox = true;
         isChecked = checkboxMatch[1].toLowerCase() === 'x';
-        nodeText = checkboxMatch[2]; // チェックボックス記号を除いたテキスト
+        nodeText = checkboxMatch[2]; 
       }
 
       const node: ParsedNode = {
@@ -89,7 +85,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
         isChecked
       };
 
-      // 子ノードを探す
+      
       let j = i + 1;
       const childLines: string[] = [];
       
@@ -112,7 +108,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
         }
       }
 
-      // 子ノードを再帰的に解析
+      
       if (childLines.length > 0) {
         node.children = parseTree(childLines, 0);
       }
@@ -124,10 +120,10 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
     return nodes;
   };
 
-  // ルートノード以外の行を解析
+  
   const childNodes = parseTree(lines.slice(1), 0);
 
-  // MindMapNode形式に変換
+  
   const convertToMindMapNode = (parsedNode: ParsedNode): MindMapNode => {
     const node: MindMapNode = {
       id: generateId(),
@@ -141,7 +137,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       color: '#333333'
     };
 
-    // チェックボックス情報を保存
+    
     if (parsedNode.isCheckbox) {
       node.markdownMeta = {
         type: 'unordered-list',
@@ -157,7 +153,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
     return node;
   };
 
-  // ルートノードを作成
+  
   const rootNode: MindMapNode = {
     id: generateId(),
     text: rootText,
@@ -173,21 +169,19 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
   return rootNode;
 }
 
-/**
- * マークダウンテキストがMindMeister形式かどうかを判定
- */
+
 export function isMindMeisterFormat(text: string): boolean {
   const lines = text.split(/\r\n|\r|\n/).filter(line => line.trim() !== '');
   
   if (lines.length === 0) return false;
   
-  // 最初の行が # [タイトル](URL) 形式かどうか
+  
   const firstLine = lines[0].trim();
   const hasMindMeisterLink = firstLine.match(/^#\s*\[.*?\]\(https?:\/\/.*mindmeister\.com.*\)/);
   
   if (hasMindMeisterLink) return true;
   
-  // または、箇条書き形式のマークダウンかどうか
+  
   const hasListItems = lines.some(line => line.trim().match(/^\s*-\s+.+/));
   const hasHeader = Boolean(lines[0].match(/^#+\s+.+/));
   

@@ -12,17 +12,9 @@ export interface ImagePasteService {
   ): Promise<string>;
 }
 
-/**
- * Service for handling image paste functionality
- */
+
 export class ImagePasteServiceImpl implements ImagePasteService {
-  /**
-   * Paste image from clipboard to a node
-   * @param nodeId - Target node ID (unused but kept for interface compatibility)
-   * @param storageAdapter - Storage adapter instance
-   * @param workspaceId - Optional workspace ID
-   * @returns Promise<string> - The relative path to the saved image
-   */
+  
   async pasteImageToNode(
     _nodeId: string,
     storageAdapter: StorageAdapter,
@@ -31,10 +23,10 @@ export class ImagePasteServiceImpl implements ImagePasteService {
     imageFileOverride?: File
   ): Promise<string> {
     try {
-      // Use provided file when available, otherwise read from clipboard
+      
       const imageFile = imageFileOverride ?? await readClipboardImageAsFile('image');
 
-      // Generate descriptive filename with timestamp
+      
       const now = new Date();
       const dateStr = now.toLocaleDateString('ja-JP', {
         year: 'numeric',
@@ -51,7 +43,7 @@ export class ImagePasteServiceImpl implements ImagePasteService {
       const extension = imageFile.type.split('/')[1] || 'png';
       const filename = `image-${dateStr}-${timeStr}.${extension}`;
 
-      // Calculate the directory where the map file is located
+      
       let mapDirectory = '';
       if (mapId) {
         const mapIdParts = mapId.split('/');
@@ -79,9 +71,9 @@ export class ImagePasteServiceImpl implements ImagePasteService {
         return storageAdapter as any;
       })();
 
-      // Keep cloud path as map-relative; backend prefixes maps/{user}/
+      
 
-      // Save image file using resolved storage adapter
+      
       if (effectiveAdapter && typeof effectiveAdapter.saveImageFile === 'function') {
         const wsIdArg = usedWorkspaceSpecificAdapter ? workspaceId : undefined;
         await effectiveAdapter.saveImageFile(fullImagePath, imageFile, wsIdArg);

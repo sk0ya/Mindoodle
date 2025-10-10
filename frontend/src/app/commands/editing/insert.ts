@@ -1,11 +1,7 @@
-/**
- * Insert Commands
- * Vim-style insert mode commands (i, a, o)
- */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 
-// Insert mode at cursor start (vim 'i')
+
 export const insertCommand: Command = {
   name: 'insert',
   aliases: ['i', 'insert-start'],
@@ -44,12 +40,12 @@ export const insertCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Start editing with cursor at start
+      
       context.handlers.startEditWithCursorAtStart(nodeId);
 
       return {
@@ -65,7 +61,7 @@ export const insertCommand: Command = {
   }
 };
 
-// Append mode at cursor end (vim 'a')
+
 export const appendCommand: Command = {
   name: 'append',
   aliases: ['a', 'insert-end'],
@@ -104,12 +100,12 @@ export const appendCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Start editing with cursor at end
+      
       context.handlers.startEditWithCursorAtEnd(nodeId);
 
       return {
@@ -125,7 +121,7 @@ export const appendCommand: Command = {
   }
 };
 
-// Open new line and insert (vim 'o') - Create younger sibling
+
 export const openCommand: Command = {
   name: 'open',
   aliases: ['o', 'add-younger-sibling'],
@@ -173,13 +169,13 @@ export const openCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Create new sibling node after the current node and start editing
-      // Note: addSiblingNode already handles history grouping internally
+      
+      
       const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true);
 
       if (!newNodeId) {
@@ -202,7 +198,7 @@ export const openCommand: Command = {
   }
 };
 
-// Open new line above and insert (vim 'O') - Create elder sibling
+
 export const openAboveCommand: Command = {
   name: 'open-above',
   aliases: ['O', 'add-elder-sibling'],
@@ -250,13 +246,13 @@ export const openAboveCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Create a new elder sibling node before the current node (insertAfter: false)
-      // Note: addSiblingNode already handles history grouping internally
+      
+      
       const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true, false);
 
       if (!newNodeId) {
@@ -278,10 +274,6 @@ export const openAboveCommand: Command = {
     }
   }
 };
-/**
- * Insert Checkbox Child Command (vim 'X')
- * Adds a new checkbox list child node, positioning it before any heading nodes to maintain map structure
- */
 export const insertCheckboxChildCommand: Command = {
   name: 'insert-checkbox-child',
   aliases: ['X', 'add-checkbox-child'],
@@ -335,9 +327,9 @@ export const insertCheckboxChildCommand: Command = {
     }
 
     try {
-      // 最初に見出しノードの位置を特定
+      
       const currentSiblings = parentNode.children || [];
-      let targetInsertIndex = -1; // 見出しノードの位置
+      let targetInsertIndex = -1; 
 
       for (let i = 0; i < currentSiblings.length; i++) {
         const sibling = currentSiblings[i];
@@ -347,9 +339,9 @@ export const insertCheckboxChildCommand: Command = {
         }
       }
 
-      // 通常のadd-childでノードを追加（最後に追加される）
-      // Note: addChildNode already handles history grouping internally
-      const newNodeId = await context.handlers.addChildNode(parentId, text, false); // 編集は後で
+      
+      
+      const newNodeId = await context.handlers.addChildNode(parentId, text, false); 
 
       if (!newNodeId) {
         return {
@@ -358,7 +350,7 @@ export const insertCheckboxChildCommand: Command = {
         };
       }
 
-      // チェックボックスのメタデータを設定
+      
       let level = 1;
       let indentLevel = 0;
 
@@ -382,25 +374,25 @@ export const insertCheckboxChildCommand: Command = {
         isChecked: false
       };
 
-      // チェックボックスメタデータを設定
+      
       context.handlers.updateNode(newNodeId, {
         markdownMeta: checkboxMarkdownMeta
       });
 
-      // 見出しノードより上に移動させる
+      
       if (targetInsertIndex >= 0 && context.handlers.changeSiblingOrder) {
-        // 更新された親ノードを再取得
+        
         const updatedParentNode = context.handlers.findNodeById(parentId);
         if (updatedParentNode && updatedParentNode.children) {
           const targetSibling = updatedParentNode.children[targetInsertIndex];
           if (targetSibling) {
-            // 新しいノードを見出しノードの前に移動
-            context.handlers.changeSiblingOrder(newNodeId, targetSibling.id, true); // insert before
+            
+            context.handlers.changeSiblingOrder(newNodeId, targetSibling.id, true); 
           }
         }
       }
 
-      // Vimモードと編集開始
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }

@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
-// Removed close icon
+
 import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/types';
 import { DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
@@ -8,21 +8,21 @@ import { useLoadingState } from '@/app/shared/hooks';
 
 interface MapOption {
   mapIdentifier: { mapId: string; workspaceId: string };
-  title: string; // baseName only
+  title: string; 
 }
 
 interface NodeOption {
   id: string;
   text: string;
   anchorText: string;
-  displayText: string; // 表示用（重複時は -1, -2 を含む）
+  displayText: string; 
   mapId?: string;
 }
 
 interface NodeLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  link?: NodeLink | null; // 編集時のみ
+  link?: NodeLink | null; 
   onSave: (link: Partial<NodeLink>) => void;
   onDelete?: (linkId: string) => void;
   availableMaps?: MapOption[];
@@ -358,7 +358,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     }
   }, [isOpen, selectedExplorerPath]);
 
-  // Ensure a heading is selected when modal opens or when nodes become available
+  
   useEffect(() => {
     if (!isOpen) return;
     if (!selectedMapId) return;
@@ -370,7 +370,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     }
   }, [isOpen, selectedMapId, availableNodes, currentNodeId, selectedNodeId]);
 
-  // Scroll selected heading into view
+  
   useEffect(() => {
     const container = headingsRef.current;
     if (!container || !selectedNodeId) return;

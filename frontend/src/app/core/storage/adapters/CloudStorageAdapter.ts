@@ -28,8 +28,8 @@ export class CloudStorageAdapter implements StorageAdapter {
     this.baseUrl = baseUrl;
   }
 
-  // Note: Frontend sends a cloud-root-relative path (e.g., "category/Resources/file.png" or "Resources/file.png").
-  // Backend is responsible for prefixing with maps/{user}/ when persisting.
+  
+  
 
   get isInitialized(): boolean {
     return this._isInitialized;
@@ -40,7 +40,7 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   async initialize(): Promise<void> {
-    // Try to restore auth token from localStorage
+    
     try {
       const tokenRes = getLocalStorage<string>(STORAGE_KEYS.AUTH_TOKEN);
       const userRes = getLocalStorage<CloudUser>(STORAGE_KEYS.AUTH_USER);
@@ -49,13 +49,13 @@ export class CloudStorageAdapter implements StorageAdapter {
         this.authToken = tokenRes.data;
         this.user = userRes.data;
 
-        // Verify token is still valid
+        
         const isValid = await this.verifyAuth();
 
         if (!isValid) {
           this.clearAuth();
         } else {
-          // Restore cloud workspace in WorkspaceService
+          
           const workspaceService = WorkspaceService.getInstance();
           workspaceService.restoreCloudWorkspace(this);
         }
@@ -75,7 +75,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {})
     };
-    // Only set JSON content-type when not sending FormData and not explicitly provided
+    
     if (!isFormData && !('Content-Type' in headers)) {
       headers['Content-Type'] = 'application/json';
     }
@@ -90,7 +90,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     });
 
     if (!response.ok) {
-      // Try to parse JSON error, otherwise use status text
+      
       let errMsg = response.statusText || 'Network error';
       try {
         const errorData = await response.json();
@@ -99,7 +99,7 @@ export class CloudStorageAdapter implements StorageAdapter {
       throw new Error(errMsg || `HTTP ${response.status}`);
     }
 
-    // Default to JSON response; callers using non-JSON should not use makeRequest
+    
     return await response.json();
   }
 
@@ -208,7 +208,7 @@ export class CloudStorageAdapter implements StorageAdapter {
       const maps: MindMapData[] = [];
       for (const cloudMap of response.maps) {
         try {
-          // Get full map data with markdown content
+          
           logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
           const fullMapResponse = await this.makeRequest(`/api/maps/${encodeURIComponent(cloudMap.id)}`);
           if (fullMapResponse.success && fullMapResponse.map) {
@@ -254,7 +254,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Convert map to markdown
+      
       let markdown = `# ${map.title}\n`;
       map.rootNodes.forEach(node => {
         markdown += nodeToMarkdown(node, 0);
@@ -264,7 +264,7 @@ export class CloudStorageAdapter implements StorageAdapter {
       if (!mapPath || mapPath === 'new') {
         throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
-      // Encode the full mapPath to preserve slashes in folder structure
+      
       await this.makeRequest(`/api/maps/${encodeURIComponent(mapPath)}` , {
         method: 'PUT',
         body: JSON.stringify({ title: map.title, content: markdown })
@@ -296,7 +296,7 @@ export class CloudStorageAdapter implements StorageAdapter {
 
 
   async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
-    // For cloud storage, we provide a single "Cloud" workspace
+    
     return [
       {
         id: 'cloud',
@@ -306,15 +306,15 @@ export class CloudStorageAdapter implements StorageAdapter {
   }
 
   cleanup(): void {
-    // Nothing to cleanup for cloud storage
+    
   }
 
 
-  // Optional methods - not implemented for cloud storage
+  
   async createFolder?(relativePath: string, workspaceId?: string): Promise<void> {
-    // Virtual folders - no actual folder creation needed
-    // Folders are derived from map categories
-    // Add to virtual folders set for UI display
+    
+    
+    
     if (relativePath) {
       this.virtualFolders.add(relativePath);
       logger.info('CloudStorageAdapter: Virtual folder added', { relativePath, workspaceId });
@@ -327,11 +327,11 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Ask backend for a list of all keys under maps/{user}/ (relative paths)
+      
       const listResp = await this.makeRequest(`/api/images/list?path=${encodeURIComponent('')}`);
       const keys: string[] = Array.isArray(listResp?.files) ? listResp.files : [];
 
-      // Build a folder/file tree from keys
+      
       type Node = { name: string; children?: Map<string, Node>; isFile?: boolean; path?: string; isMarkdown?: boolean };
       const root: Node = { name: 'cloud', children: new Map() };
 
@@ -354,7 +354,7 @@ export class CloudStorageAdapter implements StorageAdapter {
       };
 
       for (const key of keys) {
-        // Skip empty or unexpected keys
+        
         const clean = (key || '').replace(/^\/+/, '').replace(/\/+$/, '');
         if (!clean) continue;
 
@@ -382,7 +382,7 @@ export class CloudStorageAdapter implements StorageAdapter {
         }
       }
 
-      // Convert Node tree to ExplorerItem tree
+      
       const toExplorer = (node: Node, currentPath: string): ExplorerItem => {
         if (node.isFile) {
           return { type: 'file', name: node.name, path: node.path!, isMarkdown: node.isMarkdown } as ExplorerItem;
@@ -391,7 +391,7 @@ export class CloudStorageAdapter implements StorageAdapter {
         for (const child of (node.children?.values() || [])) {
           children.push(toExplorer(child, currentPath ? `${currentPath}/${child.name}` : child.name));
         }
-        // Sort: folders first by name, then files by name
+        
         children.sort((a, b) => {
           if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
           return a.name.localeCompare(b.name);
@@ -415,7 +415,7 @@ export class CloudStorageAdapter implements StorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    // Extract map ID from full cloud path: /cloud/[folders...]/mapId.md
+    
     const clean = (path || '').replace(/^\/+/, '');
     let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
     // Remove leading slash if any
@@ -475,18 +475,18 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Extract title from markdown (first line starting with #)
+      
       const titleMatch = markdown.match(/^#\s+(.+)$/m);
       const title = titleMatch ? titleMatch[1] : 'Untitled';
 
       const idPath = (id.mapId || '').trim();
       if (!idPath || idPath === 'new') {
-        // Do not create with random server ID implicitly; require caller to provide path-like id
+        
         throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
 
-      // Upsert by path/id (Workers R2 put will create or overwrite)
-      // Encode the full idPath to preserve slashes in folder structure
+      
+      
       await this.makeRequest(`/api/maps/${encodeURIComponent(idPath)}` , {
         method: 'PUT',
         body: JSON.stringify({ title, content: markdown })
@@ -508,14 +508,14 @@ export class CloudStorageAdapter implements StorageAdapter {
     throw new Error('Cloud storage does not support removing workspaces');
   }
 
-  // Image handling for R2 bucket
+  
   async saveImageFile?(relativePath: string, file: File, _workspaceId?: string): Promise<void> {
     if (!this.isAuthenticated) {
       throw new Error('Not authenticated');
     }
 
     try {
-      // Strategy 1: multipart/form-data (preferred)
+      
       const tryMultipart = async (): Promise<void> => {
         const form = new FormData();
         form.append('path', relativePath);
@@ -541,12 +541,12 @@ export class CloudStorageAdapter implements StorageAdapter {
             throw new Error(j.error || 'Upload failed');
           }
         } catch {
-          // If body isn't JSON, assume OK based on status
+          
         }
         logger.info(`CloudStorageAdapter: Uploaded image via multipart: ${relativePath}`);
       };
 
-      // Strategy 2: JSON base64 (fallback)
+      
       const tryJsonBase64 = async (): Promise<void> => {
         const reader = new FileReader();
         const base64Data: string = await new Promise((resolve, reject) => {
@@ -572,7 +572,7 @@ export class CloudStorageAdapter implements StorageAdapter {
       try {
         await tryMultipart();
       } catch (e) {
-        // If server errors on multipart, fall back to JSON base64
+        
         logger.warn('CloudStorageAdapter: Multipart upload failed, falling back to JSON', e);
         await tryJsonBase64();
       }
@@ -589,11 +589,11 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      // Download from R2 via backend API (backend applies user prefix)
+      
       const response = await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`);
 
       if (response.success && response.data) {
-        // Convert base64 back to File
+        
         const byteCharacters = atob(response.data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -602,7 +602,7 @@ export class CloudStorageAdapter implements StorageAdapter {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: response.contentType || 'image/png' });
 
-        // Extract filename from path
+        
         const filename = relativePath.split('/').pop() || 'image.png';
         return new File([blob], filename, { type: response.contentType || 'image/png' });
       }
@@ -614,7 +614,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
-  // Read image and return as data URL (for rendering in <img>)
+  
   async readImageAsDataURL?(relativePath: string, _workspaceId?: string): Promise<string | null> {
     if (!this.isAuthenticated) {
       return null;
@@ -669,7 +669,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
-  // Public API for frontend integration
+  
   getCurrentUser(): CloudUser | null {
     return this.user;
   }

@@ -1,7 +1,4 @@
-/**
- * Simple lodash utilities replacement for Local mode
- * Avoiding external dependencies
- */
+
 
 export const cloneDeep = <T>(obj: T): T => {
   if (obj === null || typeof obj !== "object") return obj;

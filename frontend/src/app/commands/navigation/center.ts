@@ -1,7 +1,4 @@
-/**
- * Center Command
- * Centers the selected node in the viewport (equivalent to vim 'zz')
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 
@@ -50,7 +47,7 @@ export const centerCommand: Command = {
     }
 
     try {
-      // Explicit center positioning (not just ensure-visible)
+      
       (context.handlers as any).centerNodeInView(nodeId, animate, { mode: 'center' });
       return {
         success: true,
@@ -65,7 +62,7 @@ export const centerCommand: Command = {
   }
 };
 
-// Center Left command (vim zt)
+
 export const centerLeftCommand: Command = {
   name: 'center-left',
   aliases: ['zt'],
@@ -110,7 +107,7 @@ export const centerLeftCommand: Command = {
     }
 
     try {
-      // Use centerNodeInView with special mode for left positioning
+      
       (context.handlers as any).centerNodeInView(nodeId, animate, { mode: 'left' });
       return {
         success: true,

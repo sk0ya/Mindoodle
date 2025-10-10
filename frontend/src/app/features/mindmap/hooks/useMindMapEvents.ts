@@ -8,12 +8,9 @@ interface UseMindMapEventsParams {
   selectMapById: (id: any) => Promise<boolean>;
 }
 
-/**
- * MindMapApp event handlers hook
- * Handles explorer selection, refresh, rename, delete, and move events
- */
+
 export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsParams) {
-  // Listen to explorer selection events
+  
   const handleSelectMapById = useStableCallback(async (e: any) => {
     const id = e?.detail?.mapId as string | undefined;
     const ws = e?.detail?.workspaceId as string;
@@ -27,7 +24,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     const trySelect = async (mapId: string, workspaceId: string): Promise<boolean> => {
       const ok = await selectMapById({ mapId, workspaceId: workspaceId as any });
       if (!ok) return false;
-      // Allow state to settle
+      
       await Promise.resolve();
       const current = useMindMapStore.getState().data;
       const roots = current?.rootNodes || [];
@@ -36,7 +33,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     };
 
     if (source === 'keyboard' && (direction === 'prev' || direction === 'next') && Array.isArray(ordered) && ordered.length > 0) {
-      // Start from requested id and skip empties following the direction
+      
       let idx = ordered.findIndex(o => o.mapId === id);
       if (idx < 0) idx = 0;
       for (let step = 0; step < ordered.length; step++) {
@@ -46,14 +43,14 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
         if (ok) break;
       }
     } else {
-      // Default behavior
+      
       await selectMapById({ mapId: id, workspaceId: ws });
     }
   });
 
   useEventListener('mindoodle:selectMapById' as any, handleSelectMapById as any, { target: window });
 
-  // Refresh explorer/map list on external changes or when window regains focus
+  
   const doRefresh = useStableCallback(() => {
     try {
       if (typeof (mindMap).refreshMapList === 'function') {
@@ -79,7 +76,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     return () => window.clearInterval(interval);
   }, [doRefresh]);
 
-  // Handle rename/delete events from explorer
+  
   const onRename = useStableCallback((e: any) => {
     try {
       const oldPath = e?.detail?.oldPath;
@@ -110,7 +107,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
   useEventListener('mindoodle:renameItem' as any, onRename as any, { target: window });
   useEventListener('mindoodle:deleteItem' as any, onDelete as any, { target: window });
 
-  // Handle move events from explorer (drag & drop)
+  
   const onMove = useStableCallback((e: any) => {
     try {
       const src = e?.detail?.sourcePath;

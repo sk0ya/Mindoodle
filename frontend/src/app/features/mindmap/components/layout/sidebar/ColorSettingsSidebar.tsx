@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useMindMapStore } from '../../../store';

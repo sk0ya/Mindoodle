@@ -3,7 +3,7 @@ import { findNodeById, getFirstVisibleChild, findNodeInRoots, findNodeBySpatialD
 import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
 import { useMindMapStore } from '../../store';
 import type { MindMapNode } from '@shared/types';
-// viewportService import retained if needed elsewhere; currently ensureVisible uses dedicated service
+
 import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportScrollService';
 
 interface Args {
@@ -12,9 +12,9 @@ interface Args {
   store: any;
   logger: any;
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
-  // viewport control
+  
   centerNodeInView: (nodeId: string, animate?: boolean) => void;
-  // mindmap data/actions
+  
   selectedNodeId: string | null;
   editingNodeId: string | null;
   editText: string;
@@ -57,7 +57,7 @@ export function useShortcutHandlers(args: Args) {
     startEditWithCursorAtEnd: startEditingWithCursorAtEnd,
     startEditWithCursorAtStart: startEditingWithCursorAtStart,
     finishEdit: async (nodeId: string, text?: string) => {
-      // Ensure we commit the current input if caller passes undefined
+      
       const value = (text !== undefined) ? text : editText;
       finishEditing(nodeId, value);
     },
@@ -91,7 +91,7 @@ export function useShortcutHandlers(args: Args) {
     selectNode,
     setPan,
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count: number = 1) => {
-      // Get the latest selectedNodeId from store to avoid stale closure
+      
       const currentSelectedNodeId = useMindMapStore.getState().selectedNodeId;
       if (!currentSelectedNodeId) return;
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
@@ -102,7 +102,7 @@ export function useShortcutHandlers(args: Args) {
       let nextNodeId: string | null = null;
       switch (direction) {
         case 'left': {
-          // Move to parent node (start from current root, not nullable data)
+          
           const stack: MindMapNode[] = currentRoot ? [currentRoot] as MindMapNode[] : [];
           while (stack.length) {
             const node = stack.pop()!;
@@ -114,7 +114,7 @@ export function useShortcutHandlers(args: Args) {
         case 'right': {
           const firstChild = getFirstVisibleChild(currentNode);
           if (firstChild) {
-            // 子ノードの中から親ノードのY座標に最も近いものを選択
+            
             const children = currentNode.children || [];
             if (children.length > 1) {
               let closestChild = children[0];
@@ -134,7 +134,7 @@ export function useShortcutHandlers(args: Args) {
           }
           else if (currentNode.children?.length && currentNode.collapsed) {
             updateNode(currentSelectedNodeId, { collapsed: false });
-            // 展開時も中央に近い子ノードを選択
+            
             const children = currentNode.children;
             if (children.length > 1) {
               let closestChild = children[0];
@@ -159,7 +159,7 @@ export function useShortcutHandlers(args: Args) {
           const { siblings, currentIndex } = selGetSiblingNodes(currentRoot, currentSelectedNodeId);
           if (siblings.length > 1 && currentIndex !== -1) {
             let targetIndex = -1;
-            // Jump directly to the Nth sibling (vim-style: 3j = jump 3 nodes down)
+            
             if (direction === 'up') {
               targetIndex = Math.max(0, currentIndex - count);
             } else if (direction === 'down') {
@@ -169,7 +169,7 @@ export function useShortcutHandlers(args: Args) {
               nextNodeId = siblings[targetIndex].id;
             }
           }
-          // If no intra-root sibling, allow crossing to adjacent root node
+          
           if (!nextNodeId) {
             const rootIndex = roots.findIndex(r => r.id === currentRoot.id);
             if (rootIndex !== -1) {
@@ -186,11 +186,11 @@ export function useShortcutHandlers(args: Args) {
       if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(currentSelectedNodeId, direction, currentRoot);
       if (nextNodeId) {
         selectNode(nextNodeId);
-        // Ensure the newly selected node is visible (but don't center it)
+        
         ensureNodeVisible(nextNodeId);
       }
 
-      // Helper function to ensure node is visible without centering
+      
       function ensureNodeVisible(nodeId: string) {
         const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
         ensureNodeVisibleSvc(nodeId, ui, (p: any) => setPan(p), roots);
@@ -225,7 +225,7 @@ export function useShortcutHandlers(args: Args) {
       showNotification('success', `「${node.text}」をコピーしました`);
     },
     pasteNode: async (parentId: string) => {
-      // Use unified clipboard paste logic
+      
       logger.debug('pasteNode: using pasteNodeFromClipboard');
       await pasteNodeFromClipboard(parentId);
     },
@@ -235,22 +235,22 @@ export function useShortcutHandlers(args: Args) {
       return findNodeInRoots(roots, nodeId);
     },
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
-    // Markdown panel visibility control for commands
+    
     showNotesPanel: !!useMindMapStore.getState().ui?.showNotesPanel,
     setShowNotesPanel: (show: boolean) => store.setShowNotesPanel?.(show),
     toggleNotesPanel: () => store.toggleNotesPanel?.(),
-    // Node note panel visibility control for commands
+    
     showNodeNotePanel: !!useMindMapStore.getState().ui?.showNodeNotePanel,
     setShowNodeNotePanel: (show: boolean) => store.setShowNodeNotePanel?.(show),
     toggleNodeNotePanel: () => store.toggleNodeNotePanel?.(),
-    // Knowledge graph modal visibility control for commands
+    
     showKnowledgeGraph: !!useMindMapStore.getState().ui?.showKnowledgeGraph,
     setShowKnowledgeGraph: (show: boolean) => store.setShowKnowledgeGraph?.(show),
     toggleKnowledgeGraph: () => store.toggleKnowledgeGraph?.(),
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,
     centerNodeInView,
-    // Map switching helpers for global shortcuts (Ctrl+P/N)
+    
     switchToPrevMap: () => {
       try {
         const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId: string }> || [];
@@ -273,7 +273,7 @@ export function useShortcutHandlers(args: Args) {
           idx = idx <= 0 ? order.length - 1 : idx - 1;
           const cand = order[idx];
           const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
-          // If we don't have map data loaded, assume non-empty to allow navigation
+          
           if (!mapData || !isEmpty(mapData)) {
             const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId, source: 'keyboard', direction: 'prev' } });
             window.dispatchEvent(ev);
@@ -313,7 +313,7 @@ export function useShortcutHandlers(args: Args) {
       } catch {}
     },
 
-    // Node structure manipulation
+    
     moveNode: async (nodeId: string, newParentId: string) => {
       const result = store.moveNode(nodeId, newParentId);
       if (result.success) {

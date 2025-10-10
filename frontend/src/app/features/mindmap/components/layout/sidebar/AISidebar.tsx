@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React, { useState } from 'react';
 import { Bot, Plug, CheckCircle, AlertTriangle, RefreshCw, RotateCcw } from 'lucide-react';
 import { useAI } from '@/app/features/ai/hooks/useAI';
@@ -19,7 +19,7 @@ const AISidebar: React.FC = () => {
   
   const [extensionAvailable, setExtensionAvailable] = useState(false);
   
-  // 接続テスト用フック
+  
   const {
     connectionStatus,
     connectionError,
@@ -32,7 +32,7 @@ const AISidebar: React.FC = () => {
     }
   });
   
-  // モデル読み込み用フック
+  
   const {
     availableModels,
     isLoadingModels,
@@ -42,15 +42,15 @@ const AISidebar: React.FC = () => {
     currentModel: aiSettings.model,
     updateModel: (model) => updateAISettings({ model }),
     onCORSError: () => {
-      // CORSエラー時に接続状態をエラーに設定
-      // この処理は useConnectionTest で handleTestConnection を呼び出すことで対処
+      
+      
     }
   });
   
-  // 設定の妥当性をチェック
+  
   const { errors: validationErrors } = validateSettings();
   
-  // 拡張機能の検出
+  
   const checkExtension = () => {
     const isAvailable = typeof window !== 'undefined' &&
                        !!window.MindFlowOllamaBridge &&
@@ -58,11 +58,11 @@ const AISidebar: React.FC = () => {
     setExtensionAvailable(isAvailable);
   };
 
-  // 初期チェック
+  
   React.useEffect(() => {
     checkExtension();
 
-    // 定期的にチェック（拡張機能が後から読み込まれる場合）
+    
     const interval = setInterval(checkExtension, 1000);
 
     return () => {
@@ -70,10 +70,10 @@ const AISidebar: React.FC = () => {
     };
   }, []);
 
-  // 拡張機能の準備完了イベントをリッスン
+  
   useEventListener('mindflowOllamaBridgeReady' as keyof WindowEventMap, checkExtension as any, { target: window });
   
-  // AI機能が有効になった時にモデル一覧を取得
+  
   React.useEffect(() => {
     if (aiSettings.enabled && availableModels.length === 0) {
       loadModels();
@@ -90,7 +90,7 @@ const AISidebar: React.FC = () => {
       </div>
 
       <div className="ai-sidebar-content">
-        {/* 拡張機能ステータス */}
+        {}
         <div className="ai-section">
           <h3 className="ai-section-title"><Plug size={14} style={{marginRight: '6px', verticalAlign: 'middle', width: '14px', height: '14px'}} />接続方法</h3>
           <div className="ai-section-content">
@@ -304,7 +304,7 @@ const AISidebar: React.FC = () => {
                   className="ai-reset-button"
                   onClick={() => {
                     if (window.confirm('AI設定をデフォルトに戻しますか？')) {
-                      // デフォルト設定に戻す
+                      
                       updateAISettings({
                         systemPrompt: 'あなたは創造的で論理的な思考を持つAIアシスタントです。ユーザーのマインドマップ作成をサポートします。',
                         childGenerationPrompt: '以下のトピックについて、関連する子要素やサブトピックを3〜5個生成してください。各項目は簡潔に1〜3単語で表現してください。\n\nトピック: {parentText}\nコンテキスト: {context}',

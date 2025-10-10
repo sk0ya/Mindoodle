@@ -21,9 +21,7 @@ export interface FileBasedSearchResult {
   matchType: 'text' | 'note';
 }
 
-/**
- * ノードを再帰的に検索して、検索クエリにマッチするノードを返す
- */
+
 export function searchNodesRecursively(
   node: MindMapNode,
   query: string,
@@ -32,7 +30,7 @@ export function searchNodesRecursively(
 ): SearchResult[] {
   const searchTerm = query.toLowerCase().trim();
   
-  // 現在のノードをチェック
+  
   const textMatch = node.text.toLowerCase().includes(searchTerm);
   const noteMatch = node.note?.toLowerCase().includes(searchTerm);
 
@@ -48,7 +46,7 @@ export function searchNodesRecursively(
     });
   }
 
-  // 子ノードを再帰的に検索
+  
   if (node.children) {
     node.children.forEach(child => {
       searchNodesRecursively(child, query, mapData, results);
@@ -58,9 +56,7 @@ export function searchNodesRecursively(
   return results;
 }
 
-/**
- * マインドマップ内のノードを検索する
- */
+
 export function searchNodes(query: string, mapData: MindMapData | null): SearchResult[] {
   if (!query.trim() || !mapData) return [];
 
@@ -72,9 +68,7 @@ export function searchNodes(query: string, mapData: MindMapData | null): SearchR
   return results;
 }
 
-/**
- * 複数のマインドマップからノードを検索する
- */
+
 export function searchMultipleMaps(query: string, maps: MindMapData[]): SearchResult[] {
   if (!query.trim() || maps.length === 0) return [];
   
@@ -91,9 +85,7 @@ export function searchMultipleMaps(query: string, maps: MindMapData[]): SearchRe
   return allResults;
 }
 
-/**
- * ファイルベースの検索を行う（マークダウンファイルの内容を直接行単位で検索）
- */
+
 export async function searchFilesForContent(
   query: string,
   storageAdapter: any,
@@ -107,24 +99,24 @@ export async function searchFilesForContent(
   const searchTerm = query.toLowerCase();
 
   try {
-    // すべてのマップを取得（メタデータのみ）
+    
     const maps: MindMapData[] = await storageAdapter.loadAllMaps();
 
     for (const map of maps) {
       const mapId = map.mapIdentifier.mapId;
       const workspaceId = map.mapIdentifier.workspaceId;
 
-      // ワークスペース名を取得
+      
       const workspace = workspaces?.find(w => w.id === workspaceId);
       const workspaceName = workspace?.name || workspaceId || 'デフォルト';
 
-      // マップ名（タイトル）を使用
+      
       const mapName = map.title || mapId;
 
-      // エクスプローラー形式のパス: ワークスペース名/マップ名
+      
       const filePath = `${workspaceName}/${mapName}`;
 
-      // ファイルの生のマークダウン内容を直接取得
+      
       if (typeof storageAdapter.getMapMarkdown === 'function') {
         try {
           const markdownContent = await storageAdapter.getMapMarkdown(map.mapIdentifier);
@@ -149,7 +141,7 @@ export async function searchFilesForContent(
           }
         } catch (error) {
           console.warn(`Failed to get markdown for ${mapId}:`, error);
-          // フォールバック: マップデータから検索（後方互換性）
+          
           continue;
         }
       }
@@ -162,25 +154,21 @@ export async function searchFilesForContent(
 }
 
 
-/**
- * 行番号からノードを特定する（ファイル内容から直接検索）
- * 注意: この関数は実際のMarkdownファイルの行番号を基準とするため、
- * MarkdownImporterの解析結果のmarkdownMetaを利用することを推奨
- */
+
 export function findNodeByLineNumber(
   map: MindMapData,
   targetLineNumber: number
 ): { node: MindMapNode; depth: number } | null {
-  // rootNodesを探索してmarkdownMeta.lineNumberを確認
+  
   const findInNodes = (nodes: MindMapNode[], depth: number = 0): { node: MindMapNode; depth: number } | null => {
     for (const node of nodes) {
-      // markdownMetaにlineNumberがある場合、それを使用
+      
       const nodeLineNumber = (node as any).markdownMeta?.lineNumber;
       if (typeof nodeLineNumber === 'number' && nodeLineNumber + 1 === targetLineNumber) {
         return { node, depth };
       }
 
-      // 子ノードも検索
+      
       if (node.children) {
         const result = findInNodes(node.children, depth + 1);
         if (result) return result;
@@ -192,9 +180,7 @@ export function findNodeByLineNumber(
   return findInNodes(map.rootNodes || []);
 }
 
-/**
- * 検索結果のハイライト表示用のマッチ位置を返す
- */
+
 export function getMatchPosition(text: string, query: string): {
   beforeMatch: string;
   match: string;

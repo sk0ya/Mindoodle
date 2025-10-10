@@ -1,7 +1,4 @@
-/**
- * Delete Command
- * Deletes the selected node (equivalent to vim 'dd')
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 
@@ -43,7 +40,7 @@ export const deleteCommand: Command = {
       };
     }
 
-    // Get node information for confirmation
+    
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
       return {
@@ -52,7 +49,7 @@ export const deleteCommand: Command = {
       };
     }
 
-    // Check if this is the root node (by checking if it has special ID)
+    
     if (node.id === 'root') {
       return {
         success: false,
@@ -60,15 +57,15 @@ export const deleteCommand: Command = {
       };
     }
 
-    // For now, skip confirmation in command mode
-    // In the future, we could implement a confirmation system
+    
+    
     if (!skipConfirm && node.children && node.children.length > 0) {
-      // Could implement confirmation dialog here
+      
       console.warn(`Deleting node "${node.text}" with ${node.children.length} children`);
     }
 
     try {
-      // Delete count times (for vim dd with count)
+      
       let deletedCount = 0;
 
       for (let i = 0; i < count; i++) {
@@ -78,8 +75,8 @@ export const deleteCommand: Command = {
         context.handlers.deleteNode(nodeId);
         deletedCount++;
 
-        // After deletion, select the next sibling or stay at current position
-        // The handler should handle this automatically
+        
+        
       }
 
       return {

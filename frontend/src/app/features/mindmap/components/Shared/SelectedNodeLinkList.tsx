@@ -15,7 +15,7 @@ interface SelectedNodeLinkListProps {
   onLinkContextMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onLinkNavigate?: (link: NodeLink) => void;
   onPreviewUrl?: (url: string) => void;
-  // リンク表示用の追加データ
+  
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
 }
@@ -36,7 +36,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   const { showNotification } = useNotification();
 
   const handleLinkClick = useCallback((e: React.MouseEvent, link: NodeLink) => {
-    // 右クリックの場合は処理しない
+    
     if (e.button === 2) {
       return;
     }
@@ -48,7 +48,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     if (onLinkDoubleClick) {
       onLinkDoubleClick(link);
     } else if (onLinkNavigate) {
-      // ダブルクリックでナビゲーション
+      
       onLinkNavigate(link);
     }
   }, [onLinkDoubleClick, onLinkNavigate]);
@@ -56,9 +56,9 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   const handleLinkContextMenu = useCallback((e: React.MouseEvent, link: NodeLink) => {
     e.preventDefault();
     e.stopPropagation();
-    e.nativeEvent.stopImmediatePropagation(); // 他のイベントリスナーも停止
+    e.nativeEvent.stopImmediatePropagation(); 
     
-    // さらに確実にイベントを停止
+    
     if (e.nativeEvent.stopPropagation) {
       e.nativeEvent.stopPropagation();
     }
@@ -66,15 +66,15 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     onLinkContextMenu(link, { x: e.clientX, y: e.clientY });
   }, [onLinkContextMenu]);
 
-  // 旧ヘルパーは未使用のため削除
+  
 
-  // 旧ノードテキストヘルパーは未使用のため削除
+  
 
-  // Derive links from markdown note; fallback to legacy node.links
-  // Build combined list preserving appearance order
+  
+  
   const combined = useMemo(() => {
     const parsed = extractAllMarkdownLinksDetailed(node.note);
-    // Use correct current map id for resolving relative links
+    
     const currentId = (currentMapData as any)?.mapIdentifier?.mapId || '';
     const idsSet = new Set<string>((availableMaps || []).map(m => m.id));
     try {
@@ -138,13 +138,13 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
         return { kind: 'internal' as const, index: p.index, label: p.label, anchorText: anchor, nodeId };
       }
 
-      // Map-resolvable relative link
+      
       const target = resolveHrefToMapTarget(href, currentId, ids);
       if (target) {
         return { kind: 'map' as const, index: p.index, label: p.label, mapId: target.mapId, anchorText: target.anchorText, href };
       }
 
-      // Unresolved external
+      
       return { kind: 'external' as const, index: p.index, label: p.label, href };
     });
   }, [
@@ -161,12 +161,12 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     return null;
   }
 
-  // リストの位置計算（ノードのすぐ下に表示）
-  const listY = node.y + nodeHeight / 2 + 8; // ノードのすぐ下に表示
-  const listX = node.x - nodeWidth / 2; // ノードの左端に合わせる
-  const listWidth = Math.max(nodeWidth, 300); // 最小幅300px
   
-  // 動的高さ計算（共通ユーティリティを使用）
+  const listY = node.y + nodeHeight / 2 + 8; 
+  const listX = node.x - nodeWidth / 2; 
+  const listWidth = Math.max(nodeWidth, 300); 
+  
+  
   const listHeight = calculateLinkListHeight({ itemCount: combined.length });
 
   return (
@@ -196,11 +196,11 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
         onClick={(e) => e.stopPropagation()}
       >
 
-        {/* リンク一覧 */}
+        {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
           {combined.map((entry: any, idx: number) => {
             const key = entry.kind === 'legacy' ? entry.item.id : `${entry.kind}-${idx}-${entry.index}`;
-            // For plain URLs (label === href), show shortened label
+            
             const isPlainUrl = entry.kind === 'external' && entry.label === entry.href;
             const title = entry.kind === 'internal' ? entry.label
               : entry.kind === 'map' ? entry.label
@@ -348,7 +348,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                   {entry.kind === 'external' ? <ExternalLink size={12} /> : <Link size={12} />}
                 </span>
 
-                {/* リンク情報 */}
+                {}
                 <div style={{ flex: 1, overflow: 'hidden', minWidth: 0 }}>
                   <div
                     style={{
@@ -379,7 +379,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                   </div>
                 </div>
 
-                {/* アクションヒント */}
+                {}
                 <div
                   style={{
                     fontSize: '9px',
@@ -393,7 +393,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                   {entry.kind !== 'external' ? '右クリック' : 'ダブルクリック'}
                 </div>
 
-                {/* プレビューボタン（外部リンクのみ） */}
+                {}
                 {entry.kind === 'external' && /^https?:\/\//i.test(entry.href) && onPreviewUrl && (
                   <button
                     onClick={(e) => {
@@ -432,7 +432,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
         </div>
       </div>
 
-      {/* ホバー時のアクションヒント表示用CSS */}
+      {}
       <style dangerouslySetInnerHTML={{
         __html: `
           .link-item:hover .action-hint {

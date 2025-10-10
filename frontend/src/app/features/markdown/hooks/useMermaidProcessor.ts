@@ -11,16 +11,16 @@ export interface UseMermaidProcessorResult {
 }
 
 export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
-  // Initialize mermaid once
+  
   useEffect(() => {
     try {
       mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
     } catch {
-      // ignore re-initialize errors
+      
     }
   }, []);
 
-  // Extract mermaid code blocks from markdown
+  
   const extractMermaidBlocks = useCallback((text: string): string[] => {
     const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
     const blocks: string[] = [];
@@ -31,9 +31,9 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
     return blocks;
   }, []);
 
-  // Process mermaid diagrams in HTML
+  
   const processMermaidInHtml = useCallback(async (html: string): Promise<string> => {
-    // Find all mermaid code blocks in the HTML
+    
     const mermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;
     let processedHtml = html;
     let match;
@@ -46,22 +46,22 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
 
       const promise = (async () => {
         try {
-          // Check cache first
+          
           const cached = mermaidSVGCache.get(mermaidCode);
           if (cached) {
             return cached.svg;
           }
 
-          // Generate new SVG
+          
           const id = generateId('mermaid');
           const { svg } = await mermaid.render(id, mermaidCode);
 
-          // Parse and normalize SVG
+          
           const parser = new DOMParser();
           const doc = parser.parseFromString(svg, 'image/svg+xml');
           const el = doc.documentElement;
 
-          // Set responsive attributes
+          
           el.removeAttribute('width');
           el.removeAttribute('height');
           el.setAttribute('width', '100%');
@@ -72,7 +72,7 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
           const serializer = new XMLSerializer();
           const adjustedSvg = serializer.serializeToString(el);
 
-          // Cache the result
+          
           const vb = el.getAttribute('viewBox');
           if (vb) {
             const parts = vb.split(/[ ,]+/).map(Number);
@@ -97,10 +97,10 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
       }));
     }
 
-    // Wait for all mermaid diagrams to be processed
+    
     await Promise.all(promises);
 
-    // Apply all replacements
+    
     for (const { original, replacement } of replacements) {
       processedHtml = processedHtml.replace(original, replacement);
     }
@@ -108,7 +108,7 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
     return processedHtml;
   }, []);
 
-  // Convert markdown to HTML (memoized for performance)
+  
   const previewHtml = useMemo((): string => {
     try {
       const result = marked.parse(value || '');
@@ -129,7 +129,7 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
         setProcessedHtml(processed);
       } catch (error) {
         logger.warn('Error processing mermaid in HTML:', error);
-        // Fallback to original HTML if processing fails
+        
         setProcessedHtml(previewHtml);
       }
     };

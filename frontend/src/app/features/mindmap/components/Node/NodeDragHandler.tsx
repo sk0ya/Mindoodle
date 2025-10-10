@@ -23,7 +23,7 @@ export const useNodeDragHandler = ({
   onDragEnd
 }: NodeDragHandlerProps) => {
 
-  // Use the shared drag handler
+  
   const { dragState, handleStart, isDragging } = useDragHandler<string>(
     { dragThreshold: 5, enableDrag: true },
     {
@@ -64,9 +64,9 @@ export const useNodeDragHandler = ({
     }
   );
 
-  // Handle mouse down to start drag
+  
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // Only react to primary button drags
+    
     if (e.button !== 0) return;
     e.preventDefault();
     e.stopPropagation();

@@ -1,14 +1,10 @@
-// Thin controller placeholder to gradually migrate side-effects and wiring
-// from view components into a single place.
+
+
 
 export class MindMapController {
-  // Future: constructor(deps: {...}) {}
+  
 
-  /**
-   * Attach global explorer helpers for Vim and external integrations.
-   * This preserves existing behavior while we gradually remove globals.
-   */
-  attachExplorerGlobals(mindMap: any): void {
+    attachExplorerGlobals(mindMap: any): void {
     try {
       (window as any).mindoodleCreateFolder = async (path: string) => {
         if (typeof (mindMap).createFolder === 'function') {
@@ -29,15 +25,11 @@ export class MindMapController {
         }
       };
     } catch {
-      // ignore globals failure
+      
     }
   }
 
-  /**
-   * Bridge for Auth modal via window event to decouple from view.
-   * Returns an unsubscribe function.
-   */
-  attachAuthModalBridge(handlers: {
+    attachAuthModalBridge(handlers: {
     setAuthCloudAdapter: (a: any) => void;
     setAuthOnSuccess: (fn: ((a: any) => void) | null) => void;
     setIsAuthModalOpen: (open: boolean) => void;
@@ -47,10 +39,10 @@ export class MindMapController {
         const detail = (event as CustomEvent).detail || {};
         const { cloudAdapter, onSuccess } = detail;
         handlers.setAuthCloudAdapter(cloudAdapter);
-        // Wrap function in arrow function to prevent React from calling it immediately
+        
         handlers.setAuthOnSuccess(() => onSuccess || null);
         handlers.setIsAuthModalOpen(true);
-      } catch { /* ignore */ }
+      } catch {  }
     };
     window.addEventListener('mindoodle:showAuthModal', listener as EventListener);
     return () => window.removeEventListener('mindoodle:showAuthModal', listener as EventListener);

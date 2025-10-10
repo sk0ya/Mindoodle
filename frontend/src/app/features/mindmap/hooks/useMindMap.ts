@@ -15,24 +15,18 @@ import { statusMessages } from '@shared/utils';
 import { useMindMapStore } from '@mindmap/store';
 import { getAdapterForWorkspace } from '@/app/core/utils';
 
-/**
- * 統合MindMapHook - 新しいアーキテクチャ
- * 
- * 専門化されたHookを組み合わせて完全なMindMap機能を提供
- * Single Responsibility Principleに従い、テスタブルで保守しやすい構造
- */
 export const useMindMap = (
   storageConfig?: StorageConfig,
   resetKey: number = 0
 ) => {
-  // 専門化されたHookを使用
+  
   const dataHook = useMindMapData();
   const uiHook = useMindMapUI();
   const actionsHook = useMindMapActions();
   const persistenceHook = useMindMapPersistence(storageConfig);
   const { showNotification } = useNotification();
   const settings = useMindMapStore((state) => state.settings);
-  // const { mergeWithExistingNodes } = useMarkdownSync();
+  
 
   useDataReset(resetKey, {
     setData: dataHook.setData,
@@ -50,35 +44,35 @@ export const useMindMap = (
     currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId
   });
 
-  // 自動保存機能
+  
   const [, setAutoSaveEnabled] = useState(true);
   const setAutoSaveEnabledStable = useStableCallback((enabled: boolean) => {
     setAutoSaveEnabled(enabled);
   });
 
-  // Stabilize adapter reference - get adapter for current map's workspace
+  
   const mapWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
   const stableAdapter = useMemo(() => {
     return getAdapterForWorkspace(persistenceHook, mapWorkspaceId);
   }, [persistenceHook, mapWorkspaceId]);
 
-  // Stabilize currentId to prevent unnecessary stream recreation
+  
   const mapIdentifierWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
   const mapIdentifierMapId = dataHook.data?.mapIdentifier?.mapId;
 
   const currentId = useMemo(() => {
     if (!mapIdentifierWorkspaceId || !mapIdentifierMapId) return null;
-    // Create stable reference based on actual values, not object identity
+    
     return {
       workspaceId: mapIdentifierWorkspaceId,
       mapId: mapIdentifierMapId
     };
   }, [mapIdentifierWorkspaceId, mapIdentifierMapId]);
 
-  // Markdown stream for sync between nodes and raw markdown
+  
   const markdownStreamHook = useMarkdownStream(stableAdapter, currentId, { debounceMs: 200 });
 
-  // Stabilize the destructured functions to prevent infinite re-subscriptions
+  
   const stableMarkdownFunctions = useMemo(() => {
     return {
       setFromEditor: markdownStreamHook.setFromEditor,
@@ -91,7 +85,7 @@ export const useMindMap = (
   const lineToNodeIdRef = useRef<Record<number, string>>({});
   const nodeIdToLineRef = useRef<Record<string, number>>({});
 
-  // Track last markdown sent to prevent loops
+  
   const lastSentMarkdownRef = useRef<string>('');
 
   // Keep latest references to avoid stale closures in subscription callbacks
@@ -127,7 +121,7 @@ export const useMindMap = (
         trigger: dataHook.data?.updatedAt
       });
 
-      // Only send if markdown actually changed
+      
       if (isChanged) {
         logger.debug('📝 Nodes -> Markdown: sending update');
         lastSentMarkdownRef.current = md;
@@ -140,8 +134,8 @@ export const useMindMap = (
     }
   }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
 
-  // When markdown changes from editor, rebuild nodes (md -> nodes)
-  // Keep this effect lightweight; heavy parsing only on 'editor' source
+  
+  
   useEffect(() => {
     const unsub = subscribeMdRef.current(async (markdown: string, source: string) => {
       logger.debug('📨 useMindMap received markdown', {
@@ -151,25 +145,25 @@ export const useMindMap = (
         dataUpdatedAt: dataRef.current?.updatedAt
       });
       try {
-        // If content comes from external load, treat it as the canonical baseline
+        
         if (source === 'external') {
-          // Align last-sent baseline to avoid redundant nodes->markdown echo
+          
           lastSentMarkdownRef.current = markdown;
         }
 
-        // Immediate reflection: let the parser decide how to handle incomplete structures.
+        
 
         const parsed = MarkdownImporter.parseMarkdownToNodes(markdown, {
           defaultCollapseDepth: settings.defaultCollapseDepth
         });
 
-        // Build line<->node maps from parsed nodes
+        
         const lineToNode: Record<number, string> = {};
         const nodeToLine: Record<string, number> = {};
         const walk = (nodes: any[]) => {
           for (const n of nodes || []) {
             const ln = n?.markdownMeta?.lineNumber;
-            // Normalize to 1-based editor line numbers
+            
             if (typeof ln === 'number' && ln >= 0 && typeof n?.id === 'string') {
               const line1 = ln + 1;
               lineToNode[line1] = n.id;
@@ -182,31 +176,31 @@ export const useMindMap = (
         lineToNodeIdRef.current = lineToNode;
         nodeIdToLineRef.current = nodeToLine;
 
-        // Apply node updates only when source is the editor.
-        // Ignore 'nodes' source to prevent feedback loops (nodes->markdown->nodes)
-        // Ignore 'external' source from initial load unless it's actually different
+        
+        
+        
         const currentData = dataRef.current;
         if (source === 'editor' && currentData) {
           logger.debug('🖊️ Processing editor change');
-          // Clear existing timer and set new one to skip nodes->markdown sync for short period
+          
           if (skipNodeToMarkdownSyncTimer.current) {
             clearTimeout(skipNodeToMarkdownSyncTimer.current);
           }
           skipNodeToMarkdownSyncTimer.current = setTimeout(() => {
             skipNodeToMarkdownSyncTimer.current = null;
             logger.debug('✅ Editor change window closed, nodes->markdown sync re-enabled');
-          }, 300); // 300ms window to allow for rapid typing
+          }, 300); 
           const safeRootNodes = Array.isArray(parsed?.rootNodes) ? parsed.rootNodes : [];
 
-          // Flatten helper (pre-order) to compare markdown structure
+          
           type FlatItem = {
-            id?: string; // only for existing tree
+            id?: string; 
             text: string;
             note?: string;
-            t?: string; // type
-            lvl?: number; // level
-            ind?: number; // indent level
-            k?: string; // node kind (e.g., 'table')
+            t?: string; 
+            lvl?: number; 
+            ind?: number; 
+            k?: string; 
           };
           const flatten = (nodes: any[], out: FlatItem[] = []): FlatItem[] => {
             for (const n of nodes || []) {
@@ -228,7 +222,7 @@ export const useMindMap = (
           const prevFlat = flatten(currentData.rootNodes || []);
           const nextFlat = flatten(safeRootNodes);
 
-          // sameStructure: t/lvl/ind/k must all match
+          
           const sameStructure = (() => {
             if (prevFlat.length !== nextFlat.length) return false;
             for (let i = 0; i < prevFlat.length; i++) {
@@ -236,27 +230,27 @@ export const useMindMap = (
               const b = nextFlat[i];
               if (a.t !== b.t) return false;
               if (a.lvl !== b.lvl) return false;
-              // treat undefined and 0 differently only if types are lists
+              
               if ((a.t === 'unordered-list' || a.t === 'ordered-list')) {
                 const ia = typeof a.ind === 'number' ? a.ind : 0;
                 const ib = typeof b.ind === 'number' ? b.ind : 0;
                 if (ia !== ib) return false;
               }
-              // if kind changed (e.g., to 'table'), treat as structural change
+              
               if (a.k !== b.k) return false;
             }
             return true;
           })();
 
           if (sameStructure) {
-            // Update only changed text/note fields
+            
             for (let i = 0; i < prevFlat.length; i++) {
               const a = prevFlat[i];
               const b = nextFlat[i];
               if (!a.id) continue;
               const updates: any = {};
               if (a.text !== b.text) updates.text = b.text;
-              // Only update note when it actually changes; undefined vs '' normalization
+              
               const aNote = a.note ?? '';
               const bNote = b.note ?? '';
               if (aNote !== bNote) updates.note = b.note ?? '';
@@ -276,12 +270,12 @@ export const useMindMap = (
         logger.warn('Markdown parse failed; keeping existing nodes');
       }
     });
-    return () => { try { unsub(); } catch (_e) { /* ignore */ void 0; } };
+    return () => { try { unsub(); } catch (_e) {  void 0; } };
   }, [markdownStreamHook.stream]);
 
-  // Removed global CustomEvent echo path to avoid race/rollback
+  
 
-  // Folder selection helper to ensure we operate on the same adapter instance
+  
   const selectRootFolder = useStableCallback(async (): Promise<boolean> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.addWorkspace === 'function') {
@@ -289,7 +283,7 @@ export const useMindMap = (
       await persistenceHook.refreshMapList();
       return true;
     }
-    // fallback legacy
+    
     if (adapter && typeof adapter.selectRootFolder === 'function') {
       await adapter.selectRootFolder();
       await persistenceHook.refreshMapList();
@@ -304,15 +298,15 @@ export const useMindMap = (
     if (adapter && typeof adapter.createFolder === 'function') {
       await adapter.createFolder(relativePath, workspaceId);
 
-      // Refresh explorer tree to show virtual folders
+      
       const isCloudAdapter = adapter.constructor.name === 'CloudStorageAdapter';
       if (isCloudAdapter) {
-        // For cloud, refresh only explorer tree (virtual folders)
+        
         if (typeof (persistenceHook as any).loadExplorerTree === 'function') {
           await (persistenceHook as any).loadExplorerTree();
         }
       } else {
-        // For local, refresh full map list
+        
         await persistenceHook.refreshMapList();
       }
     }
@@ -327,7 +321,7 @@ export const useMindMap = (
   });
 
   const deleteItem = useStableCallback(async (path: string): Promise<void> => {
-    // Extract workspaceId from path (e.g., /cloud/folder/file.md or /ws_xxx/folder/file.md)
+    
     const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)/);
     const workspaceId = wsMatch ? wsMatch[1] : null;
 
@@ -339,7 +333,7 @@ export const useMindMap = (
     }
   });
 
-  // Stabilize markdown subscription to prevent excessive re-subscriptions
+  
   const subscribeMarkdownFromNodes = useStableCallback((cb: (text: string) => void) => {
     return subscribeMd((text: string, source: any) => {
       if (source === 'nodes') cb(text);
@@ -355,7 +349,7 @@ export const useMindMap = (
   });
 
   const readImageAsDataURL = useStableCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
-    // Resolve adapter per workspace when possible (cloud/local)
+    
     const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
     if (adapter && typeof adapter.readImageAsDataURL === 'function') {
       return await adapter.readImageAsDataURL(relativePath, workspaceId);
@@ -371,7 +365,7 @@ export const useMindMap = (
     return null;
   });
 
-  // Expose raw markdown fetch for current adapter (markdown mode only)
+  
   const getMapMarkdown = useStableCallback(async (id: MapIdentifier): Promise<string | null> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
@@ -396,7 +390,7 @@ export const useMindMap = (
     return null;
   });
 
-  // Save raw markdown for current adapter (markdown mode only)
+  
   const saveMapMarkdown = useStableCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.saveMapMarkdown === 'function') {
@@ -411,27 +405,27 @@ export const useMindMap = (
     }
   });
 
-  // マップ管理の高レベル操作（非同期対応）
+  
   const mapOperations = {
     createAndSelectMap: useStableCallback(async (title: string, workspaceId: string, category?: string): Promise<string> => {
-      // workspaceIdの検証
+      
       if (!workspaceId) {
         console.error('createAndSelectMap: workspaceId is required');
         throw new Error('workspaceId is required for creating a map');
       }
 
-      // If title contains '/', treat it as a full path (category/title)
-      // Otherwise, use the provided category parameter
+      
+      
       let actualTitle: string;
       let actualCategory: string;
 
       if (title.includes('/')) {
-        // title is a full path like "folder1/map1"
+        
         const parts = title.split('/').filter(Boolean);
-        actualTitle = parts[parts.length - 1]; // Last part is the title
-        actualCategory = parts.slice(0, -1).join('/'); // Everything before is the category
+        actualTitle = parts[parts.length - 1]; 
+        actualCategory = parts.slice(0, -1).join('/'); 
       } else {
-        // title is just the map name
+        
         actualTitle = title;
         actualCategory = category || '';
       }
@@ -463,11 +457,11 @@ export const useMindMap = (
       }
 
       logger.debug('createAndSelectMap: Adding map to list...');
-      // map一覧を更新
+      
       
       logger.debug('createAndSelectMap: Loading and selecting created map...');
 
-      // 作成したファイルからマップをロードして選択
+      
       try {
         const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
         const loadedMarkdown = await adapter.getMapMarkdown(mapIdentifier);
@@ -477,9 +471,9 @@ export const useMindMap = (
             defaultCollapseDepth: settings.defaultCollapseDepth
           });
 
-          // selectMapByIdと同じロジックでcategoryを抽出
+          
           const actualMapId = mapIdentifier.mapId;
-          // mapId からカテゴリを抽出
+          
           const parts = (actualMapId || '').split('/').filter(Boolean);
           const extractedCategory = parts.length > 1 ? parts.slice(0, -1).join('/') : '';
 
@@ -548,7 +542,7 @@ export const useMindMap = (
         if (existingMap) {
           // キャッシュデータを使わず、ファイルから読み込んだ最新データを使用
           logger.debug('🔄 Found cached map but using fresh file data instead', { mapId, cached: existingMap.updatedAt });
-          // continue to use file data instead of cached data
+          
         }
         
         const actualMapId = mapId;
@@ -669,8 +663,8 @@ export const useMindMap = (
   });
 
   return {
-    // === 状態 ===
-    // データ状態
+    
+    
     data: dataHook.data,
     normalizedData: dataHook.normalizedData,
     selectedNodeId: dataHook.selectedNodeId,
@@ -678,20 +672,20 @@ export const useMindMap = (
     editText: dataHook.editText,
     editingMode: dataHook.editingMode,
     
-    // UI状態
+    
     ui: uiHook.ui,
     
-    // 履歴状態
+    
     canUndo: actionsHook.canUndo(),
     canRedo: actionsHook.canRedo(),
     
-    // マップ一覧
+    
     allMindMaps: persistenceHook.allMindMaps,
     currentMapId: actionsHook.currentMapId,
     isReady,
 
-    // === 操作 ===
-    // データ操作（ノード・編集・選択）
+    
+    
     addNode: dataHook.addNode,
     updateNode: dataHook.updateNode,
     deleteNode: dataHook.deleteNode,
@@ -709,7 +703,7 @@ export const useMindMap = (
     setData: dataHook.setData,
     applyAutoLayout: dataHook.applyAutoLayout,
     
-    // UI操作
+    
     setZoom: uiHook.setZoom,
     setPan: uiHook.setPan,
     resetZoom: uiHook.resetZoom,
@@ -720,17 +714,17 @@ export const useMindMap = (
     showFileActionMenu: uiHook.showFileActionMenu,
     hideFileActionMenu: uiHook.hideFileActionMenu,
 
-    // アクション操作
+    
     undo: actionsHook.undo,
     redo: actionsHook.redo,
 
-    // 高レベルマップ操作
+    
     ...mapOperations,
     
-    // ファイル操作
+    
     ...fileOperations,
 
-    // 永続化の一部を表に出す（同一アダプターをUIから利用するため）
+    
     selectRootFolder,
     getSelectedFolderLabel,
     createFolder,
@@ -746,22 +740,22 @@ export const useMindMap = (
     removeWorkspace: (persistenceHook as any).removeWorkspace,
     switchWorkspace: (persistenceHook as any).switchWorkspace,
 
-    // Storage adapter access
+    
     storageAdapter: persistenceHook.storageAdapter,
     refreshMapList: persistenceHook.refreshMapList,
 
-    // markdown helpers
+    
     getMapMarkdown,
     getMapLastModified,
     saveMapMarkdown,
     subscribeMarkdownFromNodes,
-    // live markdown input -> stream
+    
     onMapMarkdownInput: (text: string) => setFromEditor(text),
-    // mapping helper (editor -> node only)
+    
     getNodeIdByMarkdownLine: (line: number): string | null => {
       const map = lineToNodeIdRef.current || {};
       if (map[line]) return map[line];
-      // pick nearest previous line mapped
+      
       let bestLine = 0;
       for (const k of Object.keys(map)) {
         const ln = parseInt(k, 10);
@@ -769,7 +763,7 @@ export const useMindMap = (
       }
       return bestLine ? map[bestLine] : null;
     },
-    // autosave control
+    
     setAutoSaveEnabled: setAutoSaveEnabledStable
   };
 };

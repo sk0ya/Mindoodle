@@ -21,31 +21,31 @@ export class AdapterManager {
   }
 
   async initialize(): Promise<void> {
-    // Always initialize local adapter
+    
     this.localAdapter = new MarkdownFolderAdapter();
     await this.localAdapter.initialize();
     logger.info('AdapterManager: Local adapter initialized');
 
-    // Initialize cloud adapter if in local+cloud mode
+    
     if (this.config.mode === 'local+cloud') {
       const workspaceService = WorkspaceService.getInstance();
       const existingCloudAdapter = workspaceService.getCloudAdapter();
 
       if (existingCloudAdapter) {
         this.cloudAdapter = existingCloudAdapter;
-        // Ensure initialized once; safe if unauthenticated (no network unless token exists)
+        
         if (!this.cloudAdapter.isInitialized && typeof this.cloudAdapter.initialize === 'function') {
           await this.cloudAdapter.initialize();
         }
         logger.info(`AdapterManager: Using existing cloud adapter (authenticated=${this.cloudAdapter.isAuthenticated})`);
       } else {
-        // Create a single shared adapter and register it in WorkspaceService
+        
         const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
         this.cloudAdapter = new CloudStorageAdapter(apiEndpoint);
         workspaceService.setCloudAdapter(this.cloudAdapter);
         await this.cloudAdapter.initialize();
 
-        // If it becomes authenticated after initialization, register it with WorkspaceService
+        
         if (this.cloudAdapter.isAuthenticated) {
           workspaceService.addCloudWorkspace(this.cloudAdapter);
         }
@@ -56,11 +56,11 @@ export class AdapterManager {
     logger.info('AdapterManager: Initialization complete');
   }
 
-  // Get list of all available workspaces
+  
   async getAvailableWorkspaces(): Promise<WorkspaceInfo[]> {
     const workspaces: WorkspaceInfo[] = [];
 
-    // Add local workspaces (from folder structure)
+    
     if (this.localAdapter && typeof this.localAdapter.listWorkspaces === 'function') {
       try {
         const localWorkspaces = await this.localAdapter.listWorkspaces();
@@ -77,7 +77,7 @@ export class AdapterManager {
       }
     }
 
-    // Get cloud workspace from WorkspaceService
+    
     const workspaceService = WorkspaceService.getInstance();
     if (workspaceService.isCloudAuthenticated()) {
       const cloudAdapter = workspaceService.getCloudAdapter();
@@ -88,7 +88,7 @@ export class AdapterManager {
           type: 'cloud',
           adapter: cloudAdapter
         });
-        // Update our cloud adapter reference
+        
         this.cloudAdapter = cloudAdapter;
       }
     }
@@ -96,34 +96,34 @@ export class AdapterManager {
     return workspaces;
   }
 
-  // Get current adapter based on selected workspace
+  
   getCurrentAdapter(): StorageAdapter | null {
     return this.getAdapterForWorkspace(this.currentWorkspaceId);
   }
 
-  // Get adapter for specific workspace ID
+  
   getAdapterForWorkspace(workspaceId: string | null): StorageAdapter | null {
     if (!workspaceId) {
-      // Default to local adapter if no workspace specified
+      
       return this.localAdapter;
     }
 
     if (workspaceId === 'cloud') {
-      // For cloud workspace, get adapter from WorkspaceService to ensure it's current
+      
       const workspaceService = WorkspaceService.getInstance();
       const cloudAdapter = workspaceService.getCloudAdapter();
       if (cloudAdapter) {
-        this.cloudAdapter = cloudAdapter; // Update our reference
+        this.cloudAdapter = cloudAdapter; 
         return cloudAdapter;
       }
-      return this.cloudAdapter; // Fallback to our stored reference
+      return this.cloudAdapter; 
     }
 
-    // For local workspace IDs, return local adapter
+    
     return this.localAdapter;
   }
 
-  // Switch to specific workspace
+  
   setCurrentWorkspace(workspaceId: string | null): void {
     this.currentWorkspaceId = workspaceId;
     logger.info(`AdapterManager: Switched to workspace: ${workspaceId || 'default'}`);
@@ -133,27 +133,27 @@ export class AdapterManager {
     return this.currentWorkspaceId;
   }
 
-  // Add cloud adapter when user authenticates
+  
   setCloudAdapter(cloudAdapter: CloudStorageAdapter): void {
     this.cloudAdapter = cloudAdapter;
     logger.info('AdapterManager: Cloud adapter set');
   }
 
-  // Remove cloud adapter when user logs out
+  
   removeCloudAdapter(): void {
     this.cloudAdapter = null;
     if (this.currentWorkspaceId === 'cloud') {
-      this.currentWorkspaceId = null; // Switch back to default local
+      this.currentWorkspaceId = null; 
     }
     logger.info('AdapterManager: Cloud adapter removed');
   }
 
-  // Check if cloud is available
+  
   hasCloudAdapter(): boolean {
     return !!(this.cloudAdapter && this.cloudAdapter.isAuthenticated);
   }
 
-  // Cleanup
+  
   cleanup(): void {
     this.localAdapter?.cleanup();
     this.cloudAdapter?.cleanup();

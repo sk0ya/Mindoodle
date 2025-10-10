@@ -22,7 +22,7 @@ interface ErrorHandlerProviderProps {
   userId?: string;
 }
 
-// エラーの種類を判定する関数
+
 const getErrorType = (error: Error): 'network' | 'validation' | 'storage' | 'unknown' => {
   const message = error.message.toLowerCase();
   
@@ -39,7 +39,7 @@ const getErrorType = (error: Error): 'network' | 'validation' | 'storage' | 'unk
   return 'unknown';
 };
 
-// ユーザーフレンドリーなエラーメッセージを生成
+
 const generateUserFriendlyMessage = (error: Error, context?: string, action?: string): string => {
   const errorType = getErrorType(error);
   
@@ -58,7 +58,7 @@ const generateUserFriendlyMessage = (error: Error, context?: string, action?: st
   }
 };
 
-// エラーレポートの生成
+
 const generateErrorReport = (errorInfo: ErrorInfo): object => {
   return {
     timestamp: new Date().toISOString(),
@@ -84,15 +84,15 @@ export const ErrorHandlerProvider: React.FC<ErrorHandlerProviderProps> = ({ chil
       userId,
     };
 
-    // エラーレポートを生成してログに記録
+    
     const errorReport = generateErrorReport(errorInfo);
     logger.error('Application error occurred:', errorReport);
 
-    // ユーザーフレンドリーなメッセージを生成して通知
+    
     const userMessage = generateUserFriendlyMessage(error, context, action);
     showNotification('error', userMessage);
 
-    // 開発環境では詳細なデバッグ情報を出力
+    
     if (import.meta.env.DEV) {
       logger.debug('Error Details - Original error:', error);
       logger.debug('Error Details - Context:', context);
@@ -106,7 +106,7 @@ export const ErrorHandlerProvider: React.FC<ErrorHandlerProviderProps> = ({ chil
       return await promise;
     } catch (error) {
       handleError(error as Error, context, action);
-      throw error; // 呼び出し元で適切に処理できるように再スロー
+      throw error; 
     }
   }, [handleError]);
 
@@ -125,9 +125,9 @@ export const useErrorHandler = (): ErrorHandlerContextType => {
   return context;
 };
 
-// グローバルエラーハンドラーの設定
+
 export const setupGlobalErrorHandlers = (handleError: (error: Error, context?: string, action?: string) => void) => {
-  // 未処理のPromiseエラーをキャッチ
+  
   window.addEventListener('unhandledrejection', (event) => {
     logger.error('Unhandled promise rejection:', event.reason);
     handleError(
@@ -135,10 +135,10 @@ export const setupGlobalErrorHandlers = (handleError: (error: Error, context?: s
       'Global',
       'Promise rejection'
     );
-    event.preventDefault(); // デフォルトのエラー表示を防ぐ
+    event.preventDefault(); 
   });
 
-  // JavaScriptエラーをキャッチ
+  
   window.addEventListener('error', (event) => {
     const errorMessage = event.error?.message || event.message || '';
     const errorStack = event.error?.stack || '';

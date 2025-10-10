@@ -9,17 +9,17 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
   const { state: status } = useStatusBar();
   const unifiedInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus input when entering search or command mode
+  
   useEffect(() => {
     if ((vim.mode === 'search' || vim.mode === 'command') && unifiedInputRef.current) {
       unifiedInputRef.current.focus();
     }
   }, [vim.mode]);
 
-  // Handle unified input for both search and command modes
+  
   const handleInputChange = (value: string) => {
     if (value.length === 0) {
-      // Empty input - return to normal mode
+      
       if (vim.mode === 'search') {
         vim.exitSearch();
       } else if (vim.mode === 'command') {
@@ -32,13 +32,13 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
     const content = value.slice(1);
 
     if (firstChar === '/') {
-      // Search mode
+      
       if (vim.mode !== 'search') {
         vim.startSearch();
       }
       vim.updateSearchQuery(content);
     } else if (firstChar === ':') {
-      // Command mode
+      
       if (vim.mode !== 'command') {
         vim.startCommandLine();
       }
@@ -77,7 +77,7 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
       return;
     }
 
-    // Handle backspace on first character (mode prefix)
+    
     if (e.key === 'Backspace' && value.length === 1) {
       e.preventDefault();
       if (vim.mode === 'search') {
@@ -89,7 +89,7 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
     }
   };
 
-  // Get current input value based on mode
+  
   const getInputValue = () => {
     if (vim.mode === 'search') {
       return '/' + vim.searchQuery;
@@ -102,19 +102,19 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
   const getModeColor = () => {
     switch (vim.mode) {
       case 'normal':
-        return '#6366f1'; // Indigo
+        return '#6366f1'; 
       case 'insert':
-        return '#10b981'; // Green
+        return '#10b981'; 
       case 'visual':
-        return '#f59e0b'; // Amber
+        return '#f59e0b'; 
       case 'command':
-        return '#ef4444'; // Red
+        return '#ef4444'; 
       case 'search':
-        return '#8b5cf6'; // Purple
+        return '#8b5cf6'; 
       case 'jumpy':
-        return '#f97316'; // Orange
+        return '#f97316'; 
       default:
-        return '#6b7280'; // Gray
+        return '#6b7280'; 
     }
   };
 
@@ -308,8 +308,7 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
         .vim-status-message.info { color: #3b82f6; }
         .vim-status-message.neutral { color: var(--text-secondary); }
 
-        /* Do not add extra body padding; scrolling logic already accounts for 24px */
-      `}</style>
+              `}</style>
     </div>
   );
 };

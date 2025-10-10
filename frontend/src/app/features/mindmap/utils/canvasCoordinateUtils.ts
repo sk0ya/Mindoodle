@@ -1,7 +1,4 @@
-/**
- * Canvas coordinate conversion utilities
- * Handles conversion between screen coordinates and SVG coordinates
- */
+
 
 export interface CanvasCoordinates {
   svgX: number;
@@ -15,9 +12,7 @@ export interface ViewportTransform {
   pan: { x: number; y: number };
 }
 
-/**
- * Convert screen coordinates to SVG coordinates
- */
+
 export const convertScreenToSVG = (
   screenX: number,
   screenY: number,
@@ -34,9 +29,7 @@ export const convertScreenToSVG = (
   return { svgX, svgY };
 };
 
-/**
- * Convert SVG coordinates to screen coordinates
- */
+
 export const convertSVGToScreen = (
   svgX: number,
   svgY: number,
@@ -53,9 +46,7 @@ export const convertSVGToScreen = (
   return { screenX, screenY };
 };
 
-/**
- * Calculate distance between two points
- */
+
 export const calculateDistance = (
   x1: number,
   y1: number,
@@ -65,9 +56,7 @@ export const calculateDistance = (
   return Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
 };
 
-/**
- * Check if element is a node element (for click detection)
- */
+
 export const isNodeElement = (target: Element): boolean => {
   return target.tagName === 'rect' ||
          target.tagName === 'circle' ||
@@ -76,9 +65,7 @@ export const isNodeElement = (target: Element): boolean => {
 };
 
 
-/**
- * Extract client coordinates from mouse or touch event
- */
+
 export const getClientCoordinates = (
   e: React.MouseEvent | React.TouchEvent | MouseEvent | TouchEvent
 ): { clientX: number; clientY: number } => {

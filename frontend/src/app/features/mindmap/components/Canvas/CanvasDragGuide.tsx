@@ -30,21 +30,21 @@ const CanvasDragGuide: React.FC<CanvasDragGuideProps> = ({
     return null;
   }
 
-  // 操作タイプによる色とスタイルの決定
+  
   const getActionStyle = () => {
     if (dragState.dropAction === 'reorder-sibling') {
       return {
-        color: '#2196f3', // 青色：兄弟順序変更
+        color: '#2196f3', 
         label: dragState.dropPosition === 'before' ? '前に移動' : '後に移動'
       };
     } else if (dragState.dropAction === 'move-parent') {
       return {
-        color: '#4caf50', // 緑色：親変更
+        color: '#4caf50', 
         label: '子要素として移動'
       };
     } else {
       return {
-        color: '#ff9800', // オレンジ色：デフォルト
+        color: '#ff9800', 
         label: ''
       };
     }
@@ -105,9 +105,9 @@ const CanvasDragGuide: React.FC<CanvasDragGuideProps> = ({
             opacity="0.8"
           />
           
-          {/* ターゲットノードの強調 */}
+          {}
           {dragState.dropAction === 'reorder-sibling' ? (
-            // 兄弟順序変更の場合：挿入位置を示すライン
+            
             <line
               x1={targetNode.x - 30}
               y1={targetNode.y + (dragState.dropPosition === 'before' ? -20 : 20)}
@@ -118,7 +118,7 @@ const CanvasDragGuide: React.FC<CanvasDragGuideProps> = ({
               opacity="0.8"
             />
           ) : (
-            // 親変更の場合：円で囲む
+            
             <circle
               cx={targetNode.x}
               cy={targetNode.y}
@@ -131,7 +131,7 @@ const CanvasDragGuide: React.FC<CanvasDragGuideProps> = ({
             />
           )}
           
-          {/* 操作タイプのラベル */}
+          {}
           {actionStyle.label && (
             <text
               x={(draggedNode.x + targetNode.x) / 2}

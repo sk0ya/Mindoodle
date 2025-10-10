@@ -1,12 +1,8 @@
-/**
- * EmbeddingWorker - Transformers.jsを使ったテキストベクトル化
- *
- * Web Workerで動作し、メインスレッドをブロックせずにベクトル化を実行します。
- */
+
 
 import { pipeline, env, type FeatureExtractionPipeline } from '@xenova/transformers';
 
-// Transformers.js設定
+
 env.allowLocalModels = false;
 env.useBrowserCache = true;
 
@@ -31,7 +27,7 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
   try {
     switch (type) {
       case 'init': {
-        // モデルロード（初回のみ）
+        
         embedder = await pipeline(
           'feature-extraction',
           'Xenova/multilingual-e5-small',
@@ -60,13 +56,13 @@ self.onmessage = async (e: MessageEvent<WorkerMessage>) => {
           throw new Error('Missing text or filePath');
         }
 
-        // ベクトル化実行
+        
         const output = await embedder(data.text, {
           pooling: 'mean',
           normalize: true,
         });
 
-        // Float32ArrayをArrayに変換（postMessage用）
+        
         const vector = Array.from(output.data as Float32Array);
 
         const response: WorkerResponse = {

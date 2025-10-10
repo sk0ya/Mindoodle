@@ -1,11 +1,7 @@
-/**
- * Data Types - データ構造の型定義
- * MindMapに関連するデータ構造を定義
- */
 
 import type { Position } from './base.types';
 
-// Map Identifier types
+
 export interface MapIdentifier {
   mapId: string;
   workspaceId: string;
@@ -19,13 +15,13 @@ export interface FileAttachment {
   isImage: boolean;
   createdAt: string;
 
-  // Data storage (for local mode)
-  data?: string; // Base64 encoded data
-  dataURL?: string; // For backward compatibility
+  
+  data?: string; 
+  dataURL?: string; 
 
   downloadUrl?: string;
 
-  // Common optimization fields
+  
   isOptimized?: boolean;
   originalSize?: number;
   optimizedSize?: number;
@@ -35,7 +31,7 @@ export interface FileAttachment {
   nodeId?: string;
 }
 
-// Node link interface
+
 export interface NodeLink {
   id: string;
   title?: string;
@@ -48,7 +44,7 @@ export interface NodeLink {
   targetAnchor?: string;
 }
 
-// Markdown metadata interface
+
 export interface MarkdownMeta {
   filePath?: string;
   lineNumber?: number;
@@ -62,7 +58,7 @@ export interface MarkdownMeta {
   isChecked?: boolean;
 }
 
-// MindMap Node interface
+
 export interface MindMapNode {
   id: string;
   text: string;
@@ -80,26 +76,26 @@ export interface MindMapNode {
   note?: string;
   customImageWidth?: number;
   customImageHeight?: number;
-  // Node kind: default is text. 'table' nodes render a table as the node itself and cannot have children
+  
   kind?: 'text' | 'table';
   tableData?: {
     headers?: string[];
     rows: string[][];
   };
-  // Line ending preference for markdown export (inherited from parent or detected from source)
+  
   lineEnding?: string;
 }
 
-// MindMap Settings interface
+
 export interface MindMapSettings {
   autoSave: boolean;
   autoLayout: boolean;
   showGrid: boolean;
   animationEnabled: boolean;
-  defaultCollapseDepth?: number; // デフォルトで折りたたむ階層の深さ (0=折りたたまない, 1=1階層目から, 2=2階層目から)
+  defaultCollapseDepth?: number; 
 }
 
-// MindMap Data interface
+
 export interface MindMapData {
   title: string;
   category?: string;
@@ -110,7 +106,7 @@ export interface MindMapData {
   settings: MindMapSettings;
 }
 
-// Service dependency interfaces
+
 export interface MindMapHookDependency {
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   addChildNode: (parentId: string, text: string, options?: Partial<MindMapNode>) => string | undefined;
@@ -137,6 +133,6 @@ export interface UIStateDependency {
   handleShowNodeMapLinks: (node: MindMapNode, position: Position) => void;
 }
 
-// Default workspace ID constant
+
 export const DEFAULT_WORKSPACE_ID = '__default__';
 

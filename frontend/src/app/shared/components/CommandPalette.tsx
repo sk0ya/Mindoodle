@@ -1,7 +1,4 @@
-/**
- * Command Palette Modal Component
- * A searchable command palette that can be opened with Ctrl+P
- */
+
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { Search } from 'lucide-react';
@@ -16,7 +13,7 @@ interface CommandPaletteProps {
   onClose: () => void;
   onExecuteCommand: (commandName: string, args?: Record<string, any>) => void;
   onSelectMap?: (mapId: { mapId: string; workspaceId: string }) => void;
-  storageAdapter?: any; // Storage adapter to load all maps
+  storageAdapter?: any; 
 }
 
 
@@ -56,7 +53,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  // Load all maps from storage when component opens
+  
   useEffect(() => {
     if (isOpen && !mapsLoading && loadedMaps.length === 0) {
       setMapsLoading(true);
@@ -69,7 +66,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           }
         } catch (error) {
           console.warn('Failed to load maps from storage:', error);
-          // Fallback to provided allMaps if available
+          
           setLoadedMaps([]);
         } finally {
           setMapsLoading(false);
@@ -79,18 +76,18 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [isOpen, mapsLoading, loadedMaps.length, storageAdapter]);
 
-  // Get all commands and maps combined
+  
   const allItems = useMemo(() => {
     const registry = getCommandRegistry();
 
-    // Only register commands if registry is empty (to avoid duplicate registration)
+    
     if (registry.getAll().length === 0) {
       registerAllCommands(registry);
     }
 
     const commands = registry.getAll();
 
-    // コマンドアイテムを作成
+    
     const commandItems: CombinedItem[] = commands.map(command => ({
       type: 'command' as const,
       displayName: command.name,
@@ -99,12 +96,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       command,
     }));
 
-    // Use loadedMaps from storage
+    
     const mapsToUse = loadedMaps;
 
-    // マップアイテムを作成
+    
     const mapItems: CombinedItem[] = mapsToUse.map(map => {
-      // Handle MindMapData format from storage
+      
       const mapIdentifier = map.mapIdentifier;
       const title = map.title || 'Untitled Map';
       const category = map.category || '';
@@ -133,13 +130,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       };
     });
 
-    // マップを先に、コマンドを後に配置
+    
     return [...mapItems, ...commandItems];
   }, [loadedMaps]);
 
-  // Filter items based on filter mode and search query
+  
   const filteredItems = useMemo(() => {
-    // First, filter by mode
+    
     let itemsToFilter = allItems;
     switch (filterMode) {
       case 'commands':
@@ -154,7 +151,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         break;
     }
 
-    // Then filter by search query
+    
     if (!searchQuery.trim()) {
       return itemsToFilter;
     }
@@ -162,10 +159,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     const lowerQuery = searchQuery.toLowerCase();
 
     return itemsToFilter.filter(item => {
-      // Search only in display name for both commands and maps
+      
       const displayNameMatch = item.displayName.toLowerCase().includes(lowerQuery);
 
-      // For maps, also search in folder path
+      
       if (item.type === 'map' && item.mapData) {
         const pathMatch = item.mapData.folderPath.toLowerCase().includes(lowerQuery);
         return displayNameMatch || pathMatch;
@@ -175,12 +172,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     });
   }, [searchQuery, allItems, filterMode]);
 
-  // Reset selection when filtered items change
+  
   useEffect(() => {
     setSelectedIndex(0);
   }, [filteredItems]);
 
-  // Reset state when modal opens/closes
+  
   useEffect(() => {
     if (isOpen && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -188,13 +185,13 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       setSelectedIndex(0);
       setFilterMode('all');
     } else if (!isOpen) {
-      // Reset loaded maps when closing to ensure fresh data next time
+      
       setLoadedMaps([]);
       setMapsLoading(false);
     }
   }, [isOpen]);
 
-  // Cycle through filter modes
+  
   const cycleFilterMode = useCallback(() => {
     setFilterMode(prev => {
       switch (prev) {
@@ -204,10 +201,10 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         default: return 'all';
       }
     });
-    setSelectedIndex(0); // Reset selection when changing modes
+    setSelectedIndex(0); 
   }, []);
 
-  // Handle keyboard navigation
+  
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isOpen) return;
 
@@ -247,7 +244,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [isOpen, onClose, filteredItems, selectedIndex, cycleFilterMode]);
 
-  // Handle item selection (command or map)
+  
   const handleSelectItem = useCallback((item: CombinedItem) => {
     if (item.type === 'command' && item.command) {
       onExecuteCommand(item.command.name);
@@ -260,20 +257,20 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     onClose();
   }, [onExecuteCommand, onSelectMap, onClose]);
 
-  // Scroll selected item into view
+  
   useEffect(() => {
     if (listRef.current) {
       const selectedElement = listRef.current.children[selectedIndex] as HTMLElement;
       if (selectedElement) {
         selectedElement.scrollIntoView({
           block: 'nearest',
-          behavior: 'auto', // Remove smooth animation for faster response
+          behavior: 'auto', 
         });
       }
     }
   }, [selectedIndex]);
 
-  // Handle click outside to close
+  
   const handleOverlayClick = useCallback((e: React.MouseEvent) => {
     if (e.target === e.currentTarget) {
       onClose();
@@ -316,7 +313,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Filter Tabs - Fixed position */}
+        {}
         <div style={{
           display: 'inline-flex',
           borderBottom: '1px solid var(--vscode-quickInput-border, #464647)',
@@ -366,7 +363,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           ))}
         </div>
 
-        {/* Search Input - Fixed position */}
+        {}
         <div style={{
           padding: '12px 16px',
           borderBottom: '1px solid var(--vscode-quickInput-border, #464647)',
@@ -396,7 +393,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
               fontFamily: 'var(--vscode-font-family, "Segoe UI", Tahoma, sans-serif)',
             }}
           />
-          {/* Ctrl+P Hint */}
+          {}
           <div style={{
             fontSize: '11px',
             color: 'var(--vscode-descriptionForeground, #999999)',
@@ -407,7 +404,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
           </div>
         </div>
 
-        {/* Commands List - Scrollable area only */}
+        {}
         <div
           ref={listRef}
           style={{
@@ -490,7 +487,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                 }}>
                   {item.description}
                 </div>
-                {/* Show aliases for commands */}
+                {}
                 {item.type === 'command' && item.command?.aliases && item.command.aliases.length > 0 && (
                   <div style={{
                     fontSize: '10px',
@@ -500,7 +497,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                     {item.command.aliases.join(', ')}
                   </div>
                 )}
-                {/* Show folder info for maps */}
+                {}
                 {item.type === 'map' && item.mapData?.folderPath && item.mapData.folderPath !== '（未分類）' && (
                   <div style={{
                     fontSize: '10px',

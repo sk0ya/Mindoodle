@@ -37,10 +37,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onEditTable,
   onClose
 }) => {
-  // メニュー外クリックで閉じる
+  
   const menuRef = useClickOutside<HTMLDivElement>(onClose, visible);
 
-  // ESCキーで閉じる
+  
   const handleKeyDown = useCallback((event: KeyboardEvent) => {
     if (event.key === 'Escape') {
       onClose();

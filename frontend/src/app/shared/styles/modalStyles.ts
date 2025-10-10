@@ -1,8 +1,6 @@
-/**
- * 共通モーダルスタイル定数
- */
 
-// モーダルオーバーレイ
+
+
 export const modalOverlay = {
   position: 'fixed' as const,
   top: 0,
@@ -16,7 +14,7 @@ export const modalOverlay = {
   zIndex: 1000,
 };
 
-// モーダルコンテナ
+
 export const modalContainer = {
   backgroundColor: 'white',
   borderRadius: '12px',
@@ -28,7 +26,7 @@ export const modalContainer = {
   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
 };
 
-// ヘッダー関連
+
 export const modalHeader = {
   display: 'flex',
   alignItems: 'center',
@@ -65,7 +63,7 @@ export const modalCloseButton = {
   lineHeight: 1,
 };
 
-// フォーム関連
+
 export const formGroup = {
   marginBottom: '16px',
 };
@@ -108,7 +106,7 @@ export const inputIcon = {
   color: '#6b7280',
 };
 
-// ボタン関連
+
 export const buttonGroup = {
   display: 'flex',
   gap: '12px',
@@ -155,7 +153,7 @@ export const secondaryButtonHover = {
   borderColor: '#9ca3af',
 };
 
-// リンクボタン
+
 export const linkButton = {
   background: 'none',
   border: 'none',
@@ -165,7 +163,7 @@ export const linkButton = {
   fontSize: '14px',
 };
 
-// メッセージ表示
+
 export const errorMessage = {
   color: '#ef4444',
   fontSize: '14px',
@@ -180,7 +178,7 @@ export const successMessage = {
   marginTop: '8px',
 };
 
-// ユーティリティ
+
 export const textCenter = {
   textAlign: 'center' as const,
 };

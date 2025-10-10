@@ -1,8 +1,6 @@
 import React from 'react';
 
-/**
- * テキスト内の検索語をハイライト表示するユーティリティ
- */
+
 export const highlightSearchTerm = (text: string, searchTerm: string): React.ReactNode => {
   if (!searchTerm.trim()) {
     return text;

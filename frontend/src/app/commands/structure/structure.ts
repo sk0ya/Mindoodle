@@ -1,12 +1,8 @@
-/**
- * Structure Commands
- * Commands for creating and manipulating node structure
- */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { statusMessages } from '@shared/utils';
 
-// Add child node command (vim Tab/o)
+
 export const addChildCommand: Command = {
   name: 'add-child',
   aliases: ['child', 'tab'],
@@ -85,7 +81,7 @@ export const addChildCommand: Command = {
   }
 };
 
-// Add sibling node command (vim Enter)
+
 export const addSiblingCommand: Command = {
   name: 'add-sibling',
   aliases: ['sibling', 'enter'],
@@ -164,7 +160,7 @@ export const addSiblingCommand: Command = {
   }
 };
 
-// Convert heading to list command (vim m)
+
 export const convertNodeCommand: Command = {
   name: 'convert',
   aliases: ['m', 'convert-type'],
@@ -214,7 +210,7 @@ export const convertNodeCommand: Command = {
       };
     }
 
-    // Check if onMarkdownNodeType handler is available
+    
     if (!context.handlers.onMarkdownNodeType) {
       const errorMessage = 'ノード型変換機能が利用できません';
       statusMessages.customError(errorMessage);
@@ -224,11 +220,11 @@ export const convertNodeCommand: Command = {
       };
     }
 
-    // For vim 'm' behavior (no explicit type):
-    // - heading -> unordered-list
-    // - ordered-list -> unordered-list (番号付き → 箇条書き)
-    // - unordered-list -> heading
-    // - unknown -> unordered-list
+    
+    
+    
+    
+    
     if (!args.type) {
       const currentType = node.markdownMeta?.type;
       if (currentType === 'heading') {
@@ -259,7 +255,7 @@ export const convertNodeCommand: Command = {
   }
 };
 
-// Move selected node as child of its previous sibling command (vim >>)
+
 export const moveAsChildOfSiblingCommand: Command = {
   name: 'move-as-child-of-sibling',
   aliases: ['>>'],
@@ -297,7 +293,7 @@ export const moveAsChildOfSiblingCommand: Command = {
     }
 
     try {
-      // Get the parent node using findParentNode if available
+      
       if (!context.handlers.findParentNode) {
         return {
           success: false,
@@ -325,7 +321,7 @@ export const moveAsChildOfSiblingCommand: Command = {
 
       const previousSibling = siblings[currentIndex - 1];
       
-      // Use the moveNode function to move the node
+      
       if (!context.handlers.moveNode) {
         return {
           success: false,
@@ -347,7 +343,7 @@ export const moveAsChildOfSiblingCommand: Command = {
     }
   }
 };
-// Move selected node as next sibling of its parent command (vim <<)
+
 export const moveAsNextSiblingOfParentCommand: Command = {
   name: 'move-as-next-sibling-of-parent',
   aliases: ['<<'],
@@ -385,7 +381,7 @@ export const moveAsNextSiblingOfParentCommand: Command = {
     }
 
     try {
-      // Get the parent node using findParentNode if available
+      
       if (!context.handlers.findParentNode) {
         return {
           success: false,
@@ -401,7 +397,7 @@ export const moveAsNextSiblingOfParentCommand: Command = {
         };
       }
 
-      // Use moveNodeWithPosition to position the node as 'after' its parent
+      
       if (!context.handlers.moveNodeWithPosition) {
         return {
           success: false,

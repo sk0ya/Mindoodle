@@ -1,9 +1,4 @@
-/**
- * useMindMapLinks
- *
- * Handles link-related operations for MindMap nodes.
- * Extracted from MindMapApp.tsx to reduce component complexity.
- */
+
 
 import { useStableCallback } from '@shared/hooks';
 import { findNodeById, findNodeInRoots } from '@mindmap/utils';
@@ -33,24 +28,18 @@ export function useMindMapLinks(params: UseMindMapLinksParams) {
     handleError,
   } = params;
 
-  /**
-   * Open link modal for adding a new link
-   */
+  
   const handleAddLink = useStableCallback((nodeId: string) => {
     onOpenModal(null, nodeId);
   });
 
-  /**
-   * Open link modal for editing an existing link
-   */
+  
   const handleEditLink = useStableCallback((link: NodeLink, nodeId: string) => {
     logger.debug('handleEditLink', { link, nodeId });
     onOpenModal(link, nodeId);
   });
 
-  /**
-   * Save link to node's note field
-   */
+  
   const handleSaveLink = useStableCallback(async (linkData: Partial<NodeLink>, nodeId: string) => {
     if (!nodeId || !data) return;
 
@@ -126,9 +115,7 @@ export function useMindMapLinks(params: UseMindMapLinksParams) {
     }
   });
 
-  /**
-   * Delete link from node
-   */
+  
   const handleDeleteLink = useStableCallback(async (nodeId: string, linkId: string) => {
     if (!nodeId) return;
 

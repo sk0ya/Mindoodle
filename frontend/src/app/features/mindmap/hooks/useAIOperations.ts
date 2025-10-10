@@ -11,9 +11,7 @@ export interface AIOperationsParams {
   onComplete?: () => void;
 }
 
-/**
- * Hook for AI-powered operations (child node generation, etc.)
- */
+
 export function useAIOperations({
   ai,
   addNode,
@@ -21,17 +19,15 @@ export function useAIOperations({
   onComplete,
 }: AIOperationsParams) {
 
-  /**
-   * Generate child nodes using AI based on parent node content
-   */
+  
   const handleAIGenerate = useStableCallback(async (node: MindMapNode) => {
-    // 生成開始の通知
+    
     showNotification('info', 'AI子ノード生成中... 🤖');
 
     try {
       const childTexts = await ai.generateChildNodes(node);
 
-      // Generate child nodes based on AI suggestions
+      
       childTexts.forEach(text => {
         addNode(node.id, text.trim());
       });

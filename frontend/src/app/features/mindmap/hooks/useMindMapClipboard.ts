@@ -16,9 +16,7 @@ export interface ClipboardOperationsParams {
   refreshMapList: () => Promise<void>;
 }
 
-/**
- * Hook for handling clipboard operations (paste image, paste node)
- */
+
 export function useMindMapClipboard({
   data,
   clipboard,
@@ -31,32 +29,30 @@ export function useMindMapClipboard({
   refreshMapList,
 }: ClipboardOperationsParams) {
 
-  /**
-   * Paste image from clipboard to a node
-   */
+  
   const pasteImageFromClipboard = useStableCallback(async (nodeId?: string, fileOverride?: File) => {
     try {
-      // Use provided nodeId or currently selected node
+      
       const targetNodeId = nodeId || selectedNodeId;
       if (!targetNodeId) {
         showNotification('warning', '画像を貼り付けるノードを選択してください');
         return;
       }
 
-      // Check if storage adapter is available
+      
       if (!storageAdapter) {
         showNotification('error', 'ストレージが初期化されていません');
         return;
       }
 
-      // Find the target node
+      
       const targetNode = findNodeInRoots(data?.rootNodes || [], targetNodeId);
       if (!targetNode) {
         showNotification('error', 'ノードが見つかりません');
         return;
       }
 
-      // Save image and get relative path
+      
       const imagePath = await imagePasteService.pasteImageToNode(
         targetNodeId,
         storageAdapter,
@@ -65,7 +61,7 @@ export function useMindMapClipboard({
         fileOverride
       );
 
-      // Add image markdown to the end of the node's note
+      
       const currentNote = targetNode.note || '';
       const imageMarkdown = `![](${imagePath})`;
       const newNote = currentNote
@@ -86,9 +82,7 @@ export function useMindMapClipboard({
     }
   });
 
-  /**
-   * Paste node from clipboard
-   */
+  
   const pasteNodeFromClipboard = useStableCallback(async (parentId: string) => {
     const { pasteFromClipboard } = await import('../utils/clipboardPaste');
     await pasteFromClipboard(

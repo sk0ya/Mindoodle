@@ -4,9 +4,7 @@ import { getOllamaService } from '../services/ollamaService';
 import { logger } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
 
-/**
- * AI機能を管理するカスタムフック
- */
+
 export function useAI() {
   const store = useMindMapStore();
   const {
@@ -20,9 +18,7 @@ export function useAI() {
     toggleAIEnabled,
   } = store;
   
-  /**
-   * Ollamaサーバーの接続をテストする
-   */
+  
   const testConnection = useCallback(async (): Promise<{ success: boolean; error?: string }> => {
     try {
       const service = getOllamaService(aiSettings.ollamaUrl);
@@ -36,9 +32,7 @@ export function useAI() {
     }
   }, [aiSettings.ollamaUrl]);
   
-  /**
-   * 利用可能なモデル一覧を取得する
-   */
+  
   const getAvailableModels = useCallback(async (): Promise<string[]> => {
     try {
       const service = getOllamaService(aiSettings.ollamaUrl);
@@ -50,9 +44,7 @@ export function useAI() {
     }
   }, [aiSettings.ollamaUrl, setGenerationError]);
   
-  /**
-   * 子ノードを生成する
-   */
+  
   const generateChildNodes = useCallback(async (
     parentNode: MindMapNode,
     contextNodes?: MindMapNode[]
@@ -71,13 +63,13 @@ export function useAI() {
         contextCount: contextNodes?.length || 0
       });
       
-      // コンテキストを作成
+      
       let context = parentNode.text;
       if (contextNodes && contextNodes.length > 0) {
         const contextTexts = contextNodes
           .map(node => node.text)
           .filter(text => text && text !== parentNode.text)
-          .slice(0, 3); // 最大3つのコンテキストノード
+          .slice(0, 3); 
         
         if (contextTexts.length > 0) {
           context += `\n\n関連するトピック: ${contextTexts.join(', ')}`;
@@ -108,9 +100,7 @@ export function useAI() {
     }
   }, [aiSettings, setIsGenerating, setGenerationError]);
   
-  /**
-   * カスタムプロンプトでテキストを生成する
-   */
+  
   const generateText = useCallback(async (
     prompt: string,
     systemPrompt?: string
@@ -146,9 +136,7 @@ export function useAI() {
     }
   }, [aiSettings, setIsGenerating, setGenerationError]);
   
-  /**
-   * 設定の妥当性をチェックする
-   */
+  
   const validateSettings = useCallback((): { isValid: boolean; errors: string[] } => {
     const errors: string[] = [];
     
@@ -189,24 +177,24 @@ export function useAI() {
   }, [aiSettings]);
   
   return {
-    // 設定
+    
     aiSettings,
     updateAISettings,
     resetAISettings,
     toggleAIEnabled,
     
-    // 状態
+    
     isGenerating,
     generationError,
     
-    // 機能
+    
     testConnection,
     getAvailableModels,
     generateChildNodes,
     generateText,
     validateSettings,
     
-    // ユーティリティ
+    
     clearError: () => setGenerationError(null),
   };
 }

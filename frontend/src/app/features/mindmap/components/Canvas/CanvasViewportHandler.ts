@@ -22,13 +22,13 @@ export const useCanvasViewportHandler = ({
   isDragging = false
 }: CanvasViewportHandlerProps) => {
   const isPanningRef = useRef(false);
-  const isPanReadyRef = useRef(false); // パン準備状態（マウスダウン済み）
+  const isPanReadyRef = useRef(false); 
   const lastPanPointRef = useRef({ x: 0, y: 0 });
-  // Throttle pan updates with requestAnimationFrame
+  
   const rafIdRef = useRef<number | null>(null);
   const accumDeltaRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
 
-  // ズーム処理
+  
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     
@@ -39,9 +39,9 @@ export const useCanvasViewportHandler = ({
     }
   }, [zoom, setZoom, svgRef]);
 
-  // パン開始処理
+  
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    // ノード要素（rect, circle, foreignObject）以外をクリックした場合にパンを開始
+    
     const target = e.target as Element;
     const isNode = isNodeElement(target);
 
@@ -52,24 +52,24 @@ export const useCanvasViewportHandler = ({
     }
   }, []);
 
-  // パン移動処理
+  
   const handleMouseMove = useCallback((e: MouseEvent) => {
-    // パン準備状態で、ドラッグ中でない場合にパン開始
+    
     if (isPanReadyRef.current && !isDragging) {
       const deltaX = e.clientX - lastPanPointRef.current.x;
       const deltaY = e.clientY - lastPanPointRef.current.y;
       
-      // 小さな移動は無視してパフォーマンスを改善
+      
       if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
         return;
       }
       
-      // 実際に動いた時点でパン状態をtrueに
+      
       if (!isPanningRef.current) {
         isPanningRef.current = true;
       }
       
-      // Accumulate deltas and schedule a single update per frame
+      
       accumDeltaRef.current.dx += deltaX / (zoom * 1.5);
       accumDeltaRef.current.dy += deltaY / (zoom * 1.5);
 
@@ -86,9 +86,9 @@ export const useCanvasViewportHandler = ({
     }
   }, [isDragging, zoom, setPan]);
 
-  // パン終了処理
+  
   const handleMouseUp = useCallback(() => {
-    // ドラッグ中でない場合のみパン終了
+    
     if (!isDragging) {
       isPanningRef.current = false;
       isPanReadyRef.current = false;
@@ -100,7 +100,7 @@ export const useCanvasViewportHandler = ({
     }
   }, [isDragging]);
 
-  // マウスイベントの登録・解除
+  
   useEffect(() => {
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
@@ -111,14 +111,14 @@ export const useCanvasViewportHandler = ({
     };
   }, [handleMouseMove, handleMouseUp]);
 
-  // カーソル状態を取得
+  
   const getCursor = useCallback(() => {
     if (isPanningRef.current) return 'grabbing';
     if (isDragging) return 'grabbing';
     return 'grab';
   }, [isDragging]);
 
-  // isPanningの現在値を取得する関数
+  
   const getIsPanning = useCallback(() => {
     return isPanningRef.current;
   }, []);

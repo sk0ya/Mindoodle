@@ -1,4 +1,4 @@
-// moved to layout/overlay
+
 import React from 'react';
 import NodeLinkModal from '../../modals/NodeLinkModal';
 import LinkActionMenu from '../../modals/LinkActionMenu';
@@ -6,11 +6,11 @@ import type { NodeLink, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 
 type Props = {
-  // data
+  
   allMaps: Array<{ mapIdentifier: { mapId: string; workspaceId: string }; title: string }>;
   currentMapData: any;
 
-  // modal state
+  
   showLinkModal: boolean;
   linkModalNodeId: string | null;
   editingLink: NodeLink | null;
@@ -18,10 +18,10 @@ type Props = {
   onSaveLink: (linkData: Partial<NodeLink>) => Promise<void> | void;
   onDeleteLink: (linkId: string) => Promise<void> | void;
   onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<any>;
-  // explorer tree provider
+  
   loadExplorerTree?: () => Promise<ExplorerItem | null>;
 
-  // action menu state
+  
   showLinkActionMenu: boolean;
   linkActionMenuData: { link: NodeLink; position: { x: number; y: number } } | null;
   onCloseLinkActionMenu: () => void;

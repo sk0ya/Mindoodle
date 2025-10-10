@@ -6,21 +6,21 @@ import type { UISlice } from './uiSlice';
 import type { UIState } from '@shared/types/ui.types';
 import type { DataState as NodeDataState } from '@shared/types/nodeTypes';
 
-// Re-export for backward compatibility
+
 export type { UIState };
 
-// History State types
+
 export interface HistoryState {
   history: MindMapData[];
   historyIndex: number;
 }
 
-// Combined Store Interface
+
 export interface MindMapStore extends NodeDataState, HistoryState, AISlice, SettingsSlice, UISlice {
   normalizedData: NormalizedData | null;
   ui: UIState;
   
-  // Data Actions
+  
   setData: (data: MindMapData) => void;
   setRootNodes: (rootNodes: MindMapNode[]) => void;
   updateMapMetadata?: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => void;
@@ -34,16 +34,16 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   toggleNodeCollapse: (nodeId: string) => void;
  toggleNodeCheckbox: (nodeId: string, isChecked: boolean) => void;
   
-  // Link operations
+  
   addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) => void;
   updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) => void;
   deleteNodeLink: (nodeId: string, linkId: string) => void;
   
-  // Node operations (O(1) with normalized data)
+  
   findNode: (nodeId: string) => MindMapNode | null;
   getChildNodes: (nodeId: string) => MindMapNode[];
   
-  // Selection & Editing
+  
   selectNode: (nodeId: string | null) => void;
   startEditing: (nodeId: string) => void;
   startEditingWithCursorAtEnd: (nodeId: string) => void;
@@ -52,7 +52,7 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   cancelEditing: () => void;
   setEditText: (text: string) => void;
   
-  // History Actions
+  
   undo: () => void;
   redo: () => void;
   canUndo: () => boolean;
@@ -63,13 +63,13 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   beginHistoryGroup?: (label?: string) => void;
   endHistoryGroup?: (commit?: boolean) => void;
   
-  // Utility
+  
   updateNormalizedData: () => void;
   syncToMindMapData: () => void;
   applyAutoLayout: (immediate?: boolean) => void;
   clearMermaidRelatedCaches: () => void;
   
-  // UI Actions
+  
   setZoom: (zoom: number) => void;
   setPan: (pan: Position) => void;
   resetZoom: () => void;
@@ -95,7 +95,7 @@ export interface MindMapStore extends NodeDataState, HistoryState, AISlice, Sett
   setShowFileActionMenu: (show: boolean) => void;
   setClipboard: (node: MindMapNode | null) => void;
   
-  // Icon-triggered displays
+  
   setShowLinkListForNode: (nodeId: string | null) => void;
   toggleLinkListForNode: (nodeId: string) => void;
   

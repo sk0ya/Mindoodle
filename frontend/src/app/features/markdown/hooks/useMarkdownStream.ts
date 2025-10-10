@@ -33,7 +33,7 @@ export const useMarkdownStream = (
     stream.replaceSinks([localSink]);
   }, [adapter, id]);
 
-  // Load initial markdown for this map
+  
   useEffect(() => {
     let cancelled = false;
     const lastLoadedRef = { value: '' };
@@ -44,7 +44,7 @@ export const useMarkdownStream = (
         if (typeof (adapter as any).getMapMarkdown === 'function') {
           const text: string | null = await (adapter as any).getMapMarkdown(id);
           if (!cancelled && typeof text === 'string') {
-            // Only set if content actually changed
+            
             if (text !== lastLoadedRef.value) {
               lastLoadedRef.value = text;
               stream.setMarkdown(text, 'external');
@@ -52,14 +52,14 @@ export const useMarkdownStream = (
           }
         }
       } catch {
-        // ignore
+        
       }
     };
     void load();
     return () => { cancelled = true; };
   }, [adapter, id]);
 
-  // Stabilize function references to prevent infinite re-subscriptions
+  
   const setFromEditor = useCallback((text: string) => stream.setMarkdown(text, 'editor' as MarkdownSource), [stream]);
   const setFromNodes = useCallback((text: string) => stream.setMarkdown(text, 'nodes' as MarkdownSource), [stream]);
   const getMarkdown = useCallback(() => stream.getMarkdown(), [stream]);

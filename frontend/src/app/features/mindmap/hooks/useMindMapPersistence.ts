@@ -17,7 +17,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
   const prevConfigRef = useRef<StorageConfig | null>(null);
 
-  // Initialize AdapterManager
+  
   useEffect(() => {
     const prevConfig = prevConfigRef.current;
     const modeChanged = prevConfig?.mode !== config.mode;
@@ -32,7 +32,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         try {
           setError(null);
 
-          // Clean up previous manager
+          
           if (adapterManager) {
             logger.debug('Cleaning up previous AdapterManager');
             adapterManager.cleanup();
@@ -49,7 +49,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
           const errorMessage = initError instanceof Error ? initError.message : 'AdapterManager initialization failed';
           logger.error('AdapterManager initialization failed:', initError);
           setError(errorMessage);
-          setIsInitialized(true); // Mark as initialized even on error to continue processing
+          setIsInitialized(true); 
         }
       };
 
@@ -58,7 +58,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [config]);
 
-  // Cleanup on unmount
+  
   useEffect(() => {
     return () => {
       if (adapterManager) {
@@ -68,7 +68,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     };
   }, [adapterManager]);
 
-  // Load explorer tree from all workspaces
+  
   const loadExplorerTree = useStableCallback(async (): Promise<void> => {
     if (!isInitialized || !adapterManager) {
       setExplorerTree(null);
@@ -78,19 +78,19 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     try {
       const availableWorkspaces = await adapterManager.getAvailableWorkspaces();
 
-      // Separate local and cloud workspaces
+      
       const localWorkspaces = availableWorkspaces.filter(ws => ws.type === 'local');
       const cloudWorkspaces = availableWorkspaces.filter(ws => ws.type === 'cloud');
 
       let rootChildren: ExplorerItem[] = [];
 
-      // Get tree from local adapter (MarkdownFolderAdapter already returns all local workspaces)
+      
       if (localWorkspaces.length > 0 && localWorkspaces[0].adapter) {
         const localAdapter = localWorkspaces[0].adapter;
         if (typeof localAdapter.getExplorerTree === 'function') {
           try {
             const localTree = await localAdapter.getExplorerTree();
-            // MarkdownFolderAdapter returns a root with all local workspaces as children
+            
             rootChildren = localTree.children || [];
           } catch (error) {
             logger.warn('Failed to load local workspace tree:', error);
@@ -98,14 +98,14 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         }
       }
 
-      // Add cloud workspaces
+      
       for (const cloudWorkspace of cloudWorkspaces) {
         const adapter = cloudWorkspace.adapter;
         if (adapter && typeof adapter.getExplorerTree === 'function') {
           try {
             const cloudTree = await adapter.getExplorerTree();
 
-            // Wrap cloud tree with workspace ID
+            
             const wrappedCloudTree: ExplorerItem = {
               type: 'folder',
               name: cloudWorkspace.name,
@@ -120,7 +120,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         }
       }
 
-      // Create combined root tree
+      
       const combinedTree: ExplorerItem = {
         type: 'folder',
         name: 'root',
@@ -135,7 +135,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   });
 
-  // Load workspaces from AdapterManager
+  
   const loadWorkspaces = useStableCallback(async (): Promise<void> => {
     if (!isInitialized || !adapterManager) {
       setWorkspaces([]);
@@ -152,7 +152,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   });
 
-  // Refresh map list and workspaces
+  
   const refreshMapList = useStableCallback(async () => {
     if (!isInitialized || !adapterManager) {
       logger.warn('refreshMapList: Not initialized or no adapter manager');
@@ -168,13 +168,13 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         await loadExplorerTree();
         await loadWorkspaces();
 
-        // Load maps from current adapter
+        
         logger.info(`Loading maps from adapter: ${currentAdapter.constructor.name}`);
         const maps = await currentAdapter.loadAllMaps();
         setAllMindMaps(maps);
         logger.info(`Loaded ${maps.length} maps from current adapter (${currentAdapter.constructor.name})`);
 
-        // Log map details for debugging
+        
         if (maps.length > 0) {
           logger.info('Map titles:', maps.map(m => m.title));
         }
@@ -186,7 +186,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   });
 
-  // Switch workspace
+  
   const switchWorkspace = useStableCallback(async (workspaceId: string | null) => {
     if (!adapterManager) {
       logger.warn('switchWorkspace: No adapter manager available');
@@ -197,17 +197,17 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     setCurrentWorkspaceId(workspaceId);
     adapterManager.setCurrentWorkspace(workspaceId);
 
-    // Log current adapter after switch
+    
     const currentAdapter = adapterManager.getCurrentAdapter();
     logger.info(`After switch - Current adapter: ${currentAdapter?.constructor.name}, authenticated: ${(currentAdapter as any)?.isAuthenticated || 'N/A'}`);
 
-    // Refresh maps and tree for new workspace
+    
     await refreshMapList();
 
     logger.info(`Successfully switched to workspace: ${workspaceId || 'default'}`);
   });
 
-  // Initialize data when AdapterManager is ready
+  
   useEffect(() => {
     if (isInitialized && adapterManager) {
       const initializeData = async () => {
@@ -218,12 +218,12 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
   }, [isInitialized, adapterManager, loadWorkspaces, refreshMapList]);
 
-  // Monitor WorkspaceService changes for cloud workspace
+  
   useEffect(() => {
     const workspaceService = WorkspaceService.getInstance();
 
     const handleWorkspaceChange = async () => {
-      // Update cloud adapter in manager when workspace service changes
+      
       if (adapterManager && config.mode === 'local+cloud') {
         const cloudAdapter = workspaceService.getCloudAdapter();
         if (cloudAdapter) {
@@ -231,7 +231,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
           logger.info('Updated cloud adapter in AdapterManager from WorkspaceService');
         }
         await loadWorkspaces();
-        // Refresh map list to ensure cloud maps show up
+        
         await refreshMapList();
       }
     };
@@ -242,7 +242,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     };
   }, [adapterManager, config.mode, loadWorkspaces, refreshMapList]);
 
-  // Map operations
+  
   const addMapToList = useStableCallback(async (newMap: MindMapData): Promise<void> => {
     if (!isInitialized || !adapterManager) return;
 
@@ -285,14 +285,14 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     }
 
     try {
-      // Get adapter for a local workspace (will return MarkdownFolderAdapter)
+      
       const localAdapter = adapterManager.getAdapterForWorkspace(null);
 
       if (localAdapter && typeof localAdapter.addWorkspace === 'function') {
         await localAdapter.addWorkspace();
         logger.info('Workspace added successfully');
 
-        // Refresh the map list to show the new workspace
+        
         await refreshMapList();
       } else {
         logger.warn('Local adapter does not support workspace creation');
@@ -305,30 +305,30 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
   const removeWorkspace = useStableCallback(async (id: string): Promise<void> => {
     if (id === 'cloud') {
-      // Handle cloud workspace removal
+      
       const workspaceService = WorkspaceService.getInstance();
       await workspaceService.logoutFromCloud();
 
       if (adapterManager) {
         adapterManager.removeCloudAdapter();
         if (currentWorkspaceId === 'cloud') {
-          await switchWorkspace(null); // Switch back to default
+          await switchWorkspace(null); 
         }
       }
     } else {
-      // Handle local workspace removal (ws_xxxxx)
+      
       const adapter = adapterManager?.getAdapterForWorkspace(id);
       if (adapter && typeof adapter.removeWorkspace === 'function') {
         try {
           await adapter.removeWorkspace(id);
           logger.info(`Local workspace ${id} removed successfully`);
 
-          // Switch to another workspace if currently viewing the deleted one
+          
           if (currentWorkspaceId === id) {
             await switchWorkspace(null);
           }
 
-          // Refresh workspace and map lists
+          
           await refreshMapList();
         } catch (error) {
           logger.error(`Failed to remove workspace ${id}:`, error);
@@ -339,16 +339,16 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   });
 
   return {
-    // State
+    
     allMindMaps,
     isInitialized,
     error,
     storageMode: config.mode,
     explorerTree,
-    workspaces: workspaces.map(ws => ({ id: ws.id, name: ws.name })), // Convert to expected format
+    workspaces: workspaces.map(ws => ({ id: ws.id, name: ws.name })), 
     currentWorkspaceId,
 
-    // Operations
+    
     refreshMapList,
     addMapToList,
     removeMapFromList,
@@ -357,7 +357,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     removeWorkspace,
     loadExplorerTree,
 
-    // Adapter access
+    
     storageAdapter: adapterManager?.getCurrentAdapter() || null,
     getAdapterForWorkspace: (workspaceId: string | null) => adapterManager?.getAdapterForWorkspace(workspaceId) || null,
   };

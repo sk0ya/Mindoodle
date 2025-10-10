@@ -1,4 +1,4 @@
-// Hooks re-exports for @mindmap/hooks path mapping
+
 export * from './useEditingState';
 export * from './useKeyboardShortcuts';
 export * from './useMindMap';
@@ -16,9 +16,9 @@ export * from './useAIOperations';
 export * from './useMarkdownOperations';
 export * from './useEditorEffects';
 export * from './useCommandExecution';
-export * from './useSidebar.tsx'; // Phase 4.1: Unified sidebar hook (TSX for JSX support)
+export * from './useSidebar.tsx'; 
 
-// Phase 4.2: Feature group hooks (hierarchical organization)
+
 export * from './useEditingFeatures';
 export * from './useNavigationFeatures';
 export * from './useDataFeatures';

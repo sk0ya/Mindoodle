@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React, { useState } from 'react';
 import VimMappingsEditor from '../panel/VimMappingsEditor';
 import { useMindMapStore } from '../../../store';
@@ -8,13 +8,13 @@ const VimSidebar: React.FC = () => {
   const { settings, updateSetting } = useMindMapStore();
   const toggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap' as any, e.target.checked as any);
   const toggleEditorVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor' as any, e.target.checked as any);
-  // Enable the Editor tab
+  
   const editorTabEnabled = true;
 
   const flushAndSetTab = (next: 'mindmap' | 'editor') => {
     if (next === 'editor' && !editorTabEnabled) return;
     try { window.dispatchEvent(new CustomEvent('mindoodle:vim-mapping-flush')); } catch {}
-    // Slight defer to ensure state store updates before mount new editor
+    
     setTimeout(() => setTab(next), 0);
   };
 

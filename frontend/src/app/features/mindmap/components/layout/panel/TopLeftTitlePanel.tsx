@@ -1,4 +1,4 @@
-// moved to layout/panel
+
 import React from 'react';
 import ActionButtons from '../../toolbar/ActionButtons';
 import ToolbarStyles from '../../../styles/ToolbarStyles';
@@ -38,11 +38,11 @@ const TopLeftTitlePanel: React.FC<Props> = ({
   showNodeNotePanel = false,
   onCenterRootNode,
 }) => {
-  // Calculate left offset to hug the visible left edge of the map area
-  const ACTIVITY_BAR = 48; // matches ActivityBar.css width
-  const SIDEBAR = 280; // matches PrimarySidebar.css width
-  // Ensure buttons are always aligned to the actual visible left edge
-  const leftOffset = ACTIVITY_BAR + (activeView && !sidebarCollapsed ? SIDEBAR : 0) + 8; // consistent padding
+  
+  const ACTIVITY_BAR = 48; 
+  const SIDEBAR = 280; 
+  
+  const leftOffset = ACTIVITY_BAR + (activeView && !sidebarCollapsed ? SIDEBAR : 0) + 8; 
 
   return (
     <div
@@ -55,10 +55,10 @@ const TopLeftTitlePanel: React.FC<Props> = ({
         display: 'flex',
         flexDirection: 'column',
         gap: 6,
-        pointerEvents: 'none', // allow map interactions; buttons re-enable
+        pointerEvents: 'none', 
       }}
     >
-      {/* Brand small label */}
+      {}
       <div
         style={{
           fontSize: 10,
@@ -74,7 +74,7 @@ const TopLeftTitlePanel: React.FC<Props> = ({
         Mindoodle
       </div>
 
-      {/* Non-editable map title */}
+      {}
       <div
         style={{
           fontSize: 18,
@@ -83,7 +83,7 @@ const TopLeftTitlePanel: React.FC<Props> = ({
           lineHeight: 1.2,
           userSelect: 'none',
           pointerEvents: 'auto',
-          maxWidth: 'calc(100vw - 400px)', // Dynamic width based on viewport
+          maxWidth: 'calc(100vw - 400px)', 
           whiteSpace: 'nowrap',
           overflow: 'hidden',
           textOverflow: 'ellipsis',
@@ -94,11 +94,11 @@ const TopLeftTitlePanel: React.FC<Props> = ({
         {title}
       </div>
 
-      {/* Action buttons under title */}
+      {}
       <div style={{
         pointerEvents: 'auto',
-        alignSelf: 'flex-start', // Force buttons to align to left edge
-        width: 'auto' // Don't stretch to fill container width
+        alignSelf: 'flex-start', 
+        width: 'auto' 
       }}>
         <ActionButtons
           onUndo={onUndo}
@@ -117,7 +117,7 @@ const TopLeftTitlePanel: React.FC<Props> = ({
         />
       </div>
 
-      {/* Reuse button styles from toolbar */}
+      {}
       <ToolbarStyles />
       <style>{`
         /* Two-row layout via rows containers */

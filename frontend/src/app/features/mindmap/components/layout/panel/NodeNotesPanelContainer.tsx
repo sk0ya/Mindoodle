@@ -1,4 +1,4 @@
-// moved to layout/panel
+
 import React from 'react';
 import MarkdownPanel from '../../panels/NodeNotesPanel';
 import type { MapIdentifier } from '@shared/types';

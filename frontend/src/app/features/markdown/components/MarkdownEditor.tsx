@@ -9,7 +9,7 @@ import { loadMonacoVim, getVimFromModule, initVimMode as adapterInitVimMode, loa
 import { logger, generateId, getLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import mermaid from 'mermaid';
 
-// Constants to prevent re-renders
+
 const EDITOR_HEIGHT = "100%";
 const EDITOR_WIDTH = "100%";
 const EDITOR_LANGUAGE = "markdown";
@@ -25,10 +25,10 @@ interface MarkdownEditorProps {
   autoFocus?: boolean;
   readOnly?: boolean;
   onResize?: () => void;
-  // Cursor sync hooks
+  
   onCursorLineChange?: (line: number) => void;
   onFocusChange?: (focused: boolean) => void;
-  // Optional context for resolving relative image paths (cloud)
+  
   mapIdentifier?: { mapId: string; workspaceId?: string | null } | null;
 }
 
@@ -59,12 +59,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   // Track applied custom mappings to allow unmapping/reapply on changes
   const appliedEditorMappingsRef = useRef<string[]>([]);
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
-  // Editor is controlled by `value`; no internal mirror state is needed
+  
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings, clearMermaidRelatedCaches } = useMindMapStore();
   const cloudApiEndpoint = settings.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
 
-  // Extract mermaid code blocks from markdown
+  
   const extractMermaidBlocks = useCallback((text: string): string[] => {
     const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
     const blocks: string[] = [];
@@ -75,45 +75,45 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     return blocks;
   }, []);
 
-  // Debounced onChange handler with updatedAt-based deduplication
+  
   const handleEditorChange = useCallback((newValue: string) => {
-    // Clear existing timeout
+    
     if (debounceTimeoutRef.current) {
       clearTimeout(debounceTimeoutRef.current);
     }
 
-    // Set new debounced timeout
+    
     debounceTimeoutRef.current = setTimeout(() => {
-      // Check if mermaid blocks have changed and clear all related caches if needed
+      
       const oldMermaidBlocks = extractMermaidBlocks(value);
       const newMermaidBlocks = extractMermaidBlocks(newValue);
 
-      // If any mermaid blocks have changed, clear all mermaid-related caches
+      
       const hasChanges = oldMermaidBlocks.length !== newMermaidBlocks.length ||
         oldMermaidBlocks.some(oldBlock => !newMermaidBlocks.includes(oldBlock)) ||
         newMermaidBlocks.some(newBlock => !oldMermaidBlocks.includes(newBlock));
 
       if (hasChanges) {
-        // Use the comprehensive cache clearing function
+        
         clearMermaidRelatedCaches();
       }
 
       onChange(newValue);
-    }, 200); // 200ms debounce to match MarkdownStream
+    }, 200); 
   }, [onChange, value, extractMermaidBlocks, clearMermaidRelatedCaches]);
 
-  // Initialize mermaid once
+  
   useEffect(() => {
     try {
       mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
     } catch {
-      // ignore re-initialize errors
+      
     }
   }, []);
 
-  // Process mermaid diagrams in HTML
+  
   const processMermaidInHtml = useCallback(async (html: string): Promise<string> => {
-    // Find all mermaid code blocks in the HTML
+    
     const mermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;
     let processedHtml = html;
     let match;
@@ -126,22 +126,22 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
       const promise = (async () => {
         try {
-          // Check cache first
+          
           const cached = mermaidSVGCache.get(mermaidCode);
           if (cached) {
             return cached.svg;
           }
 
-          // Generate new SVG
+          
           const id = generateId('mermaid');
           const { svg } = await mermaid.render(id, mermaidCode);
 
-          // Parse and normalize SVG
+          
           const parser = new DOMParser();
           const doc = parser.parseFromString(svg, 'image/svg+xml');
           const el = doc.documentElement;
 
-          // Set responsive attributes
+          
           el.removeAttribute('width');
           el.removeAttribute('height');
           el.setAttribute('width', '100%');
@@ -152,7 +152,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           const serializer = new XMLSerializer();
           const adjustedSvg = serializer.serializeToString(el);
 
-          // Cache the result
+          
           const vb = el.getAttribute('viewBox');
           if (vb) {
             const parts = vb.split(/[ ,]+/).map(Number);
@@ -177,10 +177,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       }));
     }
 
-    // Wait for all mermaid diagrams to be processed
+    
     await Promise.all(promises);
 
-    // Apply all replacements
+    
     for (const { original, replacement } of replacements) {
       processedHtml = processedHtml.replace(original, replacement);
     }
@@ -188,7 +188,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     return processedHtml;
   }, []);
 
-  // Convert markdown to HTML (memoized for performance)
+  
   const previewHtml = useMemo((): string => {
     try {
       const result = marked.parse(value || '');
@@ -236,7 +236,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           } catch { return null; }
         })();
 
-        // Compute map directory from mapId (exclude last segment)
+        
         const parts = (mapIdentifier.mapId || '').split('/').filter(Boolean);
         const mapDir = parts.length > 1 ? parts.slice(0, -1).join('/') + '/' : '';
 
@@ -249,7 +249,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
               img.setAttribute('data-inline-loaded', '1');
               continue;
             }
-            // Normalize relative path
+            
             const rel = src.replace(/^\.\/*/, '');
             const cloudPath = `${mapDir}${rel}`.replace(/\/+/, '/');
 
@@ -274,17 +274,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         }
       } catch {}
     };
-    // Run after DOM update
+    
     setTimeout(fn, 0);
   }, [processedHtml, mapIdentifier, cloudApiEndpoint]);
 
   const handleEditorDidMount: OnMount = (editor, monaco) => {
     editorRef.current = editor;
     monacoRef.current = monaco as unknown as typeof import('monaco-editor');
-    // Track text focus to avoid emitting cursor events from programmatic updates
+    
     const isTextFocusedRef = { current: false } as { current: boolean };
 
-    // Configure editor settings
+    
     editor.updateOptions({
       wordWrap: 'on',
       minimap: { enabled: false },
@@ -306,12 +306,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       readOnly
     });
 
-    // Add keyboard shortcuts
+    
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       onSave?.();
     });
 
-    // Cycle modes: edit -> preview -> split -> edit
+    
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyL, () => {
       setMode(prev => {
         const next = prev === 'edit' ? 'preview' : prev === 'preview' ? 'split' : 'edit';
@@ -320,38 +320,38 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       });
     });
 
-    // Do not intercept keystrokes here; editor must handle raw input as-is.
+    
 
-    // Cursor and focus listeners
+    
     editor.onDidChangeCursorPosition((e) => {
-      // Avoid syncing selection if editor doesn't have focus
+      
       const hasFocus = editor.hasTextFocus?.() ?? false;
       if (!hasFocus) return;
       const line = e.position.lineNumber;
       onCursorLineChange?.(line);
     });
-    // Focus gained in text input area
+    
     editor.onDidFocusEditorText?.(async () => {
       onFocusChange?.(true);
       isTextFocusedRef.current = true;
-      // Enable Vim only when editor has focus and editor setting is on
+      
       if ((settings as any).vimEditor && !isVimEnabled) {
         const ok = await enableVimMode(editor, monaco);
         if (ok) setIsVimEnabled(true);
       }
     });
 
-    // Treat text blur as leaving the editor (original behavior)
+    
     editor.onDidBlurEditorText?.(() => {
       onFocusChange?.(false);
       isTextFocusedRef.current = false;
-      // Disable Vim when focus leaves editor so app shortcuts work
+      
       if (isVimEnabled) {
         disableVimMode();
       }
     });
 
-    // Auto-focus when mounted (only if autoFocus is enabled)
+    
     if (autoFocus) {
       editor.focus();
     }
@@ -359,52 +359,52 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
   const enableVimMode = async (editor: editor.IStandaloneCodeEditor, monaco: typeof import('monaco-editor')): Promise<boolean> => {
     try {
-      // Load monaco-vim via adapter
+      
       const mod = await loadMonacoVim();
-      // Initialize Vim mode
+      
       const vimMode = adapterInitVimMode(mod, editor, null);
       
-      // Add Vim commands if available in this version
+      
       try {
         if (vimMode && typeof (vimMode).defineEx === 'function') {
           (vimMode).defineEx('write', 'w', () => { onSave?.(); });
         }
       } catch {}
 
-      // Preserve important Monaco keyboard shortcuts that should work in vim mode
-      // These commands will be available regardless of vim mode state
+      
+      
       const preservedCommands = [
-        // Save command (Ctrl+S / Cmd+S)
+        
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS,
           handler: () => onSave?.(),
         },
-        // Delete key should work in insert mode and normal editing
+        
         {
           keybinding: monaco.KeyCode.Delete,
           handler: () => {
-            // Only handle Delete if we're not in a vim mode that should handle it
+            
             const vimState = (vimMode).state;
             if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
-              // Let Monaco handle the delete in insert/replace mode
-              return false; // Return false to let Monaco handle it
+              
+              return false; 
             }
-            // In normal/visual mode, let vim handle it
+            
             return false;
           },
         },
-        // Backspace key
+        
         {
           keybinding: monaco.KeyCode.Backspace,
           handler: () => {
             const vimState = (vimMode).state;
             if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
-              return false; // Let Monaco handle it
+              return false; 
             }
             return false;
           },
         },
-        // Common editing shortcuts that should work in insert mode
+        
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyZ,
           handler: () => {
@@ -423,7 +423,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             editor.trigger('keyboard', 'redo', null);
           },
         },
-        // Copy, Cut, Paste should work in insert mode
+        
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyC,
           handler: () => {
@@ -431,7 +431,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
               editor.trigger('keyboard', 'editor.action.clipboardCopyAction', null);
             }
-            return false; // Let vim handle it in other modes
+            return false; 
           },
         },
         {
@@ -441,7 +441,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
               editor.trigger('keyboard', 'editor.action.clipboardCutAction', null);
             }
-            return false; // Let vim handle it in other modes
+            return false; 
           },
         },
         {
@@ -451,10 +451,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
               editor.trigger('keyboard', 'editor.action.clipboardPasteAction', null);
             }
-            return false; // Let vim handle it in other modes
+            return false; 
           },
         },
-        // Select All
+        
         {
           keybinding: monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyA,
           handler: () => {
@@ -462,12 +462,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             if (!vimState || vimState.mode === 'insert' || vimState.mode === 'replace') {
               editor.trigger('keyboard', 'editor.action.selectAll', null);
             }
-            return false; // Let vim handle it in other modes
+            return false; 
           },
         }
       ];
 
-      // Add the preserved commands
+      
       const commandIds: string[] = [];
       preservedCommands.forEach((cmd, index) => {
         const commandId = `vimModePreserved_${index}`;
@@ -477,20 +477,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         }
       });
 
-      // Store vim mode instance and command IDs for cleanup
+      
       (editor as any)._vimMode = vimMode;
       (editor as any)._vimModeCommandIds = commandIds;
 
-      // Resolve Vim API from monaco-vim module or window (varies by build)
+      
       const resolveVimApi = async (): Promise<any | null> => {
         let Vim: any = getVimFromModule(mod);
         if (Vim) return Vim;
-        // Try direct internal import fallback
+        
         Vim = await loadDirectVimApi();
         return Vim;
       };
 
-      // Helper: register editor actions in Vim (idempotent)
+      
       const installEditorActions = (Vim: any) => {
         try {
           if ((editor as any)._vimActionsInstalled) return;
@@ -508,10 +508,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         } catch {}
       };
 
-      // Helper: apply one mapping based on RHS semantics
+      
       const applyOneMapping = (Vim: any, lhs: string, rhs: string) => {
         const toVimRhs = (s: string): string => {
-          // Keywords to Vim equivalents
+          
           const kw = s.trim().toLowerCase();
           switch (kw) {
             case 'save': return ':w<CR>';
@@ -522,7 +522,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           }
         };
 
-        // action keywords mapped via defineAction/mapCommand
+        
         const actionMap: Record<string, string> = {
           'save': 'md_save',
           'copy': 'md_copy',
@@ -538,7 +538,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           try { Vim.mapCommand(lhs, 'action', actionMap[kw], { context: 'normal' }); return; } catch {}
         }
 
-        // Prefer key-to-key mapping API if available
+        
         try {
           if (typeof Vim.mapKeyToKey === 'function') {
             Vim.mapKeyToKey(lhs, rhs, 'normal');
@@ -547,14 +547,14 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           }
         } catch {}
 
-        // Vim-style mapping fallback
+        
         try {
           const r = toVimRhs(rhs);
           if (typeof Vim.map === 'function') {
             Vim.map(lhs, r, 'normal');
             try { Vim.map(lhs, r, 'visual'); } catch {}
           } else if (typeof Vim.mapCommand === 'function') {
-            // Map to an action that simulates feeding the rhs when possible
+            
             const action = `md_feed_${lhs.replace(/[^a-zA-Z0-9]/g, '')}`;
             try {
               Vim.defineAction?.(action, () => {
@@ -562,7 +562,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
                   if (typeof (Vim).handleKey === 'function') {
                     (Vim).handleKey(editor, r);
                   } else {
-                    // Fallback to monaco cursor commands for simple hjkl
+                    
                     const rr = r.trim();
                     if (rr === 'j') editor.trigger('vim', 'cursorDown', null);
                     else if (rr === 'k') editor.trigger('vim', 'cursorUp', null);
@@ -577,18 +577,18 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         } catch {}
       };
 
-      // Apply Editor-specific Vim leader and custom mappings from settings (if Vim API is available)
+      
       try {
         const VimAny: any = await resolveVimApi();
         if (VimAny) {
-          // Normalize to API object (some builds export Vim as a function returning the API)
+          
           const Vim = typeof VimAny === 'function' ? VimAny() : VimAny;
           vimApiRef.current = Vim;
           installEditorActions(Vim);
-          // Set leader
+          
           const leader = (settings as any).vimEditorLeader || ',';
           Vim.mapleader = leader === ' ' ? ' ' : String(leader).slice(0, 1);
-          // Clear previously applied mappings
+          
           try {
             for (const lhs of appliedEditorMappingsRef.current) {
               try { Vim.unmap?.(lhs, 'normal'); } catch {}
@@ -597,7 +597,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             }
           } catch {}
           appliedEditorMappingsRef.current = [];
-          // Apply new mappings
+          
           const mappings: Record<string, string> = (settings as any).vimEditorCustomKeybindings || {};
           const expand = (s: string): string => String(s)
             .replace(/<\s*leader\s*>/ig, Vim.mapleader || ',')
@@ -610,7 +610,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           }
           hasVimMapApiRef.current = typeof Vim?.map === 'function' || typeof (Vim)?.mapCommand === 'function';
         } else {
-          // No Vim API found; leave Vim enabled but log once
+          
           try { console.warn('[MarkdownEditor] Vim API not found; editor custom mappings will not apply'); } catch {}
           hasVimMapApiRef.current = false;
         }
@@ -638,7 +638,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       delete (editorRef.current as any)._vimModeCommandIds;
     }
 
-    // Attempt to unmap applied custom mappings when disabling
+    
     try {
       const Vim: any = (window as any).Vim;
       if (Vim && Array.isArray(appliedEditorMappingsRef.current)) {
@@ -654,9 +654,9 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     setIsVimEnabled(false);
   }, []);
 
-  // Mode change is handled via Ctrl/Cmd+L cycling and preview key handler
+  
 
-  // React to editor Vim mapping setting changes while Vim is enabled
+  
   useEffect(() => {
     const applyMappings = async () => {
       if (!isVimEnabled || !editorRef.current) return;
@@ -667,7 +667,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         if (!VimAny) return;
         const Vim = typeof VimAny === 'function' ? VimAny() : VimAny;
         vimApiRef.current = Vim;
-        // Ensure actions are installed
+        
         try {
           if (!(editorRef.current as any)._vimActionsInstalled) {
             try { Vim.defineAction?.('md_save', () => { try { onSave?.(); } catch {} }); } catch {}
@@ -680,10 +680,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
             (editorRef.current as any)._vimActionsInstalled = true;
           }
         } catch {}
-        // Update leader
+        
         const leader = (settings as any).vimEditorLeader || ',';
         Vim.mapleader = leader === ' ' ? ' ' : String(leader).slice(0, 1);
-        // Remove previously applied mappings
+        
         try {
           for (const lhs of appliedEditorMappingsRef.current) {
             try { Vim.unmap?.(lhs, 'normal'); } catch {}
@@ -692,7 +692,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           }
         } catch {}
         appliedEditorMappingsRef.current = [];
-        // Apply current mappings
+        
         const mappings: Record<string, string> = (settings as any).vimEditorCustomKeybindings || {};
         const expand = (s: string): string => String(s)
           .replace(/<\s*leader\s*>/ig, Vim.mapleader || ',')
@@ -701,7 +701,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           const lhs = expand(lhsRaw);
           const rhs = expand(rhsRaw);
           try {
-            // Reuse the same mapping logic
+            
             const toKw = (s: string) => s.trim().toLowerCase().replace(/[-_\s]/g, '');
             const am: Record<string,string> = { save:'md_save', copy:'md_copy', cut:'md_cut', paste:'md_paste', selectall:'md_selectAll', undo:'md_undo', redo:'md_redo' };
             const kw = toKw(rhs);
@@ -731,15 +731,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     applyMappings();
   }, [isVimEnabled, (settings as any).vimEditorLeader, (settings as any).vimEditorCustomKeybindings]);
 
-  // Fallback key mapping layer (Monaco onKeyDown) when Vim API lacks map support.
+  
   useEffect(() => {
     const ed: any = editorRef.current as any;
     if (!ed) return;
-    // Dispose previous fallback
+    
     try { fallbackKeydownDisposableRef.current?.dispose?.(); } catch {}
     fallbackKeydownDisposableRef.current = null;
     if (!isVimEnabled) return;
-    if (hasVimMapApiRef.current) return; // Vim API covers mappings
+    if (hasVimMapApiRef.current) return; 
 
     const expand = (s: string, leader: string) => String(s)
       .replace(/<\s*leader\s*>/ig, leader)
@@ -747,7 +747,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
     const disposable = ed.onKeyDown((e: any) => {
       try {
-        // Only in normal/visual-like modes
+        
         const vm = (ed)?._vimMode;
         const mode = vm?.state?.mode || null;
         if (mode && mode !== 'normal' && mode !== 'visual') return;
@@ -778,7 +778,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     return () => { try { disposable?.dispose?.(); } catch {} };
   }, [isVimEnabled, (settings as any).vimEditorLeader, (settings as any).vimEditorCustomKeybindings]);
 
-  // Memoized Monaco Editor props to prevent re-renders
+  
   const editorTheme = useMemo(() =>
     settings.theme === 'dark' ? 'vs-dark' : 'vs',
     [settings.theme]
@@ -790,7 +790,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     readOnly,
     cursorStyle: 'line' as const,
     automaticLayout: true,
-    // キーボード関連の設定を明示的に指定
+    
     acceptSuggestionOnEnter: 'off' as const,
     acceptSuggestionOnCommitCharacter: false,
     quickSuggestions: false,
@@ -852,7 +852,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
         });
       }
 
-      // Update font settings
+      
       editorRef.current.updateOptions({
         fontSize: settings.fontSize || 14,
         fontFamily: settings.fontFamily || 'system-ui'
@@ -860,11 +860,11 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     }
   }, [settings.theme, settings.fontSize, settings.fontFamily]);
 
-  // React to settings.vimEditor changes
+  
   useEffect(() => {
     const apply = async () => {
       if (!editorRef.current) return;
-      // Only enable when setting is on AND editor has focus
+      
       const hasFocus = editorRef.current.hasTextFocus?.() ?? false;
       if ((settings as any).vimEditor && hasFocus && !isVimEnabled) {
         const monaco = monacoRef.current || (await import('monaco-editor'));
@@ -877,10 +877,10 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     apply();
   }, [(settings as any).vimEditor, isVimEnabled, disableVimMode]);
 
-  // Handle external resize events
+  
   useEffect(() => {
     if (onResize && editorRef.current) {
-      // Force layout recalculation when onResize changes
+      
       const timeoutId = setTimeout(() => {
         if (editorRef.current) {
           editorRef.current.layout();
@@ -891,12 +891,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     return undefined;
   }, [onResize]);
 
-  // Document-level Ctrl+L routing based on hover when this editor doesn't have focus
+  
   useEffect(() => {
     const onDocKeyDown = (e: KeyboardEvent) => {
       const isCtrlL = (e.ctrlKey || e.metaKey) && (e.key === 'l' || e.key === 'L');
       if (!isCtrlL) return;
-      // Hover always wins: if this editor is hovered, it handles Ctrl+L exclusively
+      
       if (hoveredRef.current) {
         e.preventDefault();
         e.stopPropagation();
@@ -911,7 +911,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     return () => { document.removeEventListener('keydown', onDocKeyDown, true); };
   }, []);
 
-  // Expose layout method for external use and ResizeObserver
+  
   useEffect(() => {
     const resizeHandler = () => {
       if (editorRef.current) {
@@ -919,12 +919,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       }
     };
 
-    // Set up a custom resize handler that can be triggered externally
+    
     if (onResize) {
       (window as any).__markdownEditor_forceLayout = resizeHandler;
     }
 
-    // Set up ResizeObserver for more reliable resize detection
+    
     let resizeObserver: ResizeObserver | null = null;
     if (editorRef.current) {
       const editorElement = editorRef.current.getDomNode();
@@ -948,12 +948,12 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
   useEffect(() => {
     return () => {
-      // Cleanup debounce timeout
+      
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
         debounceTimeoutRef.current = null;
       }
-      // Reset updatedAt tracking
+      
       lastUpdatedAtRef.current = '';
       // Cleanup Vim mode on unmount
       if (editorRef.current) {

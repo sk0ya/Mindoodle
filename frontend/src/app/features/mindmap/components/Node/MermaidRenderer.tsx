@@ -14,7 +14,7 @@ type MermaidRendererProps = {
   onMouseLeave?: () => void;
 };
 
-// Lightweight SVG renderer for Mermaid code blocks inside a node slot
+
 const MermaidRenderer: React.FC<MermaidRendererProps> = ({
   code,
   onLoadedDimensions,
@@ -35,23 +35,23 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
     try {
       mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
     } catch {
-      // ignore re-initialize errors
+      
     }
   }, []);
 
   const cleanedCode = useMemo(() => {
-    // Trim and normalize code fence content if it includes backticks
+    
     const fenceMatch = code.match(/```mermaid\s*([\s\S]*?)\s*```/i);
     if (fenceMatch) return fenceMatch[1].trim();
     return code.trim();
   }, [code]);
 
-  // Clear cache when code changes to force re-render
+  
   useEffect(() => {
-    // Clear SVG state to show re-rendering
+    
     setSvg('');
     // Note: We don't need to delete from cache here as the cache key
-    // will be different for different content
+    
   }, [cleanedCode]);
 
   useEffect(() => {
@@ -59,7 +59,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
 
     const render = async () => {
       try {
-        // Check cache first
+        
         const cached = mermaidSVGCache.get(cleanedCode);
         if (cached && !cancelled) {
           setSvg(cached.svg);
@@ -67,17 +67,17 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
           return;
         }
 
-        // Generate new SVG if not cached
+        
         const id = generateId('mermaid');
         const { svg } = await mermaid.render(id, cleanedCode);
         if (cancelled) return;
 
-        // Parse to DOM to normalize attributes robustly
+        
         const parser = new DOMParser();
         const doc = parser.parseFromString(svg, 'image/svg+xml');
         const el = doc.documentElement;
 
-        // Capture intrinsic size from viewBox or width/height
+        
         let vbW = 0; let vbH = 0;
         const vb = el.getAttribute('viewBox');
         if (vb) {
@@ -94,7 +94,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
           }
         }
 
-        // Force scaling to container
+        
         el.removeAttribute('width');
         el.removeAttribute('height');
         el.setAttribute('width', '100%');
@@ -105,7 +105,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
         const serializer = new XMLSerializer();
         const adjusted = serializer.serializeToString(el);
 
-        // Cache the result
+        
         if (vbW > 0 && vbH > 0) {
           mermaidSVGCache.set(cleanedCode, adjusted, { width: vbW, height: vbH });
         }
@@ -115,7 +115,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
           onLoadedDimensions?.(vbW, vbH);
         }
       } catch (e) {
-        // On failure, clear SVG
+        
         setSvg('');
       }
     };

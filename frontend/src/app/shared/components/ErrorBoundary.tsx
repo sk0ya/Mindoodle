@@ -1,7 +1,4 @@
-/**
- * Comprehensive ErrorBoundary component with error reporting and recovery
- * Handles both expected and unexpected errors with proper logging
- */
+
 
 import { Component, ReactNode, ErrorInfo } from 'react';
 import { isDevelopment } from '../utils/env';
@@ -24,7 +21,7 @@ interface ErrorBoundaryState {
   errorId: string | null;
 }
 
-// Error reporting service
+
 class ErrorReporter {
   static reportError(error: Error, errorInfo: ErrorInfo, level: string = 'component'): string {
     const errorId = generateErrorId();
@@ -40,19 +37,19 @@ class ErrorReporter {
       url: window.location.href,
     };
 
-    // Log error report
+    
     if (isDevelopment()) {
       logger.error('🚨 ErrorBoundary Report:', errorReport);
     } else {
       logger.error('ErrorBoundary caught error', { errorId, message: error.message, level });
     }
 
-    // Store error locally for debugging
+    
     try {
       const res = getLocalStorage<any[]>(STORAGE_KEYS.ERROR_LOGS, []);
       const storedErrors = Array.isArray(res.data) ? res.data : [];
       storedErrors.push(errorReport);
-      // Keep only last 10 errors
+      
       if (storedErrors.length > 10) {
         storedErrors.splice(0, storedErrors.length - 10);
       }
@@ -61,25 +58,25 @@ class ErrorReporter {
       logger.warn('Failed to store error report:', e);
     }
 
-    // TODO: Send to remote error reporting service in production
-    // if (isProduction()) {
-    //   this.sendToRemoteService(errorReport);
-    // }
+    
+    
+    
+    
 
     return errorId;
   }
 
-  // static async sendToRemoteService(errorReport: unknown): Promise<void> {
-  //   try {
-  //     await fetch('/api/errors', {
-  //       method: 'POST',
-  //       headers: { 'Content-Type': 'application/json' },
-  //       body: JSON.stringify(errorReport)
-  //     });
-  //   } catch (e) {
-  //     console.warn('Failed to send error report to remote service:', e);
-  //   }
-  // }
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
+  
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -106,7 +103,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       errorId
     });
 
-    // Call custom error handler if provided
+    
     if (this.props.onError) {
       this.props.onError(_error, _errorInfo);
     }
@@ -127,7 +124,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     const reportData = {
       errorId,
-      // eslint-disable-next-line no-alert
+      
       userDescription: prompt('Please describe what you were doing when this error occurred:') || '',
       timestamp: new Date().toISOString()
     };
@@ -185,7 +182,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         );
       }
 
-      // Default component-level error UI
+      
       return (
         <div className="error-boundary">
           <div className="error-container">
@@ -389,7 +386,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-// Higher-order component for easy wrapping
+
 export const withErrorBoundary = <P extends object>(
   Component: React.ComponentType<P>,
   errorBoundaryProps?: Partial<ErrorBoundaryProps>
@@ -401,11 +398,11 @@ export const withErrorBoundary = <P extends object>(
   );
 };
 
-// Hook for programmatic error handling
+
 export const useErrorHandler = () => {
   return (error: Error, errorInfo?: ErrorInfo) => {
     ErrorReporter.reportError(error, errorInfo || { componentStack: '' });
-    throw error; // Re-throw to trigger ErrorBoundary
+    throw error; 
   };
 };
 

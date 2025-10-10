@@ -35,7 +35,7 @@ import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
-// panelManager usage removed for node right-click; strategies handle gating
+
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 import TableEditorModal from '../../../markdown/components/TableEditorModal';
 import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
@@ -52,11 +52,11 @@ interface MindMapAppProps {
 }
 
 interface MindMapAppContentProps extends MindMapAppProps {
-  mindMap: any; // mindMap instance passed from wrapper
+  mindMap: any; 
 }
 
 const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
-  storageMode = 'local', // Used in props passed to child components
+  storageMode = 'local', 
   mindMap
 }) => {
 
@@ -100,7 +100,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const [editingTableNodeId, setEditingTableNodeId] = useState<string | null>(null);
 
   // Note: Knowledge Graph 2D doesn't need allMapsDataForGraph anymore
-  // It loads vectors directly from IndexedDB
+  
 
   const commandPalette = useCommandPalette({
     enabled: true,
@@ -255,7 +255,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     store.setShowContextMenu(false);
   };
 
-  // Handle table editing
+  
   const handleEditTable = useCallback((nodeId: string) => {
     setEditingTableNodeId(nodeId);
     setShowTableEditor(true);
@@ -268,8 +268,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const node = findNodeInRoots(data?.rootNodes || [], editingTableNodeId);
     if (!node) return;
 
-    // Update node text with new markdown table
-    // For table nodes, the markdown is stored in the text property
+    
+    
     updateNode(editingTableNodeId, { text: newMarkdown });
 
     setShowTableEditor(false);
@@ -303,7 +303,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   useMindMapEvents({ mindMap, selectMapById });
 
   const countNodes = (node: MindMapNode): number => {
-    let count = 1; // 現在のノード
+    let count = 1; 
     if (node.children) {
       count += node.children.reduce((sum, child) => sum + countNodes(child), 0);
     }
@@ -459,7 +459,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     selectedNodeId,
     editingNodeId,
     vim,
-    handlers: shortcutHandlers as any, // 型が複雑で完全に一致しないため、anyで回避
+    handlers: shortcutHandlers as any, 
   });
 
   const { handleExecuteCommand } = useCommandExecution({
@@ -486,7 +486,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         currentMapId={currentMapId}
         storageAdapter={storageAdapter}
         onSelectMap={async (id) => {
-          // デバッグログを追加
+          
           logger.debug('🖱️ Map clicked:', {
             clickedMapId: id.mapId,
             clickedWorkspaceId: id.workspaceId,
@@ -496,7 +496,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             isWorkspaceIdSame: data?.mapIdentifier?.workspaceId === id.workspaceId
           });
 
-          // 同じマップが既に選択されている場合は早期リターン
+          
           if (currentMapId === id.mapId &&
             data?.mapIdentifier?.workspaceId === id.workspaceId) {
             logger.debug('🔄 Same map already selected, skipping:', id.mapId);
@@ -518,7 +518,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         explorerTree={(mindMap).explorerTree || null}
         onCreateFolder={async (path: string) => {
           if (typeof (mindMap).createFolder === 'function') {
-            // フルパスからworkspaceIdと相対パスを分離
+            
             const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
             if (wsMatch) {
               const workspaceId = wsMatch[1];
@@ -631,7 +631,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             }}
             onStartEdit={startEditing}
             onFinishEdit={finishEditing}
-            // movement handled via event strategies
+            
             onAddChild={(parentId) => { addNode(parentId); }}
             onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
             onDeleteNode={deleteNode}
@@ -739,7 +739,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onNavigate={handleLinkNavigate2}
       />
 
-      {/* Outline Editor removed */}
+      {}
 
       <MindMapContextMenuOverlay
         dataRoot={data?.rootNodes?.[0] || null}
@@ -766,12 +766,12 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onEditTable={handleEditTable}
         onMarkdownNodeType={(nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
           if (data?.rootNodes?.[0]) {
-            // コンテキストメニューをすぐに閉じる
+            
             handleContextMenuClose();
 
-            // ノード変換を実行（markdownSyncのコールバック形式を使用）
+            
             markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
-              // 変換エラーをチェック
+              
               if ((updatedNodes as any).__conversionError) {
                 const errorMessage = (updatedNodes as any).__conversionError;
                 const typeDisplayName = newType === 'heading' ? '見出し' :
@@ -780,13 +780,13 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 return;
               }
 
-              // ルートノードを置き換え（履歴に積む）
+              
               (store as any).setRootNodes(updatedNodes, { emit: true, source: 'contextMenu.changeNodeType' });
-              // Ensure unified auto-layout after markdown-driven structure changes
+              
               try { store.applyAutoLayout(); } catch {}
-              // 選択状態を維持して即時再描画を促す
+              
               setTimeout(() => {
-                try { selectNode(nodeId); } catch { /* noop */ }
+                try { selectNode(nodeId); } catch {  }
               }, 0);
             });
           }
@@ -795,7 +795,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onClose={handleContextMenuClose}
       />
 
-      {/* Image Modal */}
+      {}
       <ImageModal
         isOpen={showImageModal}
         imageUrl={currentImageUrl}
@@ -803,7 +803,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onClose={handleCloseImageModal}
       />
 
-      {/* Command Palette */}
+      {}
       <CommandPalette
         isOpen={commandPalette.isOpen}
         onClose={commandPalette.close}
@@ -814,7 +814,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         storageAdapter={mindMap?.storageAdapter}
       />
 
-      {/* Auth Modal */}
+      {}
       {isAuthModalOpen && authCloudAdapter && (
         <AuthModal
           isOpen={isAuthModalOpen}
@@ -824,7 +824,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         />
       )}
 
-      {/* Table Editor Modal */}
+      {}
       <TableEditorModal
         isOpen={showTableEditor}
         onClose={() => {
@@ -880,7 +880,7 @@ const MindMapAppWrapper: React.FC<MindMapAppProps> = (props) => {
     try {
       const controller = new MindMapController();
       controller.attachExplorerGlobals(mindMap);
-    } catch { /* ignore */ }
+    } catch {  }
   }, [mindMap]);
 
   return (

@@ -44,7 +44,7 @@ export const useConnectionTest = ({
       const result = await testConnection();
       if (result.success) {
         setConnectionStatus('success');
-        // 接続成功時のコールバック実行
+        
         if (onSuccess) {
           await onSuccess();
         }

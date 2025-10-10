@@ -16,7 +16,7 @@ const ImageResizePanel: React.FC<ImageResizePanelProps> = ({
   const [height, setHeight] = useState<number>(node.customImageHeight || 105);
   const { value: maintainAspectRatio, setValue: setMaintainAspectRatio } = useBooleanState({ initialValue: true });
 
-  // 初期アスペクト比を計算
+  
   const initialAspectRatio = (node.customImageWidth || 150) / (node.customImageHeight || 105);
 
   useEffect(() => {
@@ -67,7 +67,7 @@ const ImageResizePanel: React.FC<ImageResizePanelProps> = ({
     });
   };
 
-  // ノートから画像を抽出して表示用URLを取得
+  
   const extractNoteImages = (note?: string): string[] => {
     if (!note) return [];
     const urls: string[] = [];

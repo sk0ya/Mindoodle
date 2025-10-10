@@ -28,7 +28,7 @@ interface NodeRendererProps {
   onDragOver?: (e: React.DragEvent) => void;
   onDrop?: (e: React.DragEvent) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
-  // Original NodeAttachments props
+  
   svgRef: React.RefObject<SVGSVGElement>;
   zoom: number;
   pan: { x: number; y: number };
@@ -37,7 +37,7 @@ interface NodeRendererProps {
   onShowFileActionMenu: (file: FileAttachment, nodeId: string, position: { x: number; y: number }) => void;
   onUpdateNode?: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
-  // Checkbox functionality
+  
   onToggleCheckbox?: (nodeId: string, checked: boolean) => void;
 }
 
@@ -58,7 +58,7 @@ interface NodeRendererProps {
     onDragOver,
   onDrop,
   onLoadRelativeImage,
-  // Original NodeAttachments props
+  
   svgRef,
   zoom,
   pan,
@@ -67,34 +67,34 @@ interface NodeRendererProps {
   onShowFileActionMenu,
   onUpdateNode,
   onAutoLayout,
-  // Checkbox functionality
+  
   onToggleCheckbox
 }) => {
   const { settings, normalizedData } = useMindMapStore();
 
-  // 画像リサイズ状態管理
+  
   const { isResizing, startResizing, stopResizing } = useResizingState();
   const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
   const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
   const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
 
-  // チェックボックスのクリックハンドラー（データファースト更新）
+  
   const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     if (onToggleCheckbox && node.markdownMeta?.isCheckbox) {
-      // 正規化データから最新の状態を取得
+      
       const normalizedNode = normalizedData?.nodes[node.id];
       const currentChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta?.isChecked ?? false;
       const newChecked = !currentChecked;
 
-      // 即座にデータを更新（UIは自動的に追従）
+      
       onToggleCheckbox(node.id, newChecked);
     }
   }, [onToggleCheckbox, node.id, node.markdownMeta?.isCheckbox, normalizedData]);
 
-  // Display entries: images (md/html) and mermaid blocks in note order
+  
   type DisplayEntry =
     | { kind: 'image'; subType: 'md' | 'html'; url: string; tag: string; start: number; end: number }
     | { kind: 'mermaid'; code: string; start: number; end: number };
@@ -121,7 +121,7 @@ interface NodeRendererProps {
     return entries;
   };
 
-  // Check if a path is a relative local file path
+  
   const isRelativeLocalPath = (path: string): boolean => {
     if (/^(https?:|data:|blob:)/i.test(path)) return false;
     return path.startsWith('./') || path.startsWith('../') || (!path.includes('://') && !path.startsWith('/'));
@@ -140,10 +140,10 @@ interface NodeRendererProps {
     isRelativeLocal: isRelativeLocalPath(e.url)
   } as FileAttachment & { isRelativeLocal?: boolean }));
 
-  // State to hold resolved data URLs for relative local images
+  
   const [resolvedImageUrls, setResolvedImageUrls] = useState<Record<string, string>>({});
 
-  // Effect to load relative local images using the adapter
+  
   useEffect(() => {
     const loadRelativeImages = async () => {
       if (!onLoadRelativeImage) {
@@ -174,7 +174,7 @@ interface NodeRendererProps {
     loadRelativeImages();
   }, [noteImageFiles, onLoadRelativeImage]);
 
-  // 画像とMermaidを統一した表示インデックス
+  
   const [slotIndex, setSlotIndex] = useState(0);
   useEffect(() => { setSlotIndex(0); }, [node.id]);
   useEffect(() => {
@@ -192,9 +192,9 @@ interface NodeRendererProps {
     ? noteImageFiles[imageEntries.indexOf(currentEntry)]
     : undefined;
 
-  // Mermaid is treated as one of display entries (no priority)
+  
 
-  // ノート中のサイズ指定（HTML画像のみ）を参照
+  
   const parseNoteSizeByIndex = (note: string | undefined, index: number): { width: number; height: number } | null => {
     if (!note) return null;
     const entry = displayEntries[index];
@@ -541,10 +541,10 @@ interface NodeRendererProps {
           onDrop={onDrop}
         />
 
-        {/* チェックボックスの表示 */}
+        {}
         {isCheckboxNode && (
           <g>
-            {/* チェックボックス背景 */}
+            {}
             <rect
               x={nodeLeftX + checkboxMargin}
               y={node.y - checkboxSize / 2}
@@ -559,7 +559,7 @@ interface NodeRendererProps {
               style={{ cursor: 'pointer' }}
             />
 
-            {/* チェックマーク */}
+            {}
             {isChecked && (
               <path
                 d={`M${nodeLeftX + checkboxMargin + 3} ${node.y - 1} L${nodeLeftX + checkboxMargin + 7} ${node.y + 3} L${nodeLeftX + checkboxMargin + 13} ${node.y - 5}`}
@@ -578,15 +578,15 @@ interface NodeRendererProps {
     );
   }
 
-  // 現在のスロットがMermaidかどうか
+  
   const showMermaid = !!currentEntry && (currentEntry).kind === 'mermaid';
 
-  // Table node flag
+  
   const isTableNode = node.kind === 'table';
 
   return (
     <>
-      {/* Node background */}
+      {}
       <rect
         x={nodeLeftX}
         y={node.y - nodeHeight / 2}
@@ -610,7 +610,7 @@ interface NodeRendererProps {
         onDrop={onDrop}
       />
 
-      {/* ノート内Mermaid / 画像 または テーブルノードを表示 */}
+      {}
       <g key={showMermaid ? `mermaid-${node.id}` : (isTableNode ? `table-${node.id}` : (currentImage ? currentImage.id : `empty-${node.id}`))}>
           <foreignObject
             x={imageX}
@@ -623,7 +623,7 @@ interface NodeRendererProps {
                 <MermaidRenderer
                   code={(currentEntry).code}
                   onLoadedDimensions={(w, h) => {
-                    // mimic image load sizing behavior
+                    
                     handleImageLoadDimensions(w, h);
                   }}
                   onClick={(e) => {
@@ -642,7 +642,7 @@ interface NodeRendererProps {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 />
-                {/* 切替コントロール（Mermaid表示時も有効） */}
+                {}
                 {displayEntries.length > 1 && (isSelected || isHovered) && (
                   (() => {
                     const tiny = renderDims.width < 100;
@@ -734,7 +734,7 @@ interface NodeRendererProps {
                     lineHeight: 1.5
                   }}>
                     {(() => {
-                      // Build rows to render from structured data or fallback parse from text/note
+                      
                       const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
                         if (!src) return null;
                         const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
@@ -842,7 +842,7 @@ interface NodeRendererProps {
                     })()}
                   </table>
                 </div>
-                {/* No resize handle for table nodes */}
+                {}
               </div>
             ) : (
               <div style={{
@@ -902,7 +902,7 @@ interface NodeRendererProps {
                   />
                 )}
 
-                {/* 画像切替コントロール（ノード選択時またはホバー時のみ表示） */}
+                {}
                 {displayEntries.length > 1 && (isSelected || isHovered) && (
                   (() => {
                     const tiny = imageDimensions.width < 100;
@@ -973,10 +973,10 @@ interface NodeRendererProps {
             )}
           </foreignObject>
 
-          {/* 画像選択時の枠線とリサイズハンドル（表ノードでは非表示） */}
+          {}
           {isSelected && node.kind !== 'table' && (
             <g>
-              {/* 枠線 */}
+              {}
               <rect
                 x={imageX - 2}
                 y={imageY - 2}
@@ -994,7 +994,7 @@ interface NodeRendererProps {
                 }}
               />
 
-              {/* リサイズハンドル（SVGの上ではなく、foreignObject内に配置するためここでは描画しない） */}
+              {}
             </g>
           )}
         </g>
@@ -1002,7 +1002,7 @@ interface NodeRendererProps {
   );
 };
 
-// 選択枠線のみを描画する新しいコンポーネント
+
 export const NodeSelectionBorder: React.FC<{
   node: MindMapNode;
   nodeLeftX: number;
@@ -1024,7 +1024,7 @@ export const NodeSelectionBorder: React.FC<{
 }) => {
   if (!isSelected && !isDragTarget) return null;
 
-  // Use shared selection border styles
+  
   const renderingState = {
     isSelected,
     isDragTarget: isDragTarget || false,
@@ -1048,14 +1048,14 @@ export const NodeSelectionBorder: React.FC<{
       ry="12"
       style={{
         ...borderStyles.style,
-        transition: 'none' // 外枠の移動アニメーションを無効化
+        transition: 'none' 
       }}
     />
   );
 };
 
 export default memo(NodeRenderer, (prevProps, nextProps) => {
-  // markdownMetaの変更も検知するようにカスタム比較関数を追加
+  
   return (
     prevProps.node.id === nextProps.node.id &&
     prevProps.node.text === nextProps.node.text &&

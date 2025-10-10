@@ -4,7 +4,7 @@ export type PanelState = Partial<Record<PanelId, boolean>>;
 
 export interface CanOpenOptions {
   exclusiveWith?: PanelId[];
-  exclusive?: boolean; // when true, close all others
+  exclusive?: boolean; 
 }
 
 export function isOpen(state: PanelState | undefined, id: PanelId): boolean {
@@ -34,7 +34,7 @@ export function applyOpen(
   if (!canOpen(open, id, opts)) return open;
 
   if (opts.exclusive) {
-    // Close all others
+    
     for (const k of Object.keys(open) as PanelId[]) open[k] = false;
   }
 

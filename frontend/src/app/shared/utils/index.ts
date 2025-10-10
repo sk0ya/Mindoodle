@@ -1,4 +1,4 @@
-// Pure utility functions only - domain-agnostic helpers
+
 export * from './arrayUtils';
 export * from './clipboard';
 export * from './env';
@@ -20,7 +20,7 @@ export * from './safeJson';
 export * from './globalSearch';
 export * from './stringUtils';
 export * from './typeUtils';
-// Validation - exclude isMindMapNode and validateMindMapNode to avoid conflicts with @mindmap/utils
+
 export {
   isMindMapData,
   validateMindMapData,
@@ -30,7 +30,7 @@ export {
   type DataValidationResult
 } from './validation';
 
-// Storage utilities (avoid type conflicts) - direct import since index.ts removed
+
 export {
   STORAGE_KEYS,
   getLocalStorage,

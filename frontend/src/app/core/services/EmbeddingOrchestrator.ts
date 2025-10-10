@@ -1,9 +1,4 @@
-/**
- * EmbeddingOrchestrator - ファイルのベクトル化を統括管理
- *
- * - 初回起動時の一括ベクトル化
- * - ファイル変更時のベクトル更新（デバウンス付き）
- */
+
 
 import { embeddingService } from './EmbeddingService';
 import { vectorStore } from './VectorStore';
@@ -12,9 +7,7 @@ export class EmbeddingOrchestrator {
   private debounceTimers = new Map<string, NodeJS.Timeout>();
   private isProcessing = false;
 
-  /**
-   * 全ての.mdファイルをスキャンして未ベクトル化のものをベクトル化
-   */
+  
   async processAllFiles(getAllFiles: () => Promise<Array<{ path: string; content: string }>>): Promise<void> {
     if (this.isProcessing) {
       console.warn('Already processing files');
@@ -24,16 +17,16 @@ export class EmbeddingOrchestrator {
     this.isProcessing = true;
 
     try {
-      // 全ファイル取得
+      
       const allFiles = await getAllFiles();
 
-      // .mdファイルのみフィルター
+      
       const mdFiles = allFiles.filter(f => f.path.endsWith('.md'));
 
-      // 既存のベクトルを取得
+      
       const existingVectors = await vectorStore.getAllVectors();
 
-      // 未ベクトル化のファイルを抽出
+      
       const unvectorizedFiles = mdFiles.filter(f => !existingVectors.has(f.path));
 
       if (unvectorizedFiles.length === 0) {
@@ -44,7 +37,7 @@ export class EmbeddingOrchestrator {
 
       console.log(`Vectorizing ${unvectorizedFiles.length} unvectorized files...`);
 
-      // プログレスイベント発火
+      
       window.dispatchEvent(new CustomEvent('vectorization-progress', {
         detail: {
           total: unvectorizedFiles.length,
@@ -53,7 +46,7 @@ export class EmbeddingOrchestrator {
         }
       }));
 
-      // 順次ベクトル化
+      
       for (let i = 0; i < unvectorizedFiles.length; i++) {
         const file = unvectorizedFiles[i];
 
@@ -61,7 +54,7 @@ export class EmbeddingOrchestrator {
           const vector = await embeddingService.embed(file.path, file.content);
           await vectorStore.saveVector(file.path, vector);
 
-          // プログレスイベント発火
+          
           window.dispatchEvent(new CustomEvent('vectorization-progress', {
             detail: {
               total: unvectorizedFiles.length,
@@ -76,7 +69,7 @@ export class EmbeddingOrchestrator {
         }
       }
 
-      // 完了イベント
+      
       window.dispatchEvent(new CustomEvent('vectorization-progress', {
         detail: {
           total: unvectorizedFiles.length,
@@ -97,22 +90,20 @@ export class EmbeddingOrchestrator {
     }
   }
 
-  /**
-   * ファイル変更時にベクトルを更新（デバウンス付き）
-   */
+  
   scheduleVectorUpdate(filePath: string, content: string, delayMs = 2000): void {
-    // .mdファイル以外は無視
+    
     if (!filePath.endsWith('.md')) {
       return;
     }
 
-    // 既存のタイマーをクリア
+    
     const existingTimer = this.debounceTimers.get(filePath);
     if (existingTimer) {
       clearTimeout(existingTimer);
     }
 
-    // 新しいタイマーをセット
+    
     const timer = setTimeout(async () => {
       try {
         console.log(`Updating vector for: ${filePath}`);
@@ -128,19 +119,17 @@ export class EmbeddingOrchestrator {
     this.debounceTimers.set(filePath, timer);
   }
 
-  /**
-   * ファイル削除時にベクトルを削除
-   */
+  
   async deleteVector(filePath: string): Promise<void> {
     try {
-      // デバウンスタイマーがあればクリア
+      
       const existingTimer = this.debounceTimers.get(filePath);
       if (existingTimer) {
         clearTimeout(existingTimer);
         this.debounceTimers.delete(filePath);
       }
 
-      // ベクトル削除
+      
       await vectorStore.deleteVector(filePath);
       console.log(`Vector deleted: ${filePath}`);
     } catch (error) {
@@ -148,18 +137,16 @@ export class EmbeddingOrchestrator {
     }
   }
 
-  /**
-   * 全てのベクトルをクリア
-   */
+  
   async clearAllVectors(): Promise<void> {
     try {
-      // 全てのデバウンスタイマーをクリア
+      
       for (const timer of this.debounceTimers.values()) {
         clearTimeout(timer);
       }
       this.debounceTimers.clear();
 
-      // 全ベクトル削除
+      
       await vectorStore.clear();
       console.log('All vectors cleared');
     } catch (error) {
@@ -167,13 +154,11 @@ export class EmbeddingOrchestrator {
     }
   }
 
-  /**
-   * 処理中かどうか
-   */
+  
   isProcessingFiles(): boolean {
     return this.isProcessing;
   }
 }
 
-// シングルトンインスタンス
+
 export const embeddingOrchestrator = new EmbeddingOrchestrator();

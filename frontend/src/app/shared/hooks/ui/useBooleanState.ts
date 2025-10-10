@@ -17,10 +17,6 @@ export interface BooleanStateReturn {
   setValue: (value: boolean) => void;
 }
 
-/**
- * 汎用的なboolean状態管理フック
- * 単純なtrue/false状態とその操作メソッドを提供
- */
 export const useBooleanState = (options: BooleanStateOptions = {}): BooleanStateReturn => {
   const { initialValue = false, onToggle, onTrue, onFalse } = options;
   const [value, setValue] = useState(initialValue);
@@ -69,9 +65,6 @@ export const useBooleanState = (options: BooleanStateOptions = {}): BooleanState
   };
 };
 
-/**
- * より簡潔なAPI版 - useModal と同等だが命名がより汎用的
- */
 export const useBooleanToggle = (initialValue = false) => {
   const { value, setTrue, setFalse, toggle } = useBooleanState({ initialValue });
 
@@ -83,9 +76,6 @@ export const useBooleanToggle = (initialValue = false) => {
   };
 };
 
-/**
- * Loading状態専用のフック
- */
 export const useLoadingState = (initialValue = false) => {
   const { value, setTrue, setFalse, setValue } = useBooleanState({ initialValue });
 
@@ -97,9 +87,6 @@ export const useLoadingState = (initialValue = false) => {
   };
 };
 
-/**
- * Resizing状態専用のフック
- */
 export const useResizingState = (initialValue = false) => {
   const { value, setTrue, setFalse } = useBooleanState({ initialValue });
 
@@ -110,9 +97,6 @@ export const useResizingState = (initialValue = false) => {
   };
 };
 
-/**
- * Hover状態専用のフック
- */
 export const useHoverState = (initialValue = false) => {
   const { value, setTrue, setFalse } = useBooleanState({ initialValue });
 
@@ -123,7 +107,7 @@ export const useHoverState = (initialValue = false) => {
   };
 };
 
-// Mouse event listener管理のためのカスタムフック
+
 export const useMouseEvents = (
   isActive: boolean,
   handlers: {
@@ -161,7 +145,7 @@ export const useMouseEvents = (
   }, [isActive, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
 };
 
-// ドラッグ操作のための共通フック
+
 interface UseDragOptions {
   onDragStart?: (startPos: { x: number; y: number }) => void;
   onDragMove?: (currentPos: { x: number; y: number }, deltaPos: { x: number; y: number }) => void;
@@ -228,7 +212,7 @@ export const useDrag = (options: UseDragOptions = {}) => {
   };
 };
 
-// リサイズ機能のための共通フック
+
 interface UseResizeOptions {
   initialValue: number;
   minValue?: number;
@@ -251,7 +235,7 @@ export const useResize = (options: UseResizeOptions) => {
   const [value, setValue] = useState(initialValue);
   const { value: isResizing, setTrue: startResizing, setFalse: stopResizing } = useBooleanState();
 
-  // ローカルストレージから値を復元
+  
   useEffect(() => {
     if (storageKey) {
       const savedValue = localStorage.getItem(storageKey);
@@ -309,7 +293,7 @@ export const useResize = (options: UseResizeOptions) => {
   };
 };
 
-// ローカルストレージと同期する状態管理フック
+
 export const usePersistedState = <T>(
   key: string,
   initialValue: T,
@@ -364,7 +348,7 @@ export const usePersistedState = <T>(
   return [state, setValue] as const;
 };
 
-// 遅延実行（デバウンス）フック
+
 export const useDebounce = <T>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
 
@@ -381,7 +365,7 @@ export const useDebounce = <T>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
-// 前の値を保持するフック
+
 export const usePrevious = <T>(value: T): T | undefined => {
   const ref = useRef<T>();
   useEffect(() => {
@@ -390,7 +374,7 @@ export const usePrevious = <T>(value: T): T | undefined => {
   return ref.current;
 };
 
-// 条件付きエフェクトフック
+
 export const useConditionalEffect = (
   effect: () => void | (() => void),
   deps: React.DependencyList,
@@ -403,7 +387,7 @@ export const useConditionalEffect = (
   }, [...deps, condition]);
 };
 
-// 安全なエフェクトクリーンアップフック
+
 export const useSafeEffect = (
   effect: () => void | (() => void),
   deps: React.DependencyList

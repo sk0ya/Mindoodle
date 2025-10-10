@@ -17,8 +17,8 @@ class Logger {
 
   constructor() {
     const isDevelopment = import.meta.env.DEV;
-    // Default to 'warn' in both dev and prod to keep logs minimal by default.
-    // Override with VITE_LOG_LEVEL=debug|info|warn|error when needed.
+    
+    
     const configuredLevel = (import.meta.env.VITE_LOG_LEVEL || 'warn') as LogLevel;
     
     this.config = {
@@ -33,11 +33,11 @@ class Logger {
 
   private maskSensitiveData(data: unknown): unknown {
     if (typeof data === 'string') {
-      // Mask JWT tokens
+      
       let maskedData = data.replace(/Bearer\s+[\w-]+\.[\w-]+\.[\w-]+/gi, 'Bearer [MASKED]');
-      // Mask tokens in URLs
+      
       maskedData = maskedData.replace(/(\?|&)token=[\w-]+/gi, '$1token=[MASKED]');
-      // Mask API keys
+      
       maskedData = maskedData.replace(/([aA]pi[_-]?[kK]ey|apikey)[:=]\s*[\w-]+/gi, '$1=[MASKED]');
       return maskedData;
     } else if (typeof data === 'object' && data !== null) {
@@ -71,7 +71,7 @@ class Logger {
     const timestamp = new Date().toISOString();
     const prefix = `[${timestamp}] [${level.toUpperCase()}]`;
     
-    // Mask sensitive data in production
+    
     const maskedArgs = this.config.isDevelopment ? args : args.map(arg => this.maskSensitiveData(arg));
     
     switch (level) {
@@ -79,7 +79,7 @@ class Logger {
         console.log(prefix, message, ...maskedArgs);
         break;
       case 'info':
-        // eslint-disable-next-line no-console
+        
         console.info(prefix, message, ...maskedArgs);
         break;
       case 'warn':

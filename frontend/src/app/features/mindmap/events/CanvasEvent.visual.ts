@@ -3,14 +3,14 @@ import { useMindMapStore } from '@mindmap/store';
 
 export class VisualModeStrategy implements EventStrategy {
   handle(event: CanvasEvent): void {
-    // Visual mode: treat like normal for bgclick/contextmenu for now
+    
     if (event.type === 'bgclick') {
       try {
         const store = useMindMapStore.getState() as any;
         store.closeAttachmentAndLinkLists?.();
         store.selectNode?.(null);
         store.setShowContextMenu?.(false);
-      } catch { /* ignore */ }
+      } catch {  }
       return;
     }
     if (event.type === 'contextmenu') {
@@ -18,7 +18,7 @@ export class VisualModeStrategy implements EventStrategy {
         const store = useMindMapStore.getState();
         store.setContextMenuPosition({ x: event.x, y: event.y });
         (store as any).openPanel?.('contextMenu');
-      } catch { /* ignore */ }
+      } catch {  }
     }
 
     if (event.type === 'nodeContextMenu' && event.targetNodeId) {
@@ -27,7 +27,7 @@ export class VisualModeStrategy implements EventStrategy {
         store.selectNode?.(event.targetNodeId);
         store.setContextMenuPosition?.({ x: event.x, y: event.y });
         store.openPanel?.('contextMenu');
-      } catch { /* ignore */ }
+      } catch {  }
       return;
     }
 
@@ -35,7 +35,7 @@ export class VisualModeStrategy implements EventStrategy {
       try {
         const store = useMindMapStore.getState() as any;
         store.selectNode?.(event.targetNodeId);
-      } catch { /* ignore */ }
+      } catch {  }
       return;
     }
 
@@ -43,7 +43,7 @@ export class VisualModeStrategy implements EventStrategy {
       try {
         const store = useMindMapStore.getState() as any;
         store.moveNodeWithPosition?.(event.draggedNodeId, event.targetNodeId, event.dropPosition);
-      } catch { /* ignore */ }
+      } catch {  }
       return;
     }
   }

@@ -1,7 +1,4 @@
-/**
- * Edit Command
- * Clears node text and starts editing (equivalent to vim 'ciw')
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
@@ -60,7 +57,7 @@ export const editCommand: Command = {
       };
     }
 
-    // Get node information
+    
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
       return {
@@ -70,12 +67,12 @@ export const editCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Update node text if specified or clear if not keeping text
+      
       if (newText !== undefined) {
         context.handlers.updateNode(nodeId, { text: newText });
       } else if (!keepText) {
@@ -107,10 +104,7 @@ export const editCommand: Command = {
   }
 };
 
-/**
- * Insert Command (vim 'i')
- * Start editing at current cursor position
- */
+
 export const insertCommand: Command = {
   name: 'insert',
   aliases: ['i'],
@@ -137,12 +131,12 @@ export const insertCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Start editing
+      
       context.handlers.startEdit(nodeId);
 
       return {
@@ -158,10 +152,7 @@ export const insertCommand: Command = {
   }
 };
 
-/**
- * Append Command (vim 'a')
- * Create child node and start editing
- */
+
 export const appendCommand: Command = {
   name: 'append',
   aliases: ['a'],
@@ -180,12 +171,12 @@ export const appendCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Create child node and start editing
+      
       context.handlers.addChildNode(nodeId, '', true);
 
       return {
@@ -201,10 +192,7 @@ export const appendCommand: Command = {
   }
 };
 
-/**
- * Append End Command (vim 'A')
- * Start editing at the end of the current node text
- */
+
 export const appendEndCommand: Command = {
   name: 'append-end',
   aliases: ['A'],
@@ -231,12 +219,12 @@ export const appendEndCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Start editing with cursor at end
+      
       context.handlers.startEditWithCursorAtEnd(nodeId);
 
       return {
@@ -252,10 +240,7 @@ export const appendEndCommand: Command = {
   }
 };
 
-/**
- * Insert Beginning Command (vim 'I')
- * Start editing at the beginning of the current node text
- */
+
 export const insertBeginningCommand: Command = {
   name: 'insert-beginning',
   aliases: ['I'],
@@ -282,12 +267,12 @@ export const insertBeginningCommand: Command = {
     }
 
     try {
-      // Set vim mode to insert if vim is enabled
+      
       if (context.vim && context.vim.isEnabled) {
         context.vim.setMode('insert');
       }
 
-      // Start editing with cursor at start
+      
       context.handlers.startEditWithCursorAtStart(nodeId);
 
       return {
@@ -334,25 +319,25 @@ export const cutCommand: Command = {
     }
 
     try {
-      // Begin history group for cut operation
+      
       try { (useMindMapStore.getState() as any).beginHistoryGroup?.('cut'); } catch {}
 
-      // Cut count times
+      
       let cutCount = 0;
 
       for (let i = 0; i < count; i++) {
         const currentNode = context.handlers.findNodeById(nodeId);
         if (!currentNode || currentNode.id === 'root') break;
 
-        // First copy the node to clipboard
+        
         context.handlers.copyNode(nodeId);
 
-        // Then delete the node
+        
         context.handlers.deleteNode(nodeId);
         cutCount++;
       }
 
-      // End history group and commit
+      
       try { (useMindMapStore.getState() as any).endHistoryGroup?.(true); } catch {}
 
       if (cutCount === 0) {
@@ -367,7 +352,7 @@ export const cutCommand: Command = {
         message: cutCount > 1 ? `Cut ${cutCount} nodes` : `Cut node`
       };
     } catch (error) {
-      // End history group without commit on error
+      
       try { (useMindMapStore.getState() as any).endHistoryGroup?.(false); } catch {}
       return {
         success: false,

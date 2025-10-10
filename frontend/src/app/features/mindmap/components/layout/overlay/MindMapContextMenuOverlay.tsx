@@ -1,4 +1,4 @@
-// moved to layout/overlay
+
 import React from 'react';
 import { Copy, Link, Trash2, Sparkles, Table } from 'lucide-react';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
@@ -71,7 +71,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
     });
   }
 
-  // テーブル編集メニュー（テーブルノードのみ）
+  
   const isTableNode = (selectedNode as any).kind === 'table';
   if (isTableNode && onEditTable) {
     items.push({ separator: true });

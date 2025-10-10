@@ -1,14 +1,11 @@
-/**
- * 軽量なLRUキャッシュ実装
- * メモリ使用量を制限し、古いエントリを自動削除
- */
+
 export class LRUCache<K, V> {
   private cache = new Map<K, V>();
   private maxSize: number;
-  private ttl: number; // Time to live in milliseconds
+  private ttl: number; 
   private timestamps = new Map<K, number>();
 
-  constructor(maxSize = 1000, ttl = 300000) { // Default: 1000 items, 5 minutes TTL
+  constructor(maxSize = 1000, ttl = 300000) { 
     this.maxSize = maxSize;
     this.ttl = ttl;
   }
@@ -17,7 +14,7 @@ export class LRUCache<K, V> {
     const now = Date.now();
     const timestamp = this.timestamps.get(key);
 
-    // Check if expired
+    
     if (timestamp && (now - timestamp) > this.ttl) {
       this.cache.delete(key);
       this.timestamps.delete(key);
@@ -26,7 +23,7 @@ export class LRUCache<K, V> {
 
     const value = this.cache.get(key);
     if (value !== undefined) {
-      // Move to end (most recently used)
+      
       this.cache.delete(key);
       this.cache.set(key, value);
       this.timestamps.set(key, now);
@@ -38,11 +35,11 @@ export class LRUCache<K, V> {
   set(key: K, value: V): void {
     const now = Date.now();
 
-    // Remove if already exists
+    
     if (this.cache.has(key)) {
       this.cache.delete(key);
     } else if (this.cache.size >= this.maxSize) {
-      // Remove least recently used item (guard undefined)
+      
       const iterator = this.cache.keys().next();
       const firstKey = iterator.value;
       if (firstKey !== undefined) {
@@ -70,7 +67,7 @@ export class LRUCache<K, V> {
     return this.cache.size;
   }
 
-  // Cleanup expired entries
+  
   cleanup(): void {
     const now = Date.now();
     const expiredKeys: K[] = [];

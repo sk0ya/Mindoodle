@@ -15,10 +15,6 @@ type LinkPath = {
   isBidirectional?: boolean;
 };
 
-/**
- * Calculate connection point on node boundary
- * Returns the point where a line from nodeCenter to targetPoint intersects the node rectangle
- */
 function getNodeBoundaryPoint(
   node: { x: number; y: number },
   nodeSize: { width: number; height: number },
@@ -29,17 +25,17 @@ function getNodeBoundaryPoint(
   const halfWidth = nodeSize.width / 2;
   const halfHeight = nodeSize.height / 2;
 
-  // Vector from node center to target
+  
   const dx = targetPoint.x - centerX;
   const dy = targetPoint.y - centerY;
 
-  // Avoid division by zero
+  
   if (dx === 0 && dy === 0) {
     return { x: centerX + halfWidth, y: centerY };
   }
 
-  // Calculate intersection with rectangle edges
-  // Check which edge the line intersects first
+  
+  
   const absRatioX = dx === 0 ? Infinity : Math.abs(halfWidth / dx);
   const absRatioY = dy === 0 ? Infinity : Math.abs(halfHeight / dy);
 
@@ -47,11 +43,11 @@ function getNodeBoundaryPoint(
   let intersectY: number;
 
   if (absRatioX < absRatioY) {
-    // Intersects with left or right edge
+    
     intersectX = centerX + (dx > 0 ? halfWidth : -halfWidth);
     intersectY = centerY + dy * absRatioX;
   } else {
-    // Intersects with top or bottom edge
+    
     intersectX = centerX + dx * absRatioY;
     intersectY = centerY + (dy > 0 ? halfHeight : -halfHeight);
   }
@@ -59,17 +55,17 @@ function getNodeBoundaryPoint(
   return { x: intersectX, y: intersectY };
 }
 
-// Create subtle curved path for visual elegance
+
 function createSmoothPath(from: { x: number; y: number }, to: { x: number; y: number }): string {
   const dx = to.x - from.x;
   const dy = to.y - from.y;
 
-  // Gentle quadratic curve for natural flow
+  
   const midX = (from.x + to.x) / 2;
   const midY = (from.y + to.y) / 2;
   const offset = Math.min(Math.abs(dx) * 0.15, 30);
 
-  // Control point slightly offset perpendicular to the line
+  
   const perpX = -dy / Math.sqrt(dx * dx + dy * dy) * offset;
   const perpY = dx / Math.sqrt(dx * dx + dy * dy) * offset;
 
@@ -91,7 +87,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
 
   const currentMapId = data?.mapIdentifier?.mapId;
 
-  // Build a synthetic root to resolve anchors across multiple root nodes
+  
   const syntheticRoot = useMemo(() => {
     const roots = data?.rootNodes || [];
     const root: MindMapNode = {
@@ -110,12 +106,12 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
     const result: LinkPath[] = [];
     const processedPairs = new Set<string>();
 
-    // Helper function to create a sorted pair key
+    
     const getPairKey = (id1: string, id2: string) => {
       return id1 < id2 ? `${id1}|${id2}` : `${id2}|${id1}`;
     };
 
-    // Helper function to check if reverse link exists
+    
     const hasReverseLink = (srcId: string, dstId: string): boolean => {
       const dstNode = nodeById[dstId];
       if (!dstNode) return false;
@@ -130,24 +126,24 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
       const srcSize = calculateNodeSize(src, undefined, false, settings.fontSize, wrapConfig);
 
       for (const link of links) {
-        // Only visualize links targeting nodes within the same map
+        
         if (!link.targetNodeId) continue;
         const isSameMap = !link.targetMapId || (currentMapId && link.targetMapId === currentMapId);
         if (!isSameMap) continue;
 
         const dst = nodeById[link.targetNodeId];
-        if (!dst) continue; // target not visible/exists
+        if (!dst) continue; 
 
-        // Check if this pair has been processed
+        
         const pairKey = getPairKey(src.id, dst.id);
         if (processedPairs.has(pairKey)) continue;
 
         const dstSize = calculateNodeSize(dst, undefined, false, settings.fontSize, wrapConfig);
 
-        // Check for bidirectional link
+        
         const isBidirectional = hasReverseLink(src.id, dst.id);
 
-        // Calculate connection points on node boundaries
+        
         const from = getNodeBoundaryPoint(
           { x: src.x, y: src.y },
           srcSize,
@@ -165,13 +161,13 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
           isBidirectional,
         });
 
-        // Mark this pair as processed
+        
         if (isBidirectional) {
           processedPairs.add(pairKey);
         }
       }
     }
-    // Also derive links from markdown note content (internal anchors only)
+    
     for (const src of allNodes) {
       const mdLinks = extractInternalMarkdownLinksDetailed((src as any).note, syntheticRoot);
       if (!mdLinks || mdLinks.length === 0) continue;
@@ -181,18 +177,18 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         const dst = nodeById[m.nodeId];
         if (!dst) continue;
 
-        // Check if this pair has been processed
+        
         const pairKey = getPairKey(src.id, dst.id);
         if (processedPairs.has(pairKey)) continue;
 
         const dstSize = calculateNodeSize(dst, undefined, false, settings.fontSize, wrapConfig);
 
-        // Check for bidirectional link (markdown links)
+        
         const hasMdReverseLink = extractInternalMarkdownLinksDetailed((dst as any).note, syntheticRoot)
           .some(l => l.nodeId === src.id);
         const isBidirectional = hasMdReverseLink || hasReverseLink(src.id, dst.id);
 
-        // Calculate connection points on node boundaries
+        
         const from = getNodeBoundaryPoint(
           { x: src.x, y: src.y },
           srcSize,
@@ -209,7 +205,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
           isBidirectional
         });
 
-        // Mark this pair as processed
+        
         if (isBidirectional) {
           processedPairs.add(pairKey);
         }
@@ -226,15 +222,15 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
   return (
     <g className="inmap-link-connections" style={{ pointerEvents: 'none' }}>
       <defs>
-        {/* Soft arrow marker for unidirectional links */}
+        {}
         <marker id="inmap-arrow" markerWidth="6" markerHeight="7" refX="5" refY="3.5" orient="auto">
           <path d="M 0 0 L 5 3.5 L 0 7 L 1 3.5 z" fill={strokeColor} opacity="0.6" />
         </marker>
-        {/* Soft arrow marker for bidirectional links - start */}
+        {}
         <marker id="inmap-arrow-start" markerWidth="6" markerHeight="7" refX="1" refY="3.5" orient="auto">
           <path d="M 5 0 L 0 3.5 L 5 7 L 4 3.5 z" fill={strokeColor} opacity="0.6" />
         </marker>
-        {/* Soft arrow marker for bidirectional links - end */}
+        {}
         <marker id="inmap-arrow-end" markerWidth="6" markerHeight="7" refX="5" refY="3.5" orient="auto">
           <path d="M 0 0 L 5 3.5 L 0 7 L 1 3.5 z" fill={strokeColor} opacity="0.6" />
         </marker>

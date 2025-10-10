@@ -1,7 +1,4 @@
-/**
- * Show Knowledge Graph Command
- * Display workspace-wide knowledge graph in 3D
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 

@@ -1,7 +1,4 @@
-/**
- * Unified Memory Management Service
- * Consolidates timer management, memory monitoring, and cleanup utilities
- */
+
 
 import { isDevelopment } from '@shared/utils/env';
 
@@ -30,24 +27,19 @@ interface MemoryReport {
   recommendations: string[];
 }
 
-/**
- * Unified Memory Service
- * Combines timer management, monitoring, and analysis
- */
+
 class MemoryService {
-  // Timer Management
+  
   private timers = new Set<ManagedTimer>();
   private cleanupCallbacks = new Set<() => void>();
 
-  // Memory Monitoring
+  
   private snapshots: MemorySnapshot[] = [];
   private maxSnapshots = 100;
   private isMonitoring = false;
   private monitoringInterval?: NodeJS.Timeout;
 
-  /**
-   * Create a managed interval timer
-   */
+  
   createManagedInterval(
     callback: () => void,
     intervalMs: number,
@@ -65,9 +57,7 @@ class MemoryService {
     return id;
   }
 
-  /**
-   * Create a managed timeout timer
-   */
+  
   createManagedTimeout(
     callback: () => void,
     timeoutMs: number,
@@ -88,16 +78,12 @@ class MemoryService {
     return id;
   }
 
-  /**
-   * Register a cleanup callback
-   */
+  
   registerCleanup(callback: () => void): void {
     this.cleanupCallbacks.add(callback);
   }
 
-  /**
-   * Clear a specific managed timer
-   */
+  
   clearManagedTimer(id: NodeJS.Timeout): void {
     const timer = Array.from(this.timers).find(t => t.id === id);
     if (timer) {
@@ -106,9 +92,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Get current timer status
-   */
+  
   getTimerStatus(): {
     activeTimers: number;
     cleanupCallbacks: number;
@@ -121,15 +105,13 @@ class MemoryService {
     };
   }
 
-  /**
-   * Cleanup all timers and resources
-   */
+  
   cleanup(): void {
     if (isDevelopment()) {
       console.log(`🧹 Cleaning up ${this.timers.size} timers and ${this.cleanupCallbacks.size} callbacks`);
     }
 
-    // Cleanup timers
+    
     this.timers.forEach(timer => {
       try {
         timer.cleanup();
@@ -139,7 +121,7 @@ class MemoryService {
     });
     this.timers.clear();
 
-    // Execute cleanup callbacks
+    
     this.cleanupCallbacks.forEach(callback => {
       try {
         callback();
@@ -150,9 +132,7 @@ class MemoryService {
     this.cleanupCallbacks.clear();
   }
 
-  /**
-   * Start memory monitoring
-   */
+  
   startMonitoring(intervalMs: number = 10000): void {
     if (this.isMonitoring) return;
 
@@ -167,9 +147,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Stop memory monitoring
-   */
+  
   stopMonitoring(): void {
     if (!this.isMonitoring) return;
 
@@ -184,14 +162,12 @@ class MemoryService {
     }
   }
 
-  /**
-   * Take a memory snapshot
-   */
+  
   takeSnapshot(): MemorySnapshot {
     const timestamp = Date.now();
     const timerStatus = this.getTimerStatus();
 
-    // Get event listener count from eventManager if available
+    
     let eventListeners = 0;
     try {
       const eventManager = (window as any).eventManager;
@@ -199,7 +175,7 @@ class MemoryService {
         eventListeners = eventManager.getStatus().activeListeners;
       }
     } catch {
-      // Event manager not available
+      
     }
 
     const snapshot: MemorySnapshot = {
@@ -208,7 +184,7 @@ class MemoryService {
       eventListeners
     };
 
-    // Chrome browser memory info
+    
     if ('memory' in performance) {
       const memory = (performance as any).memory;
       snapshot.jsHeapUsed = memory.usedJSHeapSize;
@@ -218,7 +194,7 @@ class MemoryService {
 
     this.snapshots.push(snapshot);
 
-    // Remove old snapshots
+    
     if (this.snapshots.length > this.maxSnapshots) {
       this.snapshots.shift();
     }
@@ -226,24 +202,22 @@ class MemoryService {
     return snapshot;
   }
 
-  /**
-   * Check memory thresholds and warn
-   */
+  
   private checkThresholds(): void {
     const latest = this.snapshots[this.snapshots.length - 1];
     if (!latest) return;
 
-    // Timer count warning
+    
     if (latest.timers > 15) {
       console.warn(`⚠️ High timer count: ${latest.timers} active timers`);
     }
 
-    // Event listener warning
+    
     if (latest.eventListeners > 100) {
       console.warn(`⚠️ High event listener count: ${latest.eventListeners} active listeners`);
     }
 
-    // Memory usage warning
+    
     if (latest.jsHeapUsed && latest.jsHeapLimit) {
       const usageRatio = latest.jsHeapUsed / latest.jsHeapLimit;
       if (usageRatio > 0.8) {
@@ -251,7 +225,7 @@ class MemoryService {
       }
     }
 
-    // Memory leak detection
+    
     if (this.snapshots.length >= 5) {
       const recent = this.snapshots.slice(-5);
       const isIncreasing = recent.every((snap, i) =>
@@ -270,9 +244,7 @@ class MemoryService {
     }
   }
 
-  /**
-   * Generate memory report
-   */
+  
   generateReport(): MemoryReport {
     const current = this.snapshots[this.snapshots.length - 1];
     const recommendations: string[] = [];
@@ -286,7 +258,7 @@ class MemoryService {
       };
     }
 
-    // Generate recommendations
+    
     if (current.timers > 10) {
       recommendations.push('Consider reducing the number of active timers');
     }
@@ -314,9 +286,7 @@ class MemoryService {
     };
   }
 
-  /**
-   * Calculate trend for a specific metric
-   */
+  
   private calculateTrend(field: keyof MemorySnapshot): 'increasing' | 'stable' | 'decreasing' {
     if (this.snapshots.length < 3) return 'stable';
 
@@ -333,9 +303,7 @@ class MemoryService {
     return 'stable';
   }
 
-  /**
-   * Format snapshot summary
-   */
+  
   private formatSummary(snapshot: MemorySnapshot): string {
     const parts: string[] = [];
 
@@ -349,32 +317,28 @@ class MemoryService {
     return parts.join(' | ');
   }
 
-  /**
-   * Print detailed report to console
-   */
+  
   printReport(): void {
     const report = this.generateReport();
 
-    // eslint-disable-next-line no-console
+    
     console.group('📊 Memory Service Report');
     console.log('Summary:', report.summary);
     console.log('Trends:', report.trends);
 
     if (report.recommendations.length > 0) {
-      // eslint-disable-next-line no-console
+      
       console.group('💡 Recommendations:');
       report.recommendations.forEach(rec => console.log(`• ${rec}`));
-      // eslint-disable-next-line no-console
+      
       console.groupEnd();
     }
 
-    // eslint-disable-next-line no-console
+    
     console.groupEnd();
   }
 
-  /**
-   * Analyze current memory usage
-   */
+  
   analyzeMemoryUsage(): {
     current: any;
     recommendations: string[];
@@ -400,13 +364,11 @@ class MemoryService {
     return { current, recommendations };
   }
 
-  /**
-   * Force memory cleanup
-   */
+  
   forceMemoryCleanup(): void {
     console.log('🧹 強制メモリクリーンアップを実行...');
 
-    // Clear browser caches
+    
     try {
       if (typeof window !== 'undefined' && (window as any).caches) {
         (window as any).caches.keys().then((names: string[]) => {
@@ -419,7 +381,7 @@ class MemoryService {
       console.warn('キャッシュクリア中にエラー:', error);
     }
 
-    // Clear temporary DOM elements
+    
     try {
       const elements = document.querySelectorAll('[data-temp]');
       elements.forEach(el => el.remove());
@@ -431,15 +393,15 @@ class MemoryService {
   }
 }
 
-// Global instance
+
 export const memoryService = new MemoryService();
 
-// Auto-cleanup on page unload
+
 if (typeof window !== 'undefined') {
   const handleBeforeUnload = () => memoryService.cleanup();
   window.addEventListener('beforeunload', handleBeforeUnload);
 
-  // HMR cleanup
+  
   if (typeof import.meta !== 'undefined' && (import.meta as any).hot) {
     (import.meta as any).hot.dispose(() => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
@@ -448,7 +410,7 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Development mode auto-monitoring
+
 if (isDevelopment()) {
   memoryService.createManagedTimeout(() => {
     memoryService.startMonitoring(15000);
@@ -458,7 +420,7 @@ if (isDevelopment()) {
   }, 5000, 'MemoryService start');
 }
 
-// Expose to window for development
+
 if (isDevelopment() && typeof window !== 'undefined') {
   (window as any).memoryService = memoryService;
   console.log('🔧 開発ツール: window.memoryService で手動メモリ管理が可能');

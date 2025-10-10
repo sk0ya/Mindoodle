@@ -1,8 +1,6 @@
 import { emitStatus } from '../hooks/ui/useStatusBar';
 
-/**
- * Safe wrapper for emitStatus that won't throw errors
- */
+
 export function safeEmitStatus(
   type: 'info' | 'warning' | 'error' | 'success',
   message: string,
@@ -11,13 +9,11 @@ export function safeEmitStatus(
   try {
     emitStatus(type, message, duration);
   } catch {
-    // Silently ignore errors in status emission
+    
   }
 }
 
-/**
- * Commonly used status messages with consistent durations
- */
+
 export const statusMessages = {
   folderAccessUnavailable: () =>
     safeEmitStatus('info', 'この環境ではフォルダアクセス機能が利用できません', 6000),

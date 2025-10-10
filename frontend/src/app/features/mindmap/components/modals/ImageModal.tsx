@@ -8,7 +8,7 @@ interface ImageModalProps {
   imageUrl: string | null;
   altText?: string;
   onClose: () => void;
-  // Enhanced props for FileAttachment support
+  
   file?: FileAttachment | null;
   files?: FileAttachment[];
   currentIndex?: number;
@@ -117,7 +117,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  // Reset loading state when image changes
+  
   useEffect(() => {
     if (currentImageUrl) {
       setLoading(true);
@@ -162,14 +162,14 @@ const ImageModal: React.FC<ImageModalProps> = ({
           </>
         )}
 
-        {/* Image counter for multiple images */}
+        {}
         {hasMultipleImages && (
           <div className="image-modal-counter">
             {currentIndex + 1} / {files.length}
           </div>
         )}
 
-        {/* Image display */}
+        {}
 
         {loading && (
           <div className="image-modal-loading">
@@ -192,7 +192,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
           style={{ display: loading ? 'none' : 'block' }}
         />
 
-        {/* File info display (below image, like original implementation) */}
+        {}
         <div className="image-modal-info">
           <p className="image-filename">{currentFileName}</p>
           {currentFileSize > 0 && (

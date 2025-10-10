@@ -22,11 +22,11 @@ interface MindMapCanvasProps {
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
   
-  // Link display data
+  
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode: any };
   
-  // Link navigation
+  
   onLinkNavigate?: (link: NodeLink) => void;
   
   zoom: number;
@@ -34,7 +34,7 @@ interface MindMapCanvasProps {
   pan: { x: number; y: number };
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   
-  // Icon toggle handlers
+  
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string) => void;
@@ -50,7 +50,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onSelectNode,
     onStartEdit,
     onFinishEdit,
-    // movement callbacks deprecated (handled by strategies)
+    
     onToggleCollapse,
     onShowLinkActionMenu,
     onUpdateNode,
@@ -70,13 +70,13 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   const svgRef = useRef<SVGSVGElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
-  // Only use rootNodes array - no fallback to single rootNode
+  
   const rootNodes = data?.rootNodes || [];
 
-  // Flatten all nodes from all root nodes
+  
   const allNodes = rootNodes.flatMap(rootNode => flattenVisibleNodes(rootNode));
   
-  // ドラッグハンドラーを使用 - only use rootNodes
+  
   const { dragState, handleDragStart, handleDragMove, handleDragEnd } = useCanvasDragHandler({
     allNodes,
     zoom,
@@ -85,7 +85,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     rootNodes
   });
 
-  // ビューポートハンドラーを使用
+  
   const { handleWheel, handleMouseDown, getCursor, getIsPanning } = useCanvasViewportHandler({
     zoom,
     setZoom,
@@ -94,7 +94,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     isDragging: dragState.isDragging
   });
 
-  // イベントハンドラーを使用
+  
   const { handleMouseUp: handleCanvasMouseUp, handleContextMenu, handleNodeSelect, handleMouseDown: handleCanvasMouseDown } = useCanvasEventHandler({
     editingNodeId,
     editText,
@@ -104,7 +104,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     svgRef
   });
 
-  // ドラッグハンドラーのアダプター（Node.tsxとの互換性維持）
+  
   const handleDragStartAdapter = (nodeId: string) => {
     handleDragStart(nodeId, {} as React.MouseEvent);
   };
@@ -118,11 +118,11 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     handleDragEnd();
   };
 
-  // マウスダウンイベントを組み合わせる
+  
   const combinedHandleMouseDown = useCallback((e: React.MouseEvent) => {
     handleCanvasMouseDown(e);
     handleMouseDown(e);
-    // Ensure focus moves to SVG so app-level shortcuts receive key events
+    
     try { svgRef.current?.focus?.(); } catch (_) {}
   }, [handleCanvasMouseDown, handleMouseDown]);
 
@@ -164,7 +164,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
         onPreviewUrl={setPreviewUrl}
       />
 
-      {/* Webページプレビュー */}
+      {}
       {previewUrl && (
         <WebPreviewModal
           url={previewUrl}

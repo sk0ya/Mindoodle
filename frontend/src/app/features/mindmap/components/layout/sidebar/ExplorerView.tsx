@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React from 'react';
 import { ExplorerNodeView } from './ExplorerNodeView';
 import type { ExplorerItem } from '@core/types';
@@ -50,7 +50,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
 
     const isFile = item.type === 'file';
 
-    // For files: check filename (excluding workspace folder)
+    
     let fileMatches = false;
     if (isFile) {
       const filename = item.name || '';
@@ -107,13 +107,13 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
 
   const treeNoDots = pruneDotEntries(tree);
 
-  // Apply search filtering on top of dot filtering
+  
   const filteredTree = searchTerm && treeNoDots
     ? filterTree(treeNoDots, searchTerm.toLowerCase())
     : treeNoDots;
 
 
-  // Return null if no filtered tree
+  
   if (!filteredTree) {
     return (
       <div className="no-results">

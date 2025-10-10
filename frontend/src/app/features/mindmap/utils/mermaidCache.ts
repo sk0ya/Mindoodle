@@ -7,21 +7,21 @@ interface CachedSVG {
 class MermaidSVGCache {
   private cache = new Map<string, CachedSVG>();
   private readonly maxSize: number;
-  private readonly maxAge: number; // ms
+  private readonly maxAge: number; 
 
-  constructor(maxSize = 100, maxAge = 30 * 60 * 1000) { // 30 minutes
+  constructor(maxSize = 100, maxAge = 30 * 60 * 1000) { 
     this.maxSize = maxSize;
     this.maxAge = maxAge;
   }
 
   private generateKey(code: string): string {
-    // Simple hash function for caching key
+    
     let hash = 0;
     if (code.length === 0) return hash.toString();
     for (let i = 0; i < code.length; i++) {
       const char = code.charCodeAt(i);
       hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; // Convert to 32bit integer
+      hash = hash & hash; 
     }
     return hash.toString();
   }
@@ -30,7 +30,7 @@ class MermaidSVGCache {
     const now = Date.now();
     const expiredKeys: string[] = [];
 
-    // Remove expired entries
+    
     for (const [key, value] of this.cache.entries()) {
       if (now - value.timestamp > this.maxAge) {
         expiredKeys.push(key);
@@ -39,7 +39,7 @@ class MermaidSVGCache {
 
     expiredKeys.forEach(key => this.cache.delete(key));
 
-    // Remove oldest entries if cache is too large
+    
     if (this.cache.size > this.maxSize) {
       const entries = Array.from(this.cache.entries())
         .sort(([, a], [, b]) => a.timestamp - b.timestamp);
@@ -55,7 +55,7 @@ class MermaidSVGCache {
 
     if (!cached) return null;
 
-    // Check if expired
+    
     if (Date.now() - cached.timestamp > this.maxAge) {
       this.cache.delete(key);
       return null;
@@ -93,8 +93,8 @@ class MermaidSVGCache {
   }
 }
 
-// Global cache instance
+
 export const mermaidSVGCache = new MermaidSVGCache();
 
-// Export the cache class for testing or custom instances
+
 export { MermaidSVGCache };

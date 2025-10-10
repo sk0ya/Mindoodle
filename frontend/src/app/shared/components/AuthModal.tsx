@@ -355,7 +355,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
           </div>
         )}
 
-        {/* ログイン/登録切り替え */}
+        {}
         <div style={{
           marginTop: '24px',
           textAlign: 'center',

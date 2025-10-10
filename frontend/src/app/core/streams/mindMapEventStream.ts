@@ -1,17 +1,17 @@
 import { logger } from '@shared/utils';
 
-// Simple in-memory event bus for mind map model changes
+
 export type MindMapEventType =
-  | 'model.changed' // generic model mutation committed to tree
-  | 'layout.applied' // auto layout updated positions
-  | 'links.changed' // link add/update/delete
-  | 'model.reset'; // loaded/replaced entire model
+  | 'model.changed' 
+  | 'layout.applied' 
+  | 'links.changed' 
+  | 'model.reset'; 
 
 export interface MindMapEvent<T = any> {
   type: MindMapEventType;
   payload?: T;
-  at?: number; // ms timestamp
-  source?: string; // optional source tag
+  at?: number; 
+  source?: string; 
 }
 
 type Subscriber = (event: MindMapEvent) => void;
@@ -31,12 +31,12 @@ export class MindMapEventBus {
       try {
         cb(e);
       } catch (_err) {
-        // keep other subscribers alive
+        
       }
     }
   }
 }
 
-// Singleton bus used across the app
+
 export const mindMapEvents = new MindMapEventBus();
 

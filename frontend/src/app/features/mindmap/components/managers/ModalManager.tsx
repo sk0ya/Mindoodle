@@ -48,7 +48,7 @@ export const useModalManager = ({
     setContextMenu,
   } = modalState;
 
-  // Link-related handlers
+  
   const handleAddLink = React.useCallback((nodeId: string) => {
     logger.debug('handleAddLink', { nodeId });
     setEditingLink(null);
@@ -68,11 +68,11 @@ export const useModalManager = ({
 
     try {
       if (editingLink) {
-        // Update existing link
+        
         store.updateNodeLink(linkModalNodeId, editingLink.id, linkData);
         showNotification('success', 'リンクを更新しました');
       } else {
-        // Add new link
+        
         store.addNodeLink(linkModalNodeId, linkData);
         showNotification('success', 'リンクを追加しました');
       }
@@ -104,7 +104,7 @@ export const useModalManager = ({
     setLinkActionMenuData(null);
   }, [setShowLinkActionMenu, setLinkActionMenuData]);
 
-  // Context menu handlers
+  
   const handleContextMenuClose = React.useCallback(() => {
     setContextMenu({
       visible: false,
@@ -116,7 +116,7 @@ export const useModalManager = ({
   const handleRightClick = React.useCallback((e: React.MouseEvent, nodeId: string, ui: any, selectNode: (nodeId: string) => void) => {
     e.preventDefault();
     
-    // リンクリストまたは添付ファイルリスト表示中は右クリックコンテキストメニューを無効化
+    
     if (ui.showLinkListForNode) {
       return;
     }
@@ -126,11 +126,11 @@ export const useModalManager = ({
       position: { x: e.clientX, y: e.clientY },
       nodeId: nodeId
     });
-    selectNode(nodeId); // Select the node when right-clicking
+    selectNode(nodeId); 
   }, [setContextMenu]);
 
   return {
-    // Link operations
+    
     handleAddLink,
     handleEditLink,
     handleSaveLink,
@@ -138,7 +138,7 @@ export const useModalManager = ({
     handleShowLinkActionMenu,
     handleCloseLinkActionMenu,
     
-    // Context menu operations
+    
     handleContextMenuClose,
     handleRightClick,
   };

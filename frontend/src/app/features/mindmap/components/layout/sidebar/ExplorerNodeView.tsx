@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React from 'react';
 import { Folder, FolderOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import { highlightSearchTerm } from '@shared/utils';
@@ -39,12 +39,12 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   const isMarkdown = isFile && item.isMarkdown;
   const isCollapsed = collapsed[item.path] || false;
 
-  // Map ID extraction and matching
+  
   let workspaceId: string | undefined;
   let mapId: string | null = null;
 
   if (isMarkdown) {
-    // Pattern: /ws_xxx/... or /cloud/...
+    
     const pathMatch = item.path.match(/^\/(ws_[^/]+|cloud)\/(.+)$/);
     if (pathMatch) {
       workspaceId = pathMatch[1];
@@ -80,8 +80,8 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    // Calculate relative path by removing workspace ID prefix
-    // Strip workspace prefix for both local (ws_*) and cloud
+    
+    
     const relativePath = item.path.startsWith('/ws_')
       ? item.path.replace(/^\/ws_[^/]+\//, '')
       : item.path.replace(/^\/cloud\//, '');
@@ -123,8 +123,8 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
         const sourcePath = e.dataTransfer.getData('mindoodle/path');
         const sourceWorkspaceId = e.dataTransfer.getData('mindoodle/workspaceId');
 
-        // Calculate target relative path
-        // Calculate target relative path for both local (ws_*) and cloud
+        
+        
         const targetRelativePath = item.path.startsWith('/ws_')
           ? item.path.replace(/^\/ws_[^/]+\//, '')
           : item.path.replace(/^\/cloud\//, '');
@@ -155,7 +155,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   };
 
   if (item.type === 'folder') {
-    // 名前が空のフォルダは表示しない（その子要素のみを表示）
+    
     if (!item.name || item.name.trim() === '') {
       return (
         <>
@@ -255,7 +255,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
           onBlur={onCancelRename}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              // Send rename event
+              
               const newTitle = editingTitle.trim();
               if (newTitle && newTitle !== item.name) {
                 window.dispatchEvent(new CustomEvent('mindoodle:renameMap', {

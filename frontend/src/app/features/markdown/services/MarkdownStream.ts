@@ -9,12 +9,6 @@ export interface MarkdownStreamOptions {
   debounceMs?: number;
 }
 
-/**
- * In-memory Markdown stream that fans out to registered sinks (debounced + serialized).
- * - Keep a single source of truth for the current markdown text
- * - Notify subscribers on changes
- * - Flush changes to sinks with debounce; serialize to avoid races
- */
 import { logger } from '@shared/utils';
 
 export class MarkdownStream {
@@ -36,10 +30,10 @@ export class MarkdownStream {
   setMarkdown(markdown: string, source: MarkdownSource = 'external', updatedAt?: string): void {
     if (typeof markdown !== 'string') return;
 
-    // 同じ内容なら無視
+    
     if (markdown === this.content) return;
 
-    // updatedAtが提供され、それが前回と同じなら無視（重複更新防止）
+    
     if (updatedAt && updatedAt === this.lastUpdatedAt) return;
 
     this.content = markdown;
@@ -60,8 +54,8 @@ export class MarkdownStream {
 
   subscribe(cb: (markdown: string, source: MarkdownSource, updatedAt?: string) => void): () => void {
     this.subscribers.add(cb);
-    // Don't emit initial content to prevent feedback loops
-    // Initial content will be loaded via proper load mechanism in useMarkdownStream
+    
+    
     return () => {
       this.subscribers.delete(cb);
     };
@@ -70,7 +64,7 @@ export class MarkdownStream {
   private notify(markdown: string, source: MarkdownSource, updatedAt?: string): void {
     logger.debug('📢 MarkdownStream.notify', { source, length: markdown.length, updatedAt, subscribers: this.subscribers.size });
     for (const cb of Array.from(this.subscribers)) {
-      try { cb(markdown, source, updatedAt); } catch (_e) { /* ignore subscriber error */ void 0; }
+      try { cb(markdown, source, updatedAt); } catch (_e) {  void 0; }
     }
   }
 
@@ -84,17 +78,17 @@ export class MarkdownStream {
 
   async flush(): Promise<void> {
     const snapshot = this.content;
-    if (snapshot === this.lastFlushed) return; // no changes
+    if (snapshot === this.lastFlushed) return; 
     const run = async () => {
-      // Re-check after awaiting previous lock
+      
       const now = this.content;
       if (now === this.lastFlushed) return;
-      // Fan-out sequentially; if one sink fails, continue others
+      
       for (const sink of this.sinks) {
         try {
           await sink.flush(now);
         } catch {
-          // Swallow to keep pipeline alive
+          
         }
       }
       this.lastFlushed = now;

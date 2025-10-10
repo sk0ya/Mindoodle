@@ -12,7 +12,7 @@ interface MarkdownPanelProps {
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
   onMapMarkdownInput?: (markdown: string) => void;
   subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
-  // Cursor mapping helpers
+  
   getNodeIdByMarkdownLine?: (line: number) => string | null;
   onSelectNode?: (nodeId: string) => void;
 }
@@ -25,7 +25,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   getNodeIdByMarkdownLine,
   onSelectNode
 }) => {
-  const [panelWidth, setPanelWidth] = useState(600); // Default width
+  const [panelWidth, setPanelWidth] = useState(600); 
   const { isResizing, startResizing, stopResizing } = useResizingState();
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
@@ -149,18 +149,18 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       stopResizing();
       document.removeEventListener('mousemove', handleMouseMove, true);
       document.removeEventListener('mouseup', handleMouseUp, true);
-      // Save width to localStorage
+      
       setLocalStorage(STORAGE_KEYS.NOTES_PANEL_WIDTH, currentWidth);
-      // Final Monaco Editor layout update
+      
       setTimeout(() => { setResizeCounter(prev => prev + 1); }, 50);
     };
 
-    // Use capture phase to ensure events are caught even if other elements try to stop propagation
+    
     document.addEventListener('mousemove', handleMouseMove, true);
     document.addEventListener('mouseup', handleMouseUp, true);
   }, [panelWidth, startResizing, stopResizing, setMarkdownPanelWidth]);
 
-  // Load saved width on mount
+  
   useEffect(() => {
     const result = getLocalStorage<number>(STORAGE_KEYS.NOTES_PANEL_WIDTH);
     if (result.success && result.data !== undefined) {
@@ -171,14 +171,14 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       }
     }
     
-    // On unmount, reset width to 0
+    
     return () => { setMarkdownPanelWidth?.(0); };
   }, []);
 
-  // Do not close this panel with ESC at all (no global handler here)
+  
 
-  // Disable auto-save when editing map markdown; re-enable otherwise
-  // Note: autosave is toggled by parent (MindMapApp) based on panel visibility
+  
+  
 
   return (
     <div
@@ -192,7 +192,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         onMouseDown={handleResizeStart}
       />
 
-      {/* Panel Header */}
+      {}
       <div className="panel-header">
         <div className="panel-title">
           <FileText size={14} />

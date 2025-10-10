@@ -54,7 +54,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     };
   }, [isVisible, onClose]);
 
-  // メニュー位置の調整
+  
   useEffect(() => {
     if (isVisible && menuRef.current) {
       const menu = menuRef.current;
@@ -64,17 +64,17 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       let adjustedX = position.x;
       let adjustedY = position.y;
 
-      // 右端からはみ出る場合は左に移動
+      
       if (position.x + rect.width > viewportWidth - 20) {
         adjustedX = viewportWidth - rect.width - 20;
       }
 
-      // 下端からはみ出る場合は上に移動
+      
       if (position.y + rect.height > viewportHeight - 20) {
         adjustedY = Math.max(20, position.y - rect.height);
       }
 
-      // 左端・上端の境界チェック
+      
       adjustedX = Math.max(20, adjustedX);
       adjustedY = Math.max(20, adjustedY);
 

@@ -1,4 +1,4 @@
-// moved to layout/sidebar
+
 import React, { memo } from 'react';
 import { Workflow, Cloud, CloudOff } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
@@ -12,7 +12,7 @@ import { useMindMapStore } from '@mindmap/store';
 import { CloudStorageAdapter } from '@/app/core/storage/adapters';
 import { WorkspaceService } from '@shared/services';
 
-// Unified sidebar hook (Phase 4.1 consolidation)
+
 import { useSidebar } from '../../../hooks/useSidebar';
 
 interface MindMapSidebarProps {
@@ -55,7 +55,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   const { settings, updateSetting } = useMindMapStore();
   const isCloudConnected = workspaces.some(ws => ws.id === 'cloud');
 
-  // Handle cloud connection toggle
+  
   const handleToggleCloud = () => {
     const workspaceService = WorkspaceService.getInstance();
 
@@ -63,14 +63,14 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       updateSetting('storageMode', 'local');
       workspaceService.logoutFromCloud();
     } else {
-      // Connect: always show auth modal
+      
       let adapter = workspaceService.getCloudAdapter();
       if (!adapter) {
         adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
         workspaceService.setCloudAdapter(adapter);
       }
 
-      // Dispatch global event for auth modal
+      
       window.dispatchEvent(new CustomEvent('mindoodle:showAuthModal', {
         detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess }
       }));
@@ -87,7 +87,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     updateSetting('storageMode', 'local+cloud');
   };
 
-  // Unified sidebar hook - consolidates all sidebar operations (Phase 4.1)
+  
   const sidebar = useSidebar({
     mindMaps,
     currentWorkspaceId,
@@ -99,29 +99,29 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     explorerTree
   });
 
-  // Destructure only the values used in this component
+  
   const {
-    // Map operations (used in ExplorerView)
+    
     editingMapId,
     editingTitle,
     setEditingTitle,
     handleCancelRename,
-    // Filtering (used in SidebarHeader and empty state)
+    
     searchTerm,
     setSearchTerm,
     filteredMaps,
-    // Explorer tree (used in ExplorerView and useEffect)
+    
     enhancedExplorerTree,
     explorerCollapsed,
     setExplorerCollapsed,
-    // Context menu (used in ContextMenu component)
+    
     contextMenu,
     contextMenuItems,
     setContextMenu,
     closeContextMenu
   } = sidebar;
 
-  // Initialize default collapsed state: collapse all folders except workspace roots
+  
   React.useEffect(() => {
     const tree = enhancedExplorerTree;
     if (!tree) return;
@@ -187,7 +187,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
                   backgroundColor: ws.id === currentWorkspaceId ? 'rgba(0, 122, 204, 0.1)' : 'transparent'
                 }}>
                 <span>{ws.name}</span>
-                {/* Cloud workspaceはxボタンを表示しない */}
+                {}
                 {onRemoveWorkspace && ws.id !== 'cloud' && <button onClick={(e) => {
                   e.stopPropagation();
                   onRemoveWorkspace(ws.id);

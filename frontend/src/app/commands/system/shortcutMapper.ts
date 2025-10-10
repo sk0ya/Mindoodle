@@ -1,7 +1,4 @@
-/**
- * Shortcut to Command Mapper
- * Unified system for mapping keyboard shortcuts to commands
- */
+
 
 export interface ShortcutDefinition {
   key: string;
@@ -17,9 +14,9 @@ export interface ShortcutDefinition {
   category?: 'vim' | 'application' | 'navigation' | 'editing' | 'ui' | 'utility';
 }
 
-// All keyboard shortcuts mapped to commands
+
 export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
-  // Vim navigation
+  
   { key: 'h', command: 'left', category: 'vim', description: '← 左へ移動' },
   { key: 'j', command: 'down', category: 'vim', description: '↓ 下へ移動' },
   { key: 'k', command: 'up', category: 'vim', description: '↑ 上へ移動' },
@@ -29,7 +26,7 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: '0', command: 'select-current-root', category: 'vim', description: 'カレントルート選択' },
   { key: 'M', command: 'select-center', category: 'vim', description: '画面中央のノード選択' },
 
-  // Vim editing - insert/append
+  
   { key: 'i', command: 'append', category: 'vim', description: '編集モード (末尾から)' },
   { key: 'I', command: 'insert', category: 'vim', description: '編集モード (先頭から)' },
   { key: 'a', command: 'add-child', category: 'vim', description: '子ノード追加' },
@@ -38,7 +35,7 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'O', command: 'open-above', category: 'vim', description: '上に兄弟ノード追加' },
   { key: 'ciw', command: 'edit', category: 'vim', description: 'テキストクリア&編集' },
 
-  // Vim editing - delete/cut/copy/paste
+  
   { key: 'dd', command: 'cut', category: 'vim', description: 'ノードをカット' },
   { key: 'yy', command: 'copy', category: 'vim', description: 'ノードをコピー' },
   { key: 'p', command: 'paste-sibling-after', category: 'vim', description: '弟ノードとして貼り付け（下に）' },
@@ -48,7 +45,7 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'u', command: 'undo', category: 'vim', description: '元に戻す' },
   { key: 'Ctrl+r', modifiers: { ctrl: true }, command: 'redo', category: 'vim', description: 'やり直し' },
 
-  // Vim view control
+  
   { key: 'zz', command: 'center', category: 'vim', description: '画面中央に表示' },
   { key: 'zt', command: 'center-left', category: 'vim', description: '画面左中央に表示' },
   { key: 'za', command: 'toggle', category: 'vim', description: '展開/折りたたみ' },
@@ -59,36 +56,36 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'Ctrl+u', modifiers: { ctrl: true }, command: 'scroll-up', category: 'vim', description: '上にスクロール' },
   { key: 'Ctrl+d', modifiers: { ctrl: true }, command: 'scroll-down', category: 'vim', description: '下にスクロール' },
 
-  // Vim search/jump
+  
   { key: '/', command: 'search', category: 'vim', description: '検索開始' },
   { key: 'n', command: 'next-search', category: 'vim', description: '次の検索結果' },
   { key: 'N', command: 'prev-search', category: 'vim', description: '前の検索結果' },
   { key: 's', command: 'jumpy', category: 'vim', description: 'Jumpyモード' },
 
-  // Vim structure
+  
   { key: '>>', command: 'move-as-child-of-sibling', category: 'vim', description: '前の兄弟の子にする' },
   { key: '<<', command: 'move-as-next-sibling-of-parent', category: 'vim', description: '親の次の兄弟にする' },
 
-  // Vim commands
+  
   { key: ':', command: 'command-line', category: 'vim', description: 'コマンドライン' },
   { key: 'gt', command: 'next-map', category: 'vim', description: '次のマップ' },
   { key: 'gT', command: 'prev-map', category: 'vim', description: '前のマップ' },
 
-  // Vim markdown
+  
   { key: 'm', command: 'convert', category: 'vim', description: 'Markdown形式変換' },
   { key: '1m', command: 'convert-ordered-1', category: 'vim', description: '1. 番号付きリスト' },
   { key: '2m', command: 'convert-ordered-2', category: 'vim', description: '2. 番号付きリスト' },
 
-  // Vim UI
+  
   { key: 'gv', command: 'show-knowledge-graph', category: 'vim', description: 'Knowledge Graph表示 (graph view)' },
 
-  // Arrow navigation
+  
   { key: 'ArrowUp', command: 'arrow-navigate', args: { direction: 'up' }, category: 'navigation', description: 'Navigate up' },
   { key: 'ArrowDown', command: 'arrow-navigate', args: { direction: 'down' }, category: 'navigation', description: 'Navigate down' },
   { key: 'ArrowLeft', command: 'arrow-navigate', args: { direction: 'left' }, category: 'navigation', description: 'Navigate left' },
   { key: 'ArrowRight', command: 'arrow-navigate', args: { direction: 'right' }, category: 'navigation', description: 'Navigate right' },
 
-  // Standard editing shortcuts
+  
   { key: ' ', command: 'start-edit', category: 'editing', description: 'Start editing (Space)' },
   { key: 'F2', command: 'start-edit-end', category: 'editing', description: 'Start editing (F2)' },
   { key: 'Tab', command: 'add-child', category: 'editing', description: 'Add child node' },
@@ -96,7 +93,7 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'Delete', command: 'delete', category: 'editing', description: 'Delete node' },
   { key: 'Backspace', command: 'delete', category: 'editing', description: 'Delete node' },
 
-  // Application shortcuts (with modifiers)
+  
   { key: 'z', modifiers: { ctrl: true }, command: 'undo', category: 'application', description: 'Undo (Ctrl+Z)' },
   { key: 'z', modifiers: { ctrl: true, shift: true }, command: 'redo', category: 'application', description: 'Redo (Ctrl+Shift+Z)' },
   { key: 'y', modifiers: { ctrl: true }, command: 'redo', category: 'application', description: 'Redo (Ctrl+Y)' },
@@ -105,7 +102,7 @@ export const SHORTCUT_COMMANDS: ShortcutDefinition[] = [
   { key: 'm', modifiers: { ctrl: true }, command: 'toggle-markdown-panel', category: 'ui', description: 'Toggle Markdown panel (Ctrl+M)' },
   { key: 'm', modifiers: { ctrl: true, shift: true }, command: 'toggle-node-note-panel', category: 'ui', description: 'Toggle Node Note panel (Ctrl+Shift+M)' },
 
-  // UI shortcuts
+  
   { key: 'F1', command: 'help', category: 'ui', description: 'Toggle help panel' },
   { key: 'Escape', command: 'close-panels', category: 'ui', description: 'Close all panels' },
 ];
@@ -120,9 +117,7 @@ export interface ParsedShortcut {
   };
 }
 
-/**
- * Parse keyboard event into normalized shortcut
- */
+
 export function parseKeyboardEvent(event: KeyboardEvent): ParsedShortcut {
   return {
     key: event.key,
@@ -135,17 +130,15 @@ export function parseKeyboardEvent(event: KeyboardEvent): ParsedShortcut {
   };
 }
 
-/**
- * Match a parsed shortcut against shortcut definitions
- */
+
 export function matchShortcut(parsed: ParsedShortcut): ShortcutDefinition | null {
   return SHORTCUT_COMMANDS.find(shortcut => {
-    // Check key match
+    
     if (shortcut.key !== parsed.key) {
       return false;
     }
 
-    // Check modifiers
+    
     const mods = shortcut.modifiers || {};
     return (
       (mods.ctrl || false) === parsed.modifiers.ctrl &&
@@ -156,30 +149,22 @@ export function matchShortcut(parsed: ParsedShortcut): ShortcutDefinition | null
   }) || null;
 }
 
-/**
- * Check if a shortcut should be handled by vim mode
- */
+
 export function isVimShortcut(shortcut: ShortcutDefinition): boolean {
   return shortcut.category === 'vim';
 }
 
-/**
- * Check if a shortcut has modifier keys
- */
+
 export function hasModifiers(parsed: ParsedShortcut): boolean {
   return parsed.modifiers.ctrl || parsed.modifiers.shift || parsed.modifiers.alt || parsed.modifiers.meta;
 }
 
-/**
- * Get all shortcuts for a specific category
- */
+
 export function getShortcutsByCategory(category: string): ShortcutDefinition[] {
   return SHORTCUT_COMMANDS.filter(shortcut => shortcut.category === category);
 }
 
-/**
- * Get shortcut description for help display
- */
+
 export function getShortcutHelp(): string {
   const categories = ['vim', 'navigation', 'editing', 'application', 'ui'];
   let help = 'Keyboard Shortcuts:\n\n';
@@ -199,9 +184,7 @@ export function getShortcutHelp(): string {
   return help;
 }
 
-/**
- * Format key combination for display
- */
+
 function formatKeyDisplay(shortcut: ShortcutDefinition): string {
   const parts: string[] = [];
 

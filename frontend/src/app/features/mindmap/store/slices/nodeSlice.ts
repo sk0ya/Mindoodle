@@ -23,7 +23,7 @@ import { COLORS } from '@shared/constants';
 import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, resolveNodeTextWrapConfig } from '../../utils';
 import type { MindMapStore } from './types';
 
-// Helper function to create new node
+
 const createNewNode = (text: string, parentNode?: MindMapNode, settings?: any, addBlankLine: boolean = false): MindMapNode => {
   const newNode: MindMapNode = {
     id: generateNodeId(),
@@ -36,7 +36,7 @@ const createNewNode = (text: string, parentNode?: MindMapNode, settings?: any, a
     lineEnding: parentNode?.lineEnding || LineEndingUtils.LINE_ENDINGS.LF
   };
 
-  // 見出しノードの場合、設定に応じて空行を追加（新規作成時のみ）
+  
   if (addBlankLine && parentNode?.markdownMeta?.type === 'heading' && settings?.addBlankLineAfterHeading !== false) {
     newNode.note = '';
   }
@@ -59,7 +59,7 @@ export interface NodeSlice {
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
   
-  // Selection & Editing
+  
   selectNode: (nodeId: string | null) => void;
   startEditing: (nodeId: string) => void;
   startEditingWithCursorAtEnd: (nodeId: string) => void;
@@ -68,12 +68,12 @@ export interface NodeSlice {
   cancelEditing: () => void;
   setEditText: (text: string) => void;
 
-  // Link operations
+  
   addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) => void;
   updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) => void;
   deleteNodeLink: (nodeId: string, linkId: string) => void;
 
-  // Checkbox operations
+  
   toggleNodeCheckbox: (nodeId: string, checked: boolean) => void;
 }
 
@@ -83,7 +83,7 @@ export const createNodeSlice: StateCreator<
   [],
   NodeSlice
 > = (set, get) => ({
-  // Node operations
+  
   findNode: (nodeId: string) => {
     const { normalizedData } = get();
     if (!normalizedData || !nodeId) return null;
@@ -104,9 +104,9 @@ export const createNodeSlice: StateCreator<
       try {
         const existingNode = state.normalizedData.nodes[nodeId];
 
-        // Prevent text updates for preface nodes
+        
         if (existingNode?.markdownMeta?.type === 'preface' && 'text' in updates) {
-          // Remove text from updates to prevent modification
+          
           const { text, ...allowedUpdates } = updates;
           state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, allowedUpdates);
         } else {
@@ -117,13 +117,13 @@ export const createNodeSlice: StateCreator<
       }
     });
 
-    // Sync to tree structure and add to history
+    
     get().syncToMindMapData();
   },
 
   addChildNode: (parentId: string, text: string = 'New Node') => {
     let newNodeId: string | undefined;
-    // Begin a history group for insert+text edit lifecycle (skip if paste is in progress)
+    
     const pasteInProgress = (get() as any)._pasteInProgress;
     if (!pasteInProgress) {
       try { (get() as any).beginHistoryGroup?.('insert-node'); } catch {}
@@ -136,17 +136,17 @@ export const createNodeSlice: StateCreator<
         const parentNode = state.normalizedData.nodes[parentId];
         if (!parentNode) return;
 
-        // Disallow adding children to table nodes
+        
         if ((parentNode as any)?.kind === 'table') {
           return;
         }
 
-        // Disallow adding children to preface nodes
+        
         if (parentNode.markdownMeta?.type === 'preface') {
           return;
         }
         
-        // 設定を取得してノード作成時に適用（新規作成なので空行追加を有効化）
+        
         const settings = state.settings;
         const newNode = createNewNode(text, parentNode, settings, true);
         newNodeId = newNode.id;
@@ -154,7 +154,7 @@ export const createNodeSlice: StateCreator<
         const childIds = state.normalizedData.childrenMap[parentId] || [];
         const childNodes = childIds.map((id: string) => state.normalizedData?.nodes[id]).filter(Boolean);
         
-        // Initial position: place relative to parent uniformly for all depths (root is just another parent)
+        
         try {
           const fontSize = state.settings?.fontSize ?? 14;
           const wrapConfig = resolveNodeTextWrapConfig(state.settings, fontSize);
@@ -162,14 +162,14 @@ export const createNodeSlice: StateCreator<
           const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize, wrapConfig);
           const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
           newNode.x = calculateChildNodeX(parentNode as any, childSize as any, edge, fontSize, wrapConfig);
-          newNode.y = parentNode.y; // Y is refined by autoLayout later
+          newNode.y = parentNode.y; 
         } catch (_e) {
-          // Fallback: overlap parent if anything goes wrong
+          
           newNode.x = parentNode.x;
           newNode.y = parentNode.y;
         }
 
-        // Set markdownMeta based on siblings (excluding table nodes) or parent
+        
         const nonTableSiblings = childNodes.filter((s: any) => s && s.kind !== 'table');
         if (nonTableSiblings.length > 0) {
           const lastSibling = nonTableSiblings[nonTableSiblings.length - 1];
@@ -180,7 +180,7 @@ export const createNodeSlice: StateCreator<
               originalFormat: lastSibling.markdownMeta.originalFormat,
               indentLevel: lastSibling.markdownMeta.indentLevel,
               lineNumber: -1,
-              // チェックボックスの場合は、チェックを外した状態で新規作成
+              
               ...(lastSibling.markdownMeta.isCheckbox && {
                 isCheckbox: true,
                 isChecked: false
@@ -188,11 +188,11 @@ export const createNodeSlice: StateCreator<
             };
           }
         } else if (parentNode.markdownMeta) {
-          // No siblings, determine child type based on parent
+          
           if (parentNode.markdownMeta.type === 'heading') {
             const childLevel = (parentNode.markdownMeta.level || 1) + 1;
 
-            // レベル7以上になる場合はリストに変更
+            
             if (childLevel >= 7) {
               newNode.markdownMeta = {
                 type: 'unordered-list',
@@ -202,7 +202,7 @@ export const createNodeSlice: StateCreator<
                 lineNumber: -1
               };
             } else {
-              // 見出しの子は見出し（レベル+1）
+              
               newNode.markdownMeta = {
                 type: 'heading',
                 level: childLevel,
@@ -212,14 +212,14 @@ export const createNodeSlice: StateCreator<
               };
             }
           } else {
-            // 親がリストの場合は同じタイプで一段深いインデント
+            
             newNode.markdownMeta = {
               type: parentNode.markdownMeta.type,
               level: (parentNode.markdownMeta.level || 1) + 1,
               originalFormat: parentNode.markdownMeta.originalFormat,
               indentLevel: (parentNode.markdownMeta.indentLevel || 0) + 2,
               lineNumber: -1,
-              // チェックボックスの場合は、チェックを外した状態で新規作成
+              
               ...(parentNode.markdownMeta.isCheckbox && {
                 isCheckbox: true,
                 isChecked: false
@@ -228,39 +228,39 @@ export const createNodeSlice: StateCreator<
           }
         }
 
-        // Add node to normalized data first to establish parent-child relationship
+        
         state.normalizedData = addNormalizedNode(state.normalizedData, parentId, newNode);
         
-        // Color assignment - ブランチベースの色割り当て
-        // ルートノードかどうかは親がいるかどうかで判定
+        
+        
         const isRootNode = state.normalizedData.parentMap[parentId] === undefined;
         const color = isRootNode
           ? COLORS.NODE_COLORS[childNodes.length % COLORS.NODE_COLORS.length]
           : getBranchColor(newNode.id, state.normalizedData);
         
-        // Update color after establishing relationship
+        
         newNode.color = color;
         state.normalizedData.nodes[newNode.id] = { ...newNode };
         
-        // Remember previous selection to restore on cancel/empty edit
+        
         state.lastSelectionBeforeInsert = parentId;
-        // Select the new node
+        
         state.selectedNodeId = newNode.id;
       } catch (error) {
         logger.error('addChildNode error:', error);
       }
     });
 
-    // Sync to tree structure and add to history
+    
     get().syncToMindMapData();
 
-    // Always commit immediately since addChildNode doesn't start editing
-    // Editing is started separately by commands if needed
+    
+    
     if (!pasteInProgress) {
       try { (get() as any).endHistoryGroup?.(true); } catch {}
     }
 
-    // Apply auto layout if enabled
+    
     const { data } = get();
     logger.debug('🔍 Auto layout check (addChildNode):', {
       hasData: !!data,
@@ -272,7 +272,7 @@ export const createNodeSlice: StateCreator<
       logger.debug('✅ Applying auto layout after addChildNode');
       const applyAutoLayout = get().applyAutoLayout;
       if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout(true); // immediate execution to prevent coordinate glitch
+        applyAutoLayout(true); 
       } else {
         logger.error('❌ applyAutoLayout function not found');
       }
@@ -285,7 +285,7 @@ export const createNodeSlice: StateCreator<
 
   addSiblingNode: (nodeId: string, text: string = 'New Node', insertAfter: boolean = true) => {
     let newNodeId: string | undefined;
-    // Begin a history group for insert+text edit lifecycle (skip if paste is in progress)
+    
     const pasteInProgress = (get() as any)._pasteInProgress;
     if (!pasteInProgress) {
       try { (get() as any).beginHistoryGroup?.('insert-sibling'); } catch {}
@@ -300,12 +300,12 @@ export const createNodeSlice: StateCreator<
         
         const parentId = state.normalizedData.parentMap[nodeId];
 
-        // Helper to derive markdownMeta for a new sibling when current is a table node
+        
         const deriveSiblingMarkdownMeta = (): Partial<MindMapNode['markdownMeta']> | undefined => {
           const nd = state.normalizedData!;
           const isTable = (currentNode as any)?.kind === 'table';
           const getNearestNonTableSiblingMeta = (siblings: string[], currentIdx: number) => {
-            // search left then right for nearest non-table sibling having markdownMeta
+            
             const n = siblings.length;
             for (let offset = 1; offset < n; offset++) {
               const left = currentIdx - offset;
@@ -313,7 +313,7 @@ export const createNodeSlice: StateCreator<
               if (left >= 0) {
                 const sib = nd.nodes[siblings[left]] as any;
                 if (sib && sib.kind !== 'table' && sib.markdownMeta) {
-                  // チェックボックスの場合は、チェックを外した状態で新規作成
+                  
                   if (sib.markdownMeta.isCheckbox) {
                     return { ...sib.markdownMeta, isChecked: false };
                   }
@@ -323,7 +323,7 @@ export const createNodeSlice: StateCreator<
               if (right < n) {
                 const sib = nd.nodes[siblings[right]] as any;
                 if (sib && sib.kind !== 'table' && sib.markdownMeta) {
-                  // チェックボックスの場合は、チェックを外した状態で新規作成
+                  
                   if (sib.markdownMeta.isCheckbox) {
                     return { ...sib.markdownMeta, isChecked: false };
                   }
@@ -335,7 +335,7 @@ export const createNodeSlice: StateCreator<
           };
 
           if (!isTable) {
-            // チェックボックスの場合は、チェックを外した状態で新規作成
+            
             if (currentNode.markdownMeta?.isCheckbox) {
               return {
                 ...currentNode.markdownMeta,
@@ -346,12 +346,12 @@ export const createNodeSlice: StateCreator<
           }
 
           if (!parentId) {
-            // Root-level siblings
+            
             const roots = nd.rootNodeIds || [];
             const idx = roots.indexOf(nodeId);
             const meta = getNearestNonTableSiblingMeta(roots, idx);
             if (meta) return meta;
-            // Default to heading level 1 at root
+            
             return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 } as any;
           } else {
             const siblings = nd.childrenMap[parentId] || [];
@@ -362,18 +362,18 @@ export const createNodeSlice: StateCreator<
             const pMeta = parentNode?.markdownMeta;
             if (pMeta) {
               if (pMeta.type === 'heading') {
-                // Under heading: children are headings with level+1 (as in addChildNode)
+                
                 const lvl = Math.min((pMeta.level || 1) + 1, 6);
                 return { type: 'heading', level: lvl, originalFormat: '#'.repeat(lvl), indentLevel: 0, lineNumber: -1 } as any;
               } else if (pMeta.type === 'unordered-list' || pMeta.type === 'ordered-list') {
-                // Sibling under list: one deeper than parent list container
+                
                 return {
                   type: pMeta.type,
                   level: (pMeta.level || 1) + 1,
                   originalFormat: pMeta.originalFormat,
                   indentLevel: (pMeta.indentLevel || 0) + 2,
                   lineNumber: -1,
-                  // チェックボックスの場合は、チェックを外した状態で新規作成
+                  
                   ...(pMeta.isCheckbox && {
                     isCheckbox: true,
                     isChecked: false
@@ -381,47 +381,47 @@ export const createNodeSlice: StateCreator<
                 };
               }
             }
-            // Fallback: heading level 1 (safer than forcing list)
+            
             return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 } as any;
           }
         };
         
-        // 設定を取得してノード作成時に適用
+        
         const settings = state.settings;
         let newNode: MindMapNode;
 
         if (!parentId) {
-          // ルートノードの兄弟ノードを追加（新しいルートノード）
+          
           newNode = createNewNode(text, currentNode, settings, true);
           newNodeId = newNode.id;
           
-          // Skip initial position calculation - let autoLayout handle it
-          // This prevents the visual "jump" when autoLayout is enabled
+          
+          
           newNode.x = currentNode.x;
           newNode.y = currentNode.y;
 
-          // Set markdownMeta same as current root sibling node (skip if current is table)
-          // markdownMeta inheritance / fallback
+          
+          
           const derivedMeta = deriveSiblingMarkdownMeta();
           if (derivedMeta) newNode.markdownMeta = { ...(derivedMeta as any), lineNumber: -1 };
 
-          // 新しいルートノードを追加
+          
           state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
 
-          // ルートノードはブランチベースの色割り当て
+          
           const color = getBranchColor(newNode.id, state.normalizedData);
           newNode.color = color;
           state.normalizedData.nodes[newNode.id] = { ...newNode };
           
         } else {
-          // 通常の兄弟ノード追加
+          
           const parentNode = state.normalizedData.nodes[parentId];
           if (!parentNode) return;
 
           newNode = createNewNode(text, parentNode, settings, true);
           newNodeId = newNode.id;
           
-          // Initial position relative to the same parent (consistent for all depths)
+          
           try {
             const fontSize = state.settings?.fontSize ?? 14;
             const wrapConfig = resolveNodeTextWrapConfig(state.settings, fontSize);
@@ -430,45 +430,45 @@ export const createNodeSlice: StateCreator<
             const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize, wrapConfig);
             const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
             newNode.x = calculateChildNodeX(pNode as any, childSize as any, edge, fontSize, wrapConfig);
-            newNode.y = pNode.y; // Y refined later by autoLayout
+            newNode.y = pNode.y; 
           } catch (_e) {
             newNode.x = currentNode.x;
             newNode.y = currentNode.y;
           }
 
-          // Set markdownMeta same as current sibling node (skip if current is table)
-          // markdownMeta inheritance / fallback
+          
+          
           const derivedMeta2 = deriveSiblingMarkdownMeta();
           if (derivedMeta2) newNode.markdownMeta = { ...(derivedMeta2 as any), lineNumber: -1 };
 
-          // Add sibling node first to establish parent-child relationship
+          
           state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, insertAfter);
           
-          // 兄弟ノードはブランチベースの色割り当て
+          
           const color = getBranchColor(newNode.id, state.normalizedData);
           newNode.color = color;
           state.normalizedData.nodes[newNode.id] = { ...newNode };
         }
         
-        // Remember previous selection to restore on cancel/empty edit
+        
         state.lastSelectionBeforeInsert = nodeId;
-        // 新しいノードを選択
+        
         state.selectedNodeId = newNode.id;
       } catch (error) {
         logger.error('addSiblingNode error:', error);
       }
     });
 
-    // Sync to tree structure and add to history
+    
     get().syncToMindMapData();
 
-    // Always commit immediately since addSiblingNode doesn't start editing
-    // Editing is started separately by commands if needed
+    
+    
     if (!pasteInProgress) {
       try { (get() as any).endHistoryGroup?.(true); } catch {}
     }
 
-    // Apply auto layout if enabled
+    
     const { data } = get();
     logger.debug('🔍 Auto layout check (addSiblingNode):', {
       hasData: !!data,
@@ -480,7 +480,7 @@ export const createNodeSlice: StateCreator<
       logger.debug('✅ Applying auto layout after addSiblingNode');
       const applyAutoLayout = get().applyAutoLayout;
       if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout(true); // immediate execution to prevent coordinate glitch
+        applyAutoLayout(true); 
       } else {
         logger.error('❌ applyAutoLayout function not found');
       }
@@ -494,29 +494,29 @@ export const createNodeSlice: StateCreator<
   deleteNode: (nodeId: string) => {
     let nextNodeToSelect: string | null = null;
 
-    // Begin history group for delete operation
+    
     try { (get() as any).beginHistoryGroup?.('delete-node'); } catch {}
 
     set((state) => {
       if (!state.normalizedData) return;
 
       try {
-        // Before deleting, find the next node to select based on the node being removed
+        
         const parentId = state.normalizedData.parentMap[nodeId];
         if (parentId) {
           const siblings = state.normalizedData.childrenMap[parentId] || [];
           const currentIndex = siblings.indexOf(nodeId);
 
           if (currentIndex !== -1) {
-            // Prefer next sibling
+            
             if (currentIndex < siblings.length - 1) {
               nextNodeToSelect = siblings[currentIndex + 1];
             }
-            // Fallback to previous sibling
+            
             else if (currentIndex > 0) {
               nextNodeToSelect = siblings[currentIndex - 1];
             }
-            // If no siblings remain, fallback to parent (unless parent is the artificial 'root')
+            
             else if (parentId !== 'root') {
               nextNodeToSelect = parentId;
             }
@@ -525,9 +525,9 @@ export const createNodeSlice: StateCreator<
 
         state.normalizedData = deleteNormalizedNode(state.normalizedData, nodeId);
         
-        // Set new selection: if the deleted node was selected, or nothing is selected, choose a reasonable next
+        
         if (state.selectedNodeId === nodeId || !state.selectedNodeId) {
-          // If our precomputed next is still null, try pick first available root node
+          
           if (!nextNodeToSelect) {
             const roots = state.normalizedData.childrenMap['root'] || [];
             nextNodeToSelect = roots.length > 0 ? roots[0] : null;
@@ -581,10 +581,10 @@ export const createNodeSlice: StateCreator<
     });
 
     if (moveResult.success) {
-      // Sync to tree structure and add to history
+      
       get().syncToMindMapData();
 
-      // Apply auto layout if enabled
+      
       const { data } = get();
       if (data?.settings?.autoLayout) {
         get().applyAutoLayout();
@@ -611,10 +611,10 @@ export const createNodeSlice: StateCreator<
     });
 
     if (moveResult.success) {
-      // Sync to tree structure and add to history
+      
       get().syncToMindMapData();
 
-      // Apply auto layout if enabled
+      
       const { data } = get();
       if (data?.settings?.autoLayout) {
         get().applyAutoLayout();
@@ -637,7 +637,7 @@ export const createNodeSlice: StateCreator<
         const originalData = state.normalizedData;
         state.normalizedData = changeSiblingOrderNormalized(state.normalizedData, draggedNodeId, targetNodeId, insertBefore);
         
-        // Check if there were changes
+        
         const hasChanged = JSON.stringify(originalData.childrenMap) !== JSON.stringify(state.normalizedData.childrenMap);
         logger.debug('🔄 変更チェック:', { hasChanged });
         
@@ -648,10 +648,10 @@ export const createNodeSlice: StateCreator<
       }
     });
     
-    // Sync to tree structure and add to history
+    
     get().syncToMindMapData();
     
-    // Apply auto layout if enabled
+    
     const { data } = get();
     if (data?.settings?.autoLayout) {
       logger.debug('🔄 自動レイアウト適用中...');
@@ -659,7 +659,7 @@ export const createNodeSlice: StateCreator<
     }
   },
 
-  // Selection & Editing
+  
   selectNode: (nodeId: string | null) => {
     set((state) => {
       state.selectedNodeId = nodeId;
@@ -672,7 +672,7 @@ export const createNodeSlice: StateCreator<
       if (node) {
         state.editingNodeId = nodeId;
         state.editText = node.text;
-        state.editingMode = 'select-all'; // テキスト選択モード
+        state.editingMode = 'select-all'; 
       }
     });
   },
@@ -683,7 +683,7 @@ export const createNodeSlice: StateCreator<
       if (node) {
         state.editingNodeId = nodeId;
         state.editText = node.text;
-        state.editingMode = 'cursor-at-end'; // カーソル末尾モード
+        state.editingMode = 'cursor-at-end'; 
       }
     });
   },
@@ -694,31 +694,31 @@ export const createNodeSlice: StateCreator<
       if (node) {
         state.editingNodeId = nodeId;
         state.editText = node.text;
-        state.editingMode = 'cursor-at-start'; // カーソル先頭モード
+        state.editingMode = 'cursor-at-start'; 
       }
     });
   },
 
   finishEditing: (nodeId: string, text: string) => {
-    // If text is empty, delete the node and select parent
+    
     if (!text) {
-      // Get parent info before deleting
+      
       let parentId: string | null = null;
       const { normalizedData } = get();
       if (normalizedData) {
         parentId = normalizedData.parentMap[nodeId] || null;
       }
 
-      // Delete the empty node
+      
       get().deleteNode(nodeId);
-      // End group without commit (cancelled new-node)
+      
       try { (get() as any).endHistoryGroup?.(false); } catch {}
       
-      // Prefer restoring selection to the node that triggered the insert (o/O/Enter/Tab)
+      
       const { normalizedData: nd2 } = get();
       set((state) => {
         const fallbackRef = state.lastSelectionBeforeInsert || null;
-        // Clear editing state
+        
         state.editingNodeId = null;
         state.editText = '';
         state.editingMode = null;
@@ -730,14 +730,14 @@ export const createNodeSlice: StateCreator<
         } else if (parentId === 'root') {
           state.selectedNodeId = 'root';
         }
-        // Clear the fallback reference once used
+        
         state.lastSelectionBeforeInsert = null;
       });
       
       return;
     }
     
-    // Normal text update flow
+    
     set((state) => {
       state.editingNodeId = null;
       state.editText = '';
@@ -765,7 +765,7 @@ export const createNodeSlice: StateCreator<
       logger.debug('✅ Applying auto layout after finishEditing');
       const applyAutoLayout = get().applyAutoLayout;
       if (typeof applyAutoLayout === 'function') {
-        applyAutoLayout(true); // immediate execution to prevent coordinate glitch
+        applyAutoLayout(true); 
       } else {
         logger.error('❌ applyAutoLayout function not found');
       }
@@ -1010,7 +1010,7 @@ export const createNodeSlice: StateCreator<
         }
       });
 
-      // ファイル保存等の重い処理
+      
       get().syncToMindMapData();
     });
   },

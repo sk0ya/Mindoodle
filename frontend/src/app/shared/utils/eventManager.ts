@@ -1,7 +1,4 @@
-/**
- * グローバルイベントリスナー管理
- * 複数のコンポーネントが同じイベントを監視する場合の効率化
- */
+
 import { memoryService } from '@/app/core/services';
 import { generateId } from './idGenerator';
 import { isDevelopment } from './env';
@@ -20,9 +17,7 @@ class EventManager {
   private listeners = new Map<string, ManagedEventListener>();
   private globalHandlers = new Map<string, Set<EventHandler>>();
 
-  /**
-   * イベントリスナーを登録（自動的にIDを生成）
-   */
+  
   addEventListener(
     element: EventTarget,
     event: string,
@@ -45,9 +40,7 @@ class EventManager {
     return id;
   }
 
-  /**
-   * グローバルイベントハンドラー（複数のハンドラーを統合）
-   */
+  
   addGlobalHandler(
     event: string,
     handler: EventHandler
@@ -57,7 +50,7 @@ class EventManager {
     if (!this.globalHandlers.has(event)) {
       this.globalHandlers.set(event, new Set());
 
-      // 統合ハンドラーを作成
+      
       const unifiedHandler = (e: Event) => {
         const handlers = this.globalHandlers.get(event);
         if (handlers) {
@@ -71,7 +64,7 @@ class EventManager {
         }
       };
 
-      // グローバル要素にリスナーを追加
+      
       const target = event.startsWith('key') ? document : window;
       this.addEventListener(target, event, unifiedHandler, `Global ${event} handler`);
     }
@@ -80,9 +73,7 @@ class EventManager {
     return id;
   }
 
-  /**
-   * イベントリスナーを削除
-   */
+  
   removeEventListener(id: string): boolean {
     const listener = this.listeners.get(id);
     if (!listener) return false;
@@ -92,9 +83,7 @@ class EventManager {
     return true;
   }
 
-  /**
-   * 特定の要素のすべてのリスナーを削除
-   */
+  
   removeAllListenersForElement(element: EventTarget): number {
     let removed = 0;
 
@@ -108,9 +97,7 @@ class EventManager {
     return removed;
   }
 
-  /**
-   * すべてのリスナーをクリーンアップ
-   */
+  
   cleanup(): void {
     console.log(`🧹 Cleaning up ${this.listeners.size} event listeners`);
 
@@ -126,9 +113,7 @@ class EventManager {
     this.globalHandlers.clear();
   }
 
-  /**
-   * React Hook: useEffect互換のイベントリスナー管理
-   */
+  
   useEventListener(
     element: EventTarget | null,
     event: string,
@@ -136,16 +121,14 @@ class EventManager {
     description?: string
   ): () => void {
     if (!element) {
-      return () => {}; // noop
+      return () => {}; 
     }
 
     const id = this.addEventListener(element, event, handler, description);
     return () => this.removeEventListener(id);
   }
 
-  /**
-   * 現在の状況を報告
-   */
+  
   getStatus(): {
     activeListeners: number;
     globalHandlers: number;
@@ -164,22 +147,20 @@ class EventManager {
     };
   }
 
-  // Note: ID generation is centralized via shared utils
+  
 }
 
-// グローバルインスタンス
+
 export const eventManager = new EventManager();
 
-// 自動クリーンアップ
+
 if (typeof window !== 'undefined') {
   window.addEventListener('beforeunload', () => {
     eventManager.cleanup();
   });
 }
 
-/**
- * React Hook: 管理されたイベントリスナー
- */
+
 export function useManagedEventListener(
   element: EventTarget | null,
   event: string,
@@ -187,7 +168,7 @@ export function useManagedEventListener(
   description?: string,
   deps: any[] = []
 ): void {
-  // React.useEffectをimportせずに使うため、グローバル関数として想定
+  
   if (typeof window !== 'undefined' && 'React' in window) {
     const React = (window as any).React;
     React.useEffect(() => {
@@ -196,7 +177,7 @@ export function useManagedEventListener(
   }
 }
 
-// 開発時の監視
+
 if (isDevelopment()) {
   memoryService.createManagedInterval(() => {
     const status = eventManager.getStatus();
@@ -206,9 +187,9 @@ if (isDevelopment()) {
   }, 30000, 'EventManager dev monitor');
 }
 
-// HMR cleanup for listeners
+
 if (typeof import.meta !== 'undefined' && (import.meta as any).hot) {
   (import.meta as any).hot.dispose(() => {
-    try { eventManager.cleanup(); } catch { /* noop */ }
+    try { eventManager.cleanup(); } catch {  }
   });
 }

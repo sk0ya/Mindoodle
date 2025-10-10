@@ -42,7 +42,7 @@ export const StatusBarProvider: React.FC<{ children: React.ReactNode }> = ({ chi
 
   useEffect(() => () => { if (timeoutRef.current) window.clearTimeout(timeoutRef.current); }, []);
 
-  // Listen for global status events from non-React code
+  
   useEffect(() => {
     const handler = (e: Event) => {
       const ce = e as CustomEvent<{ type: StatusType; message: string; duration?: number }>;
@@ -66,7 +66,7 @@ export const useStatusBar = (): StatusBarContextType => {
   return ctx;
 };
 
-// Utility for non-React code: emit a global status event
+
 export function emitStatus(type: StatusType, message: string, duration: number = 3000): void {
   const event = new CustomEvent('mindoodle:status', { detail: { type, message, duration } });
   window.dispatchEvent(event);

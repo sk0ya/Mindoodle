@@ -30,7 +30,7 @@ interface CanvasRendererProps {
   cursor: string;
   dragState: DragState;
 
-  // Event handlers
+  
   onWheel: (e: React.WheelEvent) => void;
   onMouseDown: (e: React.MouseEvent) => void;
   onMouseUp: (e: React.MouseEvent) => void;
@@ -43,19 +43,19 @@ interface CanvasRendererProps {
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
   
-  // Link display data
+  
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
   
-  // Link navigation
+  
   onLinkNavigate?: (link: NodeLink) => void;
 
-  // Drag handlers
+  
   onDragStart: (nodeId: string) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (nodeId: string, x: number, y: number) => void;
   
-  // Icon toggle handlers
+  
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string, altText?: string) => void;
@@ -100,12 +100,12 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   const wrapConfig = resolveNodeTextWrapConfig(settings, settings.fontSize);
 
 
-  // SVGのwheelイベントを非passiveで設定
+  
   useEffect(() => {
     const svgElement = svgRef.current;
     if (svgElement) {
       const handleWheelCapture = (e: WheelEvent) => {
-        // React SyntheticEventに変換
+        
         const syntheticEvent = {
           preventDefault: () => e.preventDefault(),
           stopPropagation: () => e.stopPropagation(),
@@ -143,12 +143,12 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           border: `2px solid var(--border-color)`,
           borderRadius: '12px',
           userSelect: 'none',
-          // Avoid animating transforms during pan to prevent jank
+          
           transition: 'border-color 0.2s ease'
         }}
       >
         <g transform={`scale(${zoom * 1.5}) translate(${pan?.x || 0}, ${pan?.y || 0})`}>
-          {/* ドラッグ中のドロップガイドライン */}
+          {}
           <CanvasDragGuide
             dragState={dragState}
             allNodes={allNodes}
@@ -190,23 +190,23 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onLinkNavigate={onLinkNavigate}
                 onImageClick={onImageClick}
                 onToggleCheckbox={(nodeId, checked) => {
-                  // ストアのtoggleNodeCheckbox機能を呼び出し
+                  
                   useMindMapStore.getState().toggleNodeCheckbox(nodeId, checked);
                 }}
               />
             ))}
           </g>
 
-          {/* In-map link visualization (dashed arrows) - render above nodes */}
+          {}
           {settings.visualizeInMapLinks && (
             <InMapLinkConnections data={data} allNodes={allNodes} />
           )}
 
-          {/* アイコンクリック時の一覧表示（添付一覧は廃止） */}
+          {}
           {(() => {
             const { showLinkListForNode } = useMindMapStore().ui;
             
-            // リンク一覧の表示
+            
             if (showLinkListForNode) {
               const targetNode = allNodes.find(node => node.id === showLinkListForNode);
               if (targetNode) {
@@ -219,7 +219,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                     nodeWidth={nodeSize.width}
                     nodeHeight={nodeSize.height}
                     onLinkClick={() => {
-                      // リンククリック時は何もしない（メニュー表示を無効化）
+                      
                     }}
                     onLinkContextMenu={(link, position) => {
                       onShowLinkActionMenu(link, position);

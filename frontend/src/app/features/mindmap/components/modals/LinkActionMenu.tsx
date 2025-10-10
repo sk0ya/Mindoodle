@@ -21,7 +21,7 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  // メニュー外クリックで閉じる
+  
   const handleClickOutside = useCallback((event: MouseEvent) => {
     if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
       onClose();
@@ -37,7 +37,7 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
   useEventListener('mousedown', handleClickOutside, { target: document, enabled: isOpen });
   useEventListener('keydown', handleEscape, { target: document, enabled: isOpen });
 
-  // メニュー位置の調整
+  
   const adjustedPosition = useCallback(() => {
     if (!menuRef.current) return position;
 
@@ -46,17 +46,17 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
 
     let { x, y } = position;
 
-    // 右端からはみ出る場合は左に移動
+    
     if (x + menuRect.width > viewportWidth - 20) {
       x = viewportWidth - menuRect.width - 20;
     }
 
-    // 下端からはみ出る場合は上に移動
+    
     if (y + menuRect.height > viewportHeight - 20) {
       y = Math.max(20, y - menuRect.height);
     }
 
-    // 左端・上端の境界チェック
+    
     x = Math.max(20, x);
     y = Math.max(20, y);
 

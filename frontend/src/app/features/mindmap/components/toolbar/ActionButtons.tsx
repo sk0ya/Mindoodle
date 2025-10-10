@@ -38,7 +38,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   if (layout === 'twoRows') {
     return (
       <div className="toolbar-actions two-rows">
-        {/* Row 1 */}
+        {}
         <div className="action-row">
           <div className="action-group edit-actions">
             <ShortcutTooltip shortcut="Ctrl+Z" description="元に戻す">
@@ -58,7 +58,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
             </ShortcutTooltip>
           </div>
         </div>
-        {/* Row 2 */}
+        {}
         <div className="action-row">
           <div className="action-group view-actions">
             {onAutoLayout && (
@@ -98,7 +98,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   return (
     <div className="toolbar-actions">
 
-      {/* 編集操作 */}
+      {}
       <div className="action-group edit-actions">
         <ShortcutTooltip shortcut="Ctrl+Z" description="元に戻す">
           <button 
@@ -121,7 +121,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         </ShortcutTooltip>
       </div>
 
-      {/* ビュー操作 */}
+      {}
       <div className="action-group view-actions">
         <ShortcutTooltip description={`ズームリセット (現在: ${Math.round(zoom * 100)}%)`}>
           <button 
@@ -155,7 +155,7 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         )}
       </div>
 
-      {/* ノート・ヘルプ・設定 */}
+      {}
       <div className="action-group help-actions">
         {onToggleNotesPanel && (
           <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">

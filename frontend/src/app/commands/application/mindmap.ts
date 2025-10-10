@@ -1,12 +1,9 @@
-/**
- * Mindmap Commands
- * High-level mindmap operations like import, export, reset
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import type { MapIdentifier } from '@shared/types';
 
-// New mindmap command
+
 export const newMindmapCommand: Command = {
   name: 'new',
   aliases: ['new-mindmap', 'create'],
@@ -27,7 +24,7 @@ export const newMindmapCommand: Command = {
     const title = (args as any)['title'];
 
     try {
-      // This would create a new mindmap
+      
       return {
         success: true,
         message: `Create new mindmap "${title}" - New mindmap API needs implementation`
@@ -41,7 +38,7 @@ export const newMindmapCommand: Command = {
   }
 };
 
-// Clear mindmap command
+
 export const clearMindmapCommand: Command = {
   name: 'clear',
   aliases: ['reset', 'clear-all'],
@@ -68,7 +65,7 @@ export const clearMindmapCommand: Command = {
       };
     }
 
-    // This would clear the mindmap
+    
     return {
       success: true,
       message: 'Clear mindmap - Clear API needs implementation'
@@ -76,7 +73,7 @@ export const clearMindmapCommand: Command = {
   }
 };
 
-// Statistics command
+
 export const statsCommand: Command = {
   name: 'stats',
   aliases: ['statistics', 'info'],
@@ -85,7 +82,7 @@ export const statsCommand: Command = {
   examples: ['stats', 'statistics', 'info'],
 
   execute(_context: CommandContext): CommandResult {
-    // This would calculate and display stats
+    
     return {
       success: true,
       message: 'Show mindmap statistics - Stats API needs implementation'
@@ -93,7 +90,7 @@ export const statsCommand: Command = {
   }
 };
 
-// Auto-layout command
+
 export const autoLayoutCommand: Command = {
   name: 'auto-layout',
   aliases: ['layout', 'arrange'],
@@ -113,7 +110,7 @@ export const autoLayoutCommand: Command = {
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
     const algorithm = (args as any)['algorithm'];
 
-    // This would apply auto-layout
+    
     return {
       success: true,
       message: `Apply ${algorithm} layout - Auto-layout API needs implementation`
@@ -121,7 +118,7 @@ export const autoLayoutCommand: Command = {
   }
 };
 
-// Theme command
+
 export const themeCommand: Command = {
   name: 'theme',
   aliases: ['set-theme'],
@@ -140,7 +137,7 @@ export const themeCommand: Command = {
   execute(_context: CommandContext, args: Record<string, any>): CommandResult {
     const themeName = (args as any)['themeName'];
 
-    // This would change the theme
+    
     return {
       success: true,
       message: `Set theme to "${themeName}" - Theme API needs implementation`
@@ -148,7 +145,7 @@ export const themeCommand: Command = {
   }
 };
 
-// Switch map command (by id or direction)
+
 export const switchMapCommand: Command = {
   name: 'switch-map',
   aliases: ['map-next', 'map-prev', 'switchmap'],
@@ -167,7 +164,7 @@ export const switchMapCommand: Command = {
   guard: (_ctx: CommandContext, args: Record<string, any>) => {
     const direction = (args as any)['direction'];
     const mapId = (args as any)['mapId'];
-    // Either direction or mapId must be provided
+    
     return direction === 'next' || direction === 'prev' || typeof mapId === 'string';
   },
   async execute(_context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
@@ -177,14 +174,14 @@ export const switchMapCommand: Command = {
       const workspaceId = (args as any)['workspaceId'] as string | undefined;
 
       if (mapId) {
-        // Direct select by id
+        
         let ws = workspaceId as any;
         if (!ws) {
           try {
             const maps = (window as any).mindoodleAllMaps as Array<{ mapIdentifier: { mapId: string; workspaceId: string } }> | undefined;
             const found = Array.isArray(maps) ? maps.find(m => m?.mapIdentifier?.mapId === mapId) : undefined;
             if (found && found.mapIdentifier?.workspaceId) ws = found.mapIdentifier.workspaceId;
-          } catch { /* noop */ }
+          } catch {  }
         }
         const payload: MapIdentifier = { mapId, workspaceId: ws } as MapIdentifier;
         const ev = new CustomEvent('mindoodle:selectMapById', { detail: payload });
@@ -193,8 +190,8 @@ export const switchMapCommand: Command = {
       }
 
       if (direction) {
-        // Use current id as a starting point; selection logic (including empty map skip)
-        // is centralized in useMindMapEvents handler.
+        
+        
         const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
         const detail = { mapId: currentId || '', workspaceId: (window as any).mindoodleCurrentWorkspaceId, source: 'keyboard', direction };
         const ev = new CustomEvent('mindoodle:selectMapById', { detail });

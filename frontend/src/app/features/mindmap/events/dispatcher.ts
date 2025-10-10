@@ -19,7 +19,7 @@ export function dispatchCanvasEvent(event: CanvasEvent) {
     const strategy = getStrategy(currentMode);
     strategy.handle(event);
   } catch {
-    // no-op
+    
   }
 }
 

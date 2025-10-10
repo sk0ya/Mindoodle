@@ -1,7 +1,4 @@
-/**
- * Navigate Command
- * Navigate between nodes in different directions (equivalent to vim hjkl)
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 
@@ -29,14 +26,14 @@ export const navigateCommand: Command = {
     }
   ],
   guard: (context) => {
-    // Require a selected node and avoid navigation while in insert mode
+    
     if (!context.selectedNodeId) return false;
     if (context.mode === 'insert') return false;
     return true;
   },
 
   execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const directionInput = (args as any)['direction'] || (args as any)['_0']; // Support positional arg
+    const directionInput = (args as any)['direction'] || (args as any)['_0']; 
 
     if (!directionInput) {
       return {
@@ -52,7 +49,7 @@ export const navigateCommand: Command = {
       };
     }
 
-    // Normalize direction input
+    
     const direction = normalizeDirection(directionInput);
     if (!direction) {
       return {
@@ -61,19 +58,19 @@ export const navigateCommand: Command = {
       };
     }
 
-    // Support count for navigation (e.g., 3j means jump 3 nodes down)
+    
     const count = context.count ?? 1;
 
     try {
-      // For left/right, navigate step by step (count times)
-      // For up/down, jump directly to the Nth sibling
+      
+      
       if (direction === 'left' || direction === 'right') {
-        // Left/Right: repeat navigation count times
+        
         for (let i = 0; i < count; i++) {
           context.handlers.navigateToDirection(direction);
         }
       } else {
-        // Up/Down: jump directly to the Nth sibling
+        
         context.handlers.navigateToDirection(direction, count);
       }
 
@@ -89,10 +86,10 @@ export const navigateCommand: Command = {
     }
   },
   countable: true,
-  repeatable: false  // Navigation is not typically repeated with dot
+  repeatable: false  
 };
 
-// Individual direction commands for convenience
+
 export const upCommand: Command = {
   name: 'up',
   aliases: ['k'],
@@ -149,9 +146,7 @@ export const rightCommand: Command = {
   repeatable: false
 };
 
-/**
- * Normalize direction input to standard format
- */
+
 function normalizeDirection(input: string): 'up' | 'down' | 'left' | 'right' | null {
   const normalized = input.toLowerCase().trim();
 

@@ -1,4 +1,4 @@
-// Panel Components - パネルコンポーネント
+
 export { default as NodeFontPanel } from './NodeFontPanel';
 export { default as NodePresetPanel } from './NodePresetPanel';
 export { default as MarkdownPanel } from './NodeNotesPanel';

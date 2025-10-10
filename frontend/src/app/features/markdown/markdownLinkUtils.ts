@@ -1,20 +1,20 @@
 import type { NodeLink } from '@shared/types';
 import { generateUrlId } from '@shared/utils';
 
-// Extract NodeLink objects from markdown note content.
-// Supported href patterns:
-// - node:<nodeId>
-// - #<nodeId>
-// - map:<mapId>
-// - map:<mapId>#<nodeId>
-// - URLs/paths with ?mapId=...&nodeId=...
+
+
+
+
+
+
+
 export function extractNodeLinksFromMarkdown(note: string | undefined, currentMapId?: string): NodeLink[] {
   if (!note || !note.trim()) return [];
 
   const links: NodeLink[] = [];
   const seen = new Set<string>();
 
-  // Basic markdown link matcher: [text](href)
+  
   const linkRegex = /\[[^\]]+\]\(([^)]+)\)/g;
   let match: RegExpExecArray | null;
 
@@ -23,7 +23,7 @@ export function extractNodeLinksFromMarkdown(note: string | undefined, currentMa
     let targetMapId: string | undefined;
     let targetNodeId: string | undefined;
 
-    // node:<nodeId>
+    
     if (/^node:/i.test(rawHref)) {
       targetMapId = currentMapId;
       targetNodeId = rawHref.replace(/^node:/i, '');
@@ -51,13 +51,13 @@ export function extractNodeLinksFromMarkdown(note: string | undefined, currentMa
 
         const m = url.searchParams.get('mapId') || undefined;
         const n = url.searchParams.get('nodeId') || undefined;
-        // If either exists, treat as internal link
+        
         if (m || n) {
           targetMapId = m || currentMapId;
           targetNodeId = n || undefined;
         }
       } catch {
-        // Not a URL; ignore
+        
       }
     }
 
@@ -66,7 +66,7 @@ export function extractNodeLinksFromMarkdown(note: string | undefined, currentMa
       if (!seen.has(key)) {
         seen.add(key);
         links.push({
-          id: key, // stable enough for derived list usage
+          id: key, 
           targetMapId,
           targetNodeId,
           createdAt: new Date().toISOString(),
@@ -79,7 +79,7 @@ export function extractNodeLinksFromMarkdown(note: string | undefined, currentMa
   return links;
 }
 
-// ---------------- New internal-only link extraction (mapId/nodeId abolished) ----------------
+
 import type { MindMapNode } from '@shared/types';
 
 function slugify(text: string): string {

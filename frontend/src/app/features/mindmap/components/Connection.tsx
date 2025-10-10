@@ -25,16 +25,16 @@ const Connection: React.FC<ConnectionProps> = ({
   onToggleCollapse, 
   nodeId, 
   isCollapsed = false, 
-  // isToggleConnection = false,  // Unused parameter
+  
   color = '#666',
   isFromRoot = false
 }) => {
   const { theme } = useTheme();
   
-  // テーマに応じたトグルボタンの配色
+  
   const getToggleColors = () => {
     if (theme === 'dark') {
-      // ダークテーマ: アクセント付きグレー
+      
       return {
         expandedFill: '#2d3748',
         expandedStroke: '#4299e1',
@@ -42,7 +42,7 @@ const Connection: React.FC<ConnectionProps> = ({
         collapsedStroke: '#ed8936'
       };
     } else {
-      // ライトテーマ: 従来の緑・黄色
+      
       return {
         expandedFill: '#34a853',
         expandedStroke: 'white',

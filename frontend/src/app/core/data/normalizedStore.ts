@@ -1,26 +1,23 @@
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 
-// 正規化されたデータ構造
+
 export interface NormalizedData {
   nodes: Record<string, MindMapNode>;
-  rootNodeIds: string[]; // Changed from single rootNodeId to array of rootNodeIds
-  parentMap: Record<string, string>; // child -> parent
-  childrenMap: Record<string, string[]>; // parent -> children
+  rootNodeIds: string[]; 
+  parentMap: Record<string, string>; 
+  childrenMap: Record<string, string[]>; 
 }
 
 export interface NormalizedMindMapData {
   nodes: Record<string, MindMapNode>;
-  rootNodeIds: string[]; // Changed from single rootNodeId to array of rootNodeIds
-  parentMap: Record<string, string>; // child -> parent
-  childrenMap: Record<string, string[]>; // parent -> children
+  rootNodeIds: string[]; 
+  parentMap: Record<string, string>; 
+  childrenMap: Record<string, string[]>; 
 }
 
-/**
- * 従来の階層構造を正規化構造に変換
- */
 export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): NormalizedData {
-  // 防御的プログラミング: rootNodesが無効な場合は空の構造を返す
+  
   if (!Array.isArray(rootNodes) || rootNodes.length === 0) {
     return {
       nodes: {},
@@ -35,26 +32,26 @@ export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): Normali
   const childrenMap: Record<string, string[]> = {};
 
   function traverse(node: MindMapNode, parentId?: string) {
-    // ノードを格納（childrenプロパティを除去）
+    
     const { children, ...nodeWithoutChildren } = node;
     nodes[node.id] = { ...nodeWithoutChildren, children: [] };
 
-    // 親子関係を記録
+    
     if (parentId) {
       parentMap[node.id] = parentId;
     }
 
-    // 子供のIDリストを記録
+    
     const childIds = (children || []).map(child => child.id);
     childrenMap[node.id] = childIds;
 
-    // 子ノードを再帰的に処理
+    
     (children || []).forEach(child => {
       traverse(child, node.id);
     });
   }
 
-  // 複数のルートノードを処理
+  
   rootNodes.forEach(rootNode => {
     traverse(rootNode);
   });
@@ -65,16 +62,13 @@ export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): Normali
     parentMap,
     childrenMap: {
       ...childrenMap,
-      // 便宜上の仮想ルートを用意して、ルート一覧を保持しておく
-      // これにより、削除や選択のフォールバックが簡単になる
+      
+      
       ['root']: rootNodes.map(node => node.id)
     }
   };
 }
 
-/**
- * 正規化構造から階層構造を復元
- */
 export function denormalizeTreeData(normalizedData: NormalizedData): MindMapNode[] {
   const { nodes, rootNodeIds, childrenMap } = normalizedData;
 
@@ -96,9 +90,6 @@ export function denormalizeTreeData(normalizedData: NormalizedData): MindMapNode
   return rootNodeIds.map(rootNodeId => buildTree(rootNodeId));
 }
 
-/**
- * 正規化されたデータでのノード検索 - O(1)
- */
 export function findNormalizedNode(
   normalizedData: NormalizedData, 
   nodeId: string
@@ -106,9 +97,6 @@ export function findNormalizedNode(
   return normalizedData.nodes[nodeId] || null;
 }
 
-/**
- * 正規化されたデータでのノード更新 - O(1)
- */
 export function updateNormalizedNode(
   normalizedData: NormalizedData,
   nodeId: string,
@@ -128,9 +116,6 @@ export function updateNormalizedNode(
   };
 }
 
-/**
- * 正規化されたデータでのノード削除 - O(1)
- */
 export function deleteNormalizedNode(
   normalizedData: NormalizedData,
   nodeId: string
@@ -138,7 +123,7 @@ export function deleteNormalizedNode(
   const isRoot = normalizedData.rootNodeIds.includes(nodeId);
   let parentId = normalizedData.parentMap[nodeId];
   if (isRoot) {
-    // ルートノードは親がいないので、仮想親 'root' を使う
+    
     if (normalizedData.rootNodeIds.length <= 1) {
       throw new Error('Cannot delete the last root node');
     }
@@ -147,7 +132,7 @@ export function deleteNormalizedNode(
     throw new Error(`Parent not found for node: ${nodeId}`);
   }
 
-  // 削除対象ノードとその子孫を特定
+  
   const nodesToDelete = new Set<string>();
   
   function collectDescendants(id: string) {
@@ -158,23 +143,23 @@ export function deleteNormalizedNode(
   
   collectDescendants(nodeId);
 
-  // 新しい構造を作成
+  
   const newNodes = { ...normalizedData.nodes };
   const newParentMap = { ...normalizedData.parentMap };
   const newChildrenMap = { ...normalizedData.childrenMap };
 
-  // 削除対象ノードを除去
+  
   nodesToDelete.forEach(id => {
     delete newNodes[id];
     delete newParentMap[id];
     delete newChildrenMap[id];
   });
 
-  // 親の子リストから削除（仮想親 'root' を含む）
+  
   const parentChildren = newChildrenMap[parentId] || [];
   newChildrenMap[parentId] = parentChildren.filter(id => id !== nodeId);
 
-  // ルート配列からも削除
+  
   const newRootIds = isRoot
     ? normalizedData.rootNodeIds.filter(id => id !== nodeId)
     : normalizedData.rootNodeIds;
@@ -188,9 +173,6 @@ export function deleteNormalizedNode(
   };
 }
 
-/**
- * 正規化されたデータでのノード追加 - O(1)
- */
 export function addNormalizedNode(
   normalizedData: NormalizedData,
   parentId: string,
@@ -204,14 +186,14 @@ export function addNormalizedNode(
     throw new Error(`Parent node not found: ${parentId}`);
   }
 
-  // Disallow adding children to table nodes (table renders as a single node)
+  
   const parentNode = normalizedData.nodes[parentId];
   if ((parentNode as any)?.kind === 'table') {
     throw new Error('テーブルノードには子ノードを追加できません');
   }
 
   const { children, ...nodeWithoutChildren } = newNode;
-  // childrenは使用しないがdestructuringで除外する必要がある
+  
   void children;
 
   return {
@@ -232,9 +214,6 @@ export function addNormalizedNode(
   };
 }
 
-/**
- * ノード移動の制約をチェックする
- */
 function validateNodeMovement(
   normalizedData: NormalizedData,
   nodeId: string,
@@ -250,7 +229,7 @@ function validateNodeMovement(
   const nodeType = node.markdownMeta?.type;
   const parentType = newParent.markdownMeta?.type;
 
-  // 1. リストノードは見出しノードを子ノードにできない
+  
   if ((nodeType === 'heading') &&
       (parentType === 'unordered-list' || parentType === 'ordered-list')) {
     return {
@@ -259,7 +238,7 @@ function validateNodeMovement(
     };
   }
 
-  // 2. 見出しノードの階層制限（6階層まで）
+  
   if (nodeType === 'heading') {
     const parentLevel = parentType === 'heading' ? (newParent.markdownMeta?.level || 1) : 0;
 
@@ -271,18 +250,15 @@ function validateNodeMovement(
     }
   }
 
-  // 3. 見出しノードの兄弟がいる場合、リストノードは一番兄としてでしか子ノードになれない
-  // 注意: この制約は「リストが見出しより後に配置されること」を禁止するが、
-  // 「リストが見出しより前に配置されること」は許可する
-  // つまり、基本的な移動は許可し、位置指定時にのみ制限をかける
-  // ここでは基本的な移動の可否のみをチェックし、位置制約は別途処理
+  
+  
+  
+  
+  
 
   return { isValid: true };
 }
 
-/**
- * ポジション指定での移動制約をチェックする
- */
 function validateNodeMovementWithPosition(
   normalizedData: NormalizedData,
   nodeId: string,
@@ -297,13 +273,13 @@ function validateNodeMovementWithPosition(
   }
 
   if (position === 'child') {
-    // child の場合は通常の移動制約チェック + 位置制約
+    
     const basicValidation = validateNodeMovement(normalizedData, nodeId, targetNodeId);
     if (!basicValidation.isValid) {
       return basicValidation;
     }
 
-    // 制約3: リストノードが見出しノードの子になる場合の位置制約
+    
     const nodeType = node.markdownMeta?.type;
     const parentType = target.markdownMeta?.type;
 
@@ -316,8 +292,8 @@ function validateNodeMovementWithPosition(
       });
 
       if (hasHeadingSiblings) {
-        // 見出しの兄弟がいる場合、リストは一番最初に配置される
-        // child位置での追加は最後に追加されるので、見出しがいる場合は禁止
+        
+        
         return {
           isValid: false,
           reason: '見出しノードの兄弟がいる場合、リストノードは一番最初にのみ配置できます'
@@ -328,19 +304,19 @@ function validateNodeMovementWithPosition(
     return { isValid: true };
   }
 
-  // before/after の場合は兄弟として配置されるので、その親に対してチェック
+  
   const targetParentId = normalizedData.parentMap[targetNodeId];
   if (!targetParentId) {
     return { isValid: false, reason: 'ターゲットノードに親がありません' };
   }
 
-  // 基本的な制約チェック
+  
   const validationResult = validateNodeMovement(normalizedData, nodeId, targetParentId);
   if (!validationResult.isValid) {
     return validationResult;
   }
 
-  // 制約3: リストノードが見出しノードの子になる場合の位置制約
+  
   const nodeType = node.markdownMeta?.type;
   const targetParent = normalizedData.nodes[targetParentId];
   const parentType = targetParent?.markdownMeta?.type;
@@ -355,9 +331,9 @@ function validateNodeMovementWithPosition(
     });
 
     if (hasHeadingSiblings) {
-      // リストは見出しより前（一番最初）にのみ配置可能
+      
       if (position === 'before') {
-        // targetの前に配置する場合、targetが最初の見出しでないと駄目
+        
         const firstHeading = siblings.find(siblingId => {
           const sibling = normalizedData.nodes[siblingId];
           return sibling?.markdownMeta?.type === 'heading';
@@ -371,7 +347,7 @@ function validateNodeMovementWithPosition(
       }
       
       if (position === 'after') {
-        // targetの後に配置する場合、targetより後に見出しがあると禁止
+        
         const afterTargetSiblings = siblings.slice(targetIndex + 1);
         const hasHeadingAfterTarget = afterTargetSiblings.some(siblingId => {
           const sibling = normalizedData.nodes[siblingId];
@@ -391,9 +367,6 @@ function validateNodeMovementWithPosition(
   return { isValid: true };
 }
 
-/**
- * 正規化されたデータでのノード移動 - O(1)
- */
 export function moveNormalizedNode(
   normalizedData: NormalizedData,
   nodeId: string,
@@ -412,24 +385,24 @@ export function moveNormalizedNode(
     return { success: false, reason: `移動先のノードが見つかりません: ${newParentId}` };
   }
 
-  // Disallow moving under a table node
+  
   const targetParent = normalizedData.nodes[newParentId];
   if ((targetParent as any)?.kind === 'table') {
     return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
   }
 
-  // Disallow moving under a preface node
+  
   if (targetParent.markdownMeta?.type === 'preface') {
     return { success: false, reason: '前文ノードには子ノードを追加できません' };
   }
 
-  // ノードの種類制約チェック
+  
   const validation = validateNodeMovement(normalizedData, nodeId, newParentId);
   if (!validation.isValid) {
     return { success: false, reason: validation.reason || 'ノードの移動ができません' };
   }
 
-  // 循環参照チェック: newParentId が nodeId の子孫でないかチェック
+  
   function isDescendant(parentId: string, childId: string): boolean {
     const children = normalizedData.childrenMap[parentId] || [];
     return children.includes(childId) ||
@@ -440,13 +413,13 @@ export function moveNormalizedNode(
     return { success: false, reason: '親ノードを子ノードの下に移動することはできません' };
   }
 
-  // 同じ親内での移動の場合は何もしない
+  
   if (oldParentId === newParentId) {
     return { success: true, data: normalizedData };
   }
 
-  // 表ノードの配置制約: moveNormalizedNode は末尾に追加するため、
-  // 表ノードは空の親にのみ移動可（兄弟がいる場合は先頭以外になるためNG）
+  
+  
   const movingNode = normalizedData.nodes[nodeId] as any;
   if (movingNode?.kind === 'table') {
     const siblings = (normalizedData.childrenMap[newParentId] || []).filter(id => id !== nodeId);
@@ -471,9 +444,6 @@ export function moveNormalizedNode(
   return { success: true, data: newData };
 }
 
-/**
- * 位置指定付きでノードの親を変更
- */
 export function moveNodeWithPositionNormalized(
   normalizedData: NormalizedData,
   nodeId: string,
@@ -493,7 +463,7 @@ export function moveNodeWithPositionNormalized(
     return { success: false, reason: `ターゲットノードが見つかりません: ${targetNodeId}` };
   }
 
-  // If moving as child, disallow child under a table node
+  
   if (position === 'child') {
     const targetNode = normalizedData.nodes[targetNodeId];
     if ((targetNode as any)?.kind === 'table') {
@@ -501,7 +471,7 @@ export function moveNodeWithPositionNormalized(
     }
   }
 
-  // ノードの種類制約チェック
+  
   const validation = validateNodeMovementWithPosition(normalizedData, nodeId, targetNodeId, position);
   if (!validation.isValid) {
     return { success: false, reason: validation.reason || 'ノードの移動ができません' };
@@ -511,11 +481,11 @@ export function moveNodeWithPositionNormalized(
   let insertionIndex: number;
 
   if (position === 'child') {
-    // 子として追加
+    
     newParentId = targetNodeId;
     insertionIndex = (normalizedData.childrenMap[newParentId] || []).length;
   } else {
-    // 兄弟として追加（before/after）
+    
     newParentId = normalizedData.parentMap[targetNodeId];
     if (!newParentId) {
       return { success: false, reason: `ターゲットノードに親がありません: ${targetNodeId}` };
@@ -530,7 +500,7 @@ export function moveNodeWithPositionNormalized(
     insertionIndex = position === 'before' ? targetIndex : targetIndex + 1;
   }
 
-  // 循環参照チェック: newParentId が nodeId の子孫でないかチェック
+  
   function isDescendant(parentId: string, childId: string): boolean {
     const children = normalizedData.childrenMap[parentId] || [];
     return children.includes(childId) ||
@@ -541,14 +511,14 @@ export function moveNodeWithPositionNormalized(
     return { success: false, reason: '親ノードを子ノードの下に移動することはできません' };
   }
 
-  // 古い親から削除
+  
   const oldSiblings = normalizedData.childrenMap[oldParentId] || [];
   const newOldSiblings = oldSiblings.filter(id => id !== nodeId);
 
-  // 新しい親に追加
+  
   const newSiblings = [...(normalizedData.childrenMap[newParentId] || [])];
 
-  // 同じ親内での移動の場合は調整が必要
+  
   if (oldParentId === newParentId) {
     const currentIndex = newSiblings.indexOf(nodeId);
     if (currentIndex !== -1) {
@@ -561,7 +531,7 @@ export function moveNodeWithPositionNormalized(
 
   newSiblings.splice(insertionIndex, 0, nodeId);
 
-  // 表ノードの配置制約: 兄弟がいる場合は常に先頭（insertionIndex === 0）のみ許可
+  
   const movingNode2 = normalizedData.nodes[nodeId] as any;
   if (movingNode2?.kind === 'table') {
     const siblingsCountExcludingSelf = newSiblings.filter(id => id !== nodeId).length;
@@ -586,9 +556,6 @@ export function moveNodeWithPositionNormalized(
   return { success: true, data: newData };
 }
 
-/**
- * 正規化されたデータで兄弟ノードを追加 - O(1)
- */
 export function addSiblingNormalizedNode(
   normalizedData: NormalizedData,
   siblingNodeId: string,
@@ -605,7 +572,7 @@ export function addSiblingNormalizedNode(
   }
 
   const { children, ...nodeWithoutChildren } = newNode;
-  void children; // childrenは使用しないがdestructuringで除外する必要がある
+  void children; 
 
   const siblings = normalizedData.childrenMap[parentId] || [];
   const siblingIndex = siblings.indexOf(siblingNodeId);
@@ -614,7 +581,7 @@ export function addSiblingNormalizedNode(
     throw new Error(`Sibling node not found in parent's children: ${siblingNodeId}`);
   }
 
-  // 兄弟ノードの後に挿入
+  
   const insertionIndex = insertAfter ? siblingIndex + 1 : siblingIndex;
   const newSiblings = [...siblings];
   newSiblings.splice(insertionIndex, 0, newNode.id);
@@ -637,7 +604,7 @@ export function addSiblingNormalizedNode(
   };
 }
 
-// ルートノードの兄弟ノードを追加する関数（複数ルートノード対応）
+
 export function addRootSiblingNode(
   normalizedData: NormalizedData,
   siblingRootNodeId: string,
@@ -649,9 +616,9 @@ export function addRootSiblingNode(
   }
 
   const { children, ...nodeWithoutChildren } = newNode;
-  void children; // childrenは使用しないがdestructuringで除外する必要がある
+  void children; 
 
-  // 新しいルートノードIDリストを作成
+  
   const currentRootIds = normalizedData.rootNodeIds;
   const siblingIndex = currentRootIds.indexOf(siblingRootNodeId);
   
@@ -659,7 +626,7 @@ export function addRootSiblingNode(
     throw new Error(`Root sibling node not found: ${siblingRootNodeId}`);
   }
 
-  // ルートノードリストに新しいノードを追加
+  
   const insertionIndex = insertAfter ? siblingIndex + 1 : siblingIndex;
   const newRootIds = [...currentRootIds];
   newRootIds.splice(insertionIndex, 0, newNode.id);
@@ -673,7 +640,7 @@ export function addRootSiblingNode(
     rootNodeIds: newRootIds,
     parentMap: {
       ...normalizedData.parentMap,
-      // 新しいルートノードには親を設定しない
+      
     },
     childrenMap: {
       ...normalizedData.childrenMap,
@@ -682,9 +649,6 @@ export function addRootSiblingNode(
   };
 }
 
-/**
- * 正規化されたデータで兄弟ノードの順序を変更 - O(1)
- */
 export function changeSiblingOrderNormalized(
   normalizedData: NormalizedData,
   draggedNodeId: string,
@@ -724,13 +688,13 @@ export function changeSiblingOrderNormalized(
   
   if (draggedIndex === targetIndex) {
     logger.debug('🔧 同じインデックスのため変更なし');
-    return normalizedData; // No change needed
+    return normalizedData; 
   }
   
-  // Remove dragged node from current position
+  
   const newSiblings = siblings.filter(id => id !== draggedNodeId);
   
-  // Find the new insertion index
+  
   const adjustedTargetIndex = newSiblings.indexOf(targetNodeId);
   const insertionIndex = insertBefore ? adjustedTargetIndex : adjustedTargetIndex + 1;
   
@@ -742,7 +706,7 @@ export function changeSiblingOrderNormalized(
     insertBefore 
   });
   
-  // Insert dragged node at new position
+  
   newSiblings.splice(insertionIndex, 0, draggedNodeId);
   
   logger.debug('🔧 最終的な兄弟リスト:', newSiblings);

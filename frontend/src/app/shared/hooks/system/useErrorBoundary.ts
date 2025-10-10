@@ -7,9 +7,7 @@ export interface ErrorBoundaryOptions {
   fallbackResult?: unknown;
 }
 
-/**
- * エラーハンドリングを統一するhook
- */
+
 export const useErrorBoundary = (options: ErrorBoundaryOptions = {}) => {
   const { onError, fallbackResult } = options;
 

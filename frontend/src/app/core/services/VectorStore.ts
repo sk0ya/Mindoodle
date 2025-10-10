@@ -1,15 +1,11 @@
-/**
- * VectorStore - IndexedDBを使ったベクトルの永続化
- *
- * ファイルパスをキーとして、384次元のベクトル（Float32Array）を保存・取得します。
- */
+
 
 const DB_NAME = 'mindoodle-vectors';
 const DB_VERSION = 1;
 const STORE_NAME = 'vectors';
 
 interface VectorRecord {
-  filePath: string; // Primary key
+  filePath: string; 
   vector: Float32Array;
   timestamp: number;
 }
@@ -18,9 +14,7 @@ export class VectorStore {
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
 
-  /**
-   * IndexedDBを初期化
-   */
+  
   private async initialize(): Promise<void> {
     if (this.initPromise) return this.initPromise;
 
@@ -39,7 +33,7 @@ export class VectorStore {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        // vectors オブジェクトストア作成
+        
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'filePath' });
           store.createIndex('timestamp', 'timestamp', { unique: false });
@@ -50,9 +44,7 @@ export class VectorStore {
     return this.initPromise;
   }
 
-  /**
-   * ベクトルを保存
-   */
+  
   async saveVector(filePath: string, vector: Float32Array): Promise<void> {
     await this.initialize();
 
@@ -73,9 +65,7 @@ export class VectorStore {
     });
   }
 
-  /**
-   * ベクトルを取得
-   */
+  
   async getVector(filePath: string): Promise<Float32Array | null> {
     await this.initialize();
 
@@ -94,9 +84,7 @@ export class VectorStore {
     });
   }
 
-  /**
-   * 全てのベクトルを取得
-   */
+  
   async getAllVectors(): Promise<Map<string, Float32Array>> {
     await this.initialize();
 
@@ -121,9 +109,7 @@ export class VectorStore {
     });
   }
 
-  /**
-   * ベクトルを削除
-   */
+  
   async deleteVector(filePath: string): Promise<void> {
     await this.initialize();
 
@@ -138,9 +124,7 @@ export class VectorStore {
     });
   }
 
-  /**
-   * 全てのベクトルを削除
-   */
+  
   async clear(): Promise<void> {
     await this.initialize();
 
@@ -155,9 +139,7 @@ export class VectorStore {
     });
   }
 
-  /**
-   * データベースを閉じる
-   */
+  
   close(): void {
     if (this.db) {
       this.db.close();
@@ -167,5 +149,5 @@ export class VectorStore {
   }
 }
 
-// シングルトンインスタンス
+
 export const vectorStore = new VectorStore();

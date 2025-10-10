@@ -1,14 +1,10 @@
-/**
- * Application Commands
- * Core application-level operations (undo, redo, copy, paste)
- */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 import { isMindMeisterFormat, parseMindMeisterMarkdown } from '../../features/markdown';
 
-// Undo command
+
 export const undoCommand: Command = {
   name: 'undo',
   aliases: ['u'],
@@ -39,7 +35,7 @@ export const undoCommand: Command = {
   }
 };
 
-// Redo command
+
 export const redoCommand: Command = {
   name: 'redo',
   aliases: ['r'],
@@ -70,7 +66,7 @@ export const redoCommand: Command = {
   }
 };
 
-// Copy node command
+
 export const copyCommand: Command = {
   name: 'copy',
   aliases: ['c'],
@@ -118,10 +114,10 @@ export const copyCommand: Command = {
     }
   },
   repeatable: true,
-  countable: false  // Copy doesn't use count
+  countable: false  
 };
 
-// Paste command
+
 export const pasteCommand: Command = {
   name: 'paste',
   aliases: ['v'],
@@ -156,7 +152,7 @@ export const pasteCommand: Command = {
     }
 
     try {
-      // Try to paste node content as child node (vim-like behavior)
+      
       await context.handlers.pasteNode(targetId);
       return {
         success: true,
@@ -171,21 +167,17 @@ export const pasteCommand: Command = {
   }
 };
 
-/**
- * Paste as sibling helper (internal)
- * Reuses pasteNodeTree for children to ensure consistent tree structure
- */
 async function pasteTreeAsSibling(
   source: MindMapNode,
   refNodeId: string,
   insertAfter: boolean,
   context: CommandContext
 ): Promise<string | null> {
-  // Add root as sibling relative to reference node
+  
   const rootId = await context.handlers.addSiblingNode(refNodeId, source.text, false, insertAfter);
   if (!rootId) return null;
 
-  // Copy basic styles/metadata
+  
   context.handlers.updateNode(rootId, {
     fontSize: source.fontSize,
     fontWeight: source.fontWeight,
@@ -195,13 +187,13 @@ async function pasteTreeAsSibling(
     markdownMeta: source.markdownMeta
   });
 
-  // Wrapper to unwrap Promise from async addChildNode
+  
   const addChildSync = async (parentId: string, text: string): Promise<string | undefined> => {
     const result = await context.handlers.addChildNode(parentId, text, false);
     return result || undefined;
   };
 
-  // Recursively paste children using the same pattern as pasteNodeTree
+  
   const pasteSubtreeSync = async (node: MindMapNode, parentId: string): Promise<void> => {
     const newId = await addChildSync(parentId, node.text);
     if (!newId) return;
@@ -215,7 +207,7 @@ async function pasteTreeAsSibling(
       markdownMeta: node.markdownMeta
     });
 
-    // Recursively paste all children
+    
     if (node.children && node.children.length > 0) {
       for (const child of node.children) {
         await pasteSubtreeSync(child, newId);
@@ -223,7 +215,7 @@ async function pasteTreeAsSibling(
     }
   };
 
-  // Paste all children of the source node
+  
   if (source.children && source.children.length > 0) {
     for (const child of source.children) {
       await pasteSubtreeSync(child, rootId);
@@ -233,9 +225,6 @@ async function pasteTreeAsSibling(
   return rootId;
 }
 
-/**
- * Paste as younger sibling (vim 'p')
- */
 export const pasteSiblingAfterCommand: Command = {
   name: 'paste-sibling-after',
   description: 'Paste as younger sibling (after selected node)',
@@ -243,7 +232,7 @@ export const pasteSiblingAfterCommand: Command = {
   examples: ['paste-sibling-after'],
 
   async execute(context: CommandContext): Promise<CommandResult> {
-    // Early validation before setting flags
+    
     const refNodeId = context.selectedNodeId;
     if (!refNodeId) {
       return { success: false, error: 'No node selected' };
@@ -253,37 +242,37 @@ export const pasteSiblingAfterCommand: Command = {
       return { success: false, error: `Reference node ${refNodeId} not found` };
     }
 
-    // Begin history group for paste operation and set paste flag
+    
     try {
       useMindMapStore.setState({ _pasteInProgress: true } as any);
       (useMindMapStore.getState() as any).beginHistoryGroup?.('paste');
     } catch {}
 
-    // Get internal UI clipboard node
+    
     const uiClipboard: MindMapNode | null = ((): MindMapNode | null => {
       try {
         return (useMindMapStore.getState() as any)?.ui?.clipboard || null;
       } catch { return null; }
     })();
 
-    // Try system clipboard text first
+    
     try {
       if (navigator.clipboard && navigator.clipboard.readText) {
         const clipboardText = await navigator.clipboard.readText();
         if (clipboardText && clipboardText.trim()) {
-          // If we have internal clipboard with structure, prefer it over plain text
+          
           if (uiClipboard) {
             const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, true, context);
             if (newId) {
               context.handlers.selectNode(newId);
-              // End history group and commit, clear paste flag
+              
               try {
                 (useMindMapStore.getState() as any).endHistoryGroup?.(true);
                 useMindMapStore.setState({ _pasteInProgress: false } as any);
               } catch {}
               return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
             }
-            // End history group without commit on error, clear paste flag
+            
             try {
               (useMindMapStore.getState() as any).endHistoryGroup?.(false);
               useMindMapStore.setState({ _pasteInProgress: false } as any);
@@ -291,14 +280,14 @@ export const pasteSiblingAfterCommand: Command = {
             return { success: false, error: 'Failed to paste (sibling-after)' };
           }
 
-          // MindMeister markdown format
+          
           if (isMindMeisterFormat(clipboardText)) {
             const parsed = parseMindMeisterMarkdown(clipboardText);
             if (parsed) {
               const newId = await pasteTreeAsSibling(parsed, refNodeId, true, context);
               if (newId) {
                 context.handlers.selectNode(newId);
-                // End history group and commit, clear paste flag
+                
                 try {
                   const state: any = useMindMapStore.getState();
                   state._pasteInProgress = false;
@@ -309,7 +298,7 @@ export const pasteSiblingAfterCommand: Command = {
             }
           }
 
-          // Plain text lines: create consecutive younger siblings
+          
           const lines = clipboardText.split(/\r\n|\r|\n/)
             .map(l => {
               const t = l.trim();
@@ -324,13 +313,13 @@ export const pasteSiblingAfterCommand: Command = {
               const nid = await context.handlers.addSiblingNode(anchorId, line, false, true);
               if (nid) {
                 lastId = nid;
-                anchorId = nid; // chain so order is preserved after each inserted sibling
+                anchorId = nid; 
               }
             }
             if (lastId) {
               context.handlers.selectNode(lastId);
               const msg = lines.length === 1 ? `Pasted "${lines[0]}" as sibling after` : `Pasted ${lines.length} lines as siblings after`;
-              // End history group and commit, clear paste flag
+              
               try {
                 (useMindMapStore.getState() as any).endHistoryGroup?.(true);
                 useMindMapStore.setState({ _pasteInProgress: false } as any);
@@ -340,14 +329,14 @@ export const pasteSiblingAfterCommand: Command = {
           }
         }
       }
-    } catch { /* ignore clipboard errors, fallback to UI clipboard */ }
+    } catch {  }
 
-    // Fallback: use internal clipboard tree
+    
     if (uiClipboard) {
       const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, true, context);
       if (newId) {
         context.handlers.selectNode(newId);
-        // End history group and commit, clear paste flag
+        
         try {
           const state: any = useMindMapStore.getState();
           state._pasteInProgress = false;
@@ -357,7 +346,7 @@ export const pasteSiblingAfterCommand: Command = {
       }
     }
 
-    // End history group without commit on error, clear paste flag
+    
     try {
       (useMindMapStore.getState() as any).endHistoryGroup?.(false);
       useMindMapStore.setState({ _pasteInProgress: false } as any);
@@ -368,9 +357,6 @@ export const pasteSiblingAfterCommand: Command = {
   countable: false
 };
 
-/**
- * Paste as elder sibling (vim 'P')
- */
 export const pasteSiblingBeforeCommand: Command = {
   name: 'paste-sibling-before',
   description: 'Paste as elder sibling (before selected node)',
@@ -378,7 +364,7 @@ export const pasteSiblingBeforeCommand: Command = {
   examples: ['paste-sibling-before'],
 
   async execute(context: CommandContext): Promise<CommandResult> {
-    // Early validation before setting flags
+    
     const refNodeId = context.selectedNodeId;
     if (!refNodeId) {
       return { success: false, error: 'No node selected' };
@@ -388,7 +374,7 @@ export const pasteSiblingBeforeCommand: Command = {
       return { success: false, error: `Reference node ${refNodeId} not found` };
     }
 
-    // Begin history group for paste operation and set paste flag
+    
     try {
       useMindMapStore.setState({ _pasteInProgress: true } as any);
       (useMindMapStore.getState() as any).beginHistoryGroup?.('paste');
@@ -404,19 +390,19 @@ export const pasteSiblingBeforeCommand: Command = {
       if (navigator.clipboard && navigator.clipboard.readText) {
         const clipboardText = await navigator.clipboard.readText();
         if (clipboardText && clipboardText.trim()) {
-          // If we have internal clipboard with structure, prefer it over plain text
+          
           if (uiClipboard) {
             const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
             if (newId) {
               context.handlers.selectNode(newId);
-              // End history group and commit, clear paste flag
+              
               try {
                 (useMindMapStore.getState() as any).endHistoryGroup?.(true);
                 useMindMapStore.setState({ _pasteInProgress: false } as any);
               } catch {}
               return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
             }
-            // End history group without commit on error, clear paste flag
+            
             try {
               (useMindMapStore.getState() as any).endHistoryGroup?.(false);
               useMindMapStore.setState({ _pasteInProgress: false } as any);
@@ -430,7 +416,7 @@ export const pasteSiblingBeforeCommand: Command = {
               const newId = await pasteTreeAsSibling(parsed, refNodeId, false, context);
               if (newId) {
                 context.handlers.selectNode(newId);
-                // End history group and commit, clear paste flag
+                
                 try {
                   const state: any = useMindMapStore.getState();
                   state._pasteInProgress = false;
@@ -441,7 +427,7 @@ export const pasteSiblingBeforeCommand: Command = {
             }
           }
 
-          // For before: process lines in reverse to preserve order
+          
           const lines = clipboardText.split(/\r\n|\r|\n/)
             .map(l => {
               const t = l.trim();
@@ -455,13 +441,13 @@ export const pasteSiblingBeforeCommand: Command = {
               const line = lines[i];
               const nid = await context.handlers.addSiblingNode(refNodeId, line, false, false);
               if (nid) {
-                lastId = nid; // first inserted (from end) ends up at top; select the first inserted (which becomes the top-most of pasted block)
+                lastId = nid; 
               }
             }
             if (lastId) {
               context.handlers.selectNode(lastId);
               const msg = lines.length === 1 ? `Pasted "${lines[0]}" as sibling before` : `Pasted ${lines.length} lines as siblings before`;
-              // End history group and commit, clear paste flag
+              
               try {
                 (useMindMapStore.getState() as any).endHistoryGroup?.(true);
                 useMindMapStore.setState({ _pasteInProgress: false } as any);
@@ -471,13 +457,13 @@ export const pasteSiblingBeforeCommand: Command = {
           }
         }
       }
-    } catch { /* ignore, fallback */ }
+    } catch {  }
 
     if (uiClipboard) {
       const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
       if (newId) {
         context.handlers.selectNode(newId);
-        // End history group and commit, clear paste flag
+        
         try {
           const state: any = useMindMapStore.getState();
           state._pasteInProgress = false;
@@ -487,7 +473,7 @@ export const pasteSiblingBeforeCommand: Command = {
       }
     }
 
-    // End history group without commit on error, clear paste flag
+    
     try {
       (useMindMapStore.getState() as any).endHistoryGroup?.(false);
       useMindMapStore.setState({ _pasteInProgress: false } as any);
@@ -497,7 +483,7 @@ export const pasteSiblingBeforeCommand: Command = {
   repeatable: true,
   countable: false
 };
-// Add workspace command
+
 export const addWorkspaceCommand: Command = {
   name: 'addworkspace',
   aliases: ['workspace-add', 'ws-add'],
@@ -507,7 +493,7 @@ export const addWorkspaceCommand: Command = {
 
   async execute(): Promise<CommandResult> {
     try {
-      // Call the global addWorkspace function
+      
       const addWorkspaceFn = (window as any).mindoodleAddWorkspace;
       if (typeof addWorkspaceFn !== 'function') {
         return {
@@ -530,4 +516,4 @@ export const addWorkspaceCommand: Command = {
   }
 };
 
-// Cut command (equivalent to vim 'dd' - copy then delete)
+

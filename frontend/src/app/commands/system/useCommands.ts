@@ -1,7 +1,3 @@
-/**
- * useCommands Hook
- * React hook for integrating the command system with the mindmap application
- */
 
 import { useCallback, useMemo } from 'react';
 import type {
@@ -23,39 +19,39 @@ interface UseCommandsProps {
   editingNodeId: string | null;
   vim?: VimModeHook;
   handlers: {
-    // Node operations
+    
     updateNode: (id: string, updates: any) => void;
     deleteNode: (id: string) => void;
     findNodeById: (nodeId: string) => any;
 
-    // Navigation
+    
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;
     selectNode: (nodeId: string | null) => void;
     setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 
-    // Editing
+    
     startEdit: (nodeId: string) => void;
     startEditWithCursorAtStart: (nodeId: string) => void;
     startEditWithCursorAtEnd: (nodeId: string) => void;
 
-    // Structure operations
+    
     addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;
     changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
 
-    // Clipboard operations
+    
     copyNode: (nodeId: string) => void;
     pasteNode: (parentId: string) => Promise<void>;
     pasteImageFromClipboard: (nodeId: string) => Promise<void>;
 
-    // Undo/Redo
+    
     undo: () => void;
     redo: () => void;
     canUndo: boolean;
     canRedo: boolean;
 
-    // UI state management
+    
     showKeyboardHelper: boolean;
     setShowKeyboardHelper: (show: boolean) => void;
     showMapList: boolean;
@@ -65,10 +61,10 @@ interface UseCommandsProps {
     showTutorial: boolean;
     setShowTutorial: (show: boolean) => void;
 
-    // UI operations
+    
     closeAttachmentAndLinkLists: () => void;
 
-    // Markdown operations
+    
     onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   };
 }
@@ -85,13 +81,10 @@ export interface UseCommandsReturn {
   getVimKeys: () => string[];
 }
 
-/**
- * Hook for using the command system in React components
- */
 export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   const { selectedNodeId, editingNodeId, vim, handlers } = props;
 
-  // Initialize command registry (local instance, not global)
+  
   const registry = useMemo(() => {
     const reg = new CommandRegistryImpl();
 
@@ -100,10 +93,10 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     return reg;
   }, []);
 
-  // Create command context
+  
   const uiStore = useMindMapStore();
   const context = useMemo((): CommandContext => {
-    // Strip undefineds from handlers to satisfy exactOptionalPropertyTypes
+    
     const cleanHandlers = Object.entries(handlers).reduce((acc, [k, v]) => {
       if (v !== undefined) (acc as any)[k] = v;
       return acc;
@@ -122,18 +115,18 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     return base;
   }, [selectedNodeId, editingNodeId, vim, handlers, uiStore]);
 
-  // Parse command string
+  
   const parse = useCallback((commandString: string): ParseResult => {
     return parseCommand(commandString);
   }, []);
 
-  // Execute command
+  
   const execute = useCallback(async (
     commandString: string,
     options: ExecuteOptions = {}
   ): Promise<CommandResult> => {
     try {
-      // Parse command
+      
       const parseResult = parseCommand(commandString);
       if (!parseResult.success || !parseResult.command) {
         return {
@@ -142,7 +135,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         };
       }
 
-      // Get command from registry
+      
       const command = registry.get(parseResult.command.name);
       if (!command) {
         const suggestions = generateSuggestions(parseResult.command.name, registry.getAll());
@@ -154,7 +147,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         };
       }
 
-      // Validate command arguments
+      
       const validationResult = validateCommand(parseResult.command, command);
       if (!validationResult.success || !validationResult.command) {
         return {
@@ -163,7 +156,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         };
       }
 
-      // Dry run mode
+      
       if (options.dryRun) {
         return {
           success: true,
@@ -171,7 +164,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         };
       }
 
-      // Execute via registry to apply guard uniformly
+      
       const result = await registry.execute(command.name, context, validationResult.command.args);
 
       if (options.verbose && result.success) {
@@ -187,9 +180,9 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     }
   }, [context, registry]);
 
-  // Execute vim-specific commands
+  
   const executeVimCommand = useCallback(async (vimKey: string, count?: number): Promise<CommandResult> => {
-    // Handle dot repeat command
+    
     if (vimKey === '.') {
       if (!vim) {
         return { success: false, error: 'Vim mode not available' };
@@ -201,7 +194,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         return { success: false, error: 'No previous change to repeat' };
       }
 
-      // Repeat the last change with its original count or new count
+      
       const repeatCount = count ?? lastChange.count;
       const contextWithCount = { ...context, count: repeatCount };
 
@@ -214,8 +207,8 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       return result;
     }
 
-    // Numeric-prefixed ordered-list conversion: "<number>m"
-    // parseVimSequence encodes as 'm:<num>'
+    
+    
     if (/^m:\d+$/.test(vimKey)) {
       try {
         const num = parseInt(vimKey.split(':')[1], 10);
@@ -227,16 +220,16 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
           return { success: false, error: 'Selected node not found' };
         }
 
-        // Determine target level and indent based on current meta and parent
-        // 既定はトップレベルのリスト（level=1, indent=0）
+        
+        
         let level = 1;
-        // indentLevel はスペース数（1レベル=2スペース）
+        
         let indentLevel = 0;
 
-        // Try to derive from parent when possible
+        
         try {
           const roots: any[] = (useMindMapStore as any).getState?.().data?.rootNodes || [];
-          // Lightweight parent search
+          
           const findParent = (list: any[], targetId: string, parent: any | null = null): any | null => {
             for (const n of list) {
               if (n.id === targetId) return parent;
@@ -252,7 +245,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
             level = Math.max((parent.markdownMeta.level || 1) + 1, 1);
             indentLevel = Math.max(level - 1, 0) * 2;
           }
-        } catch { /* ignore parent derivation errors */ }
+        } catch {  }
 
         const newMeta = {
           type: 'ordered-list' as const,
@@ -262,7 +255,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
           lineNumber: node.markdownMeta?.lineNumber ?? 0
         };
 
-        // Update only this node's markdownMeta to ordered-list with the specified number
+        
         handlers.updateNode(selectedNodeId, { markdownMeta: newMeta } as any);
 
         return { success: true, message: `Converted to ${num}. ordered list` };
@@ -272,7 +265,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     }
 
     
-    // Handle search commands specially
+    
     if (vimKey === '/' && vim) {
       vim.startSearch();
       return { success: true };
@@ -309,15 +302,15 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'gv': 'show-knowledge-graph',
       'ctrl-u': 'scroll-up',
       'ctrl-d': 'scroll-down',
-      'r': 'redo',      // r for redo (changed from ctrl-r)
+      'r': 'redo',      
       'ciw': 'edit',
-      'i': 'append',        // i: 末尾カーソル編集
-      'a': 'add-child',     // a: 子ノード追加
+      'i': 'append',        
+      'a': 'add-child',     
       'A': 'append-end',
-      'I': 'insert',        // I: 先頭カーソル編集
+      'I': 'insert',        
       'o': 'open',
       'O': 'open-above',
-      'X': 'insert-checkbox-child',  // X: チェックボックス付き子ノード追加
+      'X': 'insert-checkbox-child',  
       'h': 'left',
       'j': 'down',
       'k': 'up',
@@ -333,13 +326,13 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       'delete': 'delete',
       'backspace': 'delete',
       'x': 'toggle-checkbox',
-      'u': 'undo',          // u for undo
+      'u': 'undo',          
       '>>': 'move-as-child-of-sibling',
       '<<': 'move-as-next-sibling-of-parent',
-      // Text formatting commands
-      'S': 'toggle-strikethrough',  // S for strikethrough
-      'B': 'toggle-bold',           // B for bold
-      '~': 'toggle-italic'          // ~ for italic
+      
+      'S': 'toggle-strikethrough',  
+      'B': 'toggle-bold',           
+      '~': 'toggle-italic'          
     };
 
     const commandName = vimCommandMap[vimKey];
@@ -351,10 +344,10 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       };
     }
 
-    // Create context with count if provided
+    
     const contextWithCount = count ? { ...context, count } : context;
 
-    // Get the command to check if it's repeatable
+    
     const command = registry.get(commandName);
     if (!command) {
       return {
@@ -363,10 +356,10 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
       };
     }
 
-    // Execute the command
+    
     const result = await registry.execute(commandName, contextWithCount, {});
 
-    // Record repeatable operations
+    
     if (result.success && command.repeatable && vim) {
       const repeatRegistry = vim.getRepeatRegistry();
       repeatRegistry.record({
@@ -382,32 +375,32 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     return result;
   }, [execute, vim, context, registry]);
 
-  // Get available command names
+  
   const getAvailableCommands = useCallback((): string[] => {
     return registry.getAvailableNames();
   }, [registry]);
 
-  // Get command suggestions
+  
   const getSuggestions = useCallback((partialInput: string): string[] => {
     return generateSuggestions(partialInput, registry.getAll());
   }, [registry]);
 
-  // Get help for commands
+  
   const getHelp = useCallback((commandName?: string): string => {
     return registry.getHelp(commandName);
   }, [registry]);
 
-  // Check if command is valid
+  
   const isValidCommand = useCallback((commandName: string): boolean => {
     return registry.get(commandName) !== undefined;
   }, [registry]);
 
-  // Parse vim sequence using vim sequence parser
+  
   const parseVimSequenceCallback = useCallback((sequence: string): VimSequenceResult => {
     return parseVimSequence(sequence);
   }, []);
 
-  // Get vim keys that should prevent default behavior
+  
   const getVimKeysCallback = useCallback((): string[] => {
     return getVimKeys();
   }, []);
@@ -425,13 +418,13 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   };
 }
 
-// Export for backward compatibility with existing vim system
+
 export function useVimCommands(props: UseCommandsProps) {
   const commands = useCommands(props);
 
   return {
     ...commands,
-    // Convenience methods for vim commands
+    
     center: () => commands.executeVimCommand('zz'),
     delete: () => commands.executeVimCommand('dd'),
     toggle: () => commands.executeVimCommand('za'),

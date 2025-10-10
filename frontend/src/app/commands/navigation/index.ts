@@ -1,9 +1,5 @@
-/**
- * Navigation Commands Index
- * Unified navigation functionality
- */
 
-// Basic directional navigation
+
 export {
   navigateCommand,
   upCommand,
@@ -12,7 +8,7 @@ export {
   rightCommand
 } from './navigate';
 
-// Extended navigation features
+
 export {
   arrowNavigateCommand,
   selectNodeCommand,

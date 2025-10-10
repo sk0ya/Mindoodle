@@ -1,12 +1,9 @@
-/**
- * UI Commands
- * Interface and panel management operations
- */
+
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 export { showKnowledgeGraphCommand } from './showKnowledgeGraph';
 
-// Show/hide keyboard helper
+
 export const helpCommand: Command = {
   name: 'help',
   aliases: ['?', 'keyboard-help'],
@@ -32,7 +29,7 @@ export const helpCommand: Command = {
   }
 };
 
-// Close all panels
+
 export const closePanelsCommand: Command = {
   name: 'close-panels',
   aliases: ['close', 'escape'],
@@ -42,13 +39,13 @@ export const closePanelsCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      // Close all panels
+      
       if (context.handlers.showMapList) context.handlers.setShowMapList(false);
       if (context.handlers.showLocalStorage) context.handlers.setShowLocalStorage(false);
       if (context.handlers.showTutorial) context.handlers.setShowTutorial(false);
       if (context.handlers.showKeyboardHelper) context.handlers.setShowKeyboardHelper(false);
 
-      // Close attachment and link lists
+      
       context.handlers.closeAttachmentAndLinkLists();
 
       return {
@@ -64,7 +61,7 @@ export const closePanelsCommand: Command = {
   }
 };
 
-// Toggle Markdown Panel (right panel)
+
 export const toggleMarkdownPanelCommand: Command = {
   name: 'toggle-markdown-panel',
   aliases: ['toggle-md', 'md-panel'],
@@ -96,7 +93,7 @@ export const toggleMarkdownPanelCommand: Command = {
   }
 };
 
-// Toggle Selected Node Note Panel (bottom/right overlay)
+
 export const toggleNodeNotePanelCommand: Command = {
   name: 'toggle-node-note-panel',
   aliases: ['toggle-node-note', 'node-note-panel'],
@@ -128,7 +125,7 @@ export const toggleNodeNotePanelCommand: Command = {
   }
 };
 
-// Toggle Vim Settings Panel (right panel)
+
 export const toggleVimSettingsPanelCommand: Command = {
   name: 'toggle-vim-settings',
   aliases: ['vim-settings', 'vim-panel'],
@@ -160,7 +157,7 @@ export const toggleVimSettingsPanelCommand: Command = {
   }
 };
 
-// Start editing current node
+
 export const startEditCommand: Command = {
   name: 'start-edit',
   aliases: ['edit-start'],
@@ -209,7 +206,7 @@ export const startEditCommand: Command = {
   }
 };
 
-// Start editing with cursor at end
+
 export const startEditEndCommand: Command = {
   name: 'start-edit-end',
   aliases: ['edit-end'],
@@ -258,7 +255,7 @@ export const startEditEndCommand: Command = {
   }
 };
 
-// Convert markdown node type
+
 export const markdownConvertCommand: Command = {
   name: 'markdown-convert',
   aliases: ['convert-markdown', 'md-convert'],
@@ -307,7 +304,7 @@ export const markdownConvertCommand: Command = {
       };
     }
 
-    // Check if node is a heading
+    
     if (node.markdownMeta?.type !== 'heading') {
       return {
         success: false,

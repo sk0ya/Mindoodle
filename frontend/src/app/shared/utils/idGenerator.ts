@@ -38,18 +38,14 @@ export const generateErrorId = () => generateId('error');
 export const generateWorkspaceId = () => generateId('workspace');
 export const generateUrlId = () => generateId('url');
 
-/**
- * Generate file ID with filename context
- */
+
 export function generateFileIdWithName(_filename: string): string {
   const timestamp = Date.now();
   const random = Math.random().toString(36).slice(2);
   return `file_${timestamp}_${random}`;
 }
 
-/**
- * Generate timestamped filename
- */
+
 export function generateTimestampedFilename(base: string, ext: string = ''): string {
   return `${base}-${Date.now()}${ext}`;
 }

@@ -8,7 +8,7 @@ import type { UIState, UIActions } from '@shared/types';
 
 export interface UISlice extends UIActions {
   ui: UIState;
-  // Search highlighting actions
+  
   setSearchQuery: (query: string) => void;
   setSearchHighlightedNodes: (nodeIds: Set<string>) => void;
   clearSearchHighlight: () => void;
@@ -20,7 +20,7 @@ export const createUISlice: StateCreator<
   [],
   UISlice
 > = (set) => ({
-  // Initial UI state
+  
   ui: {
     mode: 'normal' as UIMode,
     zoom: 1,
@@ -56,7 +56,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Zoom and Pan Actions
+  
   setZoom: (zoom: number) => {
     set((state) => {
       state.ui.zoom = Math.max(0.1, Math.min(3, zoom));
@@ -76,7 +76,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Panel Management Actions
+  
 
   setShowContextMenu: (show: boolean) => {
     set((state) => {
@@ -145,7 +145,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Vim Settings Panel
+  
   setShowVimSettingsPanel: (show: boolean) => {
     set((state) => {
       (state.ui as any).showVimSettingsPanel = show;
@@ -176,7 +176,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Overlay dimension setters
+  
   setMarkdownPanelWidth: (width: number) => {
     set((state) => {
       state.ui.markdownPanelWidth = Math.max(0, Math.floor(width));
@@ -189,9 +189,9 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Outline view removed; related actions deleted
+  
 
-  // File and Image Management Actions
+  
 
   setFileMenuPosition: (position: Position) => {
     set((state) => {
@@ -211,7 +211,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Other UI State Actions
+  
   setClipboard: (node: MindMapNode | null) => {
     set((state) => {
       state.ui.clipboard = node;
@@ -237,7 +237,7 @@ export const createUISlice: StateCreator<
     });
   },
 
-  // Search highlighting actions
+  
   setSearchQuery: (query: string) => {
     set((state) => {
       state.ui.searchQuery = query;
@@ -291,7 +291,7 @@ export const createUISlice: StateCreator<
       const opts = id === 'contextMenu' ? { exclusiveWith: ['linkList'] as PanelId[] } : {};
       state.ui.openPanels = panelManager.applyOpen(state.ui.openPanels, id, opts);
 
-      // Reflect to legacy booleans for compatibility
+      
       switch (id) {
         case 'contextMenu': state.ui.showContextMenu = panelManager.isOpen(state.ui.openPanels, id); break;
         case 'shortcutHelper': state.ui.showShortcutHelper = true; break;
@@ -303,7 +303,7 @@ export const createUISlice: StateCreator<
         case 'vimSettings': (state.ui as any).showVimSettingsPanel = true; break;
         case 'imageModal': state.ui.showImageModal = true; break;
         case 'fileActionMenu': state.ui.showFileActionMenu = true; break;
-        case 'linkList': /* nodeId 管理は別API */ break;
+        case 'linkList':  break;
       }
     });
   },

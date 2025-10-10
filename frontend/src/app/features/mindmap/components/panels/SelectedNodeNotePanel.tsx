@@ -26,7 +26,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
   const [rightOffset, setRightOffset] = useState<number>(0);
   const { setNodeNotePanelHeight } = useMindMapStore();
 
-  // Restore saved height
+  
   useEffect(() => {
     try {
       const res = getLocalStorage<number>(HEIGHT_KEY);
@@ -38,7 +38,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     } catch {}
   }, []);
 
-  // Resize handler (drag from top edge)
+  
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -61,26 +61,26 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       document.removeEventListener('mouseup', onUp, true);
       try { setLocalStorage(HEIGHT_KEY, height); } catch {}
 
-      // force editor layout pass after resize settles
+      
       setTimeout(() => {
         setHeight(h => h + 0);
         try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
       }, 50);
     };
 
-    // Use capture phase to ensure events are caught even if other elements try to stop propagation
+    
     document.addEventListener('mousemove', onMove, true);
     document.addEventListener('mouseup', onUp, true);
   }, [height, startResizing, stopResizing]);
 
-  // Compute dynamic offsets to avoid overlapping activity bar, primary sidebar, and markdown panel
+  
   useEffect(() => {
     const calcOffsets = () => {
       try {
         const act = document.querySelector<HTMLElement>('.activity-bar');
         const leftA = act?.offsetWidth || 0;
         const side = document.querySelector<HTMLElement>('.primary-sidebar');
-        // Primary sidebar might be hidden; count width only if visible in layout
+        
         const style = side ? window.getComputedStyle(side) : null;
         const isSideVisible = !!side && style?.display !== 'none' && style?.visibility !== 'hidden';
         const leftB = isSideVisible ? (side.offsetWidth || 0) : 0;
@@ -93,13 +93,13 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       } catch {}
     };
 
-    // Initial
+    
     calcOffsets();
     setNodeNotePanelHeight?.(height);
     try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
     
 
-    // Observe size changes for the relevant panels
+    
     const observers: any[] = [];
     const observeEl = (sel: string) => {
       const el = document.querySelector<HTMLElement>(sel);
@@ -113,7 +113,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     observeEl('.primary-sidebar');
     observeEl('.markdown-panel');
 
-    // Fallback: mutation observer to catch DOM add/remove of panels
+    
     const mo = new MutationObserver(() => calcOffsets());
     mo.observe(document.body, { childList: true, subtree: true });
 
@@ -123,9 +123,9 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     };
   }, []);
 
-  // Listen to window resize
+  
   const onWinResize = useCallback(() => {
-    // Trigger offset recalculation (access calcOffsets from previous effect)
+    
     try {
       const act = document.querySelector<HTMLElement>('.activity-bar');
       const leftA = act?.offsetWidth || 0;
@@ -140,20 +140,20 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
 
   useEventListener('resize', onWinResize);
 
-  // When internal height state changes (programmatic), store height then notify listeners
+  
   useEffect(() => {
     setNodeNotePanelHeight?.(height);
     try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
   }, [height]);
 
-  // Reset height in store on unmount
+  
   useEffect(() => () => { setNodeNotePanelHeight?.(0); }, []);
 
-  // Observe actual container size to keep store height in sync even if CSS/layout adjusts
+  
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-    // Set initial from DOM for safety (rAF to ensure styles applied)
+    
     const id = requestAnimationFrame(() => {
       try { const h = Math.round(el.getBoundingClientRect().height); setNodeNotePanelHeight?.(h); } catch {}
       try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
@@ -188,7 +188,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
     <div ref={containerRef} className="selected-node-note-panel" style={{ height, left: leftOffset, right: rightOffset }}>
       <div ref={handleRef} className={`drag-handle ${isResizing ? 'resizing' : ''}`} onMouseDown={handleResizeStart} />
 
-      {/* Panel Header */}
+      {}
       <div className="panel-header">
         <div className="panel-title">
           <StickyNote size={14} />

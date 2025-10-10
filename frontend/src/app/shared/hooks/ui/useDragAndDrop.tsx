@@ -44,8 +44,8 @@ export const useDragAndDrop = ({
 
   const handleDragStart = useCallback((e: React.DragEvent, map: MindMapData) => {
     setDraggedMap(map);
-    setDraggedFolder(null); // フォルダドラッグをクリア
-    // Allow copy/link drops on targets
+    setDraggedFolder(null); 
+    
     e.dataTransfer.effectAllowed = 'copyLink';
     e.dataTransfer.setData('text/map-id', map.mapIdentifier.mapId);
     e.dataTransfer.setData('text/map-title', map.title || '');
@@ -68,7 +68,7 @@ export const useDragAndDrop = ({
     e.preventDefault();
     logger.debug('Drop event triggered', { category, draggedMap: draggedMap?.title, draggedFolder });
     
-    // マップのドロップ処理
+    
     if (draggedMap && draggedMap.category !== category) {
       logger.debug('Moving map from', draggedMap.category, 'to', category);
       onChangeCategory({ mapId: draggedMap.mapIdentifier.mapId, workspaceId: draggedMap.mapIdentifier.workspaceId }, category);
@@ -79,7 +79,7 @@ export const useDragAndDrop = ({
 
   const handleFolderDragStart = useCallback((e: React.DragEvent, folderPath: string) => {
     setDraggedFolder(folderPath);
-    setDraggedMap(null); // マップドラッグをクリア
+    setDraggedMap(null); 
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/folder-path', folderPath);
     logger.debug('Folder drag started:', folderPath);
@@ -91,7 +91,7 @@ export const useDragAndDrop = ({
     
     logger.debug('Folder drop event triggered', { targetFolderPath, draggedFolder, draggedMap: draggedMap?.title });
 
-    // マップをフォルダにドロップする場合
+    
     if (draggedMap && draggedMap.category !== targetFolderPath) {
       logger.debug('Moving map from', draggedMap.category, 'to folder', targetFolderPath);
       onChangeCategory({ mapId: draggedMap.mapIdentifier.mapId, workspaceId: draggedMap.mapIdentifier.workspaceId }, targetFolderPath);
@@ -99,26 +99,26 @@ export const useDragAndDrop = ({
       return;
     }
 
-    // フォルダをフォルダにドロップする場合
+    
     if (!draggedFolder || draggedFolder === targetFolderPath) {
       clearDragState();
       return;
     }
 
-    // 循環参照をチェック（親フォルダを子フォルダに移動しようとする場合）
+    
     if (targetFolderPath.startsWith(draggedFolder + '/')) {
       alert('フォルダを自分の子フォルダに移動することはできません。');
       clearDragState();
       return;
     }
 
-    // フォルダのリネーム（移動）
+    
     const draggedFolderName = draggedFolder.split('/').pop();
     const newFolderPath = targetFolderPath + '/' + draggedFolderName;
 
     logger.info('Moving folder from', draggedFolder, 'to', newFolderPath);
 
-    // そのフォルダ内のすべてのマップのカテゴリを更新
+    
     const mapsToUpdate = mindMaps.filter(map => 
       map.category === draggedFolder || (map.category && map.category.startsWith(draggedFolder + '/'))
     );
@@ -126,7 +126,7 @@ export const useDragAndDrop = ({
     logger.debug('Maps to update:', mapsToUpdate.length, 'maps');
     logger.debug('Drag operation:', { draggedFolder, newFolderPath });
 
-    // 一括更新を使用
+    
     if (onChangeCategoryBulk && mapsToUpdate.length > 0) {
       const mapUpdates = mapsToUpdate.map(map => ({
         id: map.mapIdentifier.mapId,
@@ -136,7 +136,7 @@ export const useDragAndDrop = ({
       logger.info('Bulk updating', mapUpdates.length, 'maps');
       await onChangeCategoryBulk(mapUpdates);
     } else {
-      // フォールバック: 個別更新
+      
       logger.warn('Bulk update not available, using individual updates');
       mapsToUpdate.forEach(map => {
         const updatedCategory = map.category?.replace(draggedFolder, newFolderPath);
@@ -147,7 +147,7 @@ export const useDragAndDrop = ({
       });
     }
 
-    // 空フォルダの場合もパス更新
+    
     setEmptyFolders(prev => {
       const newSet = new Set<string>();
       Array.from(prev).forEach(folder => {
@@ -162,7 +162,7 @@ export const useDragAndDrop = ({
       return newSet;
     });
 
-    // 新しい場所のフォルダを展開
+    
     setCollapsedCategories(prev => {
       const newSet = new Set(prev);
       newSet.delete(targetFolderPath);
@@ -179,7 +179,7 @@ export const useDragAndDrop = ({
     
     logger.debug('Root drop event triggered', { draggedFolder, draggedMap: draggedMap?.title });
 
-    // マップをルートレベルに移動
+    
     if (draggedMap && draggedMap.category !== '') {
       logger.debug('Moving map to root level');
       onChangeCategory({ mapId: draggedMap.mapIdentifier.mapId, workspaceId: draggedMap.mapIdentifier.workspaceId }, '');
@@ -208,7 +208,7 @@ export const useDragAndDrop = ({
       logger.debug('Root drop - Maps to update:', mapsToUpdate.length, 'maps');
       logger.debug('Root drop operation:', { draggedFolder, draggedFolderName });
 
-      // 一括更新を使用
+      
       if (onChangeCategoryBulk && mapsToUpdate.length > 0) {
         const mapUpdates = mapsToUpdate.map(map => ({
           id: map.mapIdentifier.mapId,
@@ -218,7 +218,7 @@ export const useDragAndDrop = ({
         logger.info('Root drop - Bulk updating', mapUpdates.length, 'maps');
         await onChangeCategoryBulk(mapUpdates);
       } else {
-        // フォールバック: 個別更新
+        
         logger.warn('Root drop - Bulk update not available, using individual updates');
         mapsToUpdate.forEach(map => {
           const updatedCategory = map.category?.replace(draggedFolder, draggedFolderName);
@@ -229,7 +229,7 @@ export const useDragAndDrop = ({
         });
       }
 
-      // 空フォルダの場合もパス更新
+      
       setEmptyFolders(prev => {
         const newSet = new Set<string>();
         Array.from(prev).forEach(folder => {
@@ -244,7 +244,7 @@ export const useDragAndDrop = ({
         return newSet;
       });
 
-      // 新しいルートフォルダを展開状態にする
+      
       setCollapsedCategories(prev => {
         const newSet = new Set(prev);
         newSet.delete(draggedFolderName);

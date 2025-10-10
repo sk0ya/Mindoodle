@@ -13,19 +13,7 @@ import {
   resolveWorkspaceId
 } from '@shared/utils/pathOperations';
 
-/**
- * Unified Sidebar Hook - Phase 4.1 Consolidation
- *
- * Integrates all sidebar-related functionality into a single cohesive hook:
- * - Map operations (create, rename, delete)
- * - Folder operations (create, rename, delete, collapse)
- * - Filtering and search
- * - Explorer tree management
- * - Context menu handling
- *
- * This consolidation reduces hook proliferation and improves maintainability
- * by providing a single source of truth for sidebar state and operations.
- */
+
 
 interface UseSidebarOptions {
   mindMaps: MindMapData[];
@@ -56,18 +44,18 @@ export const useSidebar = ({
   onCreateFolder,
   explorerTree
 }: UseSidebarOptions) => {
-  // ========================================
-  // Folder Operations State
-  // ========================================
+  
+  
+  
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   const [collapsedCategories, setCollapsedCategories] = useState(new Set<string>());
 
-  // Clear emptyFolders when workspace changes
+  
   useEffect(() => {
     setEmptyFolders(new Set());
   }, [currentWorkspaceId]);
 
-  // Extract category helper (removes workspace ID prefix)
+  
   const extractCategory = useStableCallback((fullPath: string | null): string | undefined => {
     if (!fullPath) return undefined;
     const { relativePath } = parseWorkspacePath(fullPath);
@@ -123,12 +111,12 @@ export const useSidebar = ({
     const totalMaps = mapsInFolder.length + mapsInSubfolders.length;
 
     if (totalMaps > 0) {
-      // eslint-disable-next-line no-alert
+      
       alert(`「${folderPath}」またはその子フォルダにマップが含まれているため削除できません。先にマップを移動または削除してください。`);
       return;
     }
 
-    // eslint-disable-next-line no-alert
+    
     if (window.confirm(`空のフォルダ「${folderPath}」を削除しますか？`)) {
       setEmptyFolders(prev => {
         const newSet = new Set(prev);
@@ -153,7 +141,7 @@ export const useSidebar = ({
 
   const handleRenameFolder = useStableCallback((oldPath: string) => {
     const currentName = getLastPathSegment(oldPath) || oldPath;
-    // eslint-disable-next-line no-alert
+    
     const newName = window.prompt(`フォルダ名を変更:`, currentName);
 
     if (newName && newName.trim() && newName.trim() !== currentName) {
@@ -204,9 +192,9 @@ export const useSidebar = ({
     }
   });
 
-  // ========================================
-  // Map Operations State
-  // ========================================
+  
+  
+  
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
@@ -243,9 +231,9 @@ export const useSidebar = ({
     }
   });
 
-  // ========================================
-  // Filtering and Search State
-  // ========================================
+  
+  
+  
   const [searchTerm, setSearchTerm] = useState('');
 
   const { filteredMaps, groupedMaps, visibleFolders } = useMemo(() => {
@@ -333,9 +321,9 @@ export const useSidebar = ({
     };
   }, [mindMaps, searchTerm, emptyFolders, currentWorkspaceId, extractCategory]);
 
-  // ========================================
-  // Explorer Tree State
-  // ========================================
+  
+  
+  
   const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
 
   const enhancedExplorerTree = useMemo(() => {
@@ -382,9 +370,9 @@ export const useSidebar = ({
     return clonedTree;
   }, [explorerTree, emptyFolders, currentWorkspaceId]);
 
-  // ========================================
-  // Context Menu State and Logic
-  // ========================================
+  
+  
+  
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     isVisible: false,
     position: { x: 0, y: 0 },
@@ -619,11 +607,11 @@ export const useSidebar = ({
     extractCategory
   ]);
 
-  // ========================================
-  // Return consolidated API
-  // ========================================
+  
+  
+  
   return {
-    // Folder operations
+    
     emptyFolders,
     setEmptyFolders,
     collapsedCategories,
@@ -633,7 +621,7 @@ export const useSidebar = ({
     handleDeleteFolder,
     handleRenameFolder,
 
-    // Map operations
+    
     editingMapId,
     editingTitle,
     setEditingTitle,
@@ -641,19 +629,19 @@ export const useSidebar = ({
     handleCancelRename,
     handleCreateMap,
 
-    // Filtering
+    
     searchTerm,
     setSearchTerm,
     filteredMaps,
     groupedMaps,
     visibleFolders,
 
-    // Explorer tree
+    
     enhancedExplorerTree,
     explorerCollapsed,
     setExplorerCollapsed,
 
-    // Context menu
+    
     contextMenu,
     contextMenuItems,
     setContextMenu,

@@ -5,9 +5,7 @@ export interface InitializationWaiterOptions {
   interval?: number;
 }
 
-/**
- * 初期化待機処理を抽象化したhook
- */
+
 export const useInitializationWaiter = () => {
   const waitForInitialization = useCallback(
     async (

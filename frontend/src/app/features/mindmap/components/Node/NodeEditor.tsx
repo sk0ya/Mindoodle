@@ -20,10 +20,10 @@ interface NodeEditorProps {
   onToggleLinkList?: (nodeId: string) => void;
   onLinkNavigate?: (link: any) => void;
   onStartEdit?: (nodeId: string) => void;
-  onMouseDown?: (e: React.MouseEvent) => void; // allow drag start from text
-  onDragOver?: (e: React.DragEvent) => void; // drag over text area
-  onDrop?: (e: React.DragEvent) => void; // drop on text area
-  onRightClick?: (e: React.MouseEvent) => void; // context menu from text
+  onMouseDown?: (e: React.MouseEvent) => void; 
+  onDragOver?: (e: React.DragEvent) => void; 
+  onDrop?: (e: React.DragEvent) => void; 
+  onRightClick?: (e: React.MouseEvent) => void; 
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -48,40 +48,40 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const { ui, settings, clearMermaidRelatedCaches } = useMindMapStore();
 
-  // Table nodes render their own content; no text editor overlay
+  
   if (node.kind === 'table') {
     return null;
   }
 
-  // リンククリック時の処理
+  
   const handleLinkClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
 
-    // ノードが選択されていない場合は選択してからリンク一覧を表示
+    
     if (!isSelected && onSelectNode) {
       onSelectNode(node.id);
     }
 
-    // リンク一覧をトグル（選択状態に関わらず）
+    
     if (onToggleLinkList) {
       onToggleLinkList(node.id);
     }
   }, [isSelected, onSelectNode, onToggleLinkList, node.id]);
 
-  // マークダウンリンクパターンを検出する関数
+  
   const isMarkdownLink = (text: string): boolean => {
     const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
     return markdownLinkPattern.test(text);
   };
 
-  // URLパターンを検出する関数
+  
   const isUrl = (text: string): boolean => {
     const urlPattern = /^https?:\/\/[^\s]+$/;
     return urlPattern.test(text);
   };
 
-  // Extract mermaid code blocks and clear cache for changed blocks
+  
   const clearMermaidCacheOnChange = useCallback((oldText: string, newText: string) => {
     const extractMermaidBlocks = (text: string): string[] => {
       const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
@@ -96,7 +96,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     const oldMermaidBlocks = extractMermaidBlocks(oldText);
     const newMermaidBlocks = extractMermaidBlocks(newText);
 
-    // If any mermaid blocks have changed, clear all mermaid-related caches for comprehensive update
+    
     const hasChanges = oldMermaidBlocks.length !== newMermaidBlocks.length ||
       oldMermaidBlocks.some(oldBlock => !newMermaidBlocks.includes(oldBlock)) ||
       newMermaidBlocks.some(newBlock => !oldMermaidBlocks.includes(newBlock));
@@ -106,7 +106,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   }, [clearMermaidRelatedCaches]);
 
-  // Monitor note changes and clear mermaid cache when needed
+  
   const previousNoteRef = useRef<string>((node as any)?.note || '');
   useEffect(() => {
     const currentNote = (node as any)?.note || '';
@@ -139,14 +139,14 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           // 編集モードに応じてカーソル位置を制御
           const editingMode = useMindMapStore.getState().editingMode;
           if (editingMode === 'cursor-at-end') {
-            // カーソルを末尾に配置
+            
             const length = inputRef.current.value.length;
             inputRef.current.setSelectionRange(length, length);
           } else if (editingMode === 'cursor-at-start') {
-            // カーソルを先頭に配置
+            
             inputRef.current.setSelectionRange(0, 0);
           } else {
-            // デフォルト: 全選択
+            
             inputRef.current.select();
           }
         }
@@ -155,41 +155,41 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }, [isEditing, node.id]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    // 編集中の入力フィールドでは、Escapeのみ処理（他はuseKeyboardShortcutsに委任）
+    
     if (e.key === 'Escape') {
       e.preventDefault();
       if (blurTimeoutRef.current) {
         clearTimeout(blurTimeoutRef.current);
         blurTimeoutRef.current = null;
       }
-      // Clear mermaid cache if text has changed
+      
       clearMermaidCacheOnChange(node.text, editText);
-      // Use the latest input value, not stale node.text
+      
       onFinishEdit(node.id, editText);
     }
-    // Tab/EnterはuseKeyboardShortcutsで統一処理
+    
   }, [node.id, node.text, editText, onFinishEdit, blurTimeoutRef, clearMermaidCacheOnChange]);
 
   const handleInputBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
-    // 既存のタイマーをクリア
+    
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
       blurTimeoutRef.current = null;
     }
 
-    // 最新の入力値を取得
+    
     const currentValue = e.target ? e.target.value : editText;
 
-    // Clear mermaid cache if text has changed
+    
     clearMermaidCacheOnChange(node.text, currentValue);
 
-    // 編集完了処理を実行（余計なフォーカス判定は行わない）
+    
     onFinishEdit(node.id, currentValue);
   }, [node.id, node.text, editText, onFinishEdit, blurTimeoutRef, clearMermaidCacheOnChange]);
 
-  // inputフィールドのマウスダウン・クリックイベント処理
+  
   const handleInputMouseEvents = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
-    // イベントの上位への伝播を停止（Nodeのクリックイベントを防ぐ）
+    
     e.stopPropagation();
   }, []);
 
@@ -465,10 +465,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           {lines.map((line, lineIndex) => (
             <tspan
               key={`line-${lineIndex}`}
-              // ▼ 各行の中心 x をずらして、左端を最長行の左端にそろえる
+              
               x={(() => {
                 const lw = getLineWidth(line);
-                return textX - (maxLineWidth - lw) / 2; // centerXForThisLine
+                return textX - (maxLineWidth - lw) / 2; 
               })()}
               dy={lineIndex === 0 ? firstLineDy : lineHeight}
             >
@@ -536,7 +536,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     );
   }
 
-  // 編集時も画像がある場合はテキストを下部に配置
+  
   const noteStr2: string = (node as any)?.note || '';
   const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
   const noteHasMermaid2 = !!noteStr2 && /```mermaid[\s\S]*?```/i.test(noteStr2);
@@ -597,7 +597,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           height: '100%',
           border: '1px solid #ccc',
           background: settings.theme === 'dark' ? 'var(--bg-primary)' : 'white',
-          // 左端でのグリフの切れ防止のため左寄せ + 余白を少し広くする
+          
           textAlign: 'left',
           fontSize: settings.fontSize || node.fontSize || '14px',
           fontWeight: node.fontWeight || 'normal',
@@ -614,7 +614,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   );
 };
 
-// リンク判定関数をexport
+
 export const isMarkdownLink = (text: string): boolean => {
   const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
   return markdownLinkPattern.test(text);

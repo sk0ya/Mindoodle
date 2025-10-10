@@ -1,12 +1,9 @@
-/**
- * MindMapModalsのためのコンテキスト
- * 巨大なpropsを整理してコンポーネント間の通信を簡素化
- */
+
 
 import React, { createContext, useContext, ReactNode } from 'react';
 import type { MindMapNode} from '../../../../shared';
 
-// UI状態の型定義
+
 export interface MindMapUIState {
   showContextMenu: boolean;
   showImageModal: boolean;
@@ -16,17 +13,17 @@ export interface MindMapUIState {
   clipboard: MindMapNode | null;
 }
 
-// ノード操作関数の型定義
+
 export interface NodeOperations {
   findNode: (nodeId: string) => MindMapNode | null;
   onDeleteNode: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onCopyNode: (node: MindMapNode) => void;
   onPasteNode: (parentId: string) => void;
-  onAddChild: (parentId: string, text?: string) => string | undefined; // 新しい子ノードのIDを返す（失敗時undefined）
+  onAddChild: (parentId: string, text?: string) => string | undefined; 
 }
 
-// UI操作関数の型定義
+
 export interface UIOperations {
   onCloseContextMenu: () => void;
   onCloseImageModal: () => void;
@@ -34,7 +31,7 @@ export interface UIOperations {
   onShowImageModal: (imageUrl: string, altText?: string) => void;
 }
 
-// コンテキストの値の型
+
 export interface MindMapModalsContextValue {
   ui: MindMapUIState;
   selectedNodeId: string | null;
@@ -42,10 +39,10 @@ export interface MindMapModalsContextValue {
   uiOperations: UIOperations;
 }
 
-// コンテキスト作成
+
 const MindMapModalsContext = createContext<MindMapModalsContextValue | null>(null);
 
-// プロバイダーのProps型
+
 export interface MindMapModalsProviderProps {
   children: ReactNode;
   ui: MindMapUIState;
@@ -54,9 +51,7 @@ export interface MindMapModalsProviderProps {
   uiOperations: UIOperations;
 }
 
-/**
- * MindMapModalsProvider コンポーネント
- */
+
 export const MindMapModalsProvider: React.FC<MindMapModalsProviderProps> = ({
   children,
   ui,
@@ -78,9 +73,7 @@ export const MindMapModalsProvider: React.FC<MindMapModalsProviderProps> = ({
   );
 };
 
-/**
- * コンテキストを使用するカスタムフック
- */
+
 export const useMindMapModals = (): MindMapModalsContextValue => {
   const context = useContext(MindMapModalsContext);
   if (!context) {
@@ -89,9 +82,7 @@ export const useMindMapModals = (): MindMapModalsContextValue => {
   return context;
 };
 
-/**
- * 個別のフック（特定の操作だけ必要な場合）
- */
+
 export const useNodeOperations = (): NodeOperations => {
   const { nodeOperations } = useMindMapModals();
   return nodeOperations;

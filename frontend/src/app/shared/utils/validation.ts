@@ -1,9 +1,7 @@
 import type { MindMapData } from '../types';
 import { isMindMapNode, validateMindMapNode } from '@mindmap/utils/nodeOperations';
 
-/**
- * 型ガード関数 - ランタイム型チェック
- */
+
 export const isMindMapData = (data: unknown): data is MindMapData => {
   if (!data || typeof data !== 'object') return false;
 
@@ -18,17 +16,13 @@ export const isMindMapData = (data: unknown): data is MindMapData => {
   );
 };
 
-/**
- * データバリデーション結果型
- */
+
 export interface DataValidationResult {
   isValid: boolean;
   errors: string[];
 }
 
-/**
- * MindMapDataの詳細バリデーション
- */
+
 export const validateMindMapData = (data: unknown): DataValidationResult => {
   const errors: string[] = [];
 
@@ -39,7 +33,7 @@ export const validateMindMapData = (data: unknown): DataValidationResult => {
 
   const obj = data as Record<string, unknown>;
 
-  // 必須フィールドのチェック
+  
   if (!obj.id || typeof obj.id !== 'string') {
     errors.push('Missing or invalid id field');
   }
@@ -57,7 +51,7 @@ export const validateMindMapData = (data: unknown): DataValidationResult => {
     }
   }
 
-  // オプショナルフィールドのチェック
+  
   if (obj.createdAt && typeof obj.createdAt !== 'string') {
     errors.push('Invalid createdAt field');
   }
@@ -72,17 +66,13 @@ export const validateMindMapData = (data: unknown): DataValidationResult => {
   };
 };
 
-/**
- * ファイル拡張子バリデーション
- */
+
 export const isValidFileExtension = (filename: string, allowedExtensions: string[]): boolean => {
   const extension = filename.toLowerCase().split('.').pop();
   return extension ? allowedExtensions.includes(extension) : false;
 };
 
-/**
- * URL バリデーション
- */
+
 export const isValidUrl = (url: string): boolean => {
   try {
     new URL(url);
@@ -92,11 +82,9 @@ export const isValidUrl = (url: string): boolean => {
   }
 };
 
-/**
- * 文字列の安全性チェック（XSS対策）
- */
+
 export const isSafeString = (str: string): boolean => {
-  // スクリプトタグや危険なパターンをチェック
+  
   const dangerousPatterns = [
     /<script/i,
     /javascript:/i,

@@ -1,7 +1,4 @@
-/**
- * Base drag handler providing common drag functionality
- * Abstract class to be extended by specific drag handlers
- */
+
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getClientCoordinates, calculateDistance } from '../utils/canvasCoordinateUtils';
@@ -26,9 +23,7 @@ export interface DragCallbacks<T> {
   onDragCancel?: (item: T) => void;
 }
 
-/**
- * Custom hook for drag handling with common functionality
- */
+
 export const useDragHandler = <T = any>(
   config: BaseDragConfig = { dragThreshold: 5, enableDrag: true },
   callbacks: DragCallbacks<T> = {}
@@ -46,7 +41,7 @@ export const useDragHandler = <T = any>(
 
   const { onDragStart, onDragMove, onDragEnd, onDragCancel } = callbacks;
 
-  // Handle mouse/touch down
+  
   const handleStart = useCallback((
     e: React.MouseEvent | React.TouchEvent,
     item: T,
@@ -69,13 +64,13 @@ export const useDragHandler = <T = any>(
     });
   }, [config.enableDrag]);
 
-  // Handle mouse/touch move
+  
   const handleMove = useCallback((e: MouseEvent | TouchEvent) => {
     if (!mouseDownPosRef.current || !dragState.draggedItem) return;
 
     const { clientX, clientY } = getClientCoordinates(e);
 
-    // Check if drag threshold is exceeded
+    
     if (!dragStartedRef.current) {
       const distance = calculateDistance(
         mouseDownPosRef.current.x,
@@ -93,7 +88,7 @@ export const useDragHandler = <T = any>(
         }
       }
     } else {
-      // Update drag position
+      
       setDragState(prev => ({
         ...prev,
         currentPosition: { x: clientX, y: clientY }
@@ -105,7 +100,7 @@ export const useDragHandler = <T = any>(
     }
   }, [dragState.draggedItem, config.dragThreshold, onDragStart, onDragMove]);
 
-  // Handle mouse/touch end
+  
   const handleEnd = useCallback((e: MouseEvent | TouchEvent) => {
     if (!dragState.draggedItem) return;
 
@@ -115,7 +110,7 @@ export const useDragHandler = <T = any>(
       onDragEnd(dragState.draggedItem, { x: clientX, y: clientY });
     }
 
-    // Reset state
+    
     mouseDownPosRef.current = null;
     dragStartedRef.current = false;
     setDragState({
@@ -127,7 +122,7 @@ export const useDragHandler = <T = any>(
     });
   }, [dragState.draggedItem, onDragEnd]);
 
-  // Cancel drag operation
+  
   const cancelDrag = useCallback(() => {
     if (dragState.draggedItem && onDragCancel) {
       onDragCancel(dragState.draggedItem);
@@ -144,7 +139,7 @@ export const useDragHandler = <T = any>(
     });
   }, [dragState.draggedItem, onDragCancel]);
 
-  // Setup global event listeners
+  
   useEffect(() => {
     if (dragState.draggedItem) {
       document.addEventListener('mousemove', handleMove);

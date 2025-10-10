@@ -37,14 +37,12 @@ interface ClipboardData {
   indices?: number[];
 }
 
-/**
- * Parse markdown table to structured data
- */
+
 function parseMarkdownTable(markdown: string): TableData | null {
   const lines = markdown.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return null;
 
-  // Parse headers (first line)
+  
   const headerLine = lines[0].trim();
   const headers = headerLine
     .split('|')
@@ -54,8 +52,8 @@ function parseMarkdownTable(markdown: string): TableData | null {
 
   if (headers.length === 0) return null;
 
-  // Skip separator line (second line)
-  // Parse data rows (remaining lines)
+  
+  
   const rows: TableCell[][] = [];
   for (let i = 2; i < lines.length; i++) {
     const line = lines[i].trim();
@@ -136,7 +134,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setSelection({ type: 'none' });
   }, [isOpen, initialMarkdown]);
 
-  // Close context menu on click outside
+  
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (contextMenu && contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
@@ -314,14 +312,14 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setContextMenu(null);
 
     if (e.shiftKey && selection.type === 'rows' && selection.indices.length > 0) {
-      // Shift+クリック: 範囲選択
+      
       const lastIndex = selection.indices[selection.indices.length - 1];
       const start = Math.min(lastIndex, rowIndex);
       const end = Math.max(lastIndex, rowIndex);
       const newIndices = Array.from({ length: end - start + 1 }, (_, i) => start + i);
       setSelection({ type: 'rows', indices: newIndices });
     } else if (e.ctrlKey || e.metaKey) {
-      // Ctrl/Cmd+クリック: 追加選択
+      
       if (selection.type === 'rows') {
         const newIndices = selection.indices.includes(rowIndex)
           ? selection.indices.filter(i => i !== rowIndex)
@@ -331,7 +329,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
         setSelection({ type: 'rows', indices: [rowIndex] });
       }
     } else {
-      // 通常クリック
+      
       setSelection({ type: 'rows', indices: [rowIndex] });
       setEditingCell(null);
     }
@@ -340,7 +338,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const handleRowHeaderContextMenu = (rowIndex: number, e: React.MouseEvent) => {
     e.preventDefault();
 
-    // 右クリックされた行が選択されていない場合は、その行を選択
+    
     if (selection.type !== 'rows' || !selection.indices.includes(rowIndex)) {
       setSelection({ type: 'rows', indices: [rowIndex] });
     }
@@ -358,14 +356,14 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setContextMenu(null);
 
     if (e.shiftKey && selection.type === 'columns' && selection.indices.length > 0) {
-      // Shift+クリック: 範囲選択
+      
       const lastIndex = selection.indices[selection.indices.length - 1];
       const start = Math.min(lastIndex, colIndex);
       const end = Math.max(lastIndex, colIndex);
       const newIndices = Array.from({ length: end - start + 1 }, (_, i) => start + i);
       setSelection({ type: 'columns', indices: newIndices });
     } else if (e.ctrlKey || e.metaKey) {
-      // Ctrl/Cmd+クリック: 追加選択
+      
       if (selection.type === 'columns') {
         const newIndices = selection.indices.includes(colIndex)
           ? selection.indices.filter(i => i !== colIndex)
@@ -375,10 +373,10 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
         setSelection({ type: 'columns', indices: [colIndex] });
       }
     } else if (selection.type === 'columns' && selection.indices.length === 1 && selection.indices[0] === colIndex) {
-      // 既に選択されている列をクリック → 編集モードに入る
+      
       setEditingCell({ row: -1, col: colIndex });
     } else {
-      // 新しい列を選択
+      
       setSelection({ type: 'columns', indices: [colIndex] });
       setEditingCell(null);
     }
@@ -387,7 +385,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const handleColumnHeaderContextMenu = (colIndex: number, e: React.MouseEvent) => {
     e.preventDefault();
 
-    // 右クリックされた列が選択されていない場合は、その列を選択
+    
     if (selection.type !== 'columns' || !selection.indices.includes(colIndex)) {
       setSelection({ type: 'columns', indices: [colIndex] });
     }
@@ -401,12 +399,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   };
 
   const handleCellMouseDown = (rowIndex: number, cellIndex: number) => {
-    // 編集モード中のセルをクリック → 何もしない
+    
     if (editingCell?.row === rowIndex && editingCell?.col === cellIndex) {
       return;
     }
 
-    // ドラッグ開始
+    
     setIsDragging(true);
     setDragStart({ row: rowIndex, col: cellIndex });
     setSelection({ type: 'cell', row: rowIndex, col: cellIndex });
@@ -416,7 +414,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const handleCellMouseEnter = (rowIndex: number, cellIndex: number) => {
     if (!isDragging || !dragStart) return;
 
-    // 範囲選択を更新
+    
     const startRow = Math.min(dragStart.row, rowIndex);
     const endRow = Math.max(dragStart.row, rowIndex);
     const startCol = Math.min(dragStart.col, cellIndex);
@@ -436,7 +434,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     e.dataTransfer.setData('text/plain', rowIndex.toString());
     setDragType('reorder');
 
-    // ドラッグ中の行が選択されていない場合は選択
+    
     if (selection.type !== 'rows' || !selection.indices.includes(rowIndex)) {
       setSelection({ type: 'rows', indices: [rowIndex] });
     }
@@ -456,29 +454,29 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
 
     const selectedIndices = [...selection.indices].sort((a, b) => a - b);
 
-    // 選択された行を移動
+    
     const newRows = [...tableData.rows];
     const movedRows = selectedIndices.map(idx => newRows[idx]);
 
-    // 元の位置から削除（逆順で削除して、インデックスのずれを防ぐ）
+    
     [...selectedIndices].reverse().forEach(idx => {
       newRows.splice(idx, 1);
     });
 
-    // 新しい位置を計算
+    
     let insertIndex = targetRowIndex;
     selectedIndices.forEach(idx => {
       if (idx < targetRowIndex) insertIndex--;
     });
 
-    // 新しい位置に挿入
+    
     newRows.splice(insertIndex, 0, ...movedRows);
 
     setTableData({ ...tableData, rows: newRows });
     setDragType(null);
     setDragOverIndex(null);
 
-    // 選択を更新
+    
     const newIndices = movedRows.map((_, i) => insertIndex + i);
     setSelection({ type: 'rows', indices: newIndices });
   };
@@ -488,7 +486,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     e.dataTransfer.setData('text/plain', colIndex.toString());
     setDragType('reorder');
 
-    // ドラッグ中の列が選択されていない場合は選択
+    
     if (selection.type !== 'columns' || !selection.indices.includes(colIndex)) {
       setSelection({ type: 'columns', indices: [colIndex] });
     }
@@ -508,25 +506,25 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
 
     const selectedIndices = [...selection.indices].sort((a, b) => a - b);
 
-    // 選択された列を移動
+    
     const newHeaders = [...tableData.headers];
     const movedHeaders = selectedIndices.map(idx => newHeaders[idx]);
 
-    // 元の位置から削除
+    
     [...selectedIndices].reverse().forEach(idx => {
       newHeaders.splice(idx, 1);
     });
 
-    // 新しい位置を計算
+    
     let insertIndex = targetColIndex;
     selectedIndices.forEach(idx => {
       if (idx < targetColIndex) insertIndex--;
     });
 
-    // 新しい位置に挿入
+    
     newHeaders.splice(insertIndex, 0, ...movedHeaders);
 
-    // 行のデータも同様に移動
+    
     const newRows = tableData.rows.map(row => {
       const newRow = [...row];
       const movedCells = selectedIndices.map(idx => newRow[idx]);
@@ -541,7 +539,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setDragType(null);
     setDragOverIndex(null);
 
-    // 選択を更新
+    
     const newIndices = movedHeaders.map((_, i) => insertIndex + i);
     setSelection({ type: 'columns', indices: newIndices });
   };
@@ -549,9 +547,9 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
-      // 単一セルの場合はダブルクリックで編集できるように
+      
       if (selection.type === 'cell') {
-        // 既に選択されているセルをクリックした場合は編集モードに
+        
         const isSameCell =
           dragStart &&
           selection.type === 'cell' &&
@@ -559,7 +557,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
           selection.col === dragStart.col;
 
         if (isSameCell) {
-          // 単一セル選択のまま（次のクリックで編集モードへ）
+          
         }
       }
       setDragStart(null);
@@ -572,12 +570,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   };
 
   const handleCellDoubleClick = (rowIndex: number, cellIndex: number) => {
-    // ダブルクリックで即座に編集モードへ
+    
     setEditingCell({ row: rowIndex, col: cellIndex });
     setSelection({ type: 'none' });
   };
 
-  // セルが選択範囲内かチェック
+  
   const isCellInSelection = (rowIndex: number, cellIndex: number): boolean => {
     if (selection.type === 'rows' && selection.indices.includes(rowIndex)) return true;
     if (selection.type === 'columns' && selection.indices.includes(cellIndex)) return true;
@@ -594,16 +592,16 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // 編集モード中はキーボードショートカットを無効化
+    
     if (editingCell) return;
 
-    // Stop propagation to prevent vim keybindings from being triggered
+    
     e.stopPropagation();
 
     const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
     const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 
-    // Delete: 選択を削除
+    
     if ((e.key === 'Delete' || e.key === 'Backspace') && !ctrlOrCmd) {
       e.preventDefault();
       if (selection.type === 'rows' || selection.type === 'columns') {
@@ -611,26 +609,26 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
       }
     }
 
-    // Ctrl/Cmd+C: コピー
+    
     if (e.key === 'c' && ctrlOrCmd && !e.shiftKey) {
       e.preventDefault();
       handleCopy();
     }
 
-    // Ctrl/Cmd+V: ペースト
+    
     if (e.key === 'v' && ctrlOrCmd && !e.shiftKey) {
       e.preventDefault();
       handlePaste();
     }
 
-    // Ctrl/Cmd+X: カット
+    
     if (e.key === 'x' && ctrlOrCmd && !e.shiftKey) {
       e.preventDefault();
       handleCopy();
       handleDeleteSelection();
     }
 
-    // Escape: 選択解除/コンテキストメニューを閉じる
+    
     if (e.key === 'Escape') {
       e.preventDefault();
       setSelection({ type: 'none' });

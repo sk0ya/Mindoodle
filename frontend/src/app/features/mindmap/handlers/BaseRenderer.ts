@@ -1,7 +1,4 @@
-/**
- * Base renderer utilities for common rendering patterns
- * Provides shared styling and animation utilities
- */
+
 
 import type { MindMapNode } from '@shared/types';
 
@@ -24,9 +21,7 @@ export interface AnimationConfig {
   transitionEasing: string;
 }
 
-/**
- * Get base node styles based on state and theme
- */
+
 export const getBaseNodeStyles = (
   state: RenderingState,
   _themeConfig: ThemeConfig,
@@ -38,7 +33,7 @@ export const getBaseNodeStyles = (
 ): React.CSSProperties => {
   const { isSelected, isDragging, isDragTarget, isLayoutTransitioning } = state;
 
-  // Base styling
+  
   const baseStyles: React.CSSProperties = {
     cursor: isDragging ? 'grabbing' : 'pointer',
     opacity: isDragging ? 0.8 : 1,
@@ -46,7 +41,7 @@ export const getBaseNodeStyles = (
     pointerEvents: 'auto'
   };
 
-  // Filter effects
+  
   if (isDragTarget) {
     baseStyles.filter = 'drop-shadow(0 8px 25px rgba(245, 158, 11, 0.4))';
   } else if (isDragging) {
@@ -57,7 +52,7 @@ export const getBaseNodeStyles = (
     baseStyles.filter = 'drop-shadow(0 2px 8px rgba(0,0,0,0.08))';
   }
 
-  // Transitions
+  
   if (animationConfig.enableTransitions && !isDragging && !isLayoutTransitioning) {
     baseStyles.transition = `all ${animationConfig.transitionDuration} ${animationConfig.transitionEasing}`;
   } else {
@@ -67,9 +62,7 @@ export const getBaseNodeStyles = (
   return baseStyles;
 };
 
-/**
- * Get selection border styles
- */
+
 export const getSelectionBorderStyles = (
   state: RenderingState,
   animationConfig: AnimationConfig = {
@@ -119,25 +112,19 @@ export const getSelectionBorderStyles = (
   };
 };
 
-/**
- * Get background fill color based on theme
- */
+
 export const getBackgroundFill = (themeConfig: ThemeConfig): string => {
   return themeConfig.theme === 'dark'
     ? 'rgba(45, 45, 48, 0.9)'
     : 'rgba(255, 255, 255, 0.9)';
 };
 
-/**
- * Get text color based on theme
- */
+
 export const getTextColor = (themeConfig: ThemeConfig): string => {
   return themeConfig.theme === 'dark' ? '#ffffff' : '#000000';
 };
 
-/**
- * Calculate node position with offset
- */
+
 export const getNodePosition = (
   node: MindMapNode,
   nodeWidth: number,
@@ -155,7 +142,7 @@ export const getNodePosition = (
       break;
     case 'left':
     default:
-      // Use node.x as is
+      
       break;
   }
 
@@ -165,9 +152,7 @@ export const getNodePosition = (
   };
 };
 
-/**
- * Generate CSS keyframes for animations
- */
+
 export const generateDropZoneAnimation = (): string => {
   return `
     @keyframes dragPulse {
@@ -196,9 +181,7 @@ export const generateDropZoneAnimation = (): string => {
   `;
 };
 
-/**
- * Common renderer configuration
- */
+
 export const DEFAULT_ANIMATION_CONFIG: AnimationConfig = {
   enableTransitions: false,
   transitionDuration: '0s',

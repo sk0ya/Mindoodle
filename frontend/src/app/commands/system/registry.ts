@@ -1,22 +1,15 @@
-/**
- * Command Registry
- * Manages registration, lookup, and organization of available commands
- */
+
 
 import type { Command, CommandRegistry, CommandContext, CommandResult } from './types';
 
-/**
- * Implementation of the command registry
- */
+
 export class CommandRegistryImpl implements CommandRegistry {
   private commands = new Map<string, Command>();
-  private aliases = new Map<string, string>(); // alias -> command name
+  private aliases = new Map<string, string>(); 
 
-  /**
-   * Register a new command
-   */
+  
   register(command: Command): void {
-    // Validate command
+    
     if (!command.name) {
       throw new Error('Command name is required');
     }
@@ -25,10 +18,10 @@ export class CommandRegistryImpl implements CommandRegistry {
       throw new Error(`Command '${command.name}' is already registered`);
     }
 
-    // Register main command
+    
     this.commands.set(command.name, command);
 
-    // Register aliases
+    
     if (command.aliases) {
       for (const alias of command.aliases) {
         if (this.aliases.has(alias) || this.commands.has(alias)) {
@@ -39,37 +32,33 @@ export class CommandRegistryImpl implements CommandRegistry {
     }
   }
 
-  /**
-   * Unregister a command
-   */
+  
   unregister(name: string): void {
     const command = this.commands.get(name);
     if (!command) {
-      return; // Command doesn't exist, nothing to do
+      return; 
     }
 
-    // Remove aliases
+    
     if (command.aliases) {
       for (const alias of command.aliases) {
         this.aliases.delete(alias);
       }
     }
 
-    // Remove main command
+    
     this.commands.delete(name);
   }
 
-  /**
-   * Get a command by name or alias
-   */
+  
   get(nameOrAlias: string): Command | undefined {
-    // Try direct lookup first
+    
     const command = this.commands.get(nameOrAlias);
     if (command) {
       return command;
     }
 
-    // Try alias lookup
+    
     const aliasTarget = this.aliases.get(nameOrAlias);
     if (aliasTarget) {
       return this.commands.get(aliasTarget);
@@ -78,24 +67,18 @@ export class CommandRegistryImpl implements CommandRegistry {
     return undefined;
   }
 
-  /**
-   * Get all registered commands
-   */
+  
   getAll(): Command[] {
     return Array.from(this.commands.values());
   }
 
-  /**
-   * Get commands by category
-   */
+  
   getByCategory(category: string): Command[] {
     return Array.from(this.commands.values())
       .filter(cmd => cmd.category === category);
   }
 
-  /**
-   * Search commands by name, alias, or description
-   */
+  
   search(query: string): Command[] {
     const lowerQuery = query.toLowerCase().trim();
     if (!lowerQuery) {
@@ -111,16 +94,13 @@ export class CommandRegistryImpl implements CommandRegistry {
       }
     }
 
-    // Sort by score (descending) and return commands
+    
     return results
       .sort((a, b) => b.score - a.score)
       .map(result => result.command);
   }
 
-  /**
-   * Execute a command by name or alias with optional guard check
-   */
-  async execute(nameOrAlias: string, context: CommandContext, args: Record<string, any> = {}): Promise<CommandResult> {
+    async execute(nameOrAlias: string, context: CommandContext, args: Record<string, any> = {}): Promise<CommandResult> {
     const command = this.get(nameOrAlias);
     if (!command) {
       return { success: false, error: `Command '${nameOrAlias}' not found` };
@@ -138,18 +118,14 @@ export class CommandRegistryImpl implements CommandRegistry {
     }
   }
 
-  /**
-   * Get all available command names and aliases
-   */
+  
   getAvailableNames(): string[] {
     const names = Array.from(this.commands.keys());
     const aliasNames = Array.from(this.aliases.keys());
     return [...names, ...aliasNames].sort();
   }
 
-  /**
-   * Get command help information
-   */
+  
   getHelp(nameOrAlias?: string): string {
     if (nameOrAlias) {
       const command = this.get(nameOrAlias);
@@ -159,7 +135,7 @@ export class CommandRegistryImpl implements CommandRegistry {
       return this.formatCommandHelp(command);
     }
 
-    // Return general help with all commands
+    
     const categories = this.groupByCategory();
     let help = 'Available Commands:\n\n';
 
@@ -179,26 +155,24 @@ export class CommandRegistryImpl implements CommandRegistry {
     return help;
   }
 
-  /**
-   * Calculate search score for a command against a query
-   */
+  
   private calculateSearchScore(command: Command, query: string): number {
     let score = 0;
 
-    // Exact name match (highest priority)
+    
     if (command.name.toLowerCase() === query) {
       score += 100;
     }
-    // Name starts with query
+    
     else if (command.name.toLowerCase().startsWith(query)) {
       score += 80;
     }
-    // Name contains query
+    
     else if (command.name.toLowerCase().includes(query)) {
       score += 60;
     }
 
-    // Alias matches
+    
     if (command.aliases) {
       for (const alias of command.aliases) {
         const lowerAlias = alias.toLowerCase();
@@ -212,12 +186,12 @@ export class CommandRegistryImpl implements CommandRegistry {
       }
     }
 
-    // Description contains query
+    
     if (command.description.toLowerCase().includes(query)) {
       score += 30;
     }
 
-    // Category matches
+    
     if (command.category?.toLowerCase().includes(query)) {
       score += 20;
     }
@@ -225,9 +199,7 @@ export class CommandRegistryImpl implements CommandRegistry {
     return score;
   }
 
-  /**
-   * Format detailed help for a specific command
-   */
+  
   private formatCommandHelp(command: Command): string {
     let help = `Command: ${command.name}\n`;
 
@@ -268,9 +240,7 @@ export class CommandRegistryImpl implements CommandRegistry {
     return help;
   }
 
-  /**
-   * Group commands by category
-   */
+  
   private groupByCategory(): Map<string, Command[]> {
     const categories = new Map<string, Command[]>();
 
@@ -282,7 +252,7 @@ export class CommandRegistryImpl implements CommandRegistry {
       categories.get(category)!.push(command);
     }
 
-    // Sort commands within each category
+    
     for (const commands of categories.values()) {
       commands.sort((a, b) => a.name.localeCompare(b.name));
     }
@@ -291,12 +261,10 @@ export class CommandRegistryImpl implements CommandRegistry {
   }
 }
 
-// Global registry instance
+
 let globalRegistry: CommandRegistryImpl | null = null;
 
-/**
- * Get the global command registry instance
- */
+
 export function getCommandRegistry(): CommandRegistryImpl {
   if (!globalRegistry) {
     globalRegistry = new CommandRegistryImpl();
@@ -304,9 +272,7 @@ export function getCommandRegistry(): CommandRegistryImpl {
   return globalRegistry;
 }
 
-/**
- * Reset the global registry (mainly for testing)
- */
+
 export function resetCommandRegistry(): void {
   globalRegistry = new CommandRegistryImpl();
 }

@@ -1,7 +1,4 @@
-/**
- * Base event handler providing common event handling functionality
- * Abstract base for canvas and node event handlers
- */
+
 
 import { useCallback, useRef } from 'react';
 import { isNodeElement, getClientCoordinates, calculateDistance } from '../utils/canvasCoordinateUtils';
@@ -13,8 +10,8 @@ export interface BaseEventState {
 }
 
 export interface EventThresholds {
-  clickThreshold: number;  // Maximum movement to be considered a click
-  dragThreshold: number;   // Minimum movement to start drag
+  clickThreshold: number;  
+  dragThreshold: number;   
 }
 
 export interface BaseEventConfig {
@@ -22,9 +19,7 @@ export interface BaseEventConfig {
   preventDefaults: boolean;
 }
 
-/**
- * Custom hook for base event handling functionality
- */
+
 export const useBaseEventHandler = (
   _svgRef: React.RefObject<SVGSVGElement>,
   config: BaseEventConfig = {
@@ -34,16 +29,12 @@ export const useBaseEventHandler = (
 ) => {
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  /**
-   * Check if the target element is a node element
-   */
+  
   const checkIsNodeElement = useCallback((target: Element): boolean => {
     return isNodeElement(target);
   }, []);
 
-  /**
-   * Handle mouse down with position tracking
-   */
+  
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     const { clientX, clientY } = getClientCoordinates(e);
     mouseDownPosRef.current = { x: clientX, y: clientY };
@@ -53,9 +44,7 @@ export const useBaseEventHandler = (
     }
   }, [config.preventDefaults]);
 
-  /**
-   * Calculate movement since mouse down
-   */
+  
   const getMovementSinceMouseDown = useCallback((e: React.MouseEvent | MouseEvent): number => {
     if (!mouseDownPosRef.current) return 0;
 
@@ -68,25 +57,19 @@ export const useBaseEventHandler = (
     );
   }, []);
 
-  /**
-   * Check if movement qualifies as a click (within threshold)
-   */
+  
   const isClickMovement = useCallback((e: React.MouseEvent | MouseEvent): boolean => {
     const movement = getMovementSinceMouseDown(e);
     return movement <= config.thresholds.clickThreshold;
   }, [getMovementSinceMouseDown, config.thresholds.clickThreshold]);
 
-  /**
-   * Check if movement qualifies as a drag (exceeds threshold)
-   */
+  
   const isDragMovement = useCallback((e: React.MouseEvent | MouseEvent): boolean => {
     const movement = getMovementSinceMouseDown(e);
     return movement > config.thresholds.dragThreshold;
   }, [getMovementSinceMouseDown, config.thresholds.dragThreshold]);
 
-  /**
-   * Handle mouse up with click/drag detection
-   */
+  
   const handleMouseUp = useCallback((
     e: React.MouseEvent,
     onBackgroundClick?: () => void,
@@ -98,7 +81,7 @@ export const useBaseEventHandler = (
     const isNode = checkIsNodeElement(target);
     const isClick = isClickMovement(e);
 
-    // Clear mouse down position
+    
     mouseDownPosRef.current = null;
 
     if (isClick) {
@@ -110,9 +93,7 @@ export const useBaseEventHandler = (
     }
   }, [checkIsNodeElement, isClickMovement]);
 
-  /**
-   * Handle context menu (right click)
-   */
+  
   const handleContextMenu = useCallback((
     e: React.MouseEvent,
     onContextMenu?: (target: Element, position: { x: number; y: number }) => void
@@ -127,29 +108,25 @@ export const useBaseEventHandler = (
     }
   }, [config.preventDefaults]);
 
-  /**
-   * Prevent default behavior if configured
-   */
+  
   const preventDefaultIfNeeded = useCallback((e: Event) => {
     if (config.preventDefaults) {
       e.preventDefault();
     }
   }, [config.preventDefaults]);
 
-  /**
-   * Clear mouse down state (useful for external reset)
-   */
+  
   const clearMouseDownState = useCallback(() => {
     mouseDownPosRef.current = null;
   }, []);
 
   return {
-    // Event handlers
+    
     handleMouseDown,
     handleMouseUp,
     handleContextMenu,
 
-    // Utility functions
+    
     checkIsNodeElement,
     getMovementSinceMouseDown,
     isClickMovement,
@@ -157,7 +134,7 @@ export const useBaseEventHandler = (
     preventDefaultIfNeeded,
     clearMouseDownState,
 
-    // State getters
+    
     hasMouseDownPosition: () => mouseDownPosRef.current !== null
   };
 };

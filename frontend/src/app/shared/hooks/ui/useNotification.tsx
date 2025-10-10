@@ -18,7 +18,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
   const { showStatus } = useStatusBar();
 
   const showNotification = useStableCallback((type: NotificationType, message: string, duration: number = 5000) => {
-    // Route all notifications to the status bar
+    
     showStatus(type, message, duration > 0 ? duration : 3000);
   });
 

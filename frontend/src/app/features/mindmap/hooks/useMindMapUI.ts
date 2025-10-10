@@ -2,10 +2,7 @@ import { useMindMapStore } from '../store';
 import type { Position } from '@shared/types';
 import { useStableCallback } from '@shared/hooks';
 
-/**
- * UI状態管理に特化したHook
- * パネル、モーダル、ビューポート等のUI制御を担当
- */
+
 export const useMindMapUI = () => {
   const {
     setZoom,
@@ -23,7 +20,7 @@ export const useMindMapUI = () => {
   } = useMindMapStore();
 
   const uiOperations = {
-    // ズームとパン
+    
     setZoom: useStableCallback((zoom: number) => {
       setZoom(zoom);
     }),
@@ -40,13 +37,13 @@ export const useMindMapUI = () => {
       resetZoom();
     }),
 
-    // パネル管理
+    
 
     closeAllPanels: useStableCallback(() => {
       closeAllPanels();
     }),
 
-    // サイドバー
+    
     toggleSidebar: useStableCallback(() => {
       toggleSidebar();
     }),
@@ -55,7 +52,7 @@ export const useMindMapUI = () => {
       setSidebarCollapsed(collapsed);
     }),
 
-    // ノートパネル
+    
     setShowNotesPanel: useStableCallback((show: boolean) => {
       setShowNotesPanel(show);
     }),
@@ -70,7 +67,7 @@ export const useMindMapUI = () => {
 
 
 
-    // ファイルアクションメニュー
+    
     showFileActionMenu: useStableCallback((position: Position) => {
       setFileMenuPosition(position);
       setShowFileActionMenu(true);
@@ -82,10 +79,10 @@ export const useMindMapUI = () => {
   };
 
   return {
-    // UI状態
+    
     ui,
     
-    // 操作
+    
     ...uiOperations
   };
 };
