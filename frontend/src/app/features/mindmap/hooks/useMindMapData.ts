@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useStableCallback } from '@shared/hooks';
 import { useMindMapStore } from '../store';
 import type { MindMapNode, MindMapData } from '@shared/types';
 
@@ -11,76 +11,76 @@ export const useMindMapData = () => {
 
   const dataOperations = {
     // ノード操作
-    addNode: useCallback((parentId: string, text: string = '') => {
+    addNode: useStableCallback((parentId: string, text: string = '') => {
       store.addChildNode(parentId, text);
-    }, [store]),
+    }),
 
-    updateNode: useCallback((nodeId: string, updates: Partial<MindMapNode>) => {
+    updateNode: useStableCallback((nodeId: string, updates: Partial<MindMapNode>) => {
       store.updateNode(nodeId, updates);
-    }, [store]),
+    }),
 
-    deleteNode: useCallback((nodeId: string) => {
+    deleteNode: useStableCallback((nodeId: string) => {
       store.deleteNode(nodeId);
-    }, [store]),
+    }),
 
-    moveNode: useCallback((nodeId: string, newParentId: string): { success: boolean; reason?: string } => {
+    moveNode: useStableCallback((nodeId: string, newParentId: string): { success: boolean; reason?: string } => {
       return store.moveNode(nodeId, newParentId);
-    }, [store]),
+    }),
 
-    moveNodeWithPosition: useCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child'): { success: boolean; reason?: string } => {
+    moveNodeWithPosition: useStableCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child'): { success: boolean; reason?: string } => {
       return store.moveNodeWithPosition(nodeId, targetNodeId, position);
-    }, [store]),
+    }),
 
-    changeSiblingOrder: useCallback((draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {
+    changeSiblingOrder: useStableCallback((draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {
       store.changeSiblingOrder(draggedNodeId, targetNodeId, insertBefore);
-    }, [store]),
+    }),
 
-    toggleNodeCollapse: useCallback((nodeId: string) => {
+    toggleNodeCollapse: useStableCallback((nodeId: string) => {
       store.toggleNodeCollapse(nodeId);
-    }, [store]),
+    }),
 
     // 編集状態
-    startEditing: useCallback((nodeId: string) => {
+    startEditing: useStableCallback((nodeId: string) => {
       store.startEditing(nodeId);
-    }, [store]),
+    }),
 
-    startEditingWithCursorAtEnd: useCallback((nodeId: string) => {
+    startEditingWithCursorAtEnd: useStableCallback((nodeId: string) => {
       store.startEditingWithCursorAtEnd(nodeId);
-    }, [store]),
+    }),
 
-    startEditingWithCursorAtStart: useCallback((nodeId: string) => {
+    startEditingWithCursorAtStart: useStableCallback((nodeId: string) => {
       store.startEditingWithCursorAtStart(nodeId);
-    }, [store]),
+    }),
 
-    finishEditing: useCallback((nodeId: string, text: string) => {
+    finishEditing: useStableCallback((nodeId: string, text: string) => {
       store.finishEditing(nodeId, text);
-    }, [store]),
+    }),
 
-    cancelEditing: useCallback(() => {
+    cancelEditing: useStableCallback(() => {
       store.cancelEditing();
-    }, [store]),
+    }),
 
-    setEditText: useCallback((text: string) => {
+    setEditText: useStableCallback((text: string) => {
       store.setEditText(text);
-    }, [store]),
+    }),
 
     // 選択状態
-    selectNode: useCallback((nodeId: string | null) => {
+    selectNode: useStableCallback((nodeId: string | null) => {
       store.selectNode(nodeId);
-    }, [store]),
+    }),
 
     // データ設定
-    setData: useCallback((data: MindMapData) => {
+    setData: useStableCallback((data: MindMapData) => {
       store.setData(data);
-    }, [store]),
-    setRootNodes: useCallback((rootNodes: MindMapNode[]) => {
+    }),
+    setRootNodes: useStableCallback((rootNodes: MindMapNode[]) => {
       (store as any).setRootNodes(rootNodes);
-    }, [store]),
+    }),
 
     // レイアウト
-    applyAutoLayout: useCallback(() => {
+    applyAutoLayout: useStableCallback(() => {
       store.applyAutoLayout();
-    }, [store])
+    })
   };
 
   return {

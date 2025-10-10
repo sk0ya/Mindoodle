@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { useStableCallback } from '@shared/hooks';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen } from 'lucide-react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
@@ -67,21 +68,21 @@ export const useSidebar = ({
   }, [currentWorkspaceId]);
 
   // Extract category helper (removes workspace ID prefix)
-  const extractCategory = useCallback((fullPath: string | null): string | undefined => {
+  const extractCategory = useStableCallback((fullPath: string | null): string | undefined => {
     if (!fullPath) return undefined;
     const { relativePath } = parseWorkspacePath(fullPath);
     return relativePath || undefined;
-  }, []);
+  });
 
-  const toggleCategoryCollapse = useCallback((category: string) => {
+  const toggleCategoryCollapse = useStableCallback((category: string) => {
     setCollapsedCategories(prev => {
       return prev.has(category)
         ? (prev.size === 1 ? new Set<string>() : (() => { const s = new Set(prev); s.delete(category); return s; })())
         : (() => { const s = new Set(prev); s.add(category); return s; })();
     });
-  }, []);
+  });
 
-  const handleCreateFolder = useCallback((parentPath: string | null) => {
+  const handleCreateFolder = useStableCallback((parentPath: string | null) => {
     const parentInfo = parentPath ? ` (${parentPath} の下)` : '';
     // eslint-disable-next-line no-alert
     const newFolderName = window.prompt(`新しいフォルダ名を入力してください${parentInfo}:`, '');
@@ -112,9 +113,9 @@ export const useSidebar = ({
         });
       }
     }
-  }, [onCreateFolder, currentWorkspaceId, mindMaps]);
+  });
 
-  const handleDeleteFolder = useCallback((folderPath: string) => {
+  const handleDeleteFolder = useStableCallback((folderPath: string) => {
     const mapsInFolder = mindMaps.filter(map => map.category === folderPath);
     const mapsInSubfolders = mindMaps.filter(map =>
       map.category && map.category.startsWith(folderPath + '/')
@@ -148,9 +149,9 @@ export const useSidebar = ({
 
       logger.info(`空のフォルダ「${folderPath}」を削除しました`);
     }
-  }, [mindMaps]);
+  });
 
-  const handleRenameFolder = useCallback((oldPath: string) => {
+  const handleRenameFolder = useStableCallback((oldPath: string) => {
     const currentName = getLastPathSegment(oldPath) || oldPath;
     // eslint-disable-next-line no-alert
     const newName = window.prompt(`フォルダ名を変更:`, currentName);
@@ -201,7 +202,7 @@ export const useSidebar = ({
 
       logger.info(`フォルダ名を「${oldPath}」から「${newPath}」に変更しました`);
     }
-  }, [mindMaps, onChangeCategory]);
+  });
 
   // ========================================
   // Map Operations State
@@ -209,17 +210,17 @@ export const useSidebar = ({
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
-  const handleStartRename = useCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
+  const handleStartRename = useStableCallback((mapIdentifier: MapIdentifier, currentTitle: string) => {
     setEditingMapId(mapIdentifier.mapId);
     setEditingTitle(currentTitle);
-  }, []);
+  });
 
-  const handleCancelRename = useCallback(() => {
+  const handleCancelRename = useStableCallback(() => {
     setEditingMapId(null);
     setEditingTitle('');
-  }, []);
+  });
 
-  const handleCreateMap = useCallback((parentPath: string | null) => {
+  const handleCreateMap = useStableCallback((parentPath: string | null) => {
     const category = extractCategory(parentPath);
     const displayPath = category || 'ルート';
     const parentInfo = category ? ` (${displayPath} 内)` : '';
@@ -240,7 +241,7 @@ export const useSidebar = ({
         });
       }
     }
-  }, [onCreateMap, extractCategory, currentWorkspaceId, mindMaps]);
+  });
 
   // ========================================
   // Filtering and Search State
@@ -392,7 +393,7 @@ export const useSidebar = ({
     mapData: null
   });
 
-  const closeContextMenu = useCallback(() => {
+  const closeContextMenu = useStableCallback(() => {
     setContextMenu({
       isVisible: false,
       position: { x: 0, y: 0 },
@@ -400,7 +401,7 @@ export const useSidebar = ({
       targetType: null,
       mapData: null
     });
-  }, []);
+  });
 
   const contextMenuItems = useMemo((): ContextMenuItem[] => {
     const { targetPath, targetType, mapData } = contextMenu;

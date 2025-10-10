@@ -23,3 +23,6 @@ export { useEventListener, type UseEventListenerOptions } from './system/useEven
 
 // Network Hooks
 export { useConnectionTest } from './network/useConnectionTest';
+
+// Hook Utilities
+export { useStableCallback, useLatestRef } from './utilities';

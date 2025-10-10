@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { MapIdentifier } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '@markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
 import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
-import { useDataReset, useNotification } from '@shared/hooks';
+import { useDataReset, useNotification, useStableCallback, useLatestRef } from '@shared/hooks';
 import { useStorageConfigChange } from '@file-management/hooks/useStorageConfigChange';
 import { logger } from '@shared/utils';
 import type { StorageConfig } from '@core/types';
@@ -52,9 +52,9 @@ export const useMindMap = (
 
   // 自動保存機能
   const [, setAutoSaveEnabled] = useState(true);
-  const setAutoSaveEnabledStable = useCallback((enabled: boolean) => {
+  const setAutoSaveEnabledStable = useStableCallback((enabled: boolean) => {
     setAutoSaveEnabled(enabled);
-  }, []);
+  });
 
   // Stabilize adapter reference - get adapter for current map's workspace
   const mapWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
@@ -94,19 +94,11 @@ export const useMindMap = (
   // Track last markdown sent to prevent loops
   const lastSentMarkdownRef = useRef<string>('');
 
-  // Keep latest subscribeMd reference to avoid useEffect dependency issues
-  const subscribeMdRef = useRef(subscribeMd);
-  subscribeMdRef.current = subscribeMd;
-
-  // Keep latest data and mutators to avoid stale closures in subscription callback
-  const dataRef = useRef(dataHook.data);
-  useEffect(() => { dataRef.current = dataHook.data; }, [dataHook.data]);
-  const setDataRef = useRef(dataHook.setData);
-  useEffect(() => { setDataRef.current = dataHook.setData; }, [dataHook.setData]);
-  const updateNodeRef = useRef(dataHook.updateNode);
-  useEffect(() => { updateNodeRef.current = dataHook.updateNode; }, [dataHook.updateNode]);
-  const applyAutoLayoutRef = useRef(dataHook.applyAutoLayout);
-  useEffect(() => { applyAutoLayoutRef.current = dataHook.applyAutoLayout; }, [dataHook.applyAutoLayout]);
+  // Keep latest references to avoid stale closures in subscription callbacks
+  const subscribeMdRef = useLatestRef(subscribeMd);
+  const dataRef = useLatestRef(dataHook.data);
+  const updateNodeRef = useLatestRef(dataHook.updateNode);
+  const applyAutoLayoutRef = useLatestRef(dataHook.applyAutoLayout);
 
   // Timer to prevent nodes->markdown sync after editor changes
   const skipNodeToMarkdownSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -290,7 +282,7 @@ export const useMindMap = (
   // Removed global CustomEvent echo path to avoid race/rollback
 
   // Folder selection helper to ensure we operate on the same adapter instance
-  const selectRootFolder = useCallback(async (): Promise<boolean> => {
+  const selectRootFolder = useStableCallback(async (): Promise<boolean> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.addWorkspace === 'function') {
       await adapter.addWorkspace();
@@ -304,9 +296,9 @@ export const useMindMap = (
       return true;
     }
     return false;
-  }, [persistenceHook]);
+  });
 
-  const createFolder = useCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
+  const createFolder = useStableCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
 
     if (adapter && typeof adapter.createFolder === 'function') {
@@ -324,17 +316,17 @@ export const useMindMap = (
         await persistenceHook.refreshMapList();
       }
     }
-  }, [persistenceHook]);
+  });
 
-  const renameItem = useCallback(async (path: string, newName: string): Promise<void> => {
+  const renameItem = useStableCallback(async (path: string, newName: string): Promise<void> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.renameItem === 'function') {
       await adapter.renameItem(path, newName);
       await persistenceHook.refreshMapList();
     }
-  }, [persistenceHook]);
+  });
 
-  const deleteItem = useCallback(async (path: string): Promise<void> => {
+  const deleteItem = useStableCallback(async (path: string): Promise<void> => {
     // Extract workspaceId from path (e.g., /cloud/folder/file.md or /ws_xxx/folder/file.md)
     const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)/);
     const workspaceId = wsMatch ? wsMatch[1] : null;
@@ -345,42 +337,42 @@ export const useMindMap = (
       await adapter.deleteItem(path);
       await persistenceHook.refreshMapList();
     }
-  }, [persistenceHook]);
+  });
 
   // Stabilize markdown subscription to prevent excessive re-subscriptions
-  const subscribeMarkdownFromNodes = useCallback((cb: (text: string) => void) => {
+  const subscribeMarkdownFromNodes = useStableCallback((cb: (text: string) => void) => {
     return subscribeMd((text: string, source: any) => {
       if (source === 'nodes') cb(text);
     });
-  }, [subscribeMd]);
+  });
 
-  const moveItem = useCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
+  const moveItem = useStableCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.moveItem === 'function') {
       await adapter.moveItem(sourcePath, targetFolderPath);
       await persistenceHook.refreshMapList();
     }
-  }, [persistenceHook]);
+  });
 
-  const readImageAsDataURL = useCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
+  const readImageAsDataURL = useStableCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
     // Resolve adapter per workspace when possible (cloud/local)
     const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
     if (adapter && typeof adapter.readImageAsDataURL === 'function') {
       return await adapter.readImageAsDataURL(relativePath, workspaceId);
     }
     return null;
-  }, [persistenceHook]);
+  });
 
-  const getSelectedFolderLabel = useCallback((): string | null => {
+  const getSelectedFolderLabel = useStableCallback((): string | null => {
     const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && 'selectedFolderName' in adapter) {
       return (adapter).selectedFolderName ?? null;
     }
     return null;
-  }, [persistenceHook]);
+  });
 
   // Expose raw markdown fetch for current adapter (markdown mode only)
-  const getMapMarkdown = useCallback(async (id: MapIdentifier): Promise<string | null> => {
+  const getMapMarkdown = useStableCallback(async (id: MapIdentifier): Promise<string | null> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
       try {
@@ -390,9 +382,9 @@ export const useMindMap = (
       }
     }
     return null;
-  }, [persistenceHook]);
+  });
 
-  const getMapLastModified = useCallback(async (id: MapIdentifier): Promise<number | null> => {
+  const getMapLastModified = useStableCallback(async (id: MapIdentifier): Promise<number | null> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapLastModified === 'function') {
       try {
@@ -402,10 +394,10 @@ export const useMindMap = (
       }
     }
     return null;
-  }, [persistenceHook]);
+  });
 
   // Save raw markdown for current adapter (markdown mode only)
-  const saveMapMarkdown = useCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
+  const saveMapMarkdown = useStableCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
     const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.saveMapMarkdown === 'function') {
       try {
@@ -417,11 +409,11 @@ export const useMindMap = (
     } else {
       throw new Error('saveMapMarkdown not supported by current storage adapter');
     }
-  }, [persistenceHook]);
+  });
 
   // マップ管理の高レベル操作（非同期対応）
   const mapOperations = {
-    createAndSelectMap: useCallback(async (title: string, workspaceId: string, category?: string): Promise<string> => {
+    createAndSelectMap: useStableCallback(async (title: string, workspaceId: string, category?: string): Promise<string> => {
       // workspaceIdの検証
       if (!workspaceId) {
         console.error('createAndSelectMap: workspaceId is required');
@@ -516,9 +508,9 @@ export const useMindMap = (
       
       logger.debug('createAndSelectMap: Successfully created map:', mapIdentifier.mapId);
       return mapIdentifier.mapId;
-    }, [actionsHook, persistenceHook]),
+    }),
 
-    selectMapById: useCallback(async (target: MapIdentifier): Promise<boolean> => {
+    selectMapById: useStableCallback(async (target: MapIdentifier): Promise<boolean> => {
       const mapId = target.mapId;
       const workspaceId = target.workspaceId;
 
@@ -620,9 +612,9 @@ export const useMindMap = (
         delete (window as any).__selectMapFallbackInProgress[fallbackKey];
         return false;
       }
-    }, [persistenceHook, actionsHook]),
+    }),
 
-    updateMapMetadata: useCallback(async (target: MapIdentifier, updates: { title?: string; category?: string }): Promise<void> => {
+    updateMapMetadata: useStableCallback(async (target: MapIdentifier, updates: { title?: string; category?: string }): Promise<void> => {
       const mapId = target.mapId;
       // 現在選択中のマップの場合のみストアを更新
       if (dataHook.data?.mapIdentifier.mapId === mapId) {
@@ -630,33 +622,33 @@ export const useMindMap = (
       }
       
       // マップリストを常に更新（全マップ中から該当するマップを探して更新）
-    }, [actionsHook, dataHook, persistenceHook]),
+    }),
 
-    addImportedMapToList: useCallback(async (mapData: MindMapData): Promise<void> => {
+    addImportedMapToList: useStableCallback(async (mapData: MindMapData): Promise<void> => {
       await persistenceHook.addMapToList(mapData);
-    }, [persistenceHook])
+    })
   };
 
   // ファイル操作の統合
   const fileOperations = {
-    exportCurrentMap: useCallback(() => {
+    exportCurrentMap: useStableCallback(() => {
       return actionsHook.exportData();
-    }, [actionsHook]),
+    }),
 
-    importMap: useCallback(async (jsonData: string): Promise<boolean> => {
+    importMap: useStableCallback(async (jsonData: string): Promise<boolean> => {
       const success = actionsHook.importData(jsonData);
       if (success && dataHook.data) {
         await persistenceHook.addMapToList(dataHook.data);
       }
       return success;
-    }, [actionsHook, dataHook, persistenceHook])
+    })
   };
 
   // マップ一覧の初期化状態も返す
   const isReady = persistenceHook.isInitialized;
 
   // 通知付き移動関数
-  const moveNodeWithNotification = useCallback((nodeId: string, newParentId: string) => {
+  const moveNodeWithNotification = useStableCallback((nodeId: string, newParentId: string) => {
     const result = dataHook.moveNode(nodeId, newParentId);
     if (result.success) {
       showNotification('success', 'ノードを移動しました');
@@ -664,9 +656,9 @@ export const useMindMap = (
       showNotification('warning', result.reason || 'ノードの移動ができませんでした');
       logger.warn('moveNode constraint violation:', result.reason);
     }
-  }, [dataHook.moveNode, showNotification]);
+  });
 
-  const moveNodeWithPositionAndNotification = useCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
+  const moveNodeWithPositionAndNotification = useStableCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
     const result = dataHook.moveNodeWithPosition(nodeId, targetNodeId, position);
     if (result.success) {
       showNotification('success', 'ノードを移動しました');
@@ -674,7 +666,7 @@ export const useMindMap = (
       showNotification('warning', result.reason || 'ノードの移動ができませんでした');
       logger.warn('moveNodeWithPosition constraint violation:', result.reason);
     }
-  }, [dataHook.moveNodeWithPosition, showNotification]);
+  });
 
   return {
     // === 状態 ===
