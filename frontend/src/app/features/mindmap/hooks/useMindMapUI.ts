@@ -1,6 +1,6 @@
-import { useCallback } from 'react';
 import { useMindMapStore } from '../store';
 import type { Position } from '@shared/types';
+import { useStableCallback } from '@shared/hooks';
 
 /**
  * UI状態管理に特化したHook
@@ -24,61 +24,61 @@ export const useMindMapUI = () => {
 
   const uiOperations = {
     // ズームとパン
-    setZoom: useCallback((zoom: number) => {
+    setZoom: useStableCallback((zoom: number) => {
       setZoom(zoom);
-    }, [setZoom]),
+    }),
 
-    setPan: useCallback((pan: Position | ((prev: Position) => Position)) => {
+    setPan: useStableCallback((pan: Position | ((prev: Position) => Position)) => {
       if (typeof pan === 'function') {
         storeSetPan(pan(ui.pan));
       } else {
         storeSetPan(pan);
       }
-    }, [storeSetPan, ui.pan]),
+    }),
 
-    resetZoom: useCallback(() => {
+    resetZoom: useStableCallback(() => {
       resetZoom();
-    }, [resetZoom]),
+    }),
 
     // パネル管理
 
-    closeAllPanels: useCallback(() => {
+    closeAllPanels: useStableCallback(() => {
       closeAllPanels();
-    }, [closeAllPanels]),
+    }),
 
     // サイドバー
-    toggleSidebar: useCallback(() => {
+    toggleSidebar: useStableCallback(() => {
       toggleSidebar();
-    }, [toggleSidebar]),
+    }),
 
-    setSidebarCollapsed: useCallback((collapsed: boolean) => {
+    setSidebarCollapsed: useStableCallback((collapsed: boolean) => {
       setSidebarCollapsed(collapsed);
-    }, [setSidebarCollapsed]),
+    }),
 
     // ノートパネル
-    setShowNotesPanel: useCallback((show: boolean) => {
+    setShowNotesPanel: useStableCallback((show: boolean) => {
       setShowNotesPanel(show);
-    }, [setShowNotesPanel]),
+    }),
 
-    toggleNotesPanel: useCallback(() => {
+    toggleNotesPanel: useStableCallback(() => {
       toggleNotesPanel();
-    }, [toggleNotesPanel]),
+    }),
 
-    hideImageModal: useCallback(() => {
+    hideImageModal: useStableCallback(() => {
       setShowImageModal(false);
-    }, [setShowImageModal]),
+    }),
 
 
 
     // ファイルアクションメニュー
-    showFileActionMenu: useCallback((position: Position) => {
+    showFileActionMenu: useStableCallback((position: Position) => {
       setFileMenuPosition(position);
       setShowFileActionMenu(true);
-    }, [setFileMenuPosition, setShowFileActionMenu]),
+    }),
 
-    hideFileActionMenu: useCallback(() => {
+    hideFileActionMenu: useStableCallback(() => {
       setShowFileActionMenu(false);
-    }, [setShowFileActionMenu])
+    })
   };
 
   return {

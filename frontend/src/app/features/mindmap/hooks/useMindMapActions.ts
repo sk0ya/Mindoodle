@@ -1,8 +1,8 @@
-import { useCallback } from 'react';
 import { useMindMapStore } from '../store';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { logger } from '@shared/utils';
 import { safeJsonParse } from '@shared/utils';
+import { useStableCallback } from '@shared/hooks';
 
 /**
  * 高レベルアクションに特化したHook
@@ -13,7 +13,7 @@ export const useMindMapActions = () => {
 
   const mapActions = {
     // マップ選択
-    selectMap: useCallback((mapData: MindMapData) => {
+    selectMap: useStableCallback((mapData: MindMapData) => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
       store.setData(mapData);
 
@@ -28,18 +28,18 @@ export const useMindMapActions = () => {
       }
 
       logger.debug('Selected map:', mapData.title);
-    }, [store]),
+    }),
 
     // マップ削除（データから）
-    deleteMapData: useCallback(() => {
+    deleteMapData: useStableCallback(() => {
       const currentData = store.data;
       if (currentData) {
         logger.debug('Deleting map:', currentData.title);
       }
-    }, [store]),
+    }),
 
     // マップ複製
-    duplicateMap: useCallback((sourceMap: MindMapData, newTitle?: string): MindMapData => {
+    duplicateMap: useStableCallback((sourceMap: MindMapData, newTitle?: string): MindMapData => {
       const mapId = `map_${Date.now()}`;
       const mapIdentifier = {
         mapId,
@@ -55,51 +55,51 @@ export const useMindMapActions = () => {
 
       logger.debug('Duplicated map:', duplicatedMap.title);
       return duplicatedMap;
-    }, []),
+    }),
 
     // マップのメタデータ更新
-    updateMapMetadata: useCallback((mapIdentifier: MapIdentifier, updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
+    updateMapMetadata: useStableCallback((mapIdentifier: MapIdentifier, updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
       const currentData = store.data;
       if (currentData && currentData.mapIdentifier.mapId === mapIdentifier.mapId && currentData.mapIdentifier.workspaceId === mapIdentifier.workspaceId) {
         // Do not reset history for metadata changes
         (store as any).updateMapMetadata?.(updates);
         logger.debug('Updated map metadata:', updates);
       }
-    }, [store])
+    })
   };
 
   const historyActions = {
     // 履歴操作
-    undo: useCallback(async () => {
+    undo: useStableCallback(async () => {
       if (store.canUndo()) {
         store.undo();
         logger.debug('Undo performed');
       }
-    }, [store]),
+    }),
 
-    redo: useCallback(async () => {
+    redo: useStableCallback(async () => {
       if (store.canRedo()) {
         store.redo();
         logger.debug('Redo performed');
       }
-    }, [store]),
+    }),
 
     // 履歴状態
-    canUndo: useCallback(() => store.canUndo(), [store]),
-    canRedo: useCallback(() => store.canRedo(), [store])
+    canUndo: useStableCallback(() => store.canUndo()),
+    canRedo: useStableCallback(() => store.canRedo())
   };
 
   const fileActions = {
     // ファイル操作（基本的なラッパー）
-    exportData: useCallback((): string => {
+    exportData: useStableCallback((): string => {
       const currentData = store.data;
       if (currentData) {
         return JSON.stringify(currentData, null, 2);
       }
       return '';
-    }, [store]),
+    }),
 
-    importData: useCallback((jsonData: string): boolean => {
+    importData: useStableCallback((jsonData: string): boolean => {
       try {
         const parseResult = safeJsonParse(jsonData);
         if (!parseResult.success) {
@@ -107,23 +107,23 @@ export const useMindMapActions = () => {
           return false;
         }
         const parsedData = parseResult.data;
-        
+
         // データの妥当性検証
         if (!parsedData || typeof parsedData !== 'object') {
           return false;
         }
-        
+
         // MindMapDataの必要な属性をチェック
         if (!('id' in parsedData) || !('title' in parsedData) || !('rootNode' in parsedData)) {
           return false;
         }
-        
+
         // 型安全性を保つため、明示的にチェック
         const { id, title, rootNode } = parsedData;
         if (typeof id !== 'string' || typeof title !== 'string' || !rootNode) {
           return false;
         }
-        
+
         // Use setRootNodes to preserve undo/redo history when importing
         const mindMapData = parsedData as MindMapData;
         store.setRootNodes(mindMapData.rootNodes);
@@ -132,7 +132,7 @@ export const useMindMapActions = () => {
         logger.error('Failed to import data:', error);
         return false;
       }
-    }, [store])
+    })
   };
 
   return {
