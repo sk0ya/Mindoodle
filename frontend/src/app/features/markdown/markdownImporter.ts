@@ -307,6 +307,11 @@ export class MarkdownImporter {
     const listStack: { node: MindMapNode; indentLevel: number }[] = [];
     let currentHeading: MindMapNode | null = null;
 
+    // ノード総数を計算（前文を除く構造要素の数）
+    const totalNodeCount = elements.filter(e => e.type !== 'preface').length;
+    // 30個以下の場合は折りたたみを無効化
+    const shouldApplyCollapse = totalNodeCount > 30;
+
     for (const element of elements) {
       // 前文の場合は特別に処理
       if (element.type === 'preface') {
@@ -410,8 +415,9 @@ export class MarkdownImporter {
         // defaultCollapseDepth = 0: 折りたたまない
         // defaultCollapseDepth = 1: 1階層目から折りたたむ（ルートの子から）
         // defaultCollapseDepth = 2: 2階層目から折りたたむ（ルートの孫から）
+        // ノード総数が30個以下の場合は折りたたみを実行しない
         const collapseDepth = defaultCollapseDepth !== undefined ? defaultCollapseDepth : 2;
-        if (collapseDepth > 0 && currentDepth >= collapseDepth) {
+        if (shouldApplyCollapse && collapseDepth > 0 && currentDepth >= collapseDepth) {
           newNode.collapsed = true;
         }
 
