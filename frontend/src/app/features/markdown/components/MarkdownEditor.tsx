@@ -330,7 +330,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       </div>
 
       {/* Editor pane */}
-      <div style={{ ...editorContainerStyle, marginTop: '40px' }}>
+      <div style={editorContainerStyle}>
         <CodeMirrorEditor
           ref={editorRef}
           value={value}
