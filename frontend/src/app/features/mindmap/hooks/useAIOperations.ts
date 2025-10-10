@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 
-interface AIOperationsParams {
+export interface AIOperationsParams {
   ai: {
     generateChildNodes: (node: MindMapNode) => Promise<string[]>;
   };

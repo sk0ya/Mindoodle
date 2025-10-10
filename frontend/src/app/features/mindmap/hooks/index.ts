@@ -17,3 +17,9 @@ export * from './useMarkdownOperations';
 export * from './useEditorEffects';
 export * from './useCommandExecution';
 export * from './useSidebar.tsx'; // Phase 4.1: Unified sidebar hook (TSX for JSX support)
+
+// Phase 4.2: Feature group hooks (hierarchical organization)
+export * from './useEditingFeatures';
+export * from './useNavigationFeatures';
+export * from './useDataFeatures';
+export * from './useAIFeatures';

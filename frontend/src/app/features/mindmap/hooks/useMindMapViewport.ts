@@ -4,7 +4,7 @@ import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store';
 import type { MindMapNode } from '@shared/types';
 
-interface ViewportOperationsParams {
+export interface ViewportOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
   activeView: string | null;
   uiStore: {

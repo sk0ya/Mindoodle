@@ -2,7 +2,7 @@ import { useCallback } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { statusMessages } from '@shared/utils';
 
-interface MarkdownOperationsParams {
+export interface MarkdownOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
   markdownSync: {
     changeNodeType: (

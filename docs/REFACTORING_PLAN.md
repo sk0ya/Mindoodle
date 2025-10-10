@@ -343,18 +343,39 @@
 5. ✅ hooks/index.tsでuseSidebarをエクスポート
 6. ✅ 型チェック・Lint通過確認
 
-#### ステップ4.2: MindMap関連フックの階層化
+#### ステップ4.2: MindMap関連フックの階層化 ✅ 完了
 
-**現状**: 20個以上のuseMindMap*系フック
+**目標**: 20個以上のuseMindMap*系フックを機能グループで階層化
 
-**改善案**:
-```
+**実施日**: 2025-10-10
+
+```typescript
+// Before: 個別のフック（17個以上）
+- useEditingState.ts
+- useMarkdownOperations.ts
+- useMindMapClipboard.ts
+- useMindMapViewport.ts
+- useKeyboardShortcuts.ts
+- useMindMapFileOps.ts
+- useMindMapLinks.ts
+- useAIOperations.ts
+- useMindMapData.ts
+- useMindMapUI.ts
+- useMindMapActions.ts
+- useMindMapPersistence.ts
+- useMindMapEvents.ts
+- useWindowGlobalsBridge.ts
+- useEditorEffects.ts
+- useCommandExecution.ts
+- useMindMap.ts (統合フック)
+
+// After: 階層化されたフック構造
 useMindMap (最上位統合フック)
-├── useMindMapData
-├── useMindMapUI
-├── useMindMapActions
-├── useMindMapPersistence
-└── Feature Group Hooks
+├── useMindMapData (データ層)
+├── useMindMapUI (UI層)
+├── useMindMapActions (アクション層)
+├── useMindMapPersistence (永続化層)
+└── Feature Group Hooks (機能グループ層)
     ├── useEditingFeatures (編集機能)
     │   ├── useEditingState
     │   ├── useMarkdownOperations
@@ -364,18 +385,52 @@ useMindMap (最上位統合フック)
     │   └── useKeyboardShortcuts
     ├── useDataFeatures (データ管理)
     │   ├── useMindMapFileOps
-    │   └── useMindMapPersistence
+    │   └── useMindMapLinks
     └── useAIFeatures (AI機能)
         └── useAIOperations
 ```
 
+**成果**:
+
+- **階層化**: 機能別に4つのグループフック（useEditingFeatures, useNavigationFeatures, useDataFeatures, useAIFeatures）を作成
+- **明確な責任分離**: 各機能グループが明確な役割を持つ
+- **段階的移行可能**: 既存フックはそのまま維持しつつ、新しい階層化されたインターフェースを提供
+- **保守性向上**: フック間の依存関係が階層構造で明確化
+- **拡張性**: 新機能追加時に適切なグループに配置可能
+
+**実装詳細**:
+
+1. ✅ useEditingFeatures.ts を作成
+   - useEditingState (編集状態管理)
+   - useMarkdownOperations (マークダウン操作)
+   - useMindMapClipboard (クリップボード操作)
+
+2. ✅ useNavigationFeatures.ts を作成
+   - useMindMapViewport (ビューポート操作)
+   - useKeyboardShortcuts (キーボードショートカット)
+
+3. ✅ useDataFeatures.ts を作成
+   - useMindMapFileOps (ファイル操作)
+   - useMindMapLinks (リンク管理)
+
+4. ✅ useAIFeatures.ts を作成
+   - useAIOperations (AI操作)
+
+5. ✅ hooks/index.ts を更新してフィーチャーグループフックをエクスポート
+
+**移行戦略**:
+
+- **後方互換性**: 既存の個別フックは維持（既存コードへの影響なし）
+- **段階的採用**: 新規コンポーネントや大規模リファクタリング時にフィーチャーグループフックを優先使用
+- **将来的な統合**: 全コンポーネントが移行した後、個別フックを非推奨化可能
+
 #### 成功基準
 
 - [x] sidebar関連フックが統合 (ステップ4.1完了)
-- [ ] MindMap関連フックが階層化 (ステップ4.2未実施)
-- [ ] フック間の依存関係が明確
-- [x] ビルド・型チェック・リント成功
-- [ ] 全機能が正常に動作（未テスト）
+- [x] MindMap関連フックが階層化 (ステップ4.2完了)
+- [x] フック間の依存関係が明確（階層構造で整理）
+- [ ] ビルド・型チェック・リント成功（検証中）
+- [ ] 全機能が正常に動作（次ステップで検証）
 
 ---
 
@@ -467,3 +522,8 @@ useMindMap (最上位統合フック)
 ## 更新履歴
 
 - 2025-10-09: 初版作成
+- 2025-10-10: フェーズ4完了（ステップ4.1: Sidebar統合、ステップ4.2: MindMap階層化）
+- 2025-10-10: フェーズ3完了（useEventListener統合、イベント処理標準化）
+- 2025-10-10: フェーズ2完了（Services命名整理）
+- 2025-10-10: フェーズ1ステップ1.1完了（ノード操作統合）
+- 2025-10-09: フェーズ1ステップ1.2完了（パス操作統合）

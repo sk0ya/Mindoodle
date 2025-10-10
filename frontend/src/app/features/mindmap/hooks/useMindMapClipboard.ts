@@ -4,7 +4,7 @@ import { imagePasteService } from '../services/imagePasteService';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import type { StorageAdapter } from '@core/types';
 
-interface ClipboardOperationsParams {
+export interface ClipboardOperationsParams {
   data: { rootNodes: MindMapNode[]; mapIdentifier?: MapIdentifier } | null;
   clipboard: MindMapNode | null;
   selectedNodeId: string | null;
