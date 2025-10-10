@@ -3,7 +3,7 @@
  */
 
 import { EditorState, Extension } from '@codemirror/state';
-import { EditorView, keymap, ViewUpdate } from '@codemirror/view';
+import { EditorView, keymap, ViewUpdate, lineNumbers } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
@@ -62,6 +62,7 @@ const darkThemeHighlight = HighlightStyle.define([
  */
 export function createBaseExtensions(config: EditorConfig): Extension[] {
   const extensions: Extension[] = [
+    lineNumbers(),
     history(),
     autocompletion(),
     highlightSelectionMatches(),
@@ -227,9 +228,13 @@ export function reconfigureEditor(
 }
 
 /**
- * Set editor value
+ * Set editor value while preserving focus and cursor position when possible
  */
-export function setEditorValue(view: EditorView, value: string): void {
+export function setEditorValue(view: EditorView, value: string, options?: { preserveFocus?: boolean }): void {
+  const preserveFocus = options?.preserveFocus ?? true;
+  const hasFocus = view.hasFocus;
+  const cursorPos = hasFocus ? view.state.selection.main.head : null;
+
   view.dispatch({
     changes: {
       from: 0,
@@ -237,6 +242,18 @@ export function setEditorValue(view: EditorView, value: string): void {
       insert: value,
     },
   });
+
+  // Restore focus and cursor position if editor had focus
+  if (preserveFocus && hasFocus && cursorPos !== null) {
+    // Clamp cursor position to new document length
+    const newLength = view.state.doc.length;
+    const newCursorPos = Math.min(cursorPos, newLength);
+
+    view.dispatch({
+      selection: { anchor: newCursorPos, head: newCursorPos },
+    });
+    view.focus();
+  }
 }
 
 /**

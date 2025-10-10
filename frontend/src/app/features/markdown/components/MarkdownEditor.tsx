@@ -29,6 +29,7 @@ interface MarkdownEditorProps {
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   value,
+  updatedAt,
   onChange,
   onSave,
   className = '',
@@ -42,6 +43,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const rootRef = useRef<HTMLDivElement | null>(null);
   const previewPaneRef = useRef<HTMLDivElement | null>(null);
   const hoveredRef = useRef(false);
+  const lastUpdatedAtRef = useRef<string>('');
   const [mode, setMode] = useState<'edit' | 'preview' | 'split'>('edit');
 
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -86,6 +88,28 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
     } catch {}
   }, []);
+
+  // Synchronize external updates (from mind map) to editor
+  useEffect(() => {
+    if (!editorRef.current) return;
+
+    const currentValue = editorRef.current.getValue();
+    const nextValue = value;
+
+    // Don't update if values are the same
+    if (currentValue === nextValue) return;
+
+    // If updatedAt is provided and it's the same as last time, ignore (duplicate update)
+    if (updatedAt && updatedAt === lastUpdatedAtRef.current) return;
+
+    // Update the lastUpdatedAt tracker
+    if (updatedAt) {
+      lastUpdatedAtRef.current = updatedAt;
+    }
+
+    // Update editor value while preserving focus and cursor
+    editorRef.current.setValue(nextValue);
+  }, [value, updatedAt]);
 
   // Process mermaid diagrams in HTML
   const processMermaidInHtml = useCallback(async (html: string): Promise<string> => {
@@ -234,6 +258,17 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     document.addEventListener('keydown', handler);
     return () => document.removeEventListener('keydown', handler);
   }, [onSave]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+        debounceTimeoutRef.current = null;
+      }
+      lastUpdatedAtRef.current = '';
+    };
+  }, []);
 
   // Mouse hover tracking
   const handleMouseEnter = () => { hoveredRef.current = true; };
