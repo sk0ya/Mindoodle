@@ -242,7 +242,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
 
   const containerStyle: React.CSSProperties = {
     display: 'flex',
-    flexDirection: 'row',
+    flexDirection: 'column',
     height: '100%',
     width: '100%',
     overflow: 'hidden',
@@ -297,63 +297,64 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       onMouseLeave={handleMouseLeave}
     >
       {/* Toolbar */}
-      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10 }}>
-        <div style={toolbarStyle}>
-          <div style={{ display: 'flex', alignItems: 'center' }}>
-            <FileText size={16} style={{ marginRight: '8px' }} />
-            <span>Markdown Editor</span>
-          </div>
-          <div>
-            <button
-              style={buttonStyle(mode === 'edit')}
-              onClick={() => setMode('edit')}
-              title="Edit mode"
-            >
-              Edit
-            </button>
-            <button
-              style={buttonStyle(mode === 'split')}
-              onClick={() => setMode('split')}
-              title="Split mode (Ctrl/Cmd+L)"
-            >
-              Split
-            </button>
-            <button
-              style={buttonStyle(mode === 'preview')}
-              onClick={() => setMode('preview')}
-              title="Preview mode"
-            >
-              Preview
-            </button>
-          </div>
+      <div style={toolbarStyle}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <FileText size={16} style={{ marginRight: '8px' }} />
+          <span>Markdown Editor</span>
+        </div>
+        <div>
+          <button
+            style={buttonStyle(mode === 'edit')}
+            onClick={() => setMode('edit')}
+            title="Edit mode"
+          >
+            Edit
+          </button>
+          <button
+            style={buttonStyle(mode === 'split')}
+            onClick={() => setMode('split')}
+            title="Split mode (Ctrl/Cmd+L)"
+          >
+            Split
+          </button>
+          <button
+            style={buttonStyle(mode === 'preview')}
+            onClick={() => setMode('preview')}
+            title="Preview mode"
+          >
+            Preview
+          </button>
         </div>
       </div>
 
-      {/* Editor pane */}
-      <div style={editorContainerStyle}>
-        <CodeMirrorEditor
-          ref={editorRef}
-          value={value}
-          onChange={handleEditorChange}
-          readOnly={readOnly}
-          theme={editorTheme}
-          vimMode={settings.vimEditor || false}
-          language="markdown"
-          fontSize={settings.fontSize || 14}
-          fontFamily={settings.fontFamily || 'system-ui'}
-          onCursorLineChange={onCursorLineChange}
-          onFocusChange={onFocusChange}
-          autoFocus={autoFocus}
+      {/* Content area (Editor and/or Preview) */}
+      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+        {/* Editor pane */}
+        <div style={editorContainerStyle}>
+          <CodeMirrorEditor
+            ref={editorRef}
+            value={value}
+            onChange={handleEditorChange}
+            readOnly={readOnly}
+            theme={editorTheme}
+            vimMode={settings.vimEditor || false}
+            language="markdown"
+            fontSize={settings.fontSize || 14}
+            fontFamily={settings.fontFamily || 'system-ui'}
+            onCursorLineChange={onCursorLineChange}
+            onFocusChange={onFocusChange}
+            autoFocus={autoFocus}
+          />
+        </div>
+
+        {/* Preview pane */}
+        <div
+          ref={previewPaneRef}
+          style={previewContainerStyle}
+          dangerouslySetInnerHTML={{ __html: renderedPreview }}
+          className="markdown-preview"
         />
       </div>
-
-      {/* Preview pane */}
-      <div
-        ref={previewPaneRef}
-        style={previewContainerStyle}
-        dangerouslySetInnerHTML={{ __html: renderedPreview }}
-        className="markdown-preview"
-      />
     </div>
   );
 });
