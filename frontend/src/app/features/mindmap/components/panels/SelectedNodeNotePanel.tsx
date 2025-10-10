@@ -189,13 +189,6 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       <div ref={handleRef} className={`drag-handle ${isResizing ? 'resizing' : ''}`} onMouseDown={handleResizeStart} />
 
       {}
-      <div className="panel-header">
-        <div className="panel-title">
-          <StickyNote size={14} />
-          <span>ノート</span>
-        </div>
-      </div>
-
       <div className="panel-editor">
         <MarkdownEditor
           value={note || ''}
@@ -207,6 +200,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
           onCursorLineChange={() => {}}
           onFocusChange={() => {}}
           mapIdentifier={currentMapIdentifier}
+          title="ノート"
         />
       </div>
 

@@ -23,6 +23,8 @@ interface MarkdownEditorProps {
   onFocusChange?: (focused: boolean) => void;
 
   mapIdentifier?: { mapId: string; workspaceId?: string | null } | null;
+
+  title?: string; // Panel title to display in toolbar
 }
 
 export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
@@ -34,6 +36,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   readOnly = false,
   onCursorLineChange,
   onFocusChange,
+  title = 'Markdown',
 }) => {
   const editorRef = useRef<CodeMirrorEditorRef>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -300,7 +303,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       <div style={toolbarStyle}>
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <FileText size={16} style={{ marginRight: '8px' }} />
-          <span>Markdown Editor</span>
+          <span>{title}</span>
         </div>
         <div>
           <button

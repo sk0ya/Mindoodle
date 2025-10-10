@@ -193,13 +193,6 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       />
 
       {}
-      <div className="panel-header">
-        <div className="panel-title">
-          <FileText size={14} />
-          <span>Markdown</span>
-        </div>
-      </div>
-
       <div className="editor-container">
         {loadingMapMd ? (
           <div className="preview-empty">
@@ -219,6 +212,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
           onCursorLineChange={handleCursorLineChange}
           onFocusChange={(f) => (f ? setEditorFocusedTrue() : setEditorFocusedFalse())}
           mapIdentifier={currentMapIdentifier || null}
+          title="Markdown"
         />
         )}
       </div>
