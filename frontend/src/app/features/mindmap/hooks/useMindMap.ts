@@ -13,6 +13,7 @@ import type { MindMapData } from '@shared/types';
 import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
 import { statusMessages } from '@shared/utils';
 import { useMindMapStore } from '@mindmap/store';
+import { getAdapterForWorkspace } from '@/app/core/utils';
 
 /**
  * 統合MindMapHook - 新しいアーキテクチャ
@@ -58,12 +59,7 @@ export const useMindMap = (
   // Stabilize adapter reference - get adapter for current map's workspace
   const mapWorkspaceId = dataHook.data?.mapIdentifier?.workspaceId;
   const stableAdapter = useMemo(() => {
-    if (!mapWorkspaceId) {
-      return (persistenceHook as any).storageAdapter || null;
-    }
-    // Get adapter for the specific workspace
-    const adapter = (persistenceHook as any).getAdapterForWorkspace?.(mapWorkspaceId) || (persistenceHook as any).storageAdapter || null;
-    return adapter;
+    return getAdapterForWorkspace(persistenceHook, mapWorkspaceId);
   }, [persistenceHook, mapWorkspaceId]);
 
   // Stabilize currentId to prevent unnecessary stream recreation
@@ -295,7 +291,7 @@ export const useMindMap = (
 
   // Folder selection helper to ensure we operate on the same adapter instance
   const selectRootFolder = useCallback(async (): Promise<boolean> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.addWorkspace === 'function') {
       await adapter.addWorkspace();
       await persistenceHook.refreshMapList();
@@ -311,7 +307,7 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const createFolder = useCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
-    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
+    const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
 
     if (adapter && typeof adapter.createFolder === 'function') {
       await adapter.createFolder(relativePath, workspaceId);
@@ -331,7 +327,7 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const renameItem = useCallback(async (path: string, newName: string): Promise<void> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.renameItem === 'function') {
       await adapter.renameItem(path, newName);
       await persistenceHook.refreshMapList();
@@ -343,7 +339,7 @@ export const useMindMap = (
     const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)/);
     const workspaceId = wsMatch ? wsMatch[1] : null;
 
-    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
+    const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
 
     if (adapter && typeof adapter.deleteItem === 'function') {
       await adapter.deleteItem(path);
@@ -359,7 +355,7 @@ export const useMindMap = (
   }, [subscribeMd]);
 
   const moveItem = useCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.moveItem === 'function') {
       await adapter.moveItem(sourcePath, targetFolderPath);
       await persistenceHook.refreshMapList();
@@ -368,7 +364,7 @@ export const useMindMap = (
 
   const readImageAsDataURL = useCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
     // Resolve adapter per workspace when possible (cloud/local)
-    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
+    const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
     if (adapter && typeof adapter.readImageAsDataURL === 'function') {
       return await adapter.readImageAsDataURL(relativePath, workspaceId);
     }
@@ -376,7 +372,7 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const getSelectedFolderLabel = useCallback((): string | null => {
-    const adapter: any = persistenceHook.storageAdapter as any;
+    const adapter: any = getAdapterForWorkspace(persistenceHook);
     if (adapter && 'selectedFolderName' in adapter) {
       return (adapter).selectedFolderName ?? null;
     }
@@ -385,7 +381,7 @@ export const useMindMap = (
 
   // Expose raw markdown fetch for current adapter (markdown mode only)
   const getMapMarkdown = useCallback(async (id: MapIdentifier): Promise<string | null> => {
-    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(id.workspaceId) || persistenceHook.storageAdapter;
+    const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
       try {
         return await adapter.getMapMarkdown(id);
@@ -397,7 +393,7 @@ export const useMindMap = (
   }, [persistenceHook]);
 
   const getMapLastModified = useCallback(async (id: MapIdentifier): Promise<number | null> => {
-    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(id.workspaceId) || persistenceHook.storageAdapter;
+    const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapLastModified === 'function') {
       try {
         return await adapter.getMapLastModified(id);
@@ -410,7 +406,7 @@ export const useMindMap = (
 
   // Save raw markdown for current adapter (markdown mode only)
   const saveMapMarkdown = useCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
-    const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(id.workspaceId) || persistenceHook.storageAdapter;
+    const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.saveMapMarkdown === 'function') {
       try {
         await adapter.saveMapMarkdown(id, markdown);
@@ -455,7 +451,7 @@ export const useMindMap = (
       const mapIdentifier: MapIdentifier = { mapId: initialMapId, workspaceId };
 
       // adapterを通じてファイルを作成
-      const adapter = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
+      const adapter = getAdapterForWorkspace(persistenceHook, workspaceId);
       if (!adapter) {
         console.error('createAndSelectMap: No storage adapter available');
         throw new Error('Storage adapter is not available');
@@ -481,7 +477,7 @@ export const useMindMap = (
 
       // 作成したファイルからマップをロードして選択
       try {
-        const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || persistenceHook.storageAdapter;
+        const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
         const loadedMarkdown = await adapter.getMapMarkdown(mapIdentifier);
 
         if (loadedMarkdown) {
@@ -541,7 +537,7 @@ export const useMindMap = (
 
       try {
         // Get adapter for the target workspace
-        const adapter: any = (persistenceHook as any).getAdapterForWorkspace?.(workspaceId) || (persistenceHook as any).storageAdapter;
+        const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
         if (!adapter) {
           delete (window as any).__selectMapFallbackInProgress[fallbackKey];
           return false;
