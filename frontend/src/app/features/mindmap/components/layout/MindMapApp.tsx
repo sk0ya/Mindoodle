@@ -678,6 +678,20 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 if (selectedNodeId) updateNode(selectedNodeId, { note: val });
               }}
               onClose={() => store.setShowNodeNotePanel?.(false)}
+              subscribeNoteChanges={useCallback((cb: (text: string) => void) => {
+                // Subscribe to node note changes
+                const unsubStore = useMindMapStore.subscribe(
+                  (state) => {
+                    if (!selectedNodeId) return '';
+                    const node = findNodeInRoots(state.data?.rootNodes || [], selectedNodeId);
+                    return node?.note || '';
+                  },
+                  (note) => {
+                    cb(note);
+                  }
+                );
+                return unsubStore;
+              }, [selectedNodeId])}
             />
           )}
         </div>

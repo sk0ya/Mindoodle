@@ -5,6 +5,7 @@ import { useResizingState } from '@/app/shared/hooks';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import { viewportService } from '@/app/core/services';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 type Props = {
   nodeId?: string | null;
@@ -12,11 +13,12 @@ type Props = {
   note: string;
   onChange: (value: string) => void;
   onClose?: () => void;
+  subscribeNoteChanges?: (cb: (text: string) => void) => () => void;
 };
 
 const HEIGHT_KEY = STORAGE_KEYS.NODE_NOTE_PANEL_HEIGHT;
 
-const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
+const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteChanges }) => {
   const [height, setHeight] = useState<number>(viewportService.getDefaultNoteHeight());
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -24,6 +26,10 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
   const [leftOffset, setLeftOffset] = useState<number>(0);
   const [rightOffset, setRightOffset] = useState<number>(0);
   const { setNodeNotePanelHeight } = useMindMapStore();
+  const [noteText, setNoteText] = useState<string>(note || '');
+  const { value: editorFocused, setTrue: setEditorFocusedTrue, setFalse: setEditorFocusedFalse } = useBooleanState({ initialValue: false });
+  const editorFocusedRef = useRef<boolean>(false);
+  const pendingNoteTextRef = useRef<string | null>(null);
 
   
   useEffect(() => {
@@ -139,7 +145,61 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
 
   useEventListener('resize', onWinResize);
 
-  
+  // Stream subscription: receive note updates from external sources
+  useEffect(() => {
+    if (!subscribeNoteChanges) return;
+    const unsub = subscribeNoteChanges((text: string) => {
+      // Use ref to get current focus state to avoid stale closure
+      const isCurrentlyFocused = editorFocusedRef.current;
+
+      // While editing, never override the user's input. Queue it instead.
+      if (isCurrentlyFocused) {
+        pendingNoteTextRef.current = text || '';
+        return;
+      }
+
+      // Only update if content actually differs
+      setNoteText(prevNote => {
+        if (text !== prevNote) {
+          return text || '';
+        }
+        return prevNote;
+      });
+    });
+    return () => { try { unsub(); } catch (_e) { /* ignore */ } };
+  }, [subscribeNoteChanges]);
+
+  // Sync ref with state for reliable focus tracking
+  useEffect(() => {
+    editorFocusedRef.current = editorFocused;
+  }, [editorFocused]);
+
+  // When editing ends, if there is a queued note text, apply it once
+  useEffect(() => {
+    if (editorFocused) return;
+    if (pendingNoteTextRef.current != null && pendingNoteTextRef.current !== noteText) {
+      setNoteText(pendingNoteTextRef.current);
+    }
+    pendingNoteTextRef.current = null;
+  }, [editorFocused, noteText]);
+
+  // Sync initial note prop to state
+  useEffect(() => {
+    if (!editorFocused) {
+      setNoteText(note || '');
+    }
+  }, [note, editorFocused]);
+
+  // Handle note changes from editor
+  const handleNoteChange = useCallback((value: string) => {
+    setNoteText(value);
+    // Push to parent onChange callback
+    if (onChange) {
+      onChange(value);
+    }
+  }, [onChange]);
+
+
   useEffect(() => {
     setNodeNotePanelHeight?.(height);
     try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
@@ -190,14 +250,14 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange }) => {
       {}
       <div className="panel-editor">
         <MarkdownEditor
-          value={note || ''}
-          onChange={onChange}
+          value={noteText}
+          onChange={handleNoteChange}
           className="node-note-editor"
           autoFocus={false}
           readOnly={false}
           onResize={() => {}}
           onCursorLineChange={() => {}}
-          onFocusChange={() => {}}
+          onFocusChange={(f) => (f ? setEditorFocusedTrue() : setEditorFocusedFalse())}
           mapIdentifier={currentMapIdentifier}
           title="ノート"
         />
