@@ -10,7 +10,7 @@ export class VisualModeStrategy implements EventStrategy {
         store.closeAttachmentAndLinkLists?.();
         store.selectNode?.(null);
         store.setShowContextMenu?.(false);
-      } catch {  }
+      } catch (e) { console.warn('CanvasEvent.visual: bgclick handler error', e); }
       return;
     }
     if (event.type === 'contextmenu') {
@@ -18,7 +18,7 @@ export class VisualModeStrategy implements EventStrategy {
         const store = useMindMapStore.getState();
         store.setContextMenuPosition({ x: event.x, y: event.y });
         (store as any).openPanel?.('contextMenu');
-      } catch {  }
+      } catch (e) { console.warn('CanvasEvent.visual: contextmenu handler error', e); }
     }
 
     if (event.type === 'nodeContextMenu' && event.targetNodeId) {
@@ -27,7 +27,7 @@ export class VisualModeStrategy implements EventStrategy {
         store.selectNode?.(event.targetNodeId);
         store.setContextMenuPosition?.({ x: event.x, y: event.y });
         store.openPanel?.('contextMenu');
-      } catch {  }
+      } catch (e) { console.warn('CanvasEvent.visual: nodeContextMenu handler error', e); }
       return;
     }
 
@@ -35,7 +35,7 @@ export class VisualModeStrategy implements EventStrategy {
       try {
         const store = useMindMapStore.getState() as any;
         store.selectNode?.(event.targetNodeId);
-      } catch {  }
+      } catch (e) { console.warn('CanvasEvent.visual: nodeClick handler error', e); }
       return;
     }
 
@@ -43,7 +43,7 @@ export class VisualModeStrategy implements EventStrategy {
       try {
         const store = useMindMapStore.getState() as any;
         store.moveNodeWithPosition?.(event.draggedNodeId, event.targetNodeId, event.dropPosition);
-      } catch {  }
+      } catch (e) { console.warn('CanvasEvent.visual: nodeDragEnd handler error', e); }
       return;
     }
   }
