@@ -49,13 +49,20 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { settings, clearMermaidRelatedCaches } = useMindMapStore();
 
-  // Extract mermaid blocks
+  // Extract mermaid blocks without relying on heavy regex
   const extractMermaidBlocks = useCallback((text: string): string[] => {
-    const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
     const blocks: string[] = [];
-    let match;
-    while ((match = mermaidRegex.exec(text)) !== null) {
-      blocks.push(match[1].trim());
+    const lower = text.toLowerCase();
+    let idx = 0;
+    while (idx < text.length) {
+      const start = lower.indexOf('```mermaid', idx);
+      if (start < 0) break;
+      const lineEnd = text.indexOf('\n', start);
+      const contentStart = lineEnd >= 0 ? lineEnd + 1 : start + '```mermaid'.length;
+      const end = text.indexOf('```', contentStart);
+      const raw = end >= 0 ? text.slice(contentStart, end) : text.slice(contentStart);
+      blocks.push(raw.trim());
+      idx = end >= 0 ? end + 3 : text.length;
     }
     return blocks;
   }, []);
