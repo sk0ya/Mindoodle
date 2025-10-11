@@ -3,9 +3,7 @@ import type { UIMode } from '@shared/types';
 
 
 
-export function canTransition(from: UIMode, to: UIMode): boolean {
-  if (from === to) return true;
-  
+export function canTransition(_from: UIMode, _to: UIMode): boolean {
   return true;
 }
 
@@ -20,4 +18,3 @@ export function isInsertLike(mode: UIMode): boolean {
 export function isVisualLike(mode: UIMode): boolean {
   return mode === 'visual';
 }
-
