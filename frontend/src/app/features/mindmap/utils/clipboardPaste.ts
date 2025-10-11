@@ -62,9 +62,14 @@ export async function pasteFromClipboard(
         const lines = clipboardText.split('\n')
           .map(line => {
             const trimmed = line.trim();
-            const re = /^#{1,6}\s+(.+)$/;
-            const headingMatch = re.exec(trimmed);
-            return headingMatch ? headingMatch[1] : trimmed;
+            if (trimmed.startsWith('#')) {
+              let i = 0;
+              while (i < trimmed.length && i < 6 && trimmed.charAt(i) === '#') i++;
+              if (i > 0 && trimmed.charAt(i) === ' ') {
+                return trimmed.slice(i + 1);
+              }
+            }
+            return trimmed;
           })
           .filter(line => line.length > 0);
 

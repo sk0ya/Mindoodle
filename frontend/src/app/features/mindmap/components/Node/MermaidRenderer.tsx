@@ -40,9 +40,16 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
   }, []);
 
   const cleanedCode = useMemo(() => {
-    
-    const fenceMatch = code.match(/```mermaid\s*([\s\S]*?)\s*```/i);
-    if (fenceMatch) return fenceMatch[1].trim();
+    const lower = code.toLowerCase();
+    const fenceStart = lower.indexOf('```mermaid');
+    if (fenceStart >= 0) {
+      // find end of the first line after ```mermaid
+      const lineEnd = code.indexOf('\n', fenceStart);
+      const contentStart = lineEnd >= 0 ? lineEnd + 1 : fenceStart + '```mermaid'.length;
+      const fenceEnd = code.indexOf('```', contentStart);
+      const raw = fenceEnd >= 0 ? code.slice(contentStart, fenceEnd) : code.slice(contentStart);
+      return raw.trim();
+    }
     return code.trim();
   }, [code]);
 
@@ -114,10 +121,10 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
         if (vbW > 0 && vbH > 0) {
           onLoadedDimensions?.(vbW, vbH);
         }
-      } catch (e) {
-        
+    } catch (e) {
+        console.warn('Mermaid render failed', e);
         setSvg('');
-      }
+    }
     };
 
     render();

@@ -7,7 +7,7 @@ export class VimCountBuffer {
    * @param digit - Single digit character '0'-'9'
    */
   append(digit: string): void {
-    if (!/^[0-9]$/.test(digit)) {
+    if (!/^\d$/.test(digit)) {
       throw new Error(`Invalid digit: ${digit}`);
     }
     this.buffer += digit;

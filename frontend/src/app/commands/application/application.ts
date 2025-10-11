@@ -302,9 +302,12 @@ export const pasteSiblingAfterCommand: Command = {
           const lines = clipboardText.split(/\r\n|\r|\n/)
             .map(l => {
               const t = l.trim();
-              const re = /^#{1,6}\s+(.+)$/;
-              const m = re.exec(t);
-              return m ? m[1] : t;
+              if (t.startsWith('#')) {
+                let i = 0;
+                while (i < t.length && i < 6 && t.charAt(i) === '#') i++;
+                if (i > 0 && t.charAt(i) === ' ') return t.slice(i + 1);
+              }
+              return t;
             })
             .filter(l => l.length > 0);
           if (lines.length > 0) {
@@ -432,9 +435,12 @@ export const pasteSiblingBeforeCommand: Command = {
           const lines = clipboardText.split(/\r\n|\r|\n/)
             .map(l => {
               const t = l.trim();
-              const re = /^#{1,6}\s+(.+)$/;
-              const m = re.exec(t);
-              return m ? m[1] : t;
+              if (t.startsWith('#')) {
+                let i = 0;
+                while (i < t.length && i < 6 && t.charAt(i) === '#') i++;
+                if (i > 0 && t.charAt(i) === ' ') return t.slice(i + 1);
+              }
+              return t;
             })
             .filter(l => l.length > 0);
           if (lines.length > 0) {
@@ -517,4 +523,3 @@ export const addWorkspaceCommand: Command = {
     }
   }
 };
-

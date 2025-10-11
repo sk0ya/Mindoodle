@@ -38,7 +38,7 @@ class Logger {
       
       maskedData = maskedData.replace(/(\?|&)token=[\w-]+/gi, '$1token=[MASKED]');
       
-      maskedData = maskedData.replace(/([aA]pi[_-]?[kK]ey|apikey)[:=]\s*[\w-]+/gi, '$1=[MASKED]');
+      maskedData = maskedData.replace(/api[_-]?key[:=]\s*[\w-]+/gi, 'api_key=[MASKED]');
       return maskedData;
     } else if (typeof data === 'object' && data !== null) {
       const masked = Array.isArray(data) ? [...data] as unknown[] : { ...data as Record<string, unknown> };
