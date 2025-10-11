@@ -105,7 +105,8 @@ function findNodeByText(root: MindMapNode, target: string): MindMapNode | null {
 // Resolve anchors like "テキスト" (first occurrence) or "テキスト-1" (second), "テキスト-2" (third), ...
 export function resolveAnchorToNode(root: MindMapNode, anchorText: string): MindMapNode | null {
   if (!root || !anchorText) return null;
-  const m = anchorText.match(/^(.*?)-(\d+)$/);
+  const re = /^(.*?)-(\d+)$/;
+  const m = re.exec(anchorText);
   const base = m ? m[1] : anchorText;
   const index = m ? parseInt(m[2], 10) : 0;
   if (!Number.isFinite(index) || index < 0) return null;
