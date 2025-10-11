@@ -1,22 +1,24 @@
 import React from 'react';
 
 
-export const highlightSearchTerm = (text: string, searchTerm: string): React.ReactNode => {
+export const highlightSearchTerm = (text: string, searchTerm: string): React.ReactElement => {
   if (!searchTerm.trim()) {
-    return text;
+    return <>{text}</>;
   }
 
-  const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  const escaped = searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const regex = new RegExp(`(${escaped})`, 'gi');
   const parts = text.split(regex);
 
-  return parts.map((part, index) => {
-    if (regex.test(part)) {
-      return (
-        <mark key={index} className="search-highlight">
-          {part}
-        </mark>
-      );
-    }
-    return part;
-  });
+  return (
+    <>
+      {parts.map((part, index) => (
+        regex.test(part) ? (
+          <mark key={index} className="search-highlight">{part}</mark>
+        ) : (
+          <React.Fragment key={index}>{part}</React.Fragment>
+        )
+      ))}
+    </>
+  );
 };
