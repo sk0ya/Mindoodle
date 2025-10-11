@@ -8,10 +8,11 @@ export class MindMapController {
     try {
       (window as any).mindoodleCreateFolder = async (path: string) => {
         if (typeof (mindMap).createFolder === 'function') {
-          const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
-          if (wsMatch) {
-            const workspaceId = wsMatch[1];
-            const relativePath = wsMatch[2] || '';
+          const p = path.startsWith('/') ? path.slice(1) : path;
+          if (p.startsWith('ws_') || p.startsWith('cloud')) {
+            const slash = p.indexOf('/');
+            const workspaceId = slash >= 0 ? p.slice(0, slash) : p;
+            const relativePath = slash >= 0 ? p.slice(slash + 1) : '';
             await (mindMap).createFolder(relativePath, workspaceId);
           } else {
             await (mindMap).createFolder(path);
@@ -24,8 +25,8 @@ export class MindMapController {
           await (mindMap).createAndSelectMap(title, workspaceId, category);
         }
       };
-    } catch {
-      
+    } catch (e) {
+      console.warn('attachExplorerGlobals failed', e);
     }
   }
 
@@ -42,7 +43,9 @@ export class MindMapController {
         
         handlers.setAuthOnSuccess(() => onSuccess || null);
         handlers.setIsAuthModalOpen(true);
-      } catch {  }
+      } catch (e) {
+        console.warn('mindoodle:showAuthModal handler error', e);
+      }
     };
     window.addEventListener('mindoodle:showAuthModal', listener as EventListener);
     return () => window.removeEventListener('mindoodle:showAuthModal', listener as EventListener);

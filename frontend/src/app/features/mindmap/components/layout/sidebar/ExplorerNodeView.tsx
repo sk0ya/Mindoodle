@@ -40,18 +40,19 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   const isCollapsed = collapsed[item.path] || false;
 
   
-  let workspaceId: string | undefined;
+  let workspaceId: string | null = null;
   let mapId: string | null = null;
 
   if (isMarkdown) {
     
-    const pathMatch = item.path.match(/^\/(ws_[^/]+|cloud)\/(.+)$/);
+    const re = /^\/(ws_[^/]+|cloud)\/(.+)$/;
+    const pathMatch = re.exec(item.path);
     if (pathMatch) {
       workspaceId = pathMatch[1];
       mapId = pathMatch[2].replace(/\.md$/i, '');
     } else {
       // Fallback for other patterns
-      workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : undefined;
+      workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : null;
       mapId = item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
     }
   }

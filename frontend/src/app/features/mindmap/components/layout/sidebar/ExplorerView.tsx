@@ -36,10 +36,10 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
   // Helper function to extract category path excluding workspace folder
   const extractCategoryFromPath = (path: string): string => {
     if (!path) return '';
-    // Support both local workspaces (ws_*) and cloud workspace
-    const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
-    if (wsMatch) {
-      return wsMatch[2] || '';
+    const p = path.startsWith('/') ? path.slice(1) : path;
+    if (p.startsWith('ws_') || p.startsWith('cloud')) {
+      const slash = p.indexOf('/');
+      return slash >= 0 ? p.slice(slash + 1) : '';
     }
     return path;
   };

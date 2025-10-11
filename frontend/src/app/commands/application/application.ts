@@ -302,7 +302,8 @@ export const pasteSiblingAfterCommand: Command = {
           const lines = clipboardText.split(/\r\n|\r|\n/)
             .map(l => {
               const t = l.trim();
-              const m = t.match(/^#{1,6}\s+(.+)$/);
+              const re = /^#{1,6}\s+(.+)$/;
+              const m = re.exec(t);
               return m ? m[1] : t;
             })
             .filter(l => l.length > 0);
@@ -329,7 +330,7 @@ export const pasteSiblingAfterCommand: Command = {
           }
         }
       }
-    } catch {  }
+    } catch (e) { console.warn('paste-sibling-after: clipboard read failed', e); }
 
     
     if (uiClipboard) {
@@ -431,7 +432,8 @@ export const pasteSiblingBeforeCommand: Command = {
           const lines = clipboardText.split(/\r\n|\r|\n/)
             .map(l => {
               const t = l.trim();
-              const m = t.match(/^#{1,6}\s+(.+)$/);
+              const re = /^#{1,6}\s+(.+)$/;
+              const m = re.exec(t);
               return m ? m[1] : t;
             })
             .filter(l => l.length > 0);
@@ -457,7 +459,7 @@ export const pasteSiblingBeforeCommand: Command = {
           }
         }
       }
-    } catch {  }
+    } catch (e) { console.warn('paste-sibling-before: clipboard read failed', e); }
 
     if (uiClipboard) {
       const newId = await pasteTreeAsSibling(uiClipboard, refNodeId, false, context);
@@ -515,5 +517,4 @@ export const addWorkspaceCommand: Command = {
     }
   }
 };
-
 

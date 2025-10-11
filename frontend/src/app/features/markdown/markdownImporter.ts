@@ -29,7 +29,7 @@ interface StructureElement {
   type: 'heading' | 'unordered-list' | 'ordered-list' | 'preface';
   level: number;
   text: string;
-  content?: string | undefined; 
+  content?: string; 
   originalFormat: string; 
   indentLevel?: number; 
   lineNumber: number; 
@@ -115,7 +115,8 @@ export class MarkdownImporter {
       const line = lines[i];
 
       
-      const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+      const headingRe = /^(#{1,6})\s+(.+)$/;
+      const headingMatch = headingRe.exec(line);
       if (headingMatch) {
         
         if (!foundFirstStructureElement && prefaceLines.length > 0) {
@@ -153,7 +154,8 @@ export class MarkdownImporter {
       }
 
       
-      const listMatch = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
+      const listRe = /^(\s*)([-*+]|\d+\.)\s+(.+)$/;
+      const listMatch = listRe.exec(line);
       if (listMatch) {
         
         if (!foundFirstStructureElement && prefaceLines.length > 0) {
@@ -186,15 +188,16 @@ export class MarkdownImporter {
         // チェックボックスパターンを検出
         let isCheckbox = false;
         let isChecked = false;
-        const checkboxMatch = text.match(/^\[([ xX])\]\s*(.*)$/);
-        if (checkboxMatch && marker.match(/^[-*+]$/)) { // チェックボックスは順序なしリストのみ
+        const checkboxRe = /^\[([ xX])\]\s*(.*)$/;
+        const checkboxMatch = checkboxRe.exec(text);
+        if (checkboxMatch && /^[-*+]$/.test(marker)) { // チェックボックスは順序なしリストのみ
           isCheckbox = true;
           isChecked = checkboxMatch[1].toLowerCase() === 'x';
           text = checkboxMatch[2]; 
         }
 
         currentElement = {
-          type: marker.match(/\d+\./) ? 'ordered-list' : 'unordered-list',
+          type: /\d+\./.test(marker) ? 'ordered-list' : 'unordered-list',
           level: level,
           text: text,
           content: undefined,

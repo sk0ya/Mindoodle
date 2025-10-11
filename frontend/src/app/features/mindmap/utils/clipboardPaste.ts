@@ -3,7 +3,7 @@ import type { MindMapNode } from '@shared/types';
 function nodeToMarkdown(node: MindMapNode, level = 0): string {
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
   let md = `${prefix}${node.text}\n`;
-  if (node.note !== null) md += `${node.note}\n`;
+  if (node.note != null) md += `${node.note}\n`;
   if (node.children?.length) {
     node.children.forEach(child => {
       md += nodeToMarkdown(child, level + 1);
@@ -61,9 +61,9 @@ export async function pasteFromClipboard(
       if (clipboardText && clipboardText.trim()) {
         const lines = clipboardText.split('\n')
           .map(line => {
-            
             const trimmed = line.trim();
-            const headingMatch = trimmed.match(/^#{1,6}\s+(.+)$/);
+            const re = /^#{1,6}\s+(.+)$/;
+            const headingMatch = re.exec(trimmed);
             return headingMatch ? headingMatch[1] : trimmed;
           })
           .filter(line => line.length > 0);
@@ -92,7 +92,8 @@ export async function pasteFromClipboard(
       }
     }
   } catch (error) {
-    
+    console.warn('Failed to read clipboard or paste content', error);
+    notify('error', 'クリップボードの読み取りに失敗しました');
   }
 
   
@@ -105,4 +106,3 @@ export async function pasteFromClipboard(
   const newId = pasteNodeTree(source, parentId, addChildNode, updateNode);
   if (newId) { notify('success', `「${source.text}」を貼り付けました`); selectNode(newId); }
 }
-

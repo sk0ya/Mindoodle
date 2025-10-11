@@ -9,8 +9,13 @@ export interface WorkspacePathInfo {
 
 export function extractWorkspaceId(path: string | null): string | null {
   if (!path) return null;
-  const match = path.match(/^\/?(ws_[^/]+|cloud)/);
-  return match ? match[1] : null;
+  const p = path.startsWith('/') ? path.slice(1) : path;
+  if (p.startsWith('cloud')) return 'cloud';
+  if (p.startsWith('ws_')) {
+    const slash = p.indexOf('/');
+    return slash >= 0 ? p.slice(0, slash) : p;
+  }
+  return null;
 }
 
 
@@ -18,20 +23,19 @@ export function parseWorkspacePath(path: string | null): WorkspacePathInfo {
   if (!path) {
     return { workspaceId: null, relativePath: null };
   }
-
-  const match = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
-
-  if (match) {
-    return {
-      workspaceId: match[1],
-      relativePath: match[2] || null
-    };
+  const p = path.startsWith('/') ? path.slice(1) : path;
+  if (p.startsWith('cloud')) {
+    const rest = p.length > 'cloud'.length ? p.slice('cloud'.length + 1) : '';
+    return { workspaceId: 'cloud', relativePath: rest || null };
   }
-
-  return {
-    workspaceId: null,
-    relativePath: path
-  };
+  if (p.startsWith('ws_')) {
+    const slash = p.indexOf('/');
+    if (slash >= 0) {
+      return { workspaceId: p.slice(0, slash), relativePath: p.slice(slash + 1) || null };
+    }
+    return { workspaceId: p, relativePath: null };
+  }
+  return { workspaceId: null, relativePath: path };
 }
 
 
@@ -85,7 +89,7 @@ export function extractParentPaths(path: string): string[] {
 export function normalizePathSeparators(path: string): string {
   return path
     .replace(/\/+/g, '/') 
-    .replace(/^\/|\/$/g, ''); // 前後のスラッシュを削除
+    .replace(/(?:^\/|\/$)/g, ''); // 前後のスラッシュを削除（演算子の優先順位を明示）
 }
 
 /**

@@ -18,7 +18,8 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
 
   while (remaining.length > 0) {
     // Try to match bold (**text** or __text__)
-    const boldMatch = remaining.match(/^(\*\*|__)(.+?)\1/);
+    const boldRe = /^(\*\*|__)(.+?)\1/;
+    const boldMatch = boldRe.exec(remaining);
     if (boldMatch) {
       const innerText = boldMatch[2];
       // Recursively parse inner content for nested formatting
@@ -31,7 +32,8 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     }
 
     // Try to match strikethrough (~~text~~)
-    const strikeMatch = remaining.match(/^~~(.+?)~~/);
+    const strikeRe = /^~~(.+?)~~/;
+    const strikeMatch = strikeRe.exec(remaining);
     if (strikeMatch) {
       const innerText = strikeMatch[1];
       // Recursively parse inner content for nested formatting
@@ -44,7 +46,8 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     }
 
     // Try to match italic (*text* or _text_)
-    const italicMatch = remaining.match(/^(\*|_)(.+?)\1/);
+    const italicRe = /^([*_])(.+?)\1/;
+    const italicMatch = italicRe.exec(remaining);
     if (italicMatch) {
       const innerText = italicMatch[2];
       // Recursively parse inner content for nested formatting
@@ -57,7 +60,8 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     }
 
     // No markdown found, consume plain text until next markdown character
-    const plainMatch = remaining.match(/^[^*_~]+/);
+    const plainRe = /^[^*_~]+/;
+    const plainMatch = plainRe.exec(remaining);
     if (plainMatch) {
       segments.push({ text: plainMatch[0] });
       remaining = remaining.slice(plainMatch[0].length);

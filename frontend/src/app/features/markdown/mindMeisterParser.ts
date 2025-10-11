@@ -24,12 +24,14 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
   let rootText = '';
   
   // MindMeisterのリンク形式を解析
-  const linkMatch = firstLine.match(/^#\s*\[(.*?)\]/);
+  const linkRe = /^#\s*\[(.*?)\]/;
+  const linkMatch = linkRe.exec(firstLine);
   if (linkMatch) {
     rootText = linkMatch[1];
   } else {
     // 通常のマークダウンヘッダー形式
-    const headerMatch = firstLine.match(/^#+\s*(.+)/);
+    const headerRe = /^#+\s*(.+)/;
+    const headerMatch = headerRe.exec(firstLine);
     rootText = headerMatch ? headerMatch[1] : firstLine;
   }
 
@@ -37,7 +39,8 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
   const getAllIndentLevels = (lines: string[]): number[] => {
     const levels: number[] = [];
     for (const line of lines.slice(1)) { // 最初の行（タイトル）は除外
-      const indentMatch = line.match(/^(\s*)-\s*(.+)/);
+      const indentRe = /^(\s*)-\s*(.+)/;
+      const indentMatch = indentRe.exec(line);
       if (indentMatch) {
         levels.push(indentMatch[1].length);
       }
@@ -56,7 +59,8 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       const line = lines[i];
       
       // インデントレベルを計算（trimしない）
-      const indentMatch = line.match(/^(\s*)-\s*(.+)/);
+      const indentRe = /^(\s*)-\s*(.+)/;
+      const indentMatch = indentRe.exec(line);
       if (!indentMatch) {
         i++;
         continue;
@@ -70,7 +74,8 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       // チェックボックスパターンを検出
       let isCheckbox = false;
       let isChecked = false;
-      const checkboxMatch = nodeText.match(/^\[([ xX])\]\s*(.*)$/);
+      const checkboxRe = /^\[([ xX])\]\s*(.*)$/;
+      const checkboxMatch = checkboxRe.exec(nodeText);
       if (checkboxMatch) {
         isCheckbox = true;
         isChecked = checkboxMatch[1].toLowerCase() === 'x';
@@ -91,7 +96,8 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       
       while (j < lines.length) {
         const nextLine = lines[j];
-        const nextIndentMatch = nextLine.match(/^(\s*)-\s*(.+)/);
+        const nextIndentRe = /^(\s*)-\s*(.+)/;
+        const nextIndentMatch = nextIndentRe.exec(nextLine);
         
         if (nextIndentMatch) {
           const nextIndentSpaces = nextIndentMatch[1].length;
@@ -177,13 +183,14 @@ export function isMindMeisterFormat(text: string): boolean {
   
   
   const firstLine = lines[0].trim();
-  const hasMindMeisterLink = firstLine.match(/^#\s*\[.*?\]\(https?:\/\/.*mindmeister\.com.*\)/);
+  const mmLinkRe = /^#\s*\[.*?\]\(https?:\/\/.*mindmeister\.com.*\)/;
+  if (mmLinkRe.exec(firstLine)) return true;
   
-  if (hasMindMeisterLink) return true;
   
-  
-  const hasListItems = lines.some(line => line.trim().match(/^\s*-\s+.+/));
-  const hasHeader = Boolean(lines[0].match(/^#+\s+.+/));
+  const listRe = /^\s*-\s+.+/;
+  const headerRe2 = /^#+\s+.+/;
+  const hasListItems = lines.some(line => listRe.exec(line.trim()));
+  const hasHeader = Boolean(headerRe2.exec(lines[0]));
   
   return hasHeader && hasListItems;
 }

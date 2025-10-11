@@ -89,14 +89,15 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
 
   
   
-  const countMatch = normalizedSequence.match(/^([1-9]\d*)(.*)$/);
+  const countRe = /^([1-9]\d*)/;
+  const countMatch = countRe.exec(normalizedSequence);
   let count: number | undefined;
   let commandPart = normalizedSequence;
 
   if (countMatch) {
-    const [, countStr, rest] = countMatch;
+    const [countStr] = countMatch;
     count = parseInt(countStr, 10);
-    commandPart = rest;
+    commandPart = normalizedSequence.slice(countStr.length);
 
     
     if (!commandPart) {
