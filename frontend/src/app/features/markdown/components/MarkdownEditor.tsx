@@ -291,6 +291,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     height: '100%',
     width: '100%',
     minHeight: 0,
+    minWidth: 0,
     backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
   };
 
@@ -299,6 +300,8 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     display: mode === 'preview' ? 'none' : 'flex',
     flexDirection: 'column',
     minHeight: 0,
+    minWidth: 0,
+    height: '100%',
     borderRight: mode === 'split' ? `1px solid ${isDark ? '#404040' : '#e0e0e0'}` : 'none',
   };
 
@@ -373,7 +376,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       </div>
 
       {/* Content area (Editor and/or Preview) */}
-      <div style={{ display: 'flex', flex: 1, minHeight: 0 }}>
+      <div style={{ display: 'flex', flex: 1, minHeight: 0, minWidth: 0, height: '100%' }}>
         {/* Editor pane */}
         <div style={editorContainerStyle}>
           <CodeMirrorEditor

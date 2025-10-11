@@ -229,6 +229,8 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       display: flex;
       flex-direction: column;
       height: 100%;
+      /* Allow shrinking inside flex row so inner scrollbars remain visible */
+      min-width: 0;
       background: var(--bg-primary);
       border-left: 1px solid var(--border-color);
       position: relative;
@@ -285,6 +287,8 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       display: flex;
       flex-direction: column;
       min-height: 0;
+      /* Important in flex layouts to prevent content from forcing width */
+      min-width: 0;
       max-height: 100%;
       padding: 0;
       padding-left: 4px;
@@ -294,8 +298,22 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       flex: 1;
       width: 100%;
       min-height: 0;
+      min-width: 0;
       border: none;
       border-radius: 0;
+    }
+
+    /* Ensure CodeMirror can shrink and manage its own scrolling */
+    .node-editor .cm-editor {
+      min-width: 0;
+      height: 100%;
+    }
+
+    .node-editor .cm-scroller {
+      min-width: 0;
+      min-height: 0;
+      overflow-y: auto !important;
+      overflow-x: hidden;
     }
 
     .node-editor .markdown-editor {

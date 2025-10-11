@@ -175,13 +175,20 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        // Allow shrinking in flex containers so scrollbars stay visible
+        minWidth: '0',
         backgroundColor: isDark ? '#0d1117' : '#ffffff',
         color: isDark ? '#c9d1d9' : '#24292f',
       },
       '.cm-scroller': {
         flex: '1 1 auto',
-        overflow: 'auto !important',
+        // Be explicit: vertical scroll only; avoid horizontal unless necessary
+        overflowY: 'auto !important',
+        overflowX: 'hidden',
         minHeight: '0',
+        minWidth: '0',
+        // Reserve space for scrollbars inside the box to prevent clipping
+        scrollbarGutter: 'stable both-edges',
         scrollbarWidth: 'thin', // For Firefox
         scrollbarColor: isDark ? '#484f58 #0d1117' : '#d1d5da #ffffff', // For Firefox
       },
