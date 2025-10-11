@@ -212,6 +212,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     removeWorkspace,
     allMindMaps,
     currentMapId,
+    currentWorkspaceId,
     explorerTree,
     selectMapById,
     mindMap,
@@ -856,8 +857,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       <KnowledgeGraphModal2D
         isOpen={!!store.ui.showKnowledgeGraph}
         onClose={() => store.setShowKnowledgeGraph?.(false)}
-        storageAdapter={storageAdapter}
-        currentMapId={data?.mapIdentifier?.mapId}
+        mapIdentifier={data?.mapIdentifier || null}
+        getMapMarkdown={mindMap.getMapMarkdown}
+        getWorkspaceMapIdentifiers={(mindMap as any)?.getWorkspaceMapIdentifiers}
       />
 
       {/* Embedding Integration (監視のみ、レンダリングなし) */}

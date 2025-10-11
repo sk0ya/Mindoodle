@@ -740,7 +740,30 @@ export const useMindMap = (
 
     
     storageAdapter: persistenceHook.storageAdapter,
+    getAdapterForWorkspace: (ws: string | null) => {
+      try {
+        const fn = (persistenceHook as any)?.getAdapterForWorkspace;
+        if (typeof fn === 'function') return fn(ws) || null;
+      } catch {}
+      return persistenceHook.storageAdapter || null;
+    },
     refreshMapList: persistenceHook.refreshMapList,
+
+    // Provide lightweight workspace-wide listing for KG vectorization
+    getWorkspaceMapIdentifiers: useStableCallback(async (workspaceId?: string | null) => {
+      try {
+        const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId || (dataHook.data?.mapIdentifier?.workspaceId));
+        if (adapter && typeof adapter.listMapIdentifiers === 'function') {
+          const ids = await adapter.listMapIdentifiers();
+          return Array.isArray(ids) ? ids : [];
+        }
+      } catch {}
+      // Fallback to current in-memory list
+      const ws = workspaceId || dataHook.data?.mapIdentifier?.workspaceId || null;
+      return (persistenceHook.allMindMaps || [])
+        .filter(m => (ws ? m.mapIdentifier?.workspaceId === ws : true))
+        .map(m => ({ mapId: m.mapIdentifier.mapId, workspaceId: m.mapIdentifier.workspaceId }));
+    }),
 
     
     getMapMarkdown,

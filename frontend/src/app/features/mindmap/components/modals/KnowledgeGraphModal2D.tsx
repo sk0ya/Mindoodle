@@ -5,21 +5,23 @@ import { vectorStore } from '@core/services/VectorStore';
 import { ForceDirectedLayout, type Node2D } from '../../utils/forceDirectedLayout';
 import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
-import type { StorageAdapter } from '@core/types';
+// storageAdapter no longer passed; use getMapMarkdown when needed
 import { getCommandRegistry } from '@commands/system/registry';
 
 interface KnowledgeGraphModal2DProps {
   isOpen: boolean;
   onClose: () => void;
-  storageAdapter?: StorageAdapter | null;
-  currentMapId?: string;
+  mapIdentifier?: { mapId: string; workspaceId?: string | null } | null;
+  getMapMarkdown?: (id: { mapId: string; workspaceId: string | null | undefined }) => Promise<string | null>;
+  getWorkspaceMapIdentifiers?: (workspaceId?: string | null) => Promise<Array<{ mapId: string; workspaceId: string }>>;
 }
 
 export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   isOpen,
   onClose,
-  storageAdapter,
-  currentMapId,
+  mapIdentifier,
+  getMapMarkdown,
+  getWorkspaceMapIdentifiers,
 }) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [nodes, setNodes] = useState<Node2D[]>([]);
@@ -32,10 +34,25 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     total: number;
   } | null>(null);
   const hasRunInitialVectorization = useRef(false);
+  const [effectiveWorkspaceId, setEffectiveWorkspaceId] = useState<string | null>(null);
 
   
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
+
+  const buildVectorKey = useCallback((workspaceId: string | null | undefined, mapId: string) => {
+    // Use namespaced key only when workspaceId is known; otherwise fall back to plain mapId.md (legacy)
+    return workspaceId ? `${workspaceId}::${mapId}.md` : `${mapId}.md`;
+  }, []);
+
+  const parseVectorKey = useCallback((key: string): { workspaceId: string | null; mapId: string } => {
+    const plain = key.endsWith('.md') ? key.slice(0, -3) : key;
+    const idx = plain.indexOf('::');
+    if (idx >= 0) {
+      return { workspaceId: plain.slice(0, idx), mapId: plain.slice(idx + 2) };
+    }
+    return { workspaceId: null, mapId: plain };
+  }, []);
 
   
   const loadAndLayout = useCallback(async () => {
@@ -43,79 +60,220 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     setError(null);
 
     try {
-      
+      // Load all vectors and optionally filter by current workspace
       const vectors = await vectorStore.getAllVectors();
 
-      if (vectors.size === 0) {
-        setError('No vectors found. Please enable knowledge graph in settings and wait for files to be vectorized.');
-        setIsLoading(false);
-        return;
+      // Filter vectors to current workspace only using provided maps (avoid additional fetching)
+      try {
+        let mapsList: any[] = ((window as any).mindoodleAllMaps || []).slice();
+        const ws = mapIdentifier?.workspaceId || null;
+        const containsWsCountInit = mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === ws).length;
+        if ((containsWsCountInit === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
+          try {
+            const ids = await getWorkspaceMapIdentifiers(ws);
+            if (Array.isArray(ids) && ids.length > 0) {
+              mapsList = ids.map(id => ({ mapIdentifier: id }));
+            }
+          } catch {}
+        }
+        // Ensure current map is present as a candidate
+        if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+          mapsList.push({ mapIdentifier });
+        }
+        const uniqueWs = Array.from(new Set(mapsList.map((m: any) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
+        const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0]! : null);
+        setEffectiveWorkspaceId(filterWsId || null);
+
+        if (filterWsId) {
+          const allowedPlain = new Set(
+            mapsList
+              .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
+              .map((m: any) => `${m.mapIdentifier.mapId}.md`)
+          );
+          const allowedNamespaced = new Set(
+            mapsList
+              .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
+              .map((m: any) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))
+          );
+
+          for (const key of Array.from(vectors.keys())) {
+            if (!allowedPlain.has(key) && !allowedNamespaced.has(key)) {
+              vectors.delete(key);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn('KnowledgeGraph: Failed to filter vectors by workspace (maps list)', e);
       }
 
-      const nodeData = Array.from(vectors.entries()).map(([id, vector]) => ({
-        id,
-        vector,
-      }));
+      if (vectors.size === 0) {
+        // If maps are available, try on-demand vectorization, then retry
+        try {
+          let mapsList: any[] = ((window as any).mindoodleAllMaps || []).slice();
+          const ws = mapIdentifier?.workspaceId || null;
+          const containsWsCount = mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === ws).length;
+          if ((containsWsCount === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
+            try {
+              const ids = await getWorkspaceMapIdentifiers(ws);
+              if (Array.isArray(ids) && ids.length > 0) {
+                mapsList = ids.map(id => ({ mapIdentifier: id }));
+              }
+            } catch {}
+          }
+          if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+            mapsList.push({ mapIdentifier });
+          }
+          if (Array.isArray(mapsList) && mapsList.length > 0) {
+            await runInitialVectorization();
+            // Re-fetch vectors and re-apply filter
+            const refreshed = await vectorStore.getAllVectors();
+            const uniqueWs = Array.from(new Set(mapsList.map((m: any) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
+            const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0]! : null);
+            if (filterWsId) {
+              const allowedPlain = new Set(
+                mapsList
+                  .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
+                  .map((m: any) => `${m.mapIdentifier.mapId}.md`)
+              );
+              const allowedNamespaced = new Set(
+                mapsList
+                  .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
+                  .map((m: any) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))
+              );
+              for (const key of Array.from(refreshed.keys())) {
+                if (!allowedPlain.has(key) && !allowedNamespaced.has(key)) {
+                  refreshed.delete(key);
+                }
+              }
+            }
+            if (refreshed.size > 0) {
+              // Replace vectors map with refreshed
+              // Note: subsequent steps below rely on 'vectors'
+              (vectors as any).clear?.();
+              for (const [k, v] of refreshed.entries()) (vectors as any).set?.(k, v);
+            }
+          }
+        } catch {}
 
-      
-      const layout = new ForceDirectedLayout({
-        width: CANVAS_WIDTH,
-        height: CANVAS_HEIGHT,
-      });
+        if (vectors.size === 0) {
+          setError('No vectors found. Please enable knowledge graph in settings and wait for files to be vectorized.');
+          setIsLoading(false);
+          return;
+        }
+      }
 
-      layout.setNodes(nodeData);
-      
-      setNodes(layout.getNodes());
+      const nodeData = Array.from(vectors.entries()).map(([id, vector]) => ({ id, vector }));
+
+      // Try to reuse cached layout (keyed by workspace + file list)
+      const fileKeys = nodeData.map(n => n.id).sort();
+      const wsForCache = (mapIdentifier?.workspaceId ?? effectiveWorkspaceId) || '';
+      const cacheKey = `mindoodle_kg_layout_v1:${wsForCache}:${fileKeys.join('|')}`;
+
+      let appliedFromCache = false;
+      try {
+        const cached = localStorage.getItem(cacheKey);
+        if (cached) {
+          const parsed = JSON.parse(cached) as { positions: Record<string, { x: number; y: number }>; ts: number };
+          if (parsed && parsed.positions) {
+            const nodesFromCache: Node2D[] = nodeData.map(d => {
+              const pos = parsed.positions[d.id];
+              return {
+                id: d.id,
+                vector: d.vector,
+                x: pos?.x ?? Math.random() * CANVAS_WIDTH,
+                y: pos?.y ?? Math.random() * CANVAS_HEIGHT,
+                vx: 0,
+                vy: 0,
+              };
+            });
+            setNodes(nodesFromCache);
+            appliedFromCache = true;
+          }
+        }
+      } catch {}
+
+      if (!appliedFromCache) {
+        const layout = new ForceDirectedLayout({ width: CANVAS_WIDTH, height: CANVAS_HEIGHT });
+        layout.setNodes(nodeData);
+        const laidOut = layout.getNodes();
+        setNodes(laidOut);
+
+        // Save to cache for the next open
+        try {
+          const positions: Record<string, { x: number; y: number }> = {};
+          for (const n of laidOut) positions[n.id] = { x: n.x, y: n.y };
+          localStorage.setItem(cacheKey, JSON.stringify({ positions, ts: Date.now() }));
+        } catch {}
+      }
+
       setIsLoading(false);
     } catch (err) {
       console.error('Failed to load and layout:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsLoading(false);
     }
-  }, []);
+  }, [mapIdentifier, effectiveWorkspaceId]);
 
   
   const runInitialVectorization = useCallback(async () => {
-    if (!storageAdapter) {
-      console.warn('No storage adapter available for bulk vectorization');
-      return;
-    }
-
     try {
-      
       const existingVectors = await vectorStore.getAllVectors();
+      let mapsList: any[] = ((window as any).mindoodleAllMaps || []).slice();
+      const ws = mapIdentifier?.workspaceId || null;
+      if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+        mapsList.push({ mapIdentifier });
+      }
+      const containsWsCount = mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === ws).length;
+      if ((containsWsCount === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
+        try {
+          const ids = await getWorkspaceMapIdentifiers(ws);
+          if (Array.isArray(ids) && ids.length > 0) {
+            mapsList = ids.map(id => ({ mapIdentifier: id }));
+            if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+              mapsList.push({ mapIdentifier });
+            }
+          }
+        } catch {}
+      }
 
-      
-      const allMaps = await storageAdapter.loadAllMaps();
+      const uniqueWs = Array.from(new Set(mapsList.map((m: any) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
+      const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0]! : null);
+      const scopedMaps = filterWsId ? mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId) : mapsList;
 
-      
-      const mapsToVectorize = allMaps.filter(mapData => {
-        const filePath = `${mapData.mapIdentifier.mapId}.md`;
-        return !existingVectors.has(filePath);
+      // Vectorize any map that lacks a vector, regardless of rootNodes presence
+      const mapsToVectorize = scopedMaps.filter((mapData: any) => {
+        const plainKey = `${mapData?.mapIdentifier?.mapId}.md`;
+        const namespacedKey = buildVectorKey(mapData?.mapIdentifier?.workspaceId, mapData?.mapIdentifier?.mapId || '');
+        return !!namespacedKey && !existingVectors.has(plainKey) && !existingVectors.has(namespacedKey);
       });
 
-      
-      if (mapsToVectorize.length === 0) {
-        return;
-      }
+      if (mapsToVectorize.length === 0) return;
 
       setVectorizationProgress({ current: 0, total: mapsToVectorize.length });
 
-      
       for (let i = 0; i < mapsToVectorize.length; i++) {
         const mapData = mapsToVectorize[i];
+        const filePath = buildVectorKey(mapData.mapIdentifier.workspaceId, mapData.mapIdentifier.mapId);
 
-        if (mapData && mapData.rootNodes) {
-          const markdown = mapData.rootNodes.map(node => nodeToMarkdown(node)).join('\n');
-          const filePath = `${mapData.mapIdentifier.mapId}.md`;
-
+        // Prefer in-memory rootNodes; otherwise fetch markdown via adapter (network OK in cloud)
+        let markdown = '';
+        if (Array.isArray(mapData.rootNodes) && mapData.rootNodes.length > 0) {
+          markdown = mapData.rootNodes.map((node: any) => nodeToMarkdown(node)).join('\n');
+        } else if (typeof getMapMarkdown === 'function') {
           try {
-            
+            const text = await getMapMarkdown(mapData.mapIdentifier);
+            markdown = text || '';
+          } catch (e) {
+            console.warn('Failed to fetch markdown for', filePath, e);
+          }
+        }
+
+        if (markdown) {
+          try {
             const vector = await embeddingService.embed(filePath, markdown);
             await vectorStore.saveVector(filePath, vector);
-          } catch (error) {
-            console.error(`Failed to vectorize ${filePath}:`, error);
-            
+          } catch (e) {
+            console.warn('Vectorization failed for', filePath, e);
           }
         }
 
@@ -128,12 +286,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       setError(err instanceof Error ? err.message : 'Vectorization failed');
       setVectorizationProgress(null);
     }
-  }, [storageAdapter]);
+  }, [mapIdentifier, getMapMarkdown, getWorkspaceMapIdentifiers]);
 
   
   useEffect(() => {
-    if (isOpen && storageAdapter) {
-      
+    if (isOpen) {
       if (!hasRunInitialVectorization.current) {
         hasRunInitialVectorization.current = true;
         runInitialVectorization().then(() => {
@@ -142,25 +299,22 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       } else {
         loadAndLayout();
       }
-    } else if (isOpen) {
-      
-      loadAndLayout();
     }
-  }, [isOpen, loadAndLayout, runInitialVectorization, storageAdapter]);
+  }, [isOpen, runInitialVectorization, loadAndLayout]);
 
   
   useEffect(() => {
+    const currentMapId = mapIdentifier?.mapId;
     if (isOpen && currentMapId && nodes.length > 0) {
-      const currentNodeId = `${currentMapId}.md`;
-      const nodeExists = nodes.some(n => n.id === currentNodeId);
-      if (nodeExists) {
-        setSelectedNode(currentNodeId);
+      // Try to select current map's node by matching mapId, regardless of namespacing
+      const candidate = nodes.find(n => parseVectorKey(n.id).mapId === currentMapId);
+      if (candidate) {
+        setSelectedNode(candidate.id);
       } else if (nodes.length > 0) {
-        
         setSelectedNode(nodes[0].id);
       }
     }
-  }, [isOpen, currentMapId, nodes]);
+  }, [isOpen, mapIdentifier, nodes, parseVectorKey]);
 
   
   useEffect(() => {
@@ -175,11 +329,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
 
     
     for (const node of nodes) {
+      const parsed = parseVectorKey(node.id);
       const isHovered = hoveredNode === node.id;
       const isSelected = selectedNode === node.id;
-      const fileName = node.id.split('/').pop()?.replace('.md', '') || node.id;
-      const mapId = node.id.replace('.md', '');
-      const isCurrent = currentMapId && mapId === currentMapId;
+      const fileName = parsed.mapId.split('/').pop() || parsed.mapId;
+      const isCurrent = (mapIdentifier?.mapId && parsed.mapId === mapIdentifier.mapId) || false;
 
       // ノード円
       ctx.beginPath();
@@ -289,7 +443,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       }
       ctx.fillText(fileName, labelX, labelY);
     }
-  }, [nodes, hoveredNode, selectedNode, currentMapId]);
+  }, [nodes, hoveredNode, selectedNode, mapIdentifier]);
 
   
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -314,7 +468,8 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   const openMap = useCallback(async (nodeId: string) => {
     try {
       
-      const mapId = nodeId.replace('.md', '');
+      const parsed = parseVectorKey(nodeId);
+      const mapId = parsed.mapId;
 
       // コマンドレジストリを使ってマップを切り替え
       const registry = getCommandRegistry();
@@ -324,14 +479,14 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
         editingNodeId: null,
         handlers: {} as any,
       };
-      await registry.execute('switch-map', context, { mapId });
+      await registry.execute('switch-map', context, { mapId, workspaceId: parsed.workspaceId || effectiveWorkspaceId || mapIdentifier?.workspaceId });
 
       
       onClose();
     } catch (error) {
       console.error('Failed to open map:', error);
     }
-  }, [onClose]);
+  }, [onClose, effectiveWorkspaceId, mapIdentifier, parseVectorKey]);
 
   
   const handleClick = useCallback(() => {
@@ -395,6 +550,15 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (!isOpen) return;
+
+    // Close on Escape
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      e.stopPropagation();
+      try { (e as any).stopImmediatePropagation?.(); } catch {}
+      onClose();
+      return;
+    }
 
     
     if (e.key === 'Enter' && selectedNode) {

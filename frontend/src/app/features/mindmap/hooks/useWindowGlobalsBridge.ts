@@ -7,6 +7,7 @@ interface WindowGlobalsBridgeParams {
   removeWorkspace: ((id: string) => Promise<void>) | undefined;
   allMindMaps: any[] | undefined;
   currentMapId: string | null;
+  currentWorkspaceId?: string | null;
   explorerTree: any;
   selectMapById: (mapId: MapIdentifier) => Promise<void>;
   mindMap: any;
@@ -19,6 +20,7 @@ export function useWindowGlobalsBridge({
   removeWorkspace,
   allMindMaps,
   currentMapId,
+  currentWorkspaceId,
   explorerTree,
   selectMapById,
   mindMap,
@@ -46,6 +48,7 @@ export function useWindowGlobalsBridge({
     try {
       (window as any).mindoodleAllMaps = allMindMaps || [];
       (window as any).mindoodleCurrentMapId = currentMapId || null;
+      (window as any).mindoodleCurrentWorkspaceId = currentWorkspaceId || null;
 
       
       const ordered: Array<{ mapId: string; workspaceId: string | undefined }> = [];
@@ -93,5 +96,5 @@ export function useWindowGlobalsBridge({
         } catch { }
       };
     } catch { }
-  }, [allMindMaps, currentMapId, selectMapById, explorerTree]);
+  }, [allMindMaps, currentMapId, currentWorkspaceId, selectMapById, explorerTree]);
 }

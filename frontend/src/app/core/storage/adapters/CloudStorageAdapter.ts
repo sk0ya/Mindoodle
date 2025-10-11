@@ -248,6 +248,20 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
+  // Lightweight list of map identifiers for workspace-wide operations (no content fetch)
+  async listMapIdentifiers?(): Promise<Array<{ mapId: string; workspaceId: string }>> {
+    if (!this.isAuthenticated) {
+      return [];
+    }
+    try {
+      const response = await this.makeRequest('/api/maps');
+      if (!response.success || !Array.isArray(response.maps)) return [];
+      return response.maps.map((m: any) => ({ mapId: m.id, workspaceId: 'cloud' }));
+    } catch {
+      return [];
+    }
+  }
+
   async addMapToList(map: MindMapData): Promise<void> {
     if (!this.isAuthenticated) {
       throw new Error('Not authenticated');

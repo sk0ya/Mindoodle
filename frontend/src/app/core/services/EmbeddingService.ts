@@ -100,7 +100,7 @@ export class EmbeddingService {
           this.pendingTasks.delete(filePath);
           reject(new Error(`Embedding timeout for ${filePath}`));
         }
-      }, 30000);
+      }, 90000);
 
       this.pendingTasks.set(filePath, { resolve, reject, timeout });
 

@@ -19,6 +19,7 @@ export const EmbeddingIntegration: React.FC = () => {
     // rootNodesからマークダウンを生成
     const markdownContent = data.rootNodes.map(node => nodeToMarkdown(node)).join('\n');
     const mapId = data.mapIdentifier?.mapId;
+    const workspaceId = data.mapIdentifier?.workspaceId;
 
     
     if (markdownContent && markdownContent !== previousContentRef.current) {
@@ -26,8 +27,8 @@ export const EmbeddingIntegration: React.FC = () => {
 
       
       if (mapId) {
-        const filePath = `${mapId}.md`;
-
+        const filePath = `${workspaceId}::${mapId}.md`;
+        
         
         embeddingOrchestrator.scheduleVectorUpdate(filePath, markdownContent);
       }
