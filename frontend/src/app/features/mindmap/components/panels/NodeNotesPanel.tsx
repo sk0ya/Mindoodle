@@ -233,7 +233,6 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       border-left: 1px solid var(--border-color);
       position: relative;
       user-select: ${isResizing ? 'none' : 'auto'};
-      padding-bottom: 24px;
     }
 
     .resize-handle {
@@ -244,7 +243,7 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       width: 4px;
       background: transparent;
       cursor: col-resize;
-      z-index: 10;
+      z-index: 1000;
     }
 
     .resize-handle:hover {
@@ -286,13 +285,15 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       display: flex;
       flex-direction: column;
       min-height: 0;
-      overflow: hidden;
+      max-height: 100%;
       padding: 0;
+      padding-left: 4px;
     }
 
     .node-editor {
       flex: 1;
       width: 100%;
+      min-height: 0;
       border: none;
       border-radius: 0;
     }

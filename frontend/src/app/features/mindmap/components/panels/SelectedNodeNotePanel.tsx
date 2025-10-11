@@ -259,7 +259,12 @@ function getStyles(isResizing: boolean) {
       height: 14px;
     }
 
-    .selected-node-note-panel .panel-editor { flex: 1; min-height: 0; }
+    .selected-node-note-panel .panel-editor {
+      flex: 1;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+    }
     .selected-node-note-panel .node-note-editor { width: 100%; height: 100%; }
     .selected-node-note-panel .markdown-editor { width: 100%; height: 100%; }
   `;

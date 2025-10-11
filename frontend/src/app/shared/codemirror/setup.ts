@@ -92,11 +92,39 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
     EditorView.theme({
       '&': {
         height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
         backgroundColor: isDark ? '#0d1117' : '#ffffff',
         color: isDark ? '#c9d1d9' : '#24292f',
       },
+      '.cm-scroller': {
+        flex: '1 1 auto',
+        overflow: 'auto !important',
+        minHeight: '0',
+        scrollbarWidth: 'thin', // For Firefox
+        scrollbarColor: isDark ? '#484f58 #0d1117' : '#d1d5da #ffffff', // For Firefox
+      },
+      // Webkit scrollbar styling (Chrome, Safari, Edge)
+      '.cm-scroller::-webkit-scrollbar': {
+        width: '12px',
+        height: '12px',
+      },
+      '.cm-scroller::-webkit-scrollbar-track': {
+        backgroundColor: isDark ? '#0d1117' : '#ffffff',
+      },
+      '.cm-scroller::-webkit-scrollbar-thumb': {
+        backgroundColor: isDark ? '#484f58' : '#d1d5da',
+        borderRadius: '6px',
+        border: `2px solid ${isDark ? '#0d1117' : '#ffffff'}`,
+      },
+      '.cm-scroller::-webkit-scrollbar-thumb:hover': {
+        backgroundColor: isDark ? '#6e7681' : '#959da5',
+      },
+      '.cm-scroller::-webkit-scrollbar-corner': {
+        backgroundColor: isDark ? '#0d1117' : '#ffffff',
+      },
       '.cm-content': {
-        padding: '0',
+        padding: '8px 0',
         caretColor: isDark ? '#58a6ff' : '#0969da',
       },
       '.cm-cursor, .cm-dropCursor': {

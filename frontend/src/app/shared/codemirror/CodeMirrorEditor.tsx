@@ -167,6 +167,35 @@ export const CodeMirrorEditor = forwardRef<CodeMirrorEditorRef, CodeMirrorEditor
       }
     }, [value]);
 
+    // Handle container resize
+    useEffect(() => {
+      if (!containerRef.current || !editorViewRef.current) return;
+
+      let timeoutId: NodeJS.Timeout | null = null;
+
+      const resizeObserver = new ResizeObserver(() => {
+        if (editorViewRef.current) {
+          // Trigger CodeMirror to recalculate its layout
+          editorViewRef.current.requestMeasure();
+
+          // Also dispatch a state effect to force re-layout (for horizontal resize)
+          if (timeoutId) clearTimeout(timeoutId);
+          timeoutId = setTimeout(() => {
+            if (editorViewRef.current) {
+              editorViewRef.current.dispatch({});
+            }
+          }, 50);
+        }
+      });
+
+      resizeObserver.observe(containerRef.current);
+
+      return () => {
+        if (timeoutId) clearTimeout(timeoutId);
+        resizeObserver.disconnect();
+      };
+    }, []);
+
     return (
       <div
         ref={containerRef}
@@ -174,7 +203,6 @@ export const CodeMirrorEditor = forwardRef<CodeMirrorEditorRef, CodeMirrorEditor
         style={{
           width: '100%',
           height: '100%',
-          overflow: 'auto',
           ...style,
         }}
       />
