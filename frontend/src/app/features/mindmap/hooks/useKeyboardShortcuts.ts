@@ -193,7 +193,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     } as any
   });
 
-  const handlePaste = (event: ClipboardEvent) => {
+  const handlePaste = async (event: ClipboardEvent) => {
       try {
         
         const activeEl = (document.activeElement as HTMLElement | null);
@@ -233,7 +233,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
               
               
               event.preventDefault();
-              handlers.pasteImageFromClipboard(handlers.selectedNodeId, f as unknown as File);
+              await handlers.pasteImageFromClipboard(handlers.selectedNodeId, f as unknown as File);
               return;
             }
           }
@@ -246,17 +246,18 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             event.preventDefault();
             const ext = (type.split('/')[1] || 'png');
             const file = new File([blob], `image-${Date.now()}.${ext}`, { type });
-            handlers.pasteImageFromClipboard(handlers.selectedNodeId, file);
+            await handlers.pasteImageFromClipboard(handlers.selectedNodeId, file);
             return;
           }
         }
 
         
         event.preventDefault();
-        commands.execute('paste');
-      } catch {
-        
-        try { event.preventDefault(); commands.execute('paste'); } catch {}
+        await commands.execute('paste');
+      } catch (e) {
+        event.preventDefault();
+        // Fallback without throwing
+        try { await commands.execute('paste'); } catch {}
       }
     };
 
