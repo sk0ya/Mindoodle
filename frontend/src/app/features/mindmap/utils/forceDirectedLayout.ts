@@ -64,8 +64,15 @@ export class ForceDirectedLayout {
 
     
     for (let i = 0; i < dim; i++) {
-      projection1[i] = Math.random() - 0.5;
-      projection2[i] = Math.random() - 0.5;
+      if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
+        const buf = new Uint32Array(2);
+        crypto.getRandomValues(buf);
+        projection1[i] = (buf[0] / 0xffffffff) - 0.5;
+        projection2[i] = (buf[1] / 0xffffffff) - 0.5;
+      } else {
+        projection1[i] = Math.random() - 0.5;
+        projection2[i] = Math.random() - 0.5;
+      }
     }
 
     
