@@ -351,6 +351,22 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setPan,
   });
 
+  // Stable subscription callback for SelectedNodeNotePanel
+  const subscribeNoteChanges = React.useCallback((cb: (text: string) => void) => {
+    // Subscribe to node note changes from store
+    const unsubStore = useMindMapStore.subscribe(
+      (state) => {
+        if (!selectedNodeId) return '';
+        const node = findNodeInRoots(state.data?.rootNodes || [], selectedNodeId);
+        return node?.note || '';
+      },
+      (note) => {
+        cb(note);
+      }
+    );
+    return unsubStore;
+  }, [selectedNodeId]);
+
   const handleAddLink = (nodeId: string) => linkOps.handleAddLink(nodeId);
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {
     if (!linkModalNodeId) return;
@@ -675,20 +691,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 if (selectedNodeId) updateNode(selectedNodeId, { note: val });
               }}
               onClose={() => store.setShowNodeNotePanel?.(false)}
-              subscribeNoteChanges={useCallback((cb: (text: string) => void) => {
-                // Subscribe to node note changes
-                const unsubStore = useMindMapStore.subscribe(
-                  (state) => {
-                    if (!selectedNodeId) return '';
-                    const node = findNodeInRoots(state.data?.rootNodes || [], selectedNodeId);
-                    return node?.note || '';
-                  },
-                  (note) => {
-                    cb(note);
-                  }
-                );
-                return unsubStore;
-              }, [selectedNodeId])}
+              subscribeNoteChanges={subscribeNoteChanges}
             />
           )}
         </div>
