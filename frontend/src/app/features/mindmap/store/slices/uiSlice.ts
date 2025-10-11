@@ -146,13 +146,14 @@ export const createUISlice: StateCreator<
   
   setShowVimSettingsPanel: (show: boolean) => {
     set((state) => {
-      (state.ui as any).showVimSettingsPanel = show;
+      (state.ui as UIState & { showVimSettingsPanel?: boolean }).showVimSettingsPanel = show;
     });
   },
 
   toggleVimSettingsPanel: () => {
     set((state) => {
-      (state.ui as any).showVimSettingsPanel = !(state.ui as any).showVimSettingsPanel;
+      const uiWithPanel = state.ui as UIState & { showVimSettingsPanel?: boolean };
+      uiWithPanel.showVimSettingsPanel = !uiWithPanel.showVimSettingsPanel;
     });
   },
 
@@ -164,13 +165,15 @@ export const createUISlice: StateCreator<
 
   setShowKnowledgeGraph: (show: boolean) => {
     set((state) => {
-      (state.ui as any).showKnowledgeGraph = show;
+      const uiWithKG = state.ui as UIState & { showKnowledgeGraph?: boolean };
+      uiWithKG.showKnowledgeGraph = show;
     });
   },
 
   toggleKnowledgeGraph: () => {
     set((state) => {
-      (state.ui as any).showKnowledgeGraph = !(state.ui as any).showKnowledgeGraph;
+      const uiWithKG = state.ui as UIState & { showKnowledgeGraph?: boolean };
+      uiWithKG.showKnowledgeGraph = !uiWithKG.showKnowledgeGraph;
     });
   },
 
@@ -268,7 +271,8 @@ export const createUISlice: StateCreator<
       state.ui.showFileActionMenu = false;
       state.ui.showTutorial = false;
       state.ui.showLinkListForNode = null;
-      (state.ui as any).showVimSettingsPanel = false;
+      const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
+      uiWithVim.showVimSettingsPanel = false;
       // Managed panels reset
       state.ui.openPanels = {};
       // Note: showNotesPanel は意図的に closeAllPanels から除外
@@ -298,7 +302,11 @@ export const createUISlice: StateCreator<
         case 'tutorial': state.ui.showTutorial = true; break;
         case 'notes': state.ui.showNotesPanel = true; break;
         case 'nodeNote': state.ui.showNodeNotePanel = true; break;
-        case 'vimSettings': (state.ui as any).showVimSettingsPanel = true; break;
+        case 'vimSettings': {
+          const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
+          uiWithVim.showVimSettingsPanel = true;
+          break;
+        }
         case 'imageModal': state.ui.showImageModal = true; break;
         case 'fileActionMenu': state.ui.showFileActionMenu = true; break;
         case 'linkList':  break;
@@ -316,7 +324,11 @@ export const createUISlice: StateCreator<
         case 'tutorial': state.ui.showTutorial = false; break;
         case 'notes': state.ui.showNotesPanel = false; break;
         case 'nodeNote': state.ui.showNodeNotePanel = false; break;
-        case 'vimSettings': (state.ui as any).showVimSettingsPanel = false; break;
+        case 'vimSettings': {
+          const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
+          uiWithVim.showVimSettingsPanel = false;
+          break;
+        }
         case 'imageModal': state.ui.showImageModal = false; break;
         case 'fileActionMenu': state.ui.showFileActionMenu = false; break;
         case 'linkList': state.ui.showLinkListForNode = null; break;
@@ -337,7 +349,11 @@ export const createUISlice: StateCreator<
         case 'tutorial': state.ui.showTutorial = nowOpen; break;
         case 'notes': state.ui.showNotesPanel = nowOpen; break;
         case 'nodeNote': state.ui.showNodeNotePanel = nowOpen; break;
-        case 'vimSettings': (state.ui as any).showVimSettingsPanel = nowOpen; break;
+        case 'vimSettings': {
+          const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
+          uiWithVim.showVimSettingsPanel = nowOpen;
+          break;
+        }
         case 'imageModal': state.ui.showImageModal = nowOpen; break;
         case 'fileActionMenu': state.ui.showFileActionMenu = nowOpen; break;
         case 'linkList': if (!nowOpen) state.ui.showLinkListForNode = null; break;
@@ -355,7 +371,8 @@ export const createUISlice: StateCreator<
       state.ui.showFileActionMenu = false;
       state.ui.showTutorial = false;
       state.ui.showLinkListForNode = null;
-      (state.ui as any).showVimSettingsPanel = false;
+      const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
+      uiWithVim.showVimSettingsPanel = false;
     });
   },
 

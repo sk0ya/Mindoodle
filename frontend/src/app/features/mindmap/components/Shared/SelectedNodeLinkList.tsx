@@ -17,8 +17,35 @@ interface SelectedNodeLinkListProps {
   onPreviewUrl?: (url: string) => void;
   
   availableMaps?: { id: string; title: string }[];
-  currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
+  // Type: Map data with optional root node(s) for link resolution
+  currentMapData?: { id: string; rootNode?: MindMapNode; rootNodes?: MindMapNode[]; mapIdentifier?: Record<string, unknown> };
 }
+
+type InternalEntry = {
+  kind: 'internal';
+  index: number;
+  label: string;
+  anchorText: string;
+  nodeId?: string;
+};
+
+type MapEntry = {
+  kind: 'map';
+  index: number;
+  label: string;
+  mapId: string;
+  anchorText?: string;
+  href: string;
+};
+
+type ExternalEntry = {
+  kind: 'external';
+  index: number;
+  label: string;
+  href: string;
+};
+
+type CombinedEntry = InternalEntry | MapEntry | ExternalEntry;
 
 const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   node,
@@ -72,25 +99,28 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
 
   
   
-  const combined = useMemo(() => {
+  const combined: CombinedEntry[] = useMemo(() => {
     const parsed = extractAllMarkdownLinksDetailed(node.note);
-    
-    const currentId = (currentMapData as any)?.mapIdentifier?.mapId || '';
+    // Type: Extract map ID from map identifier
+    const currentId = (currentMapData?.mapIdentifier?.mapId as string) || '';
     const idsSet = new Set<string>((availableMaps || []).map(m => m.id));
     try {
-      const ordered = (window as any).mindoodleOrderedMaps as Array<{ mapId: string }>|undefined;
+      // Type: Global window extension for ordered maps list
+      const windowWithMaps = window as unknown as { mindoodleOrderedMaps?: Array<{ mapId: string }> };
+      const ordered = windowWithMaps.mindoodleOrderedMaps;
       if (Array.isArray(ordered)) {
         for (const it of ordered) { if (it?.mapId) idsSet.add(it.mapId); }
       }
     } catch {}
     const ids = Array.from(idsSet);
 
-    const findByText = (root: any, text: string): MindMapNode | null => {
+    // Type: Helper to find node by text in tree
+    const findByText = (root: MindMapNode, text: string): MindMapNode | null => {
       if (!root || !text) return null;
       const normalizedTarget = text.trim();
       const stack: MindMapNode[] = [root];
       while (stack.length) {
-        const n = stack.pop()!;
+        const n = stack.pop();
         if (!n) continue;
         const normalizedNode = (n.text || '').trim();
         if (normalizedNode === normalizedTarget) return n;
@@ -99,7 +129,8 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
       return null;
     };
 
-    const findByTextInRoots = (roots: any[], text: string): MindMapNode | null => {
+    // Type: Search across multiple root nodes
+    const findByTextInRoots = (roots: MindMapNode[], text: string): MindMapNode | null => {
       for (const root of roots) {
         const found = findByText(root, text);
         if (found) return found;
@@ -149,7 +180,7 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
     });
   }, [
     node.note,
-    (currentMapData as any)?.mapIdentifier?.mapId,
+    currentMapData?.mapIdentifier,
     currentMapData?.rootNode,
     currentMapData?.rootNodes,
     availableMaps
@@ -198,18 +229,32 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
 
         {}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
-          {combined.map((entry: any, idx: number) => {
-            const key = entry.kind === 'legacy' ? entry.item.id : `${entry.kind}-${idx}-${entry.index}`;
-            
+          {combined.map((entry: CombinedEntry, idx: number) => {
+            const key = `${entry.kind}-${idx}-${entry.index}`;
+
             const isPlainUrl = entry.kind === 'external' && entry.label === entry.href;
-            const title = entry.kind === 'internal' ? entry.label
-              : entry.kind === 'map' ? entry.label
-              : entry.kind === 'external' ? (isPlainUrl ? '🔗 Webページ' : entry.label)
-              : 'リンク';
-            const subtitle = entry.kind === 'internal' ? `#${entry.anchorText}`
-              : entry.kind === 'map' ? `${entry.mapId}${entry.anchorText ? `#${entry.anchorText}` : ''}`
-              : entry.kind === 'external' ? entry.href
-              : '';
+            let title: string;
+            if (entry.kind === 'internal') {
+              title = entry.label;
+            } else if (entry.kind === 'map') {
+              title = entry.label;
+            } else if (entry.kind === 'external') {
+              title = isPlainUrl ? '🔗 Webページ' : entry.label;
+            } else {
+              title = 'リンク';
+            }
+
+            let subtitle: string;
+            if (entry.kind === 'internal') {
+              subtitle = `#${entry.anchorText}`;
+            } else if (entry.kind === 'map') {
+              const anchor = entry.anchorText ? `#${entry.anchorText}` : '';
+              subtitle = `${entry.mapId}${anchor}`;
+            } else if (entry.kind === 'external') {
+              subtitle = entry.href;
+            } else {
+              subtitle = '';
+            }
             
             return (
               <div
@@ -237,18 +282,14 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                   if (entry.kind === 'internal') {
                     const link: NodeLink = {
                       id: `internal-${entry.index}`,
-                      targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
-                      createdAt: '',
-                      updatedAt: ''
+                      targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`
                     };
                     handleLinkClick(e, link);
                   } else if (entry.kind === 'map') {
                     const link: NodeLink = {
                       id: `map-${entry.index}`,
                       targetMapId: entry.mapId,
-                      targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
-                      createdAt: '',
-                      updatedAt: ''
+                      targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined
                     };
                     handleLinkClick(e, link);
                   } else {
@@ -261,8 +302,6 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     const link: NodeLink = {
                       id: `internal-${entry.index}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
-                      createdAt: '',
-                      updatedAt: ''
                     };
                     handleLinkDoubleClick(link);
                   } else if (entry.kind === 'map') {
@@ -270,8 +309,6 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       id: `map-${entry.index}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
-                      createdAt: '',
-                      updatedAt: ''
                     };
                     if (onLinkNavigate) onLinkNavigate(nodeLink);
                   } else {
@@ -282,21 +319,20 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       // Fallback: try from global ordered maps if available
                       if (ids.length === 0) {
                         try {
-                          const ordered = (window as any).mindoodleOrderedMaps as Array<{ mapId: string }>|undefined;
+                          const windowWithMaps = window as unknown as { mindoodleOrderedMaps?: Array<{ mapId: string }> };
+                          const ordered = windowWithMaps.mindoodleOrderedMaps;
                           if (Array.isArray(ordered)) {
                             ordered.forEach(it => { if (it?.mapId) ids.push(it.mapId); });
                           }
                         } catch {}
                       }
-                      const currentId2 = (currentMapData as any)?.mapIdentifier?.mapId || '';
+                      const currentId2 = (currentMapData?.mapIdentifier?.mapId as string) || '';
                       const target = resolveHrefToMapTarget(href, currentId2, ids);
                       if (target && onLinkNavigate) {
                         const nodeLink: NodeLink = {
                           id: `external-${entry.index}`,
                           targetMapId: target.mapId,
                           targetNodeId: target.anchorText ? `text:${target.anchorText}` : undefined,
-                          createdAt: '',
-                          updatedAt: ''
                         };
                         onLinkNavigate(nodeLink);
                         return;
@@ -316,8 +352,6 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                     const link: NodeLink = {
                       id: `internal-${entry.index}`,
                       targetNodeId: entry.nodeId ? entry.nodeId : `text:${entry.anchorText}`,
-                      createdAt: '',
-                      updatedAt: ''
                     };
                     handleLinkContextMenu(e, link);
                   } else if (entry.kind === 'map') {
@@ -325,8 +359,6 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
                       id: `map-${entry.index}`,
                       targetMapId: entry.mapId,
                       targetNodeId: entry.anchorText ? `text:${entry.anchorText}` : undefined,
-                      createdAt: '',
-                      updatedAt: ''
                     };
                     handleLinkContextMenu(e, link);
                   } else {

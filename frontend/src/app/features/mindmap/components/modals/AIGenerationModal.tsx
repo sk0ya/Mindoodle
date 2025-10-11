@@ -44,15 +44,15 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
     setShowCustomPrompt(false);
     setStep('generating');
     clearError();
-  }, []); 
+  }, [clearError]); 
   
   const handleGenerate = useCallback(async () => {
     if (!parentNode) return;
-    
+
     setStep('generating');
     setGeneratedChildren([]);
     clearError();
-    
+
     try {
       const childTexts = await generateChildNodes(parentNode, contextNodes);
       setGeneratedChildren(childTexts);
@@ -60,16 +60,16 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
       setStep('selecting');
     } catch (error) {
       console.error('AI generation failed:', error);
-      
+
     }
-  }, []); 
+  }, [parentNode, contextNodes, generateChildNodes, clearError]); 
   
-  
+
   useEffect(() => {
     if (isOpen && parentNode && aiSettings.enabled && isSettingsValid) {
       handleGenerate();
     }
-  }, [isOpen]);
+  }, [isOpen, parentNode, aiSettings.enabled, isSettingsValid, handleGenerate]);
   
   
   useEffect(() => {
@@ -167,12 +167,13 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
           
           {step === 'generating' && (
             <div className="ai-generating">
-              {isGenerating ? (
+              {isGenerating && (
                 <>
                   <div className="ai-spinner">🔄</div>
                   <p>AI が子ノードを生成中...</p>
                 </>
-              ) : generationError ? (
+              )}
+              {!isGenerating && generationError && (
                 <>
                   <div className="ai-error-display">
                     <h4>❌ 生成に失敗しました</h4>
@@ -187,7 +188,7 @@ const AIGenerationModal: React.FC<AIGenerationModalProps> = React.memo(({
                     </div>
                   </div>
                 </>
-              ) : null}
+              )}
             </div>
           )}
           

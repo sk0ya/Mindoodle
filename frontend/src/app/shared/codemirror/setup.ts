@@ -2,7 +2,7 @@
  * CodeMirror 6 editor setup and configuration
  */
 
-import { EditorState, Extension } from '@codemirror/state';
+import { EditorState, Extension, type Range } from '@codemirror/state';
 import { EditorView, keymap, ViewUpdate, lineNumbers, Decoration } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
@@ -83,7 +83,7 @@ function createVimHighlighting(isDark: boolean): Extension {
   const functionColor = isDark ? '#d2a8ff' : '#6f42c1';
 
   return EditorView.decorations.compute(['doc'], (state) => {
-    const decorations: any[] = [];
+    const decorations: Range<Decoration>[] = [];
 
     for (let i = 1; i <= state.doc.lines; i++) {
       const line = state.doc.line(i);
@@ -237,7 +237,7 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
 
   // Custom styling
   if (config.fontSize || config.fontFamily) {
-    const customStyles: Record<string, any> = {};
+    const customStyles: Record<string, string | number> = {};
     if (config.fontSize) {
       customStyles.fontSize = `${config.fontSize}px`;
     }
@@ -266,7 +266,7 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
     extensions.push(
       EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.docChanged) {
-          config.onChange!(update.state.doc.toString());
+          config.onChange?.(update.state.doc.toString());
         }
       })
     );
@@ -278,7 +278,7 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
       EditorView.updateListener.of((update: ViewUpdate) => {
         if (update.selectionSet) {
           const line = update.state.doc.lineAt(update.state.selection.main.head).number;
-          config.onCursorLineChange!(line);
+          config.onCursorLineChange?.(line);
         }
       })
     );
@@ -288,7 +288,7 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
   if (config.onFocusChange) {
     extensions.push(
       EditorView.focusChangeEffect.of((_state, focusing) => {
-        config.onFocusChange!(focusing);
+        config.onFocusChange?.(focusing);
         return null;
       })
     );

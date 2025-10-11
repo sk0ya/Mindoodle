@@ -4,6 +4,7 @@ import { Copy, Link, Trash2, Sparkles, Table } from 'lucide-react';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
+import type { MarkdownNodeType } from '@commands/system/types';
 import { useMindMapStore } from '@mindmap/store';
 
 type Props = {
@@ -14,7 +15,7 @@ type Props = {
   onCopyNode: (nodeId: string) => void;
   onPasteNode: (parentId: string) => Promise<void>;
   onAIGenerate?: (node: MindMapNode) => void;
-  onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
   onEditTable?: (nodeId: string) => void;
   onClose: () => void;
 };
@@ -37,9 +38,12 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   const position = ui.contextMenuPosition;
   const nodeId = store.selectedNodeId;
 
-  const roots = (dataRoots && dataRoots.length > 0)
-    ? dataRoots
-    : (dataRoot ? [dataRoot] : []);
+  let roots: MindMapNode[] = [];
+  if (dataRoots && dataRoots.length > 0) {
+    roots = dataRoots;
+  } else if (dataRoot) {
+    roots = [dataRoot];
+  }
 
   if (!visible || !nodeId || roots.length === 0) return null;
   const selectedNode = findNodeInRoots(roots, nodeId);
@@ -71,8 +75,8 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
     });
   }
 
-  
-  const isTableNode = (selectedNode as any).kind === 'table';
+
+  const isTableNode = selectedNode.kind === 'table';
   if (isTableNode && onEditTable) {
     items.push({ separator: true });
     items.push({

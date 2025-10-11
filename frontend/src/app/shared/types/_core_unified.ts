@@ -94,11 +94,9 @@ export interface MindMapSettings {
 
 export interface NodeLink {
   id: string;
-  targetMapId?: string; 
-  targetNodeId?: string; 
-  targetAnchor?: string; 
-  createdAt: string;
-  updatedAt: string;
+  targetMapId?: string;
+  targetNodeId?: string;
+  targetAnchor?: string;
 }
 
 

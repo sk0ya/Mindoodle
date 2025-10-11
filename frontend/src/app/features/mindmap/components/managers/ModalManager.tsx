@@ -1,6 +1,7 @@
 import React from 'react';
 import { logger } from '@shared/utils';
 import type { NodeLink } from '@shared/types';
+import type { MindMapStore } from '@mindmap/store/mindMapStore';
 
 interface ModalState {
   showExportModal: boolean;
@@ -25,7 +26,7 @@ interface ModalState {
 
 interface ModalManagerProps {
   modalState: ModalState;
-  store: any;
+  store: MindMapStore;
   showNotification: (type: 'success' | 'error' | 'warning' | 'info', message: string) => void;
   handleError: (error: Error, context: string, operation: string) => void;
 }
@@ -113,7 +114,7 @@ export const useModalManager = ({
     });
   }, [setContextMenu]);
 
-  const handleRightClick = React.useCallback((e: React.MouseEvent, nodeId: string, ui: any, selectNode: (nodeId: string) => void) => {
+  const handleRightClick = React.useCallback((e: React.MouseEvent, nodeId: string, ui: { showLinkListForNode?: string | null }, selectNode: (nodeId: string) => void) => {
     e.preventDefault();
     
     

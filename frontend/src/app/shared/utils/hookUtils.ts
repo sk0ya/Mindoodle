@@ -1,6 +1,6 @@
 
 
-import { useCallback } from 'react';
+import { useCallback, useMemo, useRef } from 'react';
 
 
 export function useCallbackSetter<T>(setter: (value: T) => void) {
@@ -25,56 +25,54 @@ export function useModeSetters<T extends string>(
   setMode: (mode: T) => void,
   modes: T[]
 ) {
-  const setters = {} as Record<`set${Capitalize<T>}Mode`, () => void>;
-
-  modes.forEach(mode => {
-    const key = `set${mode.charAt(0).toUpperCase() + mode.slice(1)}Mode` as `set${Capitalize<T>}Mode`;
-    setters[key] = useCallback(() => setMode(mode), [setMode, mode]);
-  });
-
-  return setters;
+  return useMemo(() => {
+    const setters = {} as Record<`set${Capitalize<T>}Mode`, () => void>;
+    for (const mode of modes) {
+      const m = mode as unknown as string;
+      const key = `set${m.charAt(0).toUpperCase() + m.slice(1)}Mode` as `set${Capitalize<T>}Mode`;
+      setters[key] = () => setMode(mode);
+    }
+    return setters;
+  }, [setMode, modes]);
 }
 
 
 export function useResetCallbacks<T extends Record<string, () => void>>(resetters: T): T {
-  const callbacks = {} as T;
-
-  Object.entries(resetters).forEach(([key, resetter]) => {
-    callbacks[key as keyof T] = useCallback(() => resetter(), [resetter]) as T[keyof T];
-  });
-
-  return callbacks;
+  return useMemo(() => {
+    const callbacks = {} as T;
+    for (const [key, resetter] of Object.entries(resetters as Record<string, () => void>)) {
+      callbacks[key as keyof T] = (() => resetter()) as T[keyof T];
+    }
+    return callbacks;
+  }, [resetters]);
 }
 
 
 export function useConditionalCallback(
   callback: () => void,
-  condition: boolean | (() => boolean),
-  deps: React.DependencyList = []
+  condition: boolean | (() => boolean)
 ) {
   return useCallback(() => {
     const shouldExecute = typeof condition === 'function' ? condition() : condition;
     if (shouldExecute) {
       callback();
     }
-  }, [callback, condition, ...deps]);
+  }, [callback, condition]);
 }
 
 
-export function useAsyncCallback<T extends any[], R>(
-  asyncFn: (...args: T) => Promise<R>,
-  deps: React.DependencyList = []
+export function useAsyncCallback<T extends unknown[], R>(
+  asyncFn: (...args: T) => Promise<R>
 ) {
   return useCallback(async (...args: T): Promise<R> => {
     return asyncFn(...args);
-  }, deps);
+  }, [asyncFn]);
 }
 
 
-export function useSafeCallback<T extends any[]>(
+export function useSafeCallback<T extends unknown[]>(
   callback: (...args: T) => void,
-  onError?: (error: Error) => void,
-  deps: React.DependencyList = []
+  onError?: (error: Error) => void
 ) {
   return useCallback((...args: T) => {
     try {
@@ -85,62 +83,53 @@ export function useSafeCallback<T extends any[]>(
         onError(error);
       }
     }
-  }, [callback, onError, ...deps]);
+  }, [callback, onError]);
 }
 
 
-export function useDebounceCallback<T extends any[]>(
+export function useDebounceCallback<T extends unknown[]>(
   callback: (...args: T) => void,
-  delay: number,
-  deps: React.DependencyList = []
+  delay: number
 ) {
-  let timeoutId: NodeJS.Timeout | null = null;
-
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   return useCallback((...args: T) => {
-    if (timeoutId) {
-      clearTimeout(timeoutId);
-    }
-
-    timeoutId = setTimeout(() => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current);
+    timeoutRef.current = setTimeout(() => {
       callback(...args);
-      timeoutId = null;
+      timeoutRef.current = null;
     }, delay);
-  }, [callback, delay, ...deps]);
+  }, [callback, delay]);
 }
 
 
-export function useOnceCallback<T extends any[]>(
-  callback: (...args: T) => void,
-  deps: React.DependencyList = []
+export function useOnceCallback<T extends unknown[]>(
+  callback: (...args: T) => void
 ) {
-  let hasExecuted = false;
-
+  const hasExecutedRef = useRef(false);
   return useCallback((...args: T) => {
-    if (!hasExecuted) {
-      hasExecuted = true;
+    if (!hasExecutedRef.current) {
+      hasExecutedRef.current = true;
       callback(...args);
     }
-  }, [callback, ...deps]);
+  }, [callback]);
 }
 
 
-export function useHandlerCallbacks<T extends Record<string, (...args: any[]) => void>>(
-  handlers: T,
-  deps: React.DependencyList = []
+export function useHandlerCallbacks<T extends Record<string, (...args: unknown[]) => void>>(
+  handlers: T
 ): T {
-  const callbacks = {} as T;
-
-  Object.entries(handlers).forEach(([key, handler]) => {
-    callbacks[key as keyof T] = useCallback(handler, [...deps, handler]) as T[keyof T];
-  });
-
-  return callbacks;
+  return useMemo(() => {
+    const callbacks = {} as T;
+    for (const [key, handler] of Object.entries(handlers)) {
+      callbacks[key as keyof T] = ((...args: unknown[]) => (handler as (...a: unknown[]) => void)(...args)) as T[keyof T];
+    }
+    return callbacks;
+  }, [handlers]);
 }
 
 
 export function useGetterCallback<T>(
-  getter: () => T,
-  deps: React.DependencyList = []
+  getter: () => T
 ) {
-  return useCallback((): T => getter(), [getter, ...deps]);
+  return useCallback((): T => getter(), [getter]);
 }

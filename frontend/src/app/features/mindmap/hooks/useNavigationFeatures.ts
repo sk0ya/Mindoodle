@@ -5,7 +5,7 @@ import type { VimModeHook } from '../../vim/hooks/useVimMode';
 export interface NavigationFeaturesParams {
   viewport: ViewportOperationsParams;
   keyboardShortcuts?: {
-    handlers: any; 
+    handlers: Record<string, (...args: unknown[]) => void>;
     vim?: VimModeHook;
   };
 }

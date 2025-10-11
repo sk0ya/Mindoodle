@@ -11,7 +11,8 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
   let md = '';
 
   // Special handling: table node renders as a markdown table block
-  if ((node as any).kind === 'table') {
+  // Type guard: Check for extended 'kind' property
+  if ('kind' in node && (node as unknown as { kind: string }).kind === 'table') {
     
     md = node.text || '';
     // Append note if present (exactly as saved, including empty lines)
@@ -56,11 +57,9 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     const headingLevel = node.markdownMeta?.level || (level + 1);
     prefix = '#'.repeat(Math.min(headingLevel, 6)) + ' ';
   } else if (nodeType === 'preface') {
-    
-    prefix = '';
+    // preface はプレフィックス無し
   } else {
-    // メタなしノードはプレーンテキスト
-    prefix = '';
+    // メタなしノードはプレーンテキスト（プレフィックス無し）
   }
 
   md = `${prefix}${node.text}`;

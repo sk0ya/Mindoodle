@@ -60,124 +60,119 @@ const CanvasConnections: React.FC<CanvasConnectionsProps> = ({
     }
   };
 
+  const processRootNodeConnections = (node: MindMapNode, connections: ConnectionData[]): void => {
+    const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
+    const togglePosition = getToggleButtonPosition(node, node, nodeSize, settings.fontSize, wrapConfig);
+    const toggleX = togglePosition.x;
+    const toggleY = togglePosition.y;
+
+    const nodeRightEdge = getNodeRightX(node, nodeSize.width);
+    connections.push({
+      from: { x: nodeRightEdge, y: node.y },
+      to: { x: toggleX, y: toggleY },
+      hasToggleButton: false,
+      color: node.color || '#666'
+    });
+
+    connections.push({
+      from: { x: toggleX, y: toggleY },
+      to: { x: toggleX, y: toggleY },
+      hasToggleButton: true,
+      nodeId: node.id,
+      isCollapsed: false
+    });
+
+    node.children.forEach((child: MindMapNode) => {
+      const color = normalizedData ? getBranchColor(child.id, normalizedData, settings.edgeColorSet) : (child.color || '#666');
+      const childSize = calculateNodeSize(child, undefined, false, settings.fontSize, wrapConfig);
+      const childLeftX = getNodeLeftX(child, childSize.width);
+
+      connections.push({
+        from: { x: toggleX, y: toggleY },
+        to: { x: childLeftX, y: child.y },
+        hasToggleButton: false,
+        color: color,
+        isFromRoot: true
+      });
+    });
+  };
+
+  const processNonRootNodeConnections = (node: MindMapNode, connections: ConnectionData[]): void => {
+    const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
+    const rootNodeForNode = findRootNodeForNode(node.id);
+    const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize, wrapConfig);
+    const toggleX = togglePosition.x;
+    const toggleY = togglePosition.y;
+
+    const parentColor = normalizedData ? getBranchColor(node.id, normalizedData, settings.edgeColorSet) : (node.color || '#666');
+    const parentRightEdge = getNodeRightX(node, nodeSize.width);
+    connections.push({
+      from: { x: parentRightEdge, y: node.y },
+      to: { x: toggleX, y: toggleY },
+      hasToggleButton: false,
+      color: parentColor
+    });
+
+    connections.push({
+      from: { x: toggleX, y: toggleY },
+      to: { x: toggleX, y: toggleY },
+      hasToggleButton: true,
+      nodeId: node.id,
+      isCollapsed: false
+    });
+
+    node.children.forEach((child: MindMapNode) => {
+      const childColor = normalizedData ? getBranchColor(child.id, normalizedData, settings.edgeColorSet) : (child.color || '#666');
+      const childSize = calculateNodeSize(child, undefined, false, settings.fontSize, wrapConfig);
+      const childLeftX = getNodeLeftX(child, childSize.width);
+
+      connections.push({
+        from: { x: toggleX, y: toggleY },
+        to: { x: childLeftX, y: child.y },
+        hasToggleButton: false,
+        color: childColor
+      });
+    });
+  };
+
+  const processCollapsedNode = (node: MindMapNode, connections: ConnectionData[]): void => {
+    const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
+    const rootNodeForNode = findRootNodeForNode(node.id);
+    const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize, wrapConfig);
+    const toggleX = togglePosition.x;
+    const toggleY = togglePosition.y;
+
+    const collapsedColor = normalizedData ? getBranchColor(node.id, normalizedData, settings.edgeColorSet) : (node.color || '#666');
+    const parentRightEdge = getNodeRightX(node, nodeSize.width);
+    connections.push({
+      from: { x: parentRightEdge, y: node.y },
+      to: { x: toggleX, y: toggleY },
+      hasToggleButton: false,
+      color: collapsedColor
+    });
+
+    connections.push({
+      from: { x: toggleX, y: toggleY },
+      to: { x: toggleX, y: toggleY },
+      hasToggleButton: true,
+      nodeId: node.id,
+      isCollapsed: true
+    });
+  };
 
   allNodes.forEach(node => {
-    if (node.children && node.children.length > 0) {
-      
-      const isRootNode = findParentNode(node.id) === null;
-      
-      if (!node.collapsed) {
-        if (isRootNode) {
-          
-          const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
-          const togglePosition = getToggleButtonPosition(node, node, nodeSize, settings.fontSize, wrapConfig);
-          const toggleX = togglePosition.x;
-          const toggleY = togglePosition.y;
+    if (!node.children || node.children.length === 0) return;
 
-          
-          const nodeRightEdge = getNodeRightX(node, nodeSize.width);
-          connections.push({
-            from: { x: nodeRightEdge, y: node.y },
-            to: { x: toggleX, y: toggleY },
-            hasToggleButton: false,
-            color: node.color || '#666'
-          });
+    const isRootNode = findParentNode(node.id) === null;
 
-          
-          connections.push({
-            from: { x: toggleX, y: toggleY },
-            to: { x: toggleX, y: toggleY },
-            hasToggleButton: true,
-            nodeId: node.id,
-            isCollapsed: false
-          });
-
-          
-          node.children.forEach((child: MindMapNode) => {
-            const color = normalizedData ? getBranchColor(child.id, normalizedData, settings.edgeColorSet) : (child.color || '#666');
-            const childSize = calculateNodeSize(child, undefined, false, settings.fontSize, wrapConfig);
-            const childLeftX = getNodeLeftX(child, childSize.width);
-
-            connections.push({
-              from: { x: toggleX, y: toggleY },
-              to: { x: childLeftX, y: child.y },
-              hasToggleButton: false,
-              color: color,
-              isFromRoot: true
-            });
-          });
-        } else {
-          
-          const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
-          const rootNodeForNode = findRootNodeForNode(node.id);
-          const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize, wrapConfig);
-          const toggleX = togglePosition.x;
-          const toggleY = togglePosition.y;
-
-
-
-          
-          const parentColor = normalizedData ? getBranchColor(node.id, normalizedData, settings.edgeColorSet) : (node.color || '#666');
-          const parentRightEdge = getNodeRightX(node, nodeSize.width); 
-          connections.push({
-            from: { x: parentRightEdge, y: node.y },
-            to: { x: toggleX, y: toggleY },
-            hasToggleButton: false,
-            color: parentColor
-          });
-
-          
-          connections.push({
-            from: { x: toggleX, y: toggleY },
-            to: { x: toggleX, y: toggleY },
-            hasToggleButton: true,
-            nodeId: node.id,
-            isCollapsed: false
-          });
-
-          
-          node.children.forEach((child: MindMapNode) => {
-            const childColor = normalizedData ? getBranchColor(child.id, normalizedData, settings.edgeColorSet) : (child.color || '#666');
-            const childSize = calculateNodeSize(child, undefined, false, settings.fontSize, wrapConfig);
-            const childLeftX = getNodeLeftX(child, childSize.width);
-
-            connections.push({
-              from: { x: toggleX, y: toggleY },
-              to: { x: childLeftX, y: child.y },
-              hasToggleButton: false,
-              color: childColor
-            });
-          });
-        }
+    if (!node.collapsed) {
+      if (isRootNode) {
+        processRootNodeConnections(node, connections);
       } else {
-        
-        const nodeSize = calculateNodeSize(node, undefined, false, settings.fontSize, wrapConfig);
-        const rootNodeForNode = findRootNodeForNode(node.id);
-        const togglePosition = getToggleButtonPosition(node, rootNodeForNode || data?.rootNodes?.[0] || node, nodeSize, settings.fontSize, wrapConfig);
-        const toggleX = togglePosition.x;
-        const toggleY = togglePosition.y;
-
-
-
-        
-        const collapsedColor = normalizedData ? getBranchColor(node.id, normalizedData, settings.edgeColorSet) : (node.color || '#666');
-        const parentRightEdge = getNodeRightX(node, nodeSize.width); 
-        connections.push({
-          from: { x: parentRightEdge, y: node.y },
-          to: { x: toggleX, y: toggleY },
-          hasToggleButton: false,
-          color: collapsedColor
-        });
-        
-        
-        connections.push({ 
-          from: { x: toggleX, y: toggleY },
-          to: { x: toggleX, y: toggleY }, 
-          hasToggleButton: true,
-          nodeId: node.id,
-          isCollapsed: true
-        });
+        processNonRootNodeConnections(node, connections);
       }
+    } else {
+      processCollapsedNode(node, connections);
     }
   });
 

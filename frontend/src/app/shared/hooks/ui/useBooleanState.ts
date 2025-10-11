@@ -142,7 +142,7 @@ export const useMouseEvents = (
         document.removeEventListener('keydown', onKeyDown);
       }
     };
-  }, [isActive, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
+  }, [isActive, handlers, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
 };
 
 
@@ -315,12 +315,15 @@ export const usePersistedState = <T>(
 
   const [state, setState] = useState<T>(() => {
     try {
-      const raw = parseStoredJson<string | T>(key, undefined as any);
+      const raw = parseStoredJson<string | T | undefined>(key, undefined);
+      if (raw === undefined) {
+        return initialValue;
+      }
       if (typeof raw === 'string') {
         const parsed = serializer.deserialize(raw);
         if (validator ? validator(parsed) : true) return parsed;
-      } else if (raw !== undefined) {
-        if (validator ? validator(raw) : true) return raw as T;
+      } else {
+        if (validator ? validator(raw) : true) return raw;
       }
     } catch (error) {
       console.warn(`Failed to load persisted state for key "${key}":`, error);
@@ -372,36 +375,4 @@ export const usePrevious = <T>(value: T): T | undefined => {
     ref.current = value;
   });
   return ref.current;
-};
-
-
-export const useConditionalEffect = (
-  effect: () => void | (() => void),
-  deps: React.DependencyList,
-  condition: boolean
-) => {
-  useEffect(() => {
-    if (condition) {
-      return effect();
-    }
-  }, [...deps, condition]);
-};
-
-
-export const useSafeEffect = (
-  effect: () => void | (() => void),
-  deps: React.DependencyList
-) => {
-  useEffect(() => {
-    const cleanup = effect();
-    return () => {
-      if (typeof cleanup === 'function') {
-        try {
-          cleanup();
-        } catch (error) {
-          console.warn('Effect cleanup failed:', error);
-        }
-      }
-    };
-  }, deps);
 };

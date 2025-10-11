@@ -32,7 +32,9 @@ export function generateId(type: IdType = 'node'): string {
       crypto.getRandomValues(arr);
       return Array.from(arr, v => (v % 36).toString(36)).join('');
     }
-    // Fallback (should rarely be used)
+    // SAFETY: Fallback for non-cryptographic ID generation in environments without crypto API
+    // This is acceptable as IDs are for client-side uniqueness, not security tokens
+    // eslint-disable-next-line sonarjs/pseudo-random
     return Math.random().toString(36).slice(2, 11);
   })();
   return `${prefix}_${timestamp}_${random}`;
@@ -55,6 +57,8 @@ export function generateFileIdWithName(_filename: string): string {
       crypto.getRandomValues(arr);
       return Array.from(arr, v => (v % 36).toString(36)).join('');
     }
+    // SAFETY: Fallback for non-cryptographic ID generation in environments without crypto API
+    // eslint-disable-next-line sonarjs/pseudo-random
     return Math.random().toString(36).slice(2);
   })();
   return `file_${timestamp}_${random}`;

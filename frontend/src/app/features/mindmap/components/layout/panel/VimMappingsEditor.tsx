@@ -2,11 +2,12 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useMindMapStore } from '@mindmap/store';
 import { parseVimMappingsText } from '@/app/features/vim/utils/parseVimMappings';
 import { CodeMirrorEditor, type CodeMirrorEditorRef } from '@shared/codemirror';
+import type { AppSettings } from '@mindmap/store/slices/settingsSlice';
 
 type Props = {
-  sourceKey: string;
-  leaderKey: string;
-  mappingsKey: string;
+  sourceKey: keyof AppSettings;
+  leaderKey: keyof AppSettings;
+  mappingsKey: keyof AppSettings;
   title?: string;
 };
 
@@ -20,11 +21,11 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
 
   const [, setStatus] = useState<{ errors: number; warnings: number }>();
 
-  const source = (settings as any)[sourceKey] as string || '';
-  const isDark = (settings as any).theme === 'dark';
-  const fontSize = (settings as any).fontSize || 12;
-  const fontFamily = (settings as any).fontFamily || 'system-ui';
-  const vimEditorEnabled = !!(settings as any).vimEditor;
+  const source = String(settings[sourceKey] || '');
+  const isDark = settings.theme === 'dark';
+  const fontSize = settings.fontSize || 12;
+  const fontFamily = settings.fontFamily || 'system-ui';
+  const vimEditorEnabled = !!settings.vimEditor;
 
   // Validation and auto-apply logic
   const validateAndApply = (text: string) => {
@@ -43,9 +44,9 @@ const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey 
 
         applyTimerRef.current = window.setTimeout(() => {
           if (!suppressChangeRef.current) {
-            updateSetting(sourceKey as any, text);
-            updateSetting(leaderKey as any, result.leader || ',');
-            updateSetting(mappingsKey as any, result.mappings);
+            updateSetting(sourceKey, text as AppSettings[typeof sourceKey]);
+            updateSetting(leaderKey, (result.leader || ',') as AppSettings[typeof leaderKey]);
+            updateSetting(mappingsKey, result.mappings as AppSettings[typeof mappingsKey]);
             isDirtyRef.current = false;
           }
         }, 500);

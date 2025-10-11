@@ -21,8 +21,8 @@ export const insertCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const nodeId = (args as Record<string, string | undefined>)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -81,8 +81,8 @@ export const appendCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const nodeId = (args as Record<string, string | undefined>)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -149,9 +149,10 @@ export const openCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const initialText = (args as any)['text'] || '';
+  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
+    const typedArgs = args as Record<string, string | undefined>;
+    const nodeId = typedArgs['nodeId'] || context.selectedNodeId;
+    const initialText = typedArgs['text'] || '';
 
     if (!nodeId) {
       return {
@@ -226,9 +227,10 @@ export const openAboveCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const initialText = (args as any)['text'] || '';
+  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
+    const typedArgs = args as Record<string, string | undefined>;
+    const nodeId = typedArgs['nodeId'] || context.selectedNodeId;
+    const initialText = typedArgs['text'] || '';
 
     if (!nodeId) {
       return {
@@ -306,10 +308,11 @@ export const insertCheckboxChildCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const parentId = (args as any)['parentId'] || context.selectedNodeId;
-    const text = (args as any)['text'] || '';
-    const startEdit = (args as any)['edit'] ?? true;
+  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
+    const typedArgs = args as Record<string, string | boolean | undefined>;
+    const parentId = (typedArgs['parentId'] as string | undefined) || context.selectedNodeId;
+    const text = (typedArgs['text'] as string | undefined) || '';
+    const startEdit = (typedArgs['edit'] as boolean | undefined) ?? true;
 
     if (!parentId) {
       return {
@@ -350,19 +353,15 @@ export const insertCheckboxChildCommand: Command = {
         };
       }
 
-      
+
       let level = 1;
       let indentLevel = 0;
 
-      if (parentNode.markdownMeta) {
-        if (parentNode.markdownMeta.type === 'heading') {
-          level = 1;
-          indentLevel = 0;
-        } else if (parentNode.markdownMeta.type === 'unordered-list' || parentNode.markdownMeta.type === 'ordered-list') {
-          level = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
-          indentLevel = Math.max(level - 1, 0) * 2;
-        }
+      if (parentNode.markdownMeta && (parentNode.markdownMeta.type === 'unordered-list' || parentNode.markdownMeta.type === 'ordered-list')) {
+        level = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
+        indentLevel = Math.max(level - 1, 0) * 2;
       }
+      // heading type uses default values (level=1, indentLevel=0)
 
       const checkboxMarkdownMeta = {
         type: 'unordered-list' as const,

@@ -9,7 +9,7 @@ declare global {
       
       request(url: string, options: RequestInit): Promise<{
         success: boolean;
-        data?: any;
+        data?: unknown;
         error?: string;
         status?: number;
       }>;

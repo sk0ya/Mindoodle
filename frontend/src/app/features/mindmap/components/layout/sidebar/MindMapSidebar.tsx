@@ -132,7 +132,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       if (item.type === 'folder') {
         const path = item.path || '';
         const defaultCollapsed = isWorkspaceRoot(path) ? false : true;
-        if (acc[path] === undefined) acc[path] = defaultCollapsed;
+        if (!(path in acc)) acc[path] = defaultCollapsed;
         if (Array.isArray(item.children)) {
           item.children.forEach((ch) => visit(ch, acc));
         }
@@ -204,47 +204,55 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         onSearchChange={setSearchTerm}
         onToggleCollapse={onToggleCollapse}
       />
-      {enhancedExplorerTree && (enhancedExplorerTree.children?.length ?? 0) > 0 ? (
-        <div className="maps-content-wrapper">
-          <ExplorerView
-            tree={enhancedExplorerTree}
-            searchTerm={searchTerm}
-            collapsed={explorerCollapsed}
-            onTogglePath={(path: string) => setExplorerCollapsed(prev => ({ ...prev, [path]: !prev[path] }))}
-            currentMapId={currentMapId}
-            currentWorkspaceId={currentWorkspaceId}
-            editingMapId={editingMapId}
-            editingTitle={editingTitle}
-            onCancelRename={handleCancelRename}
-            onEditingTitleChange={setEditingTitle}
-            onContextMenu={(e, path, type) => {
-              e.preventDefault();
-              setContextMenu({
-                isVisible: true,
-                position: { x: e.clientX, y: e.clientY },
-                targetPath: path,
-                targetType: type,
-                mapData: null
-              });
-            }}
-          />
-        </div>
-      ) : filteredMaps.length === 0 ? (
-        <div className="empty-state">
-          <div className="empty-icon"><Workflow size={32} /></div>
-          <div className="empty-title">
-            {mindMaps.length === 0 ? 'このワークスペースにはマインドマップがありません' : '検索結果が見つかりません'}
-          </div>
-          <div className="empty-description">
-            {mindMaps.length === 0
-              ? '「＋」ボタンからローカルフォルダをワークスペースとして追加し、マインドマップやフォルダを作成できます。'
-              : '検索条件を調整して再度お試しください。'
-            }
-          </div>
-        </div>
-      ) : (
-        <div>No content available</div>
-      )}
+      {(() => {
+        const hasTree = !!enhancedExplorerTree && ((enhancedExplorerTree.children?.length ?? 0) > 0);
+        if (hasTree) {
+          return (
+            <div className="maps-content-wrapper">
+              <ExplorerView
+                tree={enhancedExplorerTree}
+                searchTerm={searchTerm}
+                collapsed={explorerCollapsed}
+                onTogglePath={(path: string) => setExplorerCollapsed(prev => ({ ...prev, [path]: !prev[path] }))}
+                currentMapId={currentMapId}
+                currentWorkspaceId={currentWorkspaceId}
+                editingMapId={editingMapId}
+                editingTitle={editingTitle}
+                onCancelRename={handleCancelRename}
+                onEditingTitleChange={setEditingTitle}
+                onContextMenu={(e, path, type) => {
+                  e.preventDefault();
+                  setContextMenu({
+                    isVisible: true,
+                    position: { x: e.clientX, y: e.clientY },
+                    targetPath: path,
+                    targetType: type,
+                    mapData: null
+                  });
+                }}
+              />
+            </div>
+          );
+        }
+        if (filteredMaps.length === 0) {
+          const isEmptyWorkspace = mindMaps.length === 0;
+          return (
+            <div className="empty-state">
+              <div className="empty-icon"><Workflow size={32} /></div>
+              <div className="empty-title">
+                {isEmptyWorkspace ? 'このワークスペースにはマインドマップがありません' : '検索結果が見つかりません'}
+              </div>
+              <div className="empty-description">
+                {isEmptyWorkspace
+                  ? '「＋」ボタンからローカルフォルダをワークスペースとして追加し、マインドマップやフォルダを作成できます。'
+                  : '検索条件を調整して再度お試しください。'
+                }
+              </div>
+            </div>
+          );
+        }
+        return <div>No content available</div>;
+      })()}
 
       <ContextMenu
         isVisible={contextMenu.isVisible}

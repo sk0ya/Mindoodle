@@ -20,8 +20,8 @@ export const newMindmapCommand: Command = {
     }
   ],
 
-  execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const title = (args as any)['title'];
+  execute(_context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const title = (args as Record<string, string>)['title'];
 
     try {
       
@@ -55,8 +55,8 @@ export const clearMindmapCommand: Command = {
     }
   ],
 
-  execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const skipConfirm = (args as any)['confirm'];
+  execute(_context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const skipConfirm = (args as Record<string, boolean>)['confirm'];
 
     if (!skipConfirm) {
       return {
@@ -107,8 +107,8 @@ export const autoLayoutCommand: Command = {
     }
   ],
 
-  execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const algorithm = (args as any)['algorithm'];
+  execute(_context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const algorithm = (args as Record<string, string>)['algorithm'];
 
     
     return {
@@ -134,8 +134,8 @@ export const themeCommand: Command = {
     }
   ],
 
-  execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const themeName = (args as any)['themeName'];
+  execute(_context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const themeName = (args as Record<string, string>)['themeName'];
 
     
     return {
@@ -145,6 +145,33 @@ export const themeCommand: Command = {
   }
 };
 
+
+function findWorkspaceForMap(mapId: string): string | undefined {
+  try {
+    const maps = (window as Window & { mindoodleAllMaps?: Array<{ mapIdentifier: { mapId: string; workspaceId: string } }> }).mindoodleAllMaps;
+    const found = Array.isArray(maps) ? maps.find(m => m?.mapIdentifier?.mapId === mapId) : undefined;
+    return found?.mapIdentifier?.workspaceId;
+  } catch {
+    return undefined;
+  }
+}
+
+function switchToMapById(mapId: string, workspaceId?: string): CommandResult {
+  const ws = workspaceId || findWorkspaceForMap(mapId) || '';
+  const payload: MapIdentifier = { mapId, workspaceId: ws };
+  const ev = new CustomEvent('mindoodle:selectMapById', { detail: payload });
+  window.dispatchEvent(ev);
+  return { success: true, message: `Switching to map ${mapId}` };
+}
+
+function switchMapByDirection(direction: string): CommandResult {
+  const extWindow = window as Window & { mindoodleCurrentMapId?: string; mindoodleCurrentWorkspaceId?: string };
+  const currentId: string | null = extWindow.mindoodleCurrentMapId || null;
+  const detail = { mapId: currentId || '', workspaceId: extWindow.mindoodleCurrentWorkspaceId, source: 'keyboard', direction };
+  const ev = new CustomEvent('mindoodle:selectMapById', { detail });
+  window.dispatchEvent(ev);
+  return { success: true, message: `Switching ${direction}` };
+}
 
 export const switchMapCommand: Command = {
   name: 'switch-map',
@@ -161,42 +188,26 @@ export const switchMapCommand: Command = {
     { name: 'mapId', type: 'string', required: false, description: 'Target map id' },
     { name: 'workspaceId', type: 'string', required: false, description: 'Target workspace id' }
   ],
-  guard: (_ctx: CommandContext, args: Record<string, any>) => {
-    const direction = (args as any)['direction'];
-    const mapId = (args as any)['mapId'];
-    
+  guard: (_ctx: CommandContext, args: Record<string, unknown>) => {
+    const typedArgs = args as Record<string, string | undefined>;
+    const direction = typedArgs['direction'];
+    const mapId = typedArgs['mapId'];
+
     return direction === 'next' || direction === 'prev' || typeof mapId === 'string';
   },
-  async execute(_context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
+  async execute(_context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
     try {
-      const direction = (args as any)['direction'] as 'next' | 'prev' | undefined;
-      const mapId = (args as any)['mapId'] as string | undefined;
-      const workspaceId = (args as any)['workspaceId'] as string | undefined;
+      const typedArgs = args as Record<string, string | undefined>;
+      const direction = typedArgs['direction'];
+      const mapId = typedArgs['mapId'];
+      const workspaceId = typedArgs['workspaceId'];
 
       if (mapId) {
-        
-        let ws = workspaceId as any;
-        if (!ws) {
-          try {
-            const maps = (window as any).mindoodleAllMaps as Array<{ mapIdentifier: { mapId: string; workspaceId: string } }> | undefined;
-            const found = Array.isArray(maps) ? maps.find(m => m?.mapIdentifier?.mapId === mapId) : undefined;
-            if (found && found.mapIdentifier?.workspaceId) ws = found.mapIdentifier.workspaceId;
-          } catch {  }
-        }
-        const payload: MapIdentifier = { mapId, workspaceId: ws } as MapIdentifier;
-        const ev = new CustomEvent('mindoodle:selectMapById', { detail: payload });
-        window.dispatchEvent(ev);
-        return { success: true, message: `Switching to map ${mapId}` };
+        return switchToMapById(mapId, workspaceId);
       }
 
       if (direction) {
-        
-        
-        const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
-        const detail = { mapId: currentId || '', workspaceId: (window as any).mindoodleCurrentWorkspaceId, source: 'keyboard', direction };
-        const ev = new CustomEvent('mindoodle:selectMapById', { detail });
-        window.dispatchEvent(ev);
-        return { success: true, message: `Switching ${direction}` };
+        return switchMapByDirection(direction);
       }
 
       return { success: false, error: 'Specify --direction next|prev or --mapId <id>' };

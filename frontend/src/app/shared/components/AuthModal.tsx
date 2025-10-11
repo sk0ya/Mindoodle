@@ -70,6 +70,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     resetForm();
   };
 
+  const submitLabel: React.ReactNode = isLogin ? 'ログイン' : 'アカウントを作成';
+
   const modalContent = (
     <div
       style={{
@@ -329,7 +331,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   処理中...
                 </div>
               ) : (
-                isLogin ? 'ログイン' : 'アカウントを作成'
+                submitLabel
               )}
             </button>
 

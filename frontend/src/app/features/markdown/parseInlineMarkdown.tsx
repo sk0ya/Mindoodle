@@ -1,13 +1,13 @@
 import React from 'react';
 
-
-
 export interface InlineSegment {
   text: string;
   bold?: boolean;
   italic?: boolean;
   strikethrough?: boolean;
 }
+
+type InlineFormat = 'bold' | 'italic' | 'strikethrough';
 
 
 export function parseInlineMarkdown(text: string): InlineSegment[] {
@@ -80,15 +80,16 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
 export function renderInlineMarkdownSVG(
   text: string,
   baseStyle?: React.CSSProperties
-): React.ReactNode {
+): React.ReactElement[] {
   const segments = parseInlineMarkdown(text);
 
   return segments.map((segment, index) => {
     const props: React.SVGProps<SVGTSpanElement> = {};
 
-    
+
+
     if (baseStyle?.fill) props.fill = baseStyle.fill;
-    if (baseStyle?.textDecoration) props.textDecoration = baseStyle.textDecoration as any;
+    if (baseStyle?.textDecoration) props.textDecoration = baseStyle.textDecoration as string;
 
     
     if (segment.bold) {
@@ -110,8 +111,8 @@ export function renderInlineMarkdownSVG(
 }
 
 
-function detectFormattingLayers(text: string): Array<'bold' | 'italic' | 'strikethrough'> {
-  const layers: Array<'bold' | 'italic' | 'strikethrough'> = [];
+function detectFormattingLayers(text: string): Array<InlineFormat> {
+  const layers: Array<InlineFormat> = [];
   let current = text;
 
   while (true) {
@@ -161,7 +162,7 @@ function detectFormattingLayers(text: string): Array<'bold' | 'italic' | 'strike
 }
 
 
-function rebuildWithLayers(coreText: string, layers: Array<'bold' | 'italic' | 'strikethrough'>): string {
+function rebuildWithLayers(coreText: string, layers: Array<InlineFormat>): string {
   const markers = {
     bold: '**',
     italic: '*',
@@ -180,7 +181,7 @@ function rebuildWithLayers(coreText: string, layers: Array<'bold' | 'italic' | '
 
 export function toggleInlineMarkdown(
   text: string,
-  format: 'bold' | 'italic' | 'strikethrough',
+  format: InlineFormat,
   selectionStart?: number,
   selectionEnd?: number
 ): { newText: string; newCursorPos?: number } {

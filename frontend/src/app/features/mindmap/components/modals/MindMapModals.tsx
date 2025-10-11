@@ -33,41 +33,36 @@ const useImageModal = () => {
 
 /**
  * AI生成モーダル管理フック
+ * Note: nodeOperations should be passed as a parameter from the component using the context
  */
-const useAIModal = () => {
+const useAIModal = (nodeOperations?: { onAddChild: (parentId: string, text: string) => void }) => {
   const [showAIModal, setShowAIModal] = useState(false);
   const [aiTargetNode, setAiTargetNode] = useState<MindMapNode | null>(null);
-  
+
   const handleAIGenerate = (node: MindMapNode) => {
     setAiTargetNode(node);
     setShowAIModal(true);
   };
-  
+
   const handleAIGenerationComplete = (childTexts: string[]) => {
-    const { nodeOperations } = useMindMapModals();
-    
-    if (aiTargetNode) {
+    if (aiTargetNode && nodeOperations) {
       // 複数の子ノードを順番に作成
       childTexts.forEach((text, index) => {
         setTimeout(() => {
-          // 子ノードを追加して新しいノードIDを取得
-          const newNodeId = nodeOperations.onAddChild(aiTargetNode.id, text);
-          
-          // 追加ログを出力（デバッグ用）
-          // Optionally log added/failed nodes here in dev
-          void newNodeId;
+          // 子ノードを追加（戻り値は未使用）
+          nodeOperations.onAddChild(aiTargetNode.id, text);
         }, index * 100); // 各ノード作成を100ms間隔で実行
       });
     }
     setShowAIModal(false);
     setAiTargetNode(null);
   };
-  
+
   const closeAIModal = () => {
     setShowAIModal(false);
     setAiTargetNode(null);
   };
-  
+
   return {
     showAIModal,
     aiTargetNode,
@@ -103,7 +98,9 @@ const AIGenerationModalComponent: React.FC<{
  * メインのモーダル管理コンポーネント（内部実装）
  */
 const MindMapModalsInternal: React.FC = () => {
-  const { showAIModal, aiTargetNode, handleAIGenerationComplete, closeAIModal } = useAIModal();
+  const { nodeOperations, uiOperations } = useMindMapModals();
+
+  const { showAIModal, aiTargetNode, handleAIGenerationComplete, closeAIModal } = useAIModal(nodeOperations);
 
   const {
     showImageModal,
@@ -112,8 +109,6 @@ const MindMapModalsInternal: React.FC = () => {
     handleShowImage,
     handleCloseImage
   } = useImageModal();
-
-  const { uiOperations } = useMindMapModals();
 
   // Expose the image modal handler through the context
   React.useEffect(() => {

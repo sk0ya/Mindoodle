@@ -3,12 +3,16 @@ import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 
+// Local aliases to avoid inline union types
+type DropPosition = 'child' | 'before' | 'after';
+type DropAction = 'move-parent' | 'reorder-sibling';
+
 interface DragState {
   isDragging: boolean;
   draggedNodeId: string | null;
   dropTargetId: string | null;
-  dropPosition: 'child' | 'before' | 'after' | null;
-  dropAction: 'move-parent' | 'reorder-sibling' | null;
+  dropPosition: DropPosition | null;
+  dropAction: DropAction | null;
   dragOffset: { x: number; y: number };
 }
 
@@ -20,7 +24,7 @@ interface CanvasDragHandlerProps {
   
   onChangeParent?: (nodeId: string, newParentId: string) => void;
   onChangeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore: boolean) => void;
-  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => void;
+  onMoveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: DropPosition) => void;
   rootNodes: MindMapNode[];
 }
 
@@ -28,9 +32,7 @@ export const useCanvasDragHandler = ({
   allNodes,
   zoom,
   pan,
-  svgRef,
-  
-  rootNodes
+  svgRef
 }: CanvasDragHandlerProps) => {
   const [dragState, setDragState] = useState<DragState>({
     isDragging: false,
@@ -42,7 +44,7 @@ export const useCanvasDragHandler = ({
   });
 
   
-  const getDropTargetAndAction = useCallback((x: number, y: number, shiftKey?: boolean): { node: MindMapNode | null; position: 'child' | 'before' | 'after' | null; action: 'move-parent' | 'reorder-sibling' | null } => {
+  const getDropTargetAndAction = useCallback((x: number, y: number, shiftKey?: boolean): { node: MindMapNode | null; position: DropPosition | null; action: DropAction | null } => {
     
     const svgRect = svgRef.current?.getBoundingClientRect();
     if (!svgRect) return { node: null, position: null, action: null };
@@ -106,8 +108,8 @@ export const useCanvasDragHandler = ({
     const topThreshold = -nodeHeight / 2;    
     const bottomThreshold = nodeHeight / 2;  
 
-    let position: 'child' | 'before' | 'after' | null = null;
-    let action: 'move-parent' | 'reorder-sibling' | null = null;
+    let position: DropPosition | null = null;
+    let action: DropAction | null = null;
 
     if (shiftKey) {
       
@@ -129,7 +131,7 @@ export const useCanvasDragHandler = ({
 
 
     return { node: targetNode, position, action };
-  }, [allNodes, zoom, pan, dragState.draggedNodeId, svgRef, rootNodes]);
+  }, [allNodes, zoom, pan, dragState.draggedNodeId, svgRef]);
 
   
   const handleDragStart = useCallback((nodeId: string, _e: React.MouseEvent | React.TouchEvent) => {

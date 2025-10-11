@@ -195,9 +195,15 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
           <span className="category-expand-icon">
             {isCollapsed ? <ChevronRight size={14} /> : <ChevronDown size={14} />}
           </span>
-          <span className="category-folder-icon">
-            {isCloudWorkspace ? '🌐' : (isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />)}
-          </span>
+          {(() => {
+            let folderIcon: React.ReactNode;
+            if (isCloudWorkspace) {
+              folderIcon = '🌐';
+            } else {
+              folderIcon = isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />;
+            }
+            return <span className="category-folder-icon">{folderIcon}</span>;
+          })()}
           <span className="category-name">
             {searchTerm ? highlightSearchTerm(item.name || '', searchTerm) : (item.name || '')}
           </span>
@@ -256,7 +262,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
           onBlur={onCancelRename}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              
+
               const newTitle = editingTitle.trim();
               if (newTitle && newTitle !== item.name) {
                 window.dispatchEvent(new CustomEvent('mindoodle:renameMap', {
@@ -264,8 +270,8 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
                 }));
               }
               if (onEditingTitleChange) onEditingTitleChange('');
-            } else if (e.key === 'Escape') {
-              if (onCancelRename) onCancelRename();
+            } else if (e.key === 'Escape' && onCancelRename) {
+              onCancelRename();
             }
           }}
           autoFocus

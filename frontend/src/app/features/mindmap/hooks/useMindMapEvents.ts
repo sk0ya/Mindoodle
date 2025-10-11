@@ -4,25 +4,31 @@ import { useMindMapStore } from '../store';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 
 interface UseMindMapEventsParams {
-  mindMap: any;
-  selectMapById: (id: any) => Promise<boolean>;
+  mindMap: {
+    refreshMapList?: () => Promise<void> | void;
+    renameItem?: (oldPath: string, newName: string) => Promise<void>;
+    deleteItem?: (path: string) => Promise<void>;
+    moveItem?: (sourcePath: string, targetFolderPath: string) => Promise<void>;
+  };
+  selectMapById: (id: { mapId: string; workspaceId: string }) => Promise<boolean>;
 }
 
 
 export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsParams) {
   
-  const handleSelectMapById = useStableCallback(async (e: any) => {
-    const id = e?.detail?.mapId as string | undefined;
-    const ws = e?.detail?.workspaceId as string;
-    const source = e?.detail?.source as string | undefined;
-    const direction = e?.detail?.direction as ('prev' | 'next' | undefined);
+  const handleSelectMapById = useStableCallback(async (e: Event) => {
+    const evt = e as CustomEvent;
+    const id = evt?.detail?.mapId as string | undefined;
+    const ws = evt?.detail?.workspaceId as string;
+    const source = evt?.detail?.source as string | undefined;
+    const direction = evt?.detail?.direction as ('prev' | 'next' | undefined);
     if (!id || typeof selectMapById !== 'function') return;
 
-    const ordered: Array<{ mapId: string; workspaceId: string }> = (window as any).mindoodleOrderedMaps || [];
+    const ordered: Array<{ mapId: string; workspaceId: string }> = (window as Window & { mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }> }).mindoodleOrderedMaps || [];
     const dirStep = direction === 'prev' ? -1 : 1;
 
     const trySelect = async (mapId: string, workspaceId: string): Promise<boolean> => {
-      const ok = await selectMapById({ mapId, workspaceId: workspaceId as any });
+      const ok = await selectMapById({ mapId, workspaceId });
       if (!ok) return false;
       
       await Promise.resolve();
@@ -48,14 +54,14 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     }
   });
 
-  useEventListener('mindoodle:selectMapById' as any, handleSelectMapById as any, { target: window });
+  useEventListener('mindoodle:selectMapById', handleSelectMapById, { target: window });
 
   
   const doRefresh = useStableCallback(() => {
     try {
       if (typeof (mindMap).refreshMapList === 'function') {
         const r = (mindMap).refreshMapList();
-        if (r && typeof (r as any).then === 'function') {
+        if (r && typeof (r).then === 'function') {
           (r as Promise<unknown>).catch((err) => console.warn('Refresh list failed:', err));
         }
       }
@@ -72,7 +78,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
 
   useEventListener('visibilitychange', onVisibility, { target: document });
   useEventListener('focus', onFocus, { target: window });
-  useEventListener('mindoodle:refreshExplorer' as any, doRefresh as any, { target: window });
+  useEventListener('mindoodle:refreshExplorer', doRefresh, { target: window });
 
   useEffect(() => {
     const interval = window.setInterval(doRefresh, 7000);
@@ -80,51 +86,47 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
   }, [doRefresh]);
 
   
-  const onRename = useStableCallback((e: any) => {
-    try {
-      const oldPath = e?.detail?.oldPath;
-      const newName = e?.detail?.newName;
-      if (oldPath && newName && typeof (mindMap).renameItem === 'function') {
-        (mindMap).renameItem(oldPath, newName).then(() => {
+  const onRename = useStableCallback((e: Event) => {
+    const evt = e as CustomEvent;
+    const oldPath = evt?.detail?.oldPath;
+    const newName = evt?.detail?.newName;
+    if (oldPath && newName && typeof (mindMap).renameItem === 'function') {
+      (mindMap).renameItem(oldPath, newName)
+        .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-        }).catch((err: unknown) => console.error('Rename failed:', err));
-      }
-    } catch (err) {
-      console.error('Rename handler failed:', err);
+        })
+        .catch((err: unknown) => console.error('Rename failed:', err));
     }
   });
 
-  const onDelete = useStableCallback((e: any) => {
-    try {
-      const path = e?.detail?.path;
-      if (path && typeof (mindMap).deleteItem === 'function') {
-        (mindMap).deleteItem(path).then(() => {
+  const onDelete = useStableCallback((e: Event) => {
+    const evt = e as CustomEvent;
+    const path = evt?.detail?.path;
+    if (path && typeof (mindMap).deleteItem === 'function') {
+      (mindMap).deleteItem(path)
+        .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-        }).catch((err: unknown) => console.error('Delete failed:', err));
-      }
-    } catch (err) {
-      console.error('Delete handler failed:', err);
+        })
+        .catch((err: unknown) => console.error('Delete failed:', err));
     }
   });
 
-  useEventListener('mindoodle:renameItem' as any, onRename as any, { target: window });
-  useEventListener('mindoodle:deleteItem' as any, onDelete as any, { target: window });
+  useEventListener('mindoodle:renameItem', onRename, { target: window });
+  useEventListener('mindoodle:deleteItem', onDelete, { target: window });
 
   
-  const onMove = useStableCallback((e: any) => {
-    try {
-      const src = e?.detail?.sourcePath;
-      const dst = e?.detail?.targetFolderPath ?? '';
-
-      if (src !== undefined && typeof (mindMap).moveItem === 'function') {
-        (mindMap).moveItem(src, dst).then(() => {
+  const onMove = useStableCallback((e: Event) => {
+    const evt = e as CustomEvent;
+    const src = evt?.detail?.sourcePath;
+    const dst = evt?.detail?.targetFolderPath ?? '';
+    if (src !== undefined && typeof (mindMap).moveItem === 'function') {
+      (mindMap).moveItem(src, dst)
+        .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-        }).catch((err: unknown) => console.error('Move failed:', err));
-      }
-    } catch (err) {
-      console.error('Move handler failed:', err);
+        })
+        .catch((err: unknown) => console.error('Move failed:', err));
     }
   });
 
-  useEventListener('mindoodle:moveItem' as any, onMove as any, { target: window });
+  useEventListener('mindoodle:moveItem', onMove, { target: window });
 }

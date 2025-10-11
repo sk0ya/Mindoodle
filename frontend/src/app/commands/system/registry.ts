@@ -94,13 +94,12 @@ export class CommandRegistryImpl implements CommandRegistry {
       }
     }
 
-    
-    return results
-      .sort((a, b) => b.score - a.score)
-      .map(result => result.command);
+
+    const sortedResults = [...results].sort((a, b) => b.score - a.score);
+    return sortedResults.map(result => result.command);
   }
 
-    async execute(nameOrAlias: string, context: CommandContext, args: Record<string, any> = {}): Promise<CommandResult> {
+    async execute(nameOrAlias: string, context: CommandContext, args: Record<string, string | number | boolean> = {}): Promise<CommandResult> {
     const command = this.get(nameOrAlias);
     if (!command) {
       return { success: false, error: `Command '${nameOrAlias}' not found` };
@@ -122,7 +121,7 @@ export class CommandRegistryImpl implements CommandRegistry {
   getAvailableNames(): string[] {
     const names = Array.from(this.commands.keys());
     const aliasNames = Array.from(this.aliases.keys());
-    return [...names, ...aliasNames].sort();
+    return [...names, ...aliasNames].sort((a, b) => a.localeCompare(b));
   }
 
   
@@ -249,7 +248,10 @@ export class CommandRegistryImpl implements CommandRegistry {
       if (!categories.has(category)) {
         categories.set(category, []);
       }
-      categories.get(category)!.push(command);
+      const categoryCommands = categories.get(category);
+      if (categoryCommands) {
+        categoryCommands.push(command);
+      }
     }
 
     

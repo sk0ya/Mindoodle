@@ -28,9 +28,9 @@ export const deleteCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const skipConfirm = (args as any)['confirm'];
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const nodeId = (args['nodeId'] as string | undefined) || context.selectedNodeId;
+    const skipConfirm = args['confirm'] as boolean | undefined;
     const count = context.count ?? 1;
 
     if (!nodeId) {

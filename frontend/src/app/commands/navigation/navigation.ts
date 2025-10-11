@@ -1,8 +1,12 @@
 
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandContext, CommandResult, Direction } from '../system/types';
+import type { MindMapNode, UIState } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 import { viewportService } from '@/app/core/services';
+
+type ArgValue = string | number | boolean;
+type ArgsMap = Record<string, ArgValue>;
 
 
 export const arrowNavigateCommand: Command = {
@@ -20,8 +24,8 @@ export const arrowNavigateCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const direction = (args as any)['direction'];
+  execute(context: CommandContext, args: ArgsMap): CommandResult {
+    const direction = typeof args['direction'] === 'string' ? args['direction'] : '';
 
     if (!context.selectedNodeId) {
       return {
@@ -30,17 +34,19 @@ export const arrowNavigateCommand: Command = {
       };
     }
 
-    const validDirections = ['up', 'down', 'left', 'right'];
-    if (!validDirections.includes(direction)) {
+    const isDirection = (d: string): d is Direction => (
+      (['up', 'down', 'left', 'right'] as const).includes(d as Direction)
+    );
+    if (!isDirection(direction)) {
       return {
         success: false,
-        error: `Invalid direction "${direction}". Use: ${validDirections.join(', ')}`
+        error: `Invalid direction "${direction}". Use: up, down, left, right`
       };
     }
 
     try {
       context.handlers.closeAttachmentAndLinkLists();
-      context.handlers.navigateToDirection(direction as 'up' | 'down' | 'left' | 'right');
+      context.handlers.navigateToDirection(direction);
       return {
         success: true,
         message: `Navigated ${direction}`
@@ -70,8 +76,8 @@ export const selectNodeCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'];
+  execute(context: CommandContext, args: ArgsMap): CommandResult {
+    const nodeId = typeof args['nodeId'] === 'string' ? args['nodeId'] : '';
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
@@ -120,9 +126,9 @@ export const findNodeCommand: Command = {
     }
   ],
 
-  execute(_context: CommandContext, args: Record<string, any>): CommandResult {
-    const searchText = (args as any)['text'];
-    const exactMatch = (args as any)['exact'];
+  execute(_context: CommandContext, args: ArgsMap): CommandResult {
+    const searchText = typeof args['text'] === 'string' ? args['text'] : '';
+    const exactMatch = typeof args['exact'] === 'boolean' ? args['exact'] : false;
 
     try {
       
@@ -278,7 +284,7 @@ export const selectRootNodeCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      const roots = (useMindMapStore.getState() as any)?.data?.rootNodes || [];
+      const roots: MindMapNode[] = useMindMapStore.getState()?.data?.rootNodes || [];
       if (!roots || roots.length === 0) {
         return {
           success: false,
@@ -312,6 +318,67 @@ export const selectRootNodeCommand: Command = {
 };
 
 
+function calculateMapAreaRect(ui: UIState): DOMRect {
+  const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
+  const ACTIVITY_BAR_WIDTH = 48;
+  const SIDEBAR_WIDTH = 280;
+  const leftPanelWidth = ACTIVITY_BAR_WIDTH + (ui?.activeView && !ui?.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
+  const rightPanelWidth = ui?.showNotesPanel ? ((ui?.markdownPanelWidth as number) || 0) : 0;
+  const VIM_HEIGHT = 24;
+  const defaultNoteHeight = viewportService.getDefaultNoteHeight();
+  let noteHeight = 0;
+  if (ui?.showNodeNotePanel) {
+    noteHeight = (ui?.nodeNotePanelHeight && (ui?.nodeNotePanelHeight) > 0) ? (ui?.nodeNotePanelHeight) : defaultNoteHeight;
+  }
+  const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
+  const topOverlay = 0;
+  return new DOMRect(
+    leftPanelWidth,
+    topOverlay,
+    Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
+    Math.max(0, viewportHeight - bottomOverlay - topOverlay)
+  );
+}
+
+function collectAllNodes(node: MindMapNode): MindMapNode[] {
+  let nodes = [node];
+  if (node.children && !node.collapsed) {
+    for (const child of node.children) {
+      nodes = nodes.concat(collectAllNodes(child));
+    }
+  }
+  return nodes;
+}
+
+function findClosestNodeToCenter(
+  allNodes: MindMapNode[],
+  centerX: number,
+  centerY: number,
+  zoom: number,
+  pan: { x: number; y: number }
+): MindMapNode | null {
+  let closestNode = null;
+  let closestDistance = Infinity;
+
+  for (const node of allNodes) {
+    if (!node.x || !node.y) continue;
+
+    const nodeScreenX = zoom * (node.x + pan.x);
+    const nodeScreenY = zoom * (node.y + pan.y);
+
+    const deltaX = nodeScreenX - centerX;
+    const deltaY = nodeScreenY - centerY;
+    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+
+    if (distance < closestDistance) {
+      closestDistance = distance;
+      closestNode = node;
+    }
+  }
+
+  return closestNode;
+}
+
 export const selectCenterNodeCommand: Command = {
   name: 'select-center',
   aliases: ['center-select', 'vim-m'],
@@ -321,72 +388,20 @@ export const selectCenterNodeCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-
-      
-      const st = (useMindMapStore.getState() as any);
+      const st = useMindMapStore.getState();
       const ui = st?.ui || {};
-      const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
-      const ACTIVITY_BAR_WIDTH = 48;
-      const SIDEBAR_WIDTH = 280;
-      const leftPanelWidth = ACTIVITY_BAR_WIDTH + (ui?.activeView && !ui?.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
-      const rightPanelWidth = ui?.showNotesPanel ? (ui?.markdownPanelWidth || 0) : 0;
-      const VIM_HEIGHT = 24;
-      const defaultNoteHeight = viewportService.getDefaultNoteHeight();
-      const noteHeight = ui?.showNodeNotePanel ? (ui?.nodeNotePanelHeight && ui?.nodeNotePanelHeight > 0 ? ui?.nodeNotePanelHeight : defaultNoteHeight) : 0;
-      const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
-      const topOverlay = 0;
-      const mapAreaRect = new DOMRect(
-        leftPanelWidth,
-        topOverlay,
-        Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
-        Math.max(0, viewportHeight - bottomOverlay - topOverlay)
-      );
+      const mapAreaRect = calculateMapAreaRect(ui);
 
-      
       const centerScreenX = mapAreaRect.left + (mapAreaRect.width / 2);
       const centerScreenY = mapAreaRect.top + (mapAreaRect.height / 2);
 
-      
-      function collectAllNodes(node: any): any[] {
-        let nodes = [node];
-        if (node.children && !node.collapsed) {
-          for (const child of node.children) {
-            nodes = nodes.concat(collectAllNodes(child));
-          }
-        }
-        return nodes;
-      }
+      const rootsForCollect: MindMapNode[] = st?.data?.rootNodes || [];
+      const allNodes: MindMapNode[] = ([] as MindMapNode[]).concat(...rootsForCollect.map((r: MindMapNode) => collectAllNodes(r)));
 
-      
-      const st2 = (useMindMapStore.getState() as any);
-      const rootsForCollect = st2?.data?.rootNodes || [];
-      const allNodes = ([] as any[]).concat(...rootsForCollect.map((r: any) => collectAllNodes(r)));
-
-      
-      let closestNode = null;
-      let closestDistance = Infinity;
-
-      
-      const currentZoom = ((ui?.zoom) || 1) * 1.5; 
+      const currentZoom = (ui?.zoom || 1) * 1.5;
       const currentPan = ui?.pan || { x: 0, y: 0 };
 
-      for (const node of allNodes) {
-        if (!node.x || !node.y) continue; 
-
-        
-        const nodeScreenX = currentZoom * (node.x + currentPan.x);
-        const nodeScreenY = currentZoom * (node.y + currentPan.y);
-
-        
-        const deltaX = nodeScreenX - centerScreenX;
-        const deltaY = nodeScreenY - centerScreenY;
-        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-
-        if (distance < closestDistance) {
-          closestDistance = distance;
-          closestNode = node;
-        }
-      }
+      const closestNode = findClosestNodeToCenter(allNodes, centerScreenX, centerScreenY, currentZoom, currentPan);
 
       if (!closestNode) {
         return {
@@ -395,13 +410,11 @@ export const selectCenterNodeCommand: Command = {
         };
       }
 
-      
       context.handlers.selectNode(closestNode.id);
       if (context.handlers.centerNodeInView) {
         context.handlers.centerNodeInView(closestNode.id, true);
       }
 
-      
       context.handlers.closeAttachmentAndLinkLists();
 
       return {
@@ -427,7 +440,7 @@ export const selectBottomNodeCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      const roots = (useMindMapStore.getState() as any)?.data?.rootNodes || [];
+      const roots: MindMapNode[] = useMindMapStore.getState()?.data?.rootNodes || [];
       if (!roots || roots.length === 0) {
         return { success: false, error: 'No root nodes found in current map' };
       }
@@ -463,8 +476,8 @@ export const nextMapCommand: Command = {
   category: 'navigation',
   execute: async (context: CommandContext) => {
     try {
-      
-      const handlers = (context as any).handlers;
+
+      const handlers = context.handlers;
       if (handlers && handlers.switchToNextMap) {
         handlers.switchToNextMap();
         return { success: true, message: 'Switched to next map' };
@@ -484,8 +497,8 @@ export const prevMapCommand: Command = {
   category: 'navigation',
   execute: async (context: CommandContext) => {
     try {
-      
-      const handlers = (context as any).handlers;
+
+      const handlers = context.handlers;
       if (handlers && handlers.switchToPrevMap) {
         handlers.switchToPrevMap();
         return { success: true, message: 'Switched to previous map' };
@@ -517,7 +530,7 @@ export const selectCurrentRootCommand: Command = {
     }
 
     try {
-      const state = useMindMapStore.getState() as any;
+      const state = useMindMapStore.getState();
       const rootNodes = state?.data?.rootNodes || [];
 
       if (rootNodes.length === 0) {
@@ -527,8 +540,9 @@ export const selectCurrentRootCommand: Command = {
         };
       }
 
-      
-      function findRootNodeForNode(nodeId: string, nodes: any[]): any | null {
+
+
+      function findRootNodeForNode(nodeId: string, nodes: MindMapNode[]): MindMapNode | null {
         for (const node of nodes) {
           if (node.id === nodeId) {
             return node;
@@ -543,8 +557,9 @@ export const selectCurrentRootCommand: Command = {
         return null;
       }
 
-      
-      const isAlreadyRoot = rootNodes.some((root: any) => root.id === selectedNodeId);
+
+
+      const isAlreadyRoot = rootNodes.some((root: MindMapNode) => root.id === selectedNodeId);
 
       if (isAlreadyRoot) {
         return {

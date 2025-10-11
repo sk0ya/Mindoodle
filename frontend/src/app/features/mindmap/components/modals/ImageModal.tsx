@@ -78,7 +78,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
         hasData: !!file.data,
         hasDownloadUrl: !!file.downloadUrl,
         downloadUrl: file.downloadUrl,
-        isRelativeLocal: (file as any).isRelativeLocal,
+        isRelativeLocal: 'isRelativeLocal' in file ? (file as FileAttachment & { isRelativeLocal?: boolean }).isRelativeLocal : undefined,
         result: result?.substring(0, 100) + '...'
       });
       return result;

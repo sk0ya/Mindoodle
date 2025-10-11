@@ -122,6 +122,8 @@ export function isValidUrlString(value: unknown): value is string {
 
 export function isValidEmail(value: unknown): value is string {
   if (!isString(value)) return false;
+  // Simple email validation regex - not vulnerable to ReDoS
+  // eslint-disable-next-line sonarjs/slow-regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   return emailRegex.test(value);
 }

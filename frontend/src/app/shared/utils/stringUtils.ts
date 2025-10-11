@@ -112,7 +112,8 @@ export function isEmpty(str: string | null | undefined): boolean {
  * 文字列をデフォルト値で置換（空の場合）
  */
 export function defaultIfEmpty(str: string | null | undefined, defaultValue: string): string {
-  return isEmpty(str) ? defaultValue : str!;
+  if (isEmpty(str)) return defaultValue;
+  return (str as string);
 }
 
 /**

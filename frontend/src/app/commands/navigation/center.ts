@@ -28,9 +28,10 @@ export const centerCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const animate = (args as any)['animate'] ?? true;
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const typedArgs = args as Record<string, string | boolean | undefined>;
+    const nodeId = (typedArgs['nodeId'] as string | undefined) || context.selectedNodeId;
+    const animate = (typedArgs['animate'] as boolean | undefined) ?? true;
 
     if (!nodeId) {
       return {
@@ -48,7 +49,7 @@ export const centerCommand: Command = {
 
     try {
       
-      (context.handlers as any).centerNodeInView(nodeId, animate, { mode: 'center' });
+      (context.handlers as typeof context.handlers & { centerNodeInView: (_nodeId: string, _animate: boolean, _options: { mode: string }) => void }).centerNodeInView(nodeId, animate, { mode: 'center' });
       return {
         success: true,
         message: `Centered node ${nodeId}`
@@ -88,9 +89,10 @@ export const centerLeftCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const animate = (args as any)['animate'] ?? false;
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const typedArgs = args as Record<string, string | boolean | undefined>;
+    const nodeId = (typedArgs['nodeId'] as string | undefined) || context.selectedNodeId;
+    const animate = (typedArgs['animate'] as boolean | undefined) ?? false;
 
     if (!nodeId) {
       return {
@@ -108,7 +110,7 @@ export const centerLeftCommand: Command = {
 
     try {
       
-      (context.handlers as any).centerNodeInView(nodeId, animate, { mode: 'left' });
+      (context.handlers as typeof context.handlers & { centerNodeInView: (_nodeId: string, _animate: boolean, _options: { mode: string }) => void }).centerNodeInView(nodeId, animate, { mode: 'left' });
       return {
         success: true,
         message: `Centered node ${nodeId} at left`

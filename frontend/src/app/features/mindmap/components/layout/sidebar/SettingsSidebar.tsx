@@ -18,8 +18,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   };
 
   // モデルダウンロード進捗リスナー
-  const handleProgress = (e: CustomEvent) => {
-    const progress = e.detail;
+  const handleProgress = (e: Event) => {
+    const customEvent = e as CustomEvent;
+    const progress = customEvent.detail;
     if (progress.status === 'progress' && progress.file) {
       const percent = progress.progress ? Math.round(progress.progress * 100) : 0;
       setEmbeddingProgress(`Downloading ${progress.file}: ${percent}%`);
@@ -32,7 +33,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
     }
   };
 
-  useEventListener('embedding-progress' as keyof WindowEventMap, handleProgress as any, { target: window });
+  useEventListener('embedding-progress' as keyof WindowEventMap, handleProgress as EventListener, { target: window });
 
   
   const handleKnowledgeGraphToggle = async (enabled: boolean) => {
@@ -98,8 +99,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
               type="number"
               min="1"
               max="50"
-              value={(settings as any).nodeSpacing}
-              onChange={(e) => handleSettingChange('nodeSpacing' as keyof typeof settings, parseInt(e.target.value) as any)}
+              value={settings.nodeSpacing}
+              onChange={(e) => handleSettingChange('nodeSpacing', parseInt(e.target.value))}
               className="settings-input"
             />
             <div className="settings-description">
@@ -172,8 +173,8 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
             <input
               type="checkbox"
               id="blank-line-heading"
-              checked={(settings as any).addBlankLineAfterHeading}
-              onChange={(e) => handleSettingChange('addBlankLineAfterHeading' as keyof typeof settings, e.target.checked as any)}
+              checked={settings.addBlankLineAfterHeading}
+              onChange={(e) => handleSettingChange('addBlankLineAfterHeading', e.target.checked)}
             />
             <label htmlFor="blank-line-heading" className="settings-toggle-label">
               見出し後に空行を追加
@@ -187,7 +188,7 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
             <label className="settings-input-label">デフォルト折りたたみ階層</label>
             <select
               value={settings.defaultCollapseDepth ?? 2}
-              onChange={(e) => handleSettingChange('defaultCollapseDepth' as keyof typeof settings, parseInt(e.target.value) as any)}
+              onChange={(e) => handleSettingChange('defaultCollapseDepth', parseInt(e.target.value))}
               className="settings-select"
             >
               <option value="0">折りたたまない</option>

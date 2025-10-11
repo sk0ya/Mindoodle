@@ -4,23 +4,21 @@ import { findNodeInRoots } from './nodeOperations';
 
 
 export const addLinkToNode = (
-  node: MindMapNode, 
+  node: MindMapNode,
   linkData: Partial<NodeLink>
 ): MindMapNode => {
   const newLink: NodeLink = {
     id: linkData.id || generateLinkId(),
     targetMapId: linkData.targetMapId,
     targetNodeId: linkData.targetNodeId,
-    targetAnchor: linkData.targetAnchor,
-    createdAt: linkData.createdAt || new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    targetAnchor: linkData.targetAnchor
   };
 
   return {
     ...node,
     links: [...(node.links || []), newLink]
   };
-};;
+};
 
 
 export const updateLinkInNode = (
@@ -36,8 +34,7 @@ export const updateLinkInNode = (
       link.id === linkId
         ? {
             ...link,
-            ...updates,
-            updatedAt: new Date().toISOString()
+            ...updates
           }
         : link
     )

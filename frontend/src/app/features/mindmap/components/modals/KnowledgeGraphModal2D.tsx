@@ -5,15 +5,21 @@ import { vectorStore } from '@core/services/VectorStore';
 import { ForceDirectedLayout, type Node2D } from '../../utils/forceDirectedLayout';
 import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
+import type { MindMapNode, MapIdentifier } from '@shared/types';
 // storageAdapter no longer passed; use getMapMarkdown when needed
 import { getCommandRegistry } from '@commands/system/registry';
+
+type MapListItem = {
+  mapIdentifier: MapIdentifier;
+  rootNodes?: MindMapNode[];
+};
 
 interface KnowledgeGraphModal2DProps {
   isOpen: boolean;
   onClose: () => void;
-  mapIdentifier?: { mapId: string; workspaceId?: string | null } | null;
-  getMapMarkdown?: (id: { mapId: string; workspaceId: string | null | undefined }) => Promise<string | null>;
-  getWorkspaceMapIdentifiers?: (workspaceId?: string | null) => Promise<Array<{ mapId: string; workspaceId: string }>>;
+  mapIdentifier?: MapIdentifier | null;
+  getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
+  getWorkspaceMapIdentifiers?: (workspaceId?: string | null) => Promise<Array<MapIdentifier>>;
 }
 
 export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
@@ -40,6 +46,16 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
 
+  // Deterministic position generator based on string hash (no Math.random)
+  const deterministicPosition = useCallback((key: string, max: number): number => {
+    let h = 5381;
+    for (let i = 0; i < key.length; i++) {
+      h = ((h << 5) + h) ^ key.charCodeAt(i);
+    }
+    const u = (h >>> 0) / 0xffffffff; // 0..1
+    return Math.floor(u * max);
+  }, []);
+
   const buildVectorKey = useCallback((workspaceId: string | null | undefined, mapId: string) => {
     // Use namespaced key only when workspaceId is known; otherwise fall back to plain mapId.md (legacy)
     return workspaceId ? `${workspaceId}::${mapId}.md` : `${mapId}.md`;
@@ -54,7 +70,82 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     return { workspaceId: null, mapId: plain };
   }, []);
 
-  
+
+  const runInitialVectorization = useCallback(async () => {
+    try {
+      const existingVectors = await vectorStore.getAllVectors();
+      const windowWithMaps = window as Window & { mindoodleAllMaps?: MapListItem[] };
+      let mapsList: MapListItem[] = (windowWithMaps.mindoodleAllMaps || []).slice();
+      const ws = mapIdentifier?.workspaceId || null;
+      if (mapIdentifier && !mapsList.find((m) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+        mapsList.push({ mapIdentifier });
+      }
+      const containsWsCount = mapsList.filter((m) => m?.mapIdentifier?.workspaceId === ws).length;
+      if ((containsWsCount === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
+        try {
+          const ids = await getWorkspaceMapIdentifiers(ws);
+          if (Array.isArray(ids) && ids.length > 0) {
+            mapsList = ids.map(id => ({ mapIdentifier: id }));
+            if (mapIdentifier && !mapsList.find((m) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+              mapsList.push({ mapIdentifier });
+            }
+          }
+        } catch {}
+      }
+
+      const uniqueWs = Array.from(new Set(mapsList.map((m) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
+      const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0] : null);
+      const scopedMaps = filterWsId ? mapsList.filter((m) => m?.mapIdentifier?.workspaceId === filterWsId) : mapsList;
+
+      // Vectorize any map that lacks a vector, regardless of rootNodes presence
+      const mapsToVectorize = scopedMaps.filter((mapData) => {
+        const plainKey = `${mapData?.mapIdentifier?.mapId}.md`;
+        const namespacedKey = buildVectorKey(mapData?.mapIdentifier?.workspaceId, mapData?.mapIdentifier?.mapId || '');
+        return !!namespacedKey && !existingVectors.has(plainKey) && !existingVectors.has(namespacedKey);
+      });
+
+      if (mapsToVectorize.length === 0) return;
+
+      setVectorizationProgress({ current: 0, total: mapsToVectorize.length });
+
+      for (let i = 0; i < mapsToVectorize.length; i++) {
+        const mapData = mapsToVectorize[i];
+        const filePath = buildVectorKey(mapData.mapIdentifier.workspaceId, mapData.mapIdentifier.mapId);
+
+        // Prefer in-memory rootNodes; otherwise fetch markdown via adapter (network OK in cloud)
+        let markdown = '';
+        if (Array.isArray(mapData.rootNodes) && mapData.rootNodes.length > 0) {
+          markdown = mapData.rootNodes.map((node) => nodeToMarkdown(node)).join('\n');
+        } else if (typeof getMapMarkdown === 'function') {
+          try {
+            const text = await getMapMarkdown(mapData.mapIdentifier);
+            markdown = text || '';
+          } catch (e) {
+            console.warn('Failed to fetch markdown for', filePath, e);
+          }
+        }
+
+        if (markdown) {
+          try {
+            const vector = await embeddingService.embed(filePath, markdown);
+            await vectorStore.saveVector(filePath, vector);
+          } catch (e) {
+            console.warn('Vectorization failed for', filePath, e);
+          }
+        }
+
+        setVectorizationProgress({ current: i + 1, total: mapsToVectorize.length });
+      }
+
+      setVectorizationProgress(null);
+    } catch (err) {
+      console.error('Initial vectorization failed:', err);
+      setError(err instanceof Error ? err.message : 'Vectorization failed');
+      setVectorizationProgress(null);
+    }
+  }, [mapIdentifier, getMapMarkdown, getWorkspaceMapIdentifiers, buildVectorKey]);
+
+
   const loadAndLayout = useCallback(async () => {
     setIsLoading(true);
     setError(null);
@@ -65,9 +156,10 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
 
       // Filter vectors to current workspace only using provided maps (avoid additional fetching)
       try {
-        let mapsList: any[] = ((window as any).mindoodleAllMaps || []).slice();
+        const windowWithMaps = window as Window & { mindoodleAllMaps?: MapListItem[] };
+        let mapsList: MapListItem[] = (windowWithMaps.mindoodleAllMaps || []).slice();
         const ws = mapIdentifier?.workspaceId || null;
-        const containsWsCountInit = mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === ws).length;
+        const containsWsCountInit = mapsList.filter((m) => m?.mapIdentifier?.workspaceId === ws).length;
         if ((containsWsCountInit === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
           try {
             const ids = await getWorkspaceMapIdentifiers(ws);
@@ -77,23 +169,23 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
           } catch {}
         }
         // Ensure current map is present as a candidate
-        if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+        if (mapIdentifier && !mapsList.find((m) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
           mapsList.push({ mapIdentifier });
         }
-        const uniqueWs = Array.from(new Set(mapsList.map((m: any) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
-        const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0]! : null);
+        const uniqueWs = Array.from(new Set(mapsList.map((m) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
+        const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0] : null);
         setEffectiveWorkspaceId(filterWsId || null);
 
         if (filterWsId) {
           const allowedPlain = new Set(
             mapsList
-              .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
-              .map((m: any) => `${m.mapIdentifier.mapId}.md`)
+              .filter((m) => m?.mapIdentifier?.workspaceId === filterWsId)
+              .map((m) => `${m.mapIdentifier.mapId}.md`)
           );
           const allowedNamespaced = new Set(
             mapsList
-              .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
-              .map((m: any) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))
+              .filter((m) => m?.mapIdentifier?.workspaceId === filterWsId)
+              .map((m) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))
           );
 
           for (const key of Array.from(vectors.keys())) {
@@ -109,9 +201,10 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       if (vectors.size === 0) {
         // If maps are available, try on-demand vectorization, then retry
         try {
-          let mapsList: any[] = ((window as any).mindoodleAllMaps || []).slice();
+          const windowWithMaps = window as Window & { mindoodleAllMaps?: MapListItem[] };
+          let mapsList: MapListItem[] = (windowWithMaps.mindoodleAllMaps || []).slice();
           const ws = mapIdentifier?.workspaceId || null;
-          const containsWsCount = mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === ws).length;
+          const containsWsCount = mapsList.filter((m) => m?.mapIdentifier?.workspaceId === ws).length;
           if ((containsWsCount === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
             try {
               const ids = await getWorkspaceMapIdentifiers(ws);
@@ -120,25 +213,25 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
               }
             } catch {}
           }
-          if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
+          if (mapIdentifier && !mapsList.find((m) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
             mapsList.push({ mapIdentifier });
           }
           if (Array.isArray(mapsList) && mapsList.length > 0) {
             await runInitialVectorization();
             // Re-fetch vectors and re-apply filter
             const refreshed = await vectorStore.getAllVectors();
-            const uniqueWs = Array.from(new Set(mapsList.map((m: any) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
-            const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0]! : null);
+            const uniqueWs = Array.from(new Set(mapsList.map((m) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
+            const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0] : null);
             if (filterWsId) {
               const allowedPlain = new Set(
                 mapsList
-                  .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
-                  .map((m: any) => `${m.mapIdentifier.mapId}.md`)
+                  .filter((m) => m?.mapIdentifier?.workspaceId === filterWsId)
+                  .map((m) => `${m.mapIdentifier.mapId}.md`)
               );
               const allowedNamespaced = new Set(
                 mapsList
-                  .filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId)
-                  .map((m: any) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))
+                  .filter((m) => m?.mapIdentifier?.workspaceId === filterWsId)
+                  .map((m) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))
               );
               for (const key of Array.from(refreshed.keys())) {
                 if (!allowedPlain.has(key) && !allowedNamespaced.has(key)) {
@@ -149,8 +242,8 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
             if (refreshed.size > 0) {
               // Replace vectors map with refreshed
               // Note: subsequent steps below rely on 'vectors'
-              (vectors as any).clear?.();
-              for (const [k, v] of refreshed.entries()) (vectors as any).set?.(k, v);
+              (vectors as Map<string, Float32Array> & { clear?: () => void; set?: (k: string, v: Float32Array) => void }).clear?.();
+              for (const [k, v] of refreshed.entries()) (vectors as Map<string, Float32Array> & { set?: (k: string, v: Float32Array) => void }).set?.(k, v);
             }
           }
         } catch {}
@@ -165,7 +258,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       const nodeData = Array.from(vectors.entries()).map(([id, vector]) => ({ id, vector }));
 
       // Try to reuse cached layout (keyed by workspace + file list)
-      const fileKeys = nodeData.map(n => n.id).sort();
+      const fileKeys = nodeData.map(n => n.id).sort((a, b) => a.localeCompare(b));
       const wsForCache = (mapIdentifier?.workspaceId ?? effectiveWorkspaceId) || '';
       const cacheKey = `mindoodle_kg_layout_v1:${wsForCache}:${fileKeys.join('|')}`;
 
@@ -180,8 +273,8 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
               return {
                 id: d.id,
                 vector: d.vector,
-                x: pos?.x ?? Math.random() * CANVAS_WIDTH,
-                y: pos?.y ?? Math.random() * CANVAS_HEIGHT,
+                x: pos?.x ?? deterministicPosition(d.id, CANVAS_WIDTH),
+                y: pos?.y ?? deterministicPosition(d.id + ':y', CANVAS_HEIGHT),
                 vx: 0,
                 vy: 0,
               };
@@ -212,81 +305,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsLoading(false);
     }
-  }, [mapIdentifier, effectiveWorkspaceId]);
-
-  
-  const runInitialVectorization = useCallback(async () => {
-    try {
-      const existingVectors = await vectorStore.getAllVectors();
-      let mapsList: any[] = ((window as any).mindoodleAllMaps || []).slice();
-      const ws = mapIdentifier?.workspaceId || null;
-      if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
-        mapsList.push({ mapIdentifier });
-      }
-      const containsWsCount = mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === ws).length;
-      if ((containsWsCount === 0 || ws === 'cloud') && typeof getWorkspaceMapIdentifiers === 'function') {
-        try {
-          const ids = await getWorkspaceMapIdentifiers(ws);
-          if (Array.isArray(ids) && ids.length > 0) {
-            mapsList = ids.map(id => ({ mapIdentifier: id }));
-            if (mapIdentifier && !mapsList.find((m: any) => m?.mapIdentifier?.mapId === mapIdentifier.mapId && m?.mapIdentifier?.workspaceId === mapIdentifier.workspaceId)) {
-              mapsList.push({ mapIdentifier });
-            }
-          }
-        } catch {}
-      }
-
-      const uniqueWs = Array.from(new Set(mapsList.map((m: any) => m?.mapIdentifier?.workspaceId).filter(Boolean)));
-      const filterWsId = mapIdentifier?.workspaceId ?? (uniqueWs.length === 1 ? uniqueWs[0]! : null);
-      const scopedMaps = filterWsId ? mapsList.filter((m: any) => m?.mapIdentifier?.workspaceId === filterWsId) : mapsList;
-
-      // Vectorize any map that lacks a vector, regardless of rootNodes presence
-      const mapsToVectorize = scopedMaps.filter((mapData: any) => {
-        const plainKey = `${mapData?.mapIdentifier?.mapId}.md`;
-        const namespacedKey = buildVectorKey(mapData?.mapIdentifier?.workspaceId, mapData?.mapIdentifier?.mapId || '');
-        return !!namespacedKey && !existingVectors.has(plainKey) && !existingVectors.has(namespacedKey);
-      });
-
-      if (mapsToVectorize.length === 0) return;
-
-      setVectorizationProgress({ current: 0, total: mapsToVectorize.length });
-
-      for (let i = 0; i < mapsToVectorize.length; i++) {
-        const mapData = mapsToVectorize[i];
-        const filePath = buildVectorKey(mapData.mapIdentifier.workspaceId, mapData.mapIdentifier.mapId);
-
-        // Prefer in-memory rootNodes; otherwise fetch markdown via adapter (network OK in cloud)
-        let markdown = '';
-        if (Array.isArray(mapData.rootNodes) && mapData.rootNodes.length > 0) {
-          markdown = mapData.rootNodes.map((node: any) => nodeToMarkdown(node)).join('\n');
-        } else if (typeof getMapMarkdown === 'function') {
-          try {
-            const text = await getMapMarkdown(mapData.mapIdentifier);
-            markdown = text || '';
-          } catch (e) {
-            console.warn('Failed to fetch markdown for', filePath, e);
-          }
-        }
-
-        if (markdown) {
-          try {
-            const vector = await embeddingService.embed(filePath, markdown);
-            await vectorStore.saveVector(filePath, vector);
-          } catch (e) {
-            console.warn('Vectorization failed for', filePath, e);
-          }
-        }
-
-        setVectorizationProgress({ current: i + 1, total: mapsToVectorize.length });
-      }
-
-      setVectorizationProgress(null);
-    } catch (err) {
-      console.error('Initial vectorization failed:', err);
-      setError(err instanceof Error ? err.message : 'Vectorization failed');
-      setVectorizationProgress(null);
-    }
-  }, [mapIdentifier, getMapMarkdown, getWorkspaceMapIdentifiers]);
+  }, [mapIdentifier, effectiveWorkspaceId, getWorkspaceMapIdentifiers, buildVectorKey, deterministicPosition, runInitialVectorization]);
 
   
   useEffect(() => {
@@ -337,7 +356,12 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
 
       // ノード円
       ctx.beginPath();
-      const nodeRadius = isHovered ? 12 : (isSelected || isCurrent) ? 10 : 6;
+      let nodeRadius = 6;
+      if (isHovered) {
+        nodeRadius = 12;
+      } else if (isSelected || isCurrent) {
+        nodeRadius = 10;
+      }
       ctx.arc(node.x, node.y, nodeRadius, 0, 2 * Math.PI);
 
       // ノード描画
@@ -420,14 +444,25 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       ctx.textAlign = textAlign;
       ctx.textBaseline = textBaseline;
 
-      
+
       if (isHovered && !isCurrent) {
-        const bgX = textAlign === 'left' ? labelX - padding :
-                    textAlign === 'right' ? labelX - textWidth - padding :
-                    labelX - textWidth / 2 - padding;
-        const bgY = textBaseline === 'top' ? labelY - padding :
-                    textBaseline === 'bottom' ? labelY - textHeight - padding :
-                    labelY - textHeight / 2 - padding;
+        let bgX;
+        if (textAlign === 'left') {
+          bgX = labelX - padding;
+        } else if (textAlign === 'right') {
+          bgX = labelX - textWidth - padding;
+        } else {
+          bgX = labelX - textWidth / 2 - padding;
+        }
+
+        let bgY;
+        if (textBaseline === 'top') {
+          bgY = labelY - padding;
+        } else if (textBaseline === 'bottom') {
+          bgY = labelY - textHeight - padding;
+        } else {
+          bgY = labelY - textHeight / 2 - padding;
+        }
 
         ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
         ctx.fillRect(bgX, bgY, textWidth + padding * 2, textHeight + padding);
@@ -443,7 +478,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       }
       ctx.fillText(fileName, labelX, labelY);
     }
-  }, [nodes, hoveredNode, selectedNode, mapIdentifier]);
+  }, [nodes, hoveredNode, selectedNode, mapIdentifier, parseVectorKey]);
 
   
   const handleMouseMove = useCallback((e: React.MouseEvent<HTMLCanvasElement>) => {
@@ -477,9 +512,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       const context = {
         selectedNodeId: null,
         editingNodeId: null,
-        handlers: {} as any,
+        handlers: {} as Record<string, unknown>,
       };
-      await registry.execute('switch-map', context, { mapId, workspaceId: parsed.workspaceId || effectiveWorkspaceId || mapIdentifier?.workspaceId });
+      const ws = (parsed.workspaceId ?? effectiveWorkspaceId ?? mapIdentifier?.workspaceId ?? '');
+      // switch-map doesn't depend on context shape strictly; cast for typing
+      await registry.execute('switch-map', context as unknown as import('@commands/system/types').CommandContext, { mapId, workspaceId: ws });
 
       
       onClose();
@@ -555,12 +592,12 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
     if (e.key === 'Escape') {
       e.preventDefault();
       e.stopPropagation();
-      try { (e as any).stopImmediatePropagation?.(); } catch {}
+      try { (e as KeyboardEvent & { stopImmediatePropagation?: () => void }).stopImmediatePropagation?.(); } catch {}
       onClose();
       return;
     }
 
-    
+
     if (e.key === 'Enter' && selectedNode) {
       e.preventDefault();
       e.stopPropagation();
@@ -569,7 +606,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       return;
     }
 
-    
+
     if (e.key === 'ArrowUp' || e.key === 'k') {
       e.preventDefault();
       e.stopPropagation();
@@ -591,7 +628,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       e.stopImmediatePropagation();
       moveSelection('right');
     }
-  }, [isOpen, selectedNode, openMap, moveSelection]);
+  }, [isOpen, selectedNode, openMap, moveSelection, onClose]);
 
   
   useEffect(() => {

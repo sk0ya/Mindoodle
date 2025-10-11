@@ -109,7 +109,9 @@ export class EmbeddingService {
         data: { filePath, text }
       };
 
-      this.worker!.postMessage(message);
+      if (this.worker) {
+        this.worker.postMessage(message);
+      }
     });
   }
 

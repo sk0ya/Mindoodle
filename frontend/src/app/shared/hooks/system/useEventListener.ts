@@ -45,5 +45,5 @@ export function useEventListener(
     return () => {
       target.removeEventListener(eventName, eventListener, listenerOptions);
     };
-  }, [eventName, target, capture, passive, enabled]);
+  }, [eventName, target, capture, passive, enabled, handlerRef]);
 }

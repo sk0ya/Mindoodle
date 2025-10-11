@@ -2,7 +2,7 @@ import { useStableCallback } from '@shared/hooks';
 
 interface CommandExecutionParams {
   commands: {
-    execute: (commandName: string, args?: Record<string, any>) => Promise<{
+    execute: (commandName: string, args?: Record<string, unknown>) => Promise<{
       success: boolean;
       message?: string;
       error?: string;
@@ -17,8 +17,8 @@ export function useCommandExecution({
   showNotification,
 }: CommandExecutionParams) {
 
-  
-  const handleExecuteCommand = useStableCallback(async (commandName: string, _args?: Record<string, any>) => {
+
+  const handleExecuteCommand = useStableCallback(async (commandName: string, _args?: Record<string, unknown>) => {
     try {
       const result = await commands.execute(commandName);
       if (result.success) {

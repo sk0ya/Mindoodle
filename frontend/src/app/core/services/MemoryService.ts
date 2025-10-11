@@ -17,12 +17,14 @@ interface MemorySnapshot {
   eventListeners: number;
 }
 
+type Trend = 'increasing' | 'stable' | 'decreasing';
+
 interface MemoryReport {
   summary: string;
   current: MemorySnapshot;
   trends: {
-    memoryTrend: 'increasing' | 'stable' | 'decreasing';
-    timerTrend: 'increasing' | 'stable' | 'decreasing';
+    memoryTrend: Trend;
+    timerTrend: Trend;
   };
   recommendations: string[];
 }
@@ -167,12 +169,13 @@ class MemoryService {
     const timestamp = Date.now();
     const timerStatus = this.getTimerStatus();
 
-    
+
     let eventListeners = 0;
     try {
-      const eventManager = (window as any).eventManager;
-      if (eventManager?.getStatus) {
-        eventListeners = eventManager.getStatus().activeListeners;
+      const eventManager = (window as unknown as Record<string, unknown>).eventManager;
+      if (eventManager && typeof eventManager === 'object' && 'getStatus' in eventManager) {
+        const getStatus = (eventManager as { getStatus: () => { activeListeners: number } }).getStatus;
+        eventListeners = getStatus().activeListeners;
       }
     } catch {
       
@@ -184,9 +187,9 @@ class MemoryService {
       eventListeners
     };
 
-    
+
     if ('memory' in performance) {
-      const memory = (performance as any).memory;
+      const memory = (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory;
       snapshot.jsHeapUsed = memory.usedJSHeapSize;
       snapshot.jsHeapTotal = memory.totalJSHeapSize;
       snapshot.jsHeapLimit = memory.jsHeapSizeLimit;
@@ -228,9 +231,11 @@ class MemoryService {
     
     if (this.snapshots.length >= 5) {
       const recent = this.snapshots.slice(-5);
-      const isIncreasing = recent.every((snap, i) =>
-        i === 0 || (snap.jsHeapUsed && recent[i-1].jsHeapUsed && snap.jsHeapUsed > recent[i-1].jsHeapUsed!)
-      );
+      const isIncreasing = recent.every((snap, i): boolean => {
+        if (i === 0) return true;
+        const prevHeap = recent[i - 1].jsHeapUsed;
+        return Boolean(snap.jsHeapUsed && prevHeap && snap.jsHeapUsed > prevHeap);
+      });
 
       if (isIncreasing && latest.jsHeapUsed) {
         const first = recent[0];
@@ -321,30 +326,25 @@ class MemoryService {
   printReport(): void {
     const report = this.generateReport();
 
-    
-    console.group('📊 Memory Service Report');
+
+    console.log('📊 Memory Service Report');
     console.log('Summary:', report.summary);
     console.log('Trends:', report.trends);
 
     if (report.recommendations.length > 0) {
-      
-      console.group('💡 Recommendations:');
-      report.recommendations.forEach(rec => console.log(`• ${rec}`));
-      
-      console.groupEnd();
-    }
 
-    
-    console.groupEnd();
+      console.log('💡 Recommendations:');
+      report.recommendations.forEach(rec => console.log(`• ${rec}`));
+    }
   }
 
-  
+
   analyzeMemoryUsage(): {
-    current: any;
+    current: { used: number; total: number; limit: number; usagePercent: number } | null;
     recommendations: string[];
   } {
     const recommendations: string[] = [];
-    const memory = ('memory' in performance) ? (performance as any).memory : null;
+    const memory = ('memory' in performance) ? (performance as { memory: { usedJSHeapSize: number; totalJSHeapSize: number; jsHeapSizeLimit: number } }).memory : null;
 
     const current = memory ? {
       used: Math.round(memory.usedJSHeapSize / 1024 / 1024),
@@ -368,17 +368,12 @@ class MemoryService {
   forceMemoryCleanup(): void {
     console.log('🧹 強制メモリクリーンアップを実行...');
 
-    
-    try {
-      if (typeof window !== 'undefined' && (window as any).caches) {
-        (window as any).caches.keys().then((names: string[]) => {
-          names.forEach((name: string) => {
-            (window as any).caches.delete(name);
-          });
-        });
-      }
-    } catch (error) {
-      console.warn('キャッシュクリア中にエラー:', error);
+
+    if (typeof window !== 'undefined' && 'caches' in window && window.caches) {
+      window.caches
+        .keys()
+        .then((names: string[]) => Promise.all(names.map((name) => window.caches.delete(name))))
+        .catch((error) => console.warn('キャッシュクリア中にエラー:', error));
     }
 
     
@@ -401,9 +396,9 @@ if (typeof window !== 'undefined') {
   const handleBeforeUnload = () => memoryService.cleanup();
   window.addEventListener('beforeunload', handleBeforeUnload);
 
-  
-  if (typeof import.meta !== 'undefined' && (import.meta as any).hot) {
-    (import.meta as any).hot.dispose(() => {
+
+  if (typeof import.meta !== 'undefined' && 'hot' in import.meta && import.meta.hot) {
+    (import.meta.hot as { dispose: (cb: () => void) => void }).dispose(() => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       memoryService.cleanup();
     });
@@ -422,6 +417,6 @@ if (isDevelopment()) {
 
 
 if (isDevelopment() && typeof window !== 'undefined') {
-  (window as any).memoryService = memoryService;
+  (window as unknown as Record<string, unknown>).memoryService = memoryService;
   console.log('🔧 開発ツール: window.memoryService で手動メモリ管理が可能');
 }

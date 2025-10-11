@@ -120,7 +120,7 @@ export function findNodeInRoots(roots: MindMapNode[] | undefined, nodeId: string
 
 export function findNodeInData(data: { rootNodes?: MindMapNode[] } | MindMapData | null | undefined, nodeId: string): MindMapNode | null {
   if (!data) return null;
-  return findNodeInRoots((data as any).rootNodes, nodeId);
+  return findNodeInRoots((data as { rootNodes?: MindMapNode[] }).rootNodes, nodeId);
 }
 
 

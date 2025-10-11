@@ -1,5 +1,5 @@
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandContext, CommandResult, MarkdownNodeType, ArgsMap } from '../system/types';
 import { statusMessages } from '@shared/utils';
 
 
@@ -38,10 +38,10 @@ export const addChildCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const parentId = (args as any)['parentId'] || context.selectedNodeId;
-    const text = (args as any)['text'] || '';
-    const startEdit = (args as any)['edit'] ?? true;
+  async execute(context: CommandContext, args: ArgsMap): Promise<CommandResult> {
+    const parentId = (typeof args['parentId'] === 'string' ? args['parentId'] : undefined) || context.selectedNodeId;
+    const text = typeof args['text'] === 'string' ? args['text'] : '';
+    const startEdit = typeof args['edit'] === 'boolean' ? args['edit'] : true;
 
     if (!parentId) {
       return {
@@ -117,10 +117,10 @@ export const addSiblingCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const text = (args as any)['text'] || '';
-    const startEdit = (args as any)['edit'] ?? true;
+  async execute(context: CommandContext, args: ArgsMap): Promise<CommandResult> {
+    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
+    const text = typeof args['text'] === 'string' ? args['text'] : '';
+    const startEdit = typeof args['edit'] === 'boolean' ? args['edit'] : true;
 
     if (!nodeId) {
       return {
@@ -161,6 +161,25 @@ export const addSiblingCommand: Command = {
 };
 
 
+function determineTargetType(specifiedType: string | undefined, currentType?: string): MarkdownNodeType {
+  if (typeof specifiedType === 'string') {
+    const t = specifiedType;
+    if (t === 'heading' || t === 'unordered-list' || t === 'ordered-list') {
+      return t;
+    }
+    return 'unordered-list';
+  }
+
+  if (currentType === 'heading') {
+    return 'unordered-list';
+  } else if (currentType === 'ordered-list') {
+    return 'unordered-list';
+  } else if (currentType === 'unordered-list') {
+    return 'heading';
+  }
+  return 'unordered-list';
+}
+
 export const convertNodeCommand: Command = {
   name: 'convert',
   aliases: ['m', 'convert-type'],
@@ -187,56 +206,30 @@ export const convertNodeCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    let targetType = (args as any)['type'] as 'heading' | 'unordered-list' | 'ordered-list';
+  execute(context: CommandContext, args: ArgsMap): CommandResult {
+    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
 
     if (!nodeId) {
       const errorMessage = 'ノードが選択されておらず、ノードIDも指定されていません';
       statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return { success: false, error: errorMessage };
     }
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
       const errorMessage = `ノード ${nodeId} が見つかりません`;
       statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return { success: false, error: errorMessage };
     }
 
-    
     if (!context.handlers.onMarkdownNodeType) {
       const errorMessage = 'ノード型変換機能が利用できません';
       statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return { success: false, error: errorMessage };
     }
 
-    
-    
-    
-    
-    
-    if (!args.type) {
-      const currentType = node.markdownMeta?.type;
-      if (currentType === 'heading') {
-        targetType = 'unordered-list';
-      } else if (currentType === 'ordered-list') {
-        targetType = 'unordered-list';
-      } else if (currentType === 'unordered-list') {
-        targetType = 'heading';
-      } else {
-        targetType = 'unordered-list';
-      }
-    }
+    const specifiedType = typeof args['type'] === 'string' ? args['type'] : undefined;
+    const targetType = determineTargetType(specifiedType, node.markdownMeta?.type);
 
     try {
       context.handlers.onMarkdownNodeType(nodeId, targetType);
@@ -274,8 +267,8 @@ export const moveAsChildOfSiblingCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  async execute(context: CommandContext, args: Record<string, string | number | boolean>): Promise<CommandResult> {
+    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -293,7 +286,7 @@ export const moveAsChildOfSiblingCommand: Command = {
     }
 
     try {
-      
+
       if (!context.handlers.findParentNode) {
         return {
           success: false,
@@ -310,7 +303,7 @@ export const moveAsChildOfSiblingCommand: Command = {
       }
 
       const siblings = parentNode.children || [];
-      const currentIndex = siblings.findIndex((sibling: any) => sibling.id === nodeId);
+      const currentIndex = siblings.findIndex(sibling => sibling.id === nodeId);
       
       if (currentIndex <= 0) {
         return {
@@ -362,8 +355,8 @@ export const moveAsNextSiblingOfParentCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  async execute(context: CommandContext, args: Record<string, string | number | boolean>): Promise<CommandResult> {
+    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
 
     if (!nodeId) {
       return {

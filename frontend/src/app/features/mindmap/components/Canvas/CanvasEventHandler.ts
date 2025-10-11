@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useRef } from 'react';
 import { logger } from '@shared/utils';
 import { useMindMapStore } from '../../store';
 import { useBaseEventHandler } from '@mindmap/handlers';
@@ -36,24 +36,24 @@ export const useCanvasEventHandler = ({
     preventDefaults: true
   });
 
-  
-  let wasPanning = false;
+
+  const wasPanningRef = useRef(false);
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
-    wasPanning = getIsPanning ? getIsPanning() : false;
+    wasPanningRef.current = getIsPanning ? getIsPanning() : false;
     baseHandleMouseDown(e);
     dispatchCanvasEvent({ type: 'mousedown', x: e.clientX, y: e.clientY });
   }, [getIsPanning, baseHandleMouseDown]);
 
-  
-  const handleBackgroundClick = useCallback(() => {
-    
-    if (wasPanning) return;
 
-    
+  const handleBackgroundClick = useCallback(() => {
+
+    if (wasPanningRef.current) return;
+
+
     if (editingNodeId) {
       onFinishEdit(editingNodeId, editText);
     }
-    
+
     dispatchCanvasEvent({ type: 'bgclick', x: 0, y: 0 });
   }, [editingNodeId, editText, onFinishEdit]);
 

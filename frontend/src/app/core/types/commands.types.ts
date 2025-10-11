@@ -4,13 +4,15 @@ import type { MindMapNode } from '@shared/types';
 
 
 export type CommandArgType = 'string' | 'number' | 'boolean' | 'node-id';
+export type ArgPrimitive = string | number | boolean;
+export type ArgsMap = Record<string, ArgPrimitive>;
 
 export interface CommandArg {
   name: string;
   type: CommandArgType;
   required?: boolean;
   description?: string;
-  default?: any;
+  default?: ArgPrimitive;
 }
 
 
@@ -98,13 +100,13 @@ export interface Command {
   args?: CommandArg[];
   examples?: string[];
   category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility';
-  execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
+  execute: (context: CommandContext, args: ArgsMap) => Promise<CommandResult> | CommandResult;
 }
 
 
 export interface ParsedCommand {
   name: string;
-  args: Record<string, any>;
+  args: ArgsMap;
   rawInput: string;
 }
 

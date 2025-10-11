@@ -65,15 +65,15 @@ const ColorSettingsSidebar: React.FC<ColorSettingsSidebarProps> = () => {
               cool: { name: '寒色系', description: '落ち着いた寒色中心の配色', colors: ['#5DADE2', '#48C9B0', '#85C1E2', '#52B788', '#6C9BD1', '#45B39D'] },
               monochrome: { name: 'モノクロ', description: 'グレースケールのシンプルな配色', colors: ['#4A4A4A', '#707070', '#909090', '#B0B0B0', '#D0D0D0', '#606060'] },
               sunset: { name: '夕暮れ', description: '夕焼けをイメージした配色', colors: ['#FF6B9D', '#FF8E53', '#FFB627', '#FFA45B', '#FF7B89', '#FFAA5C'] }
-            }).map(([key, colorSet]) => (
+            } as const).map(([key, colorSet]) => (
               <div
                 key={key}
-                className={`color-set-card ${(settings as any).edgeColorSet === key ? 'selected' : ''}`}
-                onClick={() => handleSettingChange('edgeColorSet' as keyof typeof settings, key as any)}
+                className={`color-set-card ${settings.edgeColorSet === key ? 'selected' : ''}`}
+                onClick={() => handleSettingChange('edgeColorSet', key)}
               >
                 <div className="color-set-header">
                   <span className="color-set-name">{colorSet.name}</span>
-                  {(settings as any).edgeColorSet === key && <span className="color-set-check">✓</span>}
+                  {settings.edgeColorSet === key && <span className="color-set-check">✓</span>}
                 </div>
                 <div className="color-set-colors">
                   {colorSet.colors.map((color, idx) => (

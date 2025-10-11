@@ -3,8 +3,31 @@ import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
 import { logger, statusMessages, generateWorkspaceId, generateTimestampedFilename } from '@shared/utils';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 
-type DirHandle = any; 
-type FileHandle = any;
+type DirHandle = FileSystemDirectoryHandle;
+type FileHandle = FileSystemFileHandle;
+
+// Type for window with File System Access API
+type WindowWithFSA = Window & {
+  showDirectoryPicker?: (options?: { id?: string; mode?: string }) => Promise<FileSystemDirectoryHandle>;
+  indexedDB?: IDBFactory & {
+    databases?: () => Promise<Array<{ name?: string; version?: number }>>;
+  };
+};
+
+// Type for FileSystemHandle with permission methods
+type FSHandleWithPermissions = FileSystemHandle & {
+  queryPermission?: (descriptor: { mode: string }) => Promise<'granted' | 'denied' | 'prompt'>;
+  requestPermission?: (descriptor: { mode: string }) => Promise<'granted' | 'denied' | 'prompt'>;
+};
+
+// Type for error with name property
+type ErrorWithName = Error & { name?: string };
+
+// Type for directory handle with iterator methods
+type DirHandleWithIterators = FileSystemDirectoryHandle & {
+  values?: () => AsyncIterable<FileSystemHandle>;
+  entries?: () => AsyncIterable<[string, FileSystemHandle]>;
+};
 
 export class MarkdownFolderAdapter implements StorageAdapter {
   private _isInitialized = false;
@@ -23,8 +46,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async initialize(): Promise<void> {
-    
-    if (typeof (window as any)?.showDirectoryPicker !== 'function') {
+
+    if (typeof (window as WindowWithFSA)?.showDirectoryPicker !== 'function') {
       logger.warn('File System Access API is not available in this environment');
       statusMessages.folderAccessUnavailable();
     }
@@ -50,10 +73,11 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   
   async selectRootFolder(): Promise<void> {
-    if (typeof (window as any)?.showDirectoryPicker !== 'function') {
+    const wnd = window as WindowWithFSA;
+    if (typeof wnd?.showDirectoryPicker !== 'function') {
       throw new Error('File System Access API is not available in this environment');
     }
-    const handle = await (window as any).showDirectoryPicker({ id: 'mindoodle-workspace', mode: 'readwrite' });
+    const handle = await wnd.showDirectoryPicker({ id: 'mindoodle-workspace', mode: 'readwrite' });
     this.rootHandle = handle;
     logger.debug('📁 MarkdownFolderAdapter: Workspace folder selected');
     try {
@@ -112,6 +136,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
       
       logger.debug(`📄️ Loading maps from workspace: ${t.name}`);
+      if (!t.handle) {
+        logger.debug('📄️ Workspace handle is null; skipping');
+        continue;
+      }
       try {
         let workspaceMapsCount = 0;
         for await (const fileHandle of this.iterateMarkdownFiles(t.handle)) {
@@ -138,14 +166,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         logger.debug(`📄️ Loaded ${workspaceMapsCount} maps from workspace ${t.name} root`);
       } catch (e) {
         console.warn('📄️ Error scanning workspace root:', e);
-        logger.debug('MarkdownFolderAdapter: Root-level scan transient error', (e as any)?.name || (e as any)?.message || e);
+        logger.debug('MarkdownFolderAdapter: Root-level scan transient error', ((e) as ErrorWithName)?.name || ((e) as ErrorWithName)?.message || e);
       }
       
       try {
-        for await (const entry of (t.handle).values?.() || this.iterateEntries(t.handle)) {
+        for await (const entry of ((t.handle as DirHandleWithIterators).values?.() ?? this.iterateEntries(t.handle))) {
           if (entry.kind === 'directory') {
             logger.debug(`📄️ Scanning directory: ${entry.name}`);
-            await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle }, entry, entry.name ?? '', maps);
+            await this.collectMapsForWorkspace({ id: t.id, name: t.name, handle: t.handle }, entry as unknown as DirHandle, entry.name ?? '', maps);
           }
         }
       } catch (e) {
@@ -206,7 +234,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         const file = await fh.getFile();
         return await file.text();
       } catch (e) {
-        
+        logger.warn('MarkdownFolderAdapter: Failed to read cached markdown file', e);
       }
     }
 
@@ -227,7 +255,9 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (!fh) return null;
       const file = await fh.getFile();
       return await file.text();
-    } catch {}
+    } catch (e) {
+      logger.warn('MarkdownFolderAdapter: Failed to read markdown from workspace', e);
+    }
     return null;
   }
 
@@ -245,7 +275,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
           ?? await (target.dir).getFileHandle(target.fileName);
         const file = await fh.getFile();
         // @ts-ignore
-        return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file)?.lastModified || null;
+        return typeof file.lastModified === 'number' ? (file.lastModified) : (file)?.lastModified || null;
       }
       const parts = (mapId || '').split('/').filter(Boolean);
       if (parts.length === 0) return null;
@@ -262,7 +292,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (!fh) return null;
       const file = await fh.getFile();
       // @ts-ignore
-      return typeof file.lastModified === 'number' ? (file.lastModified as number) : (file)?.lastModified || null;
+      return typeof file.lastModified === 'number' ? (file.lastModified) : (file)?.lastModified || null;
     } catch {
       return null;
     }
@@ -355,7 +385,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         throw error;
       }
 
-      const entry = { dir, fileName, isRoot: false, fileHandle } as any;
+      const entry = { dir, fileName, isRoot: false, fileHandle };
       this.saveTargets.set(saveKey, entry);
       this.saveTargets.set(id.mapId, entry);
       this.lastSavedContent.set(saveKey, markdown);
@@ -412,12 +442,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
             out.push(data);
           }
         }
-      } catch {}
+      } catch (e) {
+        logger.debug('MarkdownFolderAdapter: Skipping unreadable map file', e);
+      }
     }
-    for await (const entry of (dir).values?.() || this.iterateEntries(dir)) {
+    for await (const entry of ((dir as DirHandleWithIterators).values?.() ?? this.iterateEntries(dir))) {
       if (entry.kind === 'directory') {
         const sub = categoryPath ? `${categoryPath}/${entry.name}` : entry.name;
-        await this.collectMapsForWorkspace(ws, entry, sub, out);
+        await this.collectMapsForWorkspace(ws, entry as FileSystemDirectoryHandle, sub, out);
       }
     }
   }
@@ -468,10 +500,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return data;
     } catch (e) {
       const name = await this.getFileName(fileHandle).catch(() => 'unknown.md');
-      const errorMessage = (e as any)?.message || '';
-      const tag = (e as any)?.name || errorMessage;
+      const errorMessage = ((e) as ErrorWithName)?.message || '';
+      const tag = ((e) as ErrorWithName)?.name || errorMessage;
 
-      if ((e as any)?.name === 'NotReadableError' || /NotReadable/i.test(String(tag))) {
+      if (((e) as ErrorWithName)?.name === 'NotReadableError' || /NotReadable/i.test(String(tag))) {
         if (!this.permissionWarned) {
           logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
           statusMessages.fileReadPermissionDenied();
@@ -548,10 +580,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   private async getFileName(fileHandle: FileHandle): Promise<string> {
-    if ((fileHandle).name) return (fileHandle).name as string;
+    if ((fileHandle).name) return (fileHandle).name;
     try {
       const file = await fileHandle.getFile?.();
-      if (file?.name) return file.name as string;
+      if (file?.name) return file.name;
     } catch {}
     return 'map.md';
   }
@@ -559,7 +591,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   // Multi-workspace persistence
   private async openDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const req = (window as any).indexedDB?.open?.('mindoodle-fsa', 2);
+      const req = (window as WindowWithFSA).indexedDB?.open?.('mindoodle-fsa', 2);
       if (!req) { reject(new Error('indexedDB not available')); return; }
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -590,8 +622,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
     try {
       // Check if database exists before opening
-      const databases = await (window as any).indexedDB?.databases?.();
-      const dbExists = databases?.some((db: any) => db.name === 'mindoodle-fsa');
+      const databases = await (window as WindowWithFSA).indexedDB?.databases?.();
+      const dbExists = databases?.some((db: { name?: string }) => db.name === 'mindoodle-fsa');
 
       if (!dbExists) {
         return; // Don't create DB if it doesn't exist
@@ -599,14 +631,15 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
       const db = await this.openDb();
       // Read all entries atomically via cursor to avoid nested async on a finished transaction
-      const items: Array<{ id: string; rec: any }> = await new Promise((resolve, reject) => {
-        const list: Array<{ id: string; rec: any }> = [];
+      interface WorkspaceRecord { name: string; handle: DirHandle }
+      const items: Array<{ id: string; rec: WorkspaceRecord }> = await new Promise((resolve, reject) => {
+        const list: Array<{ id: string; rec: WorkspaceRecord }> = [];
         const tx = db.transaction('workspaces', 'readonly');
         const store = tx.objectStore('workspaces');
-        const cursorReq = (store as any).openCursor?.();
+        const cursorReq = store.openCursor?.();
         if (!cursorReq) { resolve([]); return; }
-        cursorReq.onsuccess = (ev: any) => {
-          const cursor = ev.target?.result;
+        cursorReq.onsuccess = (ev: Event) => {
+          const cursor = (ev.target as IDBRequest)?.result;
           if (cursor) {
             list.push({ id: String(cursor.key), rec: cursor.value });
             cursor.continue();
@@ -703,7 +736,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     try {
       await remover(name, { recursive: true });
     } catch (e) {
-      // Some browsers do not support recursive for files
+      // Some browsers do not support recursive for files; fallback to non-recursive
+      logger.debug('MarkdownFolderAdapter: removeEntry recursive unsupported, falling back', e);
       await remover(name);
     }
   }
@@ -732,9 +766,12 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   private async copyDirectoryRecursive(src: DirHandle, dst: DirHandle): Promise<void> {
-    
-    const iter = src.values?.() || src.entries?.();
-    
+
+    const iter: AsyncIterable<FileSystemHandle> | AsyncIterable<[string, FileSystemHandle]> =
+      (src as DirHandleWithIterators).values?.() ??
+      (src as DirHandleWithIterators).entries?.() ??
+      (async function* () { /* empty */ })();
+
     for await (const entry of iter) {
       let kind: string, name: string;
       if (Array.isArray(entry)) {
@@ -758,18 +795,15 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
-  private async *iterateEntries(dir: DirHandle): AsyncGenerator<any, void, unknown> {
-    
-    
-    if (dir.entries) {
-      
-      for await (const [, entry] of dir.entries()) {
-        yield entry;
+  private async *iterateEntries(dir: DirHandle): AsyncGenerator<FileSystemDirectoryHandle | FileSystemFileHandle, void, unknown> {
+    const entriesFn = (dir as DirHandleWithIterators).entries;
+    if (typeof entriesFn === 'function') {
+      for await (const [, entry] of entriesFn.call(dir)) {
+        yield entry as FileSystemDirectoryHandle | FileSystemFileHandle;
       }
-      return;
     }
     
-    return;
+    // Redundant jump removed
   }
 
   
@@ -802,9 +836,13 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         logger.warn('MarkdownFolderAdapter: Root folder permission is not granted. Please reselect the folder.');
         this.permissionWarned = true;
       }
-      return { type: 'folder', name: (this.rootHandle).name || '', path: '', children: [] };
+      const name = this.rootHandle?.name || '';
+      return { type: 'folder', name, path: '', children: [] };
     }
-    const root: ExplorerItem = { type: 'folder', name: (this.rootHandle).name || '', path: '', children: [] };
+    if (!this.rootHandle) {
+      return { type: 'folder', name: '', path: '', children: [] };
+    }
+    const root: ExplorerItem = { type: 'folder', name: this.rootHandle.name || '', path: '', children: [] };
     root.children = await this.buildExplorerItems(this.rootHandle, '');
     return root;
   }
@@ -812,10 +850,9 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private async buildExplorerItems(dir: DirHandle, basePath: string): Promise<ExplorerItem[]> {
     const items: ExplorerItem[] = [];
     // Prefer values(); fallback to entries()
-    // @ts-ignore
-    if (dir.values) {
-      // @ts-ignore
-      for await (const entry of dir.values()) {
+    const valuesFn = (dir as DirHandleWithIterators).values;
+    if (typeof valuesFn === 'function') {
+      for await (const entry of valuesFn.call(dir)) {
         if (entry.kind === 'directory') {
           const path = basePath ? `${basePath}/${entry.name}` : entry.name;
           const childDir = await dir.getDirectoryHandle?.(entry.name) ?? await (dir).getDirectoryHandle(entry.name);
@@ -827,12 +864,16 @@ export class MarkdownFolderAdapter implements StorageAdapter {
           items.push({ type: 'file', name, path, isMarkdown: /\.md$/i.test(name) });
         }
       }
-      return items.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name, 'ja') : a.type === 'folder' ? -1 : 1));
+      const sortItems = (a: ExplorerItem, b: ExplorerItem) => {
+        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+        return a.name.localeCompare(b.name, 'ja');
+      };
+      return items.sort(sortItems);
     }
     
-    if (dir.entries) {
-      
-      for await (const [name, entry] of dir.entries()) {
+    const entriesFn2 = (dir as DirHandleWithIterators).entries;
+    if (typeof entriesFn2 === 'function') {
+      for await (const [name, entry] of entriesFn2.call(dir)) {
         if (entry.kind === 'directory') {
           const path = basePath ? `${basePath}/${name}` : name;
           
@@ -844,7 +885,11 @@ export class MarkdownFolderAdapter implements StorageAdapter {
           items.push({ type: 'file', name, path, isMarkdown: /\.md$/i.test(name) });
         }
       }
-      return items.sort((a, b) => (a.type === b.type ? a.name.localeCompare(b.name, 'ja') : a.type === 'folder' ? -1 : 1));
+      const sortItems = (a: ExplorerItem, b: ExplorerItem) => {
+        if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
+        return a.name.localeCompare(b.name, 'ja');
+      };
+      return items.sort(sortItems);
     }
     return items;
   }
@@ -852,7 +897,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   
   private async openLegacyDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
-      const req = (window as any).indexedDB?.open?.('mindoodle-fsa', 1);
+      const req = (window as WindowWithFSA).indexedDB?.open?.('mindoodle-fsa', 1);
       if (!req) { reject(new Error('indexedDB not available')); return; }
       req.onupgradeneeded = () => {
         const db = req.result;
@@ -880,8 +925,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private async loadRootHandle(): Promise<DirHandle | null> {
     try {
       
-      const databases = await (window as any).indexedDB?.databases?.();
-      const dbExists = databases?.some((db: any) => db.name === 'mindoodle-fsa');
+      const databases = await (window as WindowWithFSA).indexedDB?.databases?.();
+      const dbExists = databases?.some((db: { name?: string }) => db.name === 'mindoodle-fsa');
 
       if (!dbExists) {
         return null; 
@@ -898,6 +943,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       db.close();
       return handle;
     } catch (error) {
+      logger.warn('MarkdownFolderAdapter: Failed to load legacy root handle', error);
       return null;
     }
   }
@@ -923,10 +969,11 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   }
 
   async addWorkspace(): Promise<void> {
-    if (typeof (window as any)?.showDirectoryPicker !== 'function') {
+    const wnd = window as WindowWithFSA;
+    if (typeof wnd?.showDirectoryPicker !== 'function') {
       throw new Error('File System Access API is not available in this environment');
     }
-    const handle = await (window as any).showDirectoryPicker({ id: 'mindoodle-workspace', mode: 'readwrite' });
+    const handle = await wnd.showDirectoryPicker({ id: 'mindoodle-workspace', mode: 'readwrite' });
     
     try {
       await this.restoreWorkspaces();
@@ -1042,31 +1089,34 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
-  private async queryPermission(handle: any, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
+  private async queryPermission(handle: FileSystemHandle, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
     try {
-      if (typeof handle.queryPermission === 'function') {
-        return await handle.queryPermission({ mode });
+      const fsHandle = handle as FSHandleWithPermissions;
+      if (typeof fsHandle.queryPermission === 'function') {
+        return await fsHandle.queryPermission({ mode });
       }
-      
+
       return 'granted';
     } catch {
       return 'denied';
     }
   }
 
-  private async requestPermission(handle: any, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
+  private async requestPermission(handle: FileSystemHandle, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
     try {
-      if (typeof handle.requestPermission === 'function') {
-        return await handle.requestPermission({ mode });
+      const fsHandle = handle as FSHandleWithPermissions;
+      if (typeof fsHandle.requestPermission === 'function') {
+        return await fsHandle.requestPermission({ mode });
       }
-      
+
       return 'granted';
     } catch {
       return 'denied';
     }
   }
 
-  private async ensurePermission(handle: any, mode: 'read' | 'readwrite' = 'readwrite'): Promise<boolean> {
+  private async ensurePermission(handle: FileSystemHandle | null, mode: 'read' | 'readwrite' = 'readwrite'): Promise<boolean> {
+    if (!handle) return false;
     try {
       logger.debug('🔐 Checking permission for handle:', handle?.name || 'unknown');
       const currentPerm = await this.queryPermission(handle, mode);
@@ -1096,33 +1146,33 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     
     
     
-    if (dir.values) {
-      
-      for await (const entry of dir.values()) {
+    const valuesFn = (dir as DirHandleWithIterators).values;
+    if (typeof valuesFn === 'function') {
+      for await (const entry of valuesFn.call(dir)) {
         if (entry.kind === 'file' && /\.md$/i.test(entry.name || '')) {
           try {
             // @ts-ignore
             const fh = await dir.getFileHandle?.(entry.name) ?? await (dir).getFileHandle(entry.name);
             if (fh) yield fh;
           } catch (e) {
-            // NotFound or race condition during rename/move: ignore
+            // NotFound or race condition during rename/move
+            logger.debug('MarkdownFolderAdapter: iterateMarkdownFiles skipped entry', e);
           }
         }
       }
       return;
     }
     // Fallback via entries()
-    // @ts-ignore
-    if (dir.entries) {
-      // @ts-ignore
-      for await (const [name, entry] of dir.entries()) {
+    const entriesFn = (dir as DirHandleWithIterators).entries;
+    if (typeof entriesFn === 'function') {
+      for await (const [name, entry] of entriesFn.call(dir)) {
         if (entry.kind === 'file' && /\.md$/i.test(name)) {
           try {
             
             const fh = await dir.getFileHandle?.(name) ?? await (dir).getFileHandle(name);
             if (fh) yield fh;
           } catch (e) {
-            
+            logger.debug('MarkdownFolderAdapter: iterateMarkdownFiles(entries) skipped entry', e);
           }
         }
       }

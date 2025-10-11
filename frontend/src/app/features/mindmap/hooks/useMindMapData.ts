@@ -71,7 +71,7 @@ export const useMindMapData = () => {
       store.setData(data);
     }),
     setRootNodes: useStableCallback((rootNodes: MindMapNode[]) => {
-      (store as any).setRootNodes(rootNodes);
+      store.setRootNodes(rootNodes);
     }),
 
     

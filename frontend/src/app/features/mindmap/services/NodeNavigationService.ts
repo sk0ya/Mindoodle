@@ -12,7 +12,8 @@ export function getNextNodeId(direction: 'up'|'down'|'left'|'right', selectedNod
     case 'left': {
       const stack: MindMapNode[] = currentRoot ? [currentRoot] : [];
       while (stack.length) {
-        const node = stack.pop()!;
+        const node = stack.pop();
+        if (!node) continue;
         if (node.children?.some(c => c.id === selectedNodeId)) { nextNodeId = node.id; break; }
         if (node.children) stack.push(...node.children);
       }

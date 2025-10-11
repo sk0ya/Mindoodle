@@ -36,7 +36,7 @@ class Logger {
       
       let maskedData = data.replace(/Bearer\s+[\w-]+\.[\w-]+\.[\w-]+/gi, 'Bearer [MASKED]');
       
-      maskedData = maskedData.replace(/(\?|&)token=[\w-]+/gi, '$1token=[MASKED]');
+      maskedData = maskedData.replace(/([?&])token=[\w-]+/gi, '$1token=[MASKED]');
       
       maskedData = maskedData.replace(/api[_-]?key[:=]\s*[\w-]+/gi, 'api_key=[MASKED]');
       return maskedData;
@@ -79,7 +79,7 @@ class Logger {
         console.log(prefix, message, ...maskedArgs);
         break;
       case 'info':
-        
+        // eslint-disable-next-line no-console
         console.info(prefix, message, ...maskedArgs);
         break;
       case 'warn':

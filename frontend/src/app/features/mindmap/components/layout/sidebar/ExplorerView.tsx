@@ -91,7 +91,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
 
   // Hide dot-files and dot-folders from explorer
   const pruneDotEntries = (item: ExplorerItem): ExplorerItem | null => {
-    if (!item) return null as any;
+    if (!item) return null;
     const name = item.name || '';
     // Skip items starting with '.'
     if (name.startsWith('.')) return null;

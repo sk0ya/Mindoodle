@@ -4,6 +4,14 @@ import type { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 import { isMindMeisterFormat, parseMindMeisterMarkdown } from '../../features/markdown';
 
+type StoreState = ReturnType<typeof useMindMapStore.getState>;
+type ExtendedStoreState = StoreState & {
+  beginHistoryGroup?: (_group: string) => void;
+  endHistoryGroup?: (_success: boolean) => void;
+  ui?: { clipboard?: MindMapNode };
+  _pasteInProgress?: boolean;
+};
+
 
 export const undoCommand: Command = {
   name: 'undo',
@@ -82,8 +90,8 @@ export const copyCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const nodeId = (args as Record<string, string | undefined>)['nodeId'] || context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -133,8 +141,8 @@ export const pasteCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, any>): Promise<CommandResult> {
-    const targetId = (args as any)['targetId'] || context.selectedNodeId;
+  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
+    const targetId = (args as Record<string, string | undefined>)['targetId'] || context.selectedNodeId;
 
     if (!targetId) {
       return {
@@ -232,7 +240,7 @@ export const pasteSiblingAfterCommand: Command = {
   examples: ['paste-sibling-after'],
 
   async execute(context: CommandContext): Promise<CommandResult> {
-    
+
     const refNodeId = context.selectedNodeId;
     if (!refNodeId) {
       return { success: false, error: 'No node selected' };
@@ -242,16 +250,18 @@ export const pasteSiblingAfterCommand: Command = {
       return { success: false, error: `Reference node ${refNodeId} not found` };
     }
 
-    
+
     try {
-      useMindMapStore.setState({ _pasteInProgress: true } as any);
-      (useMindMapStore.getState() as any).beginHistoryGroup?.('paste');
+      useMindMapStore.setState({ _pasteInProgress: true } as Partial<StoreState>);
+      const state = useMindMapStore.getState() as ExtendedStoreState;
+      state.beginHistoryGroup?.('paste');
     } catch {}
 
-    
+
     const uiClipboard: MindMapNode | null = ((): MindMapNode | null => {
       try {
-        return (useMindMapStore.getState() as any)?.ui?.clipboard || null;
+        const state = useMindMapStore.getState() as ExtendedStoreState;
+        return state?.ui?.clipboard || null;
       } catch { return null; }
     })();
 
@@ -267,15 +277,17 @@ export const pasteSiblingAfterCommand: Command = {
               context.handlers.selectNode(newId);
               
               try {
-                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
-                useMindMapStore.setState({ _pasteInProgress: false } as any);
+                const state = useMindMapStore.getState() as ExtendedStoreState;
+                state.endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
               } catch {}
               return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
             }
             
             try {
-              (useMindMapStore.getState() as any).endHistoryGroup?.(false);
-              useMindMapStore.setState({ _pasteInProgress: false } as any);
+              const state = useMindMapStore.getState() as ExtendedStoreState;
+              state.endHistoryGroup?.(false);
+              useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
             } catch {}
             return { success: false, error: 'Failed to paste (sibling-after)' };
           }
@@ -289,8 +301,8 @@ export const pasteSiblingAfterCommand: Command = {
                 context.handlers.selectNode(newId);
                 
                 try {
-                  const state: any = useMindMapStore.getState();
-                  state._pasteInProgress = false;
+                  const state = useMindMapStore.getState() as ExtendedStoreState;
+                  useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
                   state.endHistoryGroup?.(true);
                 } catch {}
                 return { success: true, message: `Pasted MindMeister as sibling after "${refNode.text}"` };
@@ -325,8 +337,9 @@ export const pasteSiblingAfterCommand: Command = {
               const msg = lines.length === 1 ? `Pasted "${lines[0]}" as sibling after` : `Pasted ${lines.length} lines as siblings after`;
               
               try {
-                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
-                useMindMapStore.setState({ _pasteInProgress: false } as any);
+                const state = useMindMapStore.getState() as ExtendedStoreState;
+                state.endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
               } catch {}
               return { success: true, message: `${msg} "${refNode.text}"` };
             }
@@ -342,8 +355,8 @@ export const pasteSiblingAfterCommand: Command = {
         context.handlers.selectNode(newId);
         
         try {
-          const state: any = useMindMapStore.getState();
-          state._pasteInProgress = false;
+          const state = useMindMapStore.getState() as ExtendedStoreState;
+          useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
           state.endHistoryGroup?.(true);
         } catch {}
         return { success: true, message: `Pasted as sibling after "${refNode.text}"` };
@@ -352,8 +365,9 @@ export const pasteSiblingAfterCommand: Command = {
 
     
     try {
-      (useMindMapStore.getState() as any).endHistoryGroup?.(false);
-      useMindMapStore.setState({ _pasteInProgress: false } as any);
+      const state = useMindMapStore.getState() as ExtendedStoreState;
+      state.endHistoryGroup?.(false);
+      useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
     } catch {}
     return { success: false, error: 'Clipboard is empty' };
   },
@@ -380,13 +394,15 @@ export const pasteSiblingBeforeCommand: Command = {
 
     
     try {
-      useMindMapStore.setState({ _pasteInProgress: true } as any);
-      (useMindMapStore.getState() as any).beginHistoryGroup?.('paste');
+      useMindMapStore.setState({ _pasteInProgress: true } as Partial<StoreState>);
+      const state = useMindMapStore.getState() as ExtendedStoreState;
+      state.beginHistoryGroup?.('paste');
     } catch {}
 
     const uiClipboard: MindMapNode | null = ((): MindMapNode | null => {
       try {
-        return (useMindMapStore.getState() as any)?.ui?.clipboard || null;
+        const state = useMindMapStore.getState() as ExtendedStoreState;
+        return state?.ui?.clipboard || null;
       } catch { return null; }
     })();
 
@@ -401,15 +417,17 @@ export const pasteSiblingBeforeCommand: Command = {
               context.handlers.selectNode(newId);
               
               try {
-                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
-                useMindMapStore.setState({ _pasteInProgress: false } as any);
+                const state = useMindMapStore.getState() as ExtendedStoreState;
+                state.endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
               } catch {}
               return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
             }
             
             try {
-              (useMindMapStore.getState() as any).endHistoryGroup?.(false);
-              useMindMapStore.setState({ _pasteInProgress: false } as any);
+              const state = useMindMapStore.getState() as ExtendedStoreState;
+              state.endHistoryGroup?.(false);
+              useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
             } catch {}
             return { success: false, error: 'Failed to paste (sibling-before)' };
           }
@@ -422,8 +440,8 @@ export const pasteSiblingBeforeCommand: Command = {
                 context.handlers.selectNode(newId);
                 
                 try {
-                  const state: any = useMindMapStore.getState();
-                  state._pasteInProgress = false;
+                  const state = useMindMapStore.getState() as ExtendedStoreState;
+                  useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
                   state.endHistoryGroup?.(true);
                 } catch {}
                 return { success: true, message: `Pasted MindMeister as sibling before "${refNode.text}"` };
@@ -457,8 +475,9 @@ export const pasteSiblingBeforeCommand: Command = {
               const msg = lines.length === 1 ? `Pasted "${lines[0]}" as sibling before` : `Pasted ${lines.length} lines as siblings before`;
               
               try {
-                (useMindMapStore.getState() as any).endHistoryGroup?.(true);
-                useMindMapStore.setState({ _pasteInProgress: false } as any);
+                const state = useMindMapStore.getState() as ExtendedStoreState;
+                state.endHistoryGroup?.(true);
+                useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
               } catch {}
               return { success: true, message: `${msg} "${refNode.text}"` };
             }
@@ -473,8 +492,8 @@ export const pasteSiblingBeforeCommand: Command = {
         context.handlers.selectNode(newId);
         
         try {
-          const state: any = useMindMapStore.getState();
-          state._pasteInProgress = false;
+          const state = useMindMapStore.getState() as ExtendedStoreState;
+          useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
           state.endHistoryGroup?.(true);
         } catch {}
         return { success: true, message: `Pasted as sibling before "${refNode.text}"` };
@@ -483,8 +502,9 @@ export const pasteSiblingBeforeCommand: Command = {
 
     
     try {
-      (useMindMapStore.getState() as any).endHistoryGroup?.(false);
-      useMindMapStore.setState({ _pasteInProgress: false } as any);
+      const state = useMindMapStore.getState() as ExtendedStoreState;
+      state.endHistoryGroup?.(false);
+      useMindMapStore.setState({ _pasteInProgress: false } as Partial<StoreState>);
     } catch {}
     return { success: false, error: 'Clipboard is empty' };
   },
@@ -502,7 +522,7 @@ export const addWorkspaceCommand: Command = {
   async execute(): Promise<CommandResult> {
     try {
       
-      const addWorkspaceFn = (window as any).mindoodleAddWorkspace;
+      const addWorkspaceFn = (window as Window & { mindoodleAddWorkspace?: () => Promise<void> }).mindoodleAddWorkspace;
       if (typeof addWorkspaceFn !== 'function') {
         return {
           success: false,

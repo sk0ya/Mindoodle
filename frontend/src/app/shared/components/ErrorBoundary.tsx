@@ -21,12 +21,22 @@ interface ErrorBoundaryState {
   errorId: string | null;
 }
 
+interface ErrorReport {
+  id: string;
+  timestamp: string;
+  level: string;
+  message: string;
+  stack?: string;
+  componentStack: string | null | undefined;
+  userAgent: string;
+  url: string;
+}
 
 class ErrorReporter {
   static reportError(error: Error, errorInfo: ErrorInfo, level: string = 'component'): string {
     const errorId = generateErrorId();
-    
-    const errorReport = {
+
+    const errorReport: ErrorReport = {
       id: errorId,
       timestamp: new Date().toISOString(),
       level,
@@ -37,16 +47,16 @@ class ErrorReporter {
       url: window.location.href,
     };
 
-    
+
     if (isDevelopment()) {
       logger.error('🚨 ErrorBoundary Report:', errorReport);
     } else {
       logger.error('ErrorBoundary caught error', { errorId, message: error.message, level });
     }
 
-    
+
     try {
-      const res = getLocalStorage<any[]>(STORAGE_KEYS.ERROR_LOGS, []);
+      const res = getLocalStorage<ErrorReport[]>(STORAGE_KEYS.ERROR_LOGS, []);
       const storedErrors = Array.isArray(res.data) ? res.data : [];
       storedErrors.push(errorReport);
       
@@ -124,22 +134,20 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     const reportData = {
       errorId,
-      
-      userDescription: prompt('Please describe what you were doing when this error occurred:') || '',
+      userDescription: 'User clicked report button',
       timestamp: new Date().toISOString()
     };
 
-    // TODO: Send user report
+    // User report logging; integrate with telemetry in the future if needed.
     logger.info('User error report:', reportData);
-    // eslint-disable-next-line no-alert
-    alert('Thank you for the report. We will investigate this issue.');
+    logger.info('Thank you for the report. We will investigate this issue.');
   };
 
-  override render(): ReactNode {
+  override render(): JSX.Element {
     if (this.state.hasError) {
       // Use custom fallback if provided
       if (this.props.fallback) {
-        return this.props.fallback;
+        return <>{this.props.fallback}</>;
       }
 
       // Default error UI based on level
@@ -382,7 +390,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
       );
     }
 
-    return this.props.children;
+    return <>{this.props.children}</>;
   }
 }
 

@@ -19,9 +19,9 @@ interface MindMapCanvasProps {
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
   
-  
+  // Type: Map data for link resolution
   availableMaps?: { id: string; title: string }[];
-  currentMapData?: { id: string; rootNode: any };
+  currentMapData?: { id: string; rootNode?: MindMapNode; rootNodes?: MindMapNode[]; mapIdentifier?: Record<string, unknown> };
   
   
   onLinkNavigate?: (link: NodeLink) => void;
@@ -119,8 +119,10 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   const combinedHandleMouseDown = useCallback((e: React.MouseEvent) => {
     handleCanvasMouseDown(e);
     handleMouseDown(e);
-    
-    try { svgRef.current?.focus?.(); } catch (_) {}
+    const el = svgRef.current as unknown as { focus?: () => void } | null;
+    if (el && typeof el.focus === 'function') {
+      el.focus();
+    }
   }, [handleCanvasMouseDown, handleMouseDown]);
 
   return (

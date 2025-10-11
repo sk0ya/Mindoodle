@@ -1,7 +1,6 @@
 import { useMindMapStore } from '../store';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { logger } from '@shared/utils';
-import { safeJsonParse } from '@shared/utils';
+import { logger, safeJsonParse } from '@shared/utils';
 import { useStableCallback } from '@shared/hooks';
 
 
@@ -59,7 +58,7 @@ export const useMindMapActions = () => {
       const currentData = store.data;
       if (currentData && currentData.mapIdentifier.mapId === mapIdentifier.mapId && currentData.mapIdentifier.workspaceId === mapIdentifier.workspaceId) {
         
-        (store as any).updateMapMetadata?.(updates);
+        store.updateMapMetadata?.(updates);
         logger.debug('Updated map metadata:', updates);
       }
     })
@@ -122,7 +121,7 @@ export const useMindMapActions = () => {
         }
 
         
-        const mindMapData = parsedData as MindMapData;
+        const mindMapData = parsedData as unknown as MindMapData;
         store.setRootNodes(mindMapData.rootNodes);
         return true;
       } catch (error) {

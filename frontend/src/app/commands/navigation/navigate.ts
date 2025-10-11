@@ -32,8 +32,9 @@ export const navigateCommand: Command = {
     return true;
   },
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const directionInput = (args as any)['direction'] || (args as any)['_0']; 
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const typedArgs = args as Record<string, string | undefined>;
+    const directionInput = typedArgs['direction'] || typedArgs['_0']; 
 
     if (!directionInput) {
       return {
@@ -74,9 +75,12 @@ export const navigateCommand: Command = {
         context.handlers.navigateToDirection(direction, count);
       }
 
+      const plural = count > 1 ? 's' : '';
+      const stepLabel = count > 1 ? `${count} step${plural}` : '';
+      const message = count > 1 ? `Navigated ${direction} ${stepLabel}` : `Navigated ${direction}`;
       return {
         success: true,
-        message: count > 1 ? `Navigated ${direction} ${count} step${count > 1 ? 's' : ''}` : `Navigated ${direction}`
+        message
       };
     } catch (error) {
       return {

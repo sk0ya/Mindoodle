@@ -12,13 +12,14 @@ export const highlightSearchTerm = (text: string, searchTerm: string): React.Rea
 
   return (
     <>
-      {parts.map((part, index) => (
-        regex.test(part) ? (
+      {parts.map((part, index) => {
+        const isMatch = new RegExp(`^${escaped}$`, 'i').test(part);
+        return isMatch ? (
           <mark key={index} className="search-highlight">{part}</mark>
         ) : (
           <React.Fragment key={index}>{part}</React.Fragment>
-        )
-      ))}
+        );
+      })}
     </>
   );
 };

@@ -46,10 +46,13 @@ if (typeof window !== 'undefined') {
 
     logger.debug('🧹 Cache cleanup completed', { before, after, cleaned });
 
-    
-    if (process.env.NODE_ENV === 'development' && (window as any).gc) {
-      (window as any).gc();
-      logger.debug('🗑️ Manual GC triggered');
+
+    if (process.env.NODE_ENV === 'development') {
+      const windowWithGc = window as Window & { gc?: () => void };
+      if (windowWithGc.gc) {
+        windowWithGc.gc();
+        logger.debug('🗑️ Manual GC triggered');
+      }
     }
   }, 120000, 'DataSlice cache cleanup'); 
 }
@@ -157,447 +160,232 @@ export const createDataSlice: StateCreator<
   },
 
   applyAutoLayout: (immediate = false) => {
-    
-    if (immediate) {
+    const executeAutoLayout = () => {
+      const state = get();
+      const rootNodes = state.data?.rootNodes || [];
+
+      logger.debug(immediate ? '⚡ Immediate autoLayout execution started' : '🔄 Debounced autoLayout execution started');
+
+      if (rootNodes.length === 0) {
+        logger.warn('⚠️ Auto layout: No root nodes found');
+        return;
+      }
+
+      if (typeof autoSelectLayout !== 'function') {
+        logger.error('❌ Auto layout: autoSelectLayout function not found');
+        return;
+      }
+
+      try {
+        logger.debug('🎯 Applying auto layout to root nodes:', {
+          rootNodesCount: rootNodes.length,
+          firstNodeId: rootNodes[0]?.id
+        });
+
+        const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
+
+        const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
+          const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
+          const nodeKind = nodeWithKind.kind || 'text';
+          const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
+          const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+          const cached = nodeSizeCache.get(cacheKey);
+          if (cached) {
+            return cached;
+          }
+          const size = calculateNodeSize(node, undefined, false, state.settings.fontSize, wrapConfig);
+          nodeSizeCache.set(cacheKey, size);
+          return size;
+        };
+
+        const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
+          const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
+          const cached = boundsCache.get(cacheKey);
+          if (cached) {
+            return cached;
+          }
+
+          const nodeSize = getNodeSize(node);
+          const nodeWithKind = node as MindMapNode & { kind?: string };
+          const outerMarginY = nodeWithKind.kind === 'table' ? 8 : 0;
+          const nodeTop = getNodeTopY(node, nodeSize.height) - outerMarginY;
+          const nodeBottom = getNodeBottomY(node, nodeSize.height) + outerMarginY;
+
+          let minY = nodeTop;
+          let maxY = nodeBottom;
+
+          if (node.children && node.children.length > 0 && !node.collapsed) {
+            for (const child of node.children) {
+              const bounds = getSubtreeBounds(child);
+              minY = Math.min(minY, bounds.minY);
+              maxY = Math.max(maxY, bounds.maxY);
+            }
+          }
+
+          const result = { minY, maxY };
+          boundsCache.set(cacheKey, result);
+          return result;
+        };
+
+        const getNodeCount = (node: MindMapNode): number => {
+          const cacheKey = `${node.id}_${node.collapsed || false}`;
+          const cached = nodeCountCache.get(cacheKey);
+          if (cached !== undefined) {
+            return cached;
+          }
+
+          let count = 1;
+          if (!node.collapsed && node.children && node.children.length > 0) {
+            let sum = 0;
+            for (const child of node.children) sum += getNodeCount(child);
+            count = 1 + sum;
+          }
+
+          nodeCountCache.set(cacheKey, count);
+          return count;
+        };
+
+      const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
+
       
+      const layoutedRootNodes: MindMapNode[] = [];
+      let previousSubtreeBottom = 0;
+
+      
+      for (let index = 0; index < rootNodes.length; index++) {
+        const rootNode = rootNodes[index];
+        const settingsWithSpacing = state.settings as typeof state.settings & { nodeSpacing?: number };
+        const layoutedNode = autoSelectLayout(rootNode, {
+          globalFontSize: state.settings.fontSize,
+          nodeSpacing: settingsWithSpacing.nodeSpacing || 8,
+          sidebarCollapsed: state.ui.sidebarCollapsed,
+          activeView: state.ui.activeView,
+          wrapConfig: layoutWrapConfig
+        });
+
+        if (!layoutedNode) continue;
+
+        if (index > 0) {
+          
+          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
+          const currentSubtreeTop = currentSubtreeBounds.minY;
+
+          
+          const previousRoot = layoutedRootNodes[index - 1];
+          const previousNodeCount = getNodeCount(previousRoot);
+          const currentNodeCount = getNodeCount(layoutedNode);
+
+          
+          const baseSpacing = 8;
+          const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
+          const adaptiveSpacing = baseSpacing + complexityFactor;
+
+          
+          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
+          const offsetY = targetTopY - currentSubtreeTop;
+
+          
+          const nodesToProcess = [layoutedNode];
+          while (nodesToProcess.length > 0) {
+            const currentNode = nodesToProcess.pop();
+            if (!currentNode) continue;
+            currentNode.y = (currentNode.y || 0) + offsetY;
+
+            if (currentNode.children) {
+              nodesToProcess.push(...currentNode.children);
+            }
+          }
+
+          
+          const invalidateNodeBounds = (node: MindMapNode) => {
+            
+            const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
+            const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
+            boundsCache.delete(cacheKeyCollapsed);
+            boundsCache.delete(cacheKeyExpanded);
+
+            
+            const countKeyCollapsed = `${node.id}_true`;
+            const countKeyExpanded = `${node.id}_false`;
+            nodeCountCache.delete(countKeyCollapsed);
+            nodeCountCache.delete(countKeyExpanded);
+
+
+            const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
+            const nodeKind = nodeWithKind.kind || 'text';
+            const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
+            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+            nodeSizeCache.delete(sizeKey);
+
+            if (node.children && !node.collapsed) {
+              for (const child of node.children) invalidateNodeBounds(child);
+            }
+          };
+          invalidateNodeBounds(layoutedNode);
+
+          
+          const finalBounds = getSubtreeBounds(layoutedNode);
+          previousSubtreeBottom = finalBounds.maxY;
+        } else {
+          
+          const bounds = getSubtreeBounds(layoutedNode);
+          previousSubtreeBottom = bounds.maxY;
+        }
+
+        layoutedRootNodes.push(layoutedNode);
+      }
+
+      if (layoutedRootNodes.some(node => !node)) {
+        logger.error('❌ Auto layout: One or more layouted nodes are null or undefined');
+        return;
+      }
+
+      logger.debug('✅ Auto layout result:', {
+        layoutedNodesCount: layoutedRootNodes.length
+      });
+
+      
+      set((draft) => {
+        if (draft.data) {
+          draft.data = {
+            ...draft.data,
+            rootNodes: layoutedRootNodes
+          };
+
+          
+          try {
+            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
+          } catch (normalizeError) {
+            logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
+          }
+        }
+      });
+
+      
+      try {
+        mindMapEvents.emit({ type: 'layout.applied' });
+      } catch {  }
+
+        logger.debug('🎉 Auto layout applied successfully');
+      } catch (error) {
+        logger.error('❌ Auto layout failed:', error);
+        logger.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
+        logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      }
+    };
+
+    if (immediate) {
       if (autoLayoutTimeoutId) {
         clearTimeout(autoLayoutTimeoutId);
         autoLayoutTimeoutId = null;
       }
-
-      const state = get();
-      const rootNodes = state.data?.rootNodes || [];
-
-      logger.debug('⚡ Immediate autoLayout execution started');
-
-    if (rootNodes.length === 0) {
-      logger.warn('⚠️ Auto layout: No root nodes found');
-      return;
-    }
-
-    
-    if (typeof autoSelectLayout !== 'function') {
-      logger.error('❌ Auto layout: autoSelectLayout function not found');
-      return;
-    }
-
-    try {
-      logger.debug('🎯 Applying auto layout to root nodes:', {
-        rootNodesCount: rootNodes.length,
-        firstNodeId: rootNodes[0]?.id
-      });
-
-      const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
-
-      
-      const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
-        
-        const nodeKind = (node as any)?.kind || 'text';
-        const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
-        const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
-        const cached = nodeSizeCache.get(cacheKey);
-        if (cached) {
-          return cached;
-        }
-        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize, wrapConfig);
-        nodeSizeCache.set(cacheKey, size);
-        return size;
-      };
-
-      
-      const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-        
-        const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
-
-        const cached = boundsCache.get(cacheKey);
-        if (cached) {
-          return cached;
-        }
-
-        const nodeSize = getNodeSize(node);
-        const outerMarginY = (node as any)?.kind === 'table' ? 8 : 0;
-        const nodeTop = getNodeTopY(node, nodeSize.height) - outerMarginY;
-        const nodeBottom = getNodeBottomY(node, nodeSize.height) + outerMarginY;
-
-        let minY = nodeTop;
-        let maxY = nodeBottom;
-
-        if (node.children && node.children.length > 0 && !node.collapsed) {
-          
-          const childBounds = node.children.map(child => getSubtreeBounds(child));
-          for (const bounds of childBounds) {
-            minY = Math.min(minY, bounds.minY);
-            maxY = Math.max(maxY, bounds.maxY);
-          }
-        }
-
-        const result = { minY, maxY };
-        boundsCache.set(cacheKey, result);
-        return result;
-      };
-
-      
-      const getNodeCount = (node: MindMapNode): number => {
-        const cacheKey = `${node.id}_${node.collapsed || false}`;
-        const cached = nodeCountCache.get(cacheKey);
-        if (cached !== undefined) {
-          return cached;
-        }
-
-        const count = node.collapsed || !node.children || node.children.length === 0
-          ? 1
-          : 1 + node.children.reduce((sum, child) => sum + getNodeCount(child), 0);
-
-        nodeCountCache.set(cacheKey, count);
-        return count;
-      };
-
-      const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
-
-      
-      const layoutedRootNodes: MindMapNode[] = [];
-      let previousSubtreeBottom = 0;
-
-      
-      for (let index = 0; index < rootNodes.length; index++) {
-        const rootNode = rootNodes[index];
-        const layoutedNode = autoSelectLayout(rootNode, {
-          globalFontSize: state.settings.fontSize,
-          nodeSpacing: (state.settings as any).nodeSpacing || 8,
-          sidebarCollapsed: state.ui.sidebarCollapsed,
-          activeView: state.ui.activeView,
-          wrapConfig: layoutWrapConfig
-        });
-
-        if (!layoutedNode) continue;
-
-        if (index > 0) {
-          
-          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
-          const currentSubtreeTop = currentSubtreeBounds.minY;
-
-          
-          const previousRoot = layoutedRootNodes[index - 1];
-          const previousNodeCount = getNodeCount(previousRoot);
-          const currentNodeCount = getNodeCount(layoutedNode);
-
-          
-          const baseSpacing = 8;
-          const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
-          const adaptiveSpacing = baseSpacing + complexityFactor;
-
-          
-          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
-          const offsetY = targetTopY - currentSubtreeTop;
-
-          
-          const nodesToProcess = [layoutedNode];
-          while (nodesToProcess.length > 0) {
-            const currentNode = nodesToProcess.pop()!;
-            currentNode.y = (currentNode.y || 0) + offsetY;
-
-            if (currentNode.children) {
-              nodesToProcess.push(...currentNode.children);
-            }
-          }
-
-          
-          const invalidateNodeBounds = (node: MindMapNode) => {
-            
-            const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
-            const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
-            boundsCache.delete(cacheKeyCollapsed);
-            boundsCache.delete(cacheKeyExpanded);
-
-            
-            const countKeyCollapsed = `${node.id}_true`;
-            const countKeyExpanded = `${node.id}_false`;
-            nodeCountCache.delete(countKeyCollapsed);
-            nodeCountCache.delete(countKeyExpanded);
-
-            
-            const nodeKind = (node as any)?.kind || 'text';
-            const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
-            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
-            nodeSizeCache.delete(sizeKey);
-
-            if (node.children && !node.collapsed) {
-              node.children.forEach(child => invalidateNodeBounds(child));
-            }
-          };
-          invalidateNodeBounds(layoutedNode);
-
-          
-          const finalBounds = getSubtreeBounds(layoutedNode);
-          previousSubtreeBottom = finalBounds.maxY;
-        } else {
-          
-          const bounds = getSubtreeBounds(layoutedNode);
-          previousSubtreeBottom = bounds.maxY;
-        }
-
-        layoutedRootNodes.push(layoutedNode);
+      executeAutoLayout();
+    } else {
+      if (autoLayoutTimeoutId) {
+        clearTimeout(autoLayoutTimeoutId);
       }
-
-      if (layoutedRootNodes.some(node => !node)) {
-        logger.error('❌ Auto layout: One or more layouted nodes are null or undefined');
-        return;
-      }
-
-      logger.debug('✅ Auto layout result:', {
-        layoutedNodesCount: layoutedRootNodes.length
-      });
-
-      
-      set((draft) => {
-        if (draft.data) {
-          draft.data = {
-            ...draft.data,
-            rootNodes: layoutedRootNodes
-          };
-
-          
-          try {
-            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
-          } catch (normalizeError) {
-            logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
-          }
-        }
-      });
-
-      
-      try {
-        mindMapEvents.emit({ type: 'layout.applied' });
-      } catch {  }
-
-      logger.debug('🎉 Auto layout applied successfully');
-    } catch (error) {
-      logger.error('❌ Auto layout failed:', error);
-      logger.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-      logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+      autoLayoutTimeoutId = setTimeout(executeAutoLayout, AUTOLAYOUT_DEBOUNCE_MS);
     }
-
-      return; 
-    }
-
-    
-    if (autoLayoutTimeoutId) {
-      clearTimeout(autoLayoutTimeoutId);
-    }
-
-    autoLayoutTimeoutId = setTimeout(() => {
-      const state = get();
-      const rootNodes = state.data?.rootNodes || [];
-
-      logger.debug('🔄 Debounced autoLayout execution started');
-    
-    if (rootNodes.length === 0) {
-      logger.warn('⚠️ Auto layout: No root nodes found');
-      return;
-    }
-    
-    
-    if (typeof autoSelectLayout !== 'function') {
-      logger.error('❌ Auto layout: autoSelectLayout function not found');
-      return;
-    }
-    
-    try {
-      logger.debug('🎯 Applying auto layout to root nodes:', {
-        rootNodesCount: rootNodes.length,
-        firstNodeId: rootNodes[0]?.id
-      });
-      
-      const wrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
-
-      
-      const getNodeSize = (node: MindMapNode): { width: number; height: number } => {
-        
-        const nodeKind = (node as any)?.kind || 'text';
-        const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
-        const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
-        const cached = nodeSizeCache.get(cacheKey);
-        if (cached) {
-          return cached;
-        }
-        const size = calculateNodeSize(node, undefined, false, state.settings.fontSize, wrapConfig);
-        nodeSizeCache.set(cacheKey, size);
-        return size;
-      };
-
-      
-      const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-        
-        const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}`;
-
-        const cached = boundsCache.get(cacheKey);
-        if (cached) {
-          return cached;
-        }
-
-        const nodeSize = getNodeSize(node);
-        const outerMarginY = (node as any)?.kind === 'table' ? 8 : 0;
-        const nodeTop = getNodeTopY(node, nodeSize.height) - outerMarginY;
-        const nodeBottom = getNodeBottomY(node, nodeSize.height) + outerMarginY;
-
-        let minY = nodeTop;
-        let maxY = nodeBottom;
-
-        if (node.children && node.children.length > 0 && !node.collapsed) {
-          
-          const childBounds = node.children.map(child => getSubtreeBounds(child));
-          for (const bounds of childBounds) {
-            minY = Math.min(minY, bounds.minY);
-            maxY = Math.max(maxY, bounds.maxY);
-          }
-        }
-
-        const result = { minY, maxY };
-        boundsCache.set(cacheKey, result);
-        return result;
-      };
-
-      
-      const getNodeCount = (node: MindMapNode): number => {
-        const cacheKey = `${node.id}_${node.collapsed || false}`;
-        const cached = nodeCountCache.get(cacheKey);
-        if (cached !== undefined) {
-          return cached;
-        }
-
-        const count = node.collapsed || !node.children || node.children.length === 0
-          ? 1
-          : 1 + node.children.reduce((sum, child) => sum + getNodeCount(child), 0);
-
-        nodeCountCache.set(cacheKey, count);
-        return count;
-      };
-
-      const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
-
-      
-      const layoutedRootNodes: MindMapNode[] = [];
-      let previousSubtreeBottom = 0;
-
-      
-      for (let index = 0; index < rootNodes.length; index++) {
-        const rootNode = rootNodes[index];
-        const layoutedNode = autoSelectLayout(rootNode, {
-          globalFontSize: state.settings.fontSize,
-          nodeSpacing: (state.settings as any).nodeSpacing || 8,
-          sidebarCollapsed: state.ui.sidebarCollapsed,
-          activeView: state.ui.activeView,
-          wrapConfig: layoutWrapConfig
-        });
-
-        if (!layoutedNode) continue;
-
-        if (index > 0) {
-          
-          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
-          const currentSubtreeTop = currentSubtreeBounds.minY;
-
-          
-          const previousRoot = layoutedRootNodes[index - 1];
-          const previousNodeCount = getNodeCount(previousRoot);
-          const currentNodeCount = getNodeCount(layoutedNode);
-
-          
-          const baseSpacing = 8;
-          const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
-          const adaptiveSpacing = baseSpacing + complexityFactor;
-
-          
-          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
-          const offsetY = targetTopY - currentSubtreeTop;
-
-          
-          const nodesToProcess = [layoutedNode];
-          while (nodesToProcess.length > 0) {
-            const currentNode = nodesToProcess.pop()!;
-            currentNode.y = (currentNode.y || 0) + offsetY;
-            
-            if (currentNode.children) {
-              nodesToProcess.push(...currentNode.children);
-            }
-          }
-
-          
-          const invalidateNodeBounds = (node: MindMapNode) => {
-            
-            const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
-            const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
-            boundsCache.delete(cacheKeyCollapsed);
-            boundsCache.delete(cacheKeyExpanded);
-
-            
-            const countKeyCollapsed = `${node.id}_true`;
-            const countKeyExpanded = `${node.id}_false`;
-            nodeCountCache.delete(countKeyCollapsed);
-            nodeCountCache.delete(countKeyExpanded);
-
-            
-            const nodeKind = (node as any)?.kind || 'text';
-            const textKey = nodeKind === 'table' ? JSON.stringify((node as any)?.tableData || {}) : node.text;
-            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
-            nodeSizeCache.delete(sizeKey);
-
-            if (node.children && !node.collapsed) {
-              node.children.forEach(child => invalidateNodeBounds(child));
-            }
-          };
-          invalidateNodeBounds(layoutedNode);
-          
-          
-          const finalBounds = getSubtreeBounds(layoutedNode);
-          previousSubtreeBottom = finalBounds.maxY;
-        } else {
-          
-          const bounds = getSubtreeBounds(layoutedNode);
-          previousSubtreeBottom = bounds.maxY;
-        }
-
-        layoutedRootNodes.push(layoutedNode);
-      }
-      
-      if (layoutedRootNodes.some(node => !node)) {
-        logger.error('❌ Auto layout: One or more layouted nodes are null or undefined');
-        return;
-      }
-      
-      logger.debug('✅ Auto layout result:', {
-        layoutedNodesCount: layoutedRootNodes.length
-      });
-      
-      
-      set((draft) => {
-        if (draft.data) {
-          draft.data = {
-            ...draft.data,
-            rootNodes: layoutedRootNodes
-          };
-          
-          
-          try {
-            draft.normalizedData = normalizeTreeData(layoutedRootNodes);
-          } catch (normalizeError) {
-            logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
-          }
-        }
-      });
-
-      
-      try {
-        mindMapEvents.emit({ type: 'layout.applied' });
-      } catch {  }
-      
-      logger.debug('🎉 Auto layout applied successfully');
-    } catch (error) {
-      logger.error('❌ Auto layout failed:', error);
-      logger.error('Error details:', error instanceof Error ? error.message : 'Unknown error');
-      logger.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
-    }
-    }, AUTOLAYOUT_DEBOUNCE_MS);
   },
 
   clearMermaidRelatedCaches: () => {

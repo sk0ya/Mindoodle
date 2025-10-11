@@ -17,6 +17,34 @@ interface AuthResponse {
   error?: string;
 }
 
+interface MeResponse {
+  success: boolean;
+  user?: CloudUser;
+}
+
+interface MapsListResponse {
+  success: boolean;
+  maps?: Array<{ id: string; title?: string; createdAt?: string; updatedAt?: string }>;
+  error?: string;
+}
+
+interface MapDetailResponse {
+  success: boolean;
+  map?: { id: string; title?: string; content?: string; createdAt: string; updatedAt: string };
+  error?: string;
+}
+
+interface ImagesListResponse {
+  success: boolean;
+  files?: string[];
+}
+
+interface ImageGetResponse {
+  success: boolean;
+  data?: string;
+  contentType?: string;
+}
+
 export class CloudStorageAdapter implements StorageAdapter {
   private _isInitialized = false;
   private baseUrl: string;
@@ -69,9 +97,9 @@ export class CloudStorageAdapter implements StorageAdapter {
     logger.info(`CloudStorageAdapter: Initialized, authenticated: ${this.isAuthenticated}`);
   }
 
-  private async makeRequest(endpoint: string, options: RequestInit = {}): Promise<any> {
+  private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    const isFormData = typeof FormData !== 'undefined' && (options.body as any) instanceof FormData;
+    const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {})
     };
@@ -100,12 +128,12 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     
-    return await response.json();
+    return await response.json() as T;
   }
 
   async register(email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await this.makeRequest('/api/auth/register', {
+      const response = await this.makeRequest<AuthResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
@@ -128,7 +156,7 @@ export class CloudStorageAdapter implements StorageAdapter {
 
   async login(email: string, password: string): Promise<AuthResponse> {
     try {
-      const response = await this.makeRequest('/api/auth/login', {
+      const response = await this.makeRequest<AuthResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
@@ -165,9 +193,10 @@ export class CloudStorageAdapter implements StorageAdapter {
 
   private async verifyAuth(): Promise<boolean> {
     try {
-      const response = await this.makeRequest('/api/auth/me');
-      return response.success;
+      const response = await this.makeRequest<MeResponse>('/api/auth/me');
+      return !!response.success;
     } catch (error) {
+      logger.warn('CloudStorageAdapter: verifyAuth failed', error);
       return false;
     }
   }
@@ -196,7 +225,7 @@ export class CloudStorageAdapter implements StorageAdapter {
 
     try {
       logger.info('CloudStorageAdapter: Making request to /api/maps');
-      const response = await this.makeRequest('/api/maps');
+      const response = await this.makeRequest<MapsListResponse>('/api/maps');
       logger.info('CloudStorageAdapter: Maps list response:', response);
 
       if (!response.success || !response.maps) {
@@ -206,11 +235,11 @@ export class CloudStorageAdapter implements StorageAdapter {
 
       logger.info(`CloudStorageAdapter: Found ${response.maps.length} maps in cloud`);
       const maps: MindMapData[] = [];
-      for (const cloudMap of response.maps) {
+      for (const cloudMap of response.maps as Array<{ id: string }>) {
         try {
           
           logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
-          const fullMapResponse = await this.makeRequest(`/api/maps/${encodeURIComponent(cloudMap.id)}`);
+          const fullMapResponse = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(cloudMap.id)}`);
           if (fullMapResponse.success && fullMapResponse.map) {
             const markdown = fullMapResponse.map.content || '';
             const parseResult = MarkdownImporter.parseMarkdownToNodes(markdown);
@@ -254,9 +283,9 @@ export class CloudStorageAdapter implements StorageAdapter {
       return [];
     }
     try {
-      const response = await this.makeRequest('/api/maps');
+      const response = await this.makeRequest<MapsListResponse>('/api/maps');
       if (!response.success || !Array.isArray(response.maps)) return [];
-      return response.maps.map((m: any) => ({ mapId: m.id, workspaceId: 'cloud' }));
+      return (response.maps as Array<{ id: string }>).map((m) => ({ mapId: m.id, workspaceId: 'cloud' }));
     } catch {
       return [];
     }
@@ -342,8 +371,8 @@ export class CloudStorageAdapter implements StorageAdapter {
 
     try {
       
-      const listResp = await this.makeRequest(`/api/images/list?path=${encodeURIComponent('')}`);
-      const keys: string[] = Array.isArray(listResp?.files) ? listResp.files : [];
+      const listResp = await this.makeRequest<ImagesListResponse>(`/api/images/list?path=${encodeURIComponent('')}`);
+      const keys: string[] = Array.isArray(listResp?.files) ? (listResp.files) : [];
 
       
       type Node = { name: string; children?: Map<string, Node>; isFile?: boolean; path?: string; isMarkdown?: boolean };
@@ -354,7 +383,9 @@ export class CloudStorageAdapter implements StorageAdapter {
         if (!dir.children.has(segment)) {
           dir.children.set(segment, { name: segment, children: new Map() });
         }
-        return dir.children.get(segment)!;
+        const child = dir.children.get(segment);
+        if (!child) throw new Error(`Failed to get or create directory: ${segment}`);
+        return child;
       };
 
       const addFile = (dir: Node, fileName: string, fullPath: string) => {
@@ -369,7 +400,13 @@ export class CloudStorageAdapter implements StorageAdapter {
 
       for (const key of keys) {
         
-        const clean = (key || '').replace(/^\/+/, '').replace(/\/+$/, '');
+        // Remove leading/trailing slashes without regex backtracking
+        const raw = String(key || '');
+        let start = 0;
+        let end = raw.length;
+        while (start < end && raw.charCodeAt(start) === 47 /* '/' */) start++;
+        while (end > start && raw.charCodeAt(end - 1) === 47 /* '/' */) end--;
+        const clean = raw.slice(start, end);
         if (!clean) continue;
 
         const parts = clean.split('/');
@@ -399,7 +436,8 @@ export class CloudStorageAdapter implements StorageAdapter {
       
       const toExplorer = (node: Node, currentPath: string): ExplorerItem => {
         if (node.isFile) {
-          return { type: 'file', name: node.name, path: node.path!, isMarkdown: node.isMarkdown } as ExplorerItem;
+          const filePath = node.path || `/cloud/${currentPath}`;
+          return { type: 'file', name: node.name, path: filePath, isMarkdown: node.isMarkdown } as ExplorerItem;
         }
         const children: ExplorerItem[] = [];
         for (const child of (node.children?.values() || [])) {
@@ -457,9 +495,9 @@ export class CloudStorageAdapter implements StorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest(`/api/maps/${encodeURIComponent(id.mapId)}`);
+      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(id.mapId)}`);
       if (response.success && response.map) {
-        return response.map.content;
+        return response.map.content || null;
       }
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to get map markdown', error);
@@ -472,7 +510,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest(`/api/maps/${encodeURIComponent(id.mapId)}`);
+      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(id.mapId)}`);
       if (response.success && response.map) {
         return new Date(response.map.updatedAt).getTime();
       }
@@ -490,8 +528,12 @@ export class CloudStorageAdapter implements StorageAdapter {
 
     try {
       
-      const titleMatch = markdown.match(/^#\s+(.+)$/m);
-      const title = titleMatch ? titleMatch[1] : 'Untitled';
+      // Extract first level-1 heading as title without using complex regex
+      let title = 'Untitled';
+      const lines = markdown.split(/\r?\n/);
+      for (const line of lines) {
+        if (line.startsWith('# ')) { title = line.slice(2).trim(); break; }
+      }
 
       const idPath = (id.mapId || '').trim();
       if (!idPath || idPath === 'new') {
@@ -544,8 +586,8 @@ export class CloudStorageAdapter implements StorageAdapter {
         if (!res.ok) {
           let errMsg = res.statusText || `HTTP ${res.status}`;
           try { const j = await res.json(); errMsg = j?.error || errMsg; } catch {}
-          const e = new Error(errMsg);
-          (e as any).status = res.status;
+          const e = new Error(errMsg) as Error & { status?: number };
+          e.status = res.status;
           throw e;
         }
 
@@ -604,7 +646,7 @@ export class CloudStorageAdapter implements StorageAdapter {
 
     try {
       
-      const response = await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`);
+      const response = await this.makeRequest<ImageGetResponse>(`/api/images/${encodeURIComponent(relativePath)}`);
 
       if (response.success && response.data) {
         
@@ -635,7 +677,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      const response = await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`);
+      const response = await this.makeRequest<ImageGetResponse>(`/api/images/${encodeURIComponent(relativePath)}`);
       if (response?.success && response?.data) {
         const ct = response.contentType || 'image/png';
         return `data:${ct};base64,${response.data}`;
@@ -670,7 +712,7 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
-      const response = await this.makeRequest(`/api/images/list?path=${encodeURIComponent(directoryPath)}`);
+      const response = await this.makeRequest<ImagesListResponse>(`/api/images/list?path=${encodeURIComponent(directoryPath)}`);
 
       if (response.success && response.files) {
         return response.files;

@@ -31,22 +31,25 @@ export const useMindMapStore = create<MindMapStore>()(
 mindMapEvents.subscribe((e) => {
   try {
     if (e.type !== 'model.changed') {
-      
+
       return;
     }
-    const state: any = useMindMapStore.getState();
+    const state = useMindMapStore.getState() as MindMapStore & {
+      _groupDepth?: number;
+      _groupDirty?: boolean;
+    };
     const depth = state._groupDepth || 0;
     if (depth > 0) {
-      
+
       state._groupDirty = true;
     } else {
-      const { scheduleCommitSnapshot } = state as { scheduleCommitSnapshot?: () => void };
+      const { scheduleCommitSnapshot } = state;
       if (typeof scheduleCommitSnapshot === 'function') {
         scheduleCommitSnapshot();
       }
     }
   } catch {
-    
+
   }
 });
 

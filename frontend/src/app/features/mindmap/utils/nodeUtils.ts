@@ -197,25 +197,19 @@ function isCJKChar(char: string): boolean {
   );
 }
 
+const PRIMARY_BREAK_CHARS = new Set<string>([
+  '、','。','，','．','！','？','：','；','）','』','】','〉','》',']','）','｝','〕','〗','〙','〛',
+  ')','!','?',',','.',':',';'
+]);
 function isPrimaryBreak(char: string): boolean {
   if (!char || char.length === 0) return false;
-  
-  return /[、。，．！？：；）」』】〉》\]）｝〕〗〙〛〉》」』｝〕\])!?,.:;]/.test(char);
+  return PRIMARY_BREAK_CHARS.has(char);
 }
 
+const PARTICLE_CHARS = new Set<string>(Array.from('がをにへとからまでよりはもこそでもしかさえだけばかりほどくらいなどなんかすらけれどもののでてもながらしてとばかなねよさわかしらやとかの'));
 function isParticle(char: string): boolean {
   if (!char || char.length === 0) return false;
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  return /[がをにへとからまでよりはもこそでもしかさえだけばかりほどくらいなどなんかすらけれどけれどものにのでからてもながらしてとばかなねよさわかしらやとかの]$/.test(char);
+  return PARTICLE_CHARS.has(char);
 }
 
 function isBreakAfter(char: string): boolean {
@@ -239,7 +233,8 @@ function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boo
     }
   };
 
-  for (let i = 0; i < text.length; i++) {
+  let i = 0;
+  while (i < text.length) {
     const char = text[i];
     const isCJK = isCJKChar(char);
     const isWhitespace = /\s/.test(char);
@@ -247,11 +242,13 @@ function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boo
     // Whitespace handling: always split and preserve
     if (isWhitespace) {
       flushBuffer();
-      // Collect consecutive whitespace
-      let ws = char;
-      while (i + 1 < text.length && /\s/.test(text[i + 1])) {
-        ws += text[++i];
+      // Collect consecutive whitespace without regex backtracking
+      let j = i + 1;
+      while (j < text.length && /\s/.test(text[j])) {
+        j++;
       }
+      const ws = text.slice(i, j);
+      i = j;
       pieces.push({ text: ws, ...formatting });
       continue;
     }
@@ -270,6 +267,7 @@ function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boo
       if (isBreakAfter(char)) {
         flushBuffer();
       }
+      i += 1;
       continue;
     }
 
@@ -281,6 +279,7 @@ function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boo
 
     buffer += char;
     isCJKBuffer = false;
+    i += 1;
   }
 
   flushBuffer();
@@ -365,7 +364,7 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
     // Do not let marker tokens consume wrapping width.
     // This keeps the marker (e.g., "#", "-", "1.") inline with the first line
     // without forcing a separate wrapped line just for the marker.
-    if ((token as any).isMarker) {
+    if (token.isMarker) {
       return [{ ...token, width: 0 }];
     }
 
@@ -519,7 +518,7 @@ export function getMarkerPrefixTokens(node: MindMapNode): RawTextToken[] {
 }
 
 export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconLayout {
-  const noteStr = (node as any)?.note as string | undefined;
+  const noteStr = node.note;
   const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0);
   
   
@@ -574,7 +573,9 @@ export function calculateNodeSize(
         const header = lines[i];
         const sep = lines[i + 1];
         const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
-        const isSep = /:?-{3,}:?\s*\|/.test(sep) || /^\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?$/.test(sep);
+        // Determine if separator line looks like Markdown table separator
+        const parts = sep.replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim());
+        const isSep = parts.length > 0 && parts.every(cell => /^:?-{3,}:?$/.test(cell));
         if (isHeader && isSep) {
           const outRows: string[][] = [];
           const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
@@ -591,11 +592,11 @@ export function calculateNodeSize(
       return null;
     };
 
-    let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
+    let parsed = parseTableFromString(node.text) || parseTableFromString(node.note);
     if (!parsed) {
-      const td = (node as any).tableData as { headers?: string[]; rows?: string[][] } | undefined;
+      const td = node.tableData;
       if (td && Array.isArray(td.rows)) {
-        parsed = { headers: td.headers, rows: td.rows } as any;
+        parsed = { headers: td.headers, rows: td.rows };
       }
     }
 
@@ -626,8 +627,8 @@ export function calculateNodeSize(
     };
   }
 
-  
-  const noteStr: string = (node as any)?.note || '';
+
+  const noteStr = node.note || '';
   const hasNoteImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
   const hasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
   const hasImages = hasNoteImages || hasMermaid;
@@ -643,11 +644,14 @@ export function calculateNodeSize(
       let noteW: number | null = null;
       let noteH: number | null = null;
       if (noteStr) {
-        const tagMatch = noteStr.match(/<img[^>]*>/i);
+        const tagRe = /<img[^>]*>/i;
+        const tagMatch = tagRe.exec(noteStr);
         if (tagMatch) {
           const tag = tagMatch[0];
-          const wMatch = tag.match(/\swidth=["']?(\d+)(?:px)?["']?/i);
-          const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+          const wRe = /\swidth=["']?(\d+)(?:px)?["']?/i;
+          const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
+          const wMatch = wRe.exec(tag);
+          const hMatch = hRe.exec(tag);
           if (wMatch && hMatch) {
             const w = parseInt(wMatch[1], 10);
             const h = parseInt(hMatch[1], 10);
@@ -674,8 +678,9 @@ export function calculateNodeSize(
   };
 
   const getDisplayTextFromMarkdownLink = (text: string): string => {
-    const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
-    return match ? match[1] : text;
+    const re = /^\[([^\]]*)\]\(([^)]+)\)$/;
+    const m = re.exec(text);
+    return m ? m[1] : text;
   };
 
   const resolvedEditText = editText ?? node.text;
@@ -706,7 +711,7 @@ export function calculateNodeSize(
   const horizontalPadding = getNodeHorizontalPadding(paddingTextLength, isEditing);
 
   let textContentWidth = 0;
-  let textBlockHeight = Math.max(fontSize + 8, 22);
+  let textBlockHeight = 0;
 
   if (isEditing) {
     const measuredWidth = measureTextWidth(measurementText, fontSize, fontFamily, fontWeight, fontStyle);
@@ -731,10 +736,7 @@ export function calculateNodeSize(
   }
 
   const textBasedWidth = Math.max(textContentWidth + horizontalPadding + checkboxWidth, Math.max(fontSize * 2, 24));
-  let baseNodeHeight = Math.max(fontSize + 8, 22);
-  if (!isEditing) {
-    baseNodeHeight = textBlockHeight;
-  }
+  const baseNodeHeight = isEditing ? Math.max(fontSize + 8, 22) : textBlockHeight;
 
   const imageBasedWidth = hasImages ? imageWidth + 10 : 0;
   let finalWidth;
@@ -804,10 +806,10 @@ export function getToggleButtonPosition(
   
   const base = Math.max(fontSize * 1.5, 20);
 
-  
-  const note: string = (node as any)?.note || '';
+
+  const note = node.note || '';
   const hasMermaid = /```mermaid[\s\S]*?```/i.test(note);
-  const isTable = (node as any)?.kind === 'table';
+  const isTable = node.kind === 'table';
   const isVisualHeavy = hasMermaid || isTable;
 
   let baseMargin = base;

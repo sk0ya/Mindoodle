@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MapIdentifier, MindMapData } from '@shared/types';
+import type { MapIdentifier, MindMapData, MindMapNode } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '@markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
@@ -8,7 +8,7 @@ import { useMindMapPersistence } from './useMindMapPersistence';
 import { useDataReset, useNotification, useStableCallback, useLatestRef } from '@shared/hooks';
 import { useStorageConfigChange } from '@file-management/hooks/useStorageConfigChange';
 import { logger, statusMessages } from '@shared/utils';
-import type { StorageConfig } from '@core/types';
+import type { StorageConfig, StorageAdapter } from '@core/types';
 import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
 import { useMindMapStore } from '@mindmap/store';
 import { getAdapterForWorkspace } from '@/app/core/utils';
@@ -130,7 +130,7 @@ export const useMindMap = (
     } catch (e) {
       console.error('❌ Nodes->Markdown conversion error:', e);
     }
-  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
+  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, dataHook.data?.rootNodes, setFromNodes]);
 
   
   
@@ -158,7 +158,7 @@ export const useMindMap = (
         
         const lineToNode: Record<number, string> = {};
         const nodeToLine: Record<string, number> = {};
-        const walk = (nodes: any[]) => {
+        const walk = (nodes: MindMapNode[]) => {
           for (const n of nodes || []) {
             const ln = n?.markdownMeta?.lineNumber;
             
@@ -200,7 +200,7 @@ export const useMindMap = (
             ind?: number; 
             k?: string; 
           };
-          const flatten = (nodes: any[], out: FlatItem[] = []): FlatItem[] => {
+          const flatten = (nodes: MindMapNode[], out: FlatItem[] = []): FlatItem[] => {
             for (const n of nodes || []) {
               const mm = n?.markdownMeta || {};
               out.push({
@@ -246,7 +246,7 @@ export const useMindMap = (
               const a = prevFlat[i];
               const b = nextFlat[i];
               if (!a.id) continue;
-              const updates: any = {};
+              const updates: Partial<MindMapNode> = {};
               if (a.text !== b.text) updates.text = b.text;
               
               const aNote = a.note ?? '';
@@ -258,24 +258,24 @@ export const useMindMap = (
             }
           } else {
             // Structure changed: replace root nodes and record in history (including kind changes)
-            (dataHook as any).setRootNodes(safeRootNodes, { emit: true });
+            (dataHook as { setRootNodes: (nodes: MindMapNode[], options: { emit: boolean }) => void }).setRootNodes(safeRootNodes, { emit: true });
             // Apply unified auto-layout after structural markdown changes.
             // Positions are not serialized to markdown, so this won't cause loops.
-            try { applyAutoLayoutRef.current?.(); } catch {}
+            try { applyAutoLayoutRef.current?.(); } catch (e) { logger.warn('auto layout failed', e as Error); }
           }
         }
       } catch (error) {
-        logger.warn('Markdown parse failed; keeping existing nodes');
+        logger.warn('Markdown parse failed; keeping existing nodes', error as Error);
       }
     });
-    return () => { try { unsub(); } catch (_e) {  void 0; } };
-  }, [markdownStreamHook.stream]);
+    return () => { try { unsub(); } catch (e) { logger.warn('unsubscribe failed', e as Error); } };
+  }, [subscribeMdRef, dataRef, updateNodeRef, applyAutoLayoutRef, dataHook, settings.defaultCollapseDepth]);
 
   
 
-  
+
   const selectRootFolder = useStableCallback(async (): Promise<boolean> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.addWorkspace === 'function') {
       await adapter.addWorkspace();
       await persistenceHook.refreshMapList();
@@ -291,7 +291,7 @@ export const useMindMap = (
   });
 
   const createFolder = useStableCallback(async (relativePath: string, workspaceId?: string): Promise<void> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId);
 
     if (adapter && typeof adapter.createFolder === 'function') {
       await adapter.createFolder(relativePath, workspaceId);
@@ -299,9 +299,9 @@ export const useMindMap = (
       
       const isCloudAdapter = adapter.constructor.name === 'CloudStorageAdapter';
       if (isCloudAdapter) {
-        
-        if (typeof (persistenceHook as any).loadExplorerTree === 'function') {
-          await (persistenceHook as any).loadExplorerTree();
+
+        if (typeof (persistenceHook as { loadExplorerTree?: () => Promise<void> }).loadExplorerTree === 'function') {
+          await (persistenceHook as { loadExplorerTree: () => Promise<void> }).loadExplorerTree();
         }
       } else {
         
@@ -311,7 +311,7 @@ export const useMindMap = (
   });
 
   const renameItem = useStableCallback(async (path: string, newName: string): Promise<void> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.renameItem === 'function') {
       await adapter.renameItem(path, newName);
       await persistenceHook.refreshMapList();
@@ -320,10 +320,11 @@ export const useMindMap = (
 
   const deleteItem = useStableCallback(async (path: string): Promise<void> => {
     
-    const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)/);
+    const wsRe = /^\/?(ws_[^/]+|cloud)/;
+    const wsMatch = wsRe.exec(path);
     const workspaceId = wsMatch ? wsMatch[1] : null;
 
-    const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId);
 
     if (adapter && typeof adapter.deleteItem === 'function') {
       await adapter.deleteItem(path);
@@ -331,15 +332,15 @@ export const useMindMap = (
     }
   });
 
-  
+
   const subscribeMarkdownFromNodes = useStableCallback((cb: (text: string) => void) => {
-    return subscribeMd((text: string, source: any) => {
+    return subscribeMd((text: string, source: string) => {
       if (source === 'nodes') cb(text);
     });
   });
 
   const moveItem = useStableCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook);
     if (adapter && typeof adapter.moveItem === 'function') {
       await adapter.moveItem(sourcePath, targetFolderPath);
       await persistenceHook.refreshMapList();
@@ -347,8 +348,8 @@ export const useMindMap = (
   });
 
   const readImageAsDataURL = useStableCallback(async (relativePath: string, workspaceId: string): Promise<string | null> => {
-    
-    const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
+
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId);
     if (adapter && typeof adapter.readImageAsDataURL === 'function') {
       return await adapter.readImageAsDataURL(relativePath, workspaceId);
     }
@@ -356,16 +357,16 @@ export const useMindMap = (
   });
 
   const getSelectedFolderLabel = useStableCallback((): string | null => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook);
-    if (adapter && 'selectedFolderName' in adapter) {
-      return (adapter).selectedFolderName ?? null;
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook);
+    if (adapter && 'selectedFolderName' in (adapter as unknown as { selectedFolderName?: string })) {
+      return (adapter as unknown as { selectedFolderName?: string }).selectedFolderName ?? null;
     }
     return null;
   });
 
-  
+
   const getMapMarkdown = useStableCallback(async (id: MapIdentifier): Promise<string | null> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapMarkdown === 'function') {
       try {
         return await adapter.getMapMarkdown(id);
@@ -377,7 +378,7 @@ export const useMindMap = (
   });
 
   const getMapLastModified = useStableCallback(async (id: MapIdentifier): Promise<number | null> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.getMapLastModified === 'function') {
       try {
         return await adapter.getMapLastModified(id);
@@ -388,9 +389,9 @@ export const useMindMap = (
     return null;
   });
 
-  
+
   const saveMapMarkdown = useStableCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
-    const adapter: any = getAdapterForWorkspace(persistenceHook, id.workspaceId);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter && typeof adapter.saveMapMarkdown === 'function') {
       try {
         await adapter.saveMapMarkdown(id, markdown);
@@ -459,10 +460,10 @@ export const useMindMap = (
       
       logger.debug('createAndSelectMap: Loading and selecting created map...');
 
-      
+
       try {
-        const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
-        const loadedMarkdown = await adapter.getMapMarkdown(mapIdentifier);
+        const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId);
+        const loadedMarkdown = adapter?.getMapMarkdown ? await adapter.getMapMarkdown(mapIdentifier) : null;
 
         if (loadedMarkdown) {
           const parseResult = MarkdownImporter.parseMarkdownToNodes(loadedMarkdown, {
@@ -512,23 +513,24 @@ export const useMindMap = (
       // Fallback: try to load markdown by id via adapter and parse
       // 重複実行を防ぐため、既に実行中の場合はスキップ
       const fallbackKey = `${workspaceId}:${mapId}`;
-      if ((window as any).__selectMapFallbackInProgress?.[fallbackKey]) {
+      const windowWithProgress = window as Window & { __selectMapFallbackInProgress?: Record<string, boolean> };
+      if (windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey]) {
         return false;
       }
       // 実行中フラグを設定
-      (window as any).__selectMapFallbackInProgress = (window as any).__selectMapFallbackInProgress || {};
-      (window as any).__selectMapFallbackInProgress[fallbackKey] = true;
+      windowWithProgress.__selectMapFallbackInProgress = windowWithProgress.__selectMapFallbackInProgress || {};
+      windowWithProgress.__selectMapFallbackInProgress[fallbackKey] = true;
 
       try {
         // Get adapter for the target workspace
-        const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId);
+        const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId);
         if (!adapter) {
-          delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+          delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
           return false;
         }
-        const text: string | null = await (adapter.getMapMarkdown?.(target));
+        const text: string | null = adapter.getMapMarkdown ? await adapter.getMapMarkdown(target) : null;
         if (!text) {
-          delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+          delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
           // ファイルがない場合はキャッシュも使わない（データが存在しない）
           logger.warn('⚠️ No file found for map:', mapId);
           return false;
@@ -592,7 +594,7 @@ export const useMindMap = (
           logger.error('Failed to add map to list:', e);
         }
 
-        delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+        delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
         return true;
       } catch (e) {
         const msg = e instanceof Error ? e.message : String(e);
@@ -601,7 +603,7 @@ export const useMindMap = (
         } else {
           logger.error('Fallback error:', e);
         }
-        delete (window as any).__selectMapFallbackInProgress[fallbackKey];
+        delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
         return false;
       }
     }),
@@ -730,19 +732,18 @@ export const useMindMap = (
     deleteItem,
     moveItem,
     readImageAsDataURL,
-    explorerTree: (persistenceHook as any).explorerTree || null
-    ,
-    workspaces: (persistenceHook as any).workspaces || [],
-    currentWorkspaceId: (persistenceHook as any).currentWorkspaceId,
-    addWorkspace: (persistenceHook as any).addWorkspace,
-    removeWorkspace: (persistenceHook as any).removeWorkspace,
-    switchWorkspace: (persistenceHook as any).switchWorkspace,
+    explorerTree: (persistenceHook as { explorerTree?: import('@core/types').ExplorerItem | null }).explorerTree ?? null,
+    workspaces: (persistenceHook as { workspaces?: Array<{ id: string; name: string }> }).workspaces || [],
+    currentWorkspaceId: (persistenceHook as { currentWorkspaceId?: string | null }).currentWorkspaceId ?? null,
+    addWorkspace: (persistenceHook as { addWorkspace?: () => Promise<void> }).addWorkspace,
+    removeWorkspace: (persistenceHook as { removeWorkspace?: (id: string) => Promise<void> }).removeWorkspace,
+    switchWorkspace: (persistenceHook as { switchWorkspace?: (workspaceId: string | null) => Promise<void> }).switchWorkspace,
 
     
     storageAdapter: persistenceHook.storageAdapter,
     getAdapterForWorkspace: (ws: string | null) => {
       try {
-        const fn = (persistenceHook as any)?.getAdapterForWorkspace;
+        const fn = (persistenceHook as { getAdapterForWorkspace?: (ws: string | null) => StorageAdapter | null })?.getAdapterForWorkspace;
         if (typeof fn === 'function') return fn(ws) || null;
       } catch {}
       return persistenceHook.storageAdapter || null;
@@ -752,7 +753,7 @@ export const useMindMap = (
     // Provide lightweight workspace-wide listing for KG vectorization
     getWorkspaceMapIdentifiers: useStableCallback(async (workspaceId?: string | null) => {
       try {
-        const adapter: any = getAdapterForWorkspace(persistenceHook, workspaceId || (dataHook.data?.mapIdentifier?.workspaceId));
+        const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId || (dataHook.data?.mapIdentifier?.workspaceId));
         if (adapter && typeof adapter.listMapIdentifiers === 'function') {
           const ids = await adapter.listMapIdentifiers();
           return Array.isArray(ids) ? ids : [];

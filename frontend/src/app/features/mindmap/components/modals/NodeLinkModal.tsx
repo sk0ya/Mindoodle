@@ -86,7 +86,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     
     if (selectedMapId === currentMapData?.mapIdentifier.mapId) {
       // 現在のマップが選択された場合
-      const nodes: any[] = [];
+      const nodes: NodeOption[] = [];
       if (currentMapData?.rootNodes) {
         currentMapData.rootNodes.forEach(rootNode => {
           nodes.push(...flattenNodes(rootNode, selectedMapId));
@@ -94,10 +94,10 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       }
       return nodes;
     }
-    
+
     // 他のマップが選択された場合
     if (loadedMapData && loadedMapData.mapIdentifier.mapId === selectedMapId) {
-      const nodes: any[] = [];
+      const nodes: NodeOption[] = [];
       if (loadedMapData.rootNodes) {
         loadedMapData.rootNodes.forEach(rootNode => {
           nodes.push(...flattenNodes(rootNode, selectedMapId));
@@ -233,7 +233,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       setLoadedMapData(null);
       stopLoadingMapData();
     }
-  }, [selectedMapId, currentMapData?.mapIdentifier.mapId, onLoadMapData]);
+  }, [selectedMapId, currentMapData?.mapIdentifier.mapId, currentMapData?.mapIdentifier.workspaceId, onLoadMapData, startLoadingMapData, stopLoadingMapData]);
 
   const handleSave = useCallback(() => {
     // Markdown (map) link
@@ -251,36 +251,40 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         ...(link?.id && { id: link.id }),
         targetMapId: selectedMapId,
         targetNodeId: selectedNodeId || undefined,
-        targetAnchor,
-        createdAt: link?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        targetAnchor
       };
       onSave(linkData);
       onClose();
       return;
     }
 
-    // Non-Markdown file link (use url)
+    // Non-Markdown file link
     if (selectedFilePath) {
       const linkData: Partial<NodeLink> = {
         ...(link?.id && { id: link.id }),
-        url: selectedFilePath,
-        createdAt: link?.createdAt || new Date().toISOString(),
-        updatedAt: new Date().toISOString()
+        targetMapId: selectedFilePath
       };
       onSave(linkData);
       onClose();
     }
   }, [selectedMapId, selectedNodeId, selectedFilePath, link, onSave, onClose, availableNodes]);
 
-  const handleDelete = useCallback(() => {
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteClick = useCallback(() => {
+    setShowDeleteConfirm(true);
+  }, []);
+
+  const handleDeleteConfirm = useCallback(() => {
     if (link?.id && onDelete) {
-      if (confirm('このリンクを削除しますか？')) {
-        onDelete(link.id);
-        onClose();
-      }
+      onDelete(link.id);
+      onClose();
     }
   }, [link, onDelete, onClose]);
+
+  const handleDeleteCancel = useCallback(() => {
+    setShowDeleteConfirm(false);
+  }, []);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
@@ -291,8 +295,6 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       onClose();
     }
   }, [handleSave, onClose]);
-
-  if (!isOpen) return null;
 
   const isSelfLink = useMemo(() => {
     const currMapId = currentMapData?.mapIdentifier.mapId;
@@ -314,7 +316,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
           const { mapId } = toMapIdFromPath(item.path);
           setSelectedMapId(mapId || '');
           // keep current node as default selection when switching to current map
-          if (mapId === currentMapData?.mapIdentifier.mapId) {
+          if (mapId === (currentMapData?.mapIdentifier.mapId ?? '')) {
             setSelectedNodeId(currentNodeId || '');
           } else {
             setSelectedNodeId('');
@@ -349,6 +351,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
 
   // Scroll selected explorer item into view
   useEffect(() => {
+    if (!isOpen) return;
     const container = explorerRef.current;
     if (!container || !selectedExplorerPath) return;
     const el = container.querySelector(`.explorer-item[data-path="${selectedExplorerPath}"]`);
@@ -357,7 +360,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     }
   }, [isOpen, selectedExplorerPath]);
 
-  
+
   useEffect(() => {
     if (!isOpen) return;
     if (!selectedMapId) return;
@@ -369,8 +372,9 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     }
   }, [isOpen, selectedMapId, availableNodes, currentNodeId, selectedNodeId]);
 
-  
+
   useEffect(() => {
+    if (!isOpen) return;
     const container = headingsRef.current;
     if (!container || !selectedNodeId) return;
     const el = container.querySelector(`.heading-item[data-node-id="${selectedNodeId}"]`);
@@ -378,6 +382,8 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       el.scrollIntoView({ block: 'nearest' });
     }
   }, [isOpen, selectedMapId, selectedNodeId]);
+
+  if (!isOpen) return null;
 
   return (
     <div
@@ -437,29 +443,50 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
 
         <div className="modal-footer">
           <div className="footer-left">
-            {link && onDelete && (
+            {link && onDelete && !showDeleteConfirm && (
               <button
                 className="btn btn-danger"
-                onClick={handleDelete}
+                onClick={handleDeleteClick}
               >
                 削除
               </button>
             )}
+            {showDeleteConfirm && (
+              <>
+                <span className="delete-confirm-text">本当に削除しますか？</span>
+                <button
+                  className="btn btn-danger"
+                  onClick={handleDeleteConfirm}
+                >
+                  削除
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={handleDeleteCancel}
+                >
+                  キャンセル
+                </button>
+              </>
+            )}
           </div>
           <div className="footer-right">
-            <button
-              className="btn btn-secondary"
-              onClick={onClose}
-            >
-              キャンセル
-            </button>
-            <button
-              className="btn btn-primary"
-              onClick={handleSave}
-              disabled={(selectedMapId ? isSelfLink : false) || (!selectedMapId && !selectedFilePath)}
-            >
-              {link ? '更新' : '作成'}
-            </button>
+            {!showDeleteConfirm && (
+              <>
+                <button
+                  className="btn btn-secondary"
+                  onClick={onClose}
+                >
+                  キャンセル
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleSave}
+                  disabled={(selectedMapId ? isSelfLink : false) || (!selectedMapId && !selectedFilePath)}
+                >
+                  {link ? '更新' : '作成'}
+                </button>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -677,6 +704,13 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
         .btn-danger:hover {
           background: #dc2626;
           border-color: #dc2626;
+        }
+
+        .delete-confirm-text {
+          color: var(--text-primary);
+          font-size: 14px;
+          font-weight: 500;
+          margin-right: 8px;
         }
       `}</style>
     </div>

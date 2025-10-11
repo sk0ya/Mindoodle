@@ -1,7 +1,6 @@
 import { useState, useCallback } from 'react';
-import type { MapIdentifier } from '@shared/types';
+import type { MapIdentifier, MindMapData } from '@shared/types';
 import { logger } from '../../utils/logger';
-import type { MindMapData } from '@shared/types';
 
 interface UseDragAndDropOptions {
   mindMaps: MindMapData[];
@@ -107,7 +106,7 @@ export const useDragAndDrop = ({
 
     
     if (targetFolderPath.startsWith(draggedFolder + '/')) {
-      alert('フォルダを自分の子フォルダに移動することはできません。');
+      logger.warn('フォルダを自分の子フォルダに移動することはできません。');
       clearDragState();
       return;
     }
@@ -131,7 +130,7 @@ export const useDragAndDrop = ({
       const mapUpdates = mapsToUpdate.map(map => ({
         id: map.mapIdentifier.mapId,
         category: map.category?.replace(draggedFolder, newFolderPath) || newFolderPath
-      })).filter(update => update.category !== undefined);
+      }));
       
       logger.info('Bulk updating', mapUpdates.length, 'maps');
       await onChangeCategoryBulk(mapUpdates);
@@ -213,7 +212,7 @@ export const useDragAndDrop = ({
         const mapUpdates = mapsToUpdate.map(map => ({
           id: map.mapIdentifier.mapId,
           category: map.category?.replace(draggedFolder, draggedFolderName) || draggedFolderName
-        })).filter(update => update.category !== undefined);
+        }));
         
         logger.info('Root drop - Bulk updating', mapUpdates.length, 'maps');
         await onChangeCategoryBulk(mapUpdates);

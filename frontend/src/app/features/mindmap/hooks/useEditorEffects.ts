@@ -1,10 +1,13 @@
 import { useEffect } from 'react';
 import { useLatestRef } from '@shared/hooks';
+import type { VimModeHook } from '@vim/hooks/useVimMode';
 
 interface EditorEffectsParams {
-  mindMap: any;
+  mindMap: {
+    setAutoSaveEnabled?: (enabled: boolean) => void;
+  };
   showNotesPanel: boolean;
-  vim: any; 
+  vim: VimModeHook;
   editingNodeId: string | null;
 }
 
@@ -34,5 +37,5 @@ export function useEditorEffects({
     ) {
       vim.setMode('normal');
     }
-  }, [vim.isEnabled, vim.mode, editingNodeId, vim.setMode]);
+  }, [vim, editingNodeId]);
 }

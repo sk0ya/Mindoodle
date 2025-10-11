@@ -12,4 +12,8 @@ interface ImportMetaEnv {
 
 interface ImportMeta {
   readonly env: ImportMetaEnv
+  // Vite HMR (optional in dev)
+  readonly hot?: {
+    dispose: (cb: () => void) => void
+  }
 }

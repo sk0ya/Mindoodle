@@ -71,11 +71,43 @@ const ImageResizePanel: React.FC<ImageResizePanelProps> = ({
   const extractNoteImages = (note?: string): string[] => {
     if (!note) return [];
     const urls: string[] = [];
-    const re = /!\[[^\]]*\]\(\s*([^)]+)\)|<img[^>]*\ssrc=["']([^"'>]+)["'][^>]*>/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(note)) !== null) {
-      const url = m[1] || m[2];
-      if (url) urls.push(url.trim());
+    // Markdown images
+    let idx = 0;
+    while (idx < note.length) {
+      const bang = note.indexOf('![', idx);
+      if (bang === -1) break;
+      const rbracket = note.indexOf('](', bang + 2);
+      if (rbracket === -1) { idx = bang + 2; continue; }
+      const close = note.indexOf(')', rbracket + 2);
+      if (close === -1) { idx = rbracket + 2; continue; }
+      const raw = note.slice(rbracket + 2, close).trim();
+      const url = raw.split(/\s+/)[0];
+      if (url) urls.push(url);
+      idx = close + 1;
+    }
+    // HTML images
+    idx = 0;
+    const lower = note.toLowerCase();
+    while (idx < note.length) {
+      const tagStart = lower.indexOf('<img', idx);
+      if (tagStart === -1) break;
+      const tagEnd = note.indexOf('>', tagStart + 4);
+      const tag = tagEnd !== -1 ? note.slice(tagStart, tagEnd + 1) : note.slice(tagStart);
+      const srcPos = tag.toLowerCase().indexOf('src=');
+      if (srcPos !== -1) {
+        const rest = tag.slice(srcPos + 4).trim();
+        const quote = rest[0];
+        let url = '';
+        if (quote === '"' || quote === '\'') {
+          const qEnd = rest.indexOf(quote, 1);
+          url = qEnd > 0 ? rest.slice(1, qEnd) : '';
+        } else {
+          const sp = rest.search(/[\s>]/);
+          url = sp > 0 ? rest.slice(0, sp) : rest;
+        }
+        if (url) urls.push(url.trim());
+      }
+      idx = tagEnd === -1 ? tagStart + 4 : tagEnd + 1;
     }
     return urls;
   };

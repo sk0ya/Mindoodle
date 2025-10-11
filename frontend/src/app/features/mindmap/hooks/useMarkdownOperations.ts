@@ -2,6 +2,10 @@ import type { MindMapNode } from '@shared/types';
 import { statusMessages } from '@shared/utils';
 import { useStableCallback } from '@shared/hooks';
 
+interface UpdatedNodesWithError extends Array<MindMapNode> {
+  __conversionError?: string;
+}
+
 export interface MarkdownOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
   markdownSync: {
@@ -9,11 +13,11 @@ export interface MarkdownOperationsParams {
       rootNodes: MindMapNode[],
       nodeId: string,
       newType: 'heading' | 'unordered-list' | 'ordered-list',
-      onSuccess: (updatedNodes: MindMapNode[]) => void
+      onSuccess: (updatedNodes: MindMapNode[] | UpdatedNodesWithError) => void
     ) => void;
   };
   store: {
-    setRootNodes?: (nodes: MindMapNode[], options: { emit: boolean; source: string }) => void;
+    setRootNodes: (nodes: MindMapNode[], options: { emit: boolean; source: string }) => void;
     applyAutoLayout: () => void;
   };
   selectNode: (nodeId: string) => void;
@@ -34,17 +38,29 @@ export function useMarkdownOperations({
   ) => {
     if (data?.rootNodes?.[0]) {
       markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
-        
-        if ((updatedNodes as any).__conversionError) {
-          const errorMessage = (updatedNodes as any).__conversionError;
-          const typeDisplayName = newType === 'heading' ? '見出し' :
-            newType === 'unordered-list' ? '箇条書きリスト' : '番号付きリスト';
+
+        const nodesWithError = updatedNodes as UpdatedNodesWithError;
+        if (nodesWithError.__conversionError) {
+          const errorMessage = nodesWithError.__conversionError;
+          let typeDisplayName: string;
+          switch (newType) {
+            case 'heading':
+              typeDisplayName = '見出し';
+              break;
+            case 'unordered-list':
+              typeDisplayName = '箇条書きリスト';
+              break;
+            case 'ordered-list':
+            default:
+              typeDisplayName = '番号付きリスト';
+              break;
+          }
           statusMessages.customError(`${typeDisplayName}への変換に失敗しました: ${errorMessage}`);
           return;
         }
 
-        
-        (store as any).setRootNodes(updatedNodes, { emit: true, source: 'changeNodeType' });
+
+        store.setRootNodes(updatedNodes, { emit: true, source: 'changeNodeType' });
         
         try {
           store.applyAutoLayout();

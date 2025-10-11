@@ -6,7 +6,7 @@ export function useMindMapModals() {
 
   const openLinkModal = (nodeId: string, editingLink?: NodeLink | null) => {
     state.setLinkModalNodeId(nodeId);
-    if (editingLink) state.setEditingLink(editingLink as any);
+    if (editingLink) state.setEditingLink(editingLink);
     state.setShowLinkModal(true);
   };
 
@@ -17,7 +17,7 @@ export function useMindMapModals() {
   };
 
   const openLinkActionMenu = (link: NodeLink, position: { x: number; y: number }) => {
-    state.setLinkActionMenuData({ link, position } as any);
+    state.setLinkActionMenuData({ link, position });
     state.setShowLinkActionMenu(true);
   };
 

@@ -1,10 +1,15 @@
 import type { StateCreator } from 'zustand';
 import type { MindMapNode, NodeLink } from '@shared/types';
-import { logger } from '@shared/utils';
+import { logger, generateNodeId } from '@shared/utils';
 import {
   addLinkToNodeInTree,
   updateLinkInNodeTree,
-  removeLinkFromNodeTree
+  removeLinkFromNodeTree,
+  getBranchColor,
+  calculateNodeSize,
+  getDynamicNodeSpacing,
+  calculateChildNodeX,
+  resolveNodeTextWrapConfig
 } from '../../utils';
 import {
   updateNormalizedNode,
@@ -17,14 +22,60 @@ import {
   changeSiblingOrderNormalized,
   denormalizeTreeData
 } from '@core/data/normalizedStore';
-import { generateNodeId } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import { COLORS } from '@shared/constants';
-import { getBranchColor, calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, resolveNodeTextWrapConfig } from '../../utils';
 import type { MindMapStore } from './types';
 
 
-const createNewNode = (text: string, parentNode?: MindMapNode, settings?: any, addBlankLine: boolean = false): MindMapNode => {
+// Helpers extracted to reduce deep nested function definitions flagged by ESLint (sonarjs)
+interface NormalizedDataLike {
+  nodes: Record<string, MindMapNode>;
+}
+
+function nearestNonTableSiblingMeta(nd: NormalizedDataLike, siblings: string[], currentIdx: number): Partial<MindMapNode['markdownMeta']> | undefined {
+  const n = siblings.length;
+  for (let offset = 1; offset < n; offset++) {
+    const left = currentIdx - offset;
+    const right = currentIdx + offset;
+    if (left >= 0) {
+      const sib = nd.nodes[siblings[left]];
+      if (sib && sib.kind !== 'table' && sib.markdownMeta) {
+        if (sib.markdownMeta.isCheckbox) {
+          return { ...sib.markdownMeta, isChecked: false };
+        }
+        return sib.markdownMeta;
+      }
+    }
+    if (right < n) {
+      const sib = nd.nodes[siblings[right]];
+      if (sib && sib.kind !== 'table' && sib.markdownMeta) {
+        if (sib.markdownMeta.isCheckbox) {
+          return { ...sib.markdownMeta, isChecked: false };
+        }
+        return sib.markdownMeta;
+      }
+    }
+  }
+  return undefined;
+}
+
+function updateNodeCheckedInTree(nodes: MindMapNode[], nodeId: string, checked: boolean): MindMapNode[] {
+  return nodes.map(node => {
+    if (node.id === nodeId) {
+      if (node.markdownMeta?.isCheckbox) {
+        return { ...node, markdownMeta: { ...node.markdownMeta, isChecked: checked } } as MindMapNode;
+      }
+      return node;
+    }
+    if (node.children && node.children.length > 0) {
+      return { ...node, children: updateNodeCheckedInTree(node.children, nodeId, checked) } as MindMapNode;
+    }
+    return node;
+  });
+}
+
+
+const createNewNode = (text: string, parentNode?: MindMapNode, settings?: { fontSize?: number; addBlankLineAfterHeading?: boolean }, addBlankLine: boolean = false): MindMapNode => {
   const newNode: MindMapNode = {
     id: generateNodeId(),
     text,
@@ -123,10 +174,11 @@ export const createNodeSlice: StateCreator<
 
   addChildNode: (parentId: string, text: string = 'New Node') => {
     let newNodeId: string | undefined;
-    
-    const pasteInProgress = (get() as any)._pasteInProgress;
+
+    const state = get() as MindMapStore & { _pasteInProgress?: boolean; beginHistoryGroup?: (type: string) => void; endHistoryGroup?: (commit: boolean) => void };
+    const pasteInProgress = state._pasteInProgress;
     if (!pasteInProgress) {
-      try { (get() as any).beginHistoryGroup?.('insert-node'); } catch {}
+      try { state.beginHistoryGroup?.('insert-node'); } catch {}
     }
 
     set((state) => {
@@ -136,8 +188,8 @@ export const createNodeSlice: StateCreator<
         const parentNode = state.normalizedData.nodes[parentId];
         if (!parentNode) return;
 
-        
-        if ((parentNode as any)?.kind === 'table') {
+        // Check if parent is a table node
+        if ('kind' in parentNode && (parentNode as MindMapNode & { kind?: string }).kind === 'table') {
           return;
         }
 
@@ -154,23 +206,23 @@ export const createNodeSlice: StateCreator<
         const childIds = state.normalizedData.childrenMap[parentId] || [];
         const childNodes = childIds.map((id: string) => state.normalizedData?.nodes[id]).filter(Boolean);
         
-        
+
         try {
           const fontSize = state.settings?.fontSize ?? 14;
           const wrapConfig = resolveNodeTextWrapConfig(state.settings, fontSize);
-          const parentSize = calculateNodeSize(parentNode as any, undefined, false, fontSize, wrapConfig);
-          const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize, wrapConfig);
-          const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
-          newNode.x = calculateChildNodeX(parentNode as any, childSize as any, edge, fontSize, wrapConfig);
-          newNode.y = parentNode.y; 
-        } catch (_e) {
-          
+          const parentSize = calculateNodeSize(parentNode, undefined, false, fontSize, wrapConfig);
+          const childSize = calculateNodeSize(newNode, undefined, false, fontSize, wrapConfig);
+          const edge = getDynamicNodeSpacing(parentSize, childSize, false);
+          newNode.x = calculateChildNodeX(parentNode, childSize, edge, fontSize, wrapConfig);
+          newNode.y = parentNode.y;
+        } catch (posErr) {
+          logger.warn('Position calculation failed, using fallback', posErr);
           newNode.x = parentNode.x;
           newNode.y = parentNode.y;
         }
 
         
-        const nonTableSiblings = childNodes.filter((s: any) => s && s.kind !== 'table');
+        const nonTableSiblings = childNodes.filter((s) => s && 'kind' in s && s.kind !== 'table');
         if (nonTableSiblings.length > 0) {
           const lastSibling = nonTableSiblings[nonTableSiblings.length - 1];
           if (lastSibling && lastSibling.markdownMeta) {
@@ -233,7 +285,7 @@ export const createNodeSlice: StateCreator<
         
         
         
-        const isRootNode = state.normalizedData.parentMap[parentId] === undefined;
+        const isRootNode = !(parentId in state.normalizedData.parentMap);
         const color = isRootNode
           ? COLORS.NODE_COLORS[childNodes.length % COLORS.NODE_COLORS.length]
           : getBranchColor(newNode.id, state.normalizedData);
@@ -251,16 +303,15 @@ export const createNodeSlice: StateCreator<
       }
     });
 
-    
+
     get().syncToMindMapData();
 
-    
-    
+
     if (!pasteInProgress) {
-      try { (get() as any).endHistoryGroup?.(true); } catch {}
+      try { state.endHistoryGroup?.(true); } catch {}
     }
 
-    
+
     const { data } = get();
     logger.debug('🔍 Auto layout check (addChildNode):', {
       hasData: !!data,
@@ -285,10 +336,11 @@ export const createNodeSlice: StateCreator<
 
   addSiblingNode: (nodeId: string, text: string = 'New Node', insertAfter: boolean = true) => {
     let newNodeId: string | undefined;
-    
-    const pasteInProgress = (get() as any)._pasteInProgress;
+
+    const state2 = get() as MindMapStore & { _pasteInProgress?: boolean; beginHistoryGroup?: (type: string) => void; endHistoryGroup?: (commit: boolean) => void };
+    const pasteInProgress = state2._pasteInProgress;
     if (!pasteInProgress) {
-      try { (get() as any).beginHistoryGroup?.('insert-sibling'); } catch {}
+      try { state2.beginHistoryGroup?.('insert-sibling'); } catch {}
     }
 
     set((state) => {
@@ -302,37 +354,10 @@ export const createNodeSlice: StateCreator<
 
         
         const deriveSiblingMarkdownMeta = (): Partial<MindMapNode['markdownMeta']> | undefined => {
-          const nd = state.normalizedData!;
-          const isTable = (currentNode as any)?.kind === 'table';
-          const getNearestNonTableSiblingMeta = (siblings: string[], currentIdx: number) => {
-            
-            const n = siblings.length;
-            for (let offset = 1; offset < n; offset++) {
-              const left = currentIdx - offset;
-              const right = currentIdx + offset;
-              if (left >= 0) {
-                const sib = nd.nodes[siblings[left]] as any;
-                if (sib && sib.kind !== 'table' && sib.markdownMeta) {
-                  
-                  if (sib.markdownMeta.isCheckbox) {
-                    return { ...sib.markdownMeta, isChecked: false };
-                  }
-                  return sib.markdownMeta;
-                }
-              }
-              if (right < n) {
-                const sib = nd.nodes[siblings[right]] as any;
-                if (sib && sib.kind !== 'table' && sib.markdownMeta) {
-                  
-                  if (sib.markdownMeta.isCheckbox) {
-                    return { ...sib.markdownMeta, isChecked: false };
-                  }
-                  return sib.markdownMeta;
-                }
-              }
-            }
-            return undefined;
-          };
+          const nd = state.normalizedData;
+          if (!nd) return undefined;
+          const isTable = 'kind' in currentNode && (currentNode as MindMapNode & { kind?: string }).kind === 'table';
+          // nearestNonTableSiblingMeta extracted at module scope
 
           if (!isTable) {
             
@@ -346,25 +371,25 @@ export const createNodeSlice: StateCreator<
           }
 
           if (!parentId) {
-            
+
             const roots = nd.rootNodeIds || [];
             const idx = roots.indexOf(nodeId);
-            const meta = getNearestNonTableSiblingMeta(roots, idx);
+            const meta = nearestNonTableSiblingMeta(nd, roots, idx);
             if (meta) return meta;
-            
-            return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 } as any;
+
+            return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 };
           } else {
             const siblings = nd.childrenMap[parentId] || [];
             const idx = siblings.indexOf(nodeId);
-            const meta = getNearestNonTableSiblingMeta(siblings, idx);
+            const meta = nearestNonTableSiblingMeta(nd, siblings, idx);
             if (meta) return meta;
-            const parentNode = nd.nodes[parentId] as any;
+            const parentNode = nd.nodes[parentId];
             const pMeta = parentNode?.markdownMeta;
             if (pMeta) {
               if (pMeta.type === 'heading') {
-                
+
                 const lvl = Math.min((pMeta.level || 1) + 1, 6);
-                return { type: 'heading', level: lvl, originalFormat: '#'.repeat(lvl), indentLevel: 0, lineNumber: -1 } as any;
+                return { type: 'heading', level: lvl, originalFormat: '#'.repeat(lvl), indentLevel: 0, lineNumber: -1 };
               } else if (pMeta.type === 'unordered-list' || pMeta.type === 'ordered-list') {
                 
                 return {
@@ -381,8 +406,8 @@ export const createNodeSlice: StateCreator<
                 };
               }
             }
-            
-            return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 } as any;
+
+            return { type: 'heading', level: 1, originalFormat: '#', indentLevel: 0, lineNumber: -1 };
           }
         };
         
@@ -400,10 +425,11 @@ export const createNodeSlice: StateCreator<
           newNode.x = currentNode.x;
           newNode.y = currentNode.y;
 
-          
-          
+
+
+
           const derivedMeta = deriveSiblingMarkdownMeta();
-          if (derivedMeta) newNode.markdownMeta = { ...(derivedMeta as any), lineNumber: -1 };
+          if (derivedMeta) newNode.markdownMeta = { ...derivedMeta, lineNumber: -1 } as MindMapNode['markdownMeta'];
 
           
           state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
@@ -421,25 +447,28 @@ export const createNodeSlice: StateCreator<
           newNode = createNewNode(text, parentNode, settings, true);
           newNodeId = newNode.id;
           
-          
+
+
           try {
             const fontSize = state.settings?.fontSize ?? 14;
             const wrapConfig = resolveNodeTextWrapConfig(state.settings, fontSize);
             const pNode = state.normalizedData.nodes[parentId];
-            const parentSize = calculateNodeSize(pNode as any, undefined, false, fontSize, wrapConfig);
-            const childSize = calculateNodeSize(newNode as any, undefined, false, fontSize, wrapConfig);
-            const edge = getDynamicNodeSpacing(parentSize as any, childSize as any, false);
-            newNode.x = calculateChildNodeX(pNode as any, childSize as any, edge, fontSize, wrapConfig);
-            newNode.y = pNode.y; 
-          } catch (_e) {
+            const parentSize = calculateNodeSize(pNode, undefined, false, fontSize, wrapConfig);
+            const childSize = calculateNodeSize(newNode, undefined, false, fontSize, wrapConfig);
+            const edge = getDynamicNodeSpacing(parentSize, childSize, false);
+            newNode.x = calculateChildNodeX(pNode, childSize, edge, fontSize, wrapConfig);
+            newNode.y = pNode.y;
+          } catch (posErr) {
+            logger.warn('Position calculation failed for sibling, using fallback', posErr);
             newNode.x = currentNode.x;
             newNode.y = currentNode.y;
           }
 
-          
-          
+
+
+
           const derivedMeta2 = deriveSiblingMarkdownMeta();
-          if (derivedMeta2) newNode.markdownMeta = { ...(derivedMeta2 as any), lineNumber: -1 };
+          if (derivedMeta2) newNode.markdownMeta = { ...derivedMeta2, lineNumber: -1 } as MindMapNode['markdownMeta'];
 
           
           state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, insertAfter);
@@ -459,16 +488,15 @@ export const createNodeSlice: StateCreator<
       }
     });
 
-    
+
     get().syncToMindMapData();
 
-    
-    
+
     if (!pasteInProgress) {
-      try { (get() as any).endHistoryGroup?.(true); } catch {}
+      try { state2.endHistoryGroup?.(true); } catch {}
     }
 
-    
+
     const { data } = get();
     logger.debug('🔍 Auto layout check (addSiblingNode):', {
       hasData: !!data,
@@ -494,8 +522,8 @@ export const createNodeSlice: StateCreator<
   deleteNode: (nodeId: string) => {
     let nextNodeToSelect: string | null = null;
 
-    
-    try { (get() as any).beginHistoryGroup?.('delete-node'); } catch {}
+    const state3 = get() as MindMapStore & { beginHistoryGroup?: (type: string) => void; endHistoryGroup?: (commit: boolean) => void };
+    try { state3.beginHistoryGroup?.('delete-node'); } catch {}
 
     set((state) => {
       if (!state.normalizedData) return;
@@ -547,7 +575,7 @@ export const createNodeSlice: StateCreator<
     get().syncToMindMapData();
 
     // End history group and commit
-    try { (get() as any).endHistoryGroup?.(true); } catch {}
+    try { state3.endHistoryGroup?.(true); } catch {}
 
     // Apply auto layout if enabled
     const { data } = get();
@@ -709,10 +737,12 @@ export const createNodeSlice: StateCreator<
         parentId = normalizedData.parentMap[nodeId] || null;
       }
 
-      
+
+
       get().deleteNode(nodeId);
-      
-      try { (get() as any).endHistoryGroup?.(false); } catch {}
+
+      const state4 = get() as MindMapStore & { endHistoryGroup?: (commit: boolean) => void };
+      try { state4.endHistoryGroup?.(false); } catch {}
       
       
       const { normalizedData: nd2 } = get();
@@ -751,7 +781,8 @@ export const createNodeSlice: StateCreator<
     // Update the node text
     get().updateNode(nodeId, { text: text });
     // End group with commit – treat insert+text as single change
-    try { (get() as any).endHistoryGroup?.(true); } catch {}
+    const state5 = get() as MindMapStore & { endHistoryGroup?: (commit: boolean) => void };
+    try { state5.endHistoryGroup?.(true); } catch {}
     
     // Apply auto layout if enabled
     const { data } = get();
@@ -781,7 +812,8 @@ export const createNodeSlice: StateCreator<
       state.editingMode = null;
     });
     // End history group without commit if editing was cancelled
-    try { (get() as any).endHistoryGroup?.(false); } catch {}
+    const state6 = get() as MindMapStore & { endHistoryGroup?: (commit: boolean) => void };
+    try { state6.endHistoryGroup?.(false); } catch {}
   },
 
   setEditText: (text: string) => {
@@ -971,32 +1003,7 @@ export const createNodeSlice: StateCreator<
           // Update tree structure - only use rootNodes
           const rootNodes = state.data.rootNodes || [];
 
-          const updateNodeInTree = (nodes: MindMapNode[]): MindMapNode[] => {
-            return nodes.map(node => {
-              if (node.id === nodeId) {
-                // チェックボックスノードの場合のみ更新
-                if (node.markdownMeta?.isCheckbox) {
-                  return {
-                    ...node,
-                    markdownMeta: {
-                      ...node.markdownMeta,
-                      isChecked: checked
-                    }
-                  };
-                }
-                return node;
-              }
-              if (node.children && node.children.length > 0) {
-                return {
-                  ...node,
-                  children: updateNodeInTree(node.children)
-                };
-              }
-              return node;
-            });
-          };
-
-          const updatedRootNodes = updateNodeInTree(rootNodes);
+          const updatedRootNodes = updateNodeCheckedInTree(rootNodes, nodeId, checked);
 
           state.data = {
             ...state.data,

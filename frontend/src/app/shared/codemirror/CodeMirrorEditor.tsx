@@ -174,7 +174,7 @@ export const CodeMirrorEditor = forwardRef<CodeMirrorEditorRef, CodeMirrorEditor
       let timeoutId: NodeJS.Timeout | null = null;
 
       try {
-        const RO: any = (window as any)?.ResizeObserver;
+        const RO = (window as Window & { ResizeObserver?: typeof ResizeObserver })?.ResizeObserver;
         if (RO) {
           const resizeObserver = new RO(() => {
             if (editorViewRef.current) {

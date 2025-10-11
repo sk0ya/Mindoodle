@@ -1,6 +1,6 @@
 
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandContext, CommandResult, ArgsMap } from '../system/types';
 export { showKnowledgeGraphCommand } from './showKnowledgeGraph';
 
 
@@ -135,14 +135,15 @@ export const toggleVimSettingsPanelCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      const canToggle = typeof (context.handlers as any).toggleVimSettingsPanel === 'function';
-      const canSet = typeof (context.handlers as any).setShowVimSettingsPanel === 'function';
-      const hasState = typeof (context.handlers as any).showVimSettingsPanel === 'boolean';
+      const handlers = context.handlers as Record<string, unknown>;
+      const canToggle = typeof handlers.toggleVimSettingsPanel === 'function';
+      const canSet = typeof handlers.setShowVimSettingsPanel === 'function';
+      const hasState = typeof handlers.showVimSettingsPanel === 'boolean';
 
       if (canToggle) {
-        ((context.handlers as any).toggleVimSettingsPanel as () => void)();
+        (handlers.toggleVimSettingsPanel as () => void)();
       } else if (canSet && hasState) {
-        ((context.handlers as any).setShowVimSettingsPanel as (b: boolean) => void)(!(context.handlers as any).showVimSettingsPanel);
+        (handlers.setShowVimSettingsPanel as (b: boolean) => void)(!handlers.showVimSettingsPanel);
       } else {
         return { success: false, error: 'Vim settings panel controls are not available' };
       }
@@ -173,8 +174,8 @@ export const startEditCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  execute(context: CommandContext, args: ArgsMap): CommandResult {
+    const nodeId = typeof args['nodeId'] === 'string' ? args['nodeId'] : context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -222,8 +223,8 @@ export const startEditEndCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  execute(context: CommandContext, args: ArgsMap): CommandResult {
+    const nodeId = typeof args['nodeId'] === 'string' ? args['nodeId'] : context.selectedNodeId;
 
     if (!nodeId) {
       return {
@@ -278,9 +279,9 @@ export const markdownConvertCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const targetType = (args as any)['type'] || 'unordered-list';
+  execute(context: CommandContext, args: ArgsMap): CommandResult {
+    const nodeId = typeof args['nodeId'] === 'string' ? args['nodeId'] : context.selectedNodeId;
+    const targetType = typeof args['type'] === 'string' ? args['type'] : 'unordered-list';
 
     if (!nodeId) {
       return {

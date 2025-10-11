@@ -2,18 +2,27 @@ import React, { useMemo, useState } from 'react';
 import { Settings, Trash2, Plus, Key } from 'lucide-react';
 import { useMindMapStore } from '../../store';
 
+type VimSettings = {
+  vimLeader?: string;
+  vimCustomKeybindings?: Record<string, string>;
+  vimMindMap?: boolean;
+  vimEditor?: boolean;
+};
+
 const VimSettingsPanel: React.FC = () => {
   const { settings, updateSetting } = useMindMapStore();
   const [lhs, setLhs] = useState<string>('');
   const [rhs, setRhs] = useState<string>('');
 
+  const vimSettings = settings as VimSettings;
+
   const leader = useMemo(() => {
-    const v = (settings as any).vimLeader;
+    const v = vimSettings.vimLeader;
     if (typeof v === 'string' && v.length === 1) return v;
     return ',';
-  }, [settings]);
+  }, [vimSettings.vimLeader]);
 
-  const mappings = (settings as any).vimCustomKeybindings as Record<string, string> || {};
+  const mappings = vimSettings.vimCustomKeybindings || {};
 
   const handleToggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => {
     updateSetting('vimMindMap', e.target.checked);
@@ -73,13 +82,13 @@ const VimSettingsPanel: React.FC = () => {
           <label className="section-title">有効化</label>
           <div className="row">
             <label className="toggle">
-              <input type="checkbox" checked={(settings as any).vimMindMap} onChange={handleToggleMindMapVim} />
+              <input type="checkbox" checked={vimSettings.vimMindMap ?? false} onChange={handleToggleMindMapVim} />
               <span>マインドマップ Vim</span>
             </label>
           </div>
           <div className="row">
             <label className="toggle">
-              <input type="checkbox" checked={(settings as any).vimEditor} onChange={handleToggleEditorVim} />
+              <input type="checkbox" checked={vimSettings.vimEditor ?? false} onChange={handleToggleEditorVim} />
               <span>Markdown エディタ Vim</span>
             </label>
           </div>

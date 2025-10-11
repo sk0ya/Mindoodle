@@ -48,8 +48,11 @@ interface MindMapAppProps {
   resetKey?: number;
 }
 
+type MindMapControllerData = ReturnType<typeof useMindMap>;
+
 interface MindMapAppContentProps extends MindMapAppProps {
-  mindMap: any; 
+  // Type: MindMap controller instance with all map operations
+  mindMap: MindMapControllerData;
 }
 
 const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
@@ -226,7 +229,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   } = useMindMapFileOps({
     data,
     allMindMaps,
-    mindMap,
+    mindMap: {
+      readImageAsDataURL: (path: string, workspaceId?: string) => {
+        if (typeof mindMap.readImageAsDataURL !== 'function') return Promise.resolve(null);
+        const ws = workspaceId ?? (data?.mapIdentifier?.workspaceId ?? '');
+        return mindMap.readImageAsDataURL(path, ws);
+      },
+      refreshMapList: mindMap.refreshMapList,
+      selectRootFolder: mindMap.selectRootFolder,
+    },
     showNotification,
   });
 
@@ -248,17 +259,19 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   // Node right-click is handled by event strategies; no local handler needed
 
-  const handleContextMenuClose = () => {
-    (store as any).closePanel?.('contextMenu');
+  const handleContextMenuClose = useCallback(() => {
+    // Type: Optional panel close method on store
+    const storeWithPanels = store as unknown as { closePanel?: (panel: string) => void };
+    storeWithPanels.closePanel?.('contextMenu');
     store.setShowContextMenu(false);
-  };
+  }, [store]);
 
   
   const handleEditTable = useCallback((nodeId: string) => {
     setEditingTableNodeId(nodeId);
     setShowTableEditor(true);
     handleContextMenuClose();
-  }, []);
+  }, [handleContextMenuClose]);
 
   const handleTableEditorSave = useCallback((newMarkdown: string) => {
     if (!editingTableNodeId) return;
@@ -348,7 +361,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       zoom: uiStore.zoom,
       pan: uiStore.pan,
     },
-    settings: (store as any).settings || {},
+    settings: store.settings || {},
     setPan,
   });
 
@@ -397,18 +410,18 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const raf = () => requestAnimationFrame(() => ensureSelectedNodeVisible());
     const id = window.setTimeout(raf, 0);
     return () => { window.clearTimeout(id); };
-  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId]);
+  }, [uiStore.showNodeNotePanel, uiStore.showNotesPanel, selectedNodeId, ensureSelectedNodeVisible]);
 
   React.useEffect(() => {
     const handler = () => { ensureSelectedNodeVisible(); };
     window.addEventListener('node-note-panel-resize', handler as EventListener);
     return () => window.removeEventListener('node-note-panel-resize', handler as EventListener);
-  }, []);
+  }, [ensureSelectedNodeVisible]);
 
   React.useEffect(() => {
     if (!selectedNodeId) return;
     ensureSelectedNodeVisible();
-  }, [uiStore.nodeNotePanelHeight, selectedNodeId]);
+  }, [uiStore.nodeNotePanelHeight, selectedNodeId, ensureSelectedNodeVisible]);
 
 
   const handleLinkNavigate2 = async (link: NodeLink) => {
@@ -416,7 +429,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       currentMapId,
       dataRoot: null,
       selectMapById,
-      currentWorkspaceId: (data)?.mapIdentifier?.workspaceId as string,
+      currentWorkspaceId: data?.mapIdentifier?.workspaceId as string,
       selectNode,
       centerNodeInView,
       notify: showNotification,
@@ -459,21 +472,24 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     canRedo,
     selectNode,
     setPan,
-    applyAutoLayout,
     pasteImageFromClipboard: clipboardOps.pasteImageFromClipboard,
     pasteNodeFromClipboard: clipboardOps.pasteNodeFromClipboard,
     changeNodeType: markdownOps.changeNodeType,
     changeSiblingOrder: store.changeSiblingOrder,
   });
 
-  useKeyboardShortcuts(shortcutHandlers as any, vim);
+  // Type: Shortcut handlers match expected keyboard hook signature
+  // Type-safe shortcut handler wiring via parameter inference
+  type KeyboardShortcutHandlersT = Parameters<typeof useKeyboardShortcuts>[0];
+  useKeyboardShortcuts(shortcutHandlers as unknown as KeyboardShortcutHandlersT, vim);
   const handleCloseLinkActionMenu = closeLinkActionMenu;
 
+  type CommandsHandlers = Parameters<typeof useCommands>[0]['handlers'];
   const commands = useCommands({
     selectedNodeId,
     editingNodeId,
     vim,
-    handlers: shortcutHandlers as any, 
+    handlers: shortcutHandlers as unknown as CommandsHandlers, 
   });
 
   const { handleExecuteCommand } = useCommandExecution({
@@ -498,7 +514,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         activeView={activeView}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
-        storageAdapter={storageAdapter}
+        storageAdapter={storageAdapter || undefined}
         onSelectMap={async (id) => {
           
           logger.debug('🖱️ Map clicked:', {
@@ -529,14 +545,16 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onAddWorkspace={addWorkspace}
         onRemoveWorkspace={removeWorkspace}
         onSwitchWorkspace={switchWorkspace}
-        explorerTree={(mindMap).explorerTree || null}
+        explorerTree={(mindMap).explorerTree || { type: 'folder', name: '', path: '', children: [] }}
         onCreateFolder={async (path: string) => {
           if (typeof (mindMap).createFolder === 'function') {
-            
-            const wsMatch = path.match(/^\/?(ws_[^/]+|cloud)\/?(.*)$/);
-            if (wsMatch) {
-              const workspaceId = wsMatch[1];
-              const relativePath = wsMatch[2] || '';
+            // Parse leading workspace segment without regex
+            const trimmed = String(path || '').replace(/^\/+/, '');
+            const parts = trimmed.split('/');
+            const first = parts[0];
+            if (first && (first.startsWith('ws_') || first === 'cloud')) {
+              const workspaceId = first;
+              const relativePath = parts.slice(1).join('/');
               await (mindMap).createFolder(relativePath, workspaceId);
             } else {
               // フォールバック: 相対パスとして処理
@@ -569,7 +587,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               // ノードツリーを走査して、markdownMeta.lineNumberが一致するノードを見つける
               let foundNodeId: string | null = null;
 
-              const findNodeByMarkdownLine = (nodes: any[]): boolean => {
+              // Type: Node array with optional markdownMeta property
+              const findNodeByMarkdownLine = (nodes: MindMapNode[]): boolean => {
                 for (const node of nodes) {
                   // markdownMetaに保存されている行番号を確認
                   const nodeLineNumber = node.markdownMeta?.lineNumber;
@@ -580,10 +599,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                     return true;
                   }
 
-                  if (node.children && node.children.length > 0) {
-                    if (findNodeByMarkdownLine(node.children)) {
-                      return true;
-                    }
+                  if (node.children && node.children.length > 0 &&
+                      findNodeByMarkdownLine(node.children)) {
+                    return true;
                   }
                 }
                 return false;
@@ -654,7 +672,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             onAddLink={handleAddLink}
             onUpdateNode={updateNode}
             onAutoLayout={applyAutoLayout}
-            availableMaps={allMindMaps.map((map: any) => ({ id: map.mapIdentifier.mapId, title: map.title }))}
+            availableMaps={allMindMaps.map((map: import('@shared/types').MindMapData) => ({
+              id: map.mapIdentifier.mapId,
+              title: map.title,
+            }))}
             currentMapData={data}
             onLinkNavigate={handleLinkNavigate2}
             zoom={uiStore.zoom}
@@ -737,7 +758,10 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       <VimStatusBar vim={vim} />
 
       <MindMapLinkOverlays
-        allMaps={allMindMaps.map((map: any) => ({ mapIdentifier: map.mapIdentifier, title: map.title }))}
+        allMaps={allMindMaps.map((map: import('@shared/types').MindMapData) => ({
+          mapIdentifier: map.mapIdentifier,
+          title: map.title,
+        }))}
         currentMapData={data}
         showLinkModal={showLinkModal}
         linkModalNodeId={linkModalNodeId}
@@ -748,7 +772,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onLoadMapData={loadMapData}
         loadExplorerTree={async () => explorerTree}
         showLinkActionMenu={showLinkActionMenu}
-        linkActionMenuData={linkActionMenuData as any}
+        linkActionMenuData={linkActionMenuData}
         onCloseLinkActionMenu={handleCloseLinkActionMenu}
         onNavigate={handleLinkNavigate2}
       />
@@ -783,19 +807,24 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             
             handleContextMenuClose();
 
-            
+            // Type: changeNodeType callback receives nodes or error object
             markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
-              
-              if ((updatedNodes as any).__conversionError) {
-                const errorMessage = (updatedNodes as any).__conversionError;
-                const typeDisplayName = newType === 'heading' ? '見出し' :
-                  newType === 'unordered-list' ? '箇条書きリスト' : '番号付きリスト';
+              const nodesWithError = updatedNodes as unknown as { __conversionError?: string };
+              if (nodesWithError.__conversionError) {
+                const errorMessage = nodesWithError.__conversionError;
+                let typeDisplayName: string;
+                if (newType === 'heading') typeDisplayName = '見出し';
+                else if (newType === 'unordered-list') typeDisplayName = '箇条書きリスト';
+                else typeDisplayName = '番号付きリスト';
                 statusMessages.customError(`${typeDisplayName}への変換に失敗しました: ${errorMessage}`);
                 return;
               }
 
-              
-              (store as any).setRootNodes(updatedNodes, { emit: true, source: 'contextMenu.changeNodeType' });
+              // Type: Store extension with setRootNodes method
+              const storeWithSetRootNodes = store as unknown as {
+                setRootNodes: (nodes: MindMapNode[], options: { emit: boolean; source: string }) => void;
+              };
+              storeWithSetRootNodes.setRootNodes(updatedNodes, { emit: true, source: 'contextMenu.changeNodeType' });
               
               try { store.applyAutoLayout(); } catch {}
               
@@ -825,7 +854,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onSelectMap={async (mapId) => {
           await selectMapById(mapId);
         }}
-        storageAdapter={mindMap?.storageAdapter}
+        storageAdapter={mindMap?.storageAdapter ?? undefined}
       />
 
       {}
@@ -859,7 +888,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onClose={() => store.setShowKnowledgeGraph?.(false)}
         mapIdentifier={data?.mapIdentifier || null}
         getMapMarkdown={mindMap.getMapMarkdown}
-        getWorkspaceMapIdentifiers={(mindMap as any)?.getWorkspaceMapIdentifiers}
+        getWorkspaceMapIdentifiers={(mindMap)?.getWorkspaceMapIdentifiers}
       />
 
       {/* Embedding Integration (監視のみ、レンダリングなし) */}

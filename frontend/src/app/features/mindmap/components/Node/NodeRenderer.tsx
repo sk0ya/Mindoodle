@@ -1,4 +1,4 @@
-import React, { memo, useState, useEffect, useCallback, useRef } from 'react';
+import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import MermaidRenderer from './MermaidRenderer';
 import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode, FileAttachment } from '@shared/types';
@@ -10,6 +10,32 @@ import {
   DEFAULT_ANIMATION_CONFIG
 } from '@mindmap/handlers/BaseRenderer';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
+
+// Extracted helper to avoid nested function definitions in render
+const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
+  if (!src) return null;
+  const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
+  for (let i = 0; i < lines.length - 1; i++) {
+    const header = lines[i];
+    const sep = lines[i + 1];
+    const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
+    const parts = sep.replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim());
+    const isSep = parts.length > 0 && parts.every(cell => /^:?-{3,}:?$/.test(cell));
+    if (isHeader && isSep) {
+      const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
+      const headers = toCells(header);
+      const outRows: string[][] = [];
+      outRows.push(headers);
+      let j = i + 2;
+      while (j < lines.length && lines[j].includes('|')) {
+        outRows.push(toCells(lines[j]));
+        j++;
+      }
+      return { headers, rows: outRows.slice(1) };
+    }
+  }
+  return null;
+};
 
 interface NodeRendererProps {
   node: MindMapNode;
@@ -84,15 +110,15 @@ interface NodeRendererProps {
     e.stopPropagation();
 
     if (onToggleCheckbox && node.markdownMeta?.isCheckbox) {
-      
+
       const normalizedNode = normalizedData?.nodes[node.id];
       const currentChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta?.isChecked ?? false;
       const newChecked = !currentChecked;
 
-      
+
       onToggleCheckbox(node.id, newChecked);
     }
-  }, [onToggleCheckbox, node.id, node.markdownMeta?.isCheckbox, normalizedData]);
+  }, [onToggleCheckbox, node.id, node.markdownMeta?.isCheckbox, node.markdownMeta?.isChecked, normalizedData]);
 
   
   type DisplayEntry =
@@ -102,22 +128,64 @@ interface NodeRendererProps {
   const extractDisplayEntries = (note?: string): DisplayEntry[] => {
     if (!note) return [];
     const entries: DisplayEntry[] = [];
-    const re = /!\[[^\]]*\]\(\s*([^\s)]+)(?:\s+[^)]*)?\)|(<img[^>]*\ssrc=["']([^"'>\s]+)["'][^>]*>)|(```mermaid[\s\S]*?```)/gi;
-    let m: RegExpExecArray | null;
-    while ((m = re.exec(note)) !== null) {
-      const full = m[0];
-      const start = m.index;
-      const end = start + full.length;
-      if (m[4]) {
-        entries.push({ kind: 'mermaid', code: full, start, end });
-      } else if (m[2]) {
-        const url = m[3];
-        entries.push({ kind: 'image', subType: 'html', url, tag: full, start, end });
+    // 1) Mermaid code blocks: find "```mermaid" and close "```"
+    let idx = 0;
+    while (idx < note.length) {
+      const start = note.indexOf("```mermaid", idx);
+      if (start === -1) break;
+      const endFence = note.indexOf("```", start + 9);
+      if (endFence !== -1) {
+        const end = endFence + 3;
+        const code = note.slice(start, end);
+        entries.push({ kind: 'mermaid', code, start, end });
+        idx = end;
       } else {
-        const url = m[1];
-        entries.push({ kind: 'image', subType: 'md', url, tag: full, start, end });
+        break;
       }
     }
+    // 2) Markdown image syntax ![alt](url)
+    idx = 0;
+    while (idx < note.length) {
+      const bang = note.indexOf('![', idx);
+      if (bang === -1) break;
+      const rbracket = note.indexOf('](', bang + 2);
+      if (rbracket === -1) { idx = bang + 2; continue; }
+      const close = note.indexOf(')', rbracket + 2);
+      if (close === -1) { idx = rbracket + 2; continue; }
+      const full = note.slice(bang, close + 1);
+      // Extract URL part between '(' and ')', ignore spaces
+      const raw = note.slice(rbracket + 2, close).trim();
+      const url = raw.split(/\s+/)[0];
+      entries.push({ kind: 'image', subType: 'md', url, tag: full, start: bang, end: close + 1 });
+      idx = close + 1;
+    }
+    // 3) HTML <img ... src="..." ...>
+    idx = 0;
+    const lower = note.toLowerCase();
+    while (idx < note.length) {
+      const tagStart = lower.indexOf('<img', idx);
+      if (tagStart === -1) break;
+      const tagEnd = note.indexOf('>', tagStart + 4);
+      const tag = tagEnd !== -1 ? note.slice(tagStart, tagEnd + 1) : note.slice(tagStart);
+      // Find src attribute
+      const srcPos = tag.toLowerCase().indexOf('src=');
+      if (srcPos !== -1) {
+        const rest = tag.slice(srcPos + 4).trim();
+        const quote = rest[0];
+        let url = '';
+        if (quote === '"' || quote === '\'') {
+          const qEnd = rest.indexOf(quote, 1);
+          url = qEnd > 0 ? rest.slice(1, qEnd) : '';
+        } else {
+          // unquoted
+          const sp = rest.search(/[\s>]/);
+          url = sp > 0 ? rest.slice(0, sp) : rest;
+        }
+        entries.push({ kind: 'image', subType: 'html', url, tag, start: tagStart, end: tagStart + tag.length });
+      }
+      idx = tagEnd === -1 ? tagStart + 4 : tagEnd + 1;
+    }
+    entries.sort((a, b) => a.start - b.start);
     return entries;
   };
 
@@ -192,10 +260,12 @@ interface NodeRendererProps {
     ? noteImageFiles[imageEntries.indexOf(currentEntry)]
     : undefined;
 
-  
+  // stable key will be computed after flags are known
 
   
-  const parseNoteSizeByIndex = (note: string | undefined, index: number): { width: number; height: number } | null => {
+
+
+  const parseNoteSizeByIndex = useCallback((note: string | undefined, index: number): { width: number; height: number } | null => {
     if (!note) return null;
     const entry = displayEntries[index];
     if (!entry || entry.kind !== 'image' || entry.subType !== 'html') return null;
@@ -211,19 +281,21 @@ interface NodeRendererProps {
       return { width: w, height: h };
     }
     return null;
-  };
+  }, [displayEntries]);
 
   // (old parseNoteImageSizeByIndex removed; merged into parseNoteSizeByIndex)
 
   // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
   const noteSize = currentEntry ? parseNoteSizeByIndex(node.note, slotIndex) : null;
   // If table node, prefer using existing node size props
-  const imageDimensionsBase = node.customImageWidth && node.customImageHeight
-    ? { width: node.customImageWidth, height: node.customImageHeight }
-    : noteSize || { width: 150, height: 105 };
-  const imageDimensions = (node.kind === 'table')
-    ? { width: node.customImageWidth ?? Math.max(50, nodeWidth - 10), height: node.customImageHeight ?? imageHeight }
-    : imageDimensionsBase;
+  const imageDimensions = useMemo(() => {
+    const imageDimensionsBase = node.customImageWidth && node.customImageHeight
+      ? { width: node.customImageWidth, height: node.customImageHeight }
+      : noteSize || { width: 150, height: 105 };
+    return (node.kind === 'table')
+      ? { width: node.customImageWidth ?? Math.max(50, nodeWidth - 10), height: node.customImageHeight ?? imageHeight }
+      : imageDimensionsBase;
+  }, [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight]);
 
   // 決定した画像サイズに基づき、一度だけ自動レイアウトを発火
   const lastLayoutKeyRef = useRef<string | null>(null);
@@ -289,26 +361,29 @@ interface NodeRendererProps {
     const newHeight = newWidth / originalAspectRatio;
 
     setLocalDims({ width: Math.round(newWidth), height: Math.round(newHeight) });
-  }, [isResizing, onUpdateNode, svgRef, zoom, pan, resizeStartPos, resizeStartSize, originalAspectRatio, node.id]);
+  }, [isResizing, onUpdateNode, svgRef, zoom, pan, resizeStartPos, resizeStartSize, originalAspectRatio]);
 
   const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
     e.stopPropagation();
     e.preventDefault();
     try {
-      (e.currentTarget as any).setPointerCapture?.(e.pointerId);
+      const target = e.currentTarget;
+      if (target && 'setPointerCapture' in target && typeof target.setPointerCapture === 'function') {
+        target.setPointerCapture(e.pointerId);
+      }
     } catch {}
     handleResizeStart(e as unknown as React.MouseEvent);
   }, [handleResizeStart]);
 
-  const updateNoteImageSizeByIndex = (note: string | undefined, index: number, w: number, h: number): string | undefined => {
+  const updateNoteImageSizeByIndex = useCallback((note: string | undefined, index: number, w: number, h: number): string | undefined => {
     if (!note) return note;
     const entry = displayEntries[index];
     if (!entry) return note;
-    if ((entry as any).kind && (entry).kind !== 'image') return note;
+    if (entry.kind !== 'image') return note;
     const width = Math.round(w);
     const height = Math.round(h);
     let replacement: string;
-    const imgEntry = entry as Extract<DisplayEntry, { kind: 'image' }>;
+    const imgEntry = entry;
     if (imgEntry.subType === 'html') {
       replacement = imgEntry.tag
         .replace(/\swidth=["']?\d+(?:px)?["']?/ig, '')
@@ -318,7 +393,7 @@ interface NodeRendererProps {
       replacement = `<img src="${imgEntry.url}" width="${width}" height="${height}">`;
     }
     return note.slice(0, imgEntry.start) + replacement + note.slice(imgEntry.end);
-  };
+  }, [displayEntries]);
 
   const handleResizeEnd = useCallback(() => {
     if (!isResizing) return;
@@ -329,12 +404,12 @@ interface NodeRendererProps {
 
 
     if (onUpdateNode) {
-      const updates: Partial<MindMapNode> = { customImageWidth: finalW, customImageHeight: finalH };
+      const updates: Partial<MindMapNode> & { note?: string } = { customImageWidth: finalW, customImageHeight: finalH };
       // Only update note markup when resizing embedded note images
       if (node.kind !== 'table') {
         const maybeUpdatedNote = updateNoteImageSizeByIndex(node.note, slotIndex, finalW, finalH);
         if (maybeUpdatedNote && maybeUpdatedNote !== node.note) {
-          (updates as any).note = maybeUpdatedNote;
+          updates.note = maybeUpdatedNote;
         }
       }
       onUpdateNode(node.id, updates);
@@ -344,7 +419,7 @@ interface NodeRendererProps {
     if (onAutoLayout) {
       requestAnimationFrame(() => { onAutoLayout(); });
     }
-  }, [isResizing, stopResizing, onAutoLayout, onUpdateNode, node.id, node.note, imageDimensions.width, imageDimensions.height, slotIndex, localDims]);
+  }, [isResizing, stopResizing, onAutoLayout, onUpdateNode, node.id, node.kind, node.note, imageDimensions.width, imageDimensions.height, slotIndex, localDims, updateNoteImageSizeByIndex]);
 
   // マウス/ポインタイベントリスナーの管理（foreignObject越境対策）
   useEffect(() => {
@@ -436,7 +511,7 @@ interface NodeRendererProps {
 
   // A) 画像/Mermaidを切り替えたら、そのエントリ固有のサイズに合わせる
   // エントリキー（画像:URL / Mermaid:コード先頭と長さ）
-  const getEntryKey = (entry?: DisplayEntry): string => {
+  const getEntryKey = useCallback((entry?: DisplayEntry): string => {
     if (!entry) return 'none';
     if (entry.kind === 'image') return `img:${entry.url}`;
     if (entry.kind === 'mermaid') {
@@ -444,10 +519,11 @@ interface NodeRendererProps {
       return `mmd:${code.length}:${code.slice(0, 50)}`;
     }
     return 'none';
-  };
+  }, []);
   const prevEntryKeyRef = useRef<string>('');
   useEffect(() => {
-    const key = node.kind === 'table' ? `tbl:${(node as any).tableData?.rows?.length || 0}` : getEntryKey(currentEntry);
+    type TableNode = MindMapNode & { tableData?: { headers?: string[]; rows?: string[][] } };
+    const key = node.kind === 'table' ? `tbl:${(node as TableNode).tableData?.rows?.length || 0}` : getEntryKey(currentEntry);
     if (key !== prevEntryKeyRef.current) {
       prevEntryKeyRef.current = key;
       // 新しいエントリの自然サイズに合わせるため、一旦カスタムサイズを解除
@@ -457,7 +533,8 @@ interface NodeRendererProps {
       }
       // autoLayoutはsize決定後（onLoadやonLoadedDimensions後）に発火する既存ロジックで反映
     }
-  }, [currentEntry, node.id, onUpdateNode]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentEntry, node.id, node.kind, getEntryKey, onUpdateNode]);
 
   // 表示中の画像に合わせてノードの画像サイズを更新
   const handleImageLoadDimensions = useCallback((w: number, h: number) => {
@@ -488,7 +565,7 @@ interface NodeRendererProps {
       const h = Math.round(w * (sz.height / Math.max(1, sz.width)));
       onUpdateNode(node.id, { customImageWidth: w, customImageHeight: h });
     }
-  }, [isResizing, slotIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
+  }, [isResizing, slotIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode, parseNoteSizeByIndex]);
 
   // ホバー状態でコントロール表示
   const { isHovered, handleMouseEnter, handleMouseLeave } = useHoverState();
@@ -586,6 +663,12 @@ interface NodeRendererProps {
   
   const isTableNode = node.kind === 'table';
 
+  // Stable key for switching between mermaid/table/image/empty without nested ternary
+  let contentKey = `empty-${node.id}`;
+  if (showMermaid) contentKey = `mermaid-${node.id}`;
+  else if (isTableNode) contentKey = `table-${node.id}`;
+  else if (currentImage) contentKey = currentImage.id;
+
   return (
     <>
       {}
@@ -613,14 +696,14 @@ interface NodeRendererProps {
       />
 
       {}
-      <g key={showMermaid ? `mermaid-${node.id}` : (isTableNode ? `table-${node.id}` : (currentImage ? currentImage.id : `empty-${node.id}`))}>
+      <g key={contentKey}>
           <foreignObject
             x={imageX}
             y={imageY}
             width={renderDims.width}
             height={renderDims.height}
           >
-            {showMermaid ? (
+            {showMermaid && (
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <MermaidRenderer
                   code={(currentEntry).code}
@@ -649,8 +732,10 @@ interface NodeRendererProps {
                   (() => {
                     const tiny = renderDims.width < 100;
                     const compact = renderDims.width < 140;
-                    const fontSize = tiny ? 9 : (compact ? 10 : 12);
-                    const padH = tiny ? '0 3px' : (compact ? '1px 4px' : '2px 6px');
+                    let fontSize = 12;
+                    if (tiny) fontSize = 9; else if (compact) fontSize = 10;
+                    let padH = '2px 6px';
+                    if (tiny) padH = '0 3px'; else if (compact) padH = '1px 4px';
                     const btnPad = tiny ? '0 3px' : '0 4px';
                     return (
                       <div
@@ -710,7 +795,8 @@ interface NodeRendererProps {
                   />
                 )}
               </div>
-            ) : isTableNode ? (
+            )}
+            {!showMermaid && isTableNode && (
               <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
                    onClick={(e) => { e.stopPropagation(); if (!isSelected && onSelectNode) onSelectNode(node.id); }}
                    onDoubleClick={(e) => { e.stopPropagation(); }}
@@ -736,37 +822,14 @@ interface NodeRendererProps {
                     lineHeight: 1.5
                   }}>
                     {(() => {
-                      
-                      const parseTableFromString = (src?: string): { headers?: string[]; rows: string[][] } | null => {
-                        if (!src) return null;
-                        const lines = LineEndingUtils.splitLines(src).filter(l => !LineEndingUtils.isEmptyOrWhitespace(l));
-                        for (let i = 0; i < lines.length - 1; i++) {
-                          const header = lines[i];
-                          const sep = lines[i + 1];
-                          const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
-                          const isSep = /:?-{3,}:?\s*\|/.test(sep) || /^\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?$/.test(sep);
-                          if (isHeader && isSep) {
-                            const outRows: string[][] = [];
-                            const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|').map(c => c.trim());
-                            const headers = toCells(header);
-                            outRows.push(headers);
-                            let j = i + 2;
-                            while (j < lines.length && lines[j].includes('|')) {
-                              outRows.push(toCells(lines[j]));
-                              j++;
-                            }
-                            return { headers, rows: outRows.slice(1) };
-                          }
-                        }
-                        return null;
-                      };
-
+                      type TableNode = MindMapNode & { note?: string; tableData?: { headers?: string[]; rows?: string[][] } };
+                      const tableNode = node as TableNode;
                       // Prefer parsing from node.text (canonical); fallback to note
-                      let parsed = parseTableFromString(node.text) || parseTableFromString((node as any).note);
+                      let parsed = parseTableFromString(node.text) || parseTableFromString(tableNode.note);
                       if (!parsed) {
-                        const td = (node as any).tableData as { headers?: string[]; rows?: string[][] } | undefined;
+                        const td = tableNode.tableData;
                         if (td && Array.isArray(td.rows)) {
-                          parsed = { headers: td.headers, rows: td.rows } as any;
+                          parsed = { headers: td.headers, rows: td.rows };
                         }
                       }
 
@@ -846,7 +909,8 @@ interface NodeRendererProps {
                 </div>
                 {}
               </div>
-            ) : (
+            )}
+            {!showMermaid && !isTableNode && (
               <div style={{
                 position: 'relative',
                 width: '100%',
@@ -862,9 +926,9 @@ interface NodeRendererProps {
                 transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
                 cursor: 'pointer'
               }}
-              onClick={(e) => currentImage && handleImageClick(e as any, currentImage)}
-              onDoubleClick={(e) => currentImage && handleImageDoubleClick(e as any, currentImage)}
-              onContextMenu={(e) => currentImage && handleFileActionMenu(e as any, currentImage)}
+              onClick={(e) => currentImage && handleImageClick(e, currentImage)}
+              onDoubleClick={(e) => currentImage && handleImageDoubleClick(e, currentImage)}
+              onContextMenu={(e) => currentImage && handleFileActionMenu(e, currentImage)}
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               >
@@ -909,8 +973,14 @@ interface NodeRendererProps {
                   (() => {
                     const tiny = imageDimensions.width < 100;
                     const compact = imageDimensions.width < 140;
-                    const fontSize = tiny ? 9 : (compact ? 10 : 12);
-                    const padH = tiny ? '0 3px' : (compact ? '1px 4px' : '2px 6px');
+                    let fontSize = 12;
+                    if (tiny) fontSize = 9;
+                    else if (compact) fontSize = 10;
+
+                    let padH = '2px 6px';
+                    if (tiny) padH = '0 3px';
+                    else if (compact) padH = '1px 4px';
+
                     const btnPad = tiny ? '0 3px' : '0 4px';
                     return (
                       <div
@@ -997,8 +1067,7 @@ interface NodeRendererProps {
               />
 
               {}
-            </g>
-          )}
+            </g>)}
         </g>
     </>
   );

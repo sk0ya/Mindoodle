@@ -4,7 +4,7 @@ import MindMapCanvas from './MindMapCanvas';
 import type { MindMapData, Position, NodeLink } from '@shared/types';
 
 interface MindMapWorkspaceProps {
-  data: MindMapData;
+  data: MindMapData | null;
   selectedNodeId: string | null;
   editingNodeId: string | null;
   editText: string;
@@ -21,7 +21,7 @@ interface MindMapWorkspaceProps {
   
   
   availableMaps?: { id: string; title: string }[];
-  currentMapData?: { id: string; rootNode: any };
+  currentMapData?: import('@shared/types').MindMapData | null;
   
   
   onLinkNavigate?: (link: NodeLink) => void;
@@ -83,7 +83,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onUpdateNode={onUpdateNode}
         onAutoLayout={onAutoLayout}
         availableMaps={availableMaps}
-        currentMapData={currentMapData}
+        currentMapData={currentMapData ? { id: currentMapData.mapIdentifier.mapId, rootNodes: currentMapData.rootNodes, mapIdentifier: currentMapData.mapIdentifier as unknown as Record<string, unknown> } : undefined}
         onLinkNavigate={onLinkNavigate}
         zoom={zoom}
         setZoom={setZoom}

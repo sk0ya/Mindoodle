@@ -16,6 +16,12 @@ export interface NormalizedMindMapData {
   childrenMap: Record<string, string[]>; 
 }
 
+// Helper: check whether `childId` is a descendant of `parentId` in normalized structure
+function isDescendantNode(data: NormalizedData, parentId: string, childId: string): boolean {
+  const children = data.childrenMap[parentId] || [];
+  return children.includes(childId) || children.some(id => isDescendantNode(data, id, childId));
+}
+
 export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): NormalizedData {
   
   if (!Array.isArray(rootNodes) || rootNodes.length === 0) {
@@ -188,11 +194,11 @@ export function addNormalizedNode(
 
   
   const parentNode = normalizedData.nodes[parentId];
-  if ((parentNode as any)?.kind === 'table') {
+  if ('kind' in parentNode && parentNode.kind === 'table') {
     throw new Error('テーブルノードには子ノードを追加できません');
   }
 
-  const { children: _children, ...nodeWithoutChildren } = newNode;
+  const { children, ...nodeWithoutChildren } = newNode;
 
   return {
     ...normalizedData,
@@ -385,7 +391,7 @@ export function moveNormalizedNode(
 
   
   const targetParent = normalizedData.nodes[newParentId];
-  if ((targetParent as any)?.kind === 'table') {
+  if ('kind' in targetParent && targetParent.kind === 'table') {
     return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
   }
 
@@ -400,14 +406,7 @@ export function moveNormalizedNode(
     return { success: false, reason: validation.reason || 'ノードの移動ができません' };
   }
 
-  
-  function isDescendant(parentId: string, childId: string): boolean {
-    const children = normalizedData.childrenMap[parentId] || [];
-    return children.includes(childId) ||
-           children.some(child => isDescendant(child, childId));
-  }
-
-  if (isDescendant(nodeId, newParentId)) {
+  if (isDescendantNode(normalizedData, nodeId, newParentId)) {
     return { success: false, reason: '親ノードを子ノードの下に移動することはできません' };
   }
 
@@ -417,8 +416,8 @@ export function moveNormalizedNode(
   }
 
   
-  
-  const movingNode = normalizedData.nodes[nodeId] as any;
+
+  const movingNode = normalizedData.nodes[nodeId];
   if (movingNode?.kind === 'table') {
     const siblings = (normalizedData.childrenMap[newParentId] || []).filter(id => id !== nodeId);
     if (siblings.length > 0) {
@@ -464,7 +463,7 @@ export function moveNodeWithPositionNormalized(
   
   if (position === 'child') {
     const targetNode = normalizedData.nodes[targetNodeId];
-    if ((targetNode as any)?.kind === 'table') {
+    if ('kind' in targetNode && targetNode.kind === 'table') {
       return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
     }
   }
@@ -498,14 +497,7 @@ export function moveNodeWithPositionNormalized(
     insertionIndex = position === 'before' ? targetIndex : targetIndex + 1;
   }
 
-  
-  function isDescendant(parentId: string, childId: string): boolean {
-    const children = normalizedData.childrenMap[parentId] || [];
-    return children.includes(childId) ||
-           children.some(child => isDescendant(child, childId));
-  }
-
-  if (isDescendant(nodeId, newParentId)) {
+  if (isDescendantNode(normalizedData, nodeId, newParentId)) {
     return { success: false, reason: '親ノードを子ノードの下に移動することはできません' };
   }
 
@@ -530,7 +522,7 @@ export function moveNodeWithPositionNormalized(
   newSiblings.splice(insertionIndex, 0, nodeId);
 
   
-  const movingNode2 = normalizedData.nodes[nodeId] as any;
+  const movingNode2 = normalizedData.nodes[nodeId];
   if (movingNode2?.kind === 'table') {
     const siblingsCountExcludingSelf = newSiblings.filter(id => id !== nodeId).length;
     if (siblingsCountExcludingSelf > 0 && insertionIndex !== 0) {
@@ -569,7 +561,7 @@ export function addSiblingNormalizedNode(
     throw new Error(`Node already exists: ${newNode.id}`);
   }
 
-  const { children: _children, ...nodeWithoutChildren } = newNode;
+  const { children, ...nodeWithoutChildren } = newNode;
 
   const siblings = normalizedData.childrenMap[parentId] || [];
   const siblingIndex = siblings.indexOf(siblingNodeId);
@@ -612,7 +604,7 @@ export function addRootSiblingNode(
     throw new Error(`Node already exists: ${newNode.id}`);
   }
 
-  const { children: _children, ...nodeWithoutChildren } = newNode;
+  const { children, ...nodeWithoutChildren } = newNode;
 
   
   const currentRootIds = normalizedData.rootNodeIds;

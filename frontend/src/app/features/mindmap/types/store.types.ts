@@ -4,7 +4,10 @@ import type { MindMapData, MindMapNode, NodeLink, Position, UIState } from '@sha
 
 
 export interface NormalizedData {
-  [key: string]: any; 
+  nodes: Record<string, MindMapNode>;
+  rootNodeIds: string[];
+  parentMap: Record<string, string>;
+  childrenMap: Record<string, string[]>;
 }
 
 
@@ -83,14 +86,16 @@ export interface NodeSlice extends NodeActions {
 
 
 export interface AISlice {
-  
-  [key: string]: any;
+
+  aiEnabled?: boolean;
+  [key: string]: unknown;
 }
 
 
 export interface SettingsSlice {
-  
-  [key: string]: any;
+
+  settings?: Record<string, unknown>;
+  [key: string]: unknown;
 }
 
 

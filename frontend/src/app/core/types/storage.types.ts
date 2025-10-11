@@ -27,7 +27,7 @@ export interface StorageAdapter {
   removeMapFromList(id: MapIdentifier): Promise<void>;
 
   
-  createFolder?(relativePath: string): Promise<void>;
+  createFolder?(relativePath: string, workspaceId?: string): Promise<void>;
 
   
   getExplorerTree?(): Promise<ExplorerItem>;
@@ -39,6 +39,11 @@ export interface StorageAdapter {
   getMapMarkdown?(id: MapIdentifier): Promise<string | null>;
   getMapLastModified?(id: MapIdentifier): Promise<number | null>;
   saveMapMarkdown?(id: MapIdentifier, markdown: string): Promise<void>;
+
+  // Optional helpers for local adapters
+  selectRootFolder?(): Promise<void>;
+  readImageAsDataURL?(relativePath: string, workspaceId: string): Promise<string | null>;
+  listMapIdentifiers?(): Promise<Array<{ mapId: string; workspaceId: string }>>;
 
   
   initialize(): Promise<void>;

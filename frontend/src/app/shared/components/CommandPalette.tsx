@@ -8,12 +8,16 @@ import type { Command } from '../../commands/system/types';
 import type { MindMapData } from '@shared/types';
 import { getFolderName } from '../utils/folderUtils';
 
+interface StorageAdapter {
+  loadAllMaps?: () => Promise<MindMapData[]>;
+}
+
 interface CommandPaletteProps {
   isOpen: boolean;
   onClose: () => void;
-  onExecuteCommand: (commandName: string, args?: Record<string, any>) => void;
+  onExecuteCommand: (commandName: string, args?: Record<string, unknown>) => void;
   onSelectMap?: (mapId: { mapId: string; workspaceId: string }) => void;
-  storageAdapter?: any; 
+  storageAdapter?: StorageAdapter;
 }
 
 
@@ -109,8 +113,12 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       const folderPath = category || '（未分類）';
 
       // Get workspace name from global workspaces array
-      const workspaces = (window as any).mindoodleWorkspaces || [];
-      const workspace = workspaces.find((w: any) => w.id === mapIdentifier.workspaceId);
+      interface Workspace {
+        id: string;
+        name: string;
+      }
+      const workspaces = ((window as Window & { mindoodleWorkspaces?: Workspace[] }).mindoodleWorkspaces) || [];
+      const workspace = workspaces.find((w) => w.id === mapIdentifier.workspaceId);
       const workspaceName = workspace?.name || (mapIdentifier.workspaceId === '__default__' ? 'Default Workspace' : mapIdentifier.workspaceId);
 
       return {
@@ -136,22 +144,15 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   
   const filteredItems = useMemo(() => {
-    
-    let itemsToFilter = allItems;
-    switch (filterMode) {
-      case 'commands':
-        itemsToFilter = allItems.filter(item => item.type === 'command');
-        break;
-      case 'maps':
-        itemsToFilter = allItems.filter(item => item.type === 'map');
-        break;
-      case 'all':
-      default:
-        itemsToFilter = allItems;
-        break;
+    let itemsToFilter: typeof allItems;
+    if (filterMode === 'commands') {
+      itemsToFilter = allItems.filter(item => item.type === 'command');
+    } else if (filterMode === 'maps') {
+      itemsToFilter = allItems.filter(item => item.type === 'map');
+    } else {
+      itemsToFilter = allItems;
     }
 
-    
     if (!searchQuery.trim()) {
       return itemsToFilter;
     }
@@ -201,10 +202,23 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         default: return 'all';
       }
     });
-    setSelectedIndex(0); 
+    setSelectedIndex(0);
   }, []);
 
-  
+
+  const handleSelectItem = useCallback((item: CombinedItem) => {
+    if (item.type === 'command' && item.command) {
+      onExecuteCommand(item.command.name);
+    } else if (item.type === 'map' && item.mapData && onSelectMap) {
+      onSelectMap({
+        mapId: item.mapData.mapId,
+        workspaceId: item.mapData.workspaceId,
+      });
+    }
+    onClose();
+  }, [onExecuteCommand, onSelectMap, onClose]);
+
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (!isOpen) return;
 
@@ -242,20 +256,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         }
         break;
     }
-  }, [isOpen, onClose, filteredItems, selectedIndex, cycleFilterMode]);
-
-  
-  const handleSelectItem = useCallback((item: CombinedItem) => {
-    if (item.type === 'command' && item.command) {
-      onExecuteCommand(item.command.name);
-    } else if (item.type === 'map' && item.mapData && onSelectMap) {
-      onSelectMap({
-        mapId: item.mapData.mapId,
-        workspaceId: item.mapData.workspaceId,
-      });
-    }
-    onClose();
-  }, [onExecuteCommand, onSelectMap, onClose]);
+  }, [isOpen, onClose, filteredItems, selectedIndex, cycleFilterMode, handleSelectItem]);
 
   
   useEffect(() => {
@@ -358,7 +359,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
                 }
               }}
             >
-              {mode === 'all' ? 'All' : mode === 'maps' ? 'Maps' : 'Commands'}
+              {{ all: 'All', maps: 'Maps', commands: 'Commands' }[mode]}
             </button>
           ))}
         </div>

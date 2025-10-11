@@ -18,6 +18,7 @@ const AISidebar: React.FC = () => {
   } = useAI();
   
   const [extensionAvailable, setExtensionAvailable] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
   
   
   const {
@@ -70,8 +71,8 @@ const AISidebar: React.FC = () => {
     };
   }, []);
 
-  
-  useEventListener('mindflowOllamaBridgeReady' as keyof WindowEventMap, checkExtension as any, { target: window });
+
+  useEventListener('mindflowOllamaBridgeReady' as keyof WindowEventMap, checkExtension as EventListener, { target: window });
   
   
   React.useEffect(() => {
@@ -201,15 +202,17 @@ const AISidebar: React.FC = () => {
                       onChange={(e) => updateAISettings({ model: e.target.value })}
                       disabled={isLoadingModels}
                     >
-                      {isLoadingModels ? (
-                        <option>読み込み中...</option>
-                      ) : availableModels.length > 0 ? (
-                        availableModels.map(model => (
-                          <option key={model} value={model}>{model}</option>
-                        ))
-                      ) : (
-                        <option value={aiSettings.model}>{aiSettings.model}</option>
-                      )}
+                      {((): JSX.Element[] => {
+                        if (isLoadingModels) {
+                          return [<option key="loading">読み込み中...</option>];
+                        }
+                        if (availableModels.length > 0) {
+                          return availableModels.map(model => (
+                            <option key={model} value={model}>{model}</option>
+                          ));
+                        }
+                        return [<option key="current" value={aiSettings.model}>{aiSettings.model}</option>];
+                      })()}
                     </select>
                   </label>
                   {availableModels.length === 0 && !isLoadingModels && (
@@ -300,22 +303,40 @@ const AISidebar: React.FC = () => {
                   </p>
                 </div>
                 
-                <button 
-                  className="ai-reset-button"
-                  onClick={() => {
-                    if (window.confirm('AI設定をデフォルトに戻しますか？')) {
-                      
-                      updateAISettings({
-                        systemPrompt: 'あなたは創造的で論理的な思考を持つAIアシスタントです。ユーザーのマインドマップ作成をサポートします。',
-                        childGenerationPrompt: '以下のトピックについて、関連する子要素やサブトピックを3〜5個生成してください。各項目は簡潔に1〜3単語で表現してください。\n\nトピック: {parentText}\nコンテキスト: {context}',
-                        maxTokens: 150,
-                        temperature: 0.7
-                      });
-                    }
-                  }}
-                >
-<RotateCcw size={14} style={{marginRight: '6px', verticalAlign: 'middle', width: '14px', height: '14px'}} />設定をデフォルトに戻す
-                </button>
+                {!showResetConfirm ? (
+                  <button
+                    className="ai-reset-button"
+                    onClick={() => setShowResetConfirm(true)}
+                  >
+                    <RotateCcw size={14} style={{marginRight: '6px', verticalAlign: 'middle', width: '14px', height: '14px'}} />設定をデフォルトに戻す
+                  </button>
+                ) : (
+                  <div className="ai-confirm-box">
+                    <p>AI設定をデフォルトに戻しますか？</p>
+                    <div className="ai-confirm-buttons">
+                      <button
+                        className="ai-confirm-yes"
+                        onClick={() => {
+                          updateAISettings({
+                            systemPrompt: 'あなたは創造的で論理的な思考を持つAIアシスタントです。ユーザーのマインドマップ作成をサポートします。',
+                            childGenerationPrompt: '以下のトピックについて、関連する子要素やサブトピックを3〜5個生成してください。各項目は簡潔に1〜3単語で表現してください。\n\nトピック: {parentText}\nコンテキスト: {context}',
+                            maxTokens: 150,
+                            temperature: 0.7
+                          });
+                          setShowResetConfirm(false);
+                        }}
+                      >
+                        はい
+                      </button>
+                      <button
+                        className="ai-confirm-no"
+                        onClick={() => setShowResetConfirm(false)}
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
             
@@ -666,6 +687,55 @@ const AISidebar: React.FC = () => {
           display: flex;
           flex-direction: column;
           gap: 8px;
+        }
+
+        .ai-confirm-box {
+          background: rgba(255, 152, 0, 0.1);
+          border: 1px solid #ff9800;
+          border-radius: 6px;
+          padding: 16px;
+          margin-top: 16px;
+        }
+
+        .ai-confirm-box p {
+          margin: 0 0 12px 0;
+          color: #ffffff;
+          font-size: 14px;
+        }
+
+        .ai-confirm-buttons {
+          display: flex;
+          gap: 8px;
+        }
+
+        .ai-confirm-yes,
+        .ai-confirm-no {
+          flex: 1;
+          padding: 8px 16px;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 13px;
+          font-weight: 500;
+          transition: all 0.2s;
+        }
+
+        .ai-confirm-yes {
+          background: #ff9800;
+          color: white;
+        }
+
+        .ai-confirm-yes:hover {
+          background: #f57c00;
+        }
+
+        .ai-confirm-no {
+          background: #464647;
+          color: #cccccc;
+        }
+
+        .ai-confirm-no:hover {
+          background: #5a5a5a;
         }
 
         /* ライトテーマ（デフォルト） */

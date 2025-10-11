@@ -72,7 +72,7 @@ export function useMindMapLinks(params: UseMindMapLinksParams) {
         } else {
           // Current map without node → center root (no anchor)
           label = data.title || 'このマップ';
-          href = '';
+          // href は空のまま（再代入しない）
         }
       } else {
         // Different map link

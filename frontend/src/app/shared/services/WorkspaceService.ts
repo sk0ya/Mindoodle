@@ -181,7 +181,7 @@ export class WorkspaceService {
   
   private loadPersistedWorkspaces(): void {
     try {
-      const saved = getLocalStorage<any>(STORAGE_KEYS.WORKSPACES);
+      const saved = getLocalStorage<{ localWorkspaces?: Array<{id: string; name: string}>; hasCloudWorkspace?: boolean }>(STORAGE_KEYS.WORKSPACES);
       if (!saved.success || !saved.data) return;
 
       

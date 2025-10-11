@@ -71,15 +71,16 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       const indentLevel = indentLevels.indexOf(indentSpaces);
       let nodeText = indentMatch[2];
 
-      // チェックボックスパターンを検出
+      // チェックボックスパターンを検出（安全な手続き的解析）
       let isCheckbox = false;
       let isChecked = false;
-      const checkboxRe = /^\[([ xX])\]\s*(.*)$/;
-      const checkboxMatch = checkboxRe.exec(nodeText);
-      if (checkboxMatch) {
-        isCheckbox = true;
-        isChecked = checkboxMatch[1].toLowerCase() === 'x';
-        nodeText = checkboxMatch[2]; 
+      if (nodeText.startsWith('[') && nodeText.length >= 3 && nodeText[2] === ']') {
+        const mark = nodeText[1];
+        if (mark === ' ' || mark.toLowerCase() === 'x') {
+          isCheckbox = true;
+          isChecked = mark.toLowerCase() === 'x';
+          nodeText = nodeText.slice(3).trimStart();
+        }
       }
 
       const node: ParsedNode = {

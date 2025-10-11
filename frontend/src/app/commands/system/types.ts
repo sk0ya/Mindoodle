@@ -5,12 +5,28 @@ import type { VimModeHook } from '@vim/hooks/useVimMode';
 
 export type CommandArgType = 'string' | 'number' | 'boolean' | 'node-id';
 
+// Centralized literal unions and arg map
+export type Direction = 'up' | 'down' | 'left' | 'right';
+export type InsertPosition = 'before' | 'after' | 'child';
+export type MarkdownNodeType = 'heading' | 'unordered-list' | 'ordered-list';
+export type CommandCategory =
+  | 'navigation'
+  | 'editing'
+  | 'structure'
+  | 'vim'
+  | 'utility'
+  | 'ui'
+  | 'application';
+
+export type ArgPrimitive = string | number | boolean;
+export type ArgsMap = Record<string, ArgPrimitive>;
+
 export interface CommandArg {
   name: string;
   type: CommandArgType;
   required?: boolean;
   description?: string;
-  default?: any;
+  default?: string | number | boolean;
 }
 
 
@@ -25,15 +41,15 @@ export interface CommandContext {
   openPanels?: Partial<Record<PanelId, boolean>>;
   
   handlers: {
-    
-    updateNode: (id: string, updates: Partial<MindMapNode>) => void;
-    deleteNode: (id: string) => void;
-    findNodeById: (nodeId: string) => MindMapNode | null;
-    findParentNode?: (nodeId: string) => MindMapNode | null;
 
-    
-    centerNodeInView?: (nodeId: string, animate?: boolean) => void;
-    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count?: number) => void;
+    updateNode: (_id: string, _updates: Partial<MindMapNode>) => void;
+    deleteNode: (_id: string) => void;
+    findNodeById: (_nodeId: string) => MindMapNode | null;
+    findParentNode?: (_nodeId: string) => MindMapNode | null;
+
+
+    centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
+    navigateToDirection: (direction: Direction, count?: number) => void;
     selectNode: (nodeId: string | null) => void;
     setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 
@@ -47,7 +63,7 @@ export interface CommandContext {
     addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;
     changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
     moveNode?: (nodeId: string, newParentId: string) => Promise<void>;
-    moveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => Promise<void>;
+    moveNodeWithPosition?: (nodeId: string, targetNodeId: string, position: InsertPosition) => Promise<void>;
 
     
     copyNode: (nodeId: string) => void;
@@ -86,7 +102,7 @@ export interface CommandContext {
     closeAttachmentAndLinkLists: () => void;
 
     
-    onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+    onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
 
     
     switchToNextMap?: () => void;
@@ -108,10 +124,10 @@ export interface Command {
   description: string;
   args?: CommandArg[];
   examples?: string[];
-  category?: 'navigation' | 'editing' | 'structure' | 'vim' | 'utility' | 'ui' | 'application';
-  
-  guard?: (context: CommandContext, args: Record<string, any>) => boolean;
-  execute: (context: CommandContext, args: Record<string, any>) => Promise<CommandResult> | CommandResult;
+  category?: CommandCategory;
+
+  guard?: (context: CommandContext, args: ArgsMap) => boolean;
+  execute: (context: CommandContext, args: ArgsMap) => Promise<CommandResult> | CommandResult;
   
   repeatable?: boolean; 
   countable?: boolean;  
@@ -120,7 +136,7 @@ export interface Command {
 
 export interface ParsedCommand {
   name: string;
-  args: Record<string, any>;
+  args: ArgsMap;
   rawInput: string;
 }
 
@@ -140,7 +156,7 @@ export interface CommandRegistry {
   getAll: () => Command[];
   getByCategory: (category: string) => Command[];
   search: (query: string) => Command[];
-  execute: (nameOrAlias: string, context: CommandContext, args?: Record<string, any>) => Promise<CommandResult>;
+  execute: (nameOrAlias: string, context: CommandContext, args?: ArgsMap) => Promise<CommandResult>;
 }
 
 

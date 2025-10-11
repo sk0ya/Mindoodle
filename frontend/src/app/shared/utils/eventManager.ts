@@ -1,5 +1,6 @@
 
 import { memoryService } from '@/app/core/services';
+import React from 'react';
 import { generateId } from './idGenerator';
 import { isDevelopment } from './env';
 
@@ -69,7 +70,8 @@ class EventManager {
       this.addEventListener(target, event, unifiedHandler, `Global ${event} handler`);
     }
 
-    this.globalHandlers.get(event)!.add(handler);
+    const set = this.globalHandlers.get(event);
+    if (set) set.add(handler);
     return id;
   }
 
@@ -165,16 +167,11 @@ export function useManagedEventListener(
   element: EventTarget | null,
   event: string,
   handler: EventHandler,
-  description?: string,
-  deps: any[] = []
+  description?: string
 ): void {
-  
-  if (typeof window !== 'undefined' && 'React' in window) {
-    const React = (window as any).React;
-    React.useEffect(() => {
-      return eventManager.useEventListener(element, event, handler, description);
-    }, [element, event, handler, description, ...deps]);
-  }
+  React.useEffect(() => {
+    return eventManager.useEventListener(element, event, handler, description);
+  }, [element, event, handler, description]);
 }
 
 
@@ -188,8 +185,9 @@ if (isDevelopment()) {
 }
 
 
-if (typeof import.meta !== 'undefined' && (import.meta as any).hot) {
-  (import.meta as any).hot.dispose(() => {
+if (typeof import.meta !== 'undefined') {
+  const meta = import.meta as unknown as { hot?: { dispose: (cb: () => void) => void } };
+  if (meta.hot) meta.hot.dispose((): void => {
     try { eventManager.cleanup(); } catch {  }
   });
 }

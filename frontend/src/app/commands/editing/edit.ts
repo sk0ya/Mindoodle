@@ -44,11 +44,11 @@ export const editCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const newText = (args as any)['text'];
-    const keepText = (args as any)['keep-text'] ?? false;
-    const cursorPosition = (args as any)['cursor'] || 'start';
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const nodeId = (args['nodeId'] as string | undefined) || context.selectedNodeId;
+    const newText = args['text'] as string | undefined;
+    const keepText = (args['keep-text'] as boolean | undefined) ?? false;
+    const cursorPosition = (args['cursor'] as string | undefined) || 'start';
 
     if (!nodeId) {
       return {
@@ -82,14 +82,20 @@ export const editCommand: Command = {
       // Start editing with appropriate cursor position
       setTimeout(() => {
         if (cursorPosition === 'end') {
-          context.handlers.startEditWithCursorAtStart(nodeId);
+          context.handlers.startEditWithCursorAtEnd(nodeId);
         } else {
           context.handlers.startEditWithCursorAtStart(nodeId);
         }
       }, 10);
 
-      const action = newText !== undefined ? 'set text and started editing' :
-                   keepText ? 'started editing' : 'cleared text and started editing';
+      let action: string;
+      if (newText !== undefined) {
+        action = 'set text and started editing';
+      } else if (keepText) {
+        action = 'started editing';
+      } else {
+        action = 'cleared text and started editing';
+      }
 
       return {
         success: true,
@@ -307,8 +313,8 @@ export const cutCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
+  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
+    const nodeId = (args['nodeId'] as string | undefined) || context.selectedNodeId;
     const count = context.count ?? 1;
 
     if (!nodeId) {
@@ -319,26 +325,31 @@ export const cutCommand: Command = {
     }
 
     try {
-      
-      try { (useMindMapStore.getState() as any).beginHistoryGroup?.('cut'); } catch {}
 
-      
+      const store = useMindMapStore.getState();
+      try { store.beginHistoryGroup?.('cut'); } catch {
+        // History group not available
+      }
+
+
       let cutCount = 0;
 
       for (let i = 0; i < count; i++) {
         const currentNode = context.handlers.findNodeById(nodeId);
         if (!currentNode || currentNode.id === 'root') break;
 
-        
+
         context.handlers.copyNode(nodeId);
 
-        
+
         context.handlers.deleteNode(nodeId);
         cutCount++;
       }
 
-      
-      try { (useMindMapStore.getState() as any).endHistoryGroup?.(true); } catch {}
+
+      try { store.endHistoryGroup?.(true); } catch {
+        // History group not available
+      }
 
       if (cutCount === 0) {
         return {
@@ -352,8 +363,11 @@ export const cutCommand: Command = {
         message: cutCount > 1 ? `Cut ${cutCount} nodes` : `Cut node`
       };
     } catch (error) {
-      
-      try { (useMindMapStore.getState() as any).endHistoryGroup?.(false); } catch {}
+
+      const store = useMindMapStore.getState();
+      try { store.endHistoryGroup?.(false); } catch {
+        // History group not available
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to cut node'

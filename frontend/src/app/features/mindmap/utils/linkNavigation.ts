@@ -1,4 +1,5 @@
 import type { MindMapNode, MapIdentifier, NodeLink } from '@shared/types';
+import { logger } from '@shared/utils';
 
 const slugify = (text: string) => (text || '').trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
 
@@ -7,7 +8,7 @@ function findNodeByTextLoose(root: MindMapNode, targetText: string): MindMapNode
   const targetSlug = slugify(targetText);
   const stack: MindMapNode[] = [root];
   while (stack.length) {
-    const node = stack.pop()!;
+    const node = stack.pop();
     if (!node) continue;
     if (node.text === targetText) return node;
     if (slugify(node.text) === targetSlug) return node;
@@ -52,7 +53,12 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
         
         const allRoots = ctx.getAllRootNodes?.() || [];
         const singleRoot = getCurrentRootNode();
-        const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
+        let roots: MindMapNode[] = [];
+        if (allRoots.length > 0) {
+          roots = allRoots;
+        } else if (singleRoot) {
+          roots = [singleRoot];
+        }
 
         if (roots.length === 0) { return; }
 
@@ -82,7 +88,12 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
         
         const allRoots = ctx.getAllRootNodes?.() || [];
         const singleRoot = dataRoot || getCurrentRootNode() || null;
-        const roots = allRoots.length > 0 ? allRoots : (singleRoot ? [singleRoot] : []);
+        let roots: MindMapNode[] = [];
+        if (allRoots.length > 0) {
+          roots = allRoots;
+        } else if (singleRoot) {
+          roots = [singleRoot];
+        }
         if (roots.length > 0) {
           const node = findNodeByTextInMultipleRoots(roots, targetText);
           if (node) {
@@ -104,6 +115,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
 
     notify('info', 'リンク先が指定されていません');
   } catch (error) {
+    logger.warn('linkNavigation: navigateLink failed', error);
     notify('error', 'リンクの処理に失敗しました');
   }
 }

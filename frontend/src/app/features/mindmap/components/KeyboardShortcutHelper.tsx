@@ -82,13 +82,18 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
       if (!categoriesMap.has(category)) {
         categoriesMap.set(category, []);
       }
-      categoriesMap.get(category)!.push(item);
+      const categoryItems = categoriesMap.get(category);
+      if (categoryItems) {
+        categoryItems.push(item);
+      }
     });
 
-    
-    const custom: Record<string,string> = (settings as any)?.vimCustomKeybindings || {};
-    const leader: string = ((settings as any)?.vimLeader && typeof (settings as any).vimLeader === 'string' && (settings as any).vimLeader.length === 1)
-      ? (settings as any).vimLeader
+
+
+    const settingsExt = settings as unknown as Partial<Record<string, unknown>>;
+    const custom: Record<string,string> = (settingsExt?.vimCustomKeybindings as Record<string, string> | undefined) || {};
+    const leader: string = (settingsExt?.vimLeader && typeof settingsExt.vimLeader === 'string' && settingsExt.vimLeader.length === 1)
+      ? settingsExt.vimLeader
       : ',';
     const expand = (lhs: string) => lhs.replace(/<\s*leader\s*>/ig, leader).replace(/<\s*space\s*>/ig, ' ');
     const customItems: ShortcutItem[] = Object.entries(custom).map(([lhs, cmd]) => ({
@@ -101,13 +106,14 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
       categoriesMap.set('vim', [...existing, ...customItems]);
     }
 
-    
+
+
     const categoryOrder = ['vim', 'navigation', 'editing', 'application', 'ui', 'utility'];
     return categoryOrder
       .filter(cat => categoriesMap.has(cat))
       .map(cat => ({
         category: CATEGORY_LABELS[cat] || cat,
-        items: categoriesMap.get(cat)!
+        items: categoriesMap.get(cat) || []
       }));
   }, [settings]);
 
@@ -250,16 +256,12 @@ export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({ shortcut, chil
       const spaceBelow = viewportHeight - rect.bottom;
       
       
-      let position: 'top' | 'bottom' = 'bottom';
+      let position: 'top' | 'bottom';
       if (spaceAbove >= 80 && spaceBelow < 80) {
         position = 'top';
-      } else if (spaceAbove >= 80 && spaceBelow >= 80) {
-        
-        position = 'bottom';
-      } else if (spaceAbove < 80 && spaceBelow >= 80) {
+      } else if (spaceBelow >= 80) {
         position = 'bottom';
       } else {
-        
         position = spaceAbove >= spaceBelow ? 'top' : 'bottom';
       }
       

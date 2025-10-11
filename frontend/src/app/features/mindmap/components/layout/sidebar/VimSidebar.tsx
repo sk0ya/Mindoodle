@@ -6,8 +6,8 @@ import { useMindMapStore } from '../../../store';
 const VimSidebar: React.FC = () => {
   const [tab, setTab] = useState<'mindmap' | 'editor'>('mindmap');
   const { settings, updateSetting } = useMindMapStore();
-  const toggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap' as any, e.target.checked as any);
-  const toggleEditorVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor' as any, e.target.checked as any);
+  const toggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap', e.target.checked);
+  const toggleEditorVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor', e.target.checked);
   
   const editorTabEnabled = true;
 
@@ -24,11 +24,11 @@ const VimSidebar: React.FC = () => {
         <h3 className="settings-section-title">Vim マッピング</h3>
         <div className="settings-section-content" style={{ padding: '6px 8px', borderBottom: '1px solid var(--border-color)' }}>
           <label className="settings-toggle" style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <input type="checkbox" checked={(settings as any).vimMindMap} onChange={toggleMindMapVim} />
+            <input type="checkbox" checked={settings.vimMindMap} onChange={toggleMindMapVim} />
             <span>マインドマップ Vim</span>
           </label>
           <label className="settings-toggle" style={{ display:'flex', alignItems:'center', gap:8, marginTop: 6 }}>
-            <input type="checkbox" checked={(settings as any).vimEditor} onChange={toggleEditorVim} />
+            <input type="checkbox" checked={settings.vimEditor} onChange={toggleEditorVim} />
             <span>エディタ Vim（CodeMirror）</span>
           </label>
         </div>
@@ -53,16 +53,16 @@ const VimSidebar: React.FC = () => {
           {tab === 'mindmap' ? (
             <VimMappingsEditor
               key="vim-mindmap"
-              sourceKey={'vimMappingsSource' as any}
-              leaderKey={'vimLeader' as any}
-              mappingsKey={'vimCustomKeybindings' as any}
+              sourceKey="vimMappingsSource"
+              leaderKey="vimLeader"
+              mappingsKey="vimCustomKeybindings"
             />
           ) : (
             <VimMappingsEditor
               key="vim-editor"
-              sourceKey={'vimEditorMappingsSource' as any}
-              leaderKey={'vimEditorLeader' as any}
-              mappingsKey={'vimEditorCustomKeybindings' as any}
+              sourceKey="vimEditorMappingsSource"
+              leaderKey="vimEditorLeader"
+              mappingsKey="vimEditorCustomKeybindings"
             />
           )}
         </div>

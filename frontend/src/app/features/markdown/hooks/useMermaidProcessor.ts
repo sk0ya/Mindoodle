@@ -22,11 +22,21 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
 
   
   const extractMermaidBlocks = useCallback((text: string): string[] => {
-    const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
     const blocks: string[] = [];
-    let match;
-    while ((match = mermaidRegex.exec(text)) !== null) {
-      blocks.push(match[1].trim());
+    if (!text) return blocks;
+    const open = '```mermaid';
+    const close = '```';
+    let i = 0;
+    const maxScan = Math.min(text.length, 500_000);
+    while (i < maxScan) {
+      const start = text.indexOf(open, i);
+      if (start === -1) break;
+      const codeStart = start + open.length;
+      const end = text.indexOf(close, codeStart);
+      if (end === -1) break;
+      const content = text.slice(codeStart, end).trim();
+      blocks.push(content);
+      i = end + close.length;
     }
     return blocks;
   }, []);
@@ -34,15 +44,23 @@ export function useMermaidProcessor(value: string): UseMermaidProcessorResult {
   
   const processMermaidInHtml = useCallback(async (html: string): Promise<string> => {
     
-    const mermaidRegex = /<pre><code class="language-mermaid">([\s\S]*?)<\/code><\/pre>/g;
     let processedHtml = html;
-    let match;
     const promises: Promise<string>[] = [];
     const replacements: { original: string; replacement: string }[] = [];
 
-    while ((match = mermaidRegex.exec(html)) !== null) {
-      const fullMatch = match[0];
-      const mermaidCode = match[1].replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+    const openTag = '<pre><code class="language-mermaid">';
+    const closeTag = '</code></pre>';
+    let scanIndex = 0;
+    while (true) {
+      const start = html.indexOf(openTag, scanIndex);
+      if (start === -1) break;
+      const codeStart = start + openTag.length;
+      const end = html.indexOf(closeTag, codeStart);
+      if (end === -1) break;
+      const fullMatch = html.slice(start, end + closeTag.length);
+      const raw = html.slice(codeStart, end);
+      const mermaidCode = raw.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').trim();
+      scanIndex = end + closeTag.length;
 
       const promise = (async () => {
         try {

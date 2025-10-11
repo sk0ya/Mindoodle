@@ -56,7 +56,8 @@ export function getDescendantNodeIds(
   const queue: string[] = [nodeId];
 
   while (queue.length > 0) {
-    const currentNodeId = queue.shift()!;
+    const currentNodeId = queue.shift();
+    if (!currentNodeId) continue;
     const childIds = normalizedData.childrenMap[currentNodeId] || [];
 
     childIds.forEach(childId => {

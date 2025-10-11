@@ -5,6 +5,7 @@ import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedSto
 let historyCommitTimer: ReturnType<typeof setTimeout> | null = null;
 const HISTORY_DEBOUNCE_MS = 120;
 import type { MindMapStore, HistoryState } from './types';
+import type { MindMapNode } from '@shared/types';
 
 export interface HistorySlice extends HistoryState {
   undo: () => void;
@@ -17,6 +18,27 @@ export interface HistorySlice extends HistoryState {
   beginHistoryGroup?: (label?: string) => void;
   endHistoryGroup?: (commit?: boolean) => void;
 }
+
+// Extract layout-independent node data for history comparison
+const stripLayout = (nodes: MindMapNode[]): Array<Record<string, unknown>> =>
+  (nodes || []).map((n) => ({
+    id: n.id,
+    text: n.text,
+    fontSize: n.fontSize,
+    fontWeight: n.fontWeight,
+    fontFamily: n.fontFamily,
+    fontStyle: n.fontStyle,
+    color: n.color,
+    collapsed: n.collapsed,
+    links: n.links,
+    markdownMeta: n.markdownMeta,
+    note: n.note,
+    customImageWidth: n.customImageWidth,
+    customImageHeight: n.customImageHeight,
+    kind: n.kind,
+    tableData: n.tableData,
+    children: stripLayout(n.children || []),
+  }));
 
 export const createHistorySlice: StateCreator<
   MindMapStore,
@@ -91,30 +113,6 @@ export const createHistorySlice: StateCreator<
       if (!draft.normalizedData || !draft.data) return;
       const nextRootNodes = denormalizeTreeData(draft.normalizedData);
 
-      
-      const stripLayout = (nodes: any[]): any[] =>
-        (nodes || []).map((n) => ({
-          
-          id: n.id,
-          text: n.text,
-          fontSize: n.fontSize,
-          fontWeight: n.fontWeight,
-          fontFamily: n.fontFamily,
-          fontStyle: n.fontStyle,
-          color: n.color,
-          collapsed: n.collapsed,
-          links: n.links,
-          markdownMeta: n.markdownMeta,
-          note: n.note,
-          customImageWidth: n.customImageWidth,
-          customImageHeight: n.customImageHeight,
-          
-          kind: n.kind,
-          tableData: n.tableData,
-          
-          children: stripLayout(n.children || []),
-        }));
-
       const last = draft.history[draft.historyIndex]?.rootNodes;
       try {
         const lastKey = last ? JSON.stringify(stripLayout(last)) : null;
@@ -152,34 +150,42 @@ export const createHistorySlice: StateCreator<
     }
   },
 
-  
+
+
   beginHistoryGroup: (_label?: string) => {
-    
-    set((draft: any) => {
-      const depth = (draft._groupDepth || 0) + 1;
-      draft._groupDepth = depth;
+
+    set((draft) => {
+      const draftWithGroup = draft as typeof draft & { _groupDepth?: number; _groupDirty?: boolean };
+      const depth = (draftWithGroup._groupDepth || 0) + 1;
+      draftWithGroup._groupDepth = depth;
       if (depth === 1) {
-        draft._groupDirty = false;
+        draftWithGroup._groupDirty = false;
       }
     });
-    
+
     if (historyCommitTimer) { clearTimeout(historyCommitTimer); historyCommitTimer = null; }
   },
 
-  
+
   endHistoryGroup: (commit: boolean = true) => {
-    const depth = (get() as any)._groupDepth || 0;
+    const state = get() as ReturnType<typeof get> & { _groupDepth?: number; _groupDirty?: boolean };
+    const depth = state._groupDepth || 0;
     if (depth <= 0) return;
-    set((draft: any) => {
-      draft._groupDepth = depth - 1;
+    set((draft) => {
+      const draftWithGroup = draft as typeof draft & { _groupDepth?: number; _groupDirty?: boolean };
+      draftWithGroup._groupDepth = depth - 1;
     });
-    const stillDepth = (get() as any)._groupDepth || 0;
-    if (stillDepth > 0) return; 
-    const dirty = (get() as any)._groupDirty || false;
+    const stateAfter = get() as ReturnType<typeof get> & { _groupDepth?: number; _groupDirty?: boolean };
+    const stillDepth = stateAfter._groupDepth || 0;
+    if (stillDepth > 0) return;
+    const dirty = stateAfter._groupDirty || false;
     if (commit && dirty) {
-      
-      (get() as any).commitSnapshot();
+
+      get().commitSnapshot();
     }
-    set((draft: any) => { draft._groupDirty = false; });
+    set((draft) => {
+      const draftWithGroup = draft as typeof draft & { _groupDirty?: boolean };
+      draftWithGroup._groupDirty = false;
+    });
   },
 });

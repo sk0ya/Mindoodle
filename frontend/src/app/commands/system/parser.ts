@@ -1,6 +1,6 @@
 
 
-import type { ParseResult, ParsedCommand, Command, CommandArg } from './types';
+import type { ParseResult, ParsedCommand, Command, CommandArg, ArgsMap, ArgPrimitive } from './types';
 
 
 export function parseCommand(input: string): ParseResult {
@@ -49,28 +49,32 @@ export function validateCommand(parsed: ParsedCommand, command: Command): ParseR
   }
 
   const errors: string[] = [];
-  const processedArgs: Record<string, any> = { ...parsed.args };
+  const processedArgs: ArgsMap = { ...parsed.args } as ArgsMap;
 
-  
+
+
   for (const argDef of command.args) {
+    const hasValue = argDef.name in processedArgs;
     const value = processedArgs[argDef.name];
 
-    if (argDef.required && (value === undefined || value === null)) {
+    if (argDef.required && !hasValue) {
       errors.push(`Required argument '${argDef.name}' is missing`);
       continue;
     }
 
-    
-    if (value === undefined && argDef.default !== undefined) {
-      processedArgs[argDef.name] = argDef.default;
+
+    if (!hasValue && argDef.default !== undefined) {
+      processedArgs[argDef.name] = argDef.default as ArgPrimitive;
       continue;
     }
 
-    
-    if (value !== undefined) {
-      const validationError = validateArgumentType(value, argDef);
-      if (validationError) {
-        errors.push(validationError);
+
+    if (hasValue) {
+      const normalized = normalizeArgumentValue(value as unknown as ArgPrimitive, argDef);
+      if (!normalized.ok) {
+        errors.push(normalized.error);
+      } else {
+        processedArgs[argDef.name] = normalized.value;
       }
     }
   }
@@ -152,20 +156,20 @@ function tokenize(input: string): string[] {
  * - Positional: "center node-123"
  * - Named: "--text 'Hello World' --edit true"
  */
-function parseArguments(tokens: string[]): Record<string, any> {
-  const args: Record<string, any> = {};
+function parseArguments(tokens: string[]): ArgsMap {
+  const args: ArgsMap = {} as ArgsMap;
   let i = 0;
 
   while (i < tokens.length) {
     const token = tokens[i];
-    if (token === undefined) { i++; continue; }
+    if (!token) { i++; continue; }
 
     if (token.startsWith('--')) {
-      
+
       const argName = token.slice(2);
       const next = tokens[i + 1];
-      if (i + 1 < tokens.length && next !== undefined && !next.startsWith('--')) {
-        
+      if (i + 1 < tokens.length && next && !next.startsWith('--')) {
+        // assign raw token; conversion happens in validation
         args[argName] = parseValue(next);
         i += 2;
       } else {
@@ -174,7 +178,7 @@ function parseArguments(tokens: string[]): Record<string, any> {
         i++;
       }
     } else {
-      
+      // positional arg; conversion happens in validation
       args[`_${i}`] = parseValue(token);
       i++;
     }
@@ -184,53 +188,47 @@ function parseArguments(tokens: string[]): Record<string, any> {
 }
 
 
-function parseValue(value: string): any {
-  
-  if (value === 'true') return true;
-  if (value === 'false') return false;
-
-  
-  if (/^-?\d+$/.test(value)) {
-    return parseInt(value, 10);
-  }
-  if (/^-?\d*\.\d+$/.test(value)) {
-    return parseFloat(value);
-  }
-
-  
+function parseValue(value: string): string {
+  // keep values as strings during tokenization; trim wrapping quotes if present
   if ((value.startsWith('"') && value.endsWith('"')) ||
       (value.startsWith("'") && value.endsWith("'"))) {
     return value.slice(1, -1);
   }
-
   return value;
 }
 
+type Normalized = { ok: true; value: ArgPrimitive } | { ok: false; error: string };
 
-function validateArgumentType(value: any, argDef: CommandArg): string | null {
+function normalizeArgumentValue(value: ArgPrimitive, argDef: CommandArg): Normalized {
   switch (argDef.type) {
-    case 'string':
-      if (typeof value !== 'string') {
-        return `Argument '${argDef.name}' must be a string`;
+    case 'string': {
+      if (typeof value === 'string') return { ok: true, value };
+      return { ok: true, value: String(value) as ArgPrimitive };
+    }
+    case 'number': {
+      if (typeof value === 'number' && !Number.isNaN(value)) return { ok: true, value };
+      if (typeof value === 'string') {
+        const n = Number(value);
+        if (!Number.isNaN(n)) return { ok: true, value: n as ArgPrimitive };
       }
-      break;
-    case 'number':
-      if (typeof value !== 'number' || isNaN(value)) {
-        return `Argument '${argDef.name}' must be a number`;
+      return { ok: false, error: `Argument '${argDef.name}' must be a number` };
+    }
+    case 'boolean': {
+      if (typeof value === 'boolean') return { ok: true, value };
+      if (typeof value === 'string') {
+        if (value.toLowerCase() === 'true') return { ok: true, value: true };
+        if (value.toLowerCase() === 'false') return { ok: true, value: false };
       }
-      break;
-    case 'boolean':
-      if (typeof value !== 'boolean') {
-        return `Argument '${argDef.name}' must be a boolean`;
-      }
-      break;
-    case 'node-id':
-      if (typeof value !== 'string' || !value.trim()) {
-        return `Argument '${argDef.name}' must be a valid node ID`;
-      }
-      break;
+      return { ok: false, error: `Argument '${argDef.name}' must be a boolean` };
+    }
+    case 'node-id': {
+      const s = typeof value === 'string' ? value : String(value);
+      if (s.trim().length > 0) return { ok: true, value: s as ArgPrimitive };
+      return { ok: false, error: `Argument '${argDef.name}' must be a valid node ID` };
+    }
+    default:
+      return { ok: true, value };
   }
-  return null;
 }
 
 

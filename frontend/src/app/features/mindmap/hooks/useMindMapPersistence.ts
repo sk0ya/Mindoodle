@@ -56,7 +56,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       initManager();
       prevConfigRef.current = config;
     }
-  }, [config]);
+  }, [config, adapterManager]);
 
   
   useEffect(() => {
@@ -197,9 +197,12 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     setCurrentWorkspaceId(workspaceId);
     adapterManager.setCurrentWorkspace(workspaceId);
 
-    
+
     const currentAdapter = adapterManager.getCurrentAdapter();
-    logger.info(`After switch - Current adapter: ${currentAdapter?.constructor.name}, authenticated: ${(currentAdapter as any)?.isAuthenticated || 'N/A'}`);
+    const isAuthenticated = currentAdapter && 'isAuthenticated' in currentAdapter
+      ? currentAdapter.isAuthenticated
+      : 'N/A';
+    logger.info(`After switch - Current adapter: ${currentAdapter?.constructor.name}, authenticated: ${isAuthenticated}`);
 
     
     await refreshMapList();

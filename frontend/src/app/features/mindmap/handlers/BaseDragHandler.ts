@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getClientCoordinates, calculateDistance } from '../utils/canvasCoordinateUtils';
 
-export interface DragState<T = any> {
+export interface DragState<T = unknown> {
   isDragging: boolean;
   draggedItem: T | null;
   startPosition: { x: number; y: number } | null;
@@ -24,7 +24,7 @@ export interface DragCallbacks<T> {
 }
 
 
-export const useDragHandler = <T = any>(
+export const useDragHandler = <T = unknown>(
   config: BaseDragConfig = { dragThreshold: 5, enableDrag: true },
   callbacks: DragCallbacks<T> = {}
 ) => {

@@ -7,8 +7,12 @@ import type { MindMapData, MapIdentifier } from '@shared/types';
 
 export interface UseMindMapFileOpsParams {
   data: MindMapData | null;
-  allMindMaps: any[]; 
-  mindMap: any; 
+  allMindMaps: MindMapData[];
+  mindMap: {
+    readImageAsDataURL?: (path: string, workspaceId?: string) => Promise<string | null>;
+    refreshMapList?: () => Promise<void>;
+    selectRootFolder?: () => Promise<boolean>;
+  };
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
@@ -30,7 +34,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
 
         
         const targetMap = allMindMaps.find(
-          (map: any) =>
+          (map) =>
             map.mapIdentifier.mapId === mapIdentifier.mapId &&
             map.mapIdentifier.workspaceId === mapIdentifier.workspaceId
         );
@@ -113,7 +117,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         const updatedMaps = mapUpdates
           .map(update => {
             const mapToUpdate = allMindMaps.find(
-              (map: any) => map.mapIdentifier.mapId === update.id
+              (map) => map.mapIdentifier.mapId === update.id
             );
             if (!mapToUpdate) return null;
 

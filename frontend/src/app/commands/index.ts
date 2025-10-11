@@ -1,3 +1,4 @@
+import type { Command } from './system/types';
 
 import * as navigationCommands from './navigation/navigate';
 import * as centerCommands from './navigation/center';
@@ -43,7 +44,7 @@ export const commandCategories = Object.fromEntries(
     key,
     Object.values(mod),
   ])
-) as Record<string, any[]>;
+) as Record<string, Command[]>;
 
 
 export const commands = Object.values(commandCategories).flat();
@@ -52,7 +53,7 @@ export const commands = Object.values(commandCategories).flat();
 
 
 
-export function registerAllCommands(registry: any) {
+export function registerAllCommands(registry: { register: (_command: Command) => void }) {
   for (const command of commands) {
     try {
       if (command && typeof command === 'object' && command.name) {

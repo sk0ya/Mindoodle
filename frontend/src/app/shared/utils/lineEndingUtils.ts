@@ -47,9 +47,12 @@ export class LineEndingUtils {
     cr: number;
     dominant: string;
   } {
-    const crlfCount = (text.match(/\r\n/g) || []).length;
-    const lfCount = (text.match(/(?<!\r)\n/g) || []).length;
-    const crCount = (text.match(/\r(?!\n)/g) || []).length;
+    const crlfRe = /\r\n/g;
+    const lfRe = /(?<!\r)\n/g;
+    const crRe = /\r(?!\n)/g;
+    const crlfCount = Array.from(text.matchAll(crlfRe)).length;
+    const lfCount = Array.from(text.matchAll(lfRe)).length;
+    const crCount = Array.from(text.matchAll(crRe)).length;
 
     let dominant: string = this.LINE_ENDINGS.LF;
     if (crlfCount > lfCount && crlfCount > crCount) {

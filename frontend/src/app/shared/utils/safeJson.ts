@@ -7,7 +7,7 @@ export interface JsonParseResult<T> {
 }
 
 
-export function safeJsonParse<T = any>(jsonString: string): JsonParseResult<T> {
+export function safeJsonParse<T = unknown>(jsonString: string): JsonParseResult<T> {
   try {
     const data = JSON.parse(jsonString) as T;
     return { success: true, data };
@@ -22,11 +22,11 @@ export function safeJsonParse<T = any>(jsonString: string): JsonParseResult<T> {
 
 export function safeJsonParseWithDefault<T>(jsonString: string, defaultValue: T): T {
   const result = safeJsonParse<T>(jsonString);
-  return result.success ? result.data! : defaultValue;
+  return result.success && result.data !== undefined ? result.data : defaultValue;
 }
 
 
-export function safeJsonStringify(value: any, space?: number): JsonParseResult<string> {
+export function safeJsonStringify(value: unknown, space?: number): JsonParseResult<string> {
   try {
     const data = JSON.stringify(value, null, space);
     return { success: true, data };
@@ -50,11 +50,11 @@ export function parseStoredJson<T>(key: string, defaultValue: T): T {
 }
 
 
-export function storeJson(key: string, value: any): boolean {
+export function storeJson(key: string, value: unknown): boolean {
   try {
     const result = safeJsonStringify(value);
-    if (result.success) {
-      localStorage.setItem(key, result.data!);
+    if (result.success && result.data !== undefined) {
+      localStorage.setItem(key, result.data);
       return true;
     }
     return false;

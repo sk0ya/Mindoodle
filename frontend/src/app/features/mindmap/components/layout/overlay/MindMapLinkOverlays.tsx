@@ -2,22 +2,22 @@
 import React from 'react';
 import NodeLinkModal from '../../modals/NodeLinkModal';
 import LinkActionMenu from '../../modals/LinkActionMenu';
-import type { NodeLink, MapIdentifier } from '@shared/types';
+import type { NodeLink, MapIdentifier, MindMapData } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 
 type Props = {
-  
-  allMaps: Array<{ mapIdentifier: { mapId: string; workspaceId: string }; title: string }>;
-  currentMapData: any;
 
-  
+  allMaps: Array<{ mapIdentifier: { mapId: string; workspaceId: string }; title: string }>;
+  currentMapData: MindMapData | null;
+
+
   showLinkModal: boolean;
   linkModalNodeId: string | null;
   editingLink: NodeLink | null;
   onCloseLinkModal: () => void;
   onSaveLink: (linkData: Partial<NodeLink>) => Promise<void> | void;
   onDeleteLink: (linkId: string) => Promise<void> | void;
-  onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<any>;
+  onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<MindMapData | null>;
   
   loadExplorerTree?: () => Promise<ExplorerItem | null>;
 
@@ -54,7 +54,7 @@ const MindMapLinkOverlays: React.FC<Props> = ({
           onSave={onSaveLink}
           onDelete={onDeleteLink}
           availableMaps={allMaps}
-          currentMapData={currentMapData}
+          currentMapData={currentMapData ?? undefined}
           onLoadMapData={onLoadMapData}
           loadExplorerTree={loadExplorerTree}
           currentNodeId={linkModalNodeId}

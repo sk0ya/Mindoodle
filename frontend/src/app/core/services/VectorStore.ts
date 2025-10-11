@@ -14,7 +14,7 @@ export class VectorStore {
   private db: IDBDatabase | null = null;
   private initPromise: Promise<void> | null = null;
 
-  
+
   private async initialize(): Promise<void> {
     if (this.initPromise) return this.initPromise;
 
@@ -33,7 +33,7 @@ export class VectorStore {
       request.onupgradeneeded = (event) => {
         const db = (event.target as IDBOpenDBRequest).result;
 
-        
+
         if (!db.objectStoreNames.contains(STORE_NAME)) {
           const store = db.createObjectStore(STORE_NAME, { keyPath: 'filePath' });
           store.createIndex('timestamp', 'timestamp', { unique: false });
@@ -44,12 +44,20 @@ export class VectorStore {
     return this.initPromise;
   }
 
+
+  private getDb(): IDBDatabase {
+    if (!this.db) {
+      throw new Error('Database not initialized');
+    }
+    return this.db;
+  }
+
   
   async saveVector(filePath: string, vector: Float32Array): Promise<void> {
     await this.initialize();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.getDb().transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       const record: VectorRecord = {
@@ -70,7 +78,7 @@ export class VectorStore {
     await this.initialize();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = this.getDb().transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.get(filePath);
@@ -89,7 +97,7 @@ export class VectorStore {
     await this.initialize();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readonly');
+      const transaction = this.getDb().transaction([STORE_NAME], 'readonly');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.getAll();
@@ -114,7 +122,7 @@ export class VectorStore {
     await this.initialize();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.getDb().transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.delete(filePath);
@@ -129,7 +137,7 @@ export class VectorStore {
     await this.initialize();
 
     return new Promise((resolve, reject) => {
-      const transaction = this.db!.transaction([STORE_NAME], 'readwrite');
+      const transaction = this.getDb().transaction([STORE_NAME], 'readwrite');
       const store = transaction.objectStore(STORE_NAME);
 
       const request = store.clear();

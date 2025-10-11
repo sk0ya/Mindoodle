@@ -36,7 +36,7 @@ export function useMindMapViewport({
   
   const ensureSelectedNodeVisible = useStableCallback(() => {
     try {
-      const st = useMindMapStore.getState() as any;
+      const st = useMindMapStore.getState();
       const selId: string | null = st.selectedNodeId || null;
       const mapData = st.data || null;
       if (!selId || !mapData) return;
@@ -129,13 +129,13 @@ export function useMindMapViewport({
       
       effectiveHeight -= 24;
 
-      const currentZoom = (st.ui?.zoom || 1) * 1.5; 
+      const currentZoom = (st.ui?.zoom || 1) * 1.5;
       const currentPan = st.ui?.pan || { x: 0, y: 0 };
 
-      
-      const fontSize = (st.settings?.fontSize ?? 14) as number;
+
+      const fontSize = st.settings?.fontSize ?? 14;
       const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
-      const nodeSize = calculateNodeSize(targetNode as any, undefined as any, false, fontSize, wrapConfig);
+      const nodeSize = calculateNodeSize(targetNode, undefined, false, fontSize, wrapConfig);
       const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
       const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
 
@@ -194,8 +194,7 @@ export function useMindMapViewport({
   const centerNodeInView = useStableCallback((nodeId: string, _animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
     if (!data) return;
 
-    
-    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && (fallbackCoords as any).mode === 'left';
+    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left';
 
     
     const rootNodes = data.rootNodes || [];
@@ -217,9 +216,11 @@ export function useMindMapViewport({
     
     const VIM_HEIGHT = 24;
     const defaultNoteHeight = viewportService.getDefaultNoteHeight();
-    let noteHeight = uiStore.showNodeNotePanel
-      ? (uiStore.nodeNotePanelHeight && uiStore.nodeNotePanelHeight > 0 ? uiStore.nodeNotePanelHeight : defaultNoteHeight)
-      : 0;
+    let noteHeight = 0;
+    if (uiStore.showNodeNotePanel) {
+      const h = uiStore.nodeNotePanelHeight || 0;
+      noteHeight = h > 0 ? h : defaultNoteHeight;
+    }
 
     
     let domNoteHeight = 0;

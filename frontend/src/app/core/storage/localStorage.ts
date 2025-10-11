@@ -60,11 +60,11 @@ export class LocalStorageManager {
       const stringifyResult = safeJsonStringify(value);
       if (!stringifyResult.success) {
         logger.error(`❌ LocalStorage: JSON変換失敗`, { key, error: stringifyResult.error });
-        return { success: false, error: stringifyResult.error! };
+        return { success: false, error: stringifyResult.error || 'Stringify failed' };
       }
-      const serialized = stringifyResult.data!;
+      const serialized = stringifyResult.data || '';
       localStorage.setItem(key, serialized);
-      
+
       logger.debug(`💾 LocalStorage: 保存成功`, { key, type: typeof value });
       return { success: true, data: value };
     } catch (error) {
@@ -78,21 +78,21 @@ export class LocalStorageManager {
   getItem<T>(key: StorageKey, defaultValue?: T): LocalStorageResult<T> {
     try {
       const item = localStorage.getItem(key);
-      
+
       if (item === null) {
         logger.debug(`📋 LocalStorage: キー未発見 - デフォルト値使用`, { key });
-        return { 
-          success: true, 
-          data: defaultValue 
+        return {
+          success: true,
+          data: defaultValue
         };
       }
-      
+
       const parseResult = safeJsonParse<T>(item);
       if (!parseResult.success) {
         logger.error(`❌ LocalStorage: JSON解析失敗`, { key, error: parseResult.error });
-        return { success: false, error: parseResult.error!, data: defaultValue };
+        return { success: false, error: parseResult.error || 'Parse failed', data: defaultValue };
       }
-      const parsed = parseResult.data!;
+      const parsed = parseResult.data as T;
       logger.debug(`📋 LocalStorage: 取得成功`, { key, type: typeof parsed });
       return { success: true, data: parsed };
     } catch (error) {

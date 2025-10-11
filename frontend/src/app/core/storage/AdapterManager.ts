@@ -64,12 +64,13 @@ export class AdapterManager {
     if (this.localAdapter && typeof this.localAdapter.listWorkspaces === 'function') {
       try {
         const localWorkspaces = await this.localAdapter.listWorkspaces();
+        const adapter = this.localAdapter;
         localWorkspaces.forEach(ws => {
           workspaces.push({
             id: ws.id,
             name: ws.name,
             type: 'local',
-            adapter: this.localAdapter!
+            adapter
           });
         });
       } catch (error) {

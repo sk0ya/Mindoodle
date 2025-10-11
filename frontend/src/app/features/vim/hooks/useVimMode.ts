@@ -1,9 +1,15 @@
 import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
-import { useMindMapStore } from '../../mindmap/store/mindMapStore';
-import type { MindMapNode } from '@shared/types';
+import { useMindMapStore, type MindMapStore } from '../../mindmap/store/mindMapStore';
+import type { MindMapNode, MapIdentifier } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
 import { VimCountBuffer, VimRepeatRegistry } from '../services';
 
+// Extended store type with runtime properties that may be injected
+type ExtendedMindMapStore = MindMapStore & {
+  saveMapMarkdown?: (identifier: MapIdentifier, markdown: string) => Promise<void>;
+  subscribeMarkdownFromNodes?: (callback: (markdown: string) => void) => () => void;
+  allMindMaps?: Array<{ mapIdentifier: MapIdentifier }>;
+};
 
 export type VimMode = 'normal' | 'insert' | 'visual' | 'command' | 'search' | 'jumpy';
 
@@ -57,7 +63,7 @@ interface VimActions {
 
 export interface VimModeHook extends VimState, VimActions {}
 
-export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
+export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
   const { settings, updateSetting, setSearchQuery: setUISearchQuery } = useMindMapStore();
 
   
@@ -91,12 +97,13 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   }, [updateSetting]);
 
   const toggle = useCallback(() => {
-    if ((settings as any).vimMindMap) {
+    const settingsWithVim = settings as typeof settings & { vimMindMap?: boolean };
+    if (settingsWithVim.vimMindMap) {
       disable();
     } else {
       enable();
     }
-  }, [(settings as any).vimMindMap, enable, disable]);
+  }, [settings, enable, disable]);
 
   const executeCommand = useCallback((command: string) => {
     setState(prev => ({ 
@@ -145,13 +152,13 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     const args = parts.slice(1);
 
     // Get the store state
-    const store = useMindMapStore.getState() as any;
+    const store = useMindMapStore.getState();
 
     try {
       // Helper to rebuild editor source from current settings (editor is source of truth)
       const rebuildMappingsSource = () => {
         try {
-          const st = useMindMapStore.getState() as any;
+          const st = useMindMapStore.getState();
           const { vimLeader, vimCustomKeybindings, vimMappingsSource } = st.settings || {};
           const baseSrc: string = vimMappingsSource || '';
           const lines = (baseSrc || '').split(/\r?\n/);
@@ -162,7 +169,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
           }
           const commentBlock = lines.slice(0, idx).join('\n');
           const leaderStr = (vimLeader === ' ' ? '<Space>' : (vimLeader || ','));
-          const maps = Object.entries((vimCustomKeybindings as Record<string,string>) || {}).sort(([a],[b]) => a.localeCompare(b));
+          const maps = Object.entries(vimCustomKeybindings || {}).sort(([a],[b]) => a.localeCompare(b));
           const body = [
             `set leader ${leaderStr}`,
             '',
@@ -195,7 +202,6 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
               setCommandOutput('Error: leader must be a single character or <Space>');
               break;
             }
-            const store = useMindMapStore.getState() as any;
             store.updateSetting('vimLeader', leader);
             setCommandOutput(`Leader set to "${leader === ' ' ? '<Space>' : leader}"`);
             // Sync back into editor text
@@ -221,7 +227,6 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
             setCommandOutput('Usage: map <lhs> <command>');
             break;
           }
-          const store = useMindMapStore.getState() as any;
           const current: Record<string, string> = { ...(store.settings?.vimCustomKeybindings || {}) };
           current[lhs] = rhs;
           store.updateSetting('vimCustomKeybindings', current);
@@ -238,7 +243,6 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
             break;
           }
           const lhs = args[0];
-          const store = useMindMapStore.getState() as any;
           const current: Record<string, string> = { ...(store.settings?.vimCustomKeybindings || {}) };
           if (lhs in current) {
             delete current[lhs];
@@ -253,7 +257,6 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
         case 'mapclear':
         case 'unmapall': {
-          const store = useMindMapStore.getState() as any;
           store.updateSetting('vimCustomKeybindings', {});
           setCommandOutput('Cleared all custom mappings');
           rebuildMappingsSource();
@@ -262,7 +265,6 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
         case 'maps':
         case 'maplist': {
-          const store = useMindMapStore.getState() as any;
           const m: Record<string, string> = store.settings?.vimCustomKeybindings || {};
           const entries = Object.entries(m);
           if (entries.length === 0) {
@@ -278,7 +280,6 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
           // :mapshow <lhs>
           if (args.length < 1) { setCommandOutput('Usage: mapshow <lhs>'); break; }
           const lhs = args[0];
-          const store = useMindMapStore.getState() as any;
           const m: Record<string, string> = store.settings?.vimCustomKeybindings || {};
           const rhs = m[lhs];
           setCommandOutput(rhs ? `${lhs} -> ${rhs}` : `No mapping for ${lhs}`);
@@ -321,8 +322,9 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
           const fullPath = folderPath.startsWith('/') ? folderPath : `/${currentWorkspace}/${folderPath}`;
 
           try {
-            if (typeof (window as any).mindoodleCreateFolder === 'function') {
-              await (window as any).mindoodleCreateFolder(fullPath);
+            const globalWindow = window as typeof window & { mindoodleCreateFolder?: (path: string) => Promise<void> };
+            if (typeof globalWindow.mindoodleCreateFolder === 'function') {
+              await globalWindow.mindoodleCreateFolder(fullPath);
               setCommandOutput(`Created folder: ${folderPath}`);
             } else {
               setCommandOutput('Error: Global createFolder not available');
@@ -348,14 +350,18 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
           }
 
           try {
-            if (typeof (window as any).mindoodleCreateAndSelectMap === 'function') {
+            const globalWindow = window as typeof window & {
+              mindoodleCreateAndSelectMap?: (name: string, workspaceId: string, category: string) => Promise<void>
+            };
+            if (typeof globalWindow.mindoodleCreateAndSelectMap === 'function') {
               // Extract filename from path (everything after the last '/')
               const mapName = fullPath.includes('/') ? fullPath.split('/').pop() || fullPath : fullPath;
               // Use the full path as category if it contains '/'
               const actualCategory = fullPath.includes('/') ? fullPath.replace(/\/[^/]*$/, '') : '';
 
-              await (window as any).mindoodleCreateAndSelectMap(mapName, workspaceId, actualCategory);
-              setCommandOutput(`Created map: ${mapName}${actualCategory ? ` in ${actualCategory}` : ''}`);
+              await globalWindow.mindoodleCreateAndSelectMap(mapName, workspaceId, actualCategory);
+              const categoryInfo = actualCategory ? ` in ${actualCategory}` : '';
+              setCommandOutput(`Created map: ${mapName}${categoryInfo}`);
             } else {
               setCommandOutput('Error: Global createAndSelectMap not available');
             }
@@ -366,37 +372,47 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
         }
 
         case 'w':
-        case 'write':
-          
-          if (store.data && store.saveMapMarkdown) {
-            const markdown = store.subscribeMarkdownFromNodes ? 
+        case 'write': {
+          const extendedStore = store as ExtendedMindMapStore;
+          if (extendedStore.data && extendedStore.saveMapMarkdown) {
+            const markdown = extendedStore.subscribeMarkdownFromNodes ?
               await new Promise<string>((resolve) => {
-                const unsub = store.subscribeMarkdownFromNodes((md: string) => {
-                  unsub();
-                  resolve(md);
-                });
+                const subFn = extendedStore.subscribeMarkdownFromNodes;
+                if (subFn) {
+                  const unsub = subFn((md: string) => {
+                    unsub();
+                    resolve(md);
+                  });
+                } else {
+                  resolve('');
+                }
               }) : '';
-            await store.saveMapMarkdown(store.data.mapIdentifier, markdown);
+            await extendedStore.saveMapMarkdown(extendedStore.data.mapIdentifier, markdown);
             setCommandOutput('Map saved');
           }
           break;
+        }
 
         case 'pwd': {
-          
+
           const currentMap = store.data?.mapIdentifier;
-          
-          const workspaces = (window as any).mindoodleWorkspaces || [];
-          const workspaceName = workspaces.find((w: any) => w.id === currentMap?.workspaceId)?.name || 'Unknown';
+
+          const globalWindow = window as typeof window & {
+            mindoodleWorkspaces?: Array<{ id: string; name: string }>;
+          };
+          const workspaces = globalWindow.mindoodleWorkspaces || [];
+          const workspaceName = workspaces.find((w) => w.id === currentMap?.workspaceId)?.name || 'Unknown';
 
           setCommandOutput(`${workspaceName}/${currentMap?.mapId || 'none'}`);
           break;
         }
 
         case 'ls': {
-          
+
           const currentWs = store.data?.mapIdentifier?.workspaceId;
-          const maps = store.allMindMaps?.filter((map: any) => map.mapIdentifier.workspaceId === currentWs) || [];
-          const mapList = maps.map((map: any) => {
+          const extendedStore = store as ExtendedMindMapStore;
+          const maps = extendedStore.allMindMaps?.filter((map) => map.mapIdentifier.workspaceId === currentWs) || [];
+          const mapList = maps.map((map) => {
             const prefix = map.mapIdentifier.mapId === store.data?.mapIdentifier?.mapId ? '*' : '';
             return `${prefix}${map.mapIdentifier.mapId}`;
           }).join(' ');
@@ -426,14 +442,14 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   }, []);
 
   const getCurrentRootNode = useCallback((): MindMapNode | null => {
-    const { data, selectedNodeId } = useMindMapStore.getState() as any;
+    const { data, selectedNodeId } = useMindMapStore.getState();
     const roots: MindMapNode[] = data?.rootNodes || [];
     if (roots.length === 0) return null;
     if (selectedNodeId) {
       for (const r of roots) {
         const stack: MindMapNode[] = [r];
         while (stack.length) {
-          const n = stack.pop()!;
+          const n = stack.pop();
           if (!n) continue;
           if (n.id === selectedNodeId) return r;
           if (n.children?.length) stack.push(...n.children);
@@ -454,7 +470,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
   }, []);
 
   const getAllNodes = useCallback((): MindMapNode[] => {
-    const { data } = useMindMapStore.getState() as any;
+    const { data } = useMindMapStore.getState();
     const roots: MindMapNode[] = data?.rootNodes || [];
     const allNodes: MindMapNode[] = [];
 
@@ -520,10 +536,10 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
     // 最初の結果に移動
     if (results.length > 0) {
-      const { selectNode } = useMindMapStore.getState() as any;
+      const { selectNode } = useMindMapStore.getState();
       selectNode(results[0]);
     }
-  }, [state.searchQuery, getAllNodes]);
+  }, [state, getAllNodes]);
 
   const nextSearchResult = useCallback(() => {
     const { searchQuery } = state;
@@ -542,7 +558,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     if (results.length === 0) return;
 
     // Find next result after current selected node
-    const { selectedNodeId } = useMindMapStore.getState() as any;
+    const { selectedNodeId } = useMindMapStore.getState();
     let nextIndex = 0;
 
     if (selectedNodeId) {
@@ -558,9 +574,9 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
       currentSearchIndex: nextIndex
     }));
 
-    const { selectNode } = useMindMapStore.getState() as any;
+    const { selectNode } = useMindMapStore.getState();
     selectNode(results[nextIndex]);
-  }, [state.searchQuery, getAllNodes]);
+  }, [state, getAllNodes]);
 
   const previousSearchResult = useCallback(() => {
     const { searchQuery } = state;
@@ -579,7 +595,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     if (results.length === 0) return;
 
     // Find previous result before current selected node
-    const { selectedNodeId } = useMindMapStore.getState() as any;
+    const { selectedNodeId } = useMindMapStore.getState();
     let prevIndex = results.length - 1;
 
     if (selectedNodeId) {
@@ -595,9 +611,9 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
       currentSearchIndex: prevIndex
     }));
 
-    const { selectNode } = useMindMapStore.getState() as any;
+    const { selectNode } = useMindMapStore.getState();
     selectNode(results[prevIndex]);
-  }, [state.searchQuery, getAllNodes]);
+  }, [state, getAllNodes]);
 
   const exitSearch = useCallback(() => {
     setState(prev => ({
@@ -685,7 +701,7 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
 
     if (exactMatch) {
       // Jump immediately on exact match
-      const { selectNode } = useMindMapStore.getState() as any;
+      const { selectNode } = useMindMapStore.getState();
       selectNode(exactMatch.nodeId);
       exitJumpy();
       return;
@@ -748,9 +764,11 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     }
   }, [state.mode]);
 
-  return useMemo(() => ({
+  return useMemo(() => {
+    const settingsWithVim = settings as typeof settings & { vimMindMap?: boolean };
+    return {
     ...state,
-    isEnabled: (settings as any).vimMindMap,
+    isEnabled: settingsWithVim.vimMindMap,
     setMode,
     enable,
     disable,
@@ -781,9 +799,10 @@ export const useVimMode = (_mindMapInstance?: any): VimModeHook => {
     hasCount,
     getCountBuffer,
     getRepeatRegistry
-  }), [
+  };
+  }, [
     state,
-    (settings as any).vimMindMap,
+    settings,
     setMode,
     enable,
     disable,

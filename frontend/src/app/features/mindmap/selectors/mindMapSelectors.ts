@@ -3,7 +3,8 @@ import type { MindMapNode } from '@shared/types';
 export function selectNodeIdByMarkdownLine(rootNodes: MindMapNode[], line: number): string | null {
   const stack = [...rootNodes];
   while (stack.length) {
-    const n = stack.pop()!;
+    const n = stack.pop();
+    if (!n) continue;
     if (n.markdownMeta?.lineNumber === line) return n.id;
     if (n.children?.length) stack.push(...n.children);
   }
@@ -37,7 +38,8 @@ export function flattenVisibleNodes(root: MindMapNode): MindMapNode[] {
   const result: MindMapNode[] = [];
   const stack: MindMapNode[] = [root];
   while (stack.length) {
-    const node = stack.pop()!;
+    const node = stack.pop();
+    if (!node) continue;
     result.push(node);
     if (!node.collapsed && node.children?.length) {
       for (let i = node.children.length - 1; i >= 0; i--) stack.push(node.children[i]);

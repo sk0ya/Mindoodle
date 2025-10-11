@@ -64,9 +64,17 @@ export const useSidebar = ({
 
   const toggleCategoryCollapse = useStableCallback((category: string) => {
     setCollapsedCategories(prev => {
-      return prev.has(category)
-        ? (prev.size === 1 ? new Set<string>() : (() => { const s = new Set(prev); s.delete(category); return s; })())
-        : (() => { const s = new Set(prev); s.add(category); return s; })();
+      if (prev.has(category)) {
+        if (prev.size === 1) {
+          return new Set<string>();
+        }
+        const s = new Set(prev);
+        s.delete(category);
+        return s;
+      }
+      const s = new Set(prev);
+      s.add(category);
+      return s;
     });
   });
 
@@ -348,9 +356,10 @@ export const useSidebar = ({
       parts.forEach((part) => {
         if (!current.children) current.children = [];
 
-        let folder = current.children.find(
-          child => child.type === 'folder' && child.name === part
-        );
+        let folder: ExplorerItem | undefined = undefined;
+        for (const child of current.children) {
+          if (child.type === 'folder' && child.name === part) { folder = child; break; }
+        }
 
         if (!folder) {
           const fullPath = `${current.path}/${part}`;
@@ -554,7 +563,8 @@ export const useSidebar = ({
           icon: <BookOpen size={14} />,
           onClick: () => {
             if (targetPath && /\.md$/i.test(targetPath)) {
-              const wsMatch = targetPath.match(/^\/((ws_[^/]+))\//);
+              const wsRe = /^\/((ws_[^/]+))\//;
+              const wsMatch = wsRe.exec(targetPath);
               const workspaceId = wsMatch ? wsMatch[1] : undefined;
               const mapId = targetPath.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
               window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } }));

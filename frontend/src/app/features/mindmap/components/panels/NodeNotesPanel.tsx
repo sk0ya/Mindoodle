@@ -56,7 +56,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       .finally(() => {
         stopLoading();
       });
-  }, [currentMapIdentifier, getMapMarkdown]);
+  }, [currentMapIdentifier, getMapMarkdown, startLoading, stopLoading]);
 
   // Handle map markdown changes
   const handleMapMarkdownChange = useCallback((value: string) => {
@@ -88,7 +88,13 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         return prevMarkdown;
       });
     });
-    return () => { try { unsub(); } catch (_e) { /* ignore */ } };
+    return () => {
+      try {
+        unsub();
+      } catch (e) {
+        console.error('Failed to unsubscribe markdown subscription', e);
+      }
+    };
   }, [subscribeMarkdownFromNodes]); // Remove mapMarkdown and editorFocused from deps
 
   // Sync ref with state for reliable focus tracking
@@ -143,6 +149,8 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       setMarkdownPanelWidth?.(currentWidth);
     };
 
+    const bumpResize = () => { setResizeCounter(prev => prev + 1); };
+
     const handleMouseUp = (e: MouseEvent) => {
       e.preventDefault();
       e.stopPropagation();
@@ -152,7 +160,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       
       setLocalStorage(STORAGE_KEYS.NOTES_PANEL_WIDTH, currentWidth);
       
-      setTimeout(() => { setResizeCounter(prev => prev + 1); }, 50);
+      setTimeout(bumpResize, 50);
     };
 
     
@@ -170,10 +178,11 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         setMarkdownPanelWidth?.(width);
       }
     }
-    
-    
+
+
+
     return () => { setMarkdownPanelWidth?.(0); };
-  }, []);
+  }, [setMarkdownPanelWidth]);
 
   
 

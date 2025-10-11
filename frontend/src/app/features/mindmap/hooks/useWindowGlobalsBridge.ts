@@ -1,17 +1,36 @@
 import { useEffect } from 'react';
-import type { MapIdentifier } from '@shared/types';
+import type { MapIdentifier, MindMapData } from '@shared/types';
+import type { ExplorerItem } from '@core/types/storage.types';
 
 interface WindowGlobalsBridgeParams {
-  workspaces: any[] | undefined;
+  workspaces: Array<{ id: string; name: string }> | undefined;
   addWorkspace: (() => Promise<void>) | undefined;
   removeWorkspace: ((id: string) => Promise<void>) | undefined;
-  allMindMaps: any[] | undefined;
+  allMindMaps: MindMapData[] | undefined;
   currentMapId: string | null;
   currentWorkspaceId?: string | null;
-  explorerTree: any;
-  selectMapById: (mapId: MapIdentifier) => Promise<void>;
-  mindMap: any;
+  explorerTree: ExplorerItem | null;
+  selectMapById: (mapId: MapIdentifier) => Promise<void | boolean>;
+  mindMap: {
+    refreshMapList?: () => Promise<void>;
+  };
 }
+
+// Extend Window interface for custom Mindoodle properties
+interface MindoodleWindow extends Window {
+  mindoodleWorkspaces: Array<{ id: string; name: string }>;
+  mindoodleAddWorkspace: () => Promise<void>;
+  mindoodleRemoveWorkspace: (id: string) => Promise<void>;
+  mindoodleAllMaps: MindMapData[];
+  mindoodleCurrentMapId: string | null;
+  mindoodleCurrentWorkspaceId: string | null;
+  mindoodleOrderedMaps: Array<{ mapId: string; workspaceId: string | undefined }>;
+  mindoodleSelectMapById: (mapId: string) => void;
+  __mindoodlePendingMapKey?: string;
+  __mindoodleMapSwitchTimer?: ReturnType<typeof setTimeout>;
+}
+
+declare let window: MindoodleWindow;
 
 
 export function useWindowGlobalsBridge({
@@ -26,16 +45,16 @@ export function useWindowGlobalsBridge({
   mindMap,
 }: WindowGlobalsBridgeParams) {
 
-  
+
   useEffect(() => {
-    (window as any).mindoodleWorkspaces = workspaces || [];
-    (window as any).mindoodleAddWorkspace = async () => {
+    window.mindoodleWorkspaces = workspaces || [];
+    window.mindoodleAddWorkspace = async () => {
       try {
         await addWorkspace?.();
         await mindMap?.refreshMapList?.();
       } catch { }
     };
-    (window as any).mindoodleRemoveWorkspace = async (id: string) => {
+    window.mindoodleRemoveWorkspace = async (id: string) => {
       try {
         await removeWorkspace?.(id);
         await mindMap?.refreshMapList?.();
@@ -43,21 +62,21 @@ export function useWindowGlobalsBridge({
     };
   }, [workspaces, addWorkspace, removeWorkspace, mindMap]);
 
-  
+
   useEffect(() => {
     try {
-      (window as any).mindoodleAllMaps = allMindMaps || [];
-      (window as any).mindoodleCurrentMapId = currentMapId || null;
-      (window as any).mindoodleCurrentWorkspaceId = currentWorkspaceId || null;
+      window.mindoodleAllMaps = allMindMaps || [];
+      window.mindoodleCurrentMapId = currentMapId || null;
+      window.mindoodleCurrentWorkspaceId = currentWorkspaceId || null;
 
-      
+
       const ordered: Array<{ mapId: string; workspaceId: string | undefined }> = [];
-      const tree: any = explorerTree;
+      const tree = explorerTree;
 
-      const visit = (node: any) => {
+      const visit = (node: ExplorerItem) => {
         if (!node) return;
         if (node.type === 'folder') {
-          (node.children || []).forEach((c: any) => visit(c));
+          (node.children || []).forEach((c: ExplorerItem) => visit(c));
         } else if (node.type === 'file' && node.isMarkdown && typeof node.path === 'string') {
           const workspaceId = node.path.startsWith('/ws_') ? node.path.split('/')[1] : undefined;
           const mapId = node.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
@@ -65,35 +84,37 @@ export function useWindowGlobalsBridge({
         }
       };
 
-      visit(tree);
-      (window as any).mindoodleOrderedMaps = ordered; 
+      if (tree) visit(tree);
+      window.mindoodleOrderedMaps = ordered; 
 
-      
-      (window as any).mindoodleSelectMapById = (mapId: string) => {
+
+      const schedulePendingMapSwitch = (pendingKey: string, identifier: MapIdentifier, fn: (id: MapIdentifier) => Promise<void | boolean>) => {
+        if (window.__mindoodlePendingMapKey === pendingKey) {
+          fn(identifier).catch((err: unknown) => console.warn('map switch failed', err));
+        }
+      };
+
+      window.mindoodleSelectMapById = (mapId: string) => {
         try {
-          
-          const curr: string | null = (window as any).mindoodleCurrentMapId || null;
+
+          const curr: string | null = window.mindoodleCurrentMapId || null;
           if (curr === mapId) return;
 
-          const target = (allMindMaps || []).find((m: any) => m?.mapIdentifier?.mapId === mapId);
+          const target = (allMindMaps || []).find((m) => m?.mapIdentifier?.mapId === mapId);
           if (!target) return;
 
           const pendingKey = `pending:${target.mapIdentifier.workspaceId}:${target.mapIdentifier.mapId}`;
-          (window as any).__mindoodlePendingMapKey = pendingKey;
+          window.__mindoodlePendingMapKey = pendingKey;
 
-          if ((window as any).__mindoodleMapSwitchTimer) {
-            clearTimeout((window as any).__mindoodleMapSwitchTimer);
+          if (window.__mindoodleMapSwitchTimer) {
+            clearTimeout(window.__mindoodleMapSwitchTimer);
           }
 
-          (window as any).__mindoodleMapSwitchTimer = setTimeout(() => {
-            try {
-              
-              if ((window as any).__mindoodlePendingMapKey === pendingKey) {
-                selectMapById(target.mapIdentifier);
-              }
-            } catch { }
-          }, 150);
-        } catch { }
+          window.__mindoodleMapSwitchTimer = setTimeout(
+            schedulePendingMapSwitch.bind(null, pendingKey, target.mapIdentifier, selectMapById),
+            150
+          );
+        } catch (err) { console.warn('window message handler error', err); }
       };
     } catch { }
   }, [allMindMaps, currentMapId, currentWorkspaceId, selectMapById, explorerTree]);

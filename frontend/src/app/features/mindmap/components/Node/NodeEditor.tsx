@@ -1,10 +1,29 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { Link } from 'lucide-react';
 import { useMindMapStore } from '../../store';
-import { calculateIconLayout, wrapNodeText, resolveNodeTextWrapConfig, getMarkerPrefixTokens, TEXT_ICON_SPACING } from '@mindmap/utils';
-import type { WrappedToken } from '@mindmap/utils';
+import { calculateIconLayout, wrapNodeText, resolveNodeTextWrapConfig, getMarkerPrefixTokens, TEXT_ICON_SPACING, type WrappedToken } from '@mindmap/utils';
 import { extractAllMarkdownLinksDetailed } from '../../../markdown';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, NodeLink } from '@shared/types';
+
+// Shared helpers (exported for reuse and to avoid duplicates)
+export const isMarkdownLink = (text: string): boolean => {
+  const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
+  return markdownLinkPattern.test(text);
+};
+
+export const isUrl = (text: string): boolean => {
+  const urlPattern = /^https?:\/\/[^\s]+$/;
+  return urlPattern.test(text);
+};
+
+export const parseMarkdownLink = (text: string) => {
+  const re = /^\[([^\]]*)\]\(([^)]+)\)$/;
+  const m = re.exec(text);
+  if (m) {
+    return { label: m[1], href: m[2] };
+  }
+  return null;
+};
 
 interface NodeEditorProps {
   node: MindMapNode;
@@ -18,7 +37,7 @@ interface NodeEditorProps {
   isSelected?: boolean;
   onSelectNode?: (nodeId: string | null) => void;
   onToggleLinkList?: (nodeId: string) => void;
-  onLinkNavigate?: (link: any) => void;
+  onLinkNavigate?: (link: NodeLink) => void;
   onStartEdit?: (nodeId: string) => void;
   onMouseDown?: (e: React.MouseEvent) => void; 
   onDragOver?: (e: React.DragEvent) => void; 
@@ -48,12 +67,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const { ui, settings, clearMermaidRelatedCaches } = useMindMapStore();
 
-  
-  if (node.kind === 'table') {
-    return null;
-  }
-
-  
+  // Note: avoid early return before hooks; render-time conditions are used instead
   const handleLinkClick = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
     e.preventDefault();
@@ -70,25 +84,25 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }, [isSelected, onSelectNode, onToggleLinkList, node.id]);
 
   
-  const isMarkdownLink = (text: string): boolean => {
-    const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
-    return markdownLinkPattern.test(text);
-  };
-
-  
-  const isUrl = (text: string): boolean => {
-    const urlPattern = /^https?:\/\/[^\s]+$/;
-    return urlPattern.test(text);
-  };
-
-  
   const clearMermaidCacheOnChange = useCallback((oldText: string, newText: string) => {
     const extractMermaidBlocks = (text: string): string[] => {
-      const mermaidRegex = /```mermaid\s*([\s\S]*?)\s*```/gi;
       const blocks: string[] = [];
-      let match;
-      while ((match = mermaidRegex.exec(text)) !== null) {
-        blocks.push(match[1].trim());
+      let pos = 0;
+      const fence = '```';
+      const marker = '```mermaid';
+      while (pos < text.length) {
+        const start = text.indexOf(marker, pos);
+        if (start === -1) break;
+        // content starts after the first newline following marker (if any)
+        let contentStart = start + marker.length;
+        while (contentStart < text.length && (text[contentStart] === ' ' || text[contentStart] === '\t')) contentStart++;
+        if (text[contentStart] === '\r' && text[contentStart + 1] === '\n') contentStart += 2;
+        else if (text[contentStart] === '\n' || text[contentStart] === '\r') contentStart += 1;
+
+        const end = text.indexOf(fence, contentStart);
+        if (end === -1) break;
+        blocks.push(text.slice(contentStart, end).trim());
+        pos = end + fence.length;
       }
       return blocks;
     };
@@ -106,28 +120,20 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   }, [clearMermaidRelatedCaches]);
 
-  
-  const previousNoteRef = useRef<string>((node as any)?.note || '');
+
+  const previousNoteRef = useRef<string>((node as MindMapNode & { note?: string })?.note || '');
+  const nodeNote = (node as MindMapNode & { note?: string })?.note || '';
+
   useEffect(() => {
-    const currentNote = (node as any)?.note || '';
     const previousNote = previousNoteRef.current;
 
-    if (currentNote !== previousNote) {
-      clearMermaidCacheOnChange(previousNote, currentNote);
-      previousNoteRef.current = currentNote;
+    if (nodeNote !== previousNote) {
+      clearMermaidCacheOnChange(previousNote, nodeNote);
+      previousNoteRef.current = nodeNote;
     }
-  }, [(node as any)?.note]);
+  }, [nodeNote, clearMermaidCacheOnChange]);
 
-  // マークダウンリンクからリンク情報を抽出
-  const parseMarkdownLink = (text: string) => {
-    const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
-    if (match) {
-      return { label: match[1], href: match[2] };
-    }
-    return null;
-  };
-
-
+  
   // 編集モードになった時に確実にフォーカスを設定
   useEffect(() => {
     if (isEditing && inputRef.current) {
@@ -195,7 +201,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
 
   if (!isEditing) {
-    const noteStr: string = (node as any)?.note || '';
+    const noteStr: string = (node as MindMapNode & { note?: string })?.note || '';
     const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
     const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
     const hasImage = noteHasImages || noteHasMermaid;
@@ -206,10 +212,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
         return node.customImageHeight;
       }
       if (noteStr && noteHasImages) {
-        const tagMatch = noteStr.match(/<img[^>]*>/i);
+        const tagRe = /<img[^>]*>/i;
+        const tagMatch = tagRe.exec(noteStr);
         if (tagMatch) {
           const tag = tagMatch[0];
-          const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+          const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
+          const hMatch = hRe.exec(tag);
           if (hMatch) {
             const h = parseInt(hMatch[1], 10);
             if (Number.isFinite(h) && h > 0) return h;
@@ -273,7 +281,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const handleTextClick = (e: React.MouseEvent) => {
       e.stopPropagation();
-      if (isEditing) return;
       if (!isSelected) {
         onSelectNode?.(node.id);
         return;
@@ -293,12 +300,15 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           if (/^#/.test(href) || /^node:/i.test(href)) {
             const anchor = /^#/.test(href) ? href.slice(1) : href.replace(/^node:/i, '');
             if (onLinkNavigate) {
-              onLinkNavigate({ id: `text:${anchor}`, targetNodeId: `text:${anchor}` });
+              onLinkNavigate({
+                id: `text:${anchor}`,
+                targetNodeId: `text:${anchor}`
+              });
             }
             return;
           }
           if (!href.startsWith('http://') && !href.startsWith('https://')) {
-            const currentData: any = useMindMapStore.getState().data;
+            const currentData = useMindMapStore.getState().data as { mapIdentifier?: { mapId?: string } } | null;
             const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
             const [mapPath, anchor] = href.includes('#') ? href.split('#') : [href, ''];
             const clean = mapPath.replace(/\/$/, '');
@@ -312,11 +322,13 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             }
             resolved = resolved.replace(/\.md$/i, '');
             if (onLinkNavigate) {
-              onLinkNavigate({
-                id: `map|${resolved}${anchor ? `#${anchor}` : ''}`,
-                targetMapId: resolved,
-                ...(anchor ? { targetNodeId: `text:${anchor}` } : {})
-              });
+              const idStr = anchor ? `map|${resolved}#${anchor}` : `map|${resolved}`;
+              const linkObj: NodeLink = {
+                id: idStr,
+                targetMapId: resolved
+              };
+              if (anchor) linkObj.targetNodeId = `text:${anchor}`;
+              onLinkNavigate(linkObj);
             }
             return;
           }
@@ -349,7 +361,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
     const escapeRegExp = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-    const renderTokenContent = (token: WrappedToken, lineIndex: number, tokenIndex: number) => {
+    const renderTokenContent = (token: WrappedToken, lineIndex: number, tokenIndex: number): React.ReactNode[] => {
       const baseProps: React.SVGProps<SVGTSpanElement> = {
         ...(token.isMarker ? markerStyle : baseTextStyle)
       };
@@ -367,7 +379,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       const keyBase = `token-${lineIndex}-${tokenIndex}`;
 
       if (token.isMarker) {
-        return (
+        return [
           <tspan
             key={keyBase}
             {...baseProps}
@@ -378,16 +390,16 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           >
             {token.text}
           </tspan>
-        );
+        ];
       }
 
       const highlightQuery = ui.searchQuery;
       if (!highlightQuery || !token.text.toLowerCase().includes(highlightQuery.toLowerCase())) {
-        return (
+        return [
           <tspan key={keyBase} {...baseProps} onDoubleClick={handleTextDoubleClick}>
             {token.text}
           </tspan>
-        );
+        ];
       }
 
       const escapedQuery = escapeRegExp(highlightQuery);
@@ -430,9 +442,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       };
     })();
 
-    const getLineWidth = (line: any) => {
+    const getLineWidth = (line: { width?: number; tokens: Array<{ width?: number; text?: string }> }) => {
       if (typeof line.width === 'number') return line.width;
-      return line.tokens.reduce((w: number, t: any) => w + (typeof t.width === 'number' ? t.width : measureText(t.text || '')), 0);
+      return line.tokens.reduce((w: number, t) => w + (typeof t.width === 'number' ? t.width : measureText(t.text || '')), 0);
     };
 
     const maxLineWidth = Math.max(...lines.map(getLineWidth));
@@ -536,8 +548,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     );
   }
 
-  
-  const noteStr2: string = (node as any)?.note || '';
+
+
+  const noteStr2: string = (node as MindMapNode & { note?: string })?.note || '';
   const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
   const noteHasMermaid2 = !!noteStr2 && /```mermaid[\s\S]*?```/i.test(noteStr2);
   const hasImage = noteHasImages2 || noteHasMermaid2;
@@ -548,10 +561,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       return node.customImageHeight;
     }
     if (noteStr2 && noteHasImages2) {
-      const tagMatch = noteStr2.match(/<img[^>]*>/i);
+      const tagRe = /<img[^>]*>/i;
+      const tagMatch = tagRe.exec(noteStr2);
       if (tagMatch) {
         const tag = tagMatch[0];
-        const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+        const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
+        const hMatch = hRe.exec(tag);
         if (hMatch) {
           const h = parseInt(hMatch[1], 10);
           if (Number.isFinite(h) && h > 0) return h;
@@ -614,23 +629,5 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   );
 };
 
-
-export const isMarkdownLink = (text: string): boolean => {
-  const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
-  return markdownLinkPattern.test(text);
-};
-
-export const isUrl = (text: string): boolean => {
-  const urlPattern = /^https?:\/\/[^\s]+$/;
-  return urlPattern.test(text);
-};
-
-export const parseMarkdownLink = (text: string) => {
-  const match = text.match(/^\[([^\]]*)\]\(([^)]+)\)$/);
-  if (match) {
-    return { label: match[1], href: match[2] };
-  }
-  return null;
-};
 
 export default memo(NodeEditor);

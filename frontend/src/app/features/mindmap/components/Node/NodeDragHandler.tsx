@@ -82,7 +82,7 @@ export const useNodeDragHandler = ({
     };
 
     handleStart(e, node.id, dragOffset);
-  }, [node.x, node.y, zoom, svgRef, handleStart]);
+  }, [node.id, node.x, node.y, zoom, svgRef, handleStart]);
 
   return {
     isDragging,

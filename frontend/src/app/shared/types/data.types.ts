@@ -37,8 +37,6 @@ export interface NodeLink {
   title?: string;
   url?: string;
   description?: string;
-  createdAt: string;
-  updatedAt?: string;
   targetNodeId?: string;
   targetMapId?: string;
   targetAnchor?: string;

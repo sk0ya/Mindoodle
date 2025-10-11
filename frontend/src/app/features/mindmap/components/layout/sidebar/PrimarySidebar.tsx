@@ -7,13 +7,13 @@ import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
 import VimSidebar from './VimSidebar';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import type { ExplorerItem } from '@core/types';
+import type { ExplorerItem, StorageAdapter } from '@core/types';
 import '../PrimarySidebar.css';
 
 interface PrimarySidebarProps {
   activeView: string | null;
   isVisible: boolean;
-  
+
   mindMaps?: MindMapData[];
   currentMapId?: string | null;
   currentWorkspaceId?: string | null;
@@ -23,18 +23,18 @@ interface PrimarySidebarProps {
   onRenameMap?: (id: MapIdentifier, newTitle: string) => void;
   onChangeCategory?: (id: MapIdentifier, category: string) => void;
   onChangeCategoryBulk?: (mapUpdates: Array<{id: string, category: string}>) => Promise<void>;
-  
+
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
   onSwitchWorkspace?: (workspaceId: string | null) => void;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
-  
+
   onMapSwitch?: (mapIdentifier: MapIdentifier) => Promise<void>;
   onNodeSelectByLine?: (lineNumber: number) => Promise<void>;
-  
-  storageAdapter?: any;
+
+  storageAdapter?: StorageAdapter;
 }
 
 const PrimarySidebar: React.FC<PrimarySidebarProps> = ({

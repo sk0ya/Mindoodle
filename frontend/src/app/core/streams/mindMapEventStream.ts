@@ -7,11 +7,11 @@ export type MindMapEventType =
   | 'links.changed' 
   | 'model.reset'; 
 
-export interface MindMapEvent<T = any> {
+export interface MindMapEvent<T = unknown> {
   type: MindMapEventType;
   payload?: T;
-  at?: number; 
-  source?: string; 
+  at?: number;
+  source?: string;
 }
 
 type Subscriber = (event: MindMapEvent) => void;
@@ -24,14 +24,15 @@ export class MindMapEventBus {
     return () => this.subscribers.delete(cb);
   }
 
-  emit<T = any>(event: MindMapEvent<T>): void {
+  emit<T = unknown>(event: MindMapEvent<T>): void {
     const e = { ...event, at: event.at ?? Date.now() };
     logger.debug('📢 MindMapEvent', { type: e.type });
     for (const cb of Array.from(this.subscribers)) {
       try {
         cb(e);
       } catch (_err) {
-        
+        const err = _err instanceof Error ? _err : new Error(String(_err));
+        logger.error('MindMapEvent subscriber threw', { type: e.type, error: err.message });
       }
     }
   }
@@ -39,4 +40,3 @@ export class MindMapEventBus {
 
 
 export const mindMapEvents = new MindMapEventBus();
-

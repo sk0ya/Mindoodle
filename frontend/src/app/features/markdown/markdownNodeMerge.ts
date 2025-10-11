@@ -19,10 +19,39 @@ const calculateNodePosition = (parentX: number, parentY: number, childIndex: num
   y: parentY + (childIndex * 28)
 });
 
+function createMergedNode(parsed: MindMapNode, matched: MindMapNode): MindMapNode {
+  const merged = clonePreservingLayout(parsed, matched);
+  merged.children = mergeNodesPreservingLayout(matched.children || [], parsed.children || [], merged);
+  return merged;
+}
+
+function createNewNodeFromParsed(parsed: MindMapNode, parent: MindMapNode | null, index: number): MindMapNode {
+  const base = createNewNode(parsed.text);
+
+  if (parent) {
+    const pos = calculateNodePosition(parent.x, parent.y, index);
+    base.x = pos.x;
+    base.y = pos.y;
+  }
+  base.markdownMeta = parsed.markdownMeta;
+
+  // Type guard: Copy extended properties if present
+  const pExt = parsed as unknown as { kind?: string; tableData?: unknown };
+  const baseExt = base as unknown as { kind?: string; tableData?: unknown };
+  if (pExt.kind) baseExt.kind = pExt.kind;
+  if (pExt.tableData) baseExt.tableData = pExt.tableData;
+  base.children = mergeNodesPreservingLayout([], parsed.children || [], base);
+  return base;
+}
+
 function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMapNode {
-  const kind = (target as any)?.kind ?? (source as any)?.kind;
-  const tableData = (target as any)?.tableData ?? (source as any)?.tableData;
-  const cloned: any = {
+  // Type guard: Extract extended properties (kind, tableData) not in base type
+  const targetExt = target as unknown as { kind?: string; tableData?: unknown };
+  const sourceExt = source as unknown as { kind?: string; tableData?: unknown };
+  const kind = targetExt.kind ?? sourceExt.kind;
+  const tableData = targetExt.tableData ?? sourceExt.tableData;
+
+  const cloned: Record<string, unknown> = {
     id: source.id,
     text: target.text,
     x: source.x,
@@ -44,7 +73,8 @@ function clonePreservingLayout(target: MindMapNode, source: MindMapNode): MindMa
   };
   if (kind) cloned.kind = kind;
   if (tableData) cloned.tableData = tableData;
-  return cloned as MindMapNode;
+  // Type: Convert cloned object with extended properties back to MindMapNode
+  return cloned as unknown as MindMapNode;
 }
 
 export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: MindMapNode[], parent: MindMapNode | null = null): MindMapNode[] {
@@ -83,34 +113,14 @@ export function mergeNodesPreservingLayout(existing: MindMapNode[], parsed: Mind
   for (let i = 0; i < parsed.length; i++) {
     const p = parsed[i];
 
-    
+
     const byText = claimExistingByText(p.text);
-    let matched: MindMapNode | null = null;
-    if (byText) {
-      matched = byText.node;
-    } else {
-      
-      matched = claimExistingByIndex(i);
-    }
+    const matched = byText ? byText.node : claimExistingByIndex(i);
 
     if (matched) {
-      const merged = clonePreservingLayout(p, matched);
-      merged.children = mergeNodesPreservingLayout(matched.children || [], p.children || [], merged);
-      result.push(merged);
+      result.push(createMergedNode(p, matched));
     } else {
-      
-      const base = createNewNode(p.text);
-      
-      if (parent) {
-        const pos = calculateNodePosition(parent.x, parent.y, i);
-        base.x = pos.x; base.y = pos.y;
-      }
-      base.markdownMeta = p.markdownMeta;
-      
-      if ((p as any).kind) (base as any).kind = (p as any).kind;
-      if ((p as any).tableData) (base as any).tableData = (p as any).tableData;
-      base.children = mergeNodesPreservingLayout([], p.children || [], base);
-      result.push(base);
+      result.push(createNewNodeFromParsed(p, parent, i));
     }
   }
 

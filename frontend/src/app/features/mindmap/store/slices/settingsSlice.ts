@@ -160,12 +160,13 @@ export const createSettingsSlice: StateCreator<
     const result = getLocalStorage(STORAGE_KEYS.APP_SETTINGS, DEFAULT_SETTINGS);
     if (result.success && result.data) {
       set((state) => {
-        const loaded: any = { ...DEFAULT_SETTINGS, ...result.data };
+        const loaded: AppSettings = { ...DEFAULT_SETTINGS, ...result.data };
 
-        
-        if (typeof (result.data as any).vimMode === 'boolean') {
-          if (typeof loaded.vimMindMap !== 'boolean') loaded.vimMindMap = (result.data as any).vimMode;
-          if (typeof loaded.vimEditor !== 'boolean') loaded.vimEditor = (result.data as any).vimMode;
+
+        const legacyData = result.data as AppSettings & { vimMode?: boolean };
+        if (typeof legacyData.vimMode === 'boolean') {
+          if (typeof loaded.vimMindMap !== 'boolean') loaded.vimMindMap = legacyData.vimMode;
+          if (typeof loaded.vimEditor !== 'boolean') loaded.vimEditor = legacyData.vimMode;
         }
 
         
@@ -173,7 +174,7 @@ export const createSettingsSlice: StateCreator<
           loaded.cloudApiEndpoint = DEFAULT_SETTINGS.cloudApiEndpoint;
         }
 
-        state.settings = loaded as AppSettings;
+        state.settings = loaded;
       });
     }
   },

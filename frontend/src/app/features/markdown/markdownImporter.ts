@@ -38,6 +38,46 @@ interface StructureElement {
   isChecked?: boolean;  
 }
 
+type MarkdownTableExtract = {
+  headers?: string[];
+  rows: string[][];
+  before?: string;
+  tableBlock: string;
+  after?: string;
+};
+
+function extractFirstTable(text?: string, lineEnding?: string): MarkdownTableExtract | null {
+  if (!text) return null;
+  const defaultLineEnding = lineEnding || '\n';
+  const lines = text.split(/\r\n|\r|\n/);
+  for (let i = 0; i < lines.length - 1; i++) {
+    const headerLine = lines[i];
+    const sepLine = lines[i + 1];
+    const isHeader = headerLine.includes('|');
+    const parts = sepLine.replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim());
+    const isSep = parts.length > 0 && parts.every(cell => /^:?-{3,}:?$/.test(cell));
+    if (!isHeader || !isSep) continue;
+
+    let j = i + 2;
+    const rowLines: string[] = [];
+    while (j < lines.length && lines[j].includes('|')) {
+      rowLines.push(lines[j]);
+      j++;
+    }
+
+    const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|');
+    const headers = toCells(headerLine);
+    const rows = rowLines.map(toCells);
+
+    const before = i > 0 ? lines.slice(0, i).join(defaultLineEnding) : undefined;
+    const tableBlock = lines.slice(i, j).join(defaultLineEnding);
+    const after = j < lines.length ? lines.slice(j).join(defaultLineEnding) : undefined;
+
+    return { headers, rows, before, tableBlock, after };
+  }
+  return null;
+}
+
 export class MarkdownImporter {
     static parseMarkdownToNodes(
     markdownText: string,
@@ -104,190 +144,155 @@ export class MarkdownImporter {
     return { rootNodes, headingLevelByText };
   }
 
+  private static findNodeWithContext(
+    nodeList: MindMapNode[],
+    targetId: string,
+    parentNode?: MindMapNode
+  ): { node: MindMapNode; parent?: MindMapNode; siblings: MindMapNode[] } | null {
+    for (let i = 0; i < nodeList.length; i++) {
+      const node: MindMapNode = nodeList[i];
+      if (node.id === targetId) {
+        return { node, parent: parentNode, siblings: nodeList };
+      }
+      if (node.children && node.children.length > 0) {
+        const found = this.findNodeWithContext(node.children, targetId, node);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
     private static extractStructureElements(lines: string[], lineEnding: string): StructureElement[] {
     const elements: StructureElement[] = [];
-    let currentContent: string[] = [];
-    let currentElement: StructureElement | null = null;
     const prefaceLines: string[] = [];
-    let foundFirstStructureElement = false;
+    let foundFirst = false;
+    let current: StructureElement | null = null;
+    let buffer: string[] = [];
+
+    const flushCurrent = () => {
+      if (current) {
+        if (buffer.length > 0) current.content = buffer.join(lineEnding);
+        elements.push(current);
+        current = null;
+        buffer = [];
+      }
+    };
+
+    const pushPrefaceIfAny = () => {
+      if (!foundFirst && prefaceLines.length > 0) {
+        elements.push({
+          type: 'preface',
+          level: 0,
+          text: prefaceLines.join(lineEnding),
+          content: undefined,
+          originalFormat: '',
+          lineNumber: 0,
+        });
+        prefaceLines.length = 0;
+      }
+    };
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
 
-      
-      const headingRe = /^(#{1,6})\s+(.+)$/;
-      const headingMatch = headingRe.exec(line);
-      if (headingMatch) {
-        
-        if (!foundFirstStructureElement && prefaceLines.length > 0) {
-          const prefaceText = prefaceLines.join(lineEnding);
-          
-          elements.push({
-            type: 'preface',
-            level: 0,
-            text: prefaceText,
-            content: undefined,
-            originalFormat: '',
-            lineNumber: 0
-          });
-        }
-        foundFirstStructureElement = true;
-
-        // 前の要素を保存
-        if (currentElement) {
-          if(currentContent.length > 0) {
-            currentElement.content = currentContent.join(lineEnding);
-          }
-          elements.push(currentElement);
-        }
-
-        currentElement = {
+      // Detect ATX headings (#... ), require a space after hashes
+      let hLevel = 0;
+      if (line.startsWith('#')) {
+        let j = 0;
+        while (j < line.length && j < 6 && line[j] === '#') j++;
+        if (j > 0 && j < line.length && line[j] === ' ') hLevel = j;
+      }
+      if (hLevel > 0) {
+        pushPrefaceIfAny();
+        foundFirst = true;
+        flushCurrent();
+        current = {
           type: 'heading',
-          level: headingMatch[1].length,
-          text: headingMatch[2],
+          level: hLevel,
+          text: line.slice(hLevel + 1),
           content: undefined,
-          originalFormat: headingMatch[1], 
-          lineNumber: i
-        };
-        currentContent = [];
-        continue;
-      }
-
-      
-      const listRe = /^(\s*)([-*+]|\d+\.)\s+(.+)$/;
-      const listMatch = listRe.exec(line);
-      if (listMatch) {
-        
-        if (!foundFirstStructureElement && prefaceLines.length > 0) {
-          const prefaceText = prefaceLines.join(lineEnding);
-          
-          elements.push({
-            type: 'preface',
-            level: 0,
-            text: prefaceText,
-            content: undefined,
-            originalFormat: '',
-            lineNumber: 0
-          });
-        }
-        foundFirstStructureElement = true;
-
-        // 前の要素を保存
-        if (currentElement) {
-          if(currentContent.length > 0) {
-            currentElement.content = currentContent.join(lineEnding);
-          }
-          elements.push(currentElement);
-        }
-
-        const indent = listMatch[1];
-        const marker = listMatch[2];
-        let text = listMatch[3];
-        const level = Math.floor(indent.length / 2) + 1; // 2スペースで1レベル
-
-        // チェックボックスパターンを検出
-        let isCheckbox = false;
-        let isChecked = false;
-        const checkboxRe = /^\[([ xX])\]\s*(.*)$/;
-        const checkboxMatch = checkboxRe.exec(text);
-        if (checkboxMatch && /^[-*+]$/.test(marker)) { // チェックボックスは順序なしリストのみ
-          isCheckbox = true;
-          isChecked = checkboxMatch[1].toLowerCase() === 'x';
-          text = checkboxMatch[2]; 
-        }
-
-        currentElement = {
-          type: /\d+\./.test(marker) ? 'ordered-list' : 'unordered-list',
-          level: level,
-          text: text,
-          content: undefined,
-          originalFormat: marker,
-          indentLevel: indent.length,
+          originalFormat: '#'.repeat(hLevel),
           lineNumber: i,
-          
-          isCheckbox: isCheckbox,
-          isChecked: isCheckbox ? isChecked : undefined
         };
-        currentContent = [];
+        buffer = [];
         continue;
       }
 
-      
-      if (!foundFirstStructureElement) {
-        
+      // Detect list items with optional indentation
+      let s = 0;
+      while (s < line.length && line[s] === ' ') s++;
+      if (s < line.length) {
+        let marker = '';
+        const ch = line[s];
+        if (ch === '-' || ch === '*' || ch === '+') {
+          marker = ch;
+        } else {
+          let k = s;
+          while (k < line.length && line[k] >= '0' && line[k] <= '9') k++;
+          if (k > s && k < line.length && line[k] === '.') marker = line.slice(s, k + 1);
+        }
+        if (marker) {
+          const afterIdx = s + marker.length;
+          if (afterIdx < line.length && line[afterIdx] === ' ') {
+            let text = line.slice(afterIdx + 1);
+            pushPrefaceIfAny();
+            foundFirst = true;
+            flushCurrent();
+
+            const indentLen = s;
+            const level = Math.floor(indentLen / 2) + 1;
+            let isCheckbox = false;
+            let isChecked = false;
+            if (marker.length === 1 && text.startsWith('[') && text.length >= 3 && text[2] === ']') {
+              const m = text[1];
+              if (m === ' ' || m.toLowerCase() === 'x') {
+                isCheckbox = true;
+                isChecked = m.toLowerCase() === 'x';
+                text = text.slice(3).trimStart();
+              }
+            }
+
+            current = {
+              type: marker.endsWith('.') ? 'ordered-list' : 'unordered-list',
+              level,
+              text,
+              content: undefined,
+              originalFormat: marker,
+              indentLevel: indentLen,
+              lineNumber: i,
+              isCheckbox,
+              isChecked: isCheckbox ? isChecked : undefined,
+            };
+            buffer = [];
+            continue;
+          }
+        }
+      }
+
+      // Non-structure line
+      if (!foundFirst) {
         prefaceLines.push(line);
-      } else if (currentElement) {
-        
-        currentContent.push(line);
+      } else if (current) {
+        buffer.push(line);
       }
     }
 
-    
-    if (!foundFirstStructureElement && prefaceLines.length > 0) {
-      const prefaceText = prefaceLines.join(lineEnding);
-      
+    if (!foundFirst && prefaceLines.length > 0) {
       elements.push({
         type: 'preface',
         level: 0,
-        text: prefaceText,
+        text: prefaceLines.join(lineEnding),
         content: undefined,
         originalFormat: '',
-        lineNumber: 0
+        lineNumber: 0,
       });
     }
 
-    // 最後の要素を保存
-    if (currentElement) {
-      if (currentContent.length > 0) {
-        currentElement.content = currentContent.join(lineEnding);
-      }
-      elements.push(currentElement);
-    }
-
+    flushCurrent();
     return elements;
   }
 
-  /**
-   * Extract first Markdown table from text
-   */
-  private static extractFirstTable(text?: string, lineEnding?: string): {
-    headers?: string[];
-    rows: string[][];
-    before?: string;
-    tableBlock: string;
-    after?: string;
-  } | null {
-    if (!text) return null;
-    const defaultLineEnding = lineEnding || '\n';
-    const lines = text.split(/\r\n|\r|\n/);
-    for (let i = 0; i < lines.length - 1; i++) {
-      const headerLine = lines[i];
-      const sepLine = lines[i + 1];
-      const isHeader = /^\s*\|.*\|\s*$/.test(headerLine);
-      const isSep = /^\s*\|?(\s*:?-{3,}:?\s*\|)+(\s*:?-{3,}:?\s*)\|?\s*$/.test(sepLine);
-      if (!isHeader || !isSep) continue;
-
-      
-      let j = i + 2;
-      const rowLines: string[] = [];
-      while (j < lines.length && /^\s*\|.*\|\s*$/.test(lines[j])) {
-        rowLines.push(lines[j]);
-        j++;
-      }
-
-      const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|');
-      const headers = toCells(headerLine);
-      const rows = rowLines.map(toCells);
-
-      // 前後の空行情報を適切に保持
-      const before = i > 0 ? lines.slice(0, i).join(defaultLineEnding) : undefined;
-      const tableBlock = lines.slice(i, j).join(defaultLineEnding);
-      const after = j < lines.length ? lines.slice(j).join(defaultLineEnding) : undefined;
-
-      return { headers, rows, before, tableBlock, after };
-    }
-    return null;
-  }
+  
 
   /**
    * 構造要素リストからノード階層を構築
@@ -357,7 +362,7 @@ export class MarkdownImporter {
       
       
       
-      const tableInfo = this.extractFirstTable(newNode.note, defaultLineEnding);
+      const tableInfo = extractFirstTable(newNode.note, defaultLineEnding);
       let pendingSiblingTableNode: MindMapNode | null = null;
       if (tableInfo) {
         
@@ -365,13 +370,13 @@ export class MarkdownImporter {
 
         
         const tnode = createNewNode('');
-        (tnode as any).kind = 'table';
+        (tnode as unknown as Record<string, unknown>).kind = 'table';
         tnode.text = tableInfo.tableBlock;
-        delete (tnode as any).note;
+        delete (tnode as unknown as Record<string, unknown>).note;
         tnode.note = tableInfo.after;
         tnode.lineEnding = defaultLineEnding || '\n';
-        
-        delete (tnode as any).markdownMeta;
+
+        delete (tnode as unknown as Record<string, unknown>).markdownMeta;
         pendingSiblingTableNode = tnode;
       }
 
@@ -479,8 +484,8 @@ export class MarkdownImporter {
     }
 
     const processNode = (node: MindMapNode, parentLevel: number = 0, parentType?: 'heading' | 'unordered-list' | 'ordered-list' | 'preface'): void => {
-      
-      if ((node as any).kind === 'table') {
+
+      if ((node as unknown as Record<string, unknown>).kind === 'table') {
         const tableMd = String(node.text || '');
         if (tableMd) {
           const tableLines = tableMd.split(/\r\n|\r|\n/);
@@ -530,7 +535,7 @@ export class MarkdownImporter {
           
           if (node.children && node.children.length > 0) {
             for (let i = 0; i < node.children.length; i++) {
-              const child = node.children[i] as any;
+              const child = node.children[i];
               processNode(child, 0, nodeType);
             }
           }
@@ -593,13 +598,12 @@ export class MarkdownImporter {
         }
       }
 
-      
+
       if (node.children && node.children.length > 0) {
         for (let i = 0; i < node.children.length; i++) {
-          const child = node.children[i] as any;
-          
-          let childParentLevel = parentLevel;
-
+          const child = node.children[i];
+          // compute child's parent level without dead assignment
+          let childParentLevel: number;
           if (markdownMeta) {
             if (markdownMeta.type === 'heading') {
               
@@ -763,25 +767,7 @@ export class MarkdownImporter {
     nodes: MindMapNode[],
     targetNodeId: string
   ): { canConvert: boolean; reason?: string } {
-    const findNodeWithContext = (nodeList: MindMapNode[], parentNode?: MindMapNode): { node: MindMapNode; parent?: MindMapNode; siblings: MindMapNode[] } | null => {
-      for (let i = 0; i < nodeList.length; i++) {
-        const node: MindMapNode = nodeList[i];
-        if (node.id === targetNodeId) {
-          return {
-            node,
-            parent: parentNode,
-            siblings: nodeList
-          };
-        }
-        if (node.children && node.children.length > 0) {
-          const found = findNodeWithContext(node.children, node);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const context = findNodeWithContext(nodes);
+    const context = this.findNodeWithContext(nodes, targetNodeId);
     if (!context) return { canConvert: false, reason: 'ノードが見つかりません' };
 
     const { node, siblings } = context;
@@ -809,25 +795,7 @@ export class MarkdownImporter {
     nodes: MindMapNode[],
     targetNodeId: string
   ): { canConvert: boolean; reason?: string } {
-    const findNodeWithContext = (nodeList: MindMapNode[], parentNode?: MindMapNode): { node: MindMapNode; parent?: MindMapNode; siblings: MindMapNode[] } | null => {
-      for (let i = 0; i < nodeList.length; i++) {
-        const node: MindMapNode = nodeList[i];
-        if (node.id === targetNodeId) {
-          return {
-            node,
-            parent: parentNode,
-            siblings: nodeList
-          };
-        }
-        if (node.children && node.children.length > 0) {
-          const found = findNodeWithContext(node.children, node);
-          if (found) return found;
-        }
-      }
-      return null;
-    };
-
-    const context = findNodeWithContext(nodes);
+    const context = this.findNodeWithContext(nodes, targetNodeId);
     if (!context) return { canConvert: false, reason: 'ノードが見つかりません' };
 
     const { parent, siblings } = context;
@@ -898,8 +866,8 @@ export class MarkdownImporter {
 
           
           newText = newText.replace(/^#+\s*/, ''); // 見出しマーカー削除
-          newText = newText.replace(/^[\s]*[-*+]\s*/, ''); // リストマーカー削除
-          newText = newText.replace(/^[\s]*\d+\.\s*/, ''); // 順序ありリストマーカー削除
+          newText = newText.replace(/^\s*[-*+]\s*/, ''); // リストマーカー削除
+          newText = newText.replace(/^\s*\d+\.\s*/, ''); // 順序ありリストマーカー削除
 
           if (newType === 'heading') {
             

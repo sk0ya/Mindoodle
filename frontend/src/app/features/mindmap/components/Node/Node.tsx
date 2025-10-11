@@ -96,8 +96,8 @@ const Node: React.FC<NodeProps> = ({
         if (isMarkdownLink(node.text) || isUrl(node.text)) {
           return; 
         }
-        
-        if ((node as any).kind === 'table') {
+        // Type guard: Extended node properties (kind) not in base MindMapNode type
+        if ('kind' in node && (node as unknown as Record<string, unknown>).kind === 'table') {
           return;
         }
         
@@ -107,17 +107,16 @@ const Node: React.FC<NodeProps> = ({
         onSelect(node.id);
       }
     }
-  }, [node.id, isDragging, isSelected, isEditing, onStartEdit, onSelect, node.text]);
+  }, [node, isDragging, isSelected, isEditing, onStartEdit, onSelect]);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
     try { dispatchCanvasEvent({ type: 'nodeDoubleClick', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
-    
-    
-    if ((node as any).kind !== 'table') {
+    // Type guard: Only edit non-table nodes
+    if (!('kind' in node) || (node as unknown as Record<string, unknown>).kind !== 'table') {
       onStartEdit(node.id);
     }
-  }, [node.id, onStartEdit]);
+  }, [node, onStartEdit]);
 
   
   const handleDragOver = useCallback((e: React.DragEvent) => {
@@ -139,15 +138,21 @@ const Node: React.FC<NodeProps> = ({
     stopEventPropagation(e);
 
     const path = isExplorerPath ? e.dataTransfer.getData('mindoodle/path') : '';
-    const mapId = isMapId ? e.dataTransfer.getData('text/map-id') : (path.endsWith('.md') ? path.replace(/\.md$/i, '') : '');
+    let mapId = '';
+    if (isMapId) {
+      mapId = e.dataTransfer.getData('text/map-id');
+    } else if (path.endsWith('.md')) {
+      mapId = path.replace(/\.md$/i, '');
+    }
     const mapTitle = isMapId
       ? (e.dataTransfer.getData('text/map-title') || getLastPathSegment(mapId) || 'リンク')
       : (getLastPathSegment(path) || 'リンク');
 
     try {
-      
-      const currentData: any = useMindMapStore.getState().data;
-      const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
+      // Get current map ID from store for relative path calculation
+      const currentData = useMindMapStore.getState().data as unknown as Record<string, unknown> | undefined;
+      const mapIdentifier = currentData?.mapIdentifier as Record<string, unknown> | undefined;
+      const currentMapId: string = (mapIdentifier?.mapId as string) || '';
 
       // Determine target path - both should be file paths
       const targetPath = isExplorerPath ? path : mapId;
@@ -202,10 +207,9 @@ const Node: React.FC<NodeProps> = ({
       let href = calculateRelativePath(currentMapId, targetPath);
 
       // Add .md extension if target is a markdown file or map-id (but not for images)
-      if (!(isExplorerPath && /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(targetPath))) {
-        if (targetPath.endsWith('.md') || !isExplorerPath) {
-          href += '.md';
-        }
+      if (!(isExplorerPath && /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(targetPath)) &&
+          (targetPath.endsWith('.md') || !isExplorerPath)) {
+        href += '.md';
       }
 
       
@@ -213,7 +217,8 @@ const Node: React.FC<NodeProps> = ({
         href = getLastPathSegment(targetPath) || 'file.md';
       }
 
-      const currentNote = (node as any).note || '';
+      // Type guard: Extended node properties (note) not in base MindMapNode type
+      const currentNote = ('note' in node ? (node as unknown as Record<string, unknown>).note as string : '') || '';
       const prefix = currentNote.trim().length > 0 ? '\n\n' : '';
       const content = (isExplorerPath && /\.(png|jpe?g|gif|svg|webp|bmp)$/i.test(targetPath))
         ? `![${mapTitle}](${href})
@@ -228,7 +233,7 @@ const Node: React.FC<NodeProps> = ({
     } catch (error) {
       console.error('Error handling drop:', error);
     }
-  }, [node.id, onUpdateNode, onAutoLayout]);
+  }, [node, onUpdateNode, onAutoLayout]);
 
   const handleRightClick = useCallback((e: React.MouseEvent) => {
     stopEventPropagation(e);
@@ -327,10 +332,13 @@ const Node: React.FC<NodeProps> = ({
 
 
 export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
-  
+  // Node content and position changes
+  const prevNote = 'note' in prevProps.node ? (prevProps.node as unknown as Record<string, unknown>).note : undefined;
+  const nextNote = 'note' in nextProps.node ? (nextProps.node as unknown as Record<string, unknown>).note : undefined;
+
   if (prevProps.node.id !== nextProps.node.id ||
       prevProps.node.text !== nextProps.node.text ||
-      (prevProps.node as any).note !== (nextProps.node as any).note ||
+      prevNote !== nextNote ||
       prevProps.node.x !== nextProps.node.x ||
       prevProps.node.y !== nextProps.node.y ||
       prevProps.node.fontSize !== nextProps.node.fontSize ||
@@ -359,10 +367,10 @@ export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
     return false;
   }
 
-  
+  // Zoom and pan changes (pan is optional)
   if (prevProps.zoom !== nextProps.zoom ||
-      prevProps.pan.x !== (nextProps as any).pan?.x ||
-      prevProps.pan.y !== (nextProps as any).pan?.y) {
+      prevProps.pan.x !== nextProps.pan?.x ||
+      prevProps.pan.y !== nextProps.pan?.y) {
     return false;
   }
 

@@ -60,7 +60,7 @@ export class ImagePasteServiceImpl implements ImagePasteService {
 
       // Resolve correct adapter for target workspace (consider cloud)
       let usedWorkspaceSpecificAdapter = false;
-      const effectiveAdapter: any = (() => {
+      const effectiveAdapter: StorageAdapter = (() => {
         if (workspaceId) {
           // Try to get adapter bound to the workspace (e.g., 'cloud')
           try {
@@ -68,15 +68,15 @@ export class ImagePasteServiceImpl implements ImagePasteService {
             if (wsAdapter) { usedWorkspaceSpecificAdapter = true; return wsAdapter; }
           } catch {}
         }
-        return storageAdapter as any;
+        return storageAdapter;
       })();
 
       
 
-      
-      if (effectiveAdapter && typeof effectiveAdapter.saveImageFile === 'function') {
+
+      if (effectiveAdapter && 'saveImageFile' in effectiveAdapter && typeof (effectiveAdapter as { saveImageFile?: (path: string, file: File, workspaceId?: string) => Promise<void> }).saveImageFile === 'function') {
         const wsIdArg = usedWorkspaceSpecificAdapter ? workspaceId : undefined;
-        await effectiveAdapter.saveImageFile(fullImagePath, imageFile, wsIdArg);
+        await (effectiveAdapter as { saveImageFile: (path: string, file: File, workspaceId?: string) => Promise<void> }).saveImageFile(fullImagePath, imageFile, wsIdArg);
       } else {
         throw new Error('Storage adapter does not support image saving');
       }

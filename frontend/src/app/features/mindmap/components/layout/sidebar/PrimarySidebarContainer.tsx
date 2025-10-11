@@ -1,31 +1,32 @@
 
 import React from 'react';
 import PrimarySidebar from './PrimarySidebar';
-import type { MapIdentifier } from '@shared/types';
+import type { MapIdentifier, MindMapData } from '@shared/types';
+import type { ExplorerItem, StorageAdapter } from '@core/types';
 
 type Props = {
   activeView: string | null;
-  
-  allMindMaps: any[];
+
+  allMindMaps: MindMapData[];
   currentMapId: string | null;
   onSelectMap: (id: MapIdentifier) => void;
   onCreateMap: (title: string, workspaceId: string, category?: string) => Promise<string>;
   onRenameMap: (id: MapIdentifier, title: string) => Promise<void> | void;
   onChangeCategory: (id: MapIdentifier, category: string) => Promise<void> | void;
   onChangeCategoryBulk: (updates: Array<{ id: string; category: string }>) => Promise<void>;
-  
+
   workspaces?: Array<{ id: string; name: string }>;
   currentWorkspaceId?: string | null;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
   onSwitchWorkspace?: (workspaceId: string | null) => void;
-  explorerTree: any;
+  explorerTree: ExplorerItem;
   onCreateFolder: (path: string) => Promise<void>;
-  currentMapData: any;
+  currentMapData: MindMapData | null;
   onMapSwitch: (mapIdentifier: MapIdentifier) => Promise<void>;
   onNodeSelectByLine: (lineNumber: number) => Promise<void>;
-  
-  storageAdapter?: any;
+
+  storageAdapter?: StorageAdapter;
 };
 
 const PrimarySidebarContainer: React.FC<Props> = (props) => {

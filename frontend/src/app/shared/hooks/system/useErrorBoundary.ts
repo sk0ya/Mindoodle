@@ -12,7 +12,8 @@ export const useErrorBoundary = (options: ErrorBoundaryOptions = {}) => {
   const { onError, fallbackResult } = options;
 
   const handleError = useCallback((error: Error, context?: string) => {
-    const errorMessage = `Error${context ? ` in ${context}` : ''}: ${error.message}`;
+    const location = context ? ` in ${context}` : '';
+    const errorMessage = `Error${location}: ${error.message}`;
     logger.error(errorMessage, error);
     onError?.(error);
   }, [onError]);

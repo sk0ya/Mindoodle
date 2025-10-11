@@ -100,11 +100,13 @@ export const useMarkdownSync = () => {
         const existingNode = existingNodeMap.get(newNode.text);
         
         if (existingNode) {
-          
-          const kind = (newNode as any)?.kind ?? (existingNode as any)?.kind;
-          const tableData = (newNode as any)?.tableData ?? (existingNode as any)?.tableData;
+          // Type guard: Extract extended properties not in base MindMapNode type
+          const newExt = newNode as unknown as { kind?: string; tableData?: unknown };
+          const existingExt = existingNode as unknown as { kind?: string; tableData?: unknown };
+          const kind = newExt.kind ?? existingExt.kind;
+          const tableData = newExt.tableData ?? existingExt.tableData;
 
-          const mergedNode: any = {
+          const mergedNode: Record<string, unknown> = {
             ...newNode,
             id: existingNode.id,
             x: existingNode.x,
@@ -138,14 +140,16 @@ export const useMarkdownSync = () => {
             mergedNode.children = mergeNodeData(newNode.children);
           }
 
-          return mergedNode as MindMapNode;
+          // Type: Convert merged node object back to MindMapNode
+          return mergedNode as unknown as MindMapNode;
         } else {
           // 新しいノードの場合はそのまま使用（子ノードも処理）
-          const processedNode: any = { ...newNode };
+          const processedNode: Record<string, unknown> = { ...newNode };
           if (newNode.children) {
             processedNode.children = mergeNodeData(newNode.children);
           }
-          return processedNode as MindMapNode;
+          // Type: Convert processed node object back to MindMapNode
+          return processedNode as unknown as MindMapNode;
         }
       });
     };

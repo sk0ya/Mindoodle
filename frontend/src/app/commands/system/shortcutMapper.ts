@@ -9,7 +9,7 @@ export interface ShortcutDefinition {
     meta?: boolean;
   };
   command: string;
-  args?: Record<string, any>;
+  args?: Record<string, unknown>;
   description?: string;
   category?: 'vim' | 'application' | 'navigation' | 'editing' | 'ui' | 'utility';
 }

@@ -168,7 +168,7 @@ export class OllamaService {
       
       
       
-      let response;
+      let response: Response | undefined;
       let data: OllamaResponse;
       
       
@@ -192,7 +192,7 @@ export class OllamaService {
           throw new Error(`Extension request failed: ${result.error} (Status: ${result.status || 'unknown'})`);
         }
         
-        data = result.data;
+        data = result.data as OllamaResponse;
       } else {
         
         response = await fetch(`${this.baseUrl}/api/generate`, {

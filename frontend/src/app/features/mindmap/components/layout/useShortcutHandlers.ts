@@ -2,15 +2,77 @@ import { useMemo } from 'react';
 import { findNodeById, getFirstVisibleChild, findNodeInRoots, findNodeBySpatialDirection } from '@mindmap/utils';
 import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
 import { useMindMapStore } from '../../store';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, MindMapData } from '@shared/types';
 
 import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportScrollService';
 
+// Helpers extracted to avoid deep nested function definitions
+const convertNodeToMarkdown = (n: MindMapNode, level = 0): string => {
+  const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
+  let md = `${prefix}${n.text}\n`;
+  if (n.note != null) md += `${n.note}\n`;
+  if (n.children && n.children.length) {
+    for (const c of n.children) md += convertNodeToMarkdown(c, level + 1);
+  }
+  return md;
+};
+
+const isMapEmpty = (m: MindMapData): boolean => {
+  try {
+    const roots = m?.rootNodes || [];
+    if (!Array.isArray(roots) || roots.length === 0) return true;
+    const onlyRoot = roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
+    return onlyRoot;
+  } catch {
+    return false;
+  }
+};
+
+type StoreActions = {
+  addChildNode: (parentId: string, text?: string) => string | undefined;
+  addSiblingNode: (nodeId: string, text?: string, insertAfter?: boolean) => string | undefined;
+  setShowMapList: (show: boolean) => void;
+  setShowLocalStoragePanel: (show: boolean) => void;
+  setShowTutorial: (show: boolean) => void;
+  setShowShortcutHelper: (show: boolean) => void;
+  setClipboard: (node: MindMapNode) => void;
+  closeAttachmentAndLinkLists?: () => void;
+  setShowNotesPanel?: (show: boolean) => void;
+  toggleNotesPanel?: () => void;
+  setShowNodeNotePanel?: (show: boolean) => void;
+  toggleNodeNotePanel?: () => void;
+  setShowKnowledgeGraph?: (show: boolean) => void;
+  toggleKnowledgeGraph?: () => void;
+  moveNode: (nodeId: string, newParentId: string) => { success: boolean; reason?: string };
+  moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => { success: boolean; reason?: string };
+};
+
+type ShortcutLogger = {
+  debug: (message: string, ...args: unknown[]) => void;
+  error: (message: string, ...args: unknown[]) => void;
+  warn: (message: string, ...args: unknown[]) => void;
+};
+
+type UIState = {
+  zoom: number;
+  pan: { x: number; y: number };
+  showMapList: boolean;
+  showLocalStoragePanel: boolean;
+  showTutorial: boolean;
+  showShortcutHelper: boolean;
+  sidebarCollapsed?: boolean;
+  showNotesPanel?: boolean;
+  markdownPanelWidth?: number;
+  showNodeNotePanel?: boolean;
+  nodeNotePanelHeight?: number;
+  showKnowledgeGraph?: boolean;
+};
+
 interface Args {
   data: { rootNode: MindMapNode } | null;
-  ui: any;
-  store: any;
-  logger: any;
+  ui: UIState;
+  store: StoreActions;
+  logger: ShortcutLogger;
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
   
   centerNodeInView: (nodeId: string, animate?: boolean) => void;
@@ -31,7 +93,6 @@ interface Args {
   canRedo: boolean;
   selectNode: (id: string) => void;
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
-  applyAutoLayout?: () => void;
   pasteImageFromClipboard: (nodeId: string, file?: File) => Promise<void>;
   pasteNodeFromClipboard: (parentId: string) => Promise<void>;
   changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
@@ -45,7 +106,7 @@ export function useShortcutHandlers(args: Args) {
     selectedNodeId, editingNodeId, editText, setEditText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
-    undo, redo, canUndo, canRedo, selectNode, setPan, applyAutoLayout,
+    undo, redo, canUndo, canRedo, selectNode, setPan,
     pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType, changeSiblingOrder,
   } = args;
 
@@ -105,7 +166,8 @@ export function useShortcutHandlers(args: Args) {
           
           const stack: MindMapNode[] = currentRoot ? [currentRoot] as MindMapNode[] : [];
           while (stack.length) {
-            const node = stack.pop()!;
+            const node = stack.pop();
+            if (!node) continue;
             if (node.children?.some(c => c.id === currentSelectedNodeId)) { nextNodeId = node.id; break; }
             if (node.children) stack.push(...node.children);
           }
@@ -186,14 +248,8 @@ export function useShortcutHandlers(args: Args) {
       if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(currentSelectedNodeId, direction, currentRoot);
       if (nextNodeId) {
         selectNode(nextNodeId);
-        
-        ensureNodeVisible(nextNodeId);
-      }
-
-      
-      function ensureNodeVisible(nodeId: string) {
         const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
-        ensureNodeVisibleSvc(nodeId, ui, (p: any) => setPan(p), roots);
+        ensureNodeVisibleSvc(nextNodeId, ui, (p: { x: number; y: number }) => setPan(p), roots);
       }
     },
     showMapList: ui.showMapList,
@@ -213,14 +269,7 @@ export function useShortcutHandlers(args: Args) {
       }
       logger.debug('copyNode: setting clipboard', node);
       store.setClipboard(node);
-      const convertToMd = (n: MindMapNode, level = 0): string => {
-        const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-        let md = `${prefix}${n.text}\n`;
-        if (n.note !== null) md += `${n.note}\n`;
-        if (n.children?.length) n.children.forEach(c => { md += convertToMd(c, level + 1); });
-        return md;
-      };
-      const markdownText = convertToMd(node);
+      const markdownText = convertNodeToMarkdown(node);
       navigator.clipboard?.writeText?.(markdownText).catch(() => {});
       showNotification('success', `「${node.text}」をコピーしました`);
     },
@@ -253,26 +302,19 @@ export function useShortcutHandlers(args: Args) {
     
     switchToPrevMap: () => {
       try {
-        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId: string }> || [];
-        const maps = (window as any).mindoodleAllMaps || [];
-        const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
+        const order = ((window as Window & { mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }> }).mindoodleOrderedMaps) || [];
+        const maps = ((window as Window & { mindoodleAllMaps?: MindMapData[] }).mindoodleAllMaps) || [];
+        const currentId: string | null = ((window as Window & { mindoodleCurrentMapId?: string }).mindoodleCurrentMapId) || null;
         if (!Array.isArray(order) || order.length === 0) return;
 
-        const isEmpty = (m: any): boolean => {
-          try {
-            const roots = m?.rootNodes || [];
-            if (!Array.isArray(roots) || roots.length === 0) return true;
-            const onlyRoot = roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
-            return onlyRoot;
-          } catch { return false; }
-        };
+        const isEmpty = isMapEmpty;
 
-        let idx = order.findIndex((o: any) => o?.mapId === currentId);
+        let idx = order.findIndex((o) => o?.mapId === currentId);
         if (idx < 0) idx = 0;
         for (let step = 0; step < order.length; step++) {
           idx = idx <= 0 ? order.length - 1 : idx - 1;
           const cand = order[idx];
-          const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
+          const mapData = maps.find((m) => m?.mapIdentifier?.mapId === cand.mapId);
           
           if (!mapData || !isEmpty(mapData)) {
             const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId, source: 'keyboard', direction: 'prev' } });
@@ -284,26 +326,19 @@ export function useShortcutHandlers(args: Args) {
     },
     switchToNextMap: () => {
       try {
-        const order = (window as any).mindoodleOrderedMaps as Array<{ mapId: string; workspaceId: string }> || [];
-        const maps = (window as any).mindoodleAllMaps || [];
-        const currentId: string | null = (window as any).mindoodleCurrentMapId || null;
+        const order = ((window as Window & { mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }> }).mindoodleOrderedMaps) || [];
+        const maps = ((window as Window & { mindoodleAllMaps?: MindMapData[] }).mindoodleAllMaps) || [];
+        const currentId: string | null = ((window as Window & { mindoodleCurrentMapId?: string }).mindoodleCurrentMapId) || null;
         if (!Array.isArray(order) || order.length === 0) return;
 
-        const isEmpty = (m: any): boolean => {
-          try {
-            const roots = m?.rootNodes || [];
-            if (!Array.isArray(roots) || roots.length === 0) return true;
-            const onlyRoot = roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
-            return onlyRoot;
-          } catch { return false; }
-        };
+        const isEmpty = isMapEmpty;
 
-        let idx = order.findIndex((o: any) => o?.mapId === currentId);
+        let idx = order.findIndex((o) => o?.mapId === currentId);
         if (idx < 0) idx = 0;
         for (let step = 0; step < order.length; step++) {
           idx = idx >= order.length - 1 ? 0 : idx + 1;
           const cand = order[idx];
-          const mapData = maps.find((m: any) => m?.mapIdentifier?.mapId === cand.mapId);
+          const mapData = maps.find((m) => m?.mapIdentifier?.mapId === cand.mapId);
           if (!mapData || !isEmpty(mapData)) {
             const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId, source: 'keyboard', direction: 'next' } });
             window.dispatchEvent(ev);
@@ -339,10 +374,10 @@ export function useShortcutHandlers(args: Args) {
   }), [
     data, ui, store, logger, showNotification,
     centerNodeInView,
-    selectedNodeId, editingNodeId, editText,
+    selectedNodeId, editingNodeId, editText, setEditText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
-    undo, redo, canUndo, canRedo, selectNode, setPan, applyAutoLayout,
+    undo, redo, canUndo, canRedo, selectNode, setPan,
     pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType, changeSiblingOrder,
   ]);
 }

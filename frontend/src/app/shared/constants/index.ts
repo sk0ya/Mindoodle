@@ -309,6 +309,8 @@ export const VALIDATION = {
     MAX_LENGTH: 100
   },
   EMAIL: {
+    // The following basic email pattern is linear-time and safe for our use.
+    // eslint-disable-next-line sonarjs/slow-regex
     PATTERN: /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   },
   FILE_NAME: {

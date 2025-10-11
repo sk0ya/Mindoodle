@@ -48,7 +48,7 @@ export const useModelLoader = ({
     } finally {
       stopLoadingModels();
     }
-  }, [getAvailableModels, currentModel, updateModel, onCORSError]);
+  }, [getAvailableModels, currentModel, updateModel, onCORSError, startLoadingModels, stopLoadingModels]);
 
   return {
     availableModels,

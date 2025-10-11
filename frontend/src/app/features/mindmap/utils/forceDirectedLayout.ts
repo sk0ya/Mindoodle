@@ -62,17 +62,11 @@ export class ForceDirectedLayout {
     const projection1 = new Float32Array(dim);
     const projection2 = new Float32Array(dim);
 
-    
+    // Use deterministic, non-random orthogonal-ish directions based on trigonometric series
     for (let i = 0; i < dim; i++) {
-      if (typeof crypto !== 'undefined' && typeof crypto.getRandomValues === 'function') {
-        const buf = new Uint32Array(2);
-        crypto.getRandomValues(buf);
-        projection1[i] = (buf[0] / 0xffffffff) - 0.5;
-        projection2[i] = (buf[1] / 0xffffffff) - 0.5;
-      } else {
-        projection1[i] = Math.random() - 0.5;
-        projection2[i] = Math.random() - 0.5;
-      }
+      const t = i + 1;
+      projection1[i] = Math.sin(t);
+      projection2[i] = Math.cos(t);
     }
 
     

@@ -1,6 +1,7 @@
 import React from 'react';
 import { Bot, Copy, Clipboard, Link, Trash2, Clock, List, Table } from 'lucide-react';
 import { MindMapNode } from '@shared/types';
+import type { MarkdownNodeType } from '@commands/system/types';
 import { useMindMapStore } from '../../store';
 
 interface MenuItemAction {
@@ -25,7 +26,7 @@ interface MenuItemsProps {
   onPaste: (parentId: string) => void;
   onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
-  onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
   onEditTable?: (nodeId: string) => void;
   onClose: () => void;
 }
@@ -97,8 +98,8 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       { type: 'separator' as const }
     ] : []),
 
-    
-    ...((selectedNode as any).kind === 'table' && onEditTable ? [
+    // Type guard: Extended node properties (kind) for table editing
+    ...('kind' in selectedNode && (selectedNode as unknown as Record<string, unknown>).kind === 'table' && onEditTable ? [
       {
         icon: <Table size={16} />,
         label: 'テーブルを編集',
@@ -135,7 +136,7 @@ const MenuItems: React.FC<MenuItemsProps> = ({
     }
   ];
 
-  const renderMenuItem = (item: MenuItem, index: number): React.ReactNode => {
+  const renderMenuItem = (item: MenuItem, index: number): JSX.Element => {
     if ('type' in item && item.type === 'separator') {
       return <div key={index} className="menu-separator" />;
     }

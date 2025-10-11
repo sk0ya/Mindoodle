@@ -46,45 +46,48 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
     }
   };
 
+  const handleEscape = () => {
+    if (vim.mode === 'search') {
+      vim.exitSearch();
+    } else if (vim.mode === 'command') {
+      vim.exitCommandLine();
+    }
+  };
+
+  const handleEnter = () => {
+    if (vim.mode === 'search') {
+      vim.executeSearch();
+      vim.setMode('normal');
+    } else if (vim.mode === 'command') {
+      const command = vim.commandLineBuffer.trim();
+      if (command) {
+        vim.executeCommandLine(command).then(() => {
+          vim.exitCommandLine();
+        });
+      } else {
+        vim.exitCommandLine();
+      }
+    }
+  };
+
   const handleInputKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     const value = (e.target as HTMLInputElement).value;
 
     if (e.key === 'Escape') {
       e.preventDefault();
-      if (vim.mode === 'search') {
-        vim.exitSearch();
-      } else if (vim.mode === 'command') {
-        vim.exitCommandLine();
-      }
+      handleEscape();
       return;
     }
 
     if (e.key === 'Enter') {
       e.preventDefault();
-      if (vim.mode === 'search') {
-        vim.executeSearch();
-        vim.setMode('normal');
-      } else if (vim.mode === 'command') {
-        const command = vim.commandLineBuffer.trim();
-        if (command) {
-          vim.executeCommandLine(command).then(() => {
-            vim.exitCommandLine();
-          });
-        } else {
-          vim.exitCommandLine();
-        }
-      }
+      handleEnter();
       return;
     }
 
-    
     if (e.key === 'Backspace' && value.length === 1) {
       e.preventDefault();
-      if (vim.mode === 'search') {
-        vim.exitSearch();
-      } else if (vim.mode === 'command') {
-        vim.exitCommandLine();
-      }
+      handleEscape();
     }
   };
 

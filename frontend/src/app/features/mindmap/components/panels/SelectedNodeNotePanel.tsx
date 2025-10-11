@@ -51,31 +51,31 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
     const startY = e.clientY;
     const startH = height;
 
-    const onMove = (ev: MouseEvent) => {
+    const handleMove = (ev: MouseEvent) => {
       ev.preventDefault();
       ev.stopPropagation();
       const dy = startY - ev.clientY;
       const next = Math.min(Math.max(120, startH + dy), viewportService.getMaxAllowedNoteHeight());
       setHeight(next);
     };
-    const onUp = (ev: MouseEvent) => {
+
+    const finishResize = () => {
+      setHeight(h => h + 0);
+      try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
+    };
+
+    const handleUp = (ev: MouseEvent) => {
       ev.preventDefault();
       ev.stopPropagation();
       stopResizing();
-      document.removeEventListener('mousemove', onMove, true);
-      document.removeEventListener('mouseup', onUp, true);
+      document.removeEventListener('mousemove', handleMove, true);
+      document.removeEventListener('mouseup', handleUp, true);
       try { setLocalStorage(HEIGHT_KEY, height); } catch {}
-
-      
-      setTimeout(() => {
-        setHeight(h => h + 0);
-        try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
-      }, 50);
+      setTimeout(finishResize, 50);
     };
 
-    
-    document.addEventListener('mousemove', onMove, true);
-    document.addEventListener('mouseup', onUp, true);
+    document.addEventListener('mousemove', handleMove, true);
+    document.addEventListener('mouseup', handleUp, true);
   }, [height, startResizing, stopResizing]);
 
   
@@ -104,13 +104,12 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
     try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
     
 
-    
-    const observers: any[] = [];
+
+    const observers: ResizeObserver[] = [];
     const observeEl = (sel: string) => {
       const el = document.querySelector<HTMLElement>(sel);
-      if (!el || !(window as any).ResizeObserver) return;
-      const RO = (window as any).ResizeObserver;
-      const ro = new RO(() => { calcOffsets(); });
+      if (!el || !('ResizeObserver' in window)) return;
+      const ro = new ResizeObserver(() => { calcOffsets(); });
       try { ro.observe(el); } catch {}
       observers.push(ro);
     };
@@ -126,7 +125,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
       observers.forEach(o => { try { o.disconnect(); } catch {} });
       try { mo.disconnect(); } catch {}
     };
-  }, []);
+  }, [height, setNodeNotePanelHeight]);
 
   
   const onWinResize = useCallback(() => {
@@ -166,7 +165,13 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
         return prevNote;
       });
     });
-    return () => { try { unsub(); } catch (_e) { /* ignore */ } };
+    return () => {
+      try {
+        unsub();
+      } catch (e) {
+        console.error('Failed to unsubscribe node note changes', e);
+      }
+    };
   }, [subscribeNoteChanges]);
 
   // Sync ref with state for reliable focus tracking
@@ -203,10 +208,11 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
   useEffect(() => {
     setNodeNotePanelHeight?.(height);
     try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
-  }, [height]);
+  }, [height, setNodeNotePanelHeight]);
 
-  
-  useEffect(() => () => { setNodeNotePanelHeight?.(0); }, []);
+
+
+  useEffect(() => () => { setNodeNotePanelHeight?.(0); }, [setNodeNotePanelHeight]);
 
   
   useEffect(() => {
@@ -218,14 +224,13 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
       try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
     });
 
-    let ro: any = null;
-    if ((window as any).ResizeObserver) {
-      const RO = (window as any).ResizeObserver;
-      ro = new RO((entries: any[]) => {
+    let ro: ResizeObserver | null = null;
+    if ('ResizeObserver' in window) {
+      ro = new ResizeObserver((entries: ResizeObserverEntry[]) => {
         const entry = entries[0];
         const h = Math.round(entry.contentRect.height);
         setNodeNotePanelHeight?.(h);
-        
+
         try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
       });
       try { ro.observe(el); } catch {}
@@ -234,11 +239,11 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
       cancelAnimationFrame(id);
       try { ro?.disconnect(); } catch {}
     };
-  }, []);
+  }, [setNodeNotePanelHeight]);
 
   const currentMapIdentifier = (() => {
     try {
-      const st = useMindMapStore.getState() as any;
+      const st = useMindMapStore.getState();
       return st?.data?.mapIdentifier || null;
     } catch { return null; }
   })();

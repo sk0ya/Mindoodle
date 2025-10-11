@@ -1,5 +1,6 @@
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 import { MarkdownImporter } from '../../features/markdown/markdownImporter';
 import { statusMessages } from '@shared/utils';
@@ -30,9 +31,9 @@ export const toggleCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, any>): CommandResult {
-    const nodeId = (args as any)['nodeId'] || context.selectedNodeId;
-    const forceState = (args as any)['expand'];
+  execute(context: CommandContext, args: Record<string, string | number | boolean>): CommandResult {
+    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
+    const forceState = typeof args['expand'] === 'boolean' ? args['expand'] : undefined;
 
     if (!nodeId) {
       const errorMessage = 'ノードが選択されておらず、ノードIDも指定されていません';
@@ -224,9 +225,9 @@ export const expandAllCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      
-      const state = useMindMapStore.getState() as any;
-      const rootNodes = state?.data?.rootNodes || [];
+
+      const state = useMindMapStore.getState();
+      const rootNodes: MindMapNode[] = state?.data?.rootNodes || [];
 
       if (rootNodes.length === 0) {
         const errorMessage = '現在のマインドマップにノードが見つかりません';
@@ -239,8 +240,8 @@ export const expandAllCommand: Command = {
 
       let expandedCount = 0;
 
-      
-      function expandAllNodes(nodes: any[]): void {
+
+      function expandAllNodes(nodes: MindMapNode[]): void {
         for (const node of nodes) {
           if (node.children && node.children.length > 0 && node.collapsed) {
             context.handlers.updateNode(node.id, { collapsed: false });
@@ -278,9 +279,9 @@ export const collapseAllCommand: Command = {
 
   execute(context: CommandContext): CommandResult {
     try {
-      
-      const state = useMindMapStore.getState() as any;
-      const rootNodes = state?.data?.rootNodes || [];
+
+      const state = useMindMapStore.getState();
+      const rootNodes: MindMapNode[] = state?.data?.rootNodes || [];
 
       if (rootNodes.length === 0) {
         const errorMessage = '現在のマインドマップにノードが見つかりません';
@@ -293,8 +294,8 @@ export const collapseAllCommand: Command = {
 
       let collapsedCount = 0;
 
-      
-      function collapseAllNodes(nodes: any[]): void {
+
+      function collapseAllNodes(nodes: MindMapNode[]): void {
         for (const node of nodes) {
           if (node.children && node.children.length > 0 && !node.collapsed) {
             context.handlers.updateNode(node.id, { collapsed: true });
@@ -353,10 +354,10 @@ export const toggleCheckboxCommand: Command = {
     }
 
     try {
-      
-      const store = useMindMapStore.getState() as any;
 
-      
+      const store = useMindMapStore.getState();
+
+
       if (node.markdownMeta?.isCheckbox) {
         
         
@@ -398,8 +399,8 @@ export const toggleCheckboxCommand: Command = {
           }
         }
 
-        const updateNodeInTree = (nodes: any[]): any[] => {
-          return nodes.map((n: any) => {
+        const updateNodeInTree = (nodes: MindMapNode[]): MindMapNode[] => {
+          return nodes.map((n: MindMapNode) => {
             if (n.id === nodeId) {
               let newMarkdownMeta;
               
@@ -448,8 +449,15 @@ export const toggleCheckboxCommand: Command = {
         
         store.setRootNodes(updatedRootNodes, { emit: true, source: 'toggle-checkbox-convert' });
 
-        const sourceType = node.markdownMeta?.type === 'heading' ? '見出し' :
-          (node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list') ? 'リスト' : '通常';
+        let sourceType: string;
+        const nodeType = node.markdownMeta?.type;
+        if (nodeType === 'heading') {
+          sourceType = '見出し';
+        } else if (nodeType === 'unordered-list' || nodeType === 'ordered-list') {
+          sourceType = 'リスト';
+        } else {
+          sourceType = '通常';
+        }
 
         return {
           success: true,

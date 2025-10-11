@@ -1,6 +1,7 @@
 
 import type { MindMapNode } from '@shared/types';
 import type { VimModeHook } from '../../vim/hooks/useVimMode';
+import type { Direction, MarkdownNodeType } from '@commands/system/types';
 import { useCommands, type UseCommandsReturn } from '@commands/system/useCommands';
 import { useMindMapStore } from '../store/mindMapStore';
 import { JUMP_CHARS } from '../../vim/constants';
@@ -25,7 +26,7 @@ interface KeyboardShortcutHandlers {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
-  navigateToDirection: (_direction: 'up' | 'down' | 'left' | 'right', _count?: number) => void;
+  navigateToDirection: (_direction: Direction, _count?: number) => void;
   selectNode: (_nodeId: string | null) => void;
   setPan?: (_pan: { x: number; y: number } | ((_prev: { x: number; y: number }) => { x: number; y: number })) => void;
   showMapList: boolean;
@@ -41,7 +42,7 @@ interface KeyboardShortcutHandlers {
   pasteImageFromClipboard: (_nodeId: string, _file?: File) => Promise<void>;
   findNodeById: (_nodeId: string) => MindMapNode | null;
   closeAttachmentAndLinkLists: () => void;
-  onMarkdownNodeType?: (_nodeId: string, _newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onMarkdownNodeType?: (_nodeId: string, _newType: MarkdownNodeType) => void;
   centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
   
   switchToPrevMap?: () => void;
@@ -60,7 +61,7 @@ function handleStandardShortcut(
   if (!isModifier && handlers.selectedNodeId) {
     if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
       event.preventDefault();
-      const direction = key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right';
+      const direction = key.replace('Arrow', '').toLowerCase() as Direction;
       commands.execute(`arrow-navigate --direction ${direction}`);
       return true;
     }
@@ -140,13 +141,11 @@ function handleNonVimShortcut(
   const isModifier = ctrlKey || metaKey;
 
   
-  if (!isModifier && handlers.selectedNodeId) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-      event.preventDefault();
-      const direction = key.replace('Arrow', '').toLowerCase() as 'up' | 'down' | 'left' | 'right';
-      commands.execute(`arrow-navigate --direction ${direction}`);
-      return true;
-    }
+  if (!isModifier && handlers.selectedNodeId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+    event.preventDefault();
+    const direction = key.replace('Arrow', '').toLowerCase() as Direction;
+    commands.execute(`arrow-navigate --direction ${direction}`);
+    return true;
   }
 
   
@@ -188,9 +187,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     handlers: {
       ...handlers,
       
-      switchToNextMap: (handlers as any).switchToNextMap,
-      switchToPrevMap: (handlers as any).switchToPrevMap,
-    } as any
+      switchToNextMap: handlers.switchToNextMap,
+      switchToPrevMap: handlers.switchToPrevMap,
+    }
   });
 
   const handlePaste = async (evt: ClipboardEvent) => {
@@ -214,8 +213,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         const dt = event.clipboardData;
         if (!dt) return;
 
-        
-        const items = dt.items || [] as any;
+
+        const items = dt.items || [];
         let imageItem: DataTransferItem | null = null;
         for (let i = 0; i < items.length; i++) {
           const it = items[i];
@@ -252,13 +251,18 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
         }
 
-        
+
         event.preventDefault();
         await commands.execute('paste');
       } catch (e) {
+        console.warn('Paste primary attempt failed:', e);
         event.preventDefault();
         // Fallback without throwing
-        try { await commands.execute('paste'); } catch {}
+        try {
+          await commands.execute('paste');
+        } catch (fallbackError) {
+          console.error('Paste fallback failed:', fallbackError);
+        }
       }
     };
 
@@ -280,28 +284,14 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
 
       if (isInTextInput || isInCodeMirrorEditor) {
 
-        if (handlers.editingNodeId && !isInCodeMirrorEditor) {
-          if (event.key === 'Enter') {
-            event.preventDefault();
-            handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
-              if (vim && vim.isEnabled) vim.setMode('normal');
-            });
-            return;
-          } else if (event.key === 'Tab') {
-            event.preventDefault();
-            handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
-              if (vim && vim.isEnabled) vim.setMode('normal');
-            });
-            return;
-          } else if (event.key === 'Escape') {
-            event.preventDefault();
-            handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
-              if (vim && vim.isEnabled) vim.setMode('normal');
-            });
-            return;
-          }
+        if (handlers.editingNodeId && !isInCodeMirrorEditor && (event.key === 'Enter' || event.key === 'Tab' || event.key === 'Escape')) {
+          event.preventDefault();
+          handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
+            if (vim && vim.isEnabled) vim.setMode('normal');
+          });
+          return;
         }
-        
+
         return;
       }
 
@@ -313,7 +303,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       if ((ctrlKey || metaKey) && !altKey && (key === 'b' || key === 'B')) {
         event.preventDefault();
         try {
-          const { ui, setActiveView } = useMindMapStore.getState() as any;
+          const { ui, setActiveView } = useMindMapStore.getState();
           const next = ui?.activeView ? null : 'maps';
           setActiveView(next);
         } catch {}
@@ -323,17 +313,18 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       
       if ((ctrlKey || metaKey) && !altKey && event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
-        try { commands.execute('toggle-node-note-panel'); } catch {}
+        commands.execute('toggle-node-note-panel').catch(err => {
+          console.warn('toggle-node-note-panel failed', err);
+        });
         return;
       }
 
       
       if ((ctrlKey || metaKey) && !altKey && !event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
-        try {
-          
-          commands.execute('toggle-markdown-panel');
-        } catch {}
+        commands.execute('toggle-markdown-panel').catch(err => {
+          console.warn('toggle-markdown-panel failed', err);
+        });
         return;
       }
 
@@ -356,7 +347,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           
           const exactMatch = vim.jumpyLabels.find(jl => jl.label === vim.jumpyBuffer);
           if (exactMatch) {
-            const { selectNode } = useMindMapStore.getState() as any;
+            const { selectNode } = useMindMapStore.getState();
             selectNode(exactMatch.nodeId);
             vim.exitJumpy();
           }
@@ -381,9 +372,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       
       if (vim && vim.isEnabled && vim.mode === 'normal') {
         
-        const { settings } = useMindMapStore.getState() as any;
-        const customMap: Record<string, string> = (settings?.vimCustomKeybindings || {}) as Record<string, string>;
-        let leader: string = (settings?.vimLeader ?? ',') as string;
+        const { settings } = useMindMapStore.getState();
+        const customMap: Record<string, string> = (settings?.vimCustomKeybindings || {});
+        let leader: string = (settings?.vimLeader ?? ',');
         if (typeof leader !== 'string' || leader.length !== 1) leader = ',';
 
         
@@ -408,19 +399,13 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             event.preventDefault();
             commands.executeVimCommand('ctrl-d');
             return;
-          } else if (lower === 'p' && ctrlKey && handlers.switchToPrevMap) {
+          } else if ((lower === 'p' && ctrlKey && handlers.switchToPrevMap) ||
+                     (lower === '[' && (ctrlKey || metaKey) && handlers.switchToPrevMap)) {
             event.preventDefault();
             handlers.switchToPrevMap();
             return;
-          } else if (lower === 'n' && ctrlKey && handlers.switchToNextMap) {
-            event.preventDefault();
-            handlers.switchToNextMap();
-            return;
-          } else if (lower === '[' && (ctrlKey || metaKey) && handlers.switchToPrevMap) {
-            event.preventDefault();
-            handlers.switchToPrevMap();
-            return;
-          } else if (lower === ']' && (ctrlKey || metaKey) && handlers.switchToNextMap) {
+          } else if ((lower === 'n' && ctrlKey && handlers.switchToNextMap) ||
+                     (lower === ']' && (ctrlKey || metaKey) && handlers.switchToNextMap)) {
             event.preventDefault();
             handlers.switchToNextMap();
             return;
@@ -482,12 +467,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           const currentBuffer = vim.commandBuffer;
           const currentCount = vim.countBuffer;
 
-          if (/^[1-9]$/.test(normalizedKey) && !currentBuffer && !currentCount) {
-            
-            vim.appendToCountBuffer(normalizedKey);
-            return;
-          } else if (/^[0-9]$/.test(normalizedKey) && currentCount && !currentBuffer) {
-            
+          const isDigitInput = /^\d$/.test(normalizedKey) && !currentBuffer;
+          const isValidCountStart = isDigitInput && normalizedKey !== '0' && !currentCount;
+          const isValidCountContinue = isDigitInput && currentCount;
+
+          if (isValidCountStart || isValidCountContinue) {
             vim.appendToCountBuffer(normalizedKey);
             return;
           }

@@ -557,7 +557,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
           selection.col === dragStart.col;
 
         if (isSameCell) {
-          
+          // no-op: releasing in the same cell should not trigger changes
         }
       }
       setDragStart(null);
@@ -598,7 +598,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     
     e.stopPropagation();
 
-    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const isMac = (navigator.userAgent || '').toLowerCase().includes('mac');
     const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
 
     
@@ -668,11 +668,11 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
               <button className="delete-selection-btn" onClick={handleDeleteSelection}>
                 <Trash2 size={16} />
                 <span>
-                  {selection.type === 'rows'
-                    ? `${selection.indices.length}行を削除`
-                    : selection.type === 'columns'
-                    ? `${selection.indices.length}列を削除`
-                    : '削除'}
+                  {(() => {
+                    if (selection.type === 'rows') return `${selection.indices.length}行を削除`;
+                    if (selection.type === 'columns') return `${selection.indices.length}列を削除`;
+                    return '削除';
+                  })()}
                 </span>
               </button>
             )}

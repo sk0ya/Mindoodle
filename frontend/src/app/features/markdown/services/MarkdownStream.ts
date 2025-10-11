@@ -64,7 +64,11 @@ export class MarkdownStream {
   private notify(markdown: string, source: MarkdownSource, updatedAt?: string): void {
     logger.debug('📢 MarkdownStream.notify', { source, length: markdown.length, updatedAt, subscribers: this.subscribers.size });
     for (const cb of Array.from(this.subscribers)) {
-      try { cb(markdown, source, updatedAt); } catch (_e) {  void 0; }
+      try {
+        cb(markdown, source, updatedAt);
+      } catch (err) {
+        logger.warn('MarkdownStream subscriber error', err);
+      }
     }
   }
 
@@ -87,13 +91,17 @@ export class MarkdownStream {
       for (const sink of this.sinks) {
         try {
           await sink.flush(now);
-        } catch {
-          
+        } catch (err) {
+          logger.warn('MarkdownStream sink flush error', { id: sink.id, error: err });
         }
       }
       this.lastFlushed = now;
     };
-    this.flushLock = this.flushLock.then(run).catch(() => {}).finally(() => {});
+    this.flushLock = this.flushLock
+      .then(run)
+      .catch((err) => {
+        logger.warn('MarkdownStream flushLock chain error', err);
+      });
     await this.flushLock;
   }
 }

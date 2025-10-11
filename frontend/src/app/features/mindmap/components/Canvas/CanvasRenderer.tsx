@@ -45,7 +45,7 @@ interface CanvasRendererProps {
   
   
   availableMaps?: { id: string; title: string }[];
-  currentMapData?: { id: string; rootNode?: any; rootNodes?: any[] };
+  currentMapData?: { id: string; rootNode?: MindMapNode; rootNodes?: MindMapNode[] };
   
   
   onLinkNavigate?: (link: NodeLink) => void;
@@ -96,8 +96,9 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onImageClick,
   onPreviewUrl
 }) => {
-  const { settings } = useMindMapStore();
+  const { settings, ui } = useMindMapStore();
   const wrapConfig = resolveNodeTextWrapConfig(settings, settings.fontSize);
+  const showLinkListForNode = ui.showLinkListForNode;
 
 
   
@@ -105,7 +106,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
     const svgElement = svgRef.current;
     if (svgElement) {
       const handleWheelCapture = (e: WheelEvent) => {
-        
+
         const syntheticEvent = {
           preventDefault: () => e.preventDefault(),
           stopPropagation: () => e.stopPropagation(),
@@ -126,7 +127,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
       };
     }
     return undefined;
-  }, [onWheel]);
+  }, [onWheel, svgRef]);
   return (
     <div className="mindmap-canvas-container">
       <svg
@@ -203,36 +204,30 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           )}
 
           {}
-          {(() => {
-            const { showLinkListForNode } = useMindMapStore().ui;
-            
-            
-            if (showLinkListForNode) {
-              const targetNode = allNodes.find(node => node.id === showLinkListForNode);
-              if (targetNode) {
-                const nodeSize = calculateNodeSize(targetNode, editText, editingNodeId === targetNode.id, settings.fontSize, wrapConfig);
-                return (
-                  <SelectedNodeLinkList
-                    key={`link-list-${showLinkListForNode}`}
-                    node={targetNode}
-                    isVisible={true}
-                    nodeWidth={nodeSize.width}
-                    nodeHeight={nodeSize.height}
-                    onLinkClick={() => {
-                      
-                    }}
-                    onLinkContextMenu={(link, position) => {
-                      onShowLinkActionMenu(link, position);
-                    }}
-                    onLinkNavigate={onLinkNavigate}
-                    onPreviewUrl={onPreviewUrl}
-                    availableMaps={availableMaps}
-                    currentMapData={currentMapData}
-                  />
-                );
-              }
+          {showLinkListForNode && (() => {
+            const targetNode = allNodes.find(node => node.id === showLinkListForNode);
+            if (targetNode) {
+              const nodeSize = calculateNodeSize(targetNode, editText, editingNodeId === targetNode.id, settings.fontSize, wrapConfig);
+              return (
+                <SelectedNodeLinkList
+                  key={`link-list-${showLinkListForNode}`}
+                  node={targetNode}
+                  isVisible={true}
+                  nodeWidth={nodeSize.width}
+                  nodeHeight={nodeSize.height}
+                  onLinkClick={() => {
+
+                  }}
+                  onLinkContextMenu={(link, position) => {
+                    onShowLinkActionMenu(link, position);
+                  }}
+                  onLinkNavigate={onLinkNavigate}
+                  onPreviewUrl={onPreviewUrl}
+                  availableMaps={availableMaps}
+                  currentMapData={currentMapData}
+                />
+              );
             }
-            
             return null;
           })()}
 

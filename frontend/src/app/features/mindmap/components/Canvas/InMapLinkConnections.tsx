@@ -169,7 +169,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
     }
     
     for (const src of allNodes) {
-      const mdLinks = extractInternalMarkdownLinksDetailed((src as any).note, syntheticRoot);
+      const mdLinks = extractInternalMarkdownLinksDetailed((src as unknown as Partial<Record<string, unknown>>).note as string | undefined, syntheticRoot);
       if (!mdLinks || mdLinks.length === 0) continue;
       const srcSize = calculateNodeSize(src, undefined, false, settings.fontSize, wrapConfig);
       for (const m of mdLinks) {
@@ -184,7 +184,7 @@ const InMapLinkConnections: React.FC<InMapLinkConnectionsProps> = ({ data, allNo
         const dstSize = calculateNodeSize(dst, undefined, false, settings.fontSize, wrapConfig);
 
         
-        const hasMdReverseLink = extractInternalMarkdownLinksDetailed((dst as any).note, syntheticRoot)
+        const hasMdReverseLink = extractInternalMarkdownLinksDetailed((dst as unknown as Partial<Record<string, unknown>>).note as string | undefined, syntheticRoot)
           .some(l => l.nodeId === src.id);
         const isBidirectional = hasMdReverseLink || hasReverseLink(src.id, dst.id);
 

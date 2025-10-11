@@ -1,4 +1,5 @@
 import type { MindMapNode, MindMapData } from '../types';
+import type { StorageAdapter } from '../../core/types/storage.types';
 
 export interface SearchResult {
   nodeId: string;
@@ -42,7 +43,7 @@ export function searchNodesRecursively(
       mapId: mapData.mapIdentifier.mapId,
       mapTitle: mapData.title,
       matchType: textMatch ? 'text' : 'note',
-      workspaceId: (mapData as any).mapIdentifier?.workspaceId as string
+      workspaceId: mapData.mapIdentifier.workspaceId
     });
   }
 
@@ -88,7 +89,7 @@ export function searchMultipleMaps(query: string, maps: MindMapData[]): SearchRe
 
 export async function searchFilesForContent(
   query: string,
-  storageAdapter: any,
+  storageAdapter: StorageAdapter,
   workspaces?: Array<{ id: string; name: string }>
 ): Promise<FileBasedSearchResult[]> {
   if (!query.trim() || !storageAdapter) {
@@ -163,7 +164,7 @@ export function findNodeByLineNumber(
   const findInNodes = (nodes: MindMapNode[], depth: number = 0): { node: MindMapNode; depth: number } | null => {
     for (const node of nodes) {
       
-      const nodeLineNumber = (node as any).markdownMeta?.lineNumber;
+      const nodeLineNumber = node.markdownMeta?.lineNumber;
       if (typeof nodeLineNumber === 'number' && nodeLineNumber + 1 === targetLineNumber) {
         return { node, depth };
       }

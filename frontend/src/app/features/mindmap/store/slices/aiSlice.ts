@@ -1,4 +1,5 @@
 import { StateCreator } from 'zustand';
+import type { MindMapStore } from './types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 
 
@@ -51,7 +52,7 @@ const saveAISettingsToStorage = (settings: AISettings): void => {
   setLocalStorage(STORAGE_KEYS.AI_SETTINGS, settings);
 };
 
-export const createAISlice: StateCreator<any, [], [], AISlice> = (set, get) => ({
+export const createAISlice: StateCreator<MindMapStore, [["zustand/immer", never]], [], AISlice> = (set, get) => ({
   aiSettings: loadAISettingsFromStorage(),
   isGenerating: false,
   generationError: null,

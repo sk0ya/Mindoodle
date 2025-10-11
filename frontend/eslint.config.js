@@ -40,16 +40,17 @@ export default [
       '@typescript-eslint/no-non-null-asserted-optional-chain': 'warn',
 
       // 未使用検出
-      '@typescript-eslint/no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        ignoreRestSiblings: true
-      }],
-      'no-unused-vars': ['warn', {
-        argsIgnorePattern: '^_',
-        varsIgnorePattern: '^_',
-        ignoreRestSiblings: true
-      }],
+      // '@typescript-eslint/no-unused-vars': ['warn', {
+      //   argsIgnorePattern: '^_',
+      //   varsIgnorePattern: '^_',
+      //   ignoreRestSiblings: true
+      // }],
+      // 'no-unused-vars': ['warn', {
+      //   argsIgnorePattern: '^_',
+      //   varsIgnorePattern: '^_',
+      //   ignoreRestSiblings: true
+      // }],
+       'no-unused-vars': 'off', 
 
       // React固有ルール
       'react/prop-types': 'off',

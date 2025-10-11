@@ -64,67 +64,77 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
   useEffect(() => {
     let cancelled = false;
 
+    const extractDimensions = (element: Element): { width: number; height: number } => {
+      const vb = element.getAttribute('viewBox');
+      if (vb) {
+        const parts = vb.split(/[ ,]+/).map(Number);
+        if (parts.length === 4) {
+          return { width: parts[2], height: parts[3] };
+        }
+      }
+
+      const wAttr = element.getAttribute('width');
+      const hAttr = element.getAttribute('height');
+      const w = wAttr ? parseFloat(wAttr) : 0;
+      const h = hAttr ? parseFloat(hAttr) : 0;
+
+      if (w > 0 && h > 0) {
+        element.setAttribute('viewBox', `0 0 ${w} ${h}`);
+        return { width: w, height: h };
+      }
+
+      return { width: 0, height: 0 };
+    };
+
+    const normalizeSVGElement = (element: Element): void => {
+      element.removeAttribute('width');
+      element.removeAttribute('height');
+      element.setAttribute('width', '100%');
+      element.setAttribute('height', '100%');
+      element.setAttribute('preserveAspectRatio', 'xMidYMid meet');
+      element.setAttribute('style', 'width:100%;height:100%;display:block');
+    };
+
+    const handleCachedSVG = (cached: { svg: string; dimensions: { width: number; height: number } }): boolean => {
+      if (!cancelled) {
+        setSvg(cached.svg);
+        onLoadedDimensions?.(cached.dimensions.width, cached.dimensions.height);
+        return true;
+      }
+      return false;
+    };
+
     const render = async () => {
       try {
-        
         const cached = mermaidSVGCache.get(cleanedCode);
-        if (cached && !cancelled) {
-          setSvg(cached.svg);
-          onLoadedDimensions?.(cached.dimensions.width, cached.dimensions.height);
-          return;
-        }
+        if (cached && handleCachedSVG(cached)) return;
 
-        
         const id = generateId('mermaid');
         const { svg } = await mermaid.render(id, cleanedCode);
         if (cancelled) return;
 
-        
         const parser = new DOMParser();
         const doc = parser.parseFromString(svg, 'image/svg+xml');
         const el = doc.documentElement;
 
-        
-        let vbW = 0; let vbH = 0;
-        const vb = el.getAttribute('viewBox');
-        if (vb) {
-          const parts = vb.split(/[ ,]+/).map(Number);
-          if (parts.length === 4) { vbW = parts[2]; vbH = parts[3]; }
-        } else {
-          const wAttr = el.getAttribute('width');
-          const hAttr = el.getAttribute('height');
-          const w = wAttr ? parseFloat(wAttr) : 0;
-          const h = hAttr ? parseFloat(hAttr) : 0;
-          if (w > 0 && h > 0) {
-            el.setAttribute('viewBox', `0 0 ${w} ${h}`);
-            vbW = w; vbH = h;
-          }
-        }
-
-        
-        el.removeAttribute('width');
-        el.removeAttribute('height');
-        el.setAttribute('width', '100%');
-        el.setAttribute('height', '100%');
-        el.setAttribute('preserveAspectRatio', 'xMidYMid meet');
-        el.setAttribute('style', 'width:100%;height:100%;display:block');
+        const { width, height } = extractDimensions(el);
+        normalizeSVGElement(el);
 
         const serializer = new XMLSerializer();
         const adjusted = serializer.serializeToString(el);
 
-        
-        if (vbW > 0 && vbH > 0) {
-          mermaidSVGCache.set(cleanedCode, adjusted, { width: vbW, height: vbH });
+        if (width > 0 && height > 0) {
+          mermaidSVGCache.set(cleanedCode, adjusted, { width, height });
         }
 
         setSvg(adjusted);
-        if (vbW > 0 && vbH > 0) {
-          onLoadedDimensions?.(vbW, vbH);
+        if (width > 0 && height > 0) {
+          onLoadedDimensions?.(width, height);
         }
-    } catch (e) {
+      } catch (e) {
         console.warn('Mermaid render failed', e);
         setSvg('');
-    }
+      }
     };
 
     render();

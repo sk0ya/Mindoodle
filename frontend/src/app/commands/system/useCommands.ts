@@ -4,7 +4,8 @@ import type {
   CommandContext,
   CommandResult,
   ParseResult,
-  ExecuteOptions
+  ExecuteOptions,
+  MarkdownNodeType
 } from './types';
 import { parseCommand, validateCommand, generateSuggestions } from './parser';
 import { CommandRegistryImpl } from './registry';
@@ -13,6 +14,7 @@ import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSeque
 import { logger } from '@shared/utils';
 import { useMindMapStore } from '@mindmap/store';
 import type { VimModeHook } from '@vim/hooks/useVimMode';
+import type { MindMapNode } from '@shared/types';
 
 interface UseCommandsProps {
   selectedNodeId: string | null;
@@ -20,9 +22,9 @@ interface UseCommandsProps {
   vim?: VimModeHook;
   handlers: {
     
-    updateNode: (id: string, updates: any) => void;
+    updateNode: (id: string, updates: Partial<MindMapNode>) => void;
     deleteNode: (id: string) => void;
-    findNodeById: (nodeId: string) => any;
+    findNodeById: (nodeId: string) => MindMapNode | null;
 
     
     centerNodeInView?: (nodeId: string, animate?: boolean) => void;
@@ -64,8 +66,12 @@ interface UseCommandsProps {
     
     closeAttachmentAndLinkLists: () => void;
 
-    
-    onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+
+    onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
+
+
+    switchToNextMap?: () => void;
+    switchToPrevMap?: () => void;
   };
 }
 
@@ -96,21 +102,17 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
   
   const uiStore = useMindMapStore();
   const context = useMemo((): CommandContext => {
-    
-    const cleanHandlers = Object.entries(handlers).reduce((acc, [k, v]) => {
-      if (v !== undefined) (acc as any)[k] = v;
-      return acc;
-    }, {} as Partial<CommandContext['handlers']>) as CommandContext['handlers'];
+    const cleanHandlers = handlers as CommandContext['handlers'];
 
     const base = {
       selectedNodeId,
       editingNodeId,
       handlers: cleanHandlers,
-      mode: (uiStore as any)?.ui?.mode,
-      openPanels: (uiStore as any)?.ui?.openPanels
+      mode: uiStore?.ui?.mode,
+      openPanels: uiStore?.ui?.openPanels
     } as CommandContext;
     if (vim !== undefined) {
-      (base as any).vim = vim;
+      base.vim = vim;
     }
     return base;
   }, [selectedNodeId, editingNodeId, vim, handlers, uiStore]);
@@ -228,9 +230,9 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
 
         
         try {
-          const roots: any[] = (useMindMapStore as any).getState?.().data?.rootNodes || [];
-          
-          const findParent = (list: any[], targetId: string, parent: any | null = null): any | null => {
+          const roots: MindMapNode[] = useMindMapStore.getState?.().data?.rootNodes || [];
+
+          const findParent = (list: MindMapNode[], targetId: string, parent: MindMapNode | null = null): MindMapNode | null => {
             for (const n of list) {
               if (n.id === targetId) return parent;
               if (n.children?.length) {
@@ -256,7 +258,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
         };
 
         
-        handlers.updateNode(selectedNodeId, { markdownMeta: newMeta } as any);
+        handlers.updateNode(selectedNodeId, { markdownMeta: newMeta });
 
         return { success: true, message: `Converted to ${num}. ordered list` };
       } catch (e) {
@@ -373,7 +375,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     }
 
     return result;
-  }, [execute, vim, context, registry]);
+  }, [vim, context, registry, selectedNodeId, handlers]);
 
   
   const getAvailableCommands = useCallback((): string[] => {

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import type { MapIdentifier } from '@shared/types';
+import type { StorageAdapter } from '@core/types';
 import {
   searchFilesForContent,
   getMatchPosition,
@@ -16,9 +17,9 @@ import '../SearchSidebar.css';
 interface SearchSidebarProps {
   onMapSwitch?: (mapIdentifier: MapIdentifier) => Promise<void>;
   onNodeSelectByLine?: (lineNumber: number) => Promise<void>;
-  
-  storageAdapter?: any;
-  
+
+  storageAdapter?: StorageAdapter;
+
   workspaces?: Array<{ id: string; name: string }>;
 }
 
@@ -65,7 +66,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, clearSearchHighlight, setStoreSearchQuery, setSearchHighlightedNodes]);
 
   // Handle file-based search
   useEffect(() => {
@@ -94,7 +95,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
     }, 300);
 
     return () => clearTimeout(timer);
-  }, [searchQuery]);
+  }, [searchQuery, startSearching, stopSearching, storageAdapter, workspaces]);
 
 
   const handleFileResultDoubleClick = async (result: FileBasedSearchResult) => {
@@ -103,10 +104,9 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   };
 
 
-  const highlightMatch = (text: string, query: string) => {
+  const highlightMatch = (text: string, query: string): JSX.Element => {
     const matchPos = getMatchPosition(text, query);
-    if (!matchPos) return text;
-    
+    if (!matchPos) return <>{text}</>;
     const { beforeMatch, match, afterMatch } = matchPos;
     return (
       <>

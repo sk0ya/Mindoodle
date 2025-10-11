@@ -1,9 +1,10 @@
 import type { MindMapNode, MindMapData, NodeLink } from '@shared/types';
+import type { NormalizedData } from '../../core/data/normalizedStore';
 
 
 export interface DataState {
   data: MindMapData | null;
-  normalizedData: any | null; 
+  normalizedData: NormalizedData | null; 
   selectedNodeId: string | null;
   editingNodeId: string | null;
   editText: string;
@@ -59,9 +60,9 @@ export interface NodeActions extends NodeOperations, LinkOperations {
 
 
 export interface NodeSlice extends NodeActions {
-  
+
   data: MindMapData | null;
-  normalizedData: any | null;
+  normalizedData: NormalizedData | null;
   selectedNodeId: string | null;
   editingNodeId: string | null;
   editText: string;

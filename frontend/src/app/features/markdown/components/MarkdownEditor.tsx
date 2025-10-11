@@ -236,30 +236,29 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
       if (hoveredRef.current) {
         e.preventDefault();
         e.stopPropagation();
-        setMode(prev => {
-          const next = prev === 'edit' ? 'preview' : prev === 'preview' ? 'split' : 'edit';
-          if (next === 'preview') {
-            setTimeout(() => {
-              try { previewPaneRef.current?.focus(); } catch {}
-            }, 0);
-          }
-          return next;
-        });
+        let next: 'edit' | 'preview' | 'split';
+        if (mode === 'edit') next = 'preview';
+        else if (mode === 'preview') next = 'split';
+        else next = 'edit';
+        setMode(next);
+        if (next === 'preview') {
+          setTimeout(() => {
+            try { previewPaneRef.current?.focus(); } catch {}
+          }, 0);
+        }
       }
     };
     document.addEventListener('keydown', onDocKeyDown, true);
     return () => { document.removeEventListener('keydown', onDocKeyDown, true); };
-  }, []);
+  }, [mode]);
 
   // Save shortcut (Ctrl/Cmd+S)
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
-        if (hoveredRef.current && onSave) {
-          e.preventDefault();
-          e.stopPropagation();
-          onSave();
-        }
+      if ((e.ctrlKey || e.metaKey) && e.key === 's' && hoveredRef.current && onSave) {
+        e.preventDefault();
+        e.stopPropagation();
+        onSave();
       }
     };
     document.addEventListener('keydown', handler);
@@ -295,18 +294,22 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     backgroundColor: isDark ? '#1e1e1e' : '#ffffff',
   };
 
+  const editorFlex = (mode === 'split' || mode === 'edit') ? 1 : 0;
+  const borderColor = isDark ? '#404040' : '#e0e0e0';
+  const editorBorderRight = mode === 'split' ? `1px solid ${borderColor}` : 'none';
   const editorContainerStyle: React.CSSProperties = {
-    flex: mode === 'split' ? 1 : mode === 'edit' ? 1 : 0,
+    flex: editorFlex,
     display: mode === 'preview' ? 'none' : 'flex',
     flexDirection: 'column',
     minHeight: 0,
     minWidth: 0,
     height: '100%',
-    borderRight: mode === 'split' ? `1px solid ${isDark ? '#404040' : '#e0e0e0'}` : 'none',
+    borderRight: editorBorderRight,
   };
 
+  const previewFlex = (mode === 'split' || mode === 'preview') ? 1 : 0;
   const previewContainerStyle: React.CSSProperties = {
-    flex: mode === 'split' ? 1 : mode === 'preview' ? 1 : 0,
+    flex: previewFlex,
     display: mode === 'edit' ? 'none' : 'block',
     overflow: 'auto',
     padding: '16px',
@@ -324,17 +327,25 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     color: isDark ? '#cccccc' : '#666666',
   };
 
-  const buttonStyle = (active: boolean): React.CSSProperties => ({
-    padding: '4px 12px',
-    marginLeft: '8px',
-    border: 'none',
-    borderRadius: '4px',
-    cursor: 'pointer',
-    fontSize: '12px',
-    backgroundColor: active ? (isDark ? '#0e639c' : '#007acc') : (isDark ? '#3c3c3c' : '#e0e0e0'),
-    color: active ? '#ffffff' : (isDark ? '#cccccc' : '#333333'),
-    transition: 'background-color 0.2s',
-  });
+  const buttonStyle = (active: boolean): React.CSSProperties => {
+    let bg: string;
+    if (active) bg = isDark ? '#0e639c' : '#007acc';
+    else bg = isDark ? '#3c3c3c' : '#e0e0e0';
+    let fg: string;
+    if (active) fg = '#ffffff';
+    else fg = isDark ? '#cccccc' : '#333333';
+    return {
+      padding: '4px 12px',
+      marginLeft: '8px',
+      border: 'none',
+      borderRadius: '4px',
+      cursor: 'pointer',
+      fontSize: '12px',
+      backgroundColor: bg,
+      color: fg,
+      transition: 'background-color 0.2s',
+    };
+  };
 
   return (
     <div

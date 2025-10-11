@@ -26,12 +26,12 @@ export const useMarkdownStream = (
   useEffect(() => {
     if (!id || !adapter) return;
     const localSink = createLocalSink('local', async (markdown: string) => {
-      if (typeof (adapter as any).saveMapMarkdown === 'function') {
-        await (adapter as any).saveMapMarkdown(id, markdown);
+      if (typeof (adapter as Partial<Record<string, unknown>>).saveMapMarkdown === 'function') {
+        await (adapter as { saveMapMarkdown: (id: MapIdentifier, markdown: string) => Promise<void> }).saveMapMarkdown(id, markdown);
       }
     });
     stream.replaceSinks([localSink]);
-  }, [adapter, id]);
+  }, [adapter, id, stream]);
 
   
   useEffect(() => {
@@ -41,23 +41,20 @@ export const useMarkdownStream = (
     const load = async () => {
       if (!id || !adapter) return;
       try {
-        if (typeof (adapter as any).getMapMarkdown === 'function') {
-          const text: string | null = await (adapter as any).getMapMarkdown(id);
-          if (!cancelled && typeof text === 'string') {
-            
-            if (text !== lastLoadedRef.value) {
-              lastLoadedRef.value = text;
-              stream.setMarkdown(text, 'external');
-            }
+        if (typeof (adapter as Partial<Record<string, unknown>>).getMapMarkdown === 'function') {
+          const text: string | null = await (adapter as { getMapMarkdown: (id: MapIdentifier) => Promise<string | null> }).getMapMarkdown(id);
+          if (!cancelled && typeof text === 'string' && text !== lastLoadedRef.value) {
+            lastLoadedRef.value = text;
+            stream.setMarkdown(text, 'external');
           }
         }
       } catch {
-        
+
       }
     };
     void load();
     return () => { cancelled = true; };
-  }, [adapter, id]);
+  }, [adapter, id, stream]);
 
   
   const setFromEditor = useCallback((text: string) => stream.setMarkdown(text, 'editor' as MarkdownSource), [stream]);
