@@ -85,7 +85,6 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
       } else if (vim.mode === 'command') {
         vim.exitCommandLine();
       }
-      return;
     }
   };
 
