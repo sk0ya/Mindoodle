@@ -29,7 +29,7 @@ const VimSidebar: React.FC = () => {
           </label>
           <label className="settings-toggle" style={{ display:'flex', alignItems:'center', gap:8, marginTop: 6 }}>
             <input type="checkbox" checked={(settings as any).vimEditor} onChange={toggleEditorVim} />
-            <span>エディタ Vim（Monaco）</span>
+            <span>エディタ Vim（CodeMirror）</span>
           </label>
         </div>
         <div role="tablist" aria-label="Vim mappings scope" className="vim-tabs">

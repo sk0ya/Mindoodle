@@ -3,7 +3,7 @@
  */
 
 import { EditorState, Extension } from '@codemirror/state';
-import { EditorView, keymap, ViewUpdate, lineNumbers } from '@codemirror/view';
+import { EditorView, keymap, ViewUpdate, lineNumbers, Decoration } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
@@ -19,7 +19,7 @@ export interface EditorConfig {
   readOnly?: boolean;
   theme?: 'light' | 'dark';
   vimMode?: boolean;
-  language?: 'markdown' | 'plain';
+  language?: 'markdown' | 'plain' | 'vim';
   fontSize?: number;
   fontFamily?: string;
   onCursorLineChange?: (line: number) => void;
@@ -30,6 +30,7 @@ export interface EditorConfig {
  * Custom syntax highlighting with blue headings
  */
 const lightThemeHighlight = HighlightStyle.define([
+  // Markdown
   { tag: tags.heading1, color: '#0052cc', fontWeight: 'bold', fontSize: '1.8em' },
   { tag: tags.heading2, color: '#0065ff', fontWeight: 'bold', fontSize: '1.5em' },
   { tag: tags.heading3, color: '#2684ff', fontWeight: 'bold', fontSize: '1.3em' },
@@ -40,10 +41,18 @@ const lightThemeHighlight = HighlightStyle.define([
   { tag: tags.emphasis, fontStyle: 'italic' },
   { tag: tags.link, color: '#0969da', textDecoration: 'underline' },
   { tag: tags.monospace, fontFamily: 'monospace', backgroundColor: '#f6f8fa' },
+  // Code
   { tag: tags.comment, color: '#6a737d', fontStyle: 'italic' },
+  { tag: tags.keyword, color: '#d73a49', fontWeight: 'bold' },
+  { tag: tags.string, color: '#032f62' },
+  { tag: tags.number, color: '#005cc5' },
+  { tag: tags.operator, color: '#d73a49' },
+  { tag: tags.function(tags.variableName), color: '#6f42c1' },
+  { tag: tags.variableName, color: '#24292e' },
 ]);
 
 const darkThemeHighlight = HighlightStyle.define([
+  // Markdown
   { tag: tags.heading1, color: '#58a6ff', fontWeight: 'bold', fontSize: '1.8em' },
   { tag: tags.heading2, color: '#79c0ff', fontWeight: 'bold', fontSize: '1.5em' },
   { tag: tags.heading3, color: '#a5d6ff', fontWeight: 'bold', fontSize: '1.3em' },
@@ -54,8 +63,77 @@ const darkThemeHighlight = HighlightStyle.define([
   { tag: tags.emphasis, fontStyle: 'italic' },
   { tag: tags.link, color: '#58a6ff', textDecoration: 'underline' },
   { tag: tags.monospace, fontFamily: 'monospace', backgroundColor: '#161b22' },
+  // Code
   { tag: tags.comment, color: '#8b949e', fontStyle: 'italic' },
+  { tag: tags.keyword, color: '#ff7b72', fontWeight: 'bold' },
+  { tag: tags.string, color: '#a5d6ff' },
+  { tag: tags.number, color: '#79c0ff' },
+  { tag: tags.operator, color: '#ff7b72' },
+  { tag: tags.function(tags.variableName), color: '#d2a8ff' },
+  { tag: tags.variableName, color: '#c9d1d9' },
 ]);
+
+/**
+ * Simple Vimscript syntax highlighting
+ */
+function createVimHighlighting(isDark: boolean): Extension {
+  const commentColor = isDark ? '#8b949e' : '#6a737d';
+  const keywordColor = isDark ? '#ff7b72' : '#d73a49';
+  const stringColor = isDark ? '#a5d6ff' : '#032f62';
+  const functionColor = isDark ? '#d2a8ff' : '#6f42c1';
+
+  return EditorView.decorations.compute(['doc'], (state) => {
+    const decorations: any[] = [];
+
+    for (let i = 1; i <= state.doc.lines; i++) {
+      const line = state.doc.line(i);
+      const text = line.text;
+
+      // Comment highlighting (starts with ")
+      if (text.trim().startsWith('"')) {
+        decorations.push(
+          Decoration.mark({
+            attributes: { style: `color: ${commentColor}; font-style: italic;` },
+          }).range(line.from, line.to)
+        );
+        continue;
+      }
+
+      // Vim keywords
+      const keywords = /\b(map|noremap|nnoremap|vnoremap|inoremap|set|let|if|endif|function|endfunction|call|return|for|endfor|while|endwhile)\b/g;
+      let match;
+      while ((match = keywords.exec(text)) !== null) {
+        decorations.push(
+          Decoration.mark({
+            attributes: { style: `color: ${keywordColor}; font-weight: bold;` },
+          }).range(line.from + match.index, line.from + match.index + match[0].length)
+        );
+      }
+
+      // String highlighting
+      const strings = /'[^']*'|"[^"]*"/g;
+      while ((match = strings.exec(text)) !== null) {
+        decorations.push(
+          Decoration.mark({
+            attributes: { style: `color: ${stringColor};` },
+          }).range(line.from + match.index, line.from + match.index + match[0].length)
+        );
+      }
+
+      // Leader key highlighting (<leader>)
+      const leader = /<leader>/gi;
+      while ((match = leader.exec(text)) !== null) {
+        decorations.push(
+          Decoration.mark({
+            attributes: { style: `color: ${functionColor}; font-weight: bold;` },
+          }).range(line.from + match.index, line.from + match.index + match[0].length)
+        );
+      }
+    }
+
+    return Decoration.set(decorations, true);
+  });
+}
 
 /**
  * Create base extensions for CodeMirror
@@ -80,6 +158,9 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
   // Language support
   if (config.language === 'markdown') {
     extensions.push(markdown());
+  } else if (config.language === 'vim') {
+    const isDark = config.theme === 'dark';
+    extensions.push(createVimHighlighting(isDark));
   }
 
   // Syntax highlighting with blue headings
