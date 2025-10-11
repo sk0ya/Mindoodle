@@ -272,7 +272,7 @@ function getStyles(isResizing: boolean) {
   return `
     .selected-node-note-panel {
       position: fixed;
-      bottom: 0;
+      bottom: var(--vim-statusbar-height, 24px);
       background: var(--bg-primary);
       border-top: 1px solid var(--border-color);
       box-shadow: 0 -6px 20px rgba(0,0,0,0.12);

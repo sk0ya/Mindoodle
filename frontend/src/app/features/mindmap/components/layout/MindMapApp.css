@@ -1,3 +1,7 @@
+:root {
+  --vim-statusbar-height: 24px;
+}
+
 .mindmap-app {
   height: 100vh;
   background: var(--bg-primary);

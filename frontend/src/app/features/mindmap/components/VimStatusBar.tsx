@@ -198,7 +198,7 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           bottom: 0;
           left: 0;
           right: 0;
-          height: 24px;
+          height: var(--vim-statusbar-height, 24px);
           background: var(--bg-secondary);
           border-top: 1px solid var(--border-color);
           display: flex;
