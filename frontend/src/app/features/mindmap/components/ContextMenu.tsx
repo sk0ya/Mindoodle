@@ -41,8 +41,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const menuRef = useClickOutside<HTMLDivElement>(onClose, visible);
 
   
-  const handleKeyDown = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
+  const handleKeyDown = useCallback((event: Event) => {
+    const e = event as KeyboardEvent;
+    if (e.key === 'Escape') {
       onClose();
     }
   }, [onClose]);

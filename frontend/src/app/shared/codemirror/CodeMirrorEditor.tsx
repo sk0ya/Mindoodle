@@ -167,32 +167,47 @@ export const CodeMirrorEditor = forwardRef<CodeMirrorEditorRef, CodeMirrorEditor
       }
     }, [value]);
 
-    // Handle container resize
+    // Handle container resize (feature-detect ResizeObserver)
     useEffect(() => {
       if (!containerRef.current || !editorViewRef.current) return;
 
       let timeoutId: NodeJS.Timeout | null = null;
 
-      const resizeObserver = new ResizeObserver(() => {
-        if (editorViewRef.current) {
-          // Trigger CodeMirror to recalculate its layout
-          editorViewRef.current.requestMeasure();
+      try {
+        const RO: any = (window as any)?.ResizeObserver;
+        if (RO) {
+          const resizeObserver = new RO(() => {
+            if (editorViewRef.current) {
+              editorViewRef.current.requestMeasure();
+              if (timeoutId) clearTimeout(timeoutId);
+              timeoutId = setTimeout(() => {
+                editorViewRef.current && editorViewRef.current.dispatch({});
+              }, 50);
+            }
+          });
+          resizeObserver.observe(containerRef.current);
+          return () => {
+            if (timeoutId) clearTimeout(timeoutId);
+            try { resizeObserver.disconnect(); } catch {}
+          };
+        }
+      } catch {}
 
-          // Also dispatch a state effect to force re-layout (for horizontal resize)
+      // Fallback: listen to window resize
+      const onResize = () => {
+        try {
+          if (!editorViewRef.current) return;
+          editorViewRef.current.requestMeasure();
           if (timeoutId) clearTimeout(timeoutId);
           timeoutId = setTimeout(() => {
-            if (editorViewRef.current) {
-              editorViewRef.current.dispatch({});
-            }
+            editorViewRef.current && editorViewRef.current.dispatch({});
           }, 50);
-        }
-      });
-
-      resizeObserver.observe(containerRef.current);
-
+        } catch {}
+      };
+      window.addEventListener('resize', onResize, true);
       return () => {
         if (timeoutId) clearTimeout(timeoutId);
-        resizeObserver.disconnect();
+        window.removeEventListener('resize', onResize, true);
       };
     }, []);
 

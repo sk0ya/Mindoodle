@@ -28,7 +28,8 @@ const ImageModal: React.FC<ImageModalProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
 
-  const handleKeyDown = useCallback((e: KeyboardEvent) => {
+  const handleKeyDown = useCallback((event: Event) => {
+    const e = event as KeyboardEvent;
     if (e.key === 'Escape') {
       onClose();
     } else if (e.key === 'ArrowLeft' && onNavigate && files.length > 1) {

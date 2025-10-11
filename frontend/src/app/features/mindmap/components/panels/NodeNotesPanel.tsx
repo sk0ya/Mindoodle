@@ -289,10 +289,9 @@ function getStyles(_panelWidth: number, isResizing: boolean) {
       min-height: 0;
       /* Important in flex layouts to prevent content from forcing width */
       min-width: 0;
-      /* keep editor content above global Vim status bar */
-      padding-bottom: var(--vim-statusbar-height, 24px);
       max-height: 100%;
-      padding: 0;
+      /* keep editor content above global Vim status bar */
+      padding: 0 0 var(--vim-statusbar-height, 24px) 0;
       padding-left: 4px;
     }
 

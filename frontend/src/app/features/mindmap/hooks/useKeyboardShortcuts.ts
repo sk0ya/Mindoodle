@@ -193,7 +193,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     } as any
   });
 
-  const handlePaste = async (event: ClipboardEvent) => {
+  const handlePaste = async (evt: ClipboardEvent) => {
+      const event = evt; // alias for clarity; expected ClipboardEvent
       try {
         
         const activeEl = (document.activeElement as HTMLElement | null);
@@ -586,8 +587,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     };
 
   
-  useEventListener('keydown', handleKeyDown, { target: document, capture: true });
-  useEventListener('paste', handlePaste, { target: document, capture: true });
+  useEventListener('keydown', (e) => handleKeyDown(e as KeyboardEvent), { target: document, capture: true });
+  useEventListener('paste', (e) => handlePaste(e as ClipboardEvent), { target: document, capture: true });
 };
 
 export default useKeyboardShortcuts;

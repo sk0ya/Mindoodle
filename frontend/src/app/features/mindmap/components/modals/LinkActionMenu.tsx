@@ -22,14 +22,16 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
   const menuRef = useRef<HTMLDivElement>(null);
 
   
-  const handleClickOutside = useCallback((event: MouseEvent) => {
-    if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+  const handleClickOutside = useCallback((event: Event) => {
+    const e = event as MouseEvent;
+    if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
       onClose();
     }
   }, [onClose]);
 
-  const handleEscape = useCallback((event: KeyboardEvent) => {
-    if (event.key === 'Escape') {
+  const handleEscape = useCallback((event: Event) => {
+    const e = event as KeyboardEvent;
+    if (e.key === 'Escape') {
       onClose();
     }
   }, [onClose]);

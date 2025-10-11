@@ -130,7 +130,8 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
     )
   })).filter(category => category.items.length > 0);
 
-  const handleKeyDown = (e: KeyboardEvent) => {
+  const handleKeyDown = (event: Event) => {
+    const e = event as KeyboardEvent;
     if (e.key === 'Escape' && isVisible) {
       onClose();
     }
