@@ -1,8 +1,7 @@
 import type { MindMapNode } from '@shared/types';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '@mindmap/store';
-import { findNodeInRoots } from '@mindmap/utils';
-import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 
 export interface EnsureVisibleUI {
   zoom: number;
@@ -99,4 +98,3 @@ export function ensureVisible(nodeId: string, ui: EnsureVisibleUI, setPan: (pan:
     setPan({ x: newPanX, y: newPanY });
   }
 }
-

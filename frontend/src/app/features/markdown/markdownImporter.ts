@@ -1,6 +1,5 @@
 import { type MindMapNode } from '@shared/types';
-import { generateNodeId } from '@shared/utils';
-import { logger } from '@shared/utils';
+import { generateNodeId, logger } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 
 

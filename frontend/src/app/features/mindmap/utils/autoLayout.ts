@@ -246,13 +246,10 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       newRootNode.y = childrenCenterY;
     }
 
-  } else {
-    
-    
   }
 
   return newRootNode;
-};;;
+};
 
 export const autoSelectLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
   return simpleHierarchicalLayout(rootNode, options);

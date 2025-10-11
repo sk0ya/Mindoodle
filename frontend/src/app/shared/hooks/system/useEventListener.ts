@@ -3,38 +3,15 @@ import { useLatestRef } from '../utilities';
 
 
 export interface UseEventListenerOptions {
-  
   target?: Window | Document | HTMLElement | null;
-  
   capture?: boolean;
-  
   passive?: boolean;
-  
   enabled?: boolean;
 }
 
-
-export function useEventListener<K extends keyof WindowEventMap>(
-  eventName: K,
-  handler: (event: WindowEventMap[K]) => void,
-  options?: UseEventListenerOptions
-): void;
-
-export function useEventListener<K extends keyof DocumentEventMap>(
-  eventName: K,
-  handler: (event: DocumentEventMap[K]) => void,
-  options?: UseEventListenerOptions & { target: Document }
-): void;
-
-export function useEventListener<K extends keyof HTMLElementEventMap>(
-  eventName: K,
-  handler: (event: HTMLElementEventMap[K]) => void,
-  options?: UseEventListenerOptions & { target: HTMLElement }
-): void;
-
-export function useEventListener<K extends keyof WindowEventMap>(
-  eventName: K,
-  handler: (event: WindowEventMap[K]) => void,
+export function useEventListener(
+  eventName: string,
+  handler: (event: Event) => void,
   options: UseEventListenerOptions = {}
 ): void {
   const {
@@ -53,7 +30,7 @@ export function useEventListener<K extends keyof WindowEventMap>(
 
     
     const eventListener = (event: Event) => {
-      handlerRef.current(event as WindowEventMap[K]);
+      handlerRef.current(event);
     };
 
     const listenerOptions: AddEventListenerOptions = {

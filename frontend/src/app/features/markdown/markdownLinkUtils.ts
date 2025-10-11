@@ -1,4 +1,4 @@
-import type { NodeLink } from '@shared/types';
+import type { NodeLink, MindMapNode } from '@shared/types';
 import { generateUrlId } from '@shared/utils';
 
 
@@ -80,7 +80,6 @@ export function extractNodeLinksFromMarkdown(note: string | undefined, currentMa
 }
 
 
-import type { MindMapNode } from '@shared/types';
 
 function slugify(text: string): string {
   return (text || '')

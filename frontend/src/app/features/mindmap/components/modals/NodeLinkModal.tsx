@@ -1,7 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
-import type { NodeLink, MindMapNode, MindMapData, MapIdentifier } from '@shared/types';
-import { DEFAULT_WORKSPACE_ID } from '@shared/types';
+import { type NodeLink, type MindMapNode, type MindMapData, type MapIdentifier, DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import { computeAnchorForNode } from '../../../markdown';
 import { useLoadingState } from '@/app/shared/hooks';

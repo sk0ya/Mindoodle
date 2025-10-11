@@ -1,8 +1,7 @@
 
 import type { MindMapNode } from '@shared/types';
 import type { VimModeHook } from '../../vim/hooks/useVimMode';
-import { useCommands } from '@commands/system/useCommands';
-import type { UseCommandsReturn } from '@commands/system/useCommands';
+import { useCommands, type UseCommandsReturn } from '@commands/system/useCommands';
 import { useMindMapStore } from '../store/mindMapStore';
 import { JUMP_CHARS } from '../../vim/constants';
 import { useEventListener } from '@shared/hooks/system/useEventListener';

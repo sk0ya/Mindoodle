@@ -4,8 +4,7 @@ import NodeEditor, { isMarkdownLink, isUrl } from './NodeEditor';
 import { useNodeDragHandler } from './NodeDragHandler';
 import { calculateNodeSize, getNodeLeftX, resolveNodeTextWrapConfig } from '@mindmap/utils/nodeUtils';
 import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
-import { stopEventPropagation } from '@shared/utils';
-import { getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
+import { stopEventPropagation, getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 

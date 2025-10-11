@@ -1,8 +1,5 @@
 import React, { useRef, memo, useCallback, useState } from 'react';
-import { CanvasRenderer } from '../Canvas';
-import { useCanvasDragHandler } from '../Canvas';
-import { useCanvasViewportHandler } from '../Canvas';
-import { useCanvasEventHandler } from '../Canvas';
+import { CanvasRenderer, useCanvasDragHandler, useCanvasViewportHandler, useCanvasEventHandler } from '../Canvas';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 import { flattenVisibleNodes } from '@mindmap/selectors/mindMapSelectors';
 import WebPreviewModal from '../Shared/WebPreviewModal';

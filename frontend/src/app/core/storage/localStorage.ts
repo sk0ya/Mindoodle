@@ -1,7 +1,6 @@
 
 
-import { logger } from '@shared/utils';
-import { safeJsonParse, safeJsonStringify } from '@shared/utils';
+import { logger, safeJsonParse, safeJsonStringify } from '@shared/utils';
 
 
 export type LocalStorageResult<T> = {

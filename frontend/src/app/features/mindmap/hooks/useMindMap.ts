@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import type { MapIdentifier } from '@shared/types';
+import type { MapIdentifier, MindMapData } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '@markdown/markdownImporter';
 import { useMindMapUI } from './useMindMapUI';
@@ -7,11 +7,9 @@ import { useMindMapActions } from './useMindMapActions';
 import { useMindMapPersistence } from './useMindMapPersistence';
 import { useDataReset, useNotification, useStableCallback, useLatestRef } from '@shared/hooks';
 import { useStorageConfigChange } from '@file-management/hooks/useStorageConfigChange';
-import { logger } from '@shared/utils';
+import { logger, statusMessages } from '@shared/utils';
 import type { StorageConfig } from '@core/types';
-import type { MindMapData } from '@shared/types';
 import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
-import { statusMessages } from '@shared/utils';
 import { useMindMapStore } from '@mindmap/store';
 import { getAdapterForWorkspace } from '@/app/core/utils';
 

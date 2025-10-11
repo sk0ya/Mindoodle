@@ -1,7 +1,6 @@
 
 
-import type { MindMapData, MindMapNode, NodeLink, Position } from '@shared/types';
-import type { UIState } from '@shared/types';
+import type { MindMapData, MindMapNode, NodeLink, Position, UIState } from '@shared/types';
 
 
 export interface NormalizedData {

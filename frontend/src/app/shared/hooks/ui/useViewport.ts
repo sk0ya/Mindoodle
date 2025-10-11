@@ -1,8 +1,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { viewportService } from '@/app/core/services';
-import type { ViewportSize } from '@/app/core/services';
+import { viewportService, type ViewportSize } from '@/app/core/services';
 
 
 export function useViewport(throttleMs: number = 100): ViewportSize {

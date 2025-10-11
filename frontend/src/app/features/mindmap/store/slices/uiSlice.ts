@@ -1,10 +1,8 @@
 import type { StateCreator } from 'zustand';
-import type { Position, MindMapNode } from '@shared/types';
-import type { UIMode, PanelId } from '@shared/types';
+import type { Position, MindMapNode, UIMode, PanelId, UIState, UIActions } from '@shared/types';
 import type { MindMapStore } from './types';
 import { nextMode } from '@mindmap/state/uiModeMachine';
 import * as panelManager from '@mindmap/state/panelManager';
-import type { UIState, UIActions } from '@shared/types';
 
 export interface UISlice extends UIActions {
   ui: UIState;
