@@ -137,7 +137,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       const deltaX = startX - e.clientX; // Reverse direction for left panel
       currentWidth = Math.max(300, Math.min(1200, startWidth + deltaX));
       setPanelWidth(currentWidth);
-      // Trigger Monaco Editor layout update
+      // Trigger CodeMirror Editor layout update
       setResizeCounter(prev => prev + 1);
       // Push width into UI store for overlay computations
       setMarkdownPanelWidth?.(currentWidth);

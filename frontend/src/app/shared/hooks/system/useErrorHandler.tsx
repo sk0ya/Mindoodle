@@ -142,12 +142,12 @@ export const setupGlobalErrorHandlers = (handleError: (error: Error, context?: s
   window.addEventListener('error', (event) => {
     const errorMessage = event.error?.message || event.message || '';
     const errorStack = event.error?.stack || '';
-    
-    // Monaco Editor関連のエラーを除外
+
+    // CodeMirror Editor関連のエラーを除外
     if (
-      errorStack.includes('monaco-editor') ||
-      errorStack.includes('vs/editor') ||
-      errorMessage.includes('Monaco') ||
+      errorStack.includes('codemirror') ||
+      errorStack.includes('cm-') ||
+      errorMessage.includes('CodeMirror') ||
       errorMessage.includes('editor') ||
       errorMessage.includes('keydown') ||
       errorMessage.includes('keyup') ||

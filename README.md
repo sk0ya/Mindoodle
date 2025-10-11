@@ -69,7 +69,7 @@ Visit `http://localhost:5174` to see your local instance.
 
 ### 📝 Markdown Integration
 - **Bidirectional Sync**: Mind map structure ↔ Markdown document
-- **Monaco Editor**: Professional code editor with syntax highlighting
+- **CodeMirror Editor**: Professional code editor with syntax highlighting and Vim mode
 - **Cross-References**: Link between different maps and nodes
 - **File Attachments**: Reference external files with relative paths
 
@@ -111,7 +111,7 @@ Visit `http://localhost:5174` to see your local instance.
 - **Frontend**: React 18.2 + TypeScript 5.8 (strict mode)
 - **Build Tool**: Vite 6.3 with lightning-fast HMR
 - **State Management**: Zustand 5.0 + Immer 10.1
-- **Editor**: Monaco Editor 0.52 with Monaco Vim 0.4
+- **Editor**: CodeMirror 6.0 with @replit/codemirror-vim
 - **Markdown**: Marked 16.2 for parsing and rendering
 - **Diagrams**: Mermaid 10.9 for diagram rendering
 - **File Handling**: JSZip 3.10 for import/export
@@ -154,7 +154,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 🙏 Acknowledgments
 
-- **Monaco Editor** team for the excellent code editor
+- **CodeMirror** team for the excellent extensible code editor
 - **React** team for the amazing framework
 - **Vim** community for inspiring the keybinding system
 - **Markdown** for being the perfect document format

@@ -275,11 +275,11 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       const isInTextInput = target.tagName === 'INPUT' ||
         target.tagName === 'TEXTAREA' ||
         target.contentEditable === 'true';
-      const isInMonacoEditor = target.closest('.monaco-editor') !== null;
+      const isInCodeMirrorEditor = target.closest('.cm-editor') !== null;
 
-      if (isInTextInput || isInMonacoEditor) {
-        
-        if (handlers.editingNodeId && !isInMonacoEditor) {
+      if (isInTextInput || isInCodeMirrorEditor) {
+
+        if (handlers.editingNodeId && !isInCodeMirrorEditor) {
           if (event.key === 'Enter') {
             event.preventDefault();
             handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {

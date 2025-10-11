@@ -247,7 +247,7 @@ Type-safe state management with explicit transitions:
 
 - **Frontend**: React 18 + TypeScript 5 + Vite 6
 - **State**: Zustand + Immer
-- **Editor**: Monaco + monaco-vim
+- **Editor**: CodeMirror 6 + @replit/codemirror-vim
 - **File handling**: JSZip for import/export
 - **Markdown**: Marked
 - **Diagrams**: Mermaid

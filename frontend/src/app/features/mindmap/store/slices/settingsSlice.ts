@@ -83,7 +83,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   vimMappingsSource: `" Vim-style mappings for Mindoodle\n" Lines starting with '"' are comments.\n\nset leader ,\n\n" Examples:\n" map <leader>h left\n" map <leader>j down\n" map <leader>k up\n" map <leader>l right\n` ,
   vimEditorLeader: ',',
   vimEditorCustomKeybindings: {},
-  vimEditorMappingsSource: `" Vim-style mappings for Monaco editor (experimental)\nset leader ,\n` ,
+  vimEditorMappingsSource: `" Vim-style mappings for CodeMirror editor (experimental)\nset leader ,\n` ,
   previewMode: false,
   addBlankLineAfterHeading: true, 
   defaultCollapseDepth: 2, 
