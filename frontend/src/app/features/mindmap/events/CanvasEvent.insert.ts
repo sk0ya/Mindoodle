@@ -17,7 +17,7 @@ export class InsertModeStrategy implements EventStrategy {
         const store = useMindMapStore.getState();
         (store as any).closePanel?.('contextMenu');
         store.setShowContextMenu(false);
-      } catch {  }
+      } catch (e) { /* no-op */ }
     }
 
     if (event.type === 'nodeClick' && event.targetNodeId) {

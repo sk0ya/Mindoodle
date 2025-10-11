@@ -192,9 +192,7 @@ export function addNormalizedNode(
     throw new Error('テーブルノードには子ノードを追加できません');
   }
 
-  const { children, ...nodeWithoutChildren } = newNode;
-  
-  void children;
+  const { children: _children, ...nodeWithoutChildren } = newNode;
 
   return {
     ...normalizedData,
@@ -571,8 +569,7 @@ export function addSiblingNormalizedNode(
     throw new Error(`Node already exists: ${newNode.id}`);
   }
 
-  const { children, ...nodeWithoutChildren } = newNode;
-  void children; 
+  const { children: _children, ...nodeWithoutChildren } = newNode;
 
   const siblings = normalizedData.childrenMap[parentId] || [];
   const siblingIndex = siblings.indexOf(siblingNodeId);
@@ -615,8 +612,7 @@ export function addRootSiblingNode(
     throw new Error(`Node already exists: ${newNode.id}`);
   }
 
-  const { children, ...nodeWithoutChildren } = newNode;
-  void children; 
+  const { children: _children, ...nodeWithoutChildren } = newNode;
 
   
   const currentRootIds = normalizedData.rootNodeIds;

@@ -54,7 +54,10 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
   const doRefresh = useStableCallback(() => {
     try {
       if (typeof (mindMap).refreshMapList === 'function') {
-        void (mindMap).refreshMapList();
+        const r = (mindMap).refreshMapList();
+        if (r && typeof (r as any).then === 'function') {
+          (r as Promise<unknown>).catch((err) => console.warn('Refresh list failed:', err));
+        }
       }
     } catch (e) {
       console.error('Explorer refresh failed:', e);
@@ -82,7 +85,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
       const oldPath = e?.detail?.oldPath;
       const newName = e?.detail?.newName;
       if (oldPath && newName && typeof (mindMap).renameItem === 'function') {
-        void (mindMap).renameItem(oldPath, newName).then(() => {
+        (mindMap).renameItem(oldPath, newName).then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         }).catch((err: unknown) => console.error('Rename failed:', err));
       }
@@ -95,7 +98,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     try {
       const path = e?.detail?.path;
       if (path && typeof (mindMap).deleteItem === 'function') {
-        void (mindMap).deleteItem(path).then(() => {
+        (mindMap).deleteItem(path).then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         }).catch((err: unknown) => console.error('Delete failed:', err));
       }
@@ -114,7 +117,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
       const dst = e?.detail?.targetFolderPath ?? '';
 
       if (src !== undefined && typeof (mindMap).moveItem === 'function') {
-        void (mindMap).moveItem(src, dst).then(() => {
+        (mindMap).moveItem(src, dst).then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         }).catch((err: unknown) => console.error('Move failed:', err));
       }

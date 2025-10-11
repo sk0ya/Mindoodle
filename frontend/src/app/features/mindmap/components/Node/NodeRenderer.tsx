@@ -200,8 +200,10 @@ interface NodeRendererProps {
     const entry = displayEntries[index];
     if (!entry || entry.kind !== 'image' || entry.subType !== 'html') return null;
     const tag = entry.tag;
-    const wMatch = tag.match(/\swidth=["']?(\d+)(?:px)?["']?/i);
-    const hMatch = tag.match(/\sheight=["']?(\d+)(?:px)?["']?/i);
+    const wRe = /\swidth=["']?(\d+)(?:px)?["']?/i;
+    const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
+    const wMatch = wRe.exec(tag);
+    const hMatch = hRe.exec(tag);
     if (!wMatch || !hMatch) return null;
     const w = parseInt(wMatch[1], 10);
     const h = parseInt(hMatch[1], 10);
