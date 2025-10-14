@@ -8,15 +8,13 @@ import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/Viewpor
 
 // Helpers extracted to avoid deep nested function definitions
 const convertNodeToMarkdown = (n: MindMapNode, level = 0): string => {
-  console.log(`convertNodeToMarkdown: level=${level}, text="${n.text}" (type: ${typeof n.text})`);
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
   const text = n.text ?? '';  // undefined の場合は空文字列
   let md = `${prefix}${text}\n`;
-  if (n.note != null) md += `${n.note}\n`;
+  if (n.note != undefined) md += `${n.note}\n`;
   if (n.children && n.children.length) {
     for (const c of n.children) md += convertNodeToMarkdown(c, level + 1);
   }
-  console.log(`convertNodeToMarkdown result: "${md}"`);
   return md;
 };
 

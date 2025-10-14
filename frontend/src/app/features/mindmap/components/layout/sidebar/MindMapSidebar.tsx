@@ -121,10 +121,25 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     closeContextMenu
   } = sidebar;
 
-  
+  // Track the last processed tree to avoid infinite loops
+  const lastProcessedTreeRef = React.useRef<string>('');
+
+  // Initialize collapsed state for all folders in the explorer tree
   React.useEffect(() => {
     const tree = enhancedExplorerTree;
     if (!tree) return;
+
+    // Create a stable identifier for the tree structure to detect actual changes
+    const treeSignature = JSON.stringify({
+      explorerTree: explorerTree?.path,
+      children: explorerTree?.children?.length,
+      treeHash: JSON.stringify(tree).slice(0, 100) // Simple hash to detect structural changes
+    });
+
+    // Skip if we've already processed this exact tree structure
+    if (lastProcessedTreeRef.current === treeSignature) {
+      return;
+    }
 
     const isWorkspaceRoot = (p: string): boolean => /^\/?(?:ws_[^/]+|cloud)\/?$/.test(p || '');
     const visit = (item: ExplorerItem, acc: Record<string, boolean>) => {
@@ -139,11 +154,18 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       }
     };
 
+    const newPaths: Record<string, boolean> = {};
+    visit(tree, newPaths);
+
+    // Only update if there are actually new paths
     setExplorerCollapsed((prev) => {
-      const next = { ...prev };
-      visit(tree, next);
-      return next;
+      const hasChanges = Object.keys(newPaths).some(path => !(path in prev));
+      if (!hasChanges) return prev;
+      return { ...prev, ...newPaths };
     });
+
+    // Mark this tree as processed
+    lastProcessedTreeRef.current = treeSignature;
   }, [explorerTree, enhancedExplorerTree, setExplorerCollapsed]);
 
   if (isCollapsed) {
