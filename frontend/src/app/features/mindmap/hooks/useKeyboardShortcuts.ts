@@ -109,7 +109,7 @@ function handleStandardShortcut(
     switch (key.toLowerCase()) {
       case 'c':
         event.preventDefault();
-        commands.execute('copy');
+        commands.execute(shiftKey ? 'copy-text' : 'copy');
         return true;
       case 'v':
         
@@ -153,7 +153,7 @@ function handleNonVimShortcut(
     switch (key.toLowerCase()) {
       case 'c':
         event.preventDefault();
-        commands.execute('copy');
+        commands.execute(shiftKey ? 'copy-text' : 'copy');
         return true;
       case 'v':
         

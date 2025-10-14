@@ -276,6 +276,17 @@ export function useShortcutHandlers(args: Args) {
       navigator.clipboard?.writeText?.(markdownText).catch(() => {});
       showNotification('success', `「${node.text}」をコピーしました`);
     },
+    copyNodeText: async (nodeId: string) => {
+      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const node = findNodeInRoots(roots, nodeId);
+      if (!node) {
+        logger.error('copyNodeText: node not found', nodeId);
+        return;
+      }
+      const { copyNodeTextToClipboard } = await import('@mindmap/services/NodeClipboardService');
+      await copyNodeTextToClipboard(node);
+      showNotification('success', `「${node.text}」のテキストをコピーしました`);
+    },
     pasteNode: async (parentId: string) => {
       
       logger.debug('pasteNode: using pasteNodeFromClipboard');

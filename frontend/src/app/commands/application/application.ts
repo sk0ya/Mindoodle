@@ -122,7 +122,49 @@ export const copyCommand: Command = {
     }
   },
   repeatable: true,
-  countable: false  
+  countable: false
+};
+
+export const copyTextCommand: Command = {
+  name: 'copy-text',
+  description: 'Copy node text only (without markdown formatting) to system clipboard',
+  category: 'editing',
+  examples: ['copy-text', 'copy-text node-123'],
+  args: [
+    {
+      name: 'nodeId',
+      type: 'node-id',
+      required: false,
+      description: 'Node ID to copy (uses selected node if not specified)'
+    }
+  ],
+
+  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
+    const nodeId = (args as Record<string, string | undefined>)['nodeId'] || context.selectedNodeId;
+
+    if (!nodeId) {
+      return {
+        success: false,
+        error: 'No node selected and no node ID provided'
+      };
+    }
+
+    try {
+      if (context.handlers.copyNodeText) {
+        await context.handlers.copyNodeText(nodeId);
+      }
+      return {
+        success: true
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to copy node text'
+      };
+    }
+  },
+  repeatable: true,
+  countable: false
 };
 
 

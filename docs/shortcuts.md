@@ -37,6 +37,7 @@
 | remove | Delete the selected node |
 | italic | Toggle italic formatting (*text*) |
 | i-format | Toggle italic formatting (*text*) |
+| copy-text | Copy node text only (without markdown formatting) to system clipboard |
 | paste-sibling-after | Paste as younger sibling (after selected node) |
 | paste-sibling-before | Paste as elder sibling (before selected node) |
 | edit-start | Start editing the selected node |
@@ -99,4 +100,4 @@
 
 
 
-最終更新: 2025-10-13
+最終更新: 2025-10-15
