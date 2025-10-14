@@ -23,7 +23,11 @@ export function nodeToIndentedText(node: MindMapNode, level = 0): string {
   // Add list markers based on markdownMeta.type
   let prefix = '';
   if (node.markdownMeta?.type === 'unordered-list') {
-    prefix = '- ';
+    if (node.markdownMeta.isCheckbox) {
+      prefix = node.markdownMeta.isChecked ? '- [x] ' : '- [ ] ';
+    } else {
+      prefix = '- ';
+    }
   } else if (node.markdownMeta?.type === 'ordered-list') {
     prefix = '1. ';
   }
