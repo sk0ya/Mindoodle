@@ -8,12 +8,15 @@ import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/Viewpor
 
 // Helpers extracted to avoid deep nested function definitions
 const convertNodeToMarkdown = (n: MindMapNode, level = 0): string => {
+  console.log(`convertNodeToMarkdown: level=${level}, text="${n.text}" (type: ${typeof n.text})`);
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-  let md = `${prefix}${n.text}\n`;
+  const text = n.text ?? '';  // undefined の場合は空文字列
+  let md = `${prefix}${text}\n`;
   if (n.note != null) md += `${n.note}\n`;
   if (n.children && n.children.length) {
     for (const c of n.children) md += convertNodeToMarkdown(c, level + 1);
   }
+  console.log(`convertNodeToMarkdown result: "${md}"`);
   return md;
 };
 
@@ -268,8 +271,10 @@ export function useShortcutHandlers(args: Args) {
         return;
       }
       logger.debug('copyNode: setting clipboard', node);
+      logger.debug('copyNode: node.text =', node.text, 'typeof =', typeof node.text);
       store.setClipboard(node);
       const markdownText = convertNodeToMarkdown(node);
+      logger.debug('copyNode: markdownText =', markdownText);
       navigator.clipboard?.writeText?.(markdownText).catch(() => {});
       showNotification('success', `「${node.text}」をコピーしました`);
     },
