@@ -271,7 +271,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
       fontWeight: fontWeightValue,
       fontStyle: fontStyleValue,
       maxWidth: wrapMaxWidth,
-      prefixTokens: getMarkerPrefixTokens(node)
+      prefixTokens: node.markdownMeta?.type === 'heading' ? [] : getMarkerPrefixTokens(node)
     });
 
     const lineHeight = wrapResult.lineHeight;
