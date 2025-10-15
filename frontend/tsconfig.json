@@ -5,7 +5,11 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
-     "removeComments": true,
+    "removeComments": true,
+
+    /* Incremental compilation for faster type checking */
+    "incremental": true,
+    "tsBuildInfoFile": "node_modules/.cache/typescript/.tsbuildinfo",
 
     /* Bundler mode */
     "moduleResolution": "bundler",
