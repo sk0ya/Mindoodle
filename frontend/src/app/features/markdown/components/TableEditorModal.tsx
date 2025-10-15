@@ -77,10 +77,13 @@ function parseMarkdownTable(markdown: string): TableData | null {
  */
 function toMarkdownTable(data: TableData): string {
   const { headers, rows } = data;
-  const headerLine = '| ' + headers.map(h => h.value || ' ').join(' | ') + ' |';
+  // Sanitize cell values: remove newlines and pipe characters
+  const sanitize = (value: string) => value.replace(/[\r\n|]/g, ' ');
+
+  const headerLine = '| ' + headers.map(h => sanitize(h.value || ' ')).join(' | ') + ' |';
   const separatorLine = '| ' + headers.map(() => '---').join(' | ') + ' |';
   const dataLines = rows.map(row =>
-    '| ' + row.map(cell => cell.value || ' ').join(' | ') + ' |'
+    '| ' + row.map(cell => sanitize(cell.value || ' ')).join(' | ') + ' |'
   );
   return [headerLine, separatorLine, ...dataLines].join('\n');
 }
@@ -148,14 +151,15 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
 
   const handleHeaderChange = (index: number, value: string) => {
     const newHeaders = [...tableData.headers];
-    newHeaders[index] = { value };
+    // Remove newlines and pipes from header values to prevent markdown corruption
+    newHeaders[index] = { value: value.replace(/[\r\n|]/g, ' ') };
     setTableData({ ...tableData, headers: newHeaders });
   };
 
   const handleCellChange = (rowIndex: number, cellIndex: number, value: string) => {
     const newRows = tableData.rows.map((row, rIdx) =>
       rIdx === rowIndex
-        ? row.map((cell, cIdx) => cIdx === cellIndex ? { value } : cell)
+        ? row.map((cell, cIdx) => cIdx === cellIndex ? { value: value.replace(/[\r\n|]/g, ' ') } : cell)
         : row
     );
     setTableData({ ...tableData, rows: newRows });

@@ -683,10 +683,10 @@ interface NodeRendererProps {
     );
   }
 
-  
+
   const showMermaid = !!currentEntry && (currentEntry).kind === 'mermaid';
 
-  
+
   const isTableNode = node.kind === 'table';
 
   // Stable key for switching between mermaid/table/image/empty without nested ternary
@@ -833,12 +833,15 @@ interface NodeRendererProps {
                 <div className="table-wrap" style={{
                   width: '100%',
                   height: '100%',
-                  overflow: 'auto',
+                  overflow: 'hidden',
                   borderRadius: '10px',
-                  boxSizing: 'border-box'
+                  boxSizing: 'border-box',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
                 }}>
                   <table style={{
-                    width: '100%',
+                    width: 'auto',
                     borderCollapse: 'collapse',
                     overflow: 'hidden',
                     borderRadius: '10px',

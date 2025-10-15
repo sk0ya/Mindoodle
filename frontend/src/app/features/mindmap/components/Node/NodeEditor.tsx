@@ -201,6 +201,12 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
 
 
   if (!isEditing) {
+    // Type guard: Do not render text for table nodes
+    const isTableNode = 'kind' in node && (node as unknown as Record<string, unknown>).kind === 'table';
+    if (isTableNode) {
+      return null; // Table nodes display their content via NodeRenderer
+    }
+
     const noteStr: string = (node as MindMapNode & { note?: string })?.note || '';
     const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
     const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);

@@ -600,21 +600,57 @@ export function calculateNodeSize(
       }
     }
 
-    // NodeRendererと同じ高さ計算（フォールバック用）
-    const calculateTableHeight = (parsed: { headers?: string[]; rows: string[][] } | null): number => {
-      if (!parsed) return 70;
-      const headerRows = parsed.headers ? 1 : 0;
-      const dataRows = parsed.rows.length;
-      const totalRows = headerRows + dataRows;
-      // NodeRendererの新しいCSS: padding: '12px 16px', line-height: 1.5, fontSize: 14px * 0.95
-      
-      const rowHeight = 44;
-      return Math.max(70, totalRows * rowHeight + 12); 
+    // Calculate table dimensions based on actual content
+    const calculateTableDimensions = (parsed: { headers?: string[]; rows: string[][] } | null): { width: number; height: number } => {
+      if (!parsed) return { width: 200, height: 70 };
+
+      // Get all rows (headers + data rows)
+      const allRows: string[][] = [];
+      if (parsed.headers) {
+        allRows.push(parsed.headers);
+      }
+      allRows.push(...parsed.rows);
+
+      if (allRows.length === 0) return { width: 200, height: 70 };
+
+      // Calculate column widths
+      // NodeRenderer CSS: padding: '12px 16px' = 32px total horizontal padding per cell
+      const cellPadding = 32;
+      const fontSize = (globalFontSize || 14) * 0.95; // NodeRenderer uses fontSize * 0.95
+      const fontFamily = 'system-ui, -apple-system, sans-serif';
+      const fontWeight = 'normal';
+
+      const numCols = Math.max(...allRows.map(row => row.length));
+      const columnWidths: number[] = [];
+
+      // Calculate max width for each column
+      for (let colIndex = 0; colIndex < numCols; colIndex++) {
+        let maxCellWidth = 0;
+
+        for (const row of allRows) {
+          const cellText = row[colIndex] || '';
+          const textWidth = measureTextWidth(cellText, fontSize, fontFamily, fontWeight, 'normal');
+          maxCellWidth = Math.max(maxCellWidth, textWidth);
+        }
+
+        // Add padding to cell width
+        columnWidths.push(maxCellWidth + cellPadding);
+      }
+
+      // Total width = sum of column widths + borders between columns
+      const borderWidth = 1; // 1px border between columns (not applied to outer edges in the CSS)
+      const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0) + (numCols - 1) * borderWidth;
+
+      // Calculate height
+      // NodeRenderer CSS: padding: '12px 16px', line-height: 1.5
+      const rowHeight = 44; // Approximate: padding (24px) + text height (~20px for fontSize 13.3px)
+      const totalRows = allRows.length;
+      const tableHeight = Math.max(70, totalRows * rowHeight + 12);
+
+      return { width: Math.max(150, tableWidth), height: tableHeight };
     };
 
-    const calculatedHeight = calculateTableHeight(parsed);
-    const contentWidth = Math.max(150, 200); 
-    const contentHeight = calculatedHeight;
+    const { width: contentWidth, height: contentHeight } = calculateTableDimensions(parsed);
 
     const padding = 10; 
     const nodeWidth = contentWidth + padding;
