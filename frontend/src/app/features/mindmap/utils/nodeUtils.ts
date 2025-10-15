@@ -728,10 +728,9 @@ export function calculateNodeSize(
       maxWidth: wrapMaxWidth,
       prefixTokens: markerTokens
     });
-    
-    
-    const hasMultipleLines = wrapResult.lines.length > 1;
-    textContentWidth = hasMultipleLines ? wrapMaxWidth : wrapResult.maxLineWidth;
+
+    // Always use actual text width for optimal node sizing
+    textContentWidth = wrapResult.maxLineWidth;
     textBlockHeight = wrapEnabled ? Math.max(wrapResult.textHeight, fontSize + 8) : Math.max(fontSize + 8, 22);
   }
 
