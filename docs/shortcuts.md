@@ -49,6 +49,8 @@
 
 | キー | 動作 |
 |---|---|
+| split-map | ノードとその子要素を別のマップに変換 |
+| extract-map | ノードとその子要素を別のマップに変換 |
 | child | Add a new child node to the selected node |
 | tab | Add a new child node to the selected node |
 | sibling | Add a new sibling node after the selected node |

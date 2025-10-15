@@ -777,7 +777,7 @@ export const useMindMap = (
     getNodeIdByMarkdownLine: (line: number): string | null => {
       const map = lineToNodeIdRef.current || {};
       if (map[line]) return map[line];
-      
+
       let bestLine = 0;
       for (const k of Object.keys(map)) {
         const ln = parseInt(k, 10);
@@ -785,7 +785,12 @@ export const useMindMap = (
       }
       return bestLine ? map[bestLine] : null;
     },
-    
-    setAutoSaveEnabled: setAutoSaveEnabledStable
+
+    setAutoSaveEnabled: setAutoSaveEnabledStable,
+
+    // Force flush markdown stream (for immediate save)
+    flushMarkdownStream: useStableCallback(async () => {
+      await markdownStreamHook.stream.flush();
+    })
   };
 };

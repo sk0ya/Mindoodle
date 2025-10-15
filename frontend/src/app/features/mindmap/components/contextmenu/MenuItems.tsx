@@ -1,7 +1,8 @@
 import React from 'react';
-import { Bot, Copy, Clipboard, Link, Trash2, Clock, List, Table } from 'lucide-react';
+import { Bot, Copy, Clipboard, Link, Trash2, Clock, List, Table, FileOutput } from 'lucide-react';
 import { MindMapNode } from '@shared/types';
-import type { MarkdownNodeType } from '@commands/system/types';
+import type { MarkdownNodeType, CommandContext } from '@commands/system/types';
+import type { CommandRegistryImpl } from '@commands/system/registry';
 import { useMindMapStore } from '../../store';
 
 interface MenuItemAction {
@@ -28,6 +29,9 @@ interface MenuItemsProps {
   onAddLink?: (nodeId: string) => void;
   onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
   onEditTable?: (nodeId: string) => void;
+  onConvertToMap?: (nodeId: string) => void;
+  commandRegistry?: CommandRegistryImpl;
+  commandContext?: CommandContext;
   onClose: () => void;
 }
 
@@ -40,15 +44,23 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   onAddLink,
   onMarkdownNodeType,
   onEditTable,
+  onConvertToMap,
+  commandRegistry,
+  commandContext,
   onClose
 }) => {
   const store = useMindMapStore();
   const aiEnabled = store.aiSettings?.enabled || false;
   const isGenerating = store.isGenerating || false;
 
-  
+
   const isMarkdownNode = selectedNode.markdownMeta ? true : false;
   const markdownMeta = selectedNode.markdownMeta;
+
+  // Check if node can be converted to map using command guard
+  const canConvertToMap = commandRegistry && commandContext
+    ? commandRegistry.canExecute('convert-node-to-map', commandContext, { nodeId: selectedNode.id })
+    : false;
 
   const menuItems: MenuItem[] = [
     ...(aiEnabled && onAIGenerate ? [{
@@ -111,7 +123,16 @@ const MenuItems: React.FC<MenuItemsProps> = ({
       { type: 'separator' as const }
     ] : []),
 
-    
+
+    ...(canConvertToMap && onConvertToMap ? [{
+      icon: <FileOutput size={16} />,
+      label: 'マップに変換',
+      action: () => {
+        onConvertToMap(selectedNode.id);
+        onClose();
+      }
+    }] : []),
+
     ...(onAddLink ? [{
       icon: <Link size={16} />,
       label: 'リンク追加',

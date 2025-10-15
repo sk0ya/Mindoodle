@@ -1,5 +1,7 @@
 import React, { useCallback, memo } from 'react';
 import { MindMapNode } from '@shared/types';
+import type { CommandContext } from '@commands/system/types';
+import type { CommandRegistryImpl } from '@commands/system/registry';
 import MenuItems from './contextmenu/MenuItems';
 import ContextMenuStyles from '../styles/ContextMenuStyles';
 import { useClickOutside } from '@shared/utils';
@@ -21,6 +23,9 @@ interface ContextMenuProps {
   onAddLink?: (nodeId: string) => void;
   onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   onEditTable?: (nodeId: string) => void;
+  onConvertToMap?: (nodeId: string) => void;
+  commandRegistry?: CommandRegistryImpl;
+  commandContext?: CommandContext;
   onClose: () => void;
 }
 
@@ -35,6 +40,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onAddLink,
   onMarkdownNodeType,
   onEditTable,
+  onConvertToMap,
+  commandRegistry,
+  commandContext,
   onClose
 }) => {
   
@@ -72,6 +80,9 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         onAddLink={onAddLink}
         onMarkdownNodeType={onMarkdownNodeType}
         onEditTable={onEditTable}
+        onConvertToMap={onConvertToMap}
+        commandRegistry={commandRegistry}
+        commandContext={commandContext}
         onClose={onClose}
       />
       

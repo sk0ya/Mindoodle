@@ -99,7 +99,20 @@ export class CommandRegistryImpl implements CommandRegistry {
     return sortedResults.map(result => result.command);
   }
 
-    async execute(nameOrAlias: string, context: CommandContext, args: Record<string, string | number | boolean> = {}): Promise<CommandResult> {
+  canExecute(nameOrAlias: string, context: CommandContext, args: Record<string, string | number | boolean> = {}): boolean {
+    const command = this.get(nameOrAlias);
+    if (!command) {
+      return false;
+    }
+
+    if (command.guard && !command.guard(context, args)) {
+      return false;
+    }
+
+    return true;
+  }
+
+  async execute(nameOrAlias: string, context: CommandContext, args: Record<string, string | number | boolean> = {}): Promise<CommandResult> {
     const command = this.get(nameOrAlias);
     if (!command) {
       return { success: false, error: `Command '${nameOrAlias}' not found` };

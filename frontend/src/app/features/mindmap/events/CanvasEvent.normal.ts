@@ -19,6 +19,7 @@ export class NormalModeStrategy implements EventStrategy {
         const canOpen = panelManager.canOpen(ui.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
         if (!canOpen) return;
         store.setContextMenuPosition({ x: event.x, y: event.y });
+        store.openPanel?.('contextMenu');
       } catch (e) { console.warn('CanvasEvent.normal: contextmenu handler error', e); }
     }
 
@@ -30,6 +31,7 @@ export class NormalModeStrategy implements EventStrategy {
         if (!canOpen) return;
         store.selectNode?.(event.targetNodeId);
         store.setContextMenuPosition?.({ x: event.x, y: event.y });
+        store.openPanel?.('contextMenu');
       } catch (e) { console.warn('CanvasEvent.normal: nodeContextMenu handler error', e); }
       return;
     }

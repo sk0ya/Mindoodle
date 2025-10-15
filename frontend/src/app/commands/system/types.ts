@@ -116,6 +116,7 @@ export interface CommandResult {
   success: boolean;
   message?: string;
   error?: string;
+  data?: unknown;
 }
 
 
@@ -158,6 +159,7 @@ export interface CommandRegistry {
   getByCategory: (category: string) => Command[];
   search: (query: string) => Command[];
   execute: (nameOrAlias: string, context: CommandContext, args?: ArgsMap) => Promise<CommandResult>;
+  canExecute: (nameOrAlias: string, context: CommandContext, args?: ArgsMap) => boolean;
 }
 
 

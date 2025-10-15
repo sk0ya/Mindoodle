@@ -1,10 +1,11 @@
 
 import React from 'react';
-import { Copy, Link, Trash2, Sparkles, Table } from 'lucide-react';
+import { Copy, Link, Trash2, Sparkles, Table, FileOutput } from 'lucide-react';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
-import type { MarkdownNodeType } from '@commands/system/types';
+import type { MarkdownNodeType, CommandContext } from '@commands/system/types';
+import type { CommandRegistryImpl } from '@commands/system/registry';
 import { useMindMapStore } from '@mindmap/store';
 
 type Props = {
@@ -17,6 +18,9 @@ type Props = {
   onAIGenerate?: (node: MindMapNode) => void;
   onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
   onEditTable?: (nodeId: string) => void;
+  onConvertToMap?: (nodeId: string) => Promise<void>;
+  commandRegistry?: CommandRegistryImpl;
+  commandContext?: CommandContext;
   onClose: () => void;
 };
 
@@ -30,6 +34,9 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onAIGenerate,
   onMarkdownNodeType: _onMarkdownNodeType,
   onEditTable,
+  onConvertToMap,
+  commandRegistry,
+  commandContext,
   onClose,
 }) => {
   const store = useMindMapStore();
@@ -83,6 +90,19 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
       icon: <Table size={14} />,
       label: 'テーブルを編集',
       onClick: () => onEditTable(selectedNode.id),
+    });
+  }
+
+  // Convert to map option - check using command guard
+  const canConvertToMap = commandRegistry && commandContext
+    ? commandRegistry.canExecute('convert-node-to-map', commandContext, { nodeId: selectedNode.id })
+    : false;
+  if (canConvertToMap && onConvertToMap) {
+    items.push({ separator: true });
+    items.push({
+      icon: <FileOutput size={14} />,
+      label: 'マップに変換',
+      onClick: () => void onConvertToMap(selectedNode.id),
     });
   }
 

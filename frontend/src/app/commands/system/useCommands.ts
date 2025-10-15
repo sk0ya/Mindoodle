@@ -85,6 +85,8 @@ export interface UseCommandsReturn {
   executeVimCommand: (vimKey: string, count?: number) => Promise<CommandResult>;
   parseVimSequence: (sequence: string) => VimSequenceResult;
   getVimKeys: () => string[];
+  registry: CommandRegistryImpl;
+  context: CommandContext;
 }
 
 export function useCommands(props: UseCommandsProps): UseCommandsReturn {
@@ -416,7 +418,9 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     isValidCommand,
     executeVimCommand,
     parseVimSequence: parseVimSequenceCallback,
-    getVimKeys: getVimKeysCallback
+    getVimKeys: getVimKeysCallback,
+    registry,
+    context
   };
 }
 

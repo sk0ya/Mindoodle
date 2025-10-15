@@ -201,7 +201,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     removeWorkspace,
     switchWorkspace,
     storageAdapter,
-    refreshMapList
+    refreshMapList,
+    flushMarkdownStream
   } = mindMap;
 
   const uiStore = useMindMapStore().ui;
@@ -279,8 +280,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const node = findNodeInRoots(data?.rootNodes || [], editingTableNodeId);
     if (!node) return;
 
-    
-    
+
+
     updateNode(editingTableNodeId, { text: newMarkdown });
 
     setShowTableEditor(false);
@@ -497,6 +498,74 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     showNotification,
   });
 
+  // Convert node to map handler - defined after commands is initialized
+  const handleConvertToMap = useCallback(async (nodeId: string) => {
+    try {
+      handleContextMenuClose();
+
+      // Step 1: Get node data with children from command
+      const result = await commands.execute(`convert-node-to-map ${nodeId}`);
+      if (!result.success) {
+        showNotification('error', result.error || 'マップへの変換に失敗しました');
+        return;
+      }
+      const { markdown, nodeText } = result.data as { markdown: string; nodeText: string; nodeId: string };
+      logger.info('Step 1: Got node data with children');
+
+      if (!storageAdapter?.saveMapMarkdown || !data?.mapIdentifier) {
+        showNotification('error', 'ストレージアダプターが利用できません');
+        return;
+      }
+
+      // Step 2: Remove children from the original node
+      const node = findNodeInRoots(data?.rootNodes || [], nodeId);
+      if (node && node.children && node.children.length > 0) {
+        // Delete each child node individually
+        for (const child of node.children) {
+          deleteNode(child.id);
+        }
+        logger.info(`Step 2: Removed ${node.children.length} children from node`);
+      } else {
+        logger.info('Step 2: No children to remove');
+      }
+
+      // Step 3: Save the current map (with children removed)
+      await flushMarkdownStream();
+      logger.info('Step 3: Saved current map');
+
+      // Step 4: Create new map file
+      const { sanitizeAndEnsureUnique } = await import('@mindmap/utils/fileNameUtils');
+      const existingNames = new Set(
+        allMindMaps
+          .filter((m) => m.mapIdentifier.workspaceId === data.mapIdentifier.workspaceId)
+          .map((m) => m.mapIdentifier.mapId.split('/').pop() || '')
+      );
+      const sanitizedName = sanitizeAndEnsureUnique(nodeText, existingNames);
+      if (!currentMapId) {
+        showNotification('error', '現在のマップIDが取得できません');
+        return;
+      }
+      const mapIdParts = currentMapId.split('/');
+      const folderPath = mapIdParts.length > 1 ? mapIdParts.slice(0, -1).join('/') : '';
+      const newMapId = folderPath ? `${folderPath}/${sanitizedName}` : sanitizedName;
+      const newMapIdentifier = {
+        mapId: newMapId,
+        workspaceId: data.mapIdentifier.workspaceId
+      };
+      await storageAdapter.saveMapMarkdown(newMapIdentifier, markdown);
+      logger.info('Step 4: Created new map file');
+
+      // Step 5: Open the new map
+      await refreshMapList();
+      await selectMapById(newMapIdentifier);
+      logger.info('Step 5: Opened new map');
+
+      showNotification('success', `マップ「${sanitizedName}」を作成しました`);
+    } catch (error) {
+      logger.error('handleConvertToMap error:', error);
+      showNotification('error', 'マップへの変換中にエラーが発生しました');
+    }
+  }, [commands, handleContextMenuClose, showNotification, allMindMaps, data, currentMapId, storageAdapter, refreshMapList, selectMapById, deleteNode, flushMarkdownStream]);
 
   return (
     <div
@@ -802,6 +871,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           handleContextMenuClose();
         }}
         onEditTable={handleEditTable}
+        onConvertToMap={handleConvertToMap}
+        commandRegistry={commands.registry}
+        commandContext={commands.context}
         onMarkdownNodeType={(nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
           if (data?.rootNodes?.[0]) {
             
