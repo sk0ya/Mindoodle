@@ -823,7 +823,9 @@ export const createNodeSlice: StateCreator<
   },
 
   toggleNodeCollapse: (nodeId: string) => {
-    // Update collapsed state but DO NOT push to history
+    // Update collapsed state and apply layout atomically
+    const wasCollapsed = get().normalizedData?.nodes[nodeId]?.collapsed;
+
     set((state) => {
       if (!state.normalizedData) return;
       try {
@@ -840,10 +842,15 @@ export const createNodeSlice: StateCreator<
         logger.error('toggleNodeCollapse error:', error);
       }
     });
-    
-    // Apply auto layout if enabled
+
+    // For expanding nodes (wasCollapsed === true), apply layout immediately
+    // to ensure child nodes have correct positions before rendering
     const { data } = get();
-    if (data?.settings?.autoLayout) {
+    if (data?.settings?.autoLayout && wasCollapsed) {
+      // Force immediate layout execution for expand operations
+      get().applyAutoLayout(true);
+    } else if (data?.settings?.autoLayout) {
+      // Regular debounced layout for collapse operations
       get().applyAutoLayout();
     }
   },
