@@ -59,6 +59,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     async (relativePath: string): Promise<string | null> => {
       try {
         if (typeof (mindMap).readImageAsDataURL !== 'function') {
+          logger.warn('[onLoadRelativeImage] readImageAsDataURL is not available');
           return null;
         }
 
@@ -97,7 +98,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
 
         return dataURL || null;
       } catch (error) {
-        logger.error('Failed to load relative image:', error);
+        logger.error('[onLoadRelativeImage] Failed to load relative image:', error, { relativePath });
         return null;
       }
     }

@@ -195,7 +195,11 @@ interface NodeRendererProps {
     return path.startsWith('./') || path.startsWith('../') || (!path.includes('://') && !path.startsWith('/'));
   };
 
-  const displayEntries = extractDisplayEntries(node.note);
+  // Extract display entries from both text and note
+  const textEntries = extractDisplayEntries(node.text);
+  const noteEntries = extractDisplayEntries(node.note);
+  const displayEntries = [...textEntries, ...noteEntries];
+
   const imageEntries = displayEntries.filter((e): e is Extract<DisplayEntry, { kind: 'image' }> => e.kind === 'image');
   const noteImageFiles: FileAttachment[] = imageEntries.map((e, i) => ({
     id: `noteimg-${node.id}-${i}`,
@@ -208,10 +212,19 @@ interface NodeRendererProps {
     isRelativeLocal: isRelativeLocalPath(e.url)
   } as FileAttachment & { isRelativeLocal?: boolean }));
 
+
   
   const [resolvedImageUrls, setResolvedImageUrls] = useState<Record<string, string>>({});
 
   
+  // 画像URLのキーを安定化（無限ループ防止）
+  const imageUrlsKey = useMemo(() => {
+    return noteImageFiles
+      .map(f => (f as FileAttachment & { isRelativeLocal?: boolean }).isRelativeLocal ? f.downloadUrl : '')
+      .filter(Boolean)
+      .join('|');
+  }, [noteImageFiles]);
+
   useEffect(() => {
     const loadRelativeImages = async () => {
       if (!onLoadRelativeImage) {
@@ -223,13 +236,18 @@ interface NodeRendererProps {
       for (const imageFile of noteImageFiles) {
         const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
         if (relativeFile.isRelativeLocal && relativeFile.downloadUrl) {
+          // すでに解決済みならスキップ
+          if (resolvedImageUrls[relativeFile.downloadUrl]) {
+            continue;
+          }
+
           try {
             const dataUrl = await onLoadRelativeImage(relativeFile.downloadUrl);
             if (dataUrl) {
               newResolvedUrls[relativeFile.downloadUrl] = dataUrl;
             }
           } catch (error) {
-            console.warn('Failed to load relative image:', relativeFile.downloadUrl, error);
+            console.warn('[NodeRenderer] Failed to load relative image:', relativeFile.downloadUrl, error);
           }
         }
       }
@@ -240,7 +258,8 @@ interface NodeRendererProps {
     };
 
     loadRelativeImages();
-  }, [noteImageFiles, onLoadRelativeImage]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [imageUrlsKey, onLoadRelativeImage, node.id]);
 
   
   const [slotIndex, setSlotIndex] = useState(0);
@@ -265,10 +284,12 @@ interface NodeRendererProps {
   
 
 
-  const parseNoteSizeByIndex = useCallback((note: string | undefined, index: number): { width: number; height: number } | null => {
-    if (!note) return null;
+  const parseNoteSizeByIndex = useCallback((index: number): { width: number; height: number } | null => {
     const entry = displayEntries[index];
-    if (!entry || entry.kind !== 'image' || entry.subType !== 'html') return null;
+    if (!entry || entry.kind !== 'image' || entry.subType !== 'html') {
+      return null;
+    }
+
     const tag = entry.tag;
     const wRe = /\swidth=["']?(\d+)(?:px)?["']?/i;
     const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
@@ -286,16 +307,19 @@ interface NodeRendererProps {
   // (old parseNoteImageSizeByIndex removed; merged into parseNoteSizeByIndex)
 
   // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
-  const noteSize = currentEntry ? parseNoteSizeByIndex(node.note, slotIndex) : null;
+  const noteSize = currentEntry ? parseNoteSizeByIndex(slotIndex) : null;
+
+
   // If table node, prefer using existing node size props
   const imageDimensions = useMemo(() => {
     const imageDimensionsBase = node.customImageWidth && node.customImageHeight
       ? { width: node.customImageWidth, height: node.customImageHeight }
       : noteSize || { width: 150, height: 105 };
+
     return (node.kind === 'table')
       ? { width: node.customImageWidth ?? Math.max(50, nodeWidth - 10), height: node.customImageHeight ?? imageHeight }
       : imageDimensionsBase;
-  }, [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight]);
+  }, [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight, node.id]);
 
   // 決定した画像サイズに基づき、一度だけ自動レイアウトを発火
   const lastLayoutKeyRef = useRef<string | null>(null);
@@ -382,6 +406,7 @@ interface NodeRendererProps {
     if (entry.kind !== 'image') return note;
     const width = Math.round(w);
     const height = Math.round(h);
+    console.log('Updating note image size:', { width, height, entry });
     let replacement: string;
     const imgEntry = entry;
     if (imgEntry.subType === 'html') {
@@ -542,6 +567,8 @@ interface NodeRendererProps {
     if (w <= 0 || h <= 0) return;
     // 既にユーザーがカスタム設定済みなら、ロード寸法で上書きしない
     if (node.customImageWidth && node.customImageHeight) return;
+    // HTMLのwidth/height属性で指定されている場合も上書きしない
+    if (noteSize && noteSize.width > 0 && noteSize.height > 0) return;
     // 初回のみ、表示中の画像に合わせてノードの表示サイズを設定
     const minWidth = 50;
     const maxWidth = 400;
@@ -549,23 +576,7 @@ interface NodeRendererProps {
     const ratio = w > 0 ? h / w : 1;
     const newHeight = Math.max(Math.round(newWidth * ratio), Math.round(minWidth * ratio));
     onUpdateNode(node.id, { customImageWidth: Math.round(newWidth), customImageHeight: newHeight });
-  }, [node.id, node.customImageWidth, node.customImageHeight, onUpdateNode]);
-
-  // ノートのHTML画像にサイズ指定があれば先に反映（ロード完了前にレイアウトを安定）
-  useEffect(() => {
-    if (!onUpdateNode) return;
-    if (isResizing) return;
-    // 一度でもカスタムサイズが設定されたら、ノート側のサイズで上書きしない
-    if (node.customImageWidth && node.customImageHeight) return;
-    const sz = parseNoteSizeByIndex(node.note, slotIndex);
-    if (sz) {
-      const minWidth = 50;
-      const maxWidth = 400;
-      const w = Math.max(minWidth, Math.min(maxWidth, sz.width));
-      const h = Math.round(w * (sz.height / Math.max(1, sz.width)));
-      onUpdateNode(node.id, { customImageWidth: w, customImageHeight: h });
-    }
-  }, [isResizing, slotIndex, node.note, node.id, node.customImageWidth, node.customImageHeight, onUpdateNode, parseNoteSizeByIndex]);
+  }, [node.id, node.customImageWidth, node.customImageHeight, noteSize, onUpdateNode]);
 
   // ホバー状態でコントロール表示
   const { isHovered, handleMouseEnter, handleMouseLeave } = useHoverState();
@@ -932,41 +943,116 @@ interface NodeRendererProps {
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               >
-                {currentImage && (
-                  <img
-                    src={(() => {
-                      const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
-                      if (relativeFile.isRelativeLocal && relativeFile.downloadUrl && resolvedImageUrls[relativeFile.downloadUrl]) {
-                        return resolvedImageUrls[relativeFile.downloadUrl];
-                      }
-                      return currentImage.downloadUrl || currentImage.dataURL || currentImage.data;
-                    })()}
-                    alt={currentImage.name}
-                    style={{
-                      maxWidth: '100%',
-                      maxHeight: '100%',
-                      width: 'auto',
-                      height: 'auto',
-                      objectFit: 'contain',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                      display: 'block',
-                      margin: '0 auto'
-                    }}
-                    onClick={(e) => handleImageClick(e, currentImage)}
-                    onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
-                    onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
-                    onError={() => {}}
-                    onLoad={(e) => {
-                      const img = e.currentTarget as HTMLImageElement;
-                      const w = img.naturalWidth || 0;
-                      const h = img.naturalHeight || 0;
-                      if (w > 0 && h > 0) {
-                        handleImageLoadDimensions(w, h);
-                      }
-                    }}
-                  />
-                )}
+                {currentImage && (() => {
+                  const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
+
+                  // 画像のソースURL決定
+                  let imageSrc = '';
+
+                  if (relativeFile.isRelativeLocal && relativeFile.downloadUrl) {
+                    // 相対パスの場合：解決済みDataURLのみ使用（まだ解決されていない場合はローディング表示）
+                    imageSrc = resolvedImageUrls[relativeFile.downloadUrl] || '';
+
+                    if (!imageSrc) {
+                      // まだ読み込み中
+                      return (
+                        <div style={{
+                          width: '100%',
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          background: '#f3f4f6',
+                          color: '#6b7280',
+                          fontSize: '12px',
+                          fontFamily: 'system-ui, sans-serif'
+                        }}>
+                          画像を読み込み中...
+                        </div>
+                      );
+                    }
+                  } else {
+                    // 絶対URLまたはDataURLの場合：優先順位に従って選択
+                    imageSrc = currentImage.dataURL || currentImage.downloadUrl || currentImage.data || '';
+                  }
+
+                  // 画像ソースが無効な場合はプレースホルダーを表示
+                  if (!imageSrc) {
+                    return (
+                      <div style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: '#f3f4f6',
+                        color: '#6b7280',
+                        fontSize: '12px',
+                        fontFamily: 'system-ui, sans-serif'
+                      }}>
+                        画像を読み込めません
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <img
+                      src={imageSrc}
+                      alt={currentImage.name || '画像'}
+                      style={{
+                        maxWidth: '100%',
+                        maxHeight: '100%',
+                        width: 'auto',
+                        height: 'auto',
+                        objectFit: 'contain',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
+                        display: 'block',
+                        margin: '0 auto'
+                      }}
+                      onClick={(e) => handleImageClick(e, currentImage)}
+                      onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
+                      onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
+                      onError={(e) => {
+                        console.warn('[NodeRenderer] 画像の読み込みに失敗:', {
+                          name: currentImage.name,
+                          src: imageSrc,
+                          isRelative: relativeFile.isRelativeLocal
+                        });
+                        // エラー時はalt属性でフォールバック表示
+                        const img = e.currentTarget;
+                        img.style.display = 'none';
+                        const parent = img.parentElement;
+                        if (parent) {
+                          const errorDiv = document.createElement('div');
+                          errorDiv.style.cssText = `
+                            width: 100%;
+                            height: 100%;
+                            display: flex;
+                            align-items: center;
+                            justify-content: center;
+                            background: #fef2f2;
+                            color: #dc2626;
+                            fontSize: 12px;
+                            fontFamily: system-ui, sans-serif;
+                            text-align: center;
+                            padding: 8px;
+                          `;
+                          errorDiv.textContent = `画像の読み込みに失敗しました\n${currentImage.name}`;
+                          parent.appendChild(errorDiv);
+                        }
+                      }}
+                      onLoad={(e) => {
+                        const img = e.currentTarget as HTMLImageElement;
+                        const w = img.naturalWidth || 0;
+                        const h = img.naturalHeight || 0;
+                        if (w > 0 && h > 0) {
+                          handleImageLoadDimensions(w, h);
+                        }
+                      }}
+                    />
+                  );
+                })()}
 
                 {}
                 {displayEntries.length > 1 && (isSelected || isHovered) && (
@@ -1126,12 +1212,15 @@ export const NodeSelectionBorder: React.FC<{
 };
 
 export default memo(NodeRenderer, (prevProps, nextProps) => {
-  
+
   return (
     prevProps.node.id === nextProps.node.id &&
     prevProps.node.text === nextProps.node.text &&
+    prevProps.node.note === nextProps.node.note &&
     prevProps.node.x === nextProps.node.x &&
     prevProps.node.y === nextProps.node.y &&
+    prevProps.node.customImageWidth === nextProps.node.customImageWidth &&
+    prevProps.node.customImageHeight === nextProps.node.customImageHeight &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isDragging === nextProps.isDragging &&
     prevProps.nodeWidth === nextProps.nodeWidth &&
