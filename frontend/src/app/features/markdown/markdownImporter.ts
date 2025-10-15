@@ -20,7 +20,7 @@ const createNewNode = (text: string, _isRoot: boolean = false, parentLineEnding?
   };
 };
 
-const DEBUG_MD = true; 
+const DEBUG_MD = false; 
 
 
 

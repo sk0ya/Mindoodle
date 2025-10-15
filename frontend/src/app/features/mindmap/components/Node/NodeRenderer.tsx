@@ -231,26 +231,41 @@ interface NodeRendererProps {
         return;
       }
 
+      // 未解決の相対パス画像をフィルタリング
+      const pendingImages = noteImageFiles
+        .filter(imageFile => {
+          const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
+          return relativeFile.isRelativeLocal &&
+                 relativeFile.downloadUrl &&
+                 !resolvedImageUrls[relativeFile.downloadUrl];
+        });
+
+      if (pendingImages.length === 0) {
+        return;
+      }
+
+      // 並列読み込み
+      const loadPromises = pendingImages.map(async (imageFile) => {
+        const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
+        if (!relativeFile.downloadUrl) return null;
+
+        try {
+          const dataUrl = await onLoadRelativeImage(relativeFile.downloadUrl);
+          return dataUrl ? { path: relativeFile.downloadUrl, dataUrl } : null;
+        } catch (error) {
+          console.warn('[NodeRenderer] Failed to load relative image:', relativeFile.downloadUrl, error);
+          return null;
+        }
+      });
+
+      const results = await Promise.all(loadPromises);
       const newResolvedUrls: Record<string, string> = {};
 
-      for (const imageFile of noteImageFiles) {
-        const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
-        if (relativeFile.isRelativeLocal && relativeFile.downloadUrl) {
-          // すでに解決済みならスキップ
-          if (resolvedImageUrls[relativeFile.downloadUrl]) {
-            continue;
-          }
-
-          try {
-            const dataUrl = await onLoadRelativeImage(relativeFile.downloadUrl);
-            if (dataUrl) {
-              newResolvedUrls[relativeFile.downloadUrl] = dataUrl;
-            }
-          } catch (error) {
-            console.warn('[NodeRenderer] Failed to load relative image:', relativeFile.downloadUrl, error);
-          }
+      results.forEach(result => {
+        if (result && result.dataUrl) {
+          newResolvedUrls[result.path] = result.dataUrl;
         }
-      }
+      });
 
       if (Object.keys(newResolvedUrls).length > 0) {
         setResolvedImageUrls(prev => ({ ...prev, ...newResolvedUrls }));
