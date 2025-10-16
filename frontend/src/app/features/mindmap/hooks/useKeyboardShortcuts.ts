@@ -88,14 +88,10 @@ function handleStandardShortcut(
     }
   }
 
-  
+
   if (isModifier) {
-    
+
     switch (key.toLowerCase()) {
-      case 'p':
-        event.preventDefault();
-        commands.execute('switch-map --direction prev');
-        return true;
       case 'n':
         event.preventDefault();
         commands.execute('switch-map --direction next');
@@ -388,7 +384,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         const expandedEntries = Object.entries(customMap).map(([lhs, cmd]) => [expandLhs(lhs), cmd]);
         const expandedKeysStart = new Set(expandedEntries.map(([lhs]) => (lhs[0] || '')));
 
-        // Handle Ctrl+U and Ctrl+D scroll commands, and map switching Ctrl+P/N
+        // Handle Ctrl+U and Ctrl+D scroll commands, and map switching with Ctrl+[/]
         if (isModifier) {
           const lower = key.toLowerCase();
           if (lower === 'u' && ctrlKey) {
@@ -399,8 +395,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             event.preventDefault();
             commands.executeVimCommand('ctrl-d');
             return;
-          } else if ((lower === 'p' && ctrlKey && handlers.switchToPrevMap) ||
-                     (lower === '[' && (ctrlKey || metaKey) && handlers.switchToPrevMap)) {
+          } else if (lower === '[' && (ctrlKey || metaKey) && handlers.switchToPrevMap) {
             event.preventDefault();
             handlers.switchToPrevMap();
             return;
@@ -410,7 +405,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             handlers.switchToNextMap();
             return;
           }
-          
+
         }
 
         
