@@ -1,4 +1,6 @@
 import type { MindMapNode } from '@shared/types';
+import { generateObjectHash } from '@shared/utils';
+import { MINDOODLE_CLIPBOARD_MIME_TYPE } from '../services/NodeClipboardService';
 
 function nodeToMarkdown(node: MindMapNode, level = 0): string {
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
@@ -12,12 +14,48 @@ function nodeToMarkdown(node: MindMapNode, level = 0): string {
   return md;
 }
 
-function systemClipboardMatchesNode(clipboardText: string, node: MindMapNode): boolean {
-  const expectedMarkdown = nodeToMarkdown(node);
-  
-  const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
-  const normalizedExpected = expectedMarkdown.trim();
-  return normalizedClipboard === normalizedExpected;
+async function systemClipboardMatchesNode(node: MindMapNode): Promise<boolean> {
+  try {
+    // Try modern Clipboard API with custom format
+    if (navigator.clipboard && 'read' in navigator.clipboard) {
+      const clipboardItems = await navigator.clipboard.read();
+
+      for (const item of clipboardItems) {
+        if (item.types.includes(MINDOODLE_CLIPBOARD_MIME_TYPE)) {
+          const blob = await item.getType(MINDOODLE_CLIPBOARD_MIME_TYPE);
+          const clipboardHash = await blob.text();
+          const nodeHash = generateObjectHash(node);
+          return clipboardHash === nodeHash;
+        }
+      }
+    }
+
+    // Fallback: compare text content
+    if (navigator.clipboard && navigator.clipboard.readText) {
+      const clipboardText = await navigator.clipboard.readText();
+      const expectedMarkdown = nodeToMarkdown(node);
+      const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
+      const normalizedExpected = expectedMarkdown.trim();
+      return normalizedClipboard === normalizedExpected;
+    }
+  } catch (error) {
+    console.warn('Failed to read custom clipboard format, falling back to text comparison', error);
+
+    // Final fallback: text-only comparison
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const clipboardText = await navigator.clipboard.readText();
+        const expectedMarkdown = nodeToMarkdown(node);
+        const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
+        const normalizedExpected = expectedMarkdown.trim();
+        return normalizedClipboard === normalizedExpected;
+      }
+    } catch {
+      // Ignore fallback errors
+    }
+  }
+
+  return false;
 }
 
 export async function pasteFromClipboard(
@@ -28,22 +66,22 @@ export async function pasteFromClipboard(
   selectNode: (id: string) => void,
   notify: (type: 'success'|'error'|'info'|'warning', message: string) => void
 ): Promise<void> {
-  
+
   try {
+    // Check if system clipboard matches UI clipboard using hash
+    if (uiClipboard && await systemClipboardMatchesNode(uiClipboard)) {
+      const { pasteNodeTree } = await import('./pasteTree');
+      const newId = pasteNodeTree(uiClipboard, parentId, addChildNode, updateNode);
+      if (newId) {
+        notify('success', `「${uiClipboard.text}」を貼り付けました`);
+        selectNode(newId);
+      }
+      return;
+    }
+
+    // Continue with text-based clipboard processing
     if (navigator.clipboard && navigator.clipboard.readText) {
       const clipboardText = await navigator.clipboard.readText();
-
-      
-      
-      if (clipboardText && uiClipboard && systemClipboardMatchesNode(clipboardText, uiClipboard)) {
-        const { pasteNodeTree } = await import('./pasteTree');
-        const newId = pasteNodeTree(uiClipboard, parentId, addChildNode, updateNode);
-        if (newId) {
-          notify('success', `「${uiClipboard.text}」を貼り付けました`);
-          selectNode(newId);
-        }
-        return;
-      }
 
       
       const { isMindMeisterFormat, parseMindMeisterMarkdown } = await import('../../markdown');

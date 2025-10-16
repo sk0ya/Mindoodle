@@ -4,6 +4,7 @@ export * from './clipboard';
 export * from './env';
 export * from './eventUtils';
 export * from './folderUtils';
+export * from './hashUtils';
 export * from './highlightUtils';
 export * from './hookUtils';
 export * from './idGenerator';
