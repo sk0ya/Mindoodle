@@ -8,12 +8,12 @@ export const useMindMapActions = () => {
   const store = useMindMapStore();
 
   const mapActions = {
-    
+
     selectMap: useStableCallback((mapData: MindMapData) => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
       store.setData(mapData);
 
-      
+
       if (mapData.settings?.autoLayout) {
         logger.debug('🎯 Applying auto layout on map open (once only)');
         if (typeof store.applyAutoLayout === 'function') {

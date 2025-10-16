@@ -242,13 +242,19 @@ export function useMindMapViewport({
 
     if (!targetNode) {
       if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
-        
+
         const nodeX = fallbackCoords.x;
         const nodeY = fallbackCoords.y;
 
-        const positionRatio = isLeftMode ? 0.1 : 0.5; 
-        const targetX = mapAreaRect.left + (mapAreaRect.width * positionRatio);
-        const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
+        // Position at left-top edge or center
+        const leftMargin = 150;
+        const topMargin = 100;
+        const targetX = isLeftMode
+          ? leftMargin  // Left edge of map area (not screen)
+          : mapAreaRect.left + (mapAreaRect.width / 2);
+        const targetY = isLeftMode
+          ? topMargin   // Top edge of map area (not screen)
+          : mapAreaRect.top + (mapAreaRect.height / 2);
         const currentZoom = uiStore.zoom * 1.5;
 
         const newPanX = targetX / currentZoom - nodeX;
@@ -266,10 +272,13 @@ export function useMindMapViewport({
     
     const currentZoom = uiStore.zoom * 1.5;
 
-    
+
     if (isLeftMode) {
-      const targetX = mapAreaRect.left + (mapAreaRect.width * 0.1);
-      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
+      // Position node at the left-top with margins (150px from left, 100px from top)
+      const leftMargin = 150;
+      const topMargin = 100;
+      const targetX = leftMargin;  // Left edge of map area (not screen)
+      const targetY = topMargin;   // Top edge of map area (not screen)
       const newPanX = targetX / currentZoom - nodeX;
       const newPanY = targetY / currentZoom - nodeY;
       setPan({ x: newPanX, y: newPanY });

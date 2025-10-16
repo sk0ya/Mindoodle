@@ -412,6 +412,25 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     ensureSelectedNodeVisible();
   }, [uiStore.nodeNotePanelHeight, selectedNodeId, ensureSelectedNodeVisible]);
 
+  // Center root node when map changes
+  React.useEffect(() => {
+    if (!data?.rootNodes || data.rootNodes.length === 0) return;
+
+    logger.debug('📍 Map changed, centering root node');
+
+    // Reset zoom to default first
+    setZoom(1.0);
+
+    // Wait for layout to complete, then center the root node in one motion
+    const timer = window.setTimeout(() => {
+      const roots = data.rootNodes || [];
+      if (roots.length > 0) {
+        centerNodeInView(roots[0].id, false, { mode: 'left' });
+      }
+    }, 50);
+
+    return () => window.clearTimeout(timer);
+  }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId, centerNodeInView, setZoom]);
 
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
