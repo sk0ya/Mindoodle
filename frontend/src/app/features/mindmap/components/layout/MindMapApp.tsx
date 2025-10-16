@@ -31,6 +31,7 @@ import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
 import { CloudStorageAdapter } from '../../../../core/storage/adapters';
+import { mindMapEvents } from '@core/streams';
 
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 import TableEditorModal from '../../../markdown/components/TableEditorModal';
@@ -412,24 +413,40 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     ensureSelectedNodeVisible();
   }, [uiStore.nodeNotePanelHeight, selectedNodeId, ensureSelectedNodeVisible]);
 
-  // Center root node when map changes
+  // Center root node when map changes or layout is applied
   React.useEffect(() => {
     if (!data?.rootNodes || data.rootNodes.length === 0) return;
 
-    logger.debug('📍 Map changed, centering root node');
-
-    // Reset zoom to default first
+    logger.debug('📍 Map changed, resetting zoom');
     setZoom(1.0);
 
-    // Wait for layout to complete, then center the root node in one motion
+    // Listen for layout completion
+    const unsubscribe = mindMapEvents.subscribe((event) => {
+      if (event.type === 'layout.applied') {
+        logger.debug('📍 Layout applied, centering root node at left');
+        const roots = data.rootNodes || [];
+        if (roots.length > 0) {
+          // Small delay to ensure DOM is updated
+          window.setTimeout(() => {
+            centerNodeInView(roots[0].id, false, { mode: 'left' });
+          }, 10);
+        }
+      }
+    });
+
+    // If no auto-layout, center immediately
     const timer = window.setTimeout(() => {
       const roots = data.rootNodes || [];
       if (roots.length > 0) {
+        logger.debug('📍 No layout event, centering root node at left');
         centerNodeInView(roots[0].id, false, { mode: 'left' });
       }
-    }, 50);
+    }, 100);
 
-    return () => window.clearTimeout(timer);
+    return () => {
+      unsubscribe();
+      window.clearTimeout(timer);
+    };
   }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId, centerNodeInView, setZoom]);
 
   const handleLinkNavigate2 = async (link: NodeLink) => {
