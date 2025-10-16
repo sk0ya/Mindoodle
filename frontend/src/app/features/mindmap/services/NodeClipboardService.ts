@@ -2,9 +2,17 @@ import type { MindMapNode } from '@shared/types';
 import { generateObjectHash } from '@shared/utils';
 
 /**
- * Custom MIME type for Mindoodle clipboard data with hash
+ * Web-side clipboard state to store the hash of copied content
  */
-export const MINDOODLE_CLIPBOARD_MIME_TYPE = 'application/x-mindoodle-hash';
+let lastCopiedHash: string | null = null;
+
+export function getLastCopiedHash(): string | null {
+  return lastCopiedHash;
+}
+
+export function setLastCopiedHash(hash: string | null): void {
+  lastCopiedHash = hash;
+}
 
 export function nodeToMarkdownTree(node: MindMapNode, level = 0): string {
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
@@ -49,34 +57,21 @@ export function nodeToIndentedText(node: MindMapNode, level = 0): string {
   return result;
 }
 
-export async function copyNodeToClipboard(node: MindMapNode, onCopied?: (message: string) => void): Promise<void> {
-  const markdownText = nodeToMarkdownTree(node);
+export async function copyNodeToClipboard(
+  node: MindMapNode,
+  markdownText: string,
+  onCopied?: (message: string) => void
+): Promise<void> {
   const nodeHash = generateObjectHash(node);
 
-  try {
-    // Modern Clipboard API with multiple formats
-    if (navigator.clipboard && 'write' in navigator.clipboard) {
-      const textBlob = new Blob([markdownText], { type: 'text/plain' });
-      const hashBlob = new Blob([nodeHash], { type: MINDOODLE_CLIPBOARD_MIME_TYPE });
+  // Store hash in web-side clipboard state instead of embedding in text
+  setLastCopiedHash(nodeHash);
 
-      const clipboardItem = new ClipboardItem({
-        'text/plain': textBlob,
-        [MINDOODLE_CLIPBOARD_MIME_TYPE]: hashBlob,
-      });
-
-      await navigator.clipboard.write([clipboardItem]);
-      onCopied?.(`「${node.text}」をコピーしました`);
-      return;
-    }
-  } catch (error) {
-    console.warn('Failed to write custom clipboard format, falling back to text-only', error);
-  }
-
-  // Fallback to simple text-only clipboard
   try {
     if (navigator.clipboard && 'writeText' in navigator.clipboard) {
       await navigator.clipboard.writeText(markdownText);
       onCopied?.(`「${node.text}」をコピーしました`);
+      return;
     }
   } catch (error) {
     console.error('Failed to write to clipboard', error);

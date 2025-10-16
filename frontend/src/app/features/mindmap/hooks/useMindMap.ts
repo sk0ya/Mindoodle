@@ -796,6 +796,11 @@ export const useMindMap = (
       return bestLine ? map[bestLine] : null;
     },
 
+    // Get current markdown content from stream
+    getCurrentMarkdownContent: useStableCallback(() => {
+      return markdownStreamHook.stream.getMarkdown();
+    }),
+
     setAutoSaveEnabled: setAutoSaveEnabledStable,
 
     // Force flush markdown stream (for immediate save)

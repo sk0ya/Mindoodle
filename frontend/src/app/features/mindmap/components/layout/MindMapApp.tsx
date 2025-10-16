@@ -465,6 +465,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     pasteNodeFromClipboard: clipboardOps.pasteNodeFromClipboard,
     changeNodeType: markdownOps.changeNodeType,
     changeSiblingOrder: store.changeSiblingOrder,
+    getCurrentMarkdownContent: mindMap.getCurrentMarkdownContent,
   });
 
   // Type: Shortcut handlers match expected keyboard hook signature

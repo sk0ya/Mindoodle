@@ -1,6 +1,6 @@
 import type { MindMapNode } from '@shared/types';
 import { generateObjectHash } from '@shared/utils';
-import { MINDOODLE_CLIPBOARD_MIME_TYPE } from '../services/NodeClipboardService';
+import { getLastCopiedHash } from '../services/NodeClipboardService';
 
 function nodeToMarkdown(node: MindMapNode, level = 0): string {
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
@@ -16,21 +16,16 @@ function nodeToMarkdown(node: MindMapNode, level = 0): string {
 
 async function systemClipboardMatchesNode(node: MindMapNode): Promise<boolean> {
   try {
-    // Try modern Clipboard API with custom format
-    if (navigator.clipboard && 'read' in navigator.clipboard) {
-      const clipboardItems = await navigator.clipboard.read();
-
-      for (const item of clipboardItems) {
-        if (item.types.includes(MINDOODLE_CLIPBOARD_MIME_TYPE)) {
-          const blob = await item.getType(MINDOODLE_CLIPBOARD_MIME_TYPE);
-          const clipboardHash = await blob.text();
-          const nodeHash = generateObjectHash(node);
-          return clipboardHash === nodeHash;
-        }
+    // Check if web-side clipboard hash matches the node
+    const lastHash = getLastCopiedHash();
+    if (lastHash) {
+      const nodeHash = generateObjectHash(node);
+      if (lastHash === nodeHash) {
+        return true;
       }
     }
 
-    // Fallback: compare text content
+    // Fallback: compare clipboard text content
     if (navigator.clipboard && navigator.clipboard.readText) {
       const clipboardText = await navigator.clipboard.readText();
       const expectedMarkdown = nodeToMarkdown(node);
@@ -39,20 +34,7 @@ async function systemClipboardMatchesNode(node: MindMapNode): Promise<boolean> {
       return normalizedClipboard === normalizedExpected;
     }
   } catch (error) {
-    console.warn('Failed to read custom clipboard format, falling back to text comparison', error);
-
-    // Final fallback: text-only comparison
-    try {
-      if (navigator.clipboard && navigator.clipboard.readText) {
-        const clipboardText = await navigator.clipboard.readText();
-        const expectedMarkdown = nodeToMarkdown(node);
-        const normalizedClipboard = clipboardText.replace(/\r\n/g, '\n').trim();
-        const normalizedExpected = expectedMarkdown.trim();
-        return normalizedClipboard === normalizedExpected;
-      }
-    } catch {
-      // Ignore fallback errors
-    }
+    console.warn('Failed to read clipboard, falling back to text comparison', error);
   }
 
   return false;

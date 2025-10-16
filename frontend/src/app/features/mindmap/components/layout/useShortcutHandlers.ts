@@ -75,9 +75,9 @@ interface Args {
   store: StoreActions;
   logger: ShortcutLogger;
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
-  
+
   centerNodeInView: (nodeId: string, animate?: boolean) => void;
-  
+
   selectedNodeId: string | null;
   editingNodeId: string | null;
   editText: string;
@@ -98,6 +98,7 @@ interface Args {
   pasteNodeFromClipboard: (parentId: string) => Promise<void>;
   changeNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
+  getCurrentMarkdownContent?: () => string;
 }
 
 export function useShortcutHandlers(args: Args) {
@@ -109,6 +110,7 @@ export function useShortcutHandlers(args: Args) {
     finishEditing, updateNode, deleteNode,
     undo, redo, canUndo, canRedo, selectNode, setPan,
     pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType, changeSiblingOrder,
+    getCurrentMarkdownContent,
   } = args;
 
   return useMemo(() => ({
@@ -261,20 +263,132 @@ export function useShortcutHandlers(args: Args) {
     setShowTutorial: (show: boolean) => store.setShowTutorial(show),
     showKeyboardHelper: ui.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show),
-    copyNode: (nodeId: string) => {
+    copyNode: async (nodeId: string) => {
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) {
-        logger.error('copyNode: node not found', nodeId);
         return;
       }
-      logger.debug('copyNode: setting clipboard', node);
-      logger.debug('copyNode: node.text =', node.text, 'typeof =', typeof node.text);
+
       store.setClipboard(node);
-      const markdownText = convertNodeToMarkdown(node);
-      logger.debug('copyNode: markdownText =', markdownText);
-      navigator.clipboard?.writeText?.(markdownText).catch(() => {});
-      showNotification('success', `「${node.text}」をコピーしました`);
+
+      // Extract markdown text following the required flow:
+      // 1. copyNode is called ✓
+      // 2. Get markdown text from stream
+      // 3. Walk through the map structure and match with markdown lines to find the node's position
+      // 4. Extract text from those lines
+      // 5. Put extracted text in clipboard
+      let markdownText: string;
+
+      if (getCurrentMarkdownContent) {
+        try {
+          // Step 2: Get markdown content from stream
+          const markdownContent = getCurrentMarkdownContent();
+          const lines = markdownContent.split('\n');
+
+          // Step 3: Walk through map structure and match with markdown lines
+          let startLine: number | null = null;
+          let endLine: number | null = null;
+
+          // Count lines for each node: text line + note lines + children
+          const countNodeLines = (n: MindMapNode): number => {
+            // Special handling for table nodes
+            if ('kind' in n && (n as { kind: string }).kind === 'table') {
+              // Table node's text contains the entire table (multiple lines)
+              const textLines = (n.text?.match(/\n/g) || []).length + 1;
+              let count = textLines;
+
+              if (n.note != null) {
+                const noteNewlines = (n.note.match(/\n/g) || []).length;
+                count += noteNewlines + 1;
+              }
+
+              if (n.children?.length) {
+                for (const child of n.children) {
+                  count += countNodeLines(child);
+                }
+              }
+
+              return count;
+            }
+
+            // Normal nodes
+            let count = 1; // text line
+            if (n.note != null) {
+              // note adds: \n + note content
+              // count newlines in note content
+              const noteNewlines = (n.note.match(/\n/g) || []).length;
+              count += noteNewlines + 1; // +1 for the \n before note
+            }
+            if (n.children?.length) {
+              for (const child of n.children) {
+                count += countNodeLines(child);
+              }
+            }
+            return count;
+          };
+
+          // Find target node by walking tree and counting lines
+          const findNodeAndCountLines = (nodes: MindMapNode[], currentLineRef: { value: number }): boolean => {
+            for (const n of nodes || []) {
+              const nodeStartLine = currentLineRef.value;
+
+              // Check if this is our target node
+              if (n.id === nodeId) {
+                startLine = nodeStartLine;
+                const lineCount = countNodeLines(n);
+                endLine = nodeStartLine + lineCount - 1;
+                return true;
+              }
+
+              // Count this node's lines
+              // Special handling for table nodes
+              if ('kind' in n && (n as { kind: string }).kind === 'table') {
+                const textLines = (n.text?.match(/\n/g) || []).length + 1;
+                currentLineRef.value += textLines;
+              } else {
+                currentLineRef.value += 1; // text line
+              }
+
+              // Count note lines if present (undefined/null以外)
+              if (n.note != null) {
+                const noteNewlines = (n.note.match(/\n/g) || []).length;
+                currentLineRef.value += noteNewlines + 1;
+              }
+
+              // Search in children
+              if (n.children?.length) {
+                if (findNodeAndCountLines(n.children, currentLineRef)) {
+                  return true;
+                }
+              }
+            }
+            return false;
+          };
+
+          findNodeAndCountLines(roots, { value: 0 });
+
+          // Step 4: Extract text from start to end line
+          if (startLine !== null && endLine !== null) {
+            const extractedLines = lines.slice(startLine, endLine + 1);
+            markdownText = extractedLines.join('\n');
+          } else {
+            // Fallback if node not found
+            markdownText = convertNodeToMarkdown(node);
+          }
+        } catch (error) {
+          markdownText = convertNodeToMarkdown(node);
+        }
+      } else {
+        // Fallback if stream functions not available
+        markdownText = convertNodeToMarkdown(node);
+      }
+
+      // Step 5: Put extracted text in clipboard
+      const { copyNodeToClipboard } = await import('@mindmap/services/NodeClipboardService');
+      await copyNodeToClipboard(node, markdownText, (message) => {
+        showNotification('success', message);
+      });
     },
     copyNodeText: async (nodeId: string) => {
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);

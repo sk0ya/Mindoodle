@@ -2,6 +2,7 @@
 export * from './autoLayout';
 export * from './canvasCoordinateUtils';
 export * from './clipboardPaste';
+export * from './extractNodeMarkdown';
 export * from './linkNavigation';
 export * from './linkUtils';
 
