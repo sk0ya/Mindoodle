@@ -458,8 +458,48 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
-  async renameItem?(_path: string, _newName: string): Promise<void> {
-    throw new Error('Cloud storage does not support item renaming');
+  async renameItem?(path: string, newName: string): Promise<void> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
+    // Extract mapId from path: remove /cloud/ prefix and .md extension
+    const clean = (path || '').replace(/^\/+/, '');
+    let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
+    rel = rel.replace(/^\/+/, '');
+    const oldMapId = rel.replace(/\.md$/i, '');
+
+    try {
+      // Get existing map content
+      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(oldMapId)}`);
+      if (!response.success || !response.map) {
+        throw new Error('Map not found');
+      }
+
+      // Build new mapId by replacing the last segment with newName
+      const parts = oldMapId.split('/').filter(Boolean);
+      parts[parts.length - 1] = newName.replace(/\.md$/i, ''); // Remove .md if present
+      const newMapId = parts.join('/');
+
+      // Save with new mapId
+      await this.makeRequest(`/api/maps/${encodeURIComponent(newMapId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: newName.replace(/\.md$/i, ''),
+          content: response.map.content || ''
+        })
+      });
+
+      // Delete old map
+      await this.makeRequest(`/api/maps/${encodeURIComponent(oldMapId)}`, {
+        method: 'DELETE'
+      });
+
+      logger.info(`CloudStorageAdapter: Renamed map ${oldMapId} to ${newMapId}`);
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to rename map', error);
+      throw error;
+    }
   }
 
   async deleteItem?(path: string): Promise<void> {
@@ -487,8 +527,57 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
-  async moveItem?(_sourcePath: string, _targetFolderPath: string): Promise<void> {
-    throw new Error('Cloud storage does not support item moving');
+  async moveItem?(sourcePath: string, targetFolderPath: string): Promise<void> {
+    if (!this.isAuthenticated) {
+      throw new Error('Not authenticated');
+    }
+
+    // Extract source mapId from path: remove /cloud/ prefix and .md extension
+    const clean = (sourcePath || '').replace(/^\/+/, '');
+    let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
+    rel = rel.replace(/^\/+/, '');
+    const oldMapId = rel.replace(/\.md$/i, '');
+
+    // Extract target folder from targetFolderPath
+    const cleanTarget = (targetFolderPath || '').replace(/^\/+/, '');
+    let targetFolder = cleanTarget.startsWith('cloud/') ? cleanTarget.slice('cloud/'.length) : cleanTarget;
+    // Remove leading/trailing slashes without vulnerable regex
+    targetFolder = targetFolder.replace(/^\/+/, '');
+    while (targetFolder.endsWith('/')) {
+      targetFolder = targetFolder.slice(0, -1);
+    }
+
+    try {
+      // Get existing map content
+      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(oldMapId)}`);
+      if (!response.success || !response.map) {
+        throw new Error('Map not found');
+      }
+
+      // Build new mapId: targetFolder + filename
+      const parts = oldMapId.split('/').filter(Boolean);
+      const filename = parts[parts.length - 1];
+      const newMapId = targetFolder ? `${targetFolder}/${filename}` : filename;
+
+      // Save with new mapId
+      await this.makeRequest(`/api/maps/${encodeURIComponent(newMapId)}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          title: response.map.title || filename,
+          content: response.map.content || ''
+        })
+      });
+
+      // Delete old map
+      await this.makeRequest(`/api/maps/${encodeURIComponent(oldMapId)}`, {
+        method: 'DELETE'
+      });
+
+      logger.info(`CloudStorageAdapter: Moved map ${oldMapId} to ${newMapId}`);
+    } catch (error) {
+      logger.error('CloudStorageAdapter: Failed to move map', error);
+      throw error;
+    }
   }
 
   async getMapMarkdown?(id: MapIdentifier): Promise<string | null> {
