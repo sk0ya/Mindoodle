@@ -183,118 +183,101 @@ export function getNodeHorizontalPadding(textLength: number, isEditing: boolean)
   return basePadding + additionalPadding;
 }
 
-function isCJKChar(char: string): boolean {
-  if (!char || char.length === 0) return false;
-  const code = char.charCodeAt(0);
-  return (
-    (code >= 0x4E00 && code <= 0x9FFF) ||   
-    (code >= 0x3040 && code <= 0x309F) ||   
-    (code >= 0x30A0 && code <= 0x30FF) ||   
-    (code >= 0xFF00 && code <= 0xFFEF) ||   
-    (code >= 0x3400 && code <= 0x4DBF) ||   
-    (code >= 0x20000 && code <= 0x2A6DF) || 
-    (code >= 0xAC00 && code <= 0xD7AF)      
-  );
-}
 
+// High-priority break characters: Japanese and English punctuation marks
+// These are the ideal positions for line breaks
 const PRIMARY_BREAK_CHARS = new Set<string>([
-  '、','。','，','．','！','？','：','；','）','』','】','〉','》',']','）','｝','〕','〗','〙','〛',
-  ')','!','?',',','.',':',';'
+  // Japanese punctuation (highest priority)
+  '、','。',
+  // English punctuation (high priority)
+  ',','.',
+  // Other Japanese punctuation
+  '，','．','！','？','：','；','）','』','】','〉','》',']','）','｝','〕','〗','〙','〛',
+  // Other English punctuation
+  ')','!','?',':',';'
 ]);
+
+// Secondary break characters: moderate priority for breaks
+const SECONDARY_BREAK_CHARS = new Set<string>([
+  // Brackets and quotes (can break after these)
+  '」','』','）','】','〕','〉',
+  ')',']','}','>',
+  // Conjunctions and connectors
+  'で','が','も','や','と','か','し','て','に','を','は','の'
+]);
+
+// Break-before characters: characters that should have a line break BEFORE them
+// These are typically opening brackets and quotes
+const BREAK_BEFORE_CHARS = new Set<string>([
+  // Japanese opening brackets and quotes
+  '（','「','『','【','〈','《','〔','〖','〘','〚','｛','［',
+  // English opening brackets
+  '(','[','{'
+]);
+
 function isPrimaryBreak(char: string): boolean {
   if (!char || char.length === 0) return false;
   return PRIMARY_BREAK_CHARS.has(char);
 }
 
-const PARTICLE_CHARS = new Set<string>(Array.from('がをにへとからまでよりはもこそでもしかさえだけばかりほどくらいなどなんかすらけれどもののでてもながらしてとばかなねよさわかしらやとかの'));
-function isParticle(char: string): boolean {
+function isSecondaryBreak(char: string): boolean {
   if (!char || char.length === 0) return false;
-  return PARTICLE_CHARS.has(char);
+  return SECONDARY_BREAK_CHARS.has(char);
 }
 
-function isBreakAfter(char: string): boolean {
-  return isPrimaryBreak(char) || isParticle(char);
+function isBreakBefore(char: string): boolean {
+  if (!char || char.length === 0) return false;
+  return BREAK_BEFORE_CHARS.has(char);
 }
 
 
+
+
+// シンプルなテキスト分割: 句読点と括弧を優先
 function smartSplitText(text: string, formatting: { bold?: boolean; italic?: boolean; strikethrough?: boolean }): RawTextToken[] {
   const pieces: RawTextToken[] = [];
   let buffer = '';
-  let isCJKBuffer = false;
 
-  const flushBuffer = () => {
+  const flush = () => {
     if (buffer) {
-      pieces.push({
-        text: buffer,
-        ...formatting
-      });
+      pieces.push({ text: buffer, ...formatting });
       buffer = '';
-      isCJKBuffer = false;
     }
   };
 
-  let i = 0;
-  while (i < text.length) {
+  for (let i = 0; i < text.length; i++) {
     const char = text[i];
-    const isCJK = isCJKChar(char);
-    const isWhitespace = /\s/.test(char);
 
-    // Whitespace handling: always split and preserve
-    if (isWhitespace) {
-      flushBuffer();
-      // Collect consecutive whitespace without regex backtracking
-      let j = i + 1;
-      while (j < text.length && /\s/.test(text[j])) {
-        j++;
-      }
-      const ws = text.slice(i, j);
-      i = j;
-      pieces.push({ text: ws, ...formatting });
+    // ホワイトスペース: 常に分割
+    if (/\s/.test(char)) {
+      flush();
+      pieces.push({ text: char, ...formatting });
       continue;
     }
 
-    // CJK text: accumulate until we hit punctuation that's a good break point
-    if (isCJK) {
-      
-      if (buffer && !isCJKBuffer) {
-        flushBuffer();
-      }
-
+    // 句読点の後で分割（、。,. など）
+    if (isPrimaryBreak(char) || isSecondaryBreak(char)) {
       buffer += char;
-      isCJKBuffer = true;
-
-      
-      if (isBreakAfter(char)) {
-        flushBuffer();
-      }
-      i += 1;
+      flush();
       continue;
     }
 
-    
-    
-    if (buffer && isCJKBuffer) {
-      flushBuffer();
+    // 開き括弧の前で分割（(「【[ など）
+    if (isBreakBefore(char)) {
+      flush();
+      buffer = char;
+      continue;
     }
 
     buffer += char;
-    isCJKBuffer = false;
-    i += 1;
   }
 
-  flushBuffer();
+  flush();
   return pieces;
 }
 
 export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNodeTextResult {
-  const {
-    fontSize,
-    fontFamily,
-    fontWeight,
-    fontStyle,
-    maxWidth,
-    prefixTokens
-  } = options;
+  const { fontSize, fontFamily, fontWeight, fontStyle, maxWidth, prefixTokens } = options;
 
   const effectiveMaxWidth = Math.max(20, maxWidth);
   const lineHeight = getNodeTextLineHeight(fontSize);
@@ -319,7 +302,6 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
         continue;
       }
 
-      
       const splitPieces = smartSplitText(piece, {
         bold: segment.bold,
         italic: segment.italic,
@@ -337,148 +319,133 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
   let currentTokens: WrappedToken[] = [];
   let currentWidth = 0;
 
-  const measureTokenWidth = (value: string): number => {
+  const measureWidth = (value: string): number => {
     if (!value) return 0;
     return measureTextWidth(value, fontSize, fontFamily, fontWeight, fontStyle);
   };
 
-  const pushCurrentLine = () => {
+  const pushLine = () => {
+    // 末尾の空白を削除
     while (currentTokens.length > 0 && /^\s+$/.test(currentTokens[currentTokens.length - 1].text) && !currentTokens[currentTokens.length - 1].isMarker) {
       currentWidth -= currentTokens[currentTokens.length - 1].width;
       currentTokens.pop();
     }
 
-    const clonedTokens = currentTokens.map(token => ({ ...token }));
-    const rawText = clonedTokens.map(token => token.text).join('');
+    const clonedTokens = currentTokens.map(t => ({ ...t }));
+    const rawText = clonedTokens.map(t => t.text).join('');
     lines.push({ tokens: clonedTokens, width: currentWidth, rawText });
     currentTokens = [];
     currentWidth = 0;
   };
 
-  const breakTokenIfNeeded = (token: RawTextToken): WrappedToken[] => {
-    const textValue = token.text;
-    if (!textValue) {
-      return [{ ...token, width: 0 }];
-    }
+  // トークンを行に配置
+  for (let i = 0; i < tokens.length; i++) {
+    const token = tokens[i];
 
-    // Do not let marker tokens consume wrapping width.
-    // This keeps the marker (e.g., "#", "-", "1.") inline with the first line
-    // without forcing a separate wrapped line just for the marker.
-    if (token.isMarker) {
-      return [{ ...token, width: 0 }];
-    }
-
-    const measured = measureTokenWidth(textValue);
-    if (measured <= effectiveMaxWidth) {
-      return [{ ...token, width: measured }];
-    }
-
-    // Token is too long and needs to be broken
-    // For CJK text, try to find good break points (after punctuation)
-    const hasCJK = Array.from(textValue).some(char => isCJKChar(char));
-
-    if (hasCJK) {
-      // CJK text: prefer breaking after punctuation
-      const parts: WrappedToken[] = [];
-      let buffer = '';
-      const chars = Array.from(textValue);
-
-      for (let i = 0; i < chars.length; i++) {
-        const char = chars[i];
-        const tentative = buffer + char;
-        const tentativeWidth = measureTokenWidth(tentative);
-
-        if (tentativeWidth > effectiveMaxWidth && buffer) {
-          // Need to break. Check if we should look back for a better break point
-          let breakPoint = buffer.length;
-
-          // Look back up to 5 characters for a punctuation mark
-          for (let j = Math.max(0, buffer.length - 5); j < buffer.length; j++) {
-            if (isBreakAfter(buffer[j])) {
-              breakPoint = j + 1; // Break after the punctuation
-              break;
-            }
-          }
-
-          // Split at the break point
-          const beforeBreak = buffer.substring(0, breakPoint);
-          const afterBreak = buffer.substring(breakPoint);
-
-          if (beforeBreak) {
-            parts.push({ ...token, text: beforeBreak, width: measureTokenWidth(beforeBreak) });
-          }
-
-          buffer = afterBreak + char;
-        } else {
-          buffer = tentative;
-        }
-      }
-
-      if (buffer) {
-        parts.push({ ...token, text: buffer, width: measureTokenWidth(buffer) });
-      }
-
-      if (parts.length === 0) {
-        parts.push({ ...token, text: textValue, width: measured });
-      }
-
-      return parts;
-    }
-
-    // Non-CJK text: break character by character as before
-    const parts: WrappedToken[] = [];
-    let buffer = '';
-    for (const char of Array.from(textValue)) {
-      const tentative = buffer + char;
-      const tentativeWidth = measureTokenWidth(tentative);
-      if (tentativeWidth > effectiveMaxWidth && buffer) {
-        parts.push({ ...token, text: buffer, width: measureTokenWidth(buffer) });
-        buffer = char;
-      } else {
-        buffer = tentative;
-      }
-    }
-    if (buffer) {
-      parts.push({ ...token, text: buffer, width: measureTokenWidth(buffer) });
-    }
-    if (parts.length === 0) {
-      parts.push({ ...token, text: textValue, width: measured });
-    }
-    return parts;
-  };
-
-  for (const token of tokens) {
+    // 改行
     if (token.text === '\n') {
-      pushCurrentLine();
+      pushLine();
       continue;
     }
 
-    const brokenTokens = breakTokenIfNeeded(token);
+    // マーカーは幅0
+    const width = token.isMarker ? 0 : measureWidth(token.text);
+    const wrappedToken: WrappedToken = { ...token, width };
 
-    for (const piece of brokenTokens) {
-      if (!piece.text) {
-        continue;
-      }
-      const isWhitespace = /^\s+$/.test(piece.text);
-      if (currentTokens.length === 0 && isWhitespace && !piece.isMarker) {
-        continue;
-      }
+    // 空白の処理
+    const isWhitespace = /^\s+$/.test(token.text);
 
-      if (currentWidth + piece.width <= effectiveMaxWidth || currentTokens.length === 0) {
-        currentTokens.push(piece);
-        currentWidth += piece.width;
+    // 行頭の空白はスキップ
+    if (currentTokens.length === 0 && isWhitespace && !token.isMarker) {
+      continue;
+    }
+
+    // 次のトークンが括弧で始まる場合、空白で改行
+    const nextToken = i + 1 < tokens.length ? tokens[i + 1] : null;
+    if (isWhitespace && nextToken && nextToken.text.length > 0 && isBreakBefore(nextToken.text[0])) {
+      if (currentTokens.length > 0) {
+        pushLine();
+      }
+      continue;
+    }
+
+    // トークンを追加できるか確認
+    const wouldFit = currentWidth + width <= effectiveMaxWidth;
+
+    if (wouldFit || currentTokens.length === 0) {
+      // 追加
+      currentTokens.push(wrappedToken);
+      currentWidth += width;
+    } else {
+      // 幅を超える: 新しい行を開始
+
+      // 長すぎるトークンは分割が必要
+      if (width > effectiveMaxWidth && !isWhitespace && !token.isMarker) {
+        // 括弧で始まるトークンは分割しない
+        if (isBreakBefore(token.text[0])) {
+          pushLine();
+          currentTokens.push(wrappedToken);
+          currentWidth += width;
+          continue;
+        }
+
+        // CJKテキスト: 句読点で分割を試みる
+        const chars = Array.from(token.text);
+        let buffer = '';
+
+        for (let j = 0; j < chars.length; j++) {
+          const char = chars[j];
+          const tentative = buffer + char;
+          const tentativeWidth = measureWidth(tentative);
+
+          if (tentativeWidth > effectiveMaxWidth && buffer) {
+            // 分割ポイントを探す
+            let breakPoint = buffer.length;
+
+            // lookback: 句読点や括弧を探す
+            for (let k = buffer.length - 1; k >= Math.max(0, buffer.length - 10); k--) {
+              const c = buffer[k];
+              if (isPrimaryBreak(c)) {
+                breakPoint = k + 1; // 句読点の後
+                break;
+              }
+              if (isBreakBefore(c)) {
+                breakPoint = k; // 括弧の前
+                break;
+              }
+            }
+
+            // 分割
+            const part = buffer.substring(0, breakPoint);
+            if (part) {
+              currentTokens.push({ ...token, text: part, width: measureWidth(part) });
+              currentWidth += measureWidth(part);
+            }
+
+            pushLine();
+            buffer = buffer.substring(breakPoint) + char;
+          } else {
+            buffer = tentative;
+          }
+        }
+
+        if (buffer) {
+          currentTokens.push({ ...token, text: buffer, width: measureWidth(buffer) });
+          currentWidth += measureWidth(buffer);
+        }
       } else {
-        pushCurrentLine();
-        if (!(isWhitespace && !piece.isMarker)) {
-          currentTokens.push(piece);
-          currentWidth += piece.width;
+        // 通常のトークン: 新しい行に配置
+        pushLine();
+        if (!isWhitespace || token.isMarker) {
+          currentTokens.push(wrappedToken);
+          currentWidth += width;
         }
       }
     }
   }
 
   if (currentTokens.length > 0 || lines.length === 0) {
-    pushCurrentLine();
+    pushLine();
   }
 
   const maxLineWidth = lines.reduce((max, line) => Math.max(max, line.width), 0);
