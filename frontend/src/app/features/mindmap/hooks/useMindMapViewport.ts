@@ -246,14 +246,13 @@ export function useMindMapViewport({
         const nodeX = fallbackCoords.x;
         const nodeY = fallbackCoords.y;
 
-        // Position at left-top edge or center
-        const leftMargin = 150;
-        const topMargin = 100;
+        // Position at left edge (X) and center (Y), or fully centered
+        const leftMarginFromMapArea = 150;
         const targetX = isLeftMode
-          ? leftMargin  // Left edge of map area (not screen)
+          ? mapAreaRect.left + leftMarginFromMapArea  // Left edge of map area + margin
           : mapAreaRect.left + (mapAreaRect.width / 2);
         const targetY = isLeftMode
-          ? topMargin   // Top edge of map area (not screen)
+          ? mapAreaRect.top + (mapAreaRect.height / 2)   // Vertical center
           : mapAreaRect.top + (mapAreaRect.height / 2);
         const currentZoom = uiStore.zoom * 1.5;
 
@@ -274,11 +273,11 @@ export function useMindMapViewport({
 
 
     if (isLeftMode) {
-      // Position node at the left-top with margins (150px from left, 100px from top)
-      const leftMargin = 150;
-      const topMargin = 100;
-      const targetX = leftMargin;  // Left edge of map area (not screen)
-      const targetY = topMargin;   // Top edge of map area (not screen)
+      // Position node at the left edge (X) and center (Y), accounting for sidebar
+      const leftMarginFromMapArea = 150;  // Margin within the map area
+      // mapAreaRect.left already accounts for sidebars, so add margin from there
+      const targetX = mapAreaRect.left + leftMarginFromMapArea;
+      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);  // Vertical center
       const newPanX = targetX / currentZoom - nodeX;
       const newPanY = targetY / currentZoom - nodeY;
       setPan({ x: newPanX, y: newPanY });
