@@ -3,7 +3,6 @@ import React from 'react';
 import MindMapSidebar from './MindMapSidebar';
 import SettingsSidebar from './SettingsSidebar';
 import ColorSettingsSidebar from './ColorSettingsSidebar';
-import AISidebar from './AISidebar';
 import SearchSidebar from './SearchSidebar';
 import VimSidebar from './VimSidebar';
 import type { MindMapData, MapIdentifier } from '@shared/types';
@@ -99,9 +98,6 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
             workspaces={workspaces}
           />
         );
-      case 'ai':
-        return <AISidebar />;
-
       case 'colors':
         return <ColorSettingsSidebar />;
 

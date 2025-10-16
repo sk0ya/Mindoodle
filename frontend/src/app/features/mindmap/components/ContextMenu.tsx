@@ -19,7 +19,6 @@ interface ContextMenuProps {
   onDelete: (nodeId: string) => void;
   onCopy: (node: MindMapNode) => void;
   onPaste: (parentId: string) => void;
-  onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
   onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
   onEditTable?: (nodeId: string) => void;
@@ -36,7 +35,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onDelete,
   onCopy,
   onPaste,
-  onAIGenerate,
   onAddLink,
   onMarkdownNodeType,
   onEditTable,
@@ -76,7 +74,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         onDelete={onDelete}
         onCopy={onCopy}
         onPaste={onPaste}
-        onAIGenerate={onAIGenerate}
         onAddLink={onAddLink}
         onMarkdownNodeType={onMarkdownNodeType}
         onEditTable={onEditTable}

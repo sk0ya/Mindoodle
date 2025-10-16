@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useAIOperations, useMarkdownOperations, useEditorEffects, useCommandExecution } from '@mindmap/hooks';
+import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useMarkdownOperations, useEditorEffects, useCommandExecution } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
 import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
 import { nodeToMarkdown, useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
@@ -16,7 +16,6 @@ import MarkdownPanelContainer from './panel/NodeNotesPanelContainer';
 import MindMapContextMenuOverlay from './overlay/MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
 import { useNotification, useErrorHandler, useGlobalErrorHandlers } from '@shared/hooks';
-import { useAI } from '../../../ai/hooks/useAI';
 import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
@@ -116,8 +115,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setCurrentImageUrl(null);
     setCurrentImageAlt('');
   }, []);
-
-  const ai = useAI();
 
   useTheme();
 
@@ -288,15 +285,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setEditingTableNodeId(null);
     showNotification('success', 'テーブルを更新しました');
   }, [editingTableNodeId, data, updateNode, showNotification]);
-
-  const aiOps = useAIOperations({
-    ai,
-    addNode,
-    showNotification,
-    onComplete: handleContextMenuClose,
-  });
-
-  const handleAIGenerate = aiOps.handleAIGenerate;
 
   const markdownOps = useMarkdownOperations({
     data,
@@ -906,7 +894,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             });
           }
         }}
-        onAIGenerate={ai.aiSettings.enabled ? handleAIGenerate : undefined}
+        onAIGenerate={undefined}
         onClose={handleContextMenuClose}
       />
 

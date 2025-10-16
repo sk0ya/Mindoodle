@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bot, Copy, Clipboard, Link, Trash2, Clock, List, Table, FileOutput } from 'lucide-react';
+import { Copy, Clipboard, Link, Trash2, List, Table, FileOutput } from 'lucide-react';
 import { MindMapNode } from '@shared/types';
 import type { MarkdownNodeType, CommandContext } from '@commands/system/types';
 import type { CommandRegistryImpl } from '@commands/system/registry';
@@ -25,7 +25,6 @@ interface MenuItemsProps {
   onDelete: (nodeId: string) => void;
   onCopy: (node: MindMapNode) => void;
   onPaste: (parentId: string) => void;
-  onAIGenerate?: (node: MindMapNode) => void;
   onAddLink?: (nodeId: string) => void;
   onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
   onEditTable?: (nodeId: string) => void;
@@ -40,7 +39,6 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   onDelete,
   onCopy,
   onPaste,
-  onAIGenerate,
   onAddLink,
   onMarkdownNodeType,
   onEditTable,
@@ -50,9 +48,6 @@ const MenuItems: React.FC<MenuItemsProps> = ({
   onClose
 }) => {
   const store = useMindMapStore();
-  const aiEnabled = store.aiSettings?.enabled || false;
-  const isGenerating = store.isGenerating || false;
-
 
   const isMarkdownNode = selectedNode.markdownMeta ? true : false;
   const markdownMeta = selectedNode.markdownMeta;
@@ -63,18 +58,6 @@ const MenuItems: React.FC<MenuItemsProps> = ({
     : false;
 
   const menuItems: MenuItem[] = [
-    ...(aiEnabled && onAIGenerate ? [{
-      icon: isGenerating ? <Clock size={16} /> : <Bot size={16} />,
-      label: isGenerating ? 'AI生成中...' : 'AI子ノード生成',
-      action: () => {
-        if (!isGenerating) {
-          onAIGenerate(selectedNode);
-          onClose();
-        }
-      },
-      disabled: isGenerating
-    }] : []),
-    ...(aiEnabled && onAIGenerate ? [{ type: 'separator' as const }] : []),
     {
       icon: <Copy size={16} />,
       label: 'コピー',

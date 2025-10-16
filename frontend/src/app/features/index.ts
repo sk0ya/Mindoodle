@@ -1,5 +1,4 @@
 
-export * from './ai';
 export * from './file-management';
 export * from './markdown';
 export * from './mindmap';

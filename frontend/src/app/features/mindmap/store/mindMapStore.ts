@@ -8,7 +8,6 @@ import { createDataSlice } from './slices/dataSlice';
 import { createHistorySlice } from './slices/historySlice';
 import { createUISlice } from './slices/uiSlice';
 import { createNodeSlice } from './slices/nodeSlice';
-import { createAISlice } from './slices/aiSlice';
 import { createSettingsSlice } from './slices/settingsSlice';
 import { mindMapEvents } from '@core/streams';
 
@@ -20,7 +19,6 @@ export const useMindMapStore = create<MindMapStore>()(
         ...createHistorySlice(...args),
         ...createUISlice(...args),
         ...createNodeSlice(...args),
-        ...createAISlice(...args),
         ...createSettingsSlice(...args),
       }))
     )

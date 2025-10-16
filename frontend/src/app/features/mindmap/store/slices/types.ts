@@ -1,6 +1,5 @@
 import type { MindMapData, MindMapNode, Position, NodeLink } from '@shared/types';
 import type { NormalizedData } from '../../../../core/data/normalizedStore';
-import type { AISlice } from './aiSlice';
 import type { SettingsSlice } from './settingsSlice';
 import type { UISlice } from './uiSlice';
 import type { UIState } from '@shared/types/ui.types';
@@ -16,7 +15,7 @@ export interface HistoryState {
 }
 
 
-export interface MindMapStore extends NodeDataState, HistoryState, AISlice, SettingsSlice, UISlice {
+export interface MindMapStore extends NodeDataState, HistoryState, SettingsSlice, UISlice {
   normalizedData: NormalizedData | null;
   ui: UIState;
   
