@@ -42,6 +42,43 @@ Quick guide and safety rails for Claude Code in this repository. Use this sectio
 - Service pattern: extract reusable logic (Navigation, Viewport, Clipboard).
 - Selectors: use `@mindmap/selectors/mindMapSelectors` for node queries.
 
+## Key Implementation Patterns
+
+### Command Pattern
+All operations flow through `CommandRegistryImpl` in `@commands/system/registry`:
+- Register: `registry.register({ name, execute, guard, category, description })`
+- Execute: `registry.execute(commandName, context)`
+- Guards: `guard(context)` validates preconditions before execution
+- Discovery: Search by name, alias, category, or full-text
+
+### Event Strategy Pattern
+Mode-based event handling via `@mindmap/events/dispatcher`:
+- `dispatchCanvasEvent(event)` routes to appropriate strategy
+- Strategies: `NormalModeStrategy`, `InsertModeStrategy`, `VisualModeStrategy`
+- Mode detection: `useMindMapStore.getState().ui.mode`
+
+### Store Structure
+Zustand store with Immer in `@mindmap/store/slices/`:
+- `dataSlice`: Mind map data (rootNodes, tree structure)
+- `uiSlice`: UI state (mode, panels, viewport)
+- `nodeSlice`: Selection, focus, editing state
+- `historySlice`: Undo/redo stack
+- `settingsSlice`: User preferences, theme
+
+### Service Layer
+Reusable business logic in `@mindmap/services/`:
+- `NodeNavigationService`: Tree navigation (up/down/left/right)
+- `NodeClipboardService`: Copy/paste with hash validation
+- `ViewportScrollService`: Ensure node visibility
+- `EditingStateService`: Track editing transitions
+
+### Node Queries
+Use selectors in `@mindmap/selectors/mindMapSelectors`:
+- `selectNodeIdByMarkdownLine(roots, line)` - Find by markdown line
+- `findParentNode(roots, targetId)` - Get parent node
+- `getSiblingNodes(root, targetId)` - Get siblings with index
+- `flattenVisibleNodes(root)` - Get all visible nodes in tree order
+
 ## Do / Don’t
 
 - Do validate inputs; avoid raw `JSON.parse` without guards.
@@ -52,7 +89,6 @@ Quick guide and safety rails for Claude Code in this repository. Use this sectio
 
 ## Deep Reference
 
-- Architecture overview: see `docs/ARCHITECTURE.md`.
-- Roadmap and refactoring: see `docs/ROADMAP.md`.
-- 構造再設計（分岐削減）計画: see `docs/RESTRUCTURE.md`.
-
+- Architecture overview: see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Vim keybindings: see [docs/vim-keybindings.md](docs/vim-keybindings.md)
+- Keyboard shortcuts: see [docs/shortcuts.md](docs/shortcuts.md)

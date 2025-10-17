@@ -115,45 +115,129 @@ frontend/src/
 The application uses a **Command Pattern** architecture where all operations flow through a central registry:
 
 - **Command Registry** ([registry.ts](../frontend/src/app/commands/system/registry.ts)): Central command registration, lookup, and execution
-  - `CommandRegistryImpl`: Manages command registration with alias support
-  - `execute()`: Validates guards, runs commands, handles errors
-  - Command discovery via name, alias, category, or full-text search
+  - `CommandRegistryImpl`: Singleton registry managing all commands
+    - **Key Methods**:
+      - `register({ name, execute, guard, category, description, aliases })`: Register new command
+      - `execute(name, context)`: Validate guard → execute → error handling
+      - `get(name)`: Retrieve command by name or alias
+      - `search(query)`: Full-text search with score-based ranking
+      - `getByCategory(category)`: Filter commands by category
+      - `canExecute(name, context)`: Check if guard passes without execution
+    - **Command Structure**:
+      ```typescript
+      interface Command {
+        name: string;              // Unique identifier (e.g., 'move-up')
+        execute: (context) => void; // Implementation
+        guard?: (context) => boolean; // Precondition check
+        category?: string;         // Grouping (navigation/editing/ui/structure/application)
+        description?: string;      // Help text for command palette
+        aliases?: string[];        // Alternative names (e.g., ['up', 'k'])
+      }
+      ```
 - **Command Categories**:
-  - `navigation/`: Node navigation commands (move, focus, center)
-  - `structure/`: Tree structure operations (toggle, expand/collapse)
-  - `editing/`: Content editing (insert, delete, format)
-  - `ui/`: UI control (show panels, toggle views)
-  - `application/`: App-level commands (switch map, settings)
+  - `navigation/`: Node navigation (move-up, move-down, move-left, move-right, focus-node, center-node)
+  - `structure/`: Tree operations (toggle-collapse, expand-all, collapse-all, indent-node, outdent-node)
+  - `editing/`: Content editing (insert-child, insert-sibling, delete-node, edit-text, duplicate-node)
+  - `ui/`: UI control (toggle-sidebar, show-search, command-palette, toggle-vim-mode)
+  - `application/`: App-level (switch-map, open-settings, import-zip, export-zip)
 - **Guard Pattern**: Commands implement `guard(context)` for precondition validation
-- **Input Sources**: Keyboard shortcuts, Vim commands, Command Palette, Context Menu all dispatch through registry
+  - Example: `guard: (ctx) => ctx.selectedNodeId != null` ensures node selection before execution
+  - Guards prevent invalid operations and provide early validation
+  - Failed guards do not execute command, avoiding runtime errors
+- **Input Sources**: All input unified through registry
+  - Keyboard shortcuts → `registry.execute(commandName, context)`
+  - Vim commands → `registry.execute(commandName, context)`
+  - Command Palette → `registry.execute(commandName, context)`
+  - Context Menu → `registry.execute(commandName, context)`
+- **Command Flow**:
+  ```
+  User Input → Input Handler → CommandRegistry.execute()
+    ↓
+  Guard Check (pass/fail)
+    ↓
+  Command.execute(context)
+    ↓
+  Store Update → UI Re-render
+  ```
 
 #### Event Strategy Pattern (`mindmap/events/`)
 
 Mode-based event handling using the **Strategy Pattern**:
 
 - **Dispatcher** ([dispatcher.ts](../frontend/src/app/features/mindmap/events/dispatcher.ts)): Routes events based on current mode
-- **Strategies**:
+  - `dispatchCanvasEvent(event)`: Main entry point for all canvas events
+  - Reads current mode from `useMindMapStore.getState().ui.mode`
+  - Selects appropriate strategy and delegates event handling
+- **Strategies** ([CanvasEvent.{normal,insert,visual}.ts](../frontend/src/app/features/mindmap/events/)):
   - `NormalModeStrategy`: Default navigation and selection
+    - Click: Select node
+    - DoubleClick: Enter insert mode
+    - RightClick: Show context menu
   - `InsertModeStrategy`: Text editing and node creation
+    - Click: Focus text editor
+    - Escape: Exit to normal mode
   - `VisualModeStrategy`: Multi-select and visual operations
+    - Click: Toggle node selection
+    - Drag: Multi-select area
 - **Event Types**: Click, DoubleClick, RightClick, MouseDown, MouseMove, MouseUp
-- Mode detection via `useMindMapStore.getState().ui.mode`
+- **Implementation**:
+  ```typescript
+  interface EventStrategy {
+    handle(event: CanvasEvent): void;
+  }
+
+  // Usage
+  dispatchCanvasEvent({
+    type: 'click',
+    nodeId: 'node-123',
+    position: { x: 100, y: 200 }
+  });
+  ```
 
 #### State Management (`mindmap/store/`)
 
 **Zustand** store with **Immer** for immutable updates, organized by slices:
 
+- **Store Architecture** ([mindMapStore.ts](../frontend/src/app/features/mindmap/store/mindMapStore.ts)):
+  - Created with `create<MindMapStore>()(devtools(subscribeWithSelector(immer(...))))`
+  - Middleware: Devtools for debugging, subscribeWithSelector for selective subscriptions, Immer for immutability
+  - All slices combined into single store for performance
 - **Store Slices** ([slices/](../frontend/src/app/features/mindmap/store/slices/)):
-  - `uiSlice`: UI mode, active panels, viewport state
-  - `nodeSlice`: Node selection, focus, editing state
   - `dataSlice`: Mind map data, tree structure
-  - `aiSlice`: AI generation state
+    - `rootNodes`: Array of root-level MindMapNode trees
+    - `setRootNodes()`, `updateNode()`, `deleteNode()`
+  - `uiSlice`: UI mode, active panels, viewport state
+    - `mode`: 'normal' | 'insert' | 'visual' | 'menu'
+    - `zoom`, `pan`: Viewport transformation
+    - Panel visibility flags (sidebar, notes, markdown)
+  - `nodeSlice`: Node selection, focus, editing state
+    - `selectedNodeId`: Currently selected node
+    - `editingNodeId`: Node being edited
+    - `selectNode()`, `startEditing()`, `finishEditing()`
   - `historySlice`: Undo/redo stack
+    - `past`, `future`: Arrays of snapshots
+    - `undo()`, `redo()`, `scheduleCommitSnapshot()`
   - `settingsSlice`: User preferences, theme
+    - `fontSize`, `theme`, `vimMode`
+    - `nodeTextWrapEnabled`, `nodeTextWrapWidth`
 - **Selectors** ([selectors/mindMapSelectors.ts](../frontend/src/app/features/mindmap/selectors/mindMapSelectors.ts)):
-  - Node queries (by ID, by path, by line number)
-  - Tree traversal (parent, children, siblings, descendants)
-  - State derivation (selected nodes, visible nodes)
+  - `selectNodeIdByMarkdownLine(rootNodes, line)`: Find node by markdown line number
+  - `findParentNode(rootNodes, targetId)`: Get parent node
+  - `getSiblingNodes(root, targetId)`: Get siblings with current index
+  - `flattenVisibleNodes(root)`: Get all visible nodes in tree order (respects collapse state)
+- **Store Updates**:
+  ```typescript
+  // Immer allows direct mutation syntax
+  useMindMapStore.setState((state) => {
+    state.ui.zoom = 1.5;  // Immer handles immutability
+    state.node.selectedNodeId = 'node-123';
+  });
+
+  // Or use slice actions
+  const { selectNode, setZoom } = useMindMapStore.getState();
+  selectNode('node-123');
+  setZoom(1.5);
+  ```
 
 #### Service Layer
 
@@ -162,14 +246,29 @@ Reusable business logic extracted into focused services:
 - **Core Services** (`core/services/`):
   - `MemoryService`: Session memory and context preservation
   - `ViewportService`: Canvas viewport calculations and transformations
+    - `getSize()`: Get viewport dimensions
+    - `screenToCanvas(x, y, zoom, pan)`: Convert screen coordinates to canvas coordinates
   - `EmbeddingService`/`EmbeddingOrchestrator`: Vector embeddings for semantic search
   - `VectorStore`: Vector similarity search
 - **Mindmap Services** (`mindmap/services/`):
-  - `NodeNavigationService`: Tree navigation logic (next, prev, parent, child)
-  - `NodeClipboardService`: Copy/paste/cut operations
-  - `EditingStateService`: Track editing state and transitions
-  - `ViewportScrollService`: Viewport scrolling and centering
-  - `imagePasteService`: Image paste handling
+  - `NodeNavigationService` ([NodeNavigationService.ts](../frontend/src/app/features/mindmap/services/NodeNavigationService.ts)):
+    - `getNextNodeId(direction, selectedNodeId, roots)`: Calculate next node in given direction
+    - Direction logic: 'left' → parent, 'right' → closest child, 'up'/'down' → siblings or adjacent roots
+    - `findParent(roots, nodeId)`: Get parent node
+  - `NodeClipboardService` ([NodeClipboardService.ts](../frontend/src/app/features/mindmap/services/NodeClipboardService.ts)):
+    - `copyNodeToClipboard(node, markdownText)`: Copy node as markdown with hash validation
+    - `copyNodeTextToClipboard(node)`: Copy as indented text with list markers
+    - `nodeToMarkdownTree(node, level)`: Convert node tree to markdown hierarchy
+    - `nodeToIndentedText(node, level)`: Convert to indented text format
+    - Hash-based copy validation to prevent duplicate pastes
+  - `ViewportScrollService` ([ViewportScrollService.ts](../frontend/src/app/features/mindmap/services/ViewportScrollService.ts)):
+    - `ensureVisible(nodeId, ui, setPan, roots)`: Scroll viewport to ensure node is visible
+    - Calculates viewport dimensions accounting for sidebars and panels
+    - Handles node size with text wrapping for accurate positioning
+  - `EditingStateService` ([EditingStateService.ts](../frontend/src/app/features/mindmap/services/EditingStateService.ts)):
+    - Track editing state and transitions
+  - `imagePasteService` ([imagePasteService.ts](../frontend/src/app/features/mindmap/services/imagePasteService.ts)):
+    - Image paste handling
 - **Shared Services** (`shared/services/`):
   - `WorkspaceService`: Workspace management
 
@@ -201,6 +300,7 @@ Type-safe state management with explicit transitions:
 - **Hierarchical Hook Structure**: Consolidated sidebar logic into unified `useSidebar` hook
 - **Service Layer**: Extracted Navigation, Viewport, Clipboard, EditingState into reusable services
 - **Selector Pattern**: Centralized node queries in `mindMapSelectors` for consistent state access
+- **NodeUtils Refactoring**: Complete rewrite of text wrapping logic with optimized character-level breaking, fallback text measurement, and dynamic node sizing ([nodeUtils.ts](../frontend/src/app/features/mindmap/utils/nodeUtils.ts))
 
 #### Component Architecture
 
