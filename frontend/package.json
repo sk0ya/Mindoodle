@@ -17,6 +17,11 @@
     "lint": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts' --cache --cache-location node_modules/.cache/eslint",
     "lint:fix": "eslint src --ext .ts,.tsx,.js,.jsx --ignore-pattern '**/*.d.ts' --fix --cache --cache-location node_modules/.cache/eslint",
     "validate": "echo 'Type safety validation completed'",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest watch",
     "docs:generate": "tsx ../scripts/generate-docs.ts",
     "docs:watch": "tsx --watch ../scripts/generate-docs.ts",
     "prepare": "husky"
@@ -51,20 +56,27 @@
     "zustand": "^5.0.6"
   },
   "devDependencies": {
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@testing-library/user-event": "^14.6.1",
     "@types/marked": "^5.0.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
     "@typescript-eslint/eslint-plugin": "^8.36.0",
     "@typescript-eslint/parser": "^8.36.0",
     "@vitejs/plugin-react": "^4.6.0",
+    "@vitest/coverage-v8": "^3.2.4",
+    "@vitest/ui": "^3.2.4",
     "eslint": "^9.37.0",
     "eslint-plugin-react": "^7.37.5",
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-sonarjs": "^3.0.5",
     "husky": "^9.1.7",
+    "jsdom": "^27.0.0",
     "strip-comments": "^2.0.1",
     "tsx": "^4.20.6",
     "typescript": "^5.8.3",
-    "vite": "^6.3.5"
+    "vite": "^6.3.5",
+    "vitest": "^3.2.4"
   }
 }
