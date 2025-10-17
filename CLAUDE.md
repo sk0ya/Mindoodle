@@ -90,5 +90,6 @@ Use selectors in `@mindmap/selectors/mindMapSelectors`:
 ## Deep Reference
 
 - Architecture overview: see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+- Development roadmap: see [docs/ROADMAP.md](docs/ROADMAP.md)
 - Vim keybindings: see [docs/vim-keybindings.md](docs/vim-keybindings.md)
 - Keyboard shortcuts: see [docs/shortcuts.md](docs/shortcuts.md)
