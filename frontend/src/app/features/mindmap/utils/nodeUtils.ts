@@ -717,10 +717,18 @@ export function calculateNodeSize(
   let textBlockHeight = 0;
 
   if (isEditing) {
-    const measuredWidth = measureTextWidth(measurementText, fontSize, fontFamily, fontWeight, fontStyle);
-    const minWidth = fontSize * 8;
-    textContentWidth = Math.max(measuredWidth, minWidth);
-    textBlockHeight = Math.max(fontSize + 8, 22);
+    const markerTokens = getMarkerPrefixTokens(node);
+    const wrapResult = wrapNodeText(measurementText, {
+      fontSize,
+      fontFamily,
+      fontWeight,
+      fontStyle,
+      maxWidth: wrapMaxWidth,
+      prefixTokens: markerTokens
+    });
+
+    textContentWidth = wrapResult.maxLineWidth;
+    textBlockHeight = wrapEnabled ? Math.max(wrapResult.textHeight, fontSize + 8) : Math.max(fontSize + 8, 22);
   } else {
     const markerTokens = getMarkerPrefixTokens(node);
     const wrapResult = wrapNodeText(displayText, {

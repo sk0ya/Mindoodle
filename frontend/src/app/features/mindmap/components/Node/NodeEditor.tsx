@@ -39,10 +39,11 @@ interface NodeEditorProps {
   onToggleLinkList?: (nodeId: string) => void;
   onLinkNavigate?: (link: NodeLink) => void;
   onStartEdit?: (nodeId: string) => void;
-  onMouseDown?: (e: React.MouseEvent) => void; 
-  onDragOver?: (e: React.DragEvent) => void; 
-  onDrop?: (e: React.DragEvent) => void; 
-  onRightClick?: (e: React.MouseEvent) => void; 
+  onMouseDown?: (e: React.MouseEvent) => void;
+  onDragOver?: (e: React.DragEvent) => void;
+  onDrop?: (e: React.DragEvent) => void;
+  onRightClick?: (e: React.MouseEvent) => void;
+  onEditHeightChange?: (height: number) => void;
 }
 
 const NodeEditor: React.FC<NodeEditorProps> = ({
@@ -62,9 +63,10 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onMouseDown,
   onDragOver,
   onDrop,
-  onRightClick
+  onRightClick,
+  onEditHeightChange
 }) => {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const { ui, settings, clearMermaidRelatedCaches } = useMindMapStore();
 
   // Note: avoid early return before hooks; render-time conditions are used instead
@@ -160,7 +162,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   }, [isEditing, node.id]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     
     if (e.key === 'Escape') {
       e.preventDefault();
@@ -176,7 +178,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     
   }, [node.id, node.text, editText, onFinishEdit, blurTimeoutRef, clearMermaidCacheOnChange]);
 
-  const handleInputBlur = useCallback((e: React.FocusEvent<HTMLInputElement>) => {
+  const handleInputBlur = useCallback((e: React.FocusEvent<HTMLTextAreaElement>) => {
     
     if (blurTimeoutRef.current) {
       clearTimeout(blurTimeoutRef.current);
@@ -193,11 +195,82 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     onFinishEdit(node.id, currentValue);
   }, [node.id, node.text, editText, onFinishEdit, blurTimeoutRef, clearMermaidCacheOnChange]);
 
-  
-  const handleInputMouseEvents = useCallback((e: React.MouseEvent<HTMLInputElement>) => {
-    
+
+  const handleInputMouseEvents = useCallback((e: React.MouseEvent<HTMLTextAreaElement>) => {
+
     e.stopPropagation();
   }, []);
+
+  // 編集時の高さ計算を早期リターン前に実行（フック順序を保つため）
+  const editHeightData = React.useMemo(() => {
+    const noteStr2: string = (node as MindMapNode & { note?: string })?.note || '';
+    const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
+    const noteHasMermaid2 = !!noteStr2 && /```mermaid[\s\S]*?```/i.test(noteStr2);
+    const hasImage = noteHasImages2 || noteHasMermaid2;
+
+    const getActualImageHeight = () => {
+      if (!hasImage) return 0;
+      if (node.customImageWidth && node.customImageHeight) {
+        return node.customImageHeight;
+      }
+      if (noteStr2 && noteHasImages2) {
+        const tagRe = /<img[^>]*>/i;
+        const tagMatch = tagRe.exec(noteStr2);
+        if (tagMatch) {
+          const tag = tagMatch[0];
+          const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
+          const hMatch = hRe.exec(tag);
+          if (hMatch) {
+            const h = parseInt(hMatch[1], 10);
+            if (Number.isFinite(h) && h > 0) return h;
+          }
+        }
+      }
+      return 105;
+    };
+
+    const actualImageHeight = getActualImageHeight();
+    const editWidth = Math.max(20, nodeWidth - 8);
+    const fontSize = settings.fontSize || node.fontSize || 14;
+    const wrapConfig = resolveNodeTextWrapConfig(settings, fontSize);
+    const wrapEnabled = wrapConfig.enabled !== false;
+
+    const textareaPadding = 20;
+    const actualTextWidth = editWidth - textareaPadding;
+    const wrapMaxWidth = wrapEnabled ? Math.min(actualTextWidth, wrapConfig.maxWidth) : actualTextWidth;
+
+    const wrapResult = wrapNodeText(editText, {
+      fontSize,
+      fontFamily: settings.fontFamily || 'system-ui',
+      fontWeight: node.fontWeight || 'normal',
+      fontStyle: node.fontStyle || 'normal',
+      maxWidth: wrapMaxWidth,
+      prefixTokens: []
+    });
+
+    const lineHeight = wrapResult.lineHeight;
+    const totalLines = Math.max(1, wrapResult.lines.length);
+    const verticalPadding = 8;
+    const borderWidth = 2;
+    const textareaHeight = totalLines * lineHeight + verticalPadding + borderWidth;
+
+    return {
+      hasImage,
+      actualImageHeight,
+      editWidth,
+      fontSize,
+      lineHeight,
+      textareaHeight,
+      editX: nodeLeftX + 4
+    };
+  }, [node, nodeWidth, settings, editText, nodeLeftX]);
+
+  // 編集時の高さを親コンポーネントに通知
+  useEffect(() => {
+    if (isEditing && onEditHeightChange) {
+      onEditHeightChange(editHeightData.textareaHeight);
+    }
+  }, [isEditing, editHeightData.textareaHeight, onEditHeightChange]);
 
 
   if (!isEditing) {
@@ -555,57 +628,21 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   }
 
 
-
-  const noteStr2: string = (node as MindMapNode & { note?: string })?.note || '';
-  const noteHasImages2 = !!noteStr2 && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr2) || /<img[^>]*\ssrc=["'][^"'>\s]+["'][^>]*>/i.test(noteStr2) );
-  const noteHasMermaid2 = !!noteStr2 && /```mermaid[\s\S]*?```/i.test(noteStr2);
-  const hasImage = noteHasImages2 || noteHasMermaid2;
-
-  const getActualImageHeight = () => {
-    if (!hasImage) return 0;
-    if (node.customImageWidth && node.customImageHeight) {
-      return node.customImageHeight;
-    }
-    if (noteStr2 && noteHasImages2) {
-      const tagRe = /<img[^>]*>/i;
-      const tagMatch = tagRe.exec(noteStr2);
-      if (tagMatch) {
-        const tag = tagMatch[0];
-        const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
-        const hMatch = hRe.exec(tag);
-        if (hMatch) {
-          const h = parseInt(hMatch[1], 10);
-          if (Number.isFinite(h) && h > 0) return h;
-        }
-      }
-    }
-    return 105;
-  };
-
-  const actualImageHeight = getActualImageHeight();
-  const editY = hasImage ? node.y + actualImageHeight / 2 - 10 : node.y - 10;
-
-  // 編集時は画像・リンクの有無に関係なく、常にノード中央に配置
-  const rawEditWidth = Math.max(20, nodeWidth - 8);
-  const rawEditX = nodeLeftX + 4;
-  // SVGグループにscale(zoom*1.5)がかかっているため、スケール後にピクセル境界へスナップ
-  const scale = (ui?.zoom || 1) * 1.5;
-  const alignToScale = (v: number) => (scale > 0 ? Math.round(v * scale) / scale : v);
-  const editX = alignToScale(rawEditX);
-  const editWidth = Math.max(20, alignToScale(rawEditWidth));
+  // テキストエリアを中央配置するためのY座標計算
+  const baseY = editHeightData.hasImage ? node.y + editHeightData.actualImageHeight / 2 : node.y;
+  const editY = baseY - editHeightData.textareaHeight / 2;
 
   return (
     <foreignObject
-      x={editX}
+      x={editHeightData.editX}
       y={editY}
-      width={editWidth}
-      height="20"
+      width={editHeightData.editWidth}
+      height={editHeightData.textareaHeight}
       onDragOver={onDragOver}
       onDrop={onDrop}
     >
-      <input
+      <textarea
         ref={inputRef}
-        type="text"
         className="node-input"
         value={editText}
         onChange={(e) => setEditText(e.target.value)}
@@ -618,17 +655,23 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
           height: '100%',
           border: '1px solid #ccc',
           background: settings.theme === 'dark' ? 'var(--bg-primary)' : 'white',
-          
           textAlign: 'left',
-          fontSize: settings.fontSize || node.fontSize || '14px',
+          fontSize: `${editHeightData.fontSize}px`,
           fontWeight: node.fontWeight || 'normal',
           fontStyle: node.fontStyle || 'normal',
           fontFamily: settings.fontFamily || 'system-ui',
           color: settings.theme === 'dark' ? 'var(--text-primary)' : 'black',
           outline: 'none',
           borderRadius: '4px',
-          padding: '0 10px',
-          boxSizing: 'border-box'
+          padding: '4px 10px',
+          boxSizing: 'border-box',
+          resize: 'none',
+          overflow: 'hidden',
+          whiteSpace: 'pre-wrap',
+          wordWrap: 'break-word',
+          wordBreak: 'break-word',
+          overflowWrap: 'break-word',
+          lineHeight: `${editHeightData.lineHeight}px`
         }}
       />
     </foreignObject>

@@ -62,6 +62,7 @@ const Node: React.FC<NodeProps> = ({
   pan,
 }) => {
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [editHeight, setEditHeight] = React.useState<number | null>(null);
   const settings = useMindMapStore((state) => state.settings);
   
   
@@ -311,6 +312,7 @@ const Node: React.FC<NodeProps> = ({
         onStartEdit={onStartEdit}
         onMouseDown={handleMouseDown}
         onRightClick={handleRightClick}
+        onEditHeightChange={setEditHeight}
       />
 
       {}
@@ -322,7 +324,7 @@ const Node: React.FC<NodeProps> = ({
         isDragging={isDragging}
         isLayoutTransitioning={false}
         nodeWidth={nodeWidth}
-        nodeHeight={nodeHeight}
+        nodeHeight={isEditing && editHeight !== null ? editHeight : nodeHeight}
       />
 
 
