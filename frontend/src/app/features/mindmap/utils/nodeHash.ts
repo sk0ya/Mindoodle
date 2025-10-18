@@ -7,16 +7,47 @@ import type { MindMapNode } from '@shared/types';
 
 /**
  * Generates a fast structural hash of node tree
- * Only considers: id, text, note, children structure
- * Ignores: position, UI state, metadata
+ * Includes fields that affect Markdown conversion to ensure stream updates
+ * when structure/format changes (e.g., heading level, list type/indent, checkboxes, kind).
+ * Still ignores visual-only state (position, collapse, etc.).
  */
 export function hashNodeTree(nodes: MindMapNode[]): string {
   const parts: string[] = [];
 
   const hashNode = (node: MindMapNode) => {
-    // Hash format: "id:text:note:childCount"
-    const noteHash = (node.note || '').length; // Just length for performance
-    parts.push(`${node.id}:${node.text}:${noteHash}:${node.children?.length || 0}`);
+    // Hash fields relevant to markdown output
+    const noteHash = (node.note || '').length; // length is sufficient to reflect note presence/changes
+    const kind = (node as MindMapNode & { kind?: string }).kind || 'text';
+    const mm = (node as MindMapNode & { markdownMeta?: {
+      type?: string;
+      level?: number;
+      indentLevel?: number;
+      originalFormat?: string;
+      isCheckbox?: boolean;
+      isChecked?: boolean;
+    }}).markdownMeta || {};
+
+    const metaType = mm.type || '';
+    const metaLevel = typeof mm.level === 'number' ? mm.level : -1;
+    const metaIndent = typeof mm.indentLevel === 'number' ? mm.indentLevel : -1;
+    const metaFmt = mm.originalFormat || '';
+    const metaCb = mm.isCheckbox ? 1 : 0;
+    const metaChecked = mm.isCheckbox ? (mm.isChecked ? 1 : 0) : 0;
+
+    // Hash format captures order as we traverse children in-order
+    parts.push([
+      node.id,
+      node.text,
+      noteHash,
+      kind,
+      metaType,
+      metaLevel,
+      metaIndent,
+      metaFmt,
+      metaCb,
+      metaChecked,
+      node.children?.length || 0,
+    ].join(':'));
 
     if (node.children && node.children.length > 0) {
       for (const child of node.children) {
