@@ -1,3 +1,6 @@
+/* Import markdown preview styles - must be at top */
+@import './app/features/markdown/styles/markdown-preview.css';
+
 /* CSS変数でテーマを定義 */
 :root {
   /* ライトテーマ（デフォルト） */

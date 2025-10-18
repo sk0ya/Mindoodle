@@ -412,6 +412,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           style={previewContainerStyle}
           dangerouslySetInnerHTML={{ __html: renderedPreview }}
           className="markdown-preview"
+          data-theme={isDark ? 'dark' : 'light'}
         />
       </div>
     </div>
