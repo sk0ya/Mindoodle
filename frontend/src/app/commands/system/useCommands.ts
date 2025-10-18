@@ -423,24 +423,3 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     context
   };
 }
-
-
-export function useVimCommands(props: UseCommandsProps) {
-  const commands = useCommands(props);
-
-  return {
-    ...commands,
-    
-    center: () => commands.executeVimCommand('zz'),
-    delete: () => commands.executeVimCommand('dd'),
-    toggle: () => commands.executeVimCommand('za'),
-    edit: () => commands.executeVimCommand('ciw'),
-    insert: () => commands.executeVimCommand('i'),
-    append: () => commands.executeVimCommand('a'),
-    open: () => commands.executeVimCommand('o'),
-    navigateUp: () => commands.executeVimCommand('k'),
-    navigateDown: () => commands.executeVimCommand('j'),
-    navigateLeft: () => commands.executeVimCommand('h'),
-    navigateRight: () => commands.executeVimCommand('l'),
-  };
-}

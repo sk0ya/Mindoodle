@@ -4,16 +4,9 @@ import { logger } from '@shared/utils';
 
 export interface NormalizedData {
   nodes: Record<string, MindMapNode>;
-  rootNodeIds: string[]; 
-  parentMap: Record<string, string>; 
-  childrenMap: Record<string, string[]>; 
-}
-
-export interface NormalizedMindMapData {
-  nodes: Record<string, MindMapNode>;
-  rootNodeIds: string[]; 
-  parentMap: Record<string, string>; 
-  childrenMap: Record<string, string[]>; 
+  rootNodeIds: string[];
+  parentMap: Record<string, string>;
+  childrenMap: Record<string, string[]>;
 }
 
 // Helper: check whether `childId` is a descendant of `parentId` in normalized structure
