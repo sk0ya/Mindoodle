@@ -365,13 +365,17 @@ export const useMindMap = (
     });
   });
 
-  const moveItem = useStableCallback(async (sourcePath: string, targetFolderPath: string): Promise<void> => {
-    // Extract workspaceId from sourcePath (same pattern as deleteItem)
-    const wsRe = /^\/?(ws_[^/]+|cloud)/;
-    const wsMatch = wsRe.exec(sourcePath);
-    const workspaceId = wsMatch ? wsMatch[1] : null;
+  const moveItem = useStableCallback(async (sourcePath: string, targetFolderPath: string, workspaceId?: string | null): Promise<void> => {
+    // Prefer explicitly provided workspaceId (from Explorer DnD event)
+    let ws: string | null | undefined = workspaceId;
+    if (!ws) {
+      // Fallback: try to extract from sourcePath if it includes a workspace prefix
+      const wsRe = /^\/?(ws_[^/]+|cloud)/;
+      const wsMatch = wsRe.exec(sourcePath);
+      ws = wsMatch ? wsMatch[1] : null;
+    }
 
-    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, workspaceId);
+    const adapter: StorageAdapter | null = getAdapterForWorkspace(persistenceHook, ws ?? null);
     if (adapter && typeof adapter.moveItem === 'function') {
       await adapter.moveItem(sourcePath, targetFolderPath);
       await persistenceHook.refreshMapList();

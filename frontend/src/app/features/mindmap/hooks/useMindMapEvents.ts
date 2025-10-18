@@ -8,7 +8,7 @@ interface UseMindMapEventsParams {
     refreshMapList?: () => Promise<void> | void;
     renameItem?: (oldPath: string, newName: string) => Promise<void>;
     deleteItem?: (path: string) => Promise<void>;
-    moveItem?: (sourcePath: string, targetFolderPath: string) => Promise<void>;
+    moveItem?: (sourcePath: string, targetFolderPath: string, workspaceId?: string | null) => Promise<void>;
   };
   selectMapById: (id: { mapId: string; workspaceId: string }) => Promise<boolean>;
 }
@@ -119,8 +119,9 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     const evt = e as CustomEvent;
     const src = evt?.detail?.sourcePath;
     const dst = evt?.detail?.targetFolderPath ?? '';
+    const ws = evt?.detail?.workspaceId as (string | undefined);
     if (src !== undefined && typeof (mindMap).moveItem === 'function') {
-      (mindMap).moveItem(src, dst)
+      (mindMap).moveItem(src, dst, ws)
         .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         })
