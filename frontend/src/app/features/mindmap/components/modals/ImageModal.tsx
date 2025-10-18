@@ -1,4 +1,4 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FileAttachment } from '@shared/types';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
@@ -27,6 +27,7 @@ const ImageModal: React.FC<ImageModalProps> = ({
 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>('');
+  const imgRef = useRef<HTMLImageElement | null>(null);
 
   const handleKeyDown = useCallback((event: Event) => {
     const e = event as KeyboardEvent;
@@ -123,6 +124,12 @@ const ImageModal: React.FC<ImageModalProps> = ({
     if (currentImageUrl) {
       setLoading(true);
       setError('');
+      // If the image is already cached, mark as loaded
+      const el = imgRef.current;
+      if (el && el.complete) {
+        setLoading(false);
+        setError('');
+      }
     }
   }, [currentImageUrl]);
 
@@ -185,12 +192,15 @@ const ImageModal: React.FC<ImageModalProps> = ({
         )}
 
         <img
+          key={currentImageUrl || 'image'}
+          ref={imgRef}
           src={currentImageUrl || ''}
           alt={currentFileName}
           className="image-modal-image"
           onLoad={handleImageLoad}
           onError={handleImageError}
-          style={{ display: loading ? 'none' : 'block' }}
+          // Use opacity instead of display to ensure load events fire reliably
+          style={{ opacity: loading ? 0 : 1, transition: 'opacity 0.15s ease' }}
         />
 
         {}
