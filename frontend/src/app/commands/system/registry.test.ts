@@ -1,6 +1,42 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { CommandRegistryImpl, resetCommandRegistry } from './registry';
-import type { Command } from './types';
+import type { Command, CommandContext } from './types';
+
+// Helper to create minimal valid CommandContext
+const createContext = (overrides: Partial<CommandContext> = {}): CommandContext => ({
+  selectedNodeId: null,
+  editingNodeId: null,
+  handlers: {
+    updateNode: vi.fn(),
+    deleteNode: vi.fn(),
+    findNodeById: vi.fn(),
+    navigateToDirection: vi.fn(),
+    selectNode: vi.fn(),
+    startEdit: vi.fn(),
+    startEditWithCursorAtStart: vi.fn(),
+    startEditWithCursorAtEnd: vi.fn(),
+    addChildNode: vi.fn(),
+    addSiblingNode: vi.fn(),
+    copyNode: vi.fn(),
+    copyNodeText: vi.fn(),
+    pasteNode: vi.fn(),
+    pasteImageFromClipboard: vi.fn(),
+    undo: vi.fn(),
+    redo: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    showKeyboardHelper: false,
+    setShowKeyboardHelper: vi.fn(),
+    showMapList: false,
+    setShowMapList: vi.fn(),
+    showLocalStorage: false,
+    setShowLocalStorage: vi.fn(),
+    showTutorial: false,
+    setShowTutorial: vi.fn(),
+    closeAttachmentAndLinkLists: vi.fn(),
+  },
+  ...overrides,
+});
 
 describe('CommandRegistryImpl', () => {
   let registry: CommandRegistryImpl;
@@ -15,7 +51,7 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'test-command',
         execute: vi.fn(),
-        category: 'test',
+        category: 'navigation',
         description: 'Test command',
       };
 
@@ -30,6 +66,7 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: vi.fn(),
         aliases: ['tc', 'test'],
+        description: 'Test command with aliases',
       };
 
       registry.register(command);
@@ -43,10 +80,12 @@ describe('CommandRegistryImpl', () => {
       const command1: Command = {
         name: 'test-command',
         execute: vi.fn(),
+        description: 'First command',
       };
       const command2: Command = {
         name: 'test-command',
         execute: vi.fn(),
+        description: 'Second command',
       };
 
       registry.register(command1);
@@ -57,6 +96,7 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'minimal-command',
         execute: vi.fn(),
+        description: 'Minimal command',
       };
 
       registry.register(command);
@@ -69,6 +109,7 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'my-command',
         execute: vi.fn(),
+        description: 'My command',
       };
 
       registry.register(command);
@@ -80,6 +121,7 @@ describe('CommandRegistryImpl', () => {
         name: 'my-command',
         execute: vi.fn(),
         aliases: ['mc'],
+        description: 'My command',
       };
 
       registry.register(command);
@@ -96,6 +138,7 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'test-command',
         execute: vi.fn(),
+        description: 'Test command',
       };
 
       registry.register(command);
@@ -109,6 +152,7 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: vi.fn(),
         aliases: ['tc', 'test'],
+        description: 'Test command',
       };
 
       registry.register(command);
@@ -130,8 +174,9 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'test-command',
         execute: executeFn,
+        description: 'Test command',
       };
-      const context = { selectedNodeId: 'node-1' };
+      const context = createContext({ selectedNodeId: 'node-1' });
 
       registry.register(command);
       const result = await registry.execute('test-command', context);
@@ -147,8 +192,9 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: executeFn,
         guard: guardFn,
+        description: 'Test command',
       };
-      const context = { selectedNodeId: null };
+      const context = createContext({ selectedNodeId: null });
 
       registry.register(command);
       const result = await registry.execute('test-command', context);
@@ -165,8 +211,9 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: executeFn,
         guard: guardFn,
+        description: 'Test command',
       };
-      const context = { selectedNodeId: 'node-1' };
+      const context = createContext({ selectedNodeId: 'node-1' });
 
       registry.register(command);
       const result = await registry.execute('test-command', context);
@@ -177,7 +224,7 @@ describe('CommandRegistryImpl', () => {
     });
 
     it('should return error for non-existent command', async () => {
-      const result = await registry.execute('non-existent', {});
+      const result = await registry.execute('non-existent', createContext());
       expect(result.success).toBe(false);
       expect(result.error).toContain('not found');
     });
@@ -188,10 +235,11 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'failing-command',
         execute: executeFn,
+        description: 'Failing command',
       };
 
       registry.register(command);
-      const result = await registry.execute('failing-command', {});
+      const result = await registry.execute('failing-command', createContext());
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Execution failed');
@@ -205,13 +253,15 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: vi.fn(),
         guard: guardFn,
+        description: 'Test command',
       };
 
       registry.register(command);
-      const result = registry.canExecute('test-command', { test: true });
+      const context = createContext({ selectedNodeId: 'test-node' });
+      const result = registry.canExecute('test-command', context);
 
       expect(result).toBe(true);
-      expect(guardFn).toHaveBeenCalledWith({ test: true }, {});
+      expect(guardFn).toHaveBeenCalledWith(context, {});
     });
 
     it('should return false when guard fails', () => {
@@ -220,10 +270,11 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: vi.fn(),
         guard: guardFn,
+        description: 'Test command',
       };
 
       registry.register(command);
-      const result = registry.canExecute('test-command', {});
+      const result = registry.canExecute('test-command', createContext());
 
       expect(result).toBe(false);
     });
@@ -232,16 +283,17 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'test-command',
         execute: vi.fn(),
+        description: 'Test command',
       };
 
       registry.register(command);
-      const result = registry.canExecute('test-command', {});
+      const result = registry.canExecute('test-command', createContext());
 
       expect(result).toBe(true);
     });
 
     it('should return false for non-existent command', () => {
-      const result = registry.canExecute('non-existent', {});
+      const result = registry.canExecute('non-existent', createContext());
       expect(result).toBe(false);
     });
   });
@@ -251,10 +303,12 @@ describe('CommandRegistryImpl', () => {
       const command1: Command = {
         name: 'command-1',
         execute: vi.fn(),
+        description: 'Command 1',
       };
       const command2: Command = {
         name: 'command-2',
         execute: vi.fn(),
+        description: 'Command 2',
       };
 
       registry.register(command1);
@@ -275,6 +329,7 @@ describe('CommandRegistryImpl', () => {
         name: 'test-command',
         execute: vi.fn(),
         aliases: ['tc', 'test'],
+        description: 'Test command',
       };
 
       registry.register(command);
@@ -291,11 +346,13 @@ describe('CommandRegistryImpl', () => {
         name: 'move-up',
         execute: vi.fn(),
         category: 'navigation',
+        description: 'Move up',
       };
       const editCommand: Command = {
         name: 'delete-node',
         execute: vi.fn(),
         category: 'editing',
+        description: 'Delete node',
       };
 
       registry.register(navCommand);
@@ -314,7 +371,8 @@ describe('CommandRegistryImpl', () => {
       const command: Command = {
         name: 'test-command',
         execute: vi.fn(),
-        category: 'other',
+        category: 'utility',
+        description: 'Test command',
       };
 
       registry.register(command);
@@ -374,9 +432,9 @@ describe('CommandRegistryImpl', () => {
 
   describe('getAvailableNames', () => {
     it('should return all command names', () => {
-      registry.register({ name: 'command-1', execute: vi.fn() });
-      registry.register({ name: 'command-2', execute: vi.fn() });
-      registry.register({ name: 'command-3', execute: vi.fn() });
+      registry.register({ name: 'command-1', execute: vi.fn(), description: 'Command 1' });
+      registry.register({ name: 'command-2', execute: vi.fn(), description: 'Command 2' });
+      registry.register({ name: 'command-3', execute: vi.fn(), description: 'Command 3' });
 
       const names = registry.getAvailableNames();
       expect(names).toContain('command-1');

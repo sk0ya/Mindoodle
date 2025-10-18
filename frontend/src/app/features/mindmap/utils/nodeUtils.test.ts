@@ -461,7 +461,7 @@ describe('nodeUtils', () => {
 
   describe('calculateChildNodeX', () => {
     it('should calculate child x position', () => {
-      const parent = createNode({ x: 0, y: 0, width: 100 });
+      const parent = createNode({ x: 0, y: 0 });
       const childSize = { width: 80, height: 40, imageHeight: 0 };
 
       const childX = calculateChildNodeX(parent, childSize, 50);
@@ -475,7 +475,7 @@ describe('nodeUtils', () => {
         nodes: { 'root-1': createNode({ id: 'root-1' }) },
         parentMap: {},
         childrenMap: {},
-        rootIds: ['root-1'],
+        rootNodeIds: ['root-1'],
       };
 
       const color = getBranchColor('root-1', normalizedData);
@@ -490,7 +490,7 @@ describe('nodeUtils', () => {
         },
         parentMap: { 'child-1': 'root-1' },
         childrenMap: { 'root-1': ['child-1'] },
-        rootIds: ['root-1'],
+        rootNodeIds: ['root-1'],
       };
 
       const color = getBranchColor('child-1', normalizedData);
