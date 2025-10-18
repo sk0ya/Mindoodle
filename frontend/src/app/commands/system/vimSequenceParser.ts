@@ -158,45 +158,21 @@ export function parseVimSequence(sequence: string): VimSequenceResult {
   };
 }
 
-export function isValidVimKey(key: string): boolean {
-  
-  const normalizedKey = key;
-
-  
-  for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
-    if (pattern.keys.some(k => k === normalizedKey)) {
-      return true;
-    }
-  }
-
-  return false;
-}
-
 export function getVimKeys(): string[] {
   const keys = new Set<string>();
 
-  
+
   for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
     pattern.keys.forEach(key => keys.add(key));
   }
 
-  
-  
+
+
   keys.add('escape');
 
-  
+
   '0123456789'.split('').forEach(k => keys.add(k));
 
   return Array.from(keys);
 }
 
-/**
- * Check if a sequence can potentially become a valid command
- */
-export function canSequenceContinue(sequence: string, newKey: string): boolean {
-  // Don't normalize case to preserve uppercase commands like 'M'
-  const testSequence = sequence + newKey;
-  const result = parseVimSequence(testSequence);
-
-  return result.isComplete || result.isPartial;
-}
