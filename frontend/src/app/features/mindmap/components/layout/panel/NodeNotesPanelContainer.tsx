@@ -32,4 +32,4 @@ const MarkdownPanelContainer: React.FC<Props> = ({
   );
 };
 
-export default MarkdownPanelContainer;
+export default React.memo(MarkdownPanelContainer);

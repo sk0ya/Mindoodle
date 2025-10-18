@@ -36,4 +36,4 @@ const MindMapWorkspaceContainer: React.FC<Props> = (props) => {
   return <MindMapWorkspace {...props} />;
 };
 
-export default MindMapWorkspaceContainer;
+export default React.memo(MindMapWorkspaceContainer);

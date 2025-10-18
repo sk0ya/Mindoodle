@@ -83,4 +83,4 @@ const PrimarySidebarContainer: React.FC<Props> = (props) => {
   );
 };
 
-export default PrimarySidebarContainer;
+export default React.memo(PrimarySidebarContainer);

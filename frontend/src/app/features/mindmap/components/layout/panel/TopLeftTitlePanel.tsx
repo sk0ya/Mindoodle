@@ -148,4 +148,4 @@ const TopLeftTitlePanel: React.FC<Props> = ({
   );
 };
 
-export default TopLeftTitlePanel;
+export default React.memo(TopLeftTitlePanel);

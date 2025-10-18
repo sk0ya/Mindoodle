@@ -103,4 +103,4 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
   );
 };
 
-export default ActivityBar;
+export default React.memo(ActivityBar);
