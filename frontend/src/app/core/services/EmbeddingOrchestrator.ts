@@ -30,12 +30,9 @@ export class EmbeddingOrchestrator {
       const unvectorizedFiles = mdFiles.filter(f => !existingVectors.has(f.path));
 
       if (unvectorizedFiles.length === 0) {
-        console.log('All files are already vectorized');
         this.isProcessing = false;
         return;
       }
-
-      console.log(`Vectorizing ${unvectorizedFiles.length} unvectorized files...`);
 
       
       window.dispatchEvent(new CustomEvent('vectorization-progress', {
@@ -78,8 +75,6 @@ export class EmbeddingOrchestrator {
         }
       }));
 
-      console.log('All files vectorized successfully');
-
     } catch (error) {
       console.error('Failed to process all files:', error);
       window.dispatchEvent(new CustomEvent('vectorization-progress', {
@@ -106,10 +101,8 @@ export class EmbeddingOrchestrator {
     
     const timer = setTimeout(async () => {
       try {
-        console.log(`Updating vector for: ${filePath}`);
         const vector = await embeddingService.embed(filePath, content);
         await vectorStore.saveVector(filePath, vector);
-        console.log(`Vector updated: ${filePath}`);
         this.debounceTimers.delete(filePath);
       } catch (error) {
         console.error(`Failed to update vector for ${filePath}:`, error);
@@ -129,9 +122,9 @@ export class EmbeddingOrchestrator {
         this.debounceTimers.delete(filePath);
       }
 
-      
+
+
       await vectorStore.deleteVector(filePath);
-      console.log(`Vector deleted: ${filePath}`);
     } catch (error) {
       console.error(`Failed to delete vector for ${filePath}:`, error);
     }
@@ -146,9 +139,9 @@ export class EmbeddingOrchestrator {
       }
       this.debounceTimers.clear();
 
-      
+
+
       await vectorStore.clear();
-      console.log('All vectors cleared');
     } catch (error) {
       console.error('Failed to clear all vectors:', error);
     }

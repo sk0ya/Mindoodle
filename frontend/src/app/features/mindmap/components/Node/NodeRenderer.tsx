@@ -421,7 +421,6 @@ interface NodeRendererProps {
     if (entry.kind !== 'image') return note;
     const width = Math.round(w);
     const height = Math.round(h);
-    console.log('Updating note image size:', { width, height, entry });
     let replacement: string;
     const imgEntry = entry;
     if (imgEntry.subType === 'html') {

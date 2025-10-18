@@ -72,16 +72,6 @@ const ImageModal: React.FC<ImageModalProps> = ({
   const getCurrentImageUrl = (): string | null => {
     if (file) {
       const result = file.dataURL || file.data || file.downloadUrl || null;
-      // Debug log for local image paths
-      console.log('ImageModal - file data:', {
-        name: file.name,
-        hasDataURL: !!file.dataURL,
-        hasData: !!file.data,
-        hasDownloadUrl: !!file.downloadUrl,
-        downloadUrl: file.downloadUrl,
-        isRelativeLocal: 'isRelativeLocal' in file ? (file as FileAttachment & { isRelativeLocal?: boolean }).isRelativeLocal : undefined,
-        result: result?.substring(0, 100) + '...'
-      });
       return result;
     }
     return imageUrl;

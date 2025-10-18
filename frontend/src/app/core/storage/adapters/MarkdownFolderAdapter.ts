@@ -1016,14 +1016,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       if (k.startsWith(prefix)) this.saveTargets.delete(k);
     });
 
-    
-    
-    
+
+
+
     if (workspace) {
-      console.log(`Removed workspace reference: ${workspace.name} (${id}) - Files preserved`);
+      logger.info(`Removed workspace reference: ${workspace.name} (${id}) - Files preserved`);
     }
 
-    
+
     this.workspaces = this.workspaces.filter(w => w.id !== id);
   }
 
