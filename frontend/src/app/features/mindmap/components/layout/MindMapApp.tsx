@@ -67,10 +67,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   const vim = useVim();
 
-  React.useEffect(() => {
-    loadSettingsFromStorage();
-  }, [loadSettingsFromStorage]);
-
   const store = useMindMapStore();
 
   useGlobalErrorHandlers(handleError);
@@ -99,7 +95,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const [editingTableNodeId, setEditingTableNodeId] = useState<string | null>(null);
 
   // Note: Knowledge Graph 2D doesn't need allMapsDataForGraph anymore
-  
+
 
   const commandPalette = useCommandPalette({
     enabled: true,
@@ -122,14 +118,19 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const [authCloudAdapter, setAuthCloudAdapter] = useState<CloudStorageAdapter | null>(null);
   const [authOnSuccess, setAuthOnSuccess] = useState<((adapter: CloudStorageAdapter) => void) | null>(null);
 
+  // Consolidated initialization: settings + auth modal bridge
   React.useEffect(() => {
+    loadSettingsFromStorage();
+
     const controller = new MindMapController();
-    return controller.attachAuthModalBridge({
+    const cleanup = controller.attachAuthModalBridge({
       setAuthCloudAdapter,
       setAuthOnSuccess,
       setIsAuthModalOpen,
     });
-  }, []);
+
+    return cleanup;
+  }, [loadSettingsFromStorage]);
 
   // Controller initialization removed (no-op)
 
