@@ -2,7 +2,6 @@
 
 
 export { useDataReset } from './data/useDataReset';
-export { useDataCleanup, type DataCleanupStats } from './data/useDataCleanup';
 export { useModelLoader } from './data/useModelLoader';
 
 
@@ -15,14 +14,9 @@ export { useStatusBar, StatusBarProvider } from './ui/useStatusBar';
 export { useCommandPalette, type UseCommandPaletteOptions, type UseCommandPaletteReturn } from './ui/useCommandPalette';
 
 
-export { useErrorBoundary } from './system/useErrorBoundary';
 export { useErrorHandler, ErrorHandlerProvider, type ErrorInfo } from './system/useErrorHandler';
 export { useGlobalErrorHandlers } from './system/useGlobalErrorHandlers';
-export { useInitializationWaiter } from './system/useInitializationWaiter';
 export { useEventListener, type UseEventListenerOptions } from './system/useEventListener';
-
-
-export { useConnectionTest } from './network/useConnectionTest';
 
 
 export { useStableCallback, useLatestRef } from './utilities';

@@ -9,7 +9,6 @@ import { findNodeInRoots } from '../../utils/nodeOperations';
 import { calculateNodeSize, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig } from '../../utils/nodeUtils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
 import type { MindMapStore } from './types';
-import type { DataState } from '@shared/types/nodeTypes';
 
 
 let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
@@ -58,7 +57,15 @@ if (typeof window !== 'undefined') {
   }, 120000, 'DataSlice cache cleanup'); 
 }
 
-export interface DataSlice extends DataState {
+export interface DataSlice {
+  data: MindMapData | null;
+  normalizedData: import('@core/data/normalizedStore').NormalizedData | null;
+  selectedNodeId: string | null;
+  editingNodeId: string | null;
+  editText: string;
+  editingMode: 'select-all' | 'cursor-at-end' | 'cursor-at-start' | null;
+  lastSelectionBeforeInsert?: string | null;
+
   setData: (data: MindMapData) => void;
   setRootNodes: (rootNodes: MindMapNode[], options?: { emit?: boolean; source?: string; reason?: string }) => void;
   updateMapMetadata?: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => void;

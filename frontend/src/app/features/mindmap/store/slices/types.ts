@@ -3,7 +3,6 @@ import type { NormalizedData } from '../../../../core/data/normalizedStore';
 import type { SettingsSlice } from './settingsSlice';
 import type { UISlice } from './uiSlice';
 import type { UIState } from '@shared/types/ui.types';
-import type { DataState as NodeDataState } from '@shared/types/nodeTypes';
 
 
 export type { UIState };
@@ -15,8 +14,14 @@ export interface HistoryState {
 }
 
 
-export interface MindMapStore extends NodeDataState, HistoryState, SettingsSlice, UISlice {
+export interface MindMapStore extends HistoryState, SettingsSlice, UISlice {
+  data: MindMapData | null;
   normalizedData: NormalizedData | null;
+  selectedNodeId: string | null;
+  editingNodeId: string | null;
+  editText: string;
+  editingMode: 'select-all' | 'cursor-at-end' | 'cursor-at-start' | null;
+  lastSelectionBeforeInsert?: string | null;
   ui: UIState;
   
   

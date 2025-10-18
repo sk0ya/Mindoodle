@@ -12,15 +12,16 @@ import * as insertCommands from './editing/insert';
 import * as formatCommands from './editing/format';
 
 
-import * as structureCommands from './structure';
-import * as toggleCommands from './toggle';
+import * as structureMainCommands from './structure/structure';
+import * as convertNodeCommands from './structure/convertNodeToMap';
+import * as toggleCommands from './structure/toggle';
 
 
 import * as applicationCommands from './application/application';
 import * as mindmapCommands from './application/mindmap';
 
 
-import * as uiCommands from './ui';
+import * as uiMainCommands from './ui/ui';
 
 
 export { useCommands } from './system/useCommands';
@@ -33,9 +34,9 @@ export type { UseCommandsReturn } from './system/useCommands';
 export const allCommandModules = {
   navigation: { ...navigationCommands, ...centerCommands, ...navigationUtilCommands, ...navigationIndexCommands },
   editing: { ...deleteCommands, ...editCommands, ...insertCommands, ...formatCommands },
-  structure: { ...structureCommands, ...toggleCommands },
+  structure: { ...structureMainCommands, ...convertNodeCommands, ...toggleCommands },
   application: { ...applicationCommands, ...mindmapCommands },
-  ui: uiCommands,
+  ui: uiMainCommands,
 } as const;
 
 
