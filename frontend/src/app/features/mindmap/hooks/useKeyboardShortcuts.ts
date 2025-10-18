@@ -128,49 +128,6 @@ function handleStandardShortcut(
   return false;
 }
 
-function handleNonVimShortcut(
-  event: KeyboardEvent,
-  commands: UseCommandsReturn,
-  handlers: KeyboardShortcutHandlers
-): boolean {
-  const { key, ctrlKey, metaKey, shiftKey } = event;
-  const isModifier = ctrlKey || metaKey;
-
-  
-  if (!isModifier && handlers.selectedNodeId && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
-    event.preventDefault();
-    const direction = key.replace('Arrow', '').toLowerCase() as Direction;
-    commands.execute(`arrow-navigate --direction ${direction}`);
-    return true;
-  }
-
-  
-  if (isModifier && handlers.selectedNodeId) {
-    switch (key.toLowerCase()) {
-      case 'c':
-        event.preventDefault();
-        commands.execute(shiftKey ? 'copy-text' : 'copy');
-        return true;
-      case 'v':
-        
-        return true;
-      case 'z':
-        event.preventDefault();
-        if (shiftKey) {
-          commands.execute('redo');
-        } else {
-          commands.execute('undo');
-        }
-        return true;
-      case 'y':
-        event.preventDefault();
-        commands.execute('redo');
-        return true;
-    }
-  }
-
-  return false;
-}
 
 
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
@@ -547,21 +504,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         }
       }
 
-      
-      if (!vim || !vim.isEnabled || vim.mode !== 'normal') {
-        
-        if (handleStandardShortcut(event, commands, handlers)) {
-          return;
-        }
-      } else {
-        
-        if (handleNonVimShortcut(event, commands, handlers)) {
-          return;
-        }
-        
-        if (handleStandardShortcut(event, commands, handlers)) {
-          return;
-        }
+
+      if (handleStandardShortcut(event, commands, handlers)) {
+        return;
       }
     };
 
