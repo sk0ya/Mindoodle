@@ -12,6 +12,7 @@ import type { StorageConfig, StorageAdapter } from '@core/types';
 import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
 import { useMindMapStore } from '@mindmap/store';
 import { getAdapterForWorkspace } from '@/app/core/utils';
+import { MarkdownMemoizer } from '@mindmap/utils/nodeHash';
 
 export const useMindMap = (
   storageConfig?: StorageConfig,
@@ -83,8 +84,11 @@ export const useMindMap = (
   const lineToNodeIdRef = useRef<Record<number, string>>({});
   const nodeIdToLineRef = useRef<Record<string, number>>({});
 
-  
+
   const lastSentMarkdownRef = useRef<string>('');
+
+  // ✅ NEW: Markdown memoization for performance
+  const markdownMemoizer = useRef(new MarkdownMemoizer());
 
   // Keep latest references to avoid stale closures in subscription callbacks
   const subscribeMdRef = useLatestRef(subscribeMd);
@@ -95,7 +99,7 @@ export const useMindMap = (
   // Timer to prevent nodes->markdown sync after editor changes
   const skipNodeToMarkdownSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Nodes -> markdown: only on confirmed updates (updatedAt changes)
+  // ✅ OPTIMIZED: Nodes -> markdown with memoization
   useEffect(() => {
     try {
       // Skip if we recently processed an editor change
@@ -104,11 +108,27 @@ export const useMindMap = (
         return;
       }
 
-      const md = MarkdownImporter.convertNodesToMarkdown(dataHook.data?.rootNodes || []);
+      const rootNodes = dataHook.data?.rootNodes || [];
+
+      // ✅ Use memoized conversion (only converts if structure changed)
+      const md = markdownMemoizer.current.convert(
+        rootNodes,
+        (nodes) => MarkdownImporter.convertNodesToMarkdown(nodes)
+      );
 
       // Debug: Compare in detail
       const lastMd = lastSentMarkdownRef.current;
       const isChanged = md !== lastMd;
+
+      // Log memoization stats periodically
+      const stats = markdownMemoizer.current.getStats();
+      if ((stats.hitCount + stats.missCount) % 10 === 0 && stats.hitCount > 0) {
+        logger.debug('📊 Markdown memoization stats:', {
+          hits: stats.hitCount,
+          misses: stats.missCount,
+          hitRate: `${(stats.hitRate * 100).toFixed(1)}%`
+        });
+      }
 
       logger.debug('🔍 Nodes->Markdown comparison', {
         changed: isChanged,
@@ -116,10 +136,11 @@ export const useMindMap = (
         lastLength: lastMd.length,
         newHash: md.slice(0, 50) + '...',
         lastHash: lastMd.slice(0, 50) + '...',
-        trigger: dataHook.data?.updatedAt
+        trigger: dataHook.data?.updatedAt,
+        memoHit: stats.hitCount > 0
       });
 
-      
+
       if (isChanged) {
         logger.debug('📝 Nodes -> Markdown: sending update');
         lastSentMarkdownRef.current = md;
