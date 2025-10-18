@@ -39,7 +39,7 @@ interface PrimarySidebarProps {
 const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   activeView,
   isVisible,
-  
+
   mindMaps = [],
   currentMapId,
   currentWorkspaceId,
@@ -55,16 +55,12 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   onSwitchWorkspace,
   explorerTree,
   onCreateFolder,
-  
+
   onMapSwitch,
   onNodeSelectByLine,
   storageAdapter
 }) => {
-  if (!isVisible || !activeView) {
-    return null;
-  }
-
-  const renderContent = () => {
+  const renderContent = React.useCallback(() => {
     switch (activeView) {
       case 'maps':
         return (
@@ -113,10 +109,34 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
       default:
         return null;
     }
-  };
+  }, [
+    activeView,
+    mindMaps,
+    currentMapId,
+    currentWorkspaceId,
+    onSelectMap,
+    onCreateMap,
+    onDeleteMap,
+    onRenameMap,
+    onChangeCategory,
+    onChangeCategoryBulk,
+    workspaces,
+    onAddWorkspace,
+    onRemoveWorkspace,
+    onSwitchWorkspace,
+    explorerTree,
+    onCreateFolder,
+    onMapSwitch,
+    onNodeSelectByLine,
+    storageAdapter
+  ]);
+
+  if (!isVisible || !activeView) {
+    return null;
+  }
 
   return (
-    <div className="primary-sidebar">      
+    <div className="primary-sidebar">
       <div className="primary-sidebar-content">
         {renderContent()}
       </div>
@@ -124,4 +144,4 @@ const PrimarySidebar: React.FC<PrimarySidebarProps> = ({
   );
 };
 
-export default PrimarySidebar;
+export default React.memo(PrimarySidebar);

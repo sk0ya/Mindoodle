@@ -6,17 +6,17 @@ import { useMindMapStore } from '../../../store';
 const VimSidebar: React.FC = () => {
   const [tab, setTab] = useState<'mindmap' | 'editor'>('mindmap');
   const { settings, updateSetting } = useMindMapStore();
-  const toggleMindMapVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap', e.target.checked);
-  const toggleEditorVim = (e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor', e.target.checked);
-  
+  const toggleMindMapVim = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimMindMap', e.target.checked), [updateSetting]);
+  const toggleEditorVim = React.useCallback((e: React.ChangeEvent<HTMLInputElement>) => updateSetting('vimEditor', e.target.checked), [updateSetting]);
+
   const editorTabEnabled = true;
 
-  const flushAndSetTab = (next: 'mindmap' | 'editor') => {
+  const flushAndSetTab = React.useCallback((next: 'mindmap' | 'editor') => {
     if (next === 'editor' && !editorTabEnabled) return;
     try { window.dispatchEvent(new CustomEvent('mindoodle:vim-mapping-flush')); } catch {}
-    
+
     setTimeout(() => setTab(next), 0);
-  };
+  }, [editorTabEnabled]);
 
   return (
     <div className="settings-sidebar" style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0 }}>
@@ -93,4 +93,4 @@ const VimSidebar: React.FC = () => {
   );
 };
 
-export default VimSidebar;
+export default React.memo(VimSidebar);

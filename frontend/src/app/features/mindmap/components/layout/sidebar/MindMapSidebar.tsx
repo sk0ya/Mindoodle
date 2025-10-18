@@ -53,31 +53,12 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onCreateFolder
 }) => {
   const { settings, updateSetting } = useMindMapStore();
-  const isCloudConnected = workspaces.some(ws => ws.id === 'cloud');
+  const isCloudConnected = React.useMemo(
+    () => workspaces.some(ws => ws.id === 'cloud'),
+    [workspaces]
+  );
 
-  
-  const handleToggleCloud = () => {
-    const workspaceService = WorkspaceService.getInstance();
-
-    if (isCloudConnected) {
-      updateSetting('storageMode', 'local');
-      workspaceService.logoutFromCloud();
-    } else {
-      
-      let adapter = workspaceService.getCloudAdapter();
-      if (!adapter) {
-        adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
-        workspaceService.setCloudAdapter(adapter);
-      }
-
-      
-      window.dispatchEvent(new CustomEvent('mindoodle:showAuthModal', {
-        detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess }
-      }));
-    }
-  };
-
-  const handleAuthSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
+  const handleAuthSuccess = React.useCallback((authenticatedAdapter: CloudStorageAdapter) => {
     if (!authenticatedAdapter?.isAuthenticated) {
       return;
     }
@@ -85,7 +66,26 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     const workspaceService = WorkspaceService.getInstance();
     workspaceService.addCloudWorkspace(authenticatedAdapter);
     updateSetting('storageMode', 'local+cloud');
-  };
+  }, [updateSetting]);
+
+  const handleToggleCloud = React.useCallback(() => {
+    const workspaceService = WorkspaceService.getInstance();
+
+    if (isCloudConnected) {
+      updateSetting('storageMode', 'local');
+      workspaceService.logoutFromCloud();
+    } else {
+      let adapter = workspaceService.getCloudAdapter();
+      if (!adapter) {
+        adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
+        workspaceService.setCloudAdapter(adapter);
+      }
+
+      window.dispatchEvent(new CustomEvent('mindoodle:showAuthModal', {
+        detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess }
+      }));
+    }
+  }, [isCloudConnected, settings.cloudApiEndpoint, updateSetting, handleAuthSuccess]);
 
   
   const sidebar = useSidebar({

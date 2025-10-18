@@ -13,9 +13,9 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   const [embeddingProgress, setEmbeddingProgress] = useState<string>('');
   const [embeddingError, setEmbeddingError] = useState<string>('');
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
+  const handleSettingChange = React.useCallback(<K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
-  };
+  }, [updateSetting]);
 
   // モデルダウンロード進捗リスナー
   const handleProgress = (e: Event) => {
@@ -588,4 +588,4 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
   );
 };
 
-export default SettingsSidebar;
+export default React.memo(SettingsSidebar);

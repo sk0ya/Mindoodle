@@ -9,9 +9,9 @@ interface ColorSettingsSidebarProps {
 const ColorSettingsSidebar: React.FC<ColorSettingsSidebarProps> = () => {
   const { settings, updateSetting } = useMindMapStore();
 
-  const handleSettingChange = <K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
+  const handleSettingChange = React.useCallback(<K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
     updateSetting(key, value);
-  };
+  }, [updateSetting]);
 
   return (
     <div className="color-settings-sidebar">
@@ -226,4 +226,4 @@ const ColorSettingsSidebar: React.FC<ColorSettingsSidebarProps> = () => {
   );
 };
 
-export default ColorSettingsSidebar;
+export default React.memo(ColorSettingsSidebar);

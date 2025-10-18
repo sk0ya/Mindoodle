@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { X } from 'lucide-react';
 import type { MapIdentifier } from '@shared/types';
 import type { StorageAdapter } from '@core/types';
@@ -98,13 +98,12 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   }, [searchQuery, startSearching, stopSearching, storageAdapter, workspaces]);
 
 
-  const handleFileResultDoubleClick = async (result: FileBasedSearchResult) => {
+  const handleFileResultDoubleClick = useCallback(async (result: FileBasedSearchResult) => {
     await onMapSwitch?.({ mapId: result.mapId, workspaceId: result.workspaceId });
     await onNodeSelectByLine?.(result.lineNumber);
-  };
+  }, [onMapSwitch, onNodeSelectByLine]);
 
-
-  const highlightMatch = (text: string, query: string): JSX.Element => {
+  const highlightMatch = useCallback((text: string, query: string): JSX.Element => {
     const matchPos = getMatchPosition(text, query);
     if (!matchPos) return <>{text}</>;
     const { beforeMatch, match, afterMatch } = matchPos;
@@ -115,7 +114,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
         {afterMatch}
       </>
     );
-  };
+  }, []);
 
 
 
@@ -214,4 +213,4 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
   );
 };
 
-export default SearchSidebar;
+export default React.memo(SearchSidebar);
