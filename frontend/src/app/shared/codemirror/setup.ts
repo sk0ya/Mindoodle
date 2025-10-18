@@ -187,8 +187,9 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
         overflowX: 'hidden',
         minHeight: '0',
         minWidth: '0',
-        // Reserve space for scrollbars inside the box to prevent clipping
-        scrollbarGutter: 'stable both-edges',
+        // Avoid reserving left gutter which can desync cursor overlays
+        // (keep default behavior; reserve at end only if UA chooses)
+        // scrollbarGutter intentionally not set here
         scrollbarWidth: 'thin', // For Firefox
         scrollbarColor: isDark ? '#484f58 #0d1117' : '#d1d5da #ffffff', // For Firefox
       },
@@ -212,7 +213,8 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
         backgroundColor: isDark ? '#0d1117' : '#ffffff',
       },
       '.cm-content': {
-        padding: '8px 0',
+        // add small horizontal padding so first column aligns consistently
+        padding: '8px 4px',
         caretColor: isDark ? '#58a6ff' : '#0969da',
       },
       '.cm-cursor, .cm-dropCursor': {
@@ -235,21 +237,18 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
     })
   );
 
-  // Custom styling
-  if (config.fontSize || config.fontFamily) {
-    const customStyles: Record<string, string | number> = {};
-    if (config.fontSize) {
-      customStyles.fontSize = `${config.fontSize}px`;
-    }
-    if (config.fontFamily) {
-      customStyles.fontFamily = config.fontFamily;
-    }
-    extensions.push(
-      EditorView.theme({
-        '&': customStyles,
-      })
-    );
-  }
+  // Keep editor metrics default; codemirror-vim relies on base theme
+
+  // Custom styling (fontSizeのみ反映。fontFamilyは常に等幅に固定)
+  // if (config.fontSize) {
+  //   const customStyles: Record<string, string | number> = {};
+  //   customStyles.fontSize = `${config.fontSize}px`;
+  //   extensions.push(
+  //     EditorView.theme({
+  //       '&': customStyles,
+  //     })
+  //   );
+  // }
 
   // Read-only mode
   if (config.readOnly) {
