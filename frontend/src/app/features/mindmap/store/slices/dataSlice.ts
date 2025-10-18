@@ -5,6 +5,7 @@ import { memoryService } from '@/app/core/services';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
 import { autoSelectLayout } from '../../utils/autoLayout';
+import { findNodeInRoots } from '../../utils/nodeOperations';
 import { calculateNodeSize, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig } from '../../utils/nodeUtils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
 import type { MindMapStore } from './types';
@@ -163,6 +164,8 @@ export const createDataSlice: StateCreator<
     const executeAutoLayout = () => {
       const state = get();
       const rootNodes = state.data?.rootNodes || [];
+      const selectedId = state.selectedNodeId || null;
+      const currentPan = state.ui?.pan || { x: 0, y: 0 };
 
       logger.debug(immediate ? '⚡ Immediate autoLayout execution started' : '🔄 Debounced autoLayout execution started');
 
@@ -344,7 +347,18 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
 
-      
+      // Compute pan compensation to keep selected node anchored on screen
+      let compensatedPan: { x: number; y: number } | null = null;
+      if (selectedId) {
+        const beforeSelected = findNodeInRoots(rootNodes, selectedId);
+        const afterSelected = findNodeInRoots(layoutedRootNodes, selectedId);
+        if (beforeSelected && afterSelected) {
+          const dx = (beforeSelected.x || 0) - (afterSelected.x || 0);
+          const dy = (beforeSelected.y || 0) - (afterSelected.y || 0);
+          compensatedPan = { x: currentPan.x + dx, y: currentPan.y + dy };
+        }
+      }
+
       set((draft) => {
         if (draft.data) {
           draft.data = {
@@ -358,6 +372,11 @@ export const createDataSlice: StateCreator<
           } catch (normalizeError) {
             logger.error('❌ Auto layout: Failed to normalize data:', normalizeError);
           }
+        }
+
+        // Apply pan compensation after layout to keep selection position stable
+        if (compensatedPan) {
+          draft.ui.pan = compensatedPan;
         }
       });
 

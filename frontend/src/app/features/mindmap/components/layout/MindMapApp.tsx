@@ -413,33 +413,47 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     ensureSelectedNodeVisible
   ]);
 
-  // Center root node when map changes or layout is applied
+  // Center root node only once after map changes (avoid fighting user pan)
+  const centeredAfterOpenRef = React.useRef(false);
   React.useEffect(() => {
     if (!data?.rootNodes || data.rootNodes.length === 0) return;
+
+    // Reset flag for the new map
+    centeredAfterOpenRef.current = false;
 
     logger.debug('📍 Map changed, resetting zoom');
     setZoom(1.0);
 
-    // Listen for layout completion
+    // Listen for first layout completion only
     const unsubscribe = mindMapEvents.subscribe((event) => {
-      if (event.type === 'layout.applied') {
-        logger.debug('📍 Layout applied, centering root node at left');
-        const roots = data.rootNodes || [];
-        if (roots.length > 0) {
-          // Small delay to ensure DOM is updated
-          window.setTimeout(() => {
-            centerNodeInView(roots[0].id, false, { mode: 'left' });
-          }, 10);
-        }
-      }
+      if (event.type !== 'layout.applied') return;
+      if (centeredAfterOpenRef.current) return;
+      // If user already has a selection, don’t recenter to avoid jump
+      if (selectedNodeId) return;
+
+      const roots = data.rootNodes || [];
+      if (roots.length === 0) return;
+
+      logger.debug('📍 First layout after open; centering root node (left)');
+      centeredAfterOpenRef.current = true;
+      // Small delay to ensure DOM is updated
+      window.setTimeout(() => {
+        centerNodeInView(roots[0].id, false, { mode: 'left' });
+      }, 10);
+      // Stop listening after the first center
+      unsubscribe();
     });
 
-    // If no auto-layout, center immediately
+    // Fallback: if no layout event, center once after a short delay
     const timer = window.setTimeout(() => {
+      if (centeredAfterOpenRef.current) return;
+      if (selectedNodeId) return;
       const roots = data.rootNodes || [];
       if (roots.length > 0) {
-        logger.debug('📍 No layout event, centering root node at left');
+        logger.debug('📍 No layout event; centering root node (left) once');
+        centeredAfterOpenRef.current = true;
         centerNodeInView(roots[0].id, false, { mode: 'left' });
+        unsubscribe();
       }
     }, 100);
 
