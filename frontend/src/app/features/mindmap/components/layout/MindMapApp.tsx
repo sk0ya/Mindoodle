@@ -16,6 +16,7 @@ import MarkdownPanelContainer from './panel/NodeNotesPanelContainer';
 import MindMapContextMenuOverlay from './overlay/MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
 import { useNotification, useErrorHandler, useGlobalErrorHandlers } from '@shared/hooks';
+import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
@@ -37,6 +38,7 @@ import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors'
 import TableEditorModal from '../../../markdown/components/TableEditorModal';
 import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
 import { EmbeddingIntegration } from '@core/services/EmbeddingIntegration';
+import { parseWorkspacePath } from '@shared/utils/pathOperations';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
@@ -111,6 +113,8 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     setCurrentImageUrl(null);
     setCurrentImageAlt('');
   }, []);
+
+  // Moved below until data is available
 
   useTheme();
 
@@ -298,6 +302,31 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   });
 
   useMindMapEvents({ mindMap, selectMapById });
+
+  // Global image open handler from Explorer (map list)
+  const handleOpenImageFile = useCallback((e: Event) => {
+    const evt = e as CustomEvent;
+    const path = evt?.detail?.path as (string | undefined);
+    if (!path) return;
+    try {
+      const { workspaceId, relativePath } = parseWorkspacePath(path);
+      const ws = workspaceId || data?.mapIdentifier?.workspaceId || '';
+      if (!relativePath || !ws) return;
+      // Ensure reader is available
+      const reader = (mindMap as unknown as { readImageAsDataURL?: (p: string, ws: string) => Promise<string | null> }).readImageAsDataURL;
+      if (typeof reader !== 'function') return;
+      reader(relativePath, ws)
+        .then((dataURL) => {
+          if (dataURL) {
+            const fileName = relativePath.split('/').pop() || 'image';
+            handleShowImageModal(dataURL, fileName);
+          }
+        })
+        .catch(() => { /* ignore */ });
+    } catch { /* ignore */ }
+  }, [mindMap, data?.mapIdentifier?.workspaceId, handleShowImageModal]);
+
+  useEventListener('mindoodle:openImageFile', handleOpenImageFile, { target: window });
 
   const countNodes = (node: MindMapNode): number => {
     let count = 1; 

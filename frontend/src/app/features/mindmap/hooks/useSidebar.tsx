@@ -562,12 +562,18 @@ export const useSidebar = ({
           label: '開く',
           icon: <BookOpen size={14} />,
           onClick: () => {
-            if (targetPath && /\.md$/i.test(targetPath)) {
-              const wsRe = /^\/((ws_[^/]+))\//;
+            if (!targetPath) return;
+            if (/\.md$/i.test(targetPath)) {
+              const wsRe = /^\/((ws_[^/]+|cloud))\//;
               const wsMatch = wsRe.exec(targetPath);
               const workspaceId = wsMatch ? wsMatch[1] : undefined;
-              const mapId = targetPath.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
+              const mapId = targetPath.replace(/^\/(ws_[^/]+|cloud)\//, '').replace(/\.md$/i, '');
               window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } }));
+              return;
+            }
+            // If image file, preview via global event
+            if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(targetPath)) {
+              window.dispatchEvent(new CustomEvent('mindoodle:openImageFile', { detail: { path: targetPath } }));
             }
           }
         },

@@ -73,6 +73,27 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
     }
   };
 
+  const isImageFile = (name: string | undefined): boolean => {
+    if (!name) return false;
+    return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
+  };
+
+  const handleDoubleClick = () => {
+    // Open markdown maps on double click (same as single click)
+    if (isMarkdown && mapId) {
+      window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
+        detail: { mapId, workspaceId }
+      }));
+      return;
+    }
+    // For image files, dispatch an event to preview
+    if (isFile && isImageFile(item.name)) {
+      window.dispatchEvent(new CustomEvent('mindoodle:openImageFile', {
+        detail: { path: item.path }
+      }));
+    }
+  };
+
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     if (onContextMenu) {
@@ -238,6 +259,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
     <div
       className={`explorer-file ${isMarkdown ? 'markdown-file' : ''} ${isActive ? 'current' : ''}`}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onContextMenu={handleContextMenu}
       onDragStart={handleDragStart}
       draggable={true}
