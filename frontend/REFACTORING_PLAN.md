@@ -75,7 +75,7 @@
 
 ---
 
-### フェーズ2: 大規模ファイルの分割
+### フェーズ2: 大規模ファイルの分割 ✅ 【一部完了】
 
 **目標**: 1000行超のファイルを責任ごとに分割
 
@@ -115,31 +115,50 @@
     └── renderUtils.ts (150行) - レンダリングユーティリティ
 ```
 
-#### 2-3. nodeUtils.ts (1,082行)
+#### 2-3. nodeUtils.ts (1,082行) ✅ 【完了】
+
+**実施結果**:
 ```
-現状: 単一ファイル
-↓ 分割後
-├── nodeMeasurement.ts (300行) - サイズ計算
-│   - measureTextWidth
-│   - calculateNodeSize
-│   - calculateIconLayout
-├── nodeLayout.ts (250行) - レイアウト計算
-│   - calculateChildNodeX
-│   - getDynamicNodeSpacing
+元ファイル: nodeUtils.ts (1,082行)
+↓ 分割後 (6ファイル、合計1,148行)
+├── nodeMeasurement.ts (436行) ✅ - テキスト測定 & ラッピング
+│   - measureTextWidth, wrapNodeText
+│   - getNodeTextLineHeight, getNodeTextMaxWidth
+│   - 句読点ベースの改行処理
+├── nodeSize.ts (338行) ✅ - ノードサイズ計算
+│   - calculateNodeSize, calculateIconLayout
+│   - getNodeHorizontalPadding, getMarkerPrefixTokens
+│   - テーブル寸法計算
+├── nodeGeometry.ts (38行) ✅ - 位置 & 境界計算
+│   - getNodeLeftX, getNodeRightX
+│   - getNodeTopY, getNodeBottomY
+│   - getNodeBounds
+├── nodeLayout.ts (101行) ✅ - レイアウト計算
 │   - getToggleButtonPosition
-├── nodeColor.ts (150行) - カラー管理
-│   - generateBranchColors
-│   - getBranchColor
-│   - getColorSetColors
-├── nodeText.ts (200行) - テキスト処理
-│   - wrapNodeText
-│   - smartSplitText
-│   - resolveNodeTextWrapConfig
-└── nodeGeometry.ts (150行) - 座標計算
-    - getNodeBounds
-    - getNodeLeftX, getNodeRightX
-    - getNodeTopY, getNodeBottomY
+│   - getDynamicNodeSpacing
+│   - calculateChildNodeX
+├── nodeColor.ts (178行) ✅ - カラー管理
+│   - getBranchColor, generateBranchColors
+│   - getColorSetColors (8つのカラーセット)
+└── nodeUtils.ts (57行) ✅ - 再エクスポート集約
+    - 全モジュールからの再エクスポート
+    - 後方互換性を完全に維持
 ```
+
+**達成した効果**:
+
+- ✅ 保守性: 大幅向上（明確な責任分離）
+- ✅ 可読性: 向上（平均182行/ファイル）
+- ✅ テスタビリティ: 向上（独立モジュール）
+- ✅ 後方互換性: 完全（再エクスポートパターン）
+
+**検証**:
+
+- ✅ Type-check: 成功
+- ✅ Build: 成功 (20.69s)
+- ✅ Breaking changes: なし
+
+**コミット**: `ce5606e` - refactor(phase2): split nodeUtils.ts into 5 focused modules
 
 #### 2-4. MarkdownFolderAdapter.ts (1,241行)
 ```
