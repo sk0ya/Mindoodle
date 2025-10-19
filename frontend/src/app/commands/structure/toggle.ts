@@ -74,7 +74,13 @@ export const toggleCommand: Command = {
     }
 
     try {
-      context.handlers.updateNode(nodeId, { collapsed: newCollapsedState });
+      // Use toggleNodeCollapse to ensure auto-layout is triggered
+      const store = useMindMapStore.getState();
+      if (store.toggleNodeCollapse) {
+        store.toggleNodeCollapse(nodeId);
+      } else {
+        context.handlers.updateNode(nodeId, { collapsed: newCollapsedState });
+      }
 
       const action = newCollapsedState ? 'collapsed' : 'expanded';
       return {
@@ -138,7 +144,13 @@ export const expandCommand: Command = {
     }
 
     try {
-      context.handlers.updateNode(nodeId, { collapsed: false });
+      // Use toggleNodeCollapse to ensure auto-layout is triggered
+      const store = useMindMapStore.getState();
+      if (store.toggleNodeCollapse) {
+        store.toggleNodeCollapse(nodeId);
+      } else {
+        context.handlers.updateNode(nodeId, { collapsed: false });
+      }
       return {
         success: true,
         message: `Expanded node "${node.text}" (${node.children.length} children)`
@@ -200,7 +212,13 @@ export const collapseCommand: Command = {
     }
 
     try {
-      context.handlers.updateNode(nodeId, { collapsed: true });
+      // Use toggleNodeCollapse to ensure auto-layout is triggered
+      const store = useMindMapStore.getState();
+      if (store.toggleNodeCollapse) {
+        store.toggleNodeCollapse(nodeId);
+      } else {
+        context.handlers.updateNode(nodeId, { collapsed: true });
+      }
       return {
         success: true,
         message: `Collapsed node "${node.text}" (${node.children.length} children)`
@@ -255,6 +273,12 @@ export const expandAllCommand: Command = {
 
       expandAllNodes(rootNodes);
 
+      // Trigger auto-layout after expanding all nodes
+      const store = useMindMapStore.getState();
+      if (store.data?.settings?.autoLayout) {
+        store.applyAutoLayout?.(true);
+      }
+
       return {
         success: true,
         message: `Expanded all nodes (${expandedCount} nodes were collapsed)`
@@ -308,6 +332,12 @@ export const collapseAllCommand: Command = {
       }
 
       collapseAllNodes(rootNodes);
+
+      // Trigger auto-layout after collapsing all nodes
+      const store = useMindMapStore.getState();
+      if (store.data?.settings?.autoLayout) {
+        store.applyAutoLayout?.();
+      }
 
       return {
         success: true,

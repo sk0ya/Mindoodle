@@ -71,22 +71,39 @@ export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): Normali
 export function denormalizeTreeData(normalizedData: NormalizedData): MindMapNode[] {
   const { nodes, rootNodeIds, childrenMap } = normalizedData;
 
-  function buildTree(nodeId: string): MindMapNode {
+  function buildTree(nodeId: string, parentLevel: number = 0): MindMapNode {
     const node = nodes[nodeId];
     if (!node) {
       throw new Error(`Node not found: ${nodeId}`);
     }
 
+    // Recalculate heading level based on parent level
+    let adjustedNode = { ...node };
+    if (node.markdownMeta?.type === 'heading') {
+      const currentLevel = parentLevel + 1;
+      adjustedNode = {
+        ...node,
+        markdownMeta: {
+          ...node.markdownMeta,
+          level: currentLevel
+        }
+      };
+    }
+
     const childIds = childrenMap[nodeId] || [];
-    const children = childIds.map(childId => buildTree(childId));
+    // Pass current node's level to children (for heading nodes, use the calculated level; for non-heading, use parentLevel)
+    const levelForChildren = adjustedNode.markdownMeta?.type === 'heading'
+      ? (adjustedNode.markdownMeta.level || parentLevel + 1)
+      : parentLevel;
+    const children = childIds.map(childId => buildTree(childId, levelForChildren));
 
     return {
-      ...node,
+      ...adjustedNode,
       children
     };
   }
 
-  return rootNodeIds.map(rootNodeId => buildTree(rootNodeId));
+  return rootNodeIds.map(rootNodeId => buildTree(rootNodeId, 0));
 }
 
 export function findNormalizedNode(

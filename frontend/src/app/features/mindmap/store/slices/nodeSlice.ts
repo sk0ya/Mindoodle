@@ -149,15 +149,17 @@ export const createNodeSlice: StateCreator<
   },
 
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => {
+    const collapsedChanged = 'collapsed' in updates;
+
     set((state) => {
       if (!state.normalizedData) return;
 
       try {
         const existingNode = state.normalizedData.nodes[nodeId];
 
-        
+
         if (existingNode?.markdownMeta?.type === 'preface' && 'text' in updates) {
-          
+
           const { text, ...allowedUpdates } = updates;
           state.normalizedData = updateNormalizedNode(state.normalizedData, nodeId, allowedUpdates);
         } else {
@@ -168,8 +170,16 @@ export const createNodeSlice: StateCreator<
       }
     });
 
-    
+
     get().syncToMindMapData();
+
+
+    if (collapsedChanged) {
+      const { data } = get();
+      if (data?.settings?.autoLayout) {
+        get().applyAutoLayout();
+      }
+    }
   },
 
   addChildNode: (parentId: string, text: string = 'New Node') => {
