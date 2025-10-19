@@ -1,5 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Plus, Trash2, Copy, ClipboardPaste, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
+import { X, Plus, Trash2 } from 'lucide-react';
+import { TableData, ContextMenu } from '../utils/table-editor/types';
+import { parseMarkdownTable, toMarkdownTable } from '../utils/table-editor';
+import { useTableSelection } from '../hooks/useTableSelection';
+import { useTableEditor } from '../hooks/useTableEditor';
+import { useTableKeyboard } from '../hooks/useTableKeyboard';
+import { TableContextMenu } from './table-editor/TableContextMenu';
 
 interface TableEditorModalProps {
   isOpen: boolean;
@@ -8,103 +14,62 @@ interface TableEditorModalProps {
   initialMarkdown?: string;
 }
 
-interface TableCell {
-  value: string;
-}
-
-interface TableData {
-  headers: TableCell[];
-  rows: TableCell[][];
-}
-
-type Selection =
-  | { type: 'none' }
-  | { type: 'rows'; indices: number[] }
-  | { type: 'columns'; indices: number[] }
-  | { type: 'cell'; row: number; col: number }
-  | { type: 'range'; startRow: number; startCol: number; endRow: number; endCol: number };
-
-interface ContextMenu {
-  x: number;
-  y: number;
-  type: 'row' | 'column' | 'cell' | 'range';
-  target?: number | number[];
-}
-
-interface ClipboardData {
-  type: 'cells' | 'rows' | 'columns';
-  data: TableCell[][] | TableCell[];
-  indices?: number[];
-}
-
-
-function parseMarkdownTable(markdown: string): TableData | null {
-  const lines = markdown.trim().split('\n').filter(line => line.trim());
-  if (lines.length < 2) return null;
-
-  
-  const headerLine = lines[0].trim();
-  const headers = headerLine
-    .split('|')
-    .map(cell => cell.trim())
-    .filter(cell => cell.length > 0)
-    .map(value => ({ value }));
-
-  if (headers.length === 0) return null;
-
-  
-  
-  const rows: TableCell[][] = [];
-  for (let i = 2; i < lines.length; i++) {
-    const line = lines[i].trim();
-    const cells = line
-      .split('|')
-      .map(cell => cell.trim())
-      .filter((_, idx) => idx > 0 && idx <= headers.length)
-      .map(value => ({ value }));
-
-    while (cells.length < headers.length) {
-      cells.push({ value: '' });
-    }
-    rows.push(cells.slice(0, headers.length));
-  }
-
-  return { headers, rows };
-}
-
-/**
- * Convert structured data to markdown table
- */
-function toMarkdownTable(data: TableData): string {
-  const { headers, rows } = data;
-  // Sanitize cell values: remove newlines and pipe characters
-  const sanitize = (value: string) => value.replace(/[\r\n|]/g, ' ');
-
-  const headerLine = '| ' + headers.map(h => sanitize(h.value || ' ')).join(' | ') + ' |';
-  const separatorLine = '| ' + headers.map(() => '---').join(' | ') + ' |';
-  const dataLines = rows.map(row =>
-    '| ' + row.map(cell => sanitize(cell.value || ' ')).join(' | ') + ' |'
-  );
-  return [headerLine, separatorLine, ...dataLines].join('\n');
-}
-
 export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  initialMarkdown = ''
+  initialMarkdown = '',
 }) => {
   const [tableData, setTableData] = useState<TableData>({ headers: [], rows: [] });
   const [error, setError] = useState<string | null>(null);
-  const [selection, setSelection] = useState<Selection>({ type: 'none' });
-  const [editingCell, setEditingCell] = useState<{ row: number; col: number } | null>(null);
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState<{ row: number; col: number } | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
-  const [clipboard, setClipboard] = useState<ClipboardData | null>(null);
   const [dragType, setDragType] = useState<'select' | 'reorder' | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  const {
+    selection,
+    setSelection,
+    editingCell,
+    setEditingCell,
+    isDragging,
+    setIsDragging,
+    dragStart,
+    setDragStart,
+    isCellInSelection,
+    clearSelection,
+  } = useTableSelection();
+
+  const {
+    clipboard,
+    handleHeaderChange,
+    handleCellChange,
+    handleAddRow,
+    handleAddColumn,
+    handleDeleteSelection,
+    handleCopy,
+    handlePaste,
+    handleInsertRowAbove,
+    handleInsertRowBelow,
+    handleInsertColumnLeft,
+    handleInsertColumnRight,
+  } = useTableEditor({ tableData, setTableData, selection, setSelection, setContextMenu });
+
+  const { handleKeyDown } = useTableKeyboard({
+    editingCell,
+    selection,
+    onDelete: handleDeleteSelection,
+    onCopy: handleCopy,
+    onPaste: handlePaste,
+    onCut: () => {
+      handleCopy();
+      handleDeleteSelection();
+    },
+    onEscape: () => {
+      clearSelection();
+      setContextMenu(null);
+    },
+  });
 
   useEffect(() => {
     if (!isOpen) return;
@@ -119,8 +84,8 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
           headers: [{ value: 'Header 1' }, { value: 'Header 2' }, { value: 'Header 3' }],
           rows: [
             [{ value: '' }, { value: '' }, { value: '' }],
-            [{ value: '' }, { value: '' }, { value: '' }]
-          ]
+            [{ value: '' }, { value: '' }, { value: '' }],
+          ],
         });
         setError('テーブルの解析に失敗しました。デフォルトのテーブルを作成します。');
       }
@@ -129,15 +94,14 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
         headers: [{ value: 'Header 1' }, { value: 'Header 2' }, { value: 'Header 3' }],
         rows: [
           [{ value: '' }, { value: '' }, { value: '' }],
-          [{ value: '' }, { value: '' }, { value: '' }]
-        ]
+          [{ value: '' }, { value: '' }, { value: '' }],
+        ],
       });
       setError(null);
     }
-    setSelection({ type: 'none' });
-  }, [isOpen, initialMarkdown]);
+    clearSelection();
+  }, [isOpen, initialMarkdown, clearSelection]);
 
-  
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (contextMenu && contextMenuRef.current && !contextMenuRef.current.contains(e.target as Node)) {
@@ -149,181 +113,17 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [contextMenu]);
 
-  const handleHeaderChange = (index: number, value: string) => {
-    const newHeaders = [...tableData.headers];
-    // Remove newlines and pipes from header values to prevent markdown corruption
-    newHeaders[index] = { value: value.replace(/[\r\n|]/g, ' ') };
-    setTableData({ ...tableData, headers: newHeaders });
-  };
-
-  const handleCellChange = (rowIndex: number, cellIndex: number, value: string) => {
-    const newRows = tableData.rows.map((row, rIdx) =>
-      rIdx === rowIndex
-        ? row.map((cell, cIdx) => cIdx === cellIndex ? { value: value.replace(/[\r\n|]/g, ' ') } : cell)
-        : row
-    );
-    setTableData({ ...tableData, rows: newRows });
-  };
-
-  const handleAddRow = () => {
-    const newRow = tableData.headers.map(() => ({ value: '' }));
-    setTableData({ ...tableData, rows: [...tableData.rows, newRow] });
-    setSelection({ type: 'none' });
-  };
-
-  const handleAddColumn = () => {
-    const newHeaders = [...tableData.headers, { value: `Header ${tableData.headers.length + 1}` }];
-    const newRows = tableData.rows.map(row => [...row, { value: '' }]);
-    setTableData({ headers: newHeaders, rows: newRows });
-    setSelection({ type: 'none' });
-  };
-
-  const handleDeleteSelection = () => {
-    if (selection.type === 'rows') {
-      if (tableData.rows.length - selection.indices.length < 1) return;
-      const newRows = tableData.rows.filter((_, idx) => !selection.indices.includes(idx));
-      setTableData({ ...tableData, rows: newRows });
-      setSelection({ type: 'none' });
-    } else if (selection.type === 'columns') {
-      if (tableData.headers.length - selection.indices.length < 1) return;
-      const newHeaders = tableData.headers.filter((_, idx) => !selection.indices.includes(idx));
-      const newRows = tableData.rows.map(row => row.filter((_, idx) => !selection.indices.includes(idx)));
-      setTableData({ headers: newHeaders, rows: newRows });
-      setSelection({ type: 'none' });
-    }
-    setContextMenu(null);
-  };
-
-  const handleCopy = () => {
-    if (selection.type === 'rows') {
-      const copiedRows = selection.indices.map(idx => tableData.rows[idx]);
-      setClipboard({ type: 'rows', data: copiedRows, indices: selection.indices });
-    } else if (selection.type === 'columns') {
-      const copiedColumns = selection.indices.map(colIdx => tableData.headers[colIdx]);
-      setClipboard({ type: 'columns', data: copiedColumns, indices: selection.indices });
-    } else if (selection.type === 'range') {
-      const copiedCells: TableCell[][] = [];
-      for (let r = selection.startRow; r <= selection.endRow; r++) {
-        const rowCells: TableCell[] = [];
-        for (let c = selection.startCol; c <= selection.endCol; c++) {
-          rowCells.push(tableData.rows[r][c]);
-        }
-        copiedCells.push(rowCells);
-      }
-      setClipboard({ type: 'cells', data: copiedCells });
-    }
-    setContextMenu(null);
-  };
-
-  const handlePaste = () => {
-    if (!clipboard) return;
-
-    if (clipboard.type === 'rows' && selection.type === 'rows' && selection.indices.length > 0) {
-      const targetIndex = Math.min(...selection.indices);
-      const newRows = [...tableData.rows];
-      (clipboard.data as TableCell[][]).forEach((row, idx) => {
-        newRows.splice(targetIndex + idx, 0, [...row]);
-      });
-      setTableData({ ...tableData, rows: newRows });
-    } else if (clipboard.type === 'columns' && selection.type === 'columns' && selection.indices.length > 0) {
-      const targetIndex = Math.min(...selection.indices);
-      const copiedHeaders = clipboard.data as TableCell[];
-      const newHeaders = [...tableData.headers];
-      copiedHeaders.forEach((header, idx) => {
-        newHeaders.splice(targetIndex + idx, 0, { ...header });
-      });
-      const newRows = tableData.rows.map(row => {
-        const newRow = [...row];
-        copiedHeaders.forEach((_, idx) => {
-          newRow.splice(targetIndex + idx, 0, { value: '' });
-        });
-        return newRow;
-      });
-      setTableData({ headers: newHeaders, rows: newRows });
-    } else if (clipboard.type === 'cells' && selection.type === 'cell') {
-      const copiedCells = clipboard.data as TableCell[][];
-      const newRows = [...tableData.rows];
-      copiedCells.forEach((rowCells, rIdx) => {
-        const targetRow = selection.row + rIdx;
-        if (targetRow < newRows.length) {
-          rowCells.forEach((cell, cIdx) => {
-            const targetCol = selection.col + cIdx;
-            if (targetCol < newRows[targetRow].length) {
-              newRows[targetRow][targetCol] = { ...cell };
-            }
-          });
-        }
-      });
-      setTableData({ ...tableData, rows: newRows });
-    }
-    setContextMenu(null);
-  };
-
-  const handleInsertRowAbove = () => {
-    if (selection.type === 'rows' && selection.indices.length > 0) {
-      const targetIndex = Math.min(...selection.indices);
-      const newRow = tableData.headers.map(() => ({ value: '' }));
-      const newRows = [...tableData.rows];
-      newRows.splice(targetIndex, 0, newRow);
-      setTableData({ ...tableData, rows: newRows });
-    }
-    setContextMenu(null);
-  };
-
-  const handleInsertRowBelow = () => {
-    if (selection.type === 'rows' && selection.indices.length > 0) {
-      const targetIndex = Math.max(...selection.indices) + 1;
-      const newRow = tableData.headers.map(() => ({ value: '' }));
-      const newRows = [...tableData.rows];
-      newRows.splice(targetIndex, 0, newRow);
-      setTableData({ ...tableData, rows: newRows });
-    }
-    setContextMenu(null);
-  };
-
-  const handleInsertColumnLeft = () => {
-    if (selection.type === 'columns' && selection.indices.length > 0) {
-      const targetIndex = Math.min(...selection.indices);
-      const newHeaders = [...tableData.headers];
-      newHeaders.splice(targetIndex, 0, { value: `Header ${tableData.headers.length + 1}` });
-      const newRows = tableData.rows.map(row => {
-        const newRow = [...row];
-        newRow.splice(targetIndex, 0, { value: '' });
-        return newRow;
-      });
-      setTableData({ headers: newHeaders, rows: newRows });
-    }
-    setContextMenu(null);
-  };
-
-  const handleInsertColumnRight = () => {
-    if (selection.type === 'columns' && selection.indices.length > 0) {
-      const targetIndex = Math.max(...selection.indices) + 1;
-      const newHeaders = [...tableData.headers];
-      newHeaders.splice(targetIndex, 0, { value: `Header ${tableData.headers.length + 1}` });
-      const newRows = tableData.rows.map(row => {
-        const newRow = [...row];
-        newRow.splice(targetIndex, 0, { value: '' });
-        return newRow;
-      });
-      setTableData({ headers: newHeaders, rows: newRows });
-    }
-    setContextMenu(null);
-  };
-
   const handleRowHeaderClick = (rowIndex: number, e: React.MouseEvent) => {
     e.preventDefault();
     setContextMenu(null);
 
     if (e.shiftKey && selection.type === 'rows' && selection.indices.length > 0) {
-      
       const lastIndex = selection.indices[selection.indices.length - 1];
       const start = Math.min(lastIndex, rowIndex);
       const end = Math.max(lastIndex, rowIndex);
       const newIndices = Array.from({ length: end - start + 1 }, (_, i) => start + i);
       setSelection({ type: 'rows', indices: newIndices });
     } else if (e.ctrlKey || e.metaKey) {
-      
       if (selection.type === 'rows') {
         const newIndices = selection.indices.includes(rowIndex)
           ? selection.indices.filter(i => i !== rowIndex)
@@ -333,7 +133,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
         setSelection({ type: 'rows', indices: [rowIndex] });
       }
     } else {
-      
       setSelection({ type: 'rows', indices: [rowIndex] });
       setEditingCell(null);
     }
@@ -341,18 +140,10 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
 
   const handleRowHeaderContextMenu = (rowIndex: number, e: React.MouseEvent) => {
     e.preventDefault();
-
-    
     if (selection.type !== 'rows' || !selection.indices.includes(rowIndex)) {
       setSelection({ type: 'rows', indices: [rowIndex] });
     }
-
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      type: 'row',
-      target: rowIndex
-    });
+    setContextMenu({ x: e.clientX, y: e.clientY, type: 'row', target: rowIndex });
   };
 
   const handleColumnHeaderClick = (colIndex: number, e: React.MouseEvent) => {
@@ -360,14 +151,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setContextMenu(null);
 
     if (e.shiftKey && selection.type === 'columns' && selection.indices.length > 0) {
-      
       const lastIndex = selection.indices[selection.indices.length - 1];
       const start = Math.min(lastIndex, colIndex);
       const end = Math.max(lastIndex, colIndex);
       const newIndices = Array.from({ length: end - start + 1 }, (_, i) => start + i);
       setSelection({ type: 'columns', indices: newIndices });
     } else if (e.ctrlKey || e.metaKey) {
-      
       if (selection.type === 'columns') {
         const newIndices = selection.indices.includes(colIndex)
           ? selection.indices.filter(i => i !== colIndex)
@@ -377,10 +166,8 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
         setSelection({ type: 'columns', indices: [colIndex] });
       }
     } else if (selection.type === 'columns' && selection.indices.length === 1 && selection.indices[0] === colIndex) {
-      
       setEditingCell({ row: -1, col: colIndex });
     } else {
-      
       setSelection({ type: 'columns', indices: [colIndex] });
       setEditingCell(null);
     }
@@ -388,27 +175,16 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
 
   const handleColumnHeaderContextMenu = (colIndex: number, e: React.MouseEvent) => {
     e.preventDefault();
-
-    
     if (selection.type !== 'columns' || !selection.indices.includes(colIndex)) {
       setSelection({ type: 'columns', indices: [colIndex] });
     }
-
-    setContextMenu({
-      x: e.clientX,
-      y: e.clientY,
-      type: 'column',
-      target: colIndex
-    });
+    setContextMenu({ x: e.clientX, y: e.clientY, type: 'column', target: colIndex });
   };
 
   const handleCellMouseDown = (rowIndex: number, cellIndex: number) => {
-    
     if (editingCell?.row === rowIndex && editingCell?.col === cellIndex) {
       return;
     }
-
-    
     setIsDragging(true);
     setDragStart({ row: rowIndex, col: cellIndex });
     setSelection({ type: 'cell', row: rowIndex, col: cellIndex });
@@ -418,19 +194,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const handleCellMouseEnter = (rowIndex: number, cellIndex: number) => {
     if (!isDragging || !dragStart) return;
 
-    
     const startRow = Math.min(dragStart.row, rowIndex);
     const endRow = Math.max(dragStart.row, rowIndex);
     const startCol = Math.min(dragStart.col, cellIndex);
     const endCol = Math.max(dragStart.col, cellIndex);
 
-    setSelection({
-      type: 'range',
-      startRow,
-      startCol,
-      endRow,
-      endCol
-    });
+    setSelection({ type: 'range', startRow, startCol, endRow, endCol });
   };
 
   const handleRowHeaderDragStart = (rowIndex: number, e: React.DragEvent) => {
@@ -438,7 +207,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     e.dataTransfer.setData('text/plain', rowIndex.toString());
     setDragType('reorder');
 
-    
     if (selection.type !== 'rows' || !selection.indices.includes(rowIndex)) {
       setSelection({ type: 'rows', indices: [rowIndex] });
     }
@@ -457,30 +225,24 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     if (dragType !== 'reorder' || selection.type !== 'rows') return;
 
     const selectedIndices = [...selection.indices].sort((a, b) => a - b);
-
-    
     const newRows = [...tableData.rows];
     const movedRows = selectedIndices.map(idx => newRows[idx]);
 
-    
     [...selectedIndices].reverse().forEach(idx => {
       newRows.splice(idx, 1);
     });
 
-    
     let insertIndex = targetRowIndex;
     selectedIndices.forEach(idx => {
       if (idx < targetRowIndex) insertIndex--;
     });
 
-    
     newRows.splice(insertIndex, 0, ...movedRows);
 
     setTableData({ ...tableData, rows: newRows });
     setDragType(null);
     setDragOverIndex(null);
 
-    
     const newIndices = movedRows.map((_, i) => insertIndex + i);
     setSelection({ type: 'rows', indices: newIndices });
   };
@@ -490,7 +252,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     e.dataTransfer.setData('text/plain', colIndex.toString());
     setDragType('reorder');
 
-    
     if (selection.type !== 'columns' || !selection.indices.includes(colIndex)) {
       setSelection({ type: 'columns', indices: [colIndex] });
     }
@@ -509,26 +270,20 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     if (dragType !== 'reorder' || selection.type !== 'columns') return;
 
     const selectedIndices = [...selection.indices].sort((a, b) => a - b);
-
-    
     const newHeaders = [...tableData.headers];
     const movedHeaders = selectedIndices.map(idx => newHeaders[idx]);
 
-    
     [...selectedIndices].reverse().forEach(idx => {
       newHeaders.splice(idx, 1);
     });
 
-    
     let insertIndex = targetColIndex;
     selectedIndices.forEach(idx => {
       if (idx < targetColIndex) insertIndex--;
     });
 
-    
     newHeaders.splice(insertIndex, 0, ...movedHeaders);
 
-    
     const newRows = tableData.rows.map(row => {
       const newRow = [...row];
       const movedCells = selectedIndices.map(idx => newRow[idx]);
@@ -543,7 +298,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setDragType(null);
     setDragOverIndex(null);
 
-    
     const newIndices = movedHeaders.map((_, i) => insertIndex + i);
     setSelection({ type: 'columns', indices: newIndices });
   };
@@ -551,19 +305,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
-      
-      if (selection.type === 'cell') {
-        
-        const isSameCell =
-          dragStart &&
-          selection.type === 'cell' &&
-          selection.row === dragStart.row &&
-          selection.col === dragStart.col;
-
-        if (isSameCell) {
-          // no-op: releasing in the same cell should not trigger changes
-        }
-      }
       setDragStart(null);
     }
 
@@ -574,70 +315,8 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   };
 
   const handleCellDoubleClick = (rowIndex: number, cellIndex: number) => {
-    
     setEditingCell({ row: rowIndex, col: cellIndex });
     setSelection({ type: 'none' });
-  };
-
-  
-  const isCellInSelection = (rowIndex: number, cellIndex: number): boolean => {
-    if (selection.type === 'rows' && selection.indices.includes(rowIndex)) return true;
-    if (selection.type === 'columns' && selection.indices.includes(cellIndex)) return true;
-    if (selection.type === 'cell' && selection.row === rowIndex && selection.col === cellIndex) return true;
-    if (selection.type === 'range') {
-      return (
-        rowIndex >= selection.startRow &&
-        rowIndex <= selection.endRow &&
-        cellIndex >= selection.startCol &&
-        cellIndex <= selection.endCol
-      );
-    }
-    return false;
-  };
-
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    
-    if (editingCell) return;
-
-    
-    e.stopPropagation();
-
-    const isMac = (navigator.userAgent || '').toLowerCase().includes('mac');
-    const ctrlOrCmd = isMac ? e.metaKey : e.ctrlKey;
-
-    
-    if ((e.key === 'Delete' || e.key === 'Backspace') && !ctrlOrCmd) {
-      e.preventDefault();
-      if (selection.type === 'rows' || selection.type === 'columns') {
-        handleDeleteSelection();
-      }
-    }
-
-    
-    if (e.key === 'c' && ctrlOrCmd && !e.shiftKey) {
-      e.preventDefault();
-      handleCopy();
-    }
-
-    
-    if (e.key === 'v' && ctrlOrCmd && !e.shiftKey) {
-      e.preventDefault();
-      handlePaste();
-    }
-
-    
-    if (e.key === 'x' && ctrlOrCmd && !e.shiftKey) {
-      e.preventDefault();
-      handleCopy();
-      handleDeleteSelection();
-    }
-
-    
-    if (e.key === 'Escape') {
-      e.preventDefault();
-      setSelection({ type: 'none' });
-      setContextMenu(null);
-    }
   };
 
   const handleSave = () => {
@@ -686,11 +365,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
           </button>
         </div>
 
-        {error && (
-          <div className="error-message">
-            {error}
-          </div>
-        )}
+        {error && <div className="error-message">{error}</div>}
 
         <div className="modal-body">
           <div className="table-container">
@@ -704,12 +379,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                       className={`column-header ${
                         selection.type === 'columns' && selection.indices.includes(idx) ? 'selected' : ''
                       } ${dragOverIndex === idx && dragType === 'reorder' ? 'drag-over' : ''}`}
-                      onClick={(e) => handleColumnHeaderClick(idx, e)}
-                      onContextMenu={(e) => handleColumnHeaderContextMenu(idx, e)}
+                      onClick={e => handleColumnHeaderClick(idx, e)}
+                      onContextMenu={e => handleColumnHeaderContextMenu(idx, e)}
                       draggable={selection.type === 'columns' && selection.indices.includes(idx)}
-                      onDragStart={(e) => handleColumnHeaderDragStart(idx, e)}
-                      onDragOver={(e) => handleColumnHeaderDragOver(idx, e)}
-                      onDrop={(e) => handleColumnHeaderDrop(idx, e)}
+                      onDragStart={e => handleColumnHeaderDragStart(idx, e)}
+                      onDragOver={e => handleColumnHeaderDragOver(idx, e)}
+                      onDrop={e => handleColumnHeaderDrop(idx, e)}
                     >
                       {editingCell?.row === -1 && editingCell?.col === idx ? (
                         <input
@@ -723,9 +398,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                           onClick={e => e.stopPropagation()}
                         />
                       ) : (
-                        <div className="header-display">
-                          {header.value || `Header ${idx + 1}`}
-                        </div>
+                        <div className="header-display">{header.value || `Header ${idx + 1}`}</div>
                       )}
                     </th>
                   ))}
@@ -748,12 +421,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                       className={`row-header ${
                         selection.type === 'rows' && selection.indices.includes(rowIdx) ? 'selected' : ''
                       } ${dragOverIndex === rowIdx && dragType === 'reorder' ? 'drag-over' : ''}`}
-                      onClick={(e) => handleRowHeaderClick(rowIdx, e)}
-                      onContextMenu={(e) => handleRowHeaderContextMenu(rowIdx, e)}
+                      onClick={e => handleRowHeaderClick(rowIdx, e)}
+                      onContextMenu={e => handleRowHeaderContextMenu(rowIdx, e)}
                       draggable={selection.type === 'rows' && selection.indices.includes(rowIdx)}
-                      onDragStart={(e) => handleRowHeaderDragStart(rowIdx, e)}
-                      onDragOver={(e) => handleRowHeaderDragOver(rowIdx, e)}
-                      onDrop={(e) => handleRowHeaderDrop(rowIdx, e)}
+                      onDragStart={e => handleRowHeaderDragStart(rowIdx, e)}
+                      onDragOver={e => handleRowHeaderDragOver(rowIdx, e)}
+                      onDrop={e => handleRowHeaderDrop(rowIdx, e)}
                     >
                       {rowIdx + 1}
                     </td>
@@ -776,9 +449,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                             onBlur={() => setEditingCell(null)}
                           />
                         ) : (
-                          <div className="cell-display">
-                            {cell.value || ' '}
-                          </div>
+                          <div className="cell-display">{cell.value || ' '}</div>
                         )}
                       </td>
                     ))}
@@ -787,11 +458,7 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                 ))}
                 <tr className="add-row-tr">
                   <td colSpan={tableData.headers.length + 2}>
-                    <button
-                      className="add-row-btn"
-                      onClick={handleAddRow}
-                      aria-label="行を追加"
-                    >
+                    <button className="add-row-btn" onClick={handleAddRow} aria-label="行を追加">
                       <Plus size={16} />
                       <span>行を追加</span>
                     </button>
@@ -803,87 +470,19 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
         </div>
 
         {contextMenu && (
-          <div
-            ref={contextMenuRef}
-            className="context-menu"
-            style={{
-              position: 'fixed',
-              left: `${contextMenu.x}px`,
-              top: `${contextMenu.y}px`,
-              zIndex: 10001
-            }}
-          >
-            {contextMenu.type === 'row' && (
-              <>
-                <button className="context-menu-item" onClick={handleCopy}>
-                  <Copy size={14} />
-                  <span>コピー</span>
-                  <span className="shortcut">Ctrl+C</span>
-                </button>
-                {clipboard && (
-                  <button className="context-menu-item" onClick={handlePaste}>
-                    <ClipboardPaste size={14} />
-                    <span>ペースト</span>
-                    <span className="shortcut">Ctrl+V</span>
-                  </button>
-                )}
-                <div className="context-menu-divider" />
-                <button className="context-menu-item" onClick={handleInsertRowAbove}>
-                  <ArrowUp size={14} />
-                  <span>上に行を挿入</span>
-                </button>
-                <button className="context-menu-item" onClick={handleInsertRowBelow}>
-                  <ArrowDown size={14} />
-                  <span>下に行を挿入</span>
-                </button>
-                <div className="context-menu-divider" />
-                <button
-                  className="context-menu-item danger"
-                  onClick={handleDeleteSelection}
-                  disabled={!canDelete}
-                >
-                  <Trash2 size={14} />
-                  <span>削除</span>
-                  <span className="shortcut">Del</span>
-                </button>
-              </>
-            )}
-            {contextMenu.type === 'column' && (
-              <>
-                <button className="context-menu-item" onClick={handleCopy}>
-                  <Copy size={14} />
-                  <span>コピー</span>
-                  <span className="shortcut">Ctrl+C</span>
-                </button>
-                {clipboard && (
-                  <button className="context-menu-item" onClick={handlePaste}>
-                    <ClipboardPaste size={14} />
-                    <span>ペースト</span>
-                    <span className="shortcut">Ctrl+V</span>
-                  </button>
-                )}
-                <div className="context-menu-divider" />
-                <button className="context-menu-item" onClick={handleInsertColumnLeft}>
-                  <ArrowLeft size={14} />
-                  <span>左に列を挿入</span>
-                </button>
-                <button className="context-menu-item" onClick={handleInsertColumnRight}>
-                  <ArrowRight size={14} />
-                  <span>右に列を挿入</span>
-                </button>
-                <div className="context-menu-divider" />
-                <button
-                  className="context-menu-item danger"
-                  onClick={handleDeleteSelection}
-                  disabled={!canDelete}
-                >
-                  <Trash2 size={14} />
-                  <span>削除</span>
-                  <span className="shortcut">Del</span>
-                </button>
-              </>
-            )}
-          </div>
+          <TableContextMenu
+            contextMenu={contextMenu}
+            clipboard={clipboard}
+            canDelete={canDelete}
+            menuRef={contextMenuRef}
+            onCopy={handleCopy}
+            onPaste={handlePaste}
+            onInsertRowAbove={handleInsertRowAbove}
+            onInsertRowBelow={handleInsertRowBelow}
+            onInsertColumnLeft={handleInsertColumnLeft}
+            onInsertColumnRight={handleInsertColumnRight}
+            onDelete={handleDeleteSelection}
+          />
         )}
 
         <div className="modal-footer">
@@ -1055,10 +654,12 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
             padding: 8px 12px;
             text-align: center;
             cursor: pointer;
+            white-space: nowrap;
           }
 
           .header-input {
             width: 100%;
+            min-width: 100px;
             border: none;
             background: var(--bg-hover);
             color: var(--text-primary);
@@ -1069,7 +670,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
             border-radius: 4px;
             text-align: center;
             box-shadow: inset 0 0 0 2px var(--accent-color);
-            min-width: 100px;
           }
 
           .row-header {
@@ -1110,10 +710,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
             min-width: 80px;
           }
 
-          .header-display {
-            white-space: nowrap;
-          }
-
           .cell-input {
             width: 100%;
             min-width: 80px;
@@ -1125,10 +721,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
             outline: none;
             box-sizing: border-box;
             box-shadow: inset 0 0 0 2px var(--accent-color);
-          }
-
-          .header-input {
-            min-width: 100px;
           }
 
           .add-column-header {
