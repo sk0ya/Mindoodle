@@ -193,12 +193,18 @@ export const createNodeSlice: StateCreator<
           return;
         }
 
-        
+
         if (parentNode.markdownMeta?.type === 'preface') {
           return;
         }
-        
-        
+
+        // Expand parent node if collapsed
+        if (parentNode.collapsed) {
+          parentNode.collapsed = false;
+          state.normalizedData.nodes[parentId] = { ...parentNode };
+        }
+
+
         const settings = state.settings;
         const newNode = createNewNode(text, parentNode, settings, true);
         newNodeId = newNode.id;
