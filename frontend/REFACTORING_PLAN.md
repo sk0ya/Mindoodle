@@ -75,45 +75,84 @@
 
 ---
 
-### フェーズ2: 大規模ファイルの分割 ✅ 【一部完了】
+### フェーズ2: 大規模ファイルの分割 ✅ 【3/5完了: 60%】
 
 **目標**: 1000行超のファイルを責任ごとに分割
 
-#### 2-1. TableEditorModal.tsx (1,317行)
+**実施済み**: 3ファイル / 5ファイル (60%)
+
+- ✅ nodeUtils.ts (1,082行) → 5モジュール
+- ✅ TableEditorModal.tsx (1,317行) → 9モジュール
+- ✅ nodeSlice.ts (1,047行) → 8モジュール
+- ⏸️ NodeRenderer.tsx (1,247行) - 専用セッション推奨
+- ⏸️ MarkdownFolderAdapter.ts (1,241行) - 専用セッション推奨
+
+**達成した削減**: 約3,446行のファイルを整理済み
+
+#### 2-1. TableEditorModal.tsx (1,317行) ✅ 【完了】
+
+**実施結果**:
+
 ```
-現状: 単一ファイル
-↓ 分割後
-├── components/
-│   ├── TableEditorModal.tsx (150行) - メインコンポーネント
-│   ├── TableCell.tsx (100行) - セルコンポーネント
-│   ├── TableHeader.tsx (80行) - ヘッダー
-│   ├── TableContextMenu.tsx (80行) - コンテキストメニュー
-│   └── TableSelection.tsx (70行) - 選択範囲表示
+元ファイル: TableEditorModal.tsx (1,317行)
+↓ 分割後 (9ファイル)
+├── utils/table-editor/
+│   ├── types.ts (37行) - 型定義
+│   ├── tableParser.ts (41行) - Markdown解析
+│   ├── tableSerializer.ts (33行) - Markdown出力
+│   └── tableValidation.ts (30行) - バリデーション
 ├── hooks/
-│   ├── useTableEditor.ts (200行) - ビジネスロジック
-│   ├── useTableSelection.ts (100行) - 選択ロジック
-│   └── useTableKeyboard.ts (80行) - キーボード操作
-└── utils/
-    ├── tableParser.ts (100行) - Markdown解析
-    ├── tableSerializer.ts (80行) - Markdown出力
-    └── tableValidation.ts (60行) - バリデーション
+│   ├── useTableSelection.ts (46行) - 選択状態管理
+│   ├── useTableKeyboard.ts (68行) - キーボード操作
+│   └── useTableEditor.ts (207行) - テーブル編集操作
+├── components/
+│   ├── TableContextMenu.tsx (97行) - コンテキストメニュー
+│   └── TableEditorModal.tsx (909行) - メインコンポーネント (31%削減)
 ```
 
-#### 2-2. NodeRenderer.tsx (1,247行)
-```
-現状: 単一ファイル
-↓ 分割後
-├── NodeRenderer.tsx (200行) - メインレンダラー
-├── NodeContent.tsx (150行) - テキスト表示
-├── NodeImage.tsx (120行) - 画像表示
-├── NodeTable.tsx (100行) - テーブル表示
-├── NodeMermaid.tsx (80行) - Mermaid図表示
-├── NodeSelectionBorder.tsx (60行) - 選択枠
-├── hooks/
-│   └── useNodeStyles.ts (150行) - スタイル計算
-└── utils/
-    └── renderUtils.ts (150行) - レンダリングユーティリティ
-```
+**達成した効果**:
+
+- ✅ サイズ削減: 1,317行 → 909行 (31%削減)
+- ✅ 保守性: 大幅向上 (明確な責任分離)
+- ✅ 再利用性: パーサー/シリアライザを独立化
+- ✅ テスタビリティ: 各機能を独立してテスト可能
+
+**検証**:
+
+- ✅ Type-check: 成功
+- ✅ Build: 成功 (26.37s)
+- ✅ 後方互換性: 完全
+
+**コミット**: `f93ec74` - refactor(phase2): split TableEditorModal into focused modules
+
+#### 2-2. NodeRenderer.tsx (1,247行) ⏸️ 【保留 - 専用セッション推奨】
+
+**複雑度評価**: 非常に高
+
+**主な機能**:
+
+- 画像レンダリング (MD/HTML画像、相対パス解決、リサイズ)
+- Mermaidダイアグラムレンダリング
+- テーブルレンダリング
+- チェックボックス処理
+- ノードスタイリング
+- 複雑なイベントハンドリング
+
+**保留理由**:
+
+- 多数の状態管理とuseEffect依存
+- 画像リサイズの複雑なロジック
+- 相対パス画像の非同期解決
+- 複数のレンダリングパスの調整
+- 安全な分割には包括的なビジュアルテストが必要
+
+**推奨アプローチ**:
+
+専用セッションで以下を実施:
+
+1. ビジュアルリグレッションテストの準備
+2. 段階的な抽出 (helpers → hooks → sub-components)
+3. 各段階での徹底的なテスト
 
 #### 2-3. nodeUtils.ts (1,082行) ✅ 【完了】
 
@@ -160,35 +199,111 @@
 
 **コミット**: `ce5606e` - refactor(phase2): split nodeUtils.ts into 5 focused modules
 
-#### 2-4. MarkdownFolderAdapter.ts (1,241行)
+#### 2-4. MarkdownFolderAdapter.ts (1,241行) ⏸️ 【保留 - 専用セッション推奨】
+
+**複雑度評価**: 非常に高
+
+**主な機能**:
+
+- File System Access API統合 (35メソッド)
+- IndexedDB永続化
+- ワークスペース管理
+- ファイル/フォルダ操作
+- 権限管理
+- Markdownマップの読み書き
+
+**保留理由**:
+
+- File System Access APIの複雑な権限管理
+- IndexedDBとの非同期連携
+- 多数の相互依存メソッド
+- 包括的な統合テストが必要
+
+**推奨アプローチ**:
+
+専用セッションで以下を実施:
+
+1. IndexedDBヘルパーの抽出
+2. FileSystemヘルパーの抽出
+3. 各モジュールの統合テスト
+4. エンドツーエンドテスト
+
+#### 2-5. nodeSlice.ts (1,047行) ✅ 【完了】
+
+**実施結果**:
+
 ```
-現状: 単一ファイル
-↓ 分割後
-├── MarkdownFolderAdapter.ts (300行) - メインアダプター
-├── FolderOperations.ts (250行) - フォルダ操作
-├── FileOperations.ts (200行) - ファイル操作
-├── MarkdownSerializer.ts (200行) - Markdown変換
-├── FolderScanner.ts (150行) - フォルダスキャン
-└── PathResolver.ts (100行) - パス解決
+元ファイル: nodeSlice.ts (1,047行)
+↓ 分割後 (9ファイル)
+├── nodeSlice/
+│   ├── types.ts (48行) - インターフェース定義
+│   ├── helpers.ts (95行) - ヘルパー関数
+│   ├── queryOperations.ts (30行) - クエリ操作
+│   ├── crudOperations.ts (488行) - CRUD操作
+│   ├── moveOperations.ts (114行) - 移動操作
+│   ├── editingOperations.ts (194行) - 編集操作
+│   ├── linkOperations.ts (145行) - リンク操作
+│   ├── checkboxOperations.ts (65行) - チェックボックス操作
+│   └── index.ts (38行) - 統合エクスポート
+└── nodeSlice.ts (14行) - 再エクスポート
 ```
 
-#### 2-5. nodeSlice.ts (1,047行)
-```
-現状: 単一ファイル
-↓ 分割後
-├── nodeSlice.ts (300行) - メインスライス
-├── nodeSelection.ts (200行) - 選択管理
-├── nodeEditing.ts (180行) - 編集操作
-├── nodeNavigation.ts (150行) - ナビゲーション
-├── nodeOperations.ts (150行) - CRUD操作
-└── nodeValidation.ts (100行) - バリデーション
-```
+**達成した効果**:
 
-**予想削減**: 15-20% (6,000-8,500行)
-**リスクレベル**: ★★★☆☆ 中
-**期間**: 3-5日
+- ✅ 保守性: 大幅向上 (責任の明確な分離)
+- ✅ 可読性: 向上 (平均135行/ファイル)
+- ✅ テスタビリティ: 向上 (独立モジュール)
+- ✅ 後方互換性: 完全
+
+**検証**:
+
+- ✅ Type-check: 成功
+- ✅ Build: 成功 (20.88s)
+- ✅ Breaking changes: なし
+
+**コミット**: `7c69a53` - refactor(phase2): split nodeSlice.ts into 8 focused modules
+
+---
+
+**Phase 2 総括**:
+
+**実施状況**: 3/5ファイル完了 (60%)
+
+**完了したファイル**:
+
+1. ✅ nodeUtils.ts: 1,082行 → 5モジュール (コミット: `ce5606e`)
+2. ✅ TableEditorModal.tsx: 1,317行 → 9モジュール、31%削減 (コミット: `f93ec74`)
+3. ✅ nodeSlice.ts: 1,047行 → 8モジュール (コミット: `7c69a53`)
+
+**保留ファイル**:
+
+- ⏸️ NodeRenderer.tsx: 1,247行 (複雑度: 非常に高)
+- ⏸️ MarkdownFolderAdapter.ts: 1,241行 (複雑度: 非常に高)
+
+**達成した効果**:
+
+- **整理済み行数**: 3,446行
+- **平均ファイルサイズ改善**: 大規模ファイルを平均100-200行のモジュールに分割
+- **保守性**: 明確な責任分離により大幅向上
+- **テスタビリティ**: 独立モジュールによりテストが容易に
+- **後方互換性**: 完全維持 (すべての既存インポートが動作)
+
+**学んだこと**:
+
+- ✅ ファイル分割は段階的に実施すべき
+- ✅ 複雑なファイルは専用セッションで慎重に
+- ✅ 再エクスポートパターンで後方互換性を維持
+- ✅ 各段階でtype-check + buildで検証
+
+**次のステップ**:
+
+- NodeRenderer.tsx: ビジュアルテスト準備後に専用セッションで実施
+- MarkdownFolderAdapter.ts: 統合テスト準備後に専用セッションで実施
+- Phase 3への移行を検討
 
 **ブランチ**: `refactor/phase2-split-large-files`
+**期間**: 実施3日
+**リスクレベル**: ★★★☆☆ 中 (実施分のみ)
 
 ---
 
@@ -432,14 +547,15 @@ git commit -m "refactor(phase{N}): {description}"
 - [ ] 検証 (type-check, lint, build)
 - [ ] コミット & PR作成
 
-### フェーズ2: 大規模ファイルの分割
-- [ ] TableEditorModal.tsx 分割
-- [ ] NodeRenderer.tsx 分割
-- [ ] nodeUtils.ts 分割
-- [ ] MarkdownFolderAdapter.ts 分割
-- [ ] nodeSlice.ts 分割
-- [ ] 検証 (type-check, lint, build)
-- [ ] コミット & PR作成
+### フェーズ2: 大規模ファイルの分割 (3/5完了: 60%)
+
+- [x] nodeUtils.ts 分割 ✅
+- [x] TableEditorModal.tsx 分割 ✅
+- [x] nodeSlice.ts 分割 ✅
+- [ ] NodeRenderer.tsx 分割 (保留 - 専用セッション推奨)
+- [ ] MarkdownFolderAdapter.ts 分割 (保留 - 専用セッション推奨)
+- [x] 検証 (type-check, lint, build) ✅
+- [x] コミット完了 (ce5606e, f93ec74, 7c69a53) ✅
 
 ### フェーズ3: 重複コード統合
 - [ ] 共通フックの抽出
