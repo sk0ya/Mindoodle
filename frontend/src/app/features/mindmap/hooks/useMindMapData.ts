@@ -1,95 +1,77 @@
 import { useStableCallback } from '@shared/hooks';
-import { useMindMapStore } from '../store';
-import type { MindMapNode, MindMapData } from '@shared/types';
+import { useMapData, useNormalizedData, useNodeOperations, useMapOperations } from './useStoreSelectors';
+import { useNodeSelection } from './useNodeSelection';
+import { useNodeEditing } from './useNodeEditing';
+import type { MindMapNode } from '@shared/types';
 
 
 export const useMindMapData = () => {
-  const store = useMindMapStore();
+  const data = useMapData();
+  const normalizedData = useNormalizedData();
+  const { selectedNodeId } = useNodeSelection();
+  const { editingNodeId, editText, editingMode, startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart, finishEditing, cancelEditing, setEditText } = useNodeEditing();
+  const nodeOps = useNodeOperations();
+  const { setData, setRootNodes, applyAutoLayout } = useMapOperations();
 
   const dataOperations = {
-    
+
     addNode: useStableCallback((parentId: string, text: string = '') => {
-      store.addChildNode(parentId, text);
+      nodeOps.addChildNode(parentId, text);
     }),
 
     updateNode: useStableCallback((nodeId: string, updates: Partial<MindMapNode>) => {
-      store.updateNode(nodeId, updates);
+      nodeOps.updateNode(nodeId, updates);
     }),
 
     deleteNode: useStableCallback((nodeId: string) => {
-      store.deleteNode(nodeId);
+      nodeOps.deleteNode(nodeId);
     }),
 
     moveNode: useStableCallback((nodeId: string, newParentId: string): { success: boolean; reason?: string } => {
-      return store.moveNode(nodeId, newParentId);
+      return nodeOps.moveNode(nodeId, newParentId);
     }),
 
     moveNodeWithPosition: useStableCallback((nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child'): { success: boolean; reason?: string } => {
-      return store.moveNodeWithPosition(nodeId, targetNodeId, position);
+      return nodeOps.moveNodeWithPosition(nodeId, targetNodeId, position);
     }),
 
     changeSiblingOrder: useStableCallback((draggedNodeId: string, targetNodeId: string, insertBefore: boolean = true) => {
-      store.changeSiblingOrder(draggedNodeId, targetNodeId, insertBefore);
+      nodeOps.changeSiblingOrder(draggedNodeId, targetNodeId, insertBefore);
     }),
 
     toggleNodeCollapse: useStableCallback((nodeId: string) => {
-      store.toggleNodeCollapse(nodeId);
+      nodeOps.toggleNodeCollapse(nodeId);
     }),
 
-    
-    startEditing: useStableCallback((nodeId: string) => {
-      store.startEditing(nodeId);
-    }),
 
-    startEditingWithCursorAtEnd: useStableCallback((nodeId: string) => {
-      store.startEditingWithCursorAtEnd(nodeId);
-    }),
+    startEditing,
+    startEditingWithCursorAtEnd,
+    startEditingWithCursorAtStart,
+    finishEditing,
+    cancelEditing,
+    setEditText,
 
-    startEditingWithCursorAtStart: useStableCallback((nodeId: string) => {
-      store.startEditingWithCursorAtStart(nodeId);
-    }),
 
-    finishEditing: useStableCallback((nodeId: string, text: string) => {
-      store.finishEditing(nodeId, text);
-    }),
+    selectNode: useNodeSelection().selectNode,
 
-    cancelEditing: useStableCallback(() => {
-      store.cancelEditing();
-    }),
 
-    setEditText: useStableCallback((text: string) => {
-      store.setEditText(text);
-    }),
+    setData,
+    setRootNodes,
 
-    
-    selectNode: useStableCallback((nodeId: string | null) => {
-      store.selectNode(nodeId);
-    }),
 
-    
-    setData: useStableCallback((data: MindMapData) => {
-      store.setData(data);
-    }),
-    setRootNodes: useStableCallback((rootNodes: MindMapNode[]) => {
-      store.setRootNodes(rootNodes);
-    }),
-
-    
-    applyAutoLayout: useStableCallback(() => {
-      store.applyAutoLayout();
-    })
+    applyAutoLayout
   };
 
   return {
-    
-    data: store.data,
-    normalizedData: store.normalizedData,
-    selectedNodeId: store.selectedNodeId,
-    editingNodeId: store.editingNodeId,
-    editText: store.editText,
-    editingMode: store.editingMode,
-    
-    
+
+    data,
+    normalizedData,
+    selectedNodeId,
+    editingNodeId,
+    editText,
+    editingMode,
+
+
     ...dataOperations
   };
 };

@@ -7,6 +7,7 @@ import { useStableCallback } from '@shared/hooks';
  */
 export const useNodeEditing = () => {
   const editingNodeId = useMindMapStore(s => s.editingNodeId);
+  const editingMode = useMindMapStore(s => s.editingMode);
   const startEditing = useMindMapStore(s => s.startEditing);
   const startEditingWithCursorAtEnd = useMindMapStore(s => s.startEditingWithCursorAtEnd);
   const startEditingWithCursorAtStart = useMindMapStore(s => s.startEditingWithCursorAtStart);
@@ -24,6 +25,7 @@ export const useNodeEditing = () => {
 
   return {
     editingNodeId,
+    editingMode,
     startEditing,
     startEditingWithCursorAtEnd,
     startEditingWithCursorAtStart,

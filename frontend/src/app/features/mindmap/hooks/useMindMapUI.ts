@@ -1,12 +1,12 @@
-import { useMindMapStore } from '../store';
+import { useUI, useViewport, useUIOperations } from './useStoreSelectors';
 import type { Position } from '@shared/types';
 import { useStableCallback } from '@shared/hooks';
 
 
 export const useMindMapUI = () => {
+  const ui = useUI();
+  const { setZoom, setPan: storeSetPan } = useViewport();
   const {
-    setZoom,
-    setPan: storeSetPan,
     resetZoom,
     closeAllPanels,
     toggleSidebar,
@@ -16,8 +16,7 @@ export const useMindMapUI = () => {
     setShowImageModal,
     setFileMenuPosition,
     setShowFileActionMenu,
-    ui
-  } = useMindMapStore();
+  } = useUIOperations();
 
   const uiOperations = {
     

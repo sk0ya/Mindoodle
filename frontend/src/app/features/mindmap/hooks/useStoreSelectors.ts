@@ -105,5 +105,13 @@ export const useUIOperations = () => {
     setActiveView: s.setActiveView,
     togglePanel: s.togglePanel,
     toggleSidebar: s.toggleSidebar,
+    setSidebarCollapsed: s.setSidebarCollapsed,
+    closeAllPanels: s.closeAllPanels,
+    setShowNotesPanel: s.setShowNotesPanel,
+    toggleNotesPanel: s.toggleNotesPanel,
+    setShowImageModal: s.setShowImageModal,
+    setFileMenuPosition: s.setFileMenuPosition,
+    setShowFileActionMenu: s.setShowFileActionMenu,
+    resetZoom: s.resetZoom,
   }));
 };

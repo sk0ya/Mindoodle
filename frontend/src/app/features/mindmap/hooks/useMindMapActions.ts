@@ -1,23 +1,25 @@
-import { useMindMapStore } from '../store';
+import { useMapData, useHistoryState, useMapOperations } from './useStoreSelectors';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { logger, safeJsonParse } from '@shared/utils';
 import { useStableCallback } from '@shared/hooks';
 
 
 export const useMindMapActions = () => {
-  const store = useMindMapStore();
+  const data = useMapData();
+  const { canUndo, canRedo, undo, redo } = useHistoryState();
+  const { setData, setRootNodes, updateMapMetadata, applyAutoLayout } = useMapOperations();
 
   const mapActions = {
 
     selectMap: useStableCallback((mapData: MindMapData) => {
       logger.debug('[useMindMapActions.selectMap] selecting', mapData.mapIdentifier.mapId, mapData.title);
-      store.setData(mapData);
+      setData(mapData);
 
 
       if (mapData.settings?.autoLayout) {
         logger.debug('🎯 Applying auto layout on map open (once only)');
-        if (typeof store.applyAutoLayout === 'function') {
-          store.applyAutoLayout();
+        if (typeof applyAutoLayout === 'function') {
+          applyAutoLayout();
         } else {
           logger.error('❌ applyAutoLayout function not found');
         }
@@ -26,15 +28,14 @@ export const useMindMapActions = () => {
       logger.debug('Selected map:', mapData.title);
     }),
 
-    
+
     deleteMapData: useStableCallback(() => {
-      const currentData = store.data;
-      if (currentData) {
-        logger.debug('Deleting map:', currentData.title);
+      if (data) {
+        logger.debug('Deleting map:', data.title);
       }
     }),
 
-    
+
     duplicateMap: useStableCallback((sourceMap: MindMapData, newTitle?: string): MindMapData => {
       const mapId = `map_${Date.now()}`;
       const mapIdentifier = {
@@ -53,44 +54,42 @@ export const useMindMapActions = () => {
       return duplicatedMap;
     }),
 
-    
+
     updateMapMetadata: useStableCallback((mapIdentifier: MapIdentifier, updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => {
-      const currentData = store.data;
-      if (currentData && currentData.mapIdentifier.mapId === mapIdentifier.mapId && currentData.mapIdentifier.workspaceId === mapIdentifier.workspaceId) {
-        
-        store.updateMapMetadata?.(updates);
+      if (data && data.mapIdentifier.mapId === mapIdentifier.mapId && data.mapIdentifier.workspaceId === mapIdentifier.workspaceId) {
+
+        updateMapMetadata?.(updates);
         logger.debug('Updated map metadata:', updates);
       }
     })
   };
 
   const historyActions = {
-    
+
     undo: useStableCallback(async () => {
-      if (store.canUndo()) {
-        store.undo();
+      if (canUndo) {
+        undo();
         logger.debug('Undo performed');
       }
     }),
 
     redo: useStableCallback(async () => {
-      if (store.canRedo()) {
-        store.redo();
+      if (canRedo) {
+        redo();
         logger.debug('Redo performed');
       }
     }),
 
-    
-    canUndo: useStableCallback(() => store.canUndo()),
-    canRedo: useStableCallback(() => store.canRedo())
+
+    canUndo: useStableCallback(() => canUndo),
+    canRedo: useStableCallback(() => canRedo)
   };
 
   const fileActions = {
-    
+
     exportData: useStableCallback((): string => {
-      const currentData = store.data;
-      if (currentData) {
-        return JSON.stringify(currentData, null, 2);
+      if (data) {
+        return JSON.stringify(data, null, 2);
       }
       return '';
     }),
@@ -109,20 +108,20 @@ export const useMindMapActions = () => {
           return false;
         }
 
-        
+
         if (!('id' in parsedData) || !('title' in parsedData) || !('rootNode' in parsedData)) {
           return false;
         }
 
-        
+
         const { id, title, rootNode } = parsedData;
         if (typeof id !== 'string' || typeof title !== 'string' || !rootNode) {
           return false;
         }
 
-        
+
         const mindMapData = parsedData as unknown as MindMapData;
-        store.setRootNodes(mindMapData.rootNodes);
+        setRootNodes(mindMapData.rootNodes);
         return true;
       } catch (error) {
         logger.error('Failed to import data:', error);
@@ -132,16 +131,16 @@ export const useMindMapActions = () => {
   };
 
   return {
-    
-    currentMapId: store.data?.mapIdentifier.mapId || null,
-    
-    
+
+    currentMapId: data?.mapIdentifier.mapId || null,
+
+
     ...mapActions,
-    
-    
+
+
     ...historyActions,
-    
-    
+
+
     ...fileActions
   };
 };
