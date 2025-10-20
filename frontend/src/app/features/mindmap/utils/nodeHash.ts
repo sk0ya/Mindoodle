@@ -32,7 +32,11 @@ export function hashNodeTree(nodes: MindMapNode[]): string {
     const metaIndent = typeof mm.indentLevel === 'number' ? mm.indentLevel : -1;
     const metaFmt = mm.originalFormat || '';
     const metaCb = mm.isCheckbox ? 1 : 0;
-    const metaChecked = mm.isCheckbox ? (mm.isChecked ? 1 : 0) : 0;
+    // Extract nested ternary to separate statement
+    let metaChecked = 0;
+    if (mm.isCheckbox) {
+      metaChecked = mm.isChecked ? 1 : 0;
+    }
 
     // Hash format captures order as we traverse children in-order
     parts.push([

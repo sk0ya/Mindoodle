@@ -377,6 +377,7 @@ export function useShortcutHandlers(args: Args) {
             markdownText = convertNodeToMarkdown(node);
           }
         } catch (error) {
+          console.warn('Failed to get markdown from stream, using fallback:', error);
           markdownText = convertNodeToMarkdown(node);
         }
       } else {

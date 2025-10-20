@@ -251,9 +251,8 @@ export function useMindMapViewport({
         const targetX = isLeftMode
           ? mapAreaRect.left + leftMarginFromMapArea  // Left edge of map area + margin
           : mapAreaRect.left + (mapAreaRect.width / 2);
-        const targetY = isLeftMode
-          ? mapAreaRect.top + (mapAreaRect.height / 2)   // Vertical center
-          : mapAreaRect.top + (mapAreaRect.height / 2);
+        // Always center vertically regardless of mode
+        const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
         const currentZoom = uiStore.zoom * 1.5;
 
         const newPanX = targetX / currentZoom - nodeX;
