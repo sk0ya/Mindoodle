@@ -1,81 +1,21 @@
 import { type MindMapNode } from '@shared/types';
-import { generateNodeId, logger } from '@shared/utils';
+import { logger } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
+import { createNode } from './utils/nodeFactory';
+import { extractFirstTable } from './utils/tableExtractor';
 
-
-const createNewNode = (text: string, _isRoot: boolean = false, parentLineEnding?: string): MindMapNode => {
-  
-  const calculateInitialX = () => 0;
-
-  return {
-    id: generateNodeId(),
-    text,
-    x: calculateInitialX(),
-    y: 300, 
-    children: [],
-    fontSize: 14,
-    fontWeight: 'normal',
-    note: undefined,
-    lineEnding: parentLineEnding || '\n'
-  };
-};
-
-const DEBUG_MD = false; 
-
-
-
+const DEBUG_MD = false;
 
 interface StructureElement {
   type: 'heading' | 'unordered-list' | 'ordered-list' | 'preface';
   level: number;
   text: string;
-  content?: string; 
-  originalFormat: string; 
-  indentLevel?: number; 
-  lineNumber: number; 
-  
-  isCheckbox?: boolean; 
-  isChecked?: boolean;  
-}
-
-type MarkdownTableExtract = {
-  headers?: string[];
-  rows: string[][];
-  before?: string;
-  tableBlock: string;
-  after?: string;
-};
-
-function extractFirstTable(text?: string, lineEnding?: string): MarkdownTableExtract | null {
-  if (!text) return null;
-  const defaultLineEnding = lineEnding || '\n';
-  const lines = text.split(/\r\n|\r|\n/);
-  for (let i = 0; i < lines.length - 1; i++) {
-    const headerLine = lines[i];
-    const sepLine = lines[i + 1];
-    const isHeader = headerLine.includes('|');
-    const parts = sepLine.replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim());
-    const isSep = parts.length > 0 && parts.every(cell => /^:?-{3,}:?$/.test(cell));
-    if (!isHeader || !isSep) continue;
-
-    let j = i + 2;
-    const rowLines: string[] = [];
-    while (j < lines.length && lines[j].includes('|')) {
-      rowLines.push(lines[j]);
-      j++;
-    }
-
-    const toCells = (line: string) => line.replace(/^\|/, '').replace(/\|$/, '').split('|');
-    const headers = toCells(headerLine);
-    const rows = rowLines.map(toCells);
-
-    const before = i > 0 ? lines.slice(0, i).join(defaultLineEnding) : undefined;
-    const tableBlock = lines.slice(i, j).join(defaultLineEnding);
-    const after = j < lines.length ? lines.slice(j).join(defaultLineEnding) : undefined;
-
-    return { headers, rows, before, tableBlock, after };
-  }
-  return null;
+  content?: string;
+  originalFormat: string;
+  indentLevel?: number;
+  lineNumber: number;
+  isCheckbox?: boolean;
+  isChecked?: boolean;
 }
 
 export class MarkdownImporter {
@@ -313,7 +253,7 @@ export class MarkdownImporter {
     for (const element of elements) {
       
       if (element.type === 'preface') {
-        const prefaceNode = createNewNode('', true); // テキストは空
+        const prefaceNode = createNode('', { isRoot: true }); // テキストは空
         prefaceNode.children = [];
         prefaceNode.note = element.text; // 前文はnoteに格納
         prefaceNode.lineEnding = defaultLineEnding || '\n';
@@ -338,7 +278,7 @@ export class MarkdownImporter {
         headingStack.every(item => item.level >= element.level)
       )) || (element.type !== 'heading' && currentHeading === null && (element.indentLevel || 0) === 0);
 
-      const newNode = createNewNode(element.text, isRoot);
+      const newNode = createNode(element.text, { isRoot });
       
       if (element.content != undefined) {
         newNode.note = element.content;
@@ -369,7 +309,7 @@ export class MarkdownImporter {
         newNode.note = tableInfo.before;
 
         
-        const tnode = createNewNode('');
+        const tnode = createNode('');
         (tnode as unknown as Record<string, unknown>).kind = 'table';
         tnode.text = tableInfo.tableBlock;
         delete (tnode as unknown as Record<string, unknown>).note;
