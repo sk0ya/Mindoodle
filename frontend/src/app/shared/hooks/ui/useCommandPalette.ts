@@ -1,7 +1,7 @@
 
 
 import { useState, useEffect } from 'react';
-import { useStableCallback } from '../utilities';
+import { useStableCallback } from '../utilities/useStableCallback';
 
 export interface UseCommandPaletteOptions {
   

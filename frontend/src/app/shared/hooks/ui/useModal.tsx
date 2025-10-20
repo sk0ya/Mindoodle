@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useBooleanState } from './useBooleanState';
-import { useStableCallback } from '../utilities';
+import { useStableCallback } from '../utilities/useStableCallback';
 
 export const useModal = (initialOpen = false) => {
   const { value: isOpen, setTrue: open, setFalse: close, toggle } = useBooleanState({ 

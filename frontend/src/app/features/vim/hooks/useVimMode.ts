@@ -2,7 +2,8 @@ import { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useMindMapStore, type MindMapStore } from '../../mindmap/store/mindMapStore';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
-import { VimCountBuffer, VimRepeatRegistry } from '../services';
+import { VimCountBuffer } from '../services/VimCountBuffer';
+import { VimRepeatRegistry } from '../services/VimRepeatRegistry';
 
 // Extended store type with runtime properties that may be injected
 type ExtendedMindMapStore = MindMapStore & {

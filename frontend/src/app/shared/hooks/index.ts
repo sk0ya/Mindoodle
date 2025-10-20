@@ -12,6 +12,7 @@ export { useModalState } from './ui/useModalState';
 export { useNotification, NotificationProvider, type NotificationType, type Notification } from './ui/useNotification';
 export { useStatusBar, StatusBarProvider } from './ui/useStatusBar';
 export { useCommandPalette, type UseCommandPaletteOptions, type UseCommandPaletteReturn } from './ui/useCommandPalette';
+export { useViewport } from './ui/useViewport';
 
 
 export { useErrorHandler, ErrorHandlerProvider, type ErrorInfo } from './system/useErrorHandler';
@@ -19,4 +20,5 @@ export { useGlobalErrorHandlers } from './system/useGlobalErrorHandlers';
 export { useEventListener, type UseEventListenerOptions } from './system/useEventListener';
 
 
-export { useStableCallback, useLatestRef } from './utilities';
+export { useStableCallback } from './utilities/useStableCallback';
+export { useLatestRef } from './utilities/useLatestRef';

@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseStoredJson, storeJson } from '@shared/utils';
-import { useStableCallback } from '../utilities';
+import { useStableCallback } from '../utilities/useStableCallback';
 
 export interface BooleanStateOptions {
   initialValue?: boolean;

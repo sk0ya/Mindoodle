@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { useLatestRef } from '../utilities';
+import { useLatestRef } from '../utilities/useLatestRef';
 
 
 export interface UseEventListenerOptions {

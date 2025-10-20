@@ -1,6 +1,6 @@
 import React, { createContext, useContext } from 'react';
 import { useStatusBar } from './useStatusBar';
-import { useStableCallback } from '../utilities';
+import { useStableCallback } from '../utilities/useStableCallback';
 
 export type NotificationType = 'success' | 'error' | 'warning' | 'info';
 
