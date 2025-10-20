@@ -464,21 +464,66 @@ const rootNodes = useRootNodes();
 const { selectedId, selectNode } = useNodeSelection();
 ```
 
-#### 4-2. index.ts の統廃合
-現状36個のindex.tsを見直し:
-- 本当に必要なものだけ残す
-- 過度な再エクスポートを削減
-- 直接インポートできるものは直接インポート
+#### 4-2. index.ts の統廃合 ✅ 【Phase 1完了】
+
+**実施期間**: 2025-10-20
+
+**分析結果**:
+
+- **初期状態**: 38個のindex.tsファイル
+- **削除候補**: 23ファイル (60%)
+- **実際の削除**: 3ファイル (Phase 1)
+
+**Phase 1: 未使用サブディレクトリindex.ts削除** (コミット: `8f6ed45`)
+
+削除したファイル (3件):
+
+1. ✅ `shared/hooks/ui/index.ts` - 0回の外部使用
+2. ✅ `shared/hooks/utilities/index.ts` - 0回の外部使用
+3. ✅ `vim/services/index.ts` - 0回の外部使用
+
+**実施内容**:
+
+- 親index.tsを更新して直接ファイルインポートに変更
+- 内部参照も直接パスに更新
+- 11ファイルを更新、25行のコード削除
+
+**検証**:
+
+- ✅ Type-check: 成功
+- ✅ Build: 成功 (21.91s)
+- ✅ Breaking changes: なし
+
+**重要な発見**:
+
+多くのindex.tsファイルは実際に必要:
+
+- ✅ **shared/types/index.ts**: 100+行の型定義集約、多数の参照
+- ✅ **shared/constants/index.ts**: 大規模な定数定義、プロジェクト全体で使用
+- ✅ **core/services/index.ts**: サービスのクリーンな公開API
+- ✅ **mindmap/components/*/index.ts**: コンポーネントの論理的なグループ化
+
+**削除すべきでないindex.ts**:
+
+- 公開API (app/index.ts, features/mindmap/index.ts)
+- 価値ある集約 (shared/hooks/index.ts - 複数サブディレクトリから集約)
+- 大規模な定義集 (shared/types, shared/constants)
+- コンポーネントバンドル (Canvas, Node, layout, panels)
+
+**残存index.ts**: 35ファイル (適切に使用されている)
+
+**次のPhase**:
+
+- Phase 2: より深いネストのindex.ts調査 (table-editor, nodeSlice)
+- Phase 3: 必要に応じて追加の整理
 
 ```typescript
-// Before: 多層の再エクスポート
-// features/index.ts → mindmap/index.ts → components/index.ts → Node/index.ts
+// 実施例: Before
+export { useStableCallback, useLatestRef } from './utilities';
 
-// After: 必要な箇所のみindex.ts
-// features/mindmap/index.ts (主要エクスポートのみ)
-export { MindMapApp } from './components/layout/MindMapApp';
-export { useMindMap } from './hooks/useMindMap';
-export { useMindMapStore } from './store/mindMapStore';
+// 実施例: After
+export { useStableCallback } from './utilities/useStableCallback';
+export { useLatestRef } from './utilities/useLatestRef';
 ```
 
 #### 4-3. 循環依存の解消
