@@ -10,9 +10,9 @@ import { useStorageConfigChange } from '@file-management/hooks/useStorageConfigC
 import { logger, statusMessages } from '@shared/utils';
 import type { StorageConfig, StorageAdapter } from '@core/types';
 import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
-import { useMindMapStore } from '@mindmap/store';
 import { getAdapterForWorkspace } from '@/app/core/utils';
 import { MarkdownMemoizer } from '@mindmap/utils/nodeHash';
+import { useSettings } from './useStoreSelectors';
 
 export const useMindMap = (
   storageConfig?: StorageConfig,
@@ -24,7 +24,7 @@ export const useMindMap = (
   const actionsHook = useMindMapActions();
   const persistenceHook = useMindMapPersistence(storageConfig);
   const { showNotification } = useNotification();
-  const settings = useMindMapStore((state) => state.settings);
+  const settings = useSettings();
   
 
   useDataReset(resetKey, {

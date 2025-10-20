@@ -6,6 +6,7 @@ import { calculateNodeSize, getNodeLeftX, resolveNodeTextWrapConfig } from '@min
 import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 import { stopEventPropagation, getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
+import { useSettings } from '@mindmap/hooks';
 import { useMindMapStore } from '@mindmap/store';
 
 interface NodeProps {
@@ -63,7 +64,7 @@ const Node: React.FC<NodeProps> = ({
 }) => {
   const blurTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [editHeight, setEditHeight] = React.useState<number | null>(null);
-  const settings = useMindMapStore((state) => state.settings);
+  const settings = useSettings();
   
   
   const { isDragging, handleMouseDown } = useNodeDragHandler({

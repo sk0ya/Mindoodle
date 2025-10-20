@@ -1,4 +1,3 @@
-
 export * from './useEditingState';
 export * from './useKeyboardShortcuts';
 export * from './useMindMap';
@@ -15,9 +14,13 @@ export * from './useWindowGlobalsBridge';
 export * from './useMarkdownOperations';
 export * from './useEditorEffects';
 export * from './useCommandExecution';
-export * from './useSidebar.tsx'; 
-
+export * from './useSidebar.tsx';
 
 export * from './useEditingFeatures';
 export * from './useNavigationFeatures';
 export * from './useDataFeatures';
+
+// Phase 3: Consolidated hooks for common patterns
+export * from './useNodeSelection';
+export * from './useNodeEditing';
+export * from './useStoreSelectors';
