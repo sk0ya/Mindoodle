@@ -1,10 +1,6 @@
 import React from 'react';
 import { useTheme } from '../../theme/hooks/useTheme';
-
-interface Position {
-  x: number;
-  y: number;
-}
+import type { Position } from '@shared/types';
 
 interface ConnectionProps {
   from: Position;

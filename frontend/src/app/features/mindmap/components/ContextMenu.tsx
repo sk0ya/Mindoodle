@@ -1,16 +1,11 @@
 import React, { useCallback, memo } from 'react';
-import { MindMapNode } from '@shared/types';
+import { MindMapNode, type Position } from '@shared/types';
 import type { CommandContext } from '@commands/system/types';
 import type { CommandRegistryImpl } from '@commands/system/registry';
 import MenuItems from './contextmenu/MenuItems';
 import ContextMenuStyles from '../styles/ContextMenuStyles';
 import { useClickOutside } from '@shared/utils';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
-
-interface Position {
-  x: number;
-  y: number;
-}
 
 interface ContextMenuProps {
   visible: boolean;
