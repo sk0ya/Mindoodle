@@ -397,9 +397,50 @@ export const useNodeEventHandlers = (nodeId: string) => {
 
 **ブランチ**: `refactor/phase3-consolidate-duplication`
 
+#### 3-5. Phase 3 実施状況 ✅ 【部分完了】
+
+**実施期間**: 2025-10-20
+
+**完了した作業**:
+
+1. ✅ **Position型の統合** (コミット: `0c09ebf`)
+   - Before: 3つの重複定義 (NodePosition, Point, Position)
+   - After: 1つの統一型 (Position)
+   - 影響: 7ファイル更新
+   - 効果: 型の一貫性向上、保守性改善
+
+2. ✅ **共通フックパターンの抽出** (コミット: `0c02b28`)
+   - `useStoreSelectors.ts`: データ、UI、履歴、設定セレクター
+   - `useNodeSelection.ts`: ノード選択状態と操作
+   - `useNodeEditing.ts`: ノード編集状態と操作
+   - 利用箇所: 4ファイルで使用開始
+   - 効果: ストアアクセスパターンの統一、再レンダリング最適化
+
+**検証**:
+- ✅ Type-check: 成功
+- ✅ Build: 成功
+- ✅ Breaking changes: なし (後方互換性完全維持)
+
+**残存タスク**:
+
+- 🔄 useStoreSelectorsの全面展開 (現在4箇所 → 目標46箇所)
+- 🔄 サービス層の強化 (Phase 4で実施予定)
+- 🔄 イベントハンドラーの統合 (Phase 4で実施予定)
+
+**Phase 3 総括**:
+
+**実施状況**: 基盤整備完了 (2/5タスク)
+
+**達成した効果**:
+- **型安全性**: Position型統合により型エラーリスク削減
+- **パフォーマンス**: セレクターパターンにより不要な再レンダリング削減
+- **保守性**: 共通フックにより変更の影響範囲が明確化
+
+**次のステップ**: Phase 4でストア依存を全面整理
+
 ---
 
-### フェーズ4: アーキテクチャ最適化
+### フェーズ4: アーキテクチャ最適化 🚧 【実施中】
 
 **目標**: 依存関係を整理して保守性向上
 
@@ -451,6 +492,94 @@ export { useMindMapStore } from './store/mindMapStore';
 **期間**: 3-5日
 
 **ブランチ**: `refactor/phase4-optimize-architecture`
+
+#### 4-4. Phase 4 実施状況 🚧 【進行中】
+
+**実施期間**: 2025-10-20
+
+**完了した作業**:
+
+1. ✅ **useStoreSelectorsの拡張** (コミット: `2da8e1b`)
+   - 追加した操作セレクター:
+     - `useNodeOperations`: ノードCRUD操作
+     - `useMapOperations`: マップ操作
+     - `useUIOperations`: UI操作 (12メソッド)
+   - 効果: 完全な操作セレクター層の確立
+
+2. ✅ **シンプルなコンポーネントの置き換え** (コミット: `2da8e1b`)
+   - 置き換えたファイル (10件):
+     - ColorSettingsSidebar.tsx
+     - SettingsSidebar.tsx
+     - VimSettingsPanel.tsx
+     - MindMapSidebar.tsx
+     - KeyboardShortcutHelper.tsx
+     - NodeNotesPanel.tsx
+     - SelectedNodeNotePanel.tsx
+     - MermaidRenderer.tsx
+     - VimMappingsEditor.tsx
+   - Before: `const { settings, updateSetting } = useMindMapStore()`
+   - After: `const settings = useSettings(); const updateSetting = useUpdateSetting()`
+   - 効果: より明示的な依存関係、改善された型推論
+
+3. ✅ **複雑なフックの置き換え** (コミット: `8e3d333`)
+   - 置き換えたフック (3件):
+     - `useMindMapUI`: useUI + useViewport + useUIOperations
+     - `useMindMapData`: useMapData + useNodeSelection + useNodeEditing + useNodeOperations + useMapOperations
+     - `useMindMapActions`: useMapData + useHistoryState + useMapOperations
+   - Before: 直接ストア全体にアクセス
+   - After: 必要な部分のみを個別フックで取得
+   - 効果: 関心の分離、再レンダリング最適化
+
+4. ✅ **useNodeEditingの拡張**
+   - `editingMode`プロパティを追加
+   - より完全な編集状態管理
+
+**検証**:
+
+- ✅ Type-check: 成功
+- ✅ Build: 成功 (18.78s)
+- ✅ Breaking changes: なし (完全な後方互換性)
+
+**進捗統計**:
+
+```text
+useMindMapStore直接使用:
+Before: 46ファイル
+After: 33ファイル (-13ファイル, 28%削減)
+
+共通フック使用:
+Before: 4ファイル
+After: 17ファイル (+325%増加)
+```
+
+**残存タスク**:
+
+- 🔄 残り33ファイルのストアアクセス置き換え
+  - コンポーネント: 15ファイル
+  - イベントハンドラー: 10ファイル (getState()パターン - 一部は適切な使用)
+  - その他フック: 8ファイル
+
+- 🔄 index.tsの統廃合 (4-2)
+- 🔄 循環依存の解消 (4-3)
+
+**Phase 4 中間総括**:
+
+**実施状況**: 基盤整備 + 初期展開完了 (28%のファイル移行)
+
+**達成した効果**:
+
+- **一貫性**: 統一されたストアアクセスパターン
+- **保守性**: 変更の影響範囲が明確化
+- **型安全性**: 個別フックでの型推論向上
+- **パフォーマンス**: 必要な状態のみサブスクライブ
+
+**学んだこと**:
+
+- ✅ getState()は適切な場面(イベントハンドラー、コールバック)では維持すべき
+- ✅ 段階的な移行により安全性を確保
+- ✅ 各段階でtype-check + buildでの検証が重要
+
+**次のステップ**: 残りのコンポーネントとフックの段階的移行
 
 ---
 
