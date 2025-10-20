@@ -2,6 +2,12 @@ import type { MindMapData } from '@shared/types';
 import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
 import { logger, statusMessages, generateWorkspaceId, generateTimestampedFilename } from '@shared/utils';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
+import {
+  ensurePermission,
+  getOrCreateDirectory,
+  iterateMarkdownFiles,
+  copyDirectoryRecursive
+} from './fileSystemHelpers';
 
 type DirHandle = FileSystemDirectoryHandle;
 type FileHandle = FileSystemFileHandle;
@@ -14,11 +20,6 @@ type WindowWithFSA = Window & {
   };
 };
 
-// Type for FileSystemHandle with permission methods
-type FSHandleWithPermissions = FileSystemHandle & {
-  queryPermission?: (descriptor: { mode: string }) => Promise<'granted' | 'denied' | 'prompt'>;
-  requestPermission?: (descriptor: { mode: string }) => Promise<'granted' | 'denied' | 'prompt'>;
-};
 
 // Type for error with name property
 type ErrorWithName = Error & { name?: string };
@@ -120,9 +121,14 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     
     for (const t of targets) {
       logger.debug(`📄️ Processing workspace: ${t.name} (${t.id})`);
-      
+
+      if (!t.handle) {
+        logger.debug('📄️ Workspace handle is null; skipping');
+        continue;
+      }
+
       // Try to ensure permission - if it fails, show the workspace but skip loading
-      const hasPermission = await this.ensurePermission(t.handle, 'readwrite');
+      const hasPermission = await ensurePermission(t.handle, this.permissionWarned);
       logger.debug(`📄️ Permission check for ${t.name}: ${hasPermission}`);
       
       if (!hasPermission) {
@@ -134,15 +140,11 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         }
         continue;
       }
-      
+
       logger.debug(`📄️ Loading maps from workspace: ${t.name}`);
-      if (!t.handle) {
-        logger.debug('📄️ Workspace handle is null; skipping');
-        continue;
-      }
       try {
         let workspaceMapsCount = 0;
-        for await (const fileHandle of this.iterateMarkdownFiles(t.handle)) {
+        for await (const { handle: fileHandle } of iterateMarkdownFiles(t.handle)) {
           try {
             const data = await this.loadMapFromFile(fileHandle, t.handle, '', t.id);
             if (data) {
@@ -352,7 +354,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         dir = ws.handle;
         for (const p of parts) {
           logger.debug('saveMapMarkdown: Creating directory', p);
-          dir = await this.getOrCreateDirectory(dir, p);
+          dir = await getOrCreateDirectory(dir, p);
         }
         fileName = `${base}.md`;
         logger.debug('saveMapMarkdown: Will create file', fileName);
@@ -417,7 +419,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     let dir: DirHandle = wsHandle;
     const parts = (relativePath || '').split('/').filter(Boolean);
     for (const part of parts) {
-      dir = await this.getOrCreateDirectory(dir, part);
+      dir = await getOrCreateDirectory(dir, part);
     }
     // nothing else to do; folder ensured
   }
@@ -426,7 +428,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   // Removed unused legacy method
 
   private async collectMapsForWorkspace(ws: { id: string; name: string; handle: DirHandle }, dir: DirHandle, categoryPath: string, out: MindMapData[]): Promise<void> {
-    for await (const fh of this.iterateMarkdownFiles(dir)) {
+    for await (const { handle: fh } of iterateMarkdownFiles(dir)) {
       try {
         const data = await this.loadMapFromFile(fh, dir, categoryPath, ws.id);
         if (data) {
@@ -558,7 +560,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const fileName = parts.pop() as string;
 
     for (const part of parts) {
-      currentDir = await this.getOrCreateDirectory(currentDir, part);
+      currentDir = await getOrCreateDirectory(currentDir, part);
     }
 
     // Create and write the image file
@@ -665,11 +667,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
-  private async getOrCreateDirectory(parent: DirHandle, name: string): Promise<DirHandle> {
-    return await parent.getDirectoryHandle?.(name, { create: true })
-      ?? await (parent).getDirectoryHandle(name, { create: true });
-  }
-
   private async getExistingFile(dir: DirHandle, name: string): Promise<FileHandle | null> {
     try {
       const handle = await dir.getFileHandle?.(name)
@@ -759,40 +756,10 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     
     const srcDir = await this.getExistingDirectory(dir, name);
     if (!srcDir) throw new Error('Item not found');
-    const dstDir = await this.getOrCreateDirectory(dir, newName);
-    await this.copyDirectoryRecursive(srcDir, dstDir);
+    const dstDir = await getOrCreateDirectory(dir, newName);
+    await copyDirectoryRecursive(srcDir, dstDir);
     const remover = (dir).removeEntry?.bind(dir);
     if (remover) await remover(name, { recursive: true });
-  }
-
-  private async copyDirectoryRecursive(src: DirHandle, dst: DirHandle): Promise<void> {
-
-    const iter: AsyncIterable<FileSystemHandle> | AsyncIterable<[string, FileSystemHandle]> =
-      (src as DirHandleWithIterators).values?.() ??
-      (src as DirHandleWithIterators).entries?.() ??
-      (async function* () { /* empty */ })();
-
-    for await (const entry of iter) {
-      let kind: string, name: string;
-      if (Array.isArray(entry)) {
-        name = entry[0];
-        kind = entry[1].kind;
-      } else {
-        name = entry.name;
-        kind = entry.kind;
-      }
-      if (kind === 'file') {
-        
-        const fh = await src.getFileHandle?.(name) ?? await (src).getFileHandle(name);
-        const data = await (await fh.getFile()).text();
-        await this.writeTextFile(dst, name, data);
-      } else if (kind === 'directory') {
-        const dstSub = await this.getOrCreateDirectory(dst, name);
-        
-        const srcSub = await src.getDirectoryHandle?.(name) ?? await (src).getDirectoryHandle(name);
-        await this.copyDirectoryRecursive(srcSub, dstSub);
-      }
-    }
   }
 
   private async *iterateEntries(dir: DirHandle): AsyncGenerator<FileSystemDirectoryHandle | FileSystemFileHandle, void, unknown> {
@@ -815,7 +782,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     if (this.workspaces.length > 0) {
       const root: ExplorerItem = { type: 'folder', name: 'workspaces', path: '', children: [] };
       for (const ws of this.workspaces) {
-        const hasPermission = await this.ensurePermission(ws.handle, 'readwrite');
+        const hasPermission = await ensurePermission(ws.handle, this.permissionWarned);
         const node: ExplorerItem = { type: 'folder', name: ws.name, path: `/${ws.id}`, children: [] };
         if (hasPermission) {
           node.children = await this.buildExplorerItems(ws.handle, `/${ws.id}`);
@@ -829,8 +796,11 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       }
       return root;
     }
-    
-    const hasPermission = await this.ensurePermission(this.rootHandle, 'readwrite');
+
+    if (!this.rootHandle) {
+      throw new Error('No root folder selected');
+    }
+    const hasPermission = await ensurePermission(this.rootHandle, this.permissionWarned);
     if (!hasPermission) {
       if (!this.permissionWarned) {
         logger.warn('MarkdownFolderAdapter: Root folder permission is not granted. Please reselect the folder.');
@@ -952,8 +922,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     try {
       const handle = await this.loadRootHandle();
       if (!handle) return false;
-      const perm = await this.queryPermission(handle, 'readwrite');
-      if (perm === 'granted') {
+      const hasPermission = await ensurePermission(handle, this.permissionWarned);
+      if (hasPermission) {
         this.rootHandle = handle;
         return true;
       }
@@ -1089,96 +1059,6 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     }
   }
 
-  private async queryPermission(handle: FileSystemHandle, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
-    try {
-      const fsHandle = handle as FSHandleWithPermissions;
-      if (typeof fsHandle.queryPermission === 'function') {
-        return await fsHandle.queryPermission({ mode });
-      }
-
-      return 'granted';
-    } catch {
-      return 'denied';
-    }
-  }
-
-  private async requestPermission(handle: FileSystemHandle, mode: 'read' | 'readwrite'): Promise<'granted' | 'denied' | 'prompt'> {
-    try {
-      const fsHandle = handle as FSHandleWithPermissions;
-      if (typeof fsHandle.requestPermission === 'function') {
-        return await fsHandle.requestPermission({ mode });
-      }
-
-      return 'granted';
-    } catch {
-      return 'denied';
-    }
-  }
-
-  private async ensurePermission(handle: FileSystemHandle | null, mode: 'read' | 'readwrite' = 'readwrite'): Promise<boolean> {
-    if (!handle) return false;
-    try {
-      logger.debug('🔐 Checking permission for handle:', handle?.name || 'unknown');
-      const currentPerm = await this.queryPermission(handle, mode);
-      logger.debug('🔐 Current permission status:', currentPerm);
-      
-      if (currentPerm === 'granted') {
-        logger.debug('🔐 Permission already granted');
-        return true;
-      }
-      
-      if (currentPerm === 'prompt') {
-        logger.debug('🔐 Permission prompt available, requesting...');
-        const requested = await this.requestPermission(handle, mode);
-        logger.debug('🔐 Permission request result:', requested);
-        return requested === 'granted';
-      }
-      
-      logger.debug('🔐 Permission denied, no prompt available');
-      return false;
-    } catch (error) {
-      console.warn('🔐 Permission check failed:', error);
-      return false;
-    }
-  }
-
-  private async *iterateMarkdownFiles(dir: DirHandle): AsyncGenerator<FileHandle, void, unknown> {
-    
-    
-    
-    const valuesFn = (dir as DirHandleWithIterators).values;
-    if (typeof valuesFn === 'function') {
-      for await (const entry of valuesFn.call(dir)) {
-        if (entry.kind === 'file' && /\.md$/i.test(entry.name || '')) {
-          try {
-            // @ts-ignore
-            const fh = await dir.getFileHandle?.(entry.name) ?? await (dir).getFileHandle(entry.name);
-            if (fh) yield fh;
-          } catch (e) {
-            // NotFound or race condition during rename/move
-            logger.debug('MarkdownFolderAdapter: iterateMarkdownFiles skipped entry', e);
-          }
-        }
-      }
-      return;
-    }
-    // Fallback via entries()
-    const entriesFn = (dir as DirHandleWithIterators).entries;
-    if (typeof entriesFn === 'function') {
-      for await (const [name, entry] of entriesFn.call(dir)) {
-        if (entry.kind === 'file' && /\.md$/i.test(name)) {
-          try {
-            
-            const fh = await dir.getFileHandle?.(name) ?? await (dir).getFileHandle(name);
-            if (fh) yield fh;
-          } catch (e) {
-            logger.debug('MarkdownFolderAdapter: iterateMarkdownFiles(entries) skipped entry', e);
-          }
-        }
-      }
-    }
-  }
-
   async moveItem(sourcePath: string, targetFolderPath: string): Promise<void> {
     if (!this.rootHandle) throw new Error('No root folder selected');
     const resolved = await this.resolveParentDirAndName(sourcePath);
@@ -1188,7 +1068,7 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     let dstDir: DirHandle = this.rootHandle;
     const parts = (targetFolderPath || '').split('/').filter(Boolean);
     for (const part of parts) {
-      dstDir = await this.getOrCreateDirectory(dstDir, part);
+      dstDir = await getOrCreateDirectory(dstDir, part);
     }
     // If moving to same parent and same name, nothing to do
     if (srcParent === dstDir) return;
@@ -1206,8 +1086,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
     const srcDir = await this.getExistingDirectory(srcParent, name);
     if (!srcDir) throw new Error('Source not found');
     const uniqueFolderName = await this.ensureUniqueFolderName(dstDir, name);
-    const dstSub = await this.getOrCreateDirectory(dstDir, uniqueFolderName);
-    await this.copyDirectoryRecursive(srcDir, dstSub);
+    const dstSub = await getOrCreateDirectory(dstDir, uniqueFolderName);
+    await copyDirectoryRecursive(srcDir, dstSub);
     const remover = (srcParent).removeEntry?.bind(srcParent);
     if (remover) await remover(name, { recursive: true });
   }
