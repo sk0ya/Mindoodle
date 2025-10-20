@@ -4,6 +4,10 @@ import { useMindMapStore } from '../store';
  * Store selectors for data access
  * Provides a layer of abstraction over direct store access
  * Phase 3: Consolidated hook patterns for common store access
+ *
+ * IMPORTANT: Each selector uses separate useMindMapStore calls to avoid
+ * creating new object references on every render, which would cause
+ * infinite re-render loops in components.
  */
 
 // Data selectors
@@ -33,22 +37,22 @@ export const useUI = () => {
 };
 
 export const useViewport = () => {
-  return useMindMapStore(s => ({
-    zoom: s.ui.zoom,
-    pan: s.ui.pan,
-    setZoom: s.setZoom,
-    setPan: s.setPan,
-  }));
+  const zoom = useMindMapStore(s => s.ui.zoom);
+  const pan = useMindMapStore(s => s.ui.pan);
+  const setZoom = useMindMapStore(s => s.setZoom);
+  const setPan = useMindMapStore(s => s.setPan);
+
+  return { zoom, pan, setZoom, setPan };
 };
 
 // History selectors
 export const useHistoryState = () => {
-  return useMindMapStore(s => ({
-    canUndo: s.canUndo(),
-    canRedo: s.canRedo(),
-    undo: s.undo,
-    redo: s.redo,
-  }));
+  const canUndo = useMindMapStore(s => s.canUndo());
+  const canRedo = useMindMapStore(s => s.canRedo());
+  const undo = useMindMapStore(s => s.undo);
+  const redo = useMindMapStore(s => s.redo);
+
+  return { canUndo, canRedo, undo, redo };
 };
 
 // Settings selectors
@@ -62,56 +66,77 @@ export const useUpdateSetting = () => {
 
 // Panel control selectors
 export const usePanelControls = () => {
-  return useMindMapStore(s => ({
-    setMarkdownPanelWidth: s.setMarkdownPanelWidth,
-    setNodeNotePanelHeight: s.setNodeNotePanelHeight,
-  }));
+  const setMarkdownPanelWidth = useMindMapStore(s => s.setMarkdownPanelWidth);
+  const setNodeNotePanelHeight = useMindMapStore(s => s.setNodeNotePanelHeight);
+
+  return { setMarkdownPanelWidth, setNodeNotePanelHeight };
 };
 
 // Cache control selectors
 export const useCacheControls = () => {
-  return useMindMapStore(s => ({
-    clearMermaidRelatedCaches: s.clearMermaidRelatedCaches,
-  }));
+  const clearMermaidRelatedCaches = useMindMapStore(s => s.clearMermaidRelatedCaches);
+
+  return { clearMermaidRelatedCaches };
 };
 
 // Node operations selectors
 export const useNodeOperations = () => {
-  return useMindMapStore(s => ({
-    addChildNode: s.addChildNode,
-    updateNode: s.updateNode,
-    deleteNode: s.deleteNode,
-    moveNode: s.moveNode,
-    moveNodeWithPosition: s.moveNodeWithPosition,
-    changeSiblingOrder: s.changeSiblingOrder,
-    toggleNodeCollapse: s.toggleNodeCollapse,
-  }));
+  const addChildNode = useMindMapStore(s => s.addChildNode);
+  const updateNode = useMindMapStore(s => s.updateNode);
+  const deleteNode = useMindMapStore(s => s.deleteNode);
+  const moveNode = useMindMapStore(s => s.moveNode);
+  const moveNodeWithPosition = useMindMapStore(s => s.moveNodeWithPosition);
+  const changeSiblingOrder = useMindMapStore(s => s.changeSiblingOrder);
+  const toggleNodeCollapse = useMindMapStore(s => s.toggleNodeCollapse);
+
+  return {
+    addChildNode,
+    updateNode,
+    deleteNode,
+    moveNode,
+    moveNodeWithPosition,
+    changeSiblingOrder,
+    toggleNodeCollapse
+  };
 };
 
 // Map operations selectors
 export const useMapOperations = () => {
-  return useMindMapStore(s => ({
-    setData: s.setData,
-    setRootNodes: s.setRootNodes,
-    updateMapMetadata: s.updateMapMetadata,
-    applyAutoLayout: s.applyAutoLayout,
-  }));
+  const setData = useMindMapStore(s => s.setData);
+  const setRootNodes = useMindMapStore(s => s.setRootNodes);
+  const updateMapMetadata = useMindMapStore(s => s.updateMapMetadata);
+  const applyAutoLayout = useMindMapStore(s => s.applyAutoLayout);
+
+  return { setData, setRootNodes, updateMapMetadata, applyAutoLayout };
 };
 
 // UI operations selectors
 export const useUIOperations = () => {
-  return useMindMapStore(s => ({
-    setMode: s.setMode,
-    setActiveView: s.setActiveView,
-    togglePanel: s.togglePanel,
-    toggleSidebar: s.toggleSidebar,
-    setSidebarCollapsed: s.setSidebarCollapsed,
-    closeAllPanels: s.closeAllPanels,
-    setShowNotesPanel: s.setShowNotesPanel,
-    toggleNotesPanel: s.toggleNotesPanel,
-    setShowImageModal: s.setShowImageModal,
-    setFileMenuPosition: s.setFileMenuPosition,
-    setShowFileActionMenu: s.setShowFileActionMenu,
-    resetZoom: s.resetZoom,
-  }));
+  const setMode = useMindMapStore(s => s.setMode);
+  const setActiveView = useMindMapStore(s => s.setActiveView);
+  const togglePanel = useMindMapStore(s => s.togglePanel);
+  const toggleSidebar = useMindMapStore(s => s.toggleSidebar);
+  const setSidebarCollapsed = useMindMapStore(s => s.setSidebarCollapsed);
+  const closeAllPanels = useMindMapStore(s => s.closeAllPanels);
+  const setShowNotesPanel = useMindMapStore(s => s.setShowNotesPanel);
+  const toggleNotesPanel = useMindMapStore(s => s.toggleNotesPanel);
+  const setShowImageModal = useMindMapStore(s => s.setShowImageModal);
+  const setFileMenuPosition = useMindMapStore(s => s.setFileMenuPosition);
+  const setShowFileActionMenu = useMindMapStore(s => s.setShowFileActionMenu);
+  const resetZoom = useMindMapStore(s => s.resetZoom);
+
+  return {
+    setMode,
+    setActiveView,
+    togglePanel,
+    toggleSidebar,
+    setSidebarCollapsed,
+    closeAllPanels,
+    setShowNotesPanel,
+    toggleNotesPanel,
+    setShowImageModal,
+    setFileMenuPosition,
+    setShowFileActionMenu,
+    resetZoom,
+  };
 };

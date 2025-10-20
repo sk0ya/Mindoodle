@@ -235,9 +235,9 @@ interface NodeRendererProps {
       const pendingImages: FileAttachment[] = noteImageFiles
         .filter((imageFile): imageFile is FileAttachment => {
           const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
-          return relativeFile.isRelativeLocal &&
+          return Boolean(relativeFile.isRelativeLocal &&
                  relativeFile.downloadUrl &&
-                 !resolvedImageUrls[relativeFile.downloadUrl];
+                 !resolvedImageUrls[relativeFile.downloadUrl]);
         });
 
       if (pendingImages.length === 0) {
