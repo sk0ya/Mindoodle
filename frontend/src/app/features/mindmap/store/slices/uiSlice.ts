@@ -1,16 +1,11 @@
 import type { StateCreator } from 'zustand';
-import type { Position, MindMapNode, UIMode, PanelId, UIState, UIActions } from '@shared/types';
-import type { MindMapStore } from './types';
+import type { Position, MindMapNode, UIMode, PanelId, UIState } from '@shared/types';
+import type { MindMapStore, UISlice } from './types';
 import { nextMode } from '@mindmap/state/uiModeMachine';
 import * as panelManager from '@mindmap/state/panelManager';
 
-export interface UISlice extends UIActions {
-  ui: UIState;
-  
-  setSearchQuery: (query: string) => void;
-  setSearchHighlightedNodes: (nodeIds: Set<string>) => void;
-  clearSearchHighlight: () => void;
-}
+// Re-export types for external use
+export type { UISlice };
 
 export const createUISlice: StateCreator<
   MindMapStore,

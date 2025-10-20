@@ -1,12 +1,54 @@
 import type { MindMapData, MindMapNode, Position, NodeLink } from '@shared/types';
 import type { NormalizedData } from '../../../../core/data/normalizedStore';
-import type { SettingsSlice } from './settingsSlice';
-import type { UISlice } from './uiSlice';
-import type { UIState } from '@shared/types/ui.types';
-
+import type { UIState, UIActions } from '@shared/types/ui.types';
+import type { StorageMode } from '@core/types';
 
 export type { UIState };
 
+// Define slice interfaces here to avoid circular dependencies
+export interface AppSettings {
+  theme: 'dark' | 'light';
+  fontSize: number;
+  fontFamily: string;
+  nodeSpacing: number;
+  nodeTextWrapEnabled: boolean;
+  nodeTextWrapWidth: number;
+  storageMode: StorageMode;
+  cloudApiEndpoint?: string;
+  vimMindMap: boolean;
+  vimEditor: boolean;
+  vimLeader: string;
+  vimCustomKeybindings: Record<string, string>;
+  vimMappingsSource: string;
+  vimEditorLeader: string;
+  vimEditorCustomKeybindings: Record<string, string>;
+  vimEditorMappingsSource: string;
+  previewMode: boolean;
+  addBlankLineAfterHeading: boolean;
+  defaultCollapseDepth?: number;
+  edgeColorSet: string;
+  visualizeInMapLinks: boolean;
+  knowledgeGraph: {
+    enabled: boolean;
+    modelDownloaded: boolean;
+  };
+}
+
+export interface SettingsSlice {
+  settings: AppSettings;
+  updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
+  updateSettings: (settings: Partial<AppSettings>) => void;
+  resetSettings: () => void;
+  loadSettingsFromStorage: () => void;
+  saveSettingsToStorage: () => void;
+}
+
+export interface UISlice extends UIActions {
+  ui: UIState;
+  setSearchQuery: (query: string) => void;
+  setSearchHighlightedNodes: (nodeIds: Set<string>) => void;
+  clearSearchHighlight: () => void;
+}
 
 export interface HistoryState {
   history: MindMapData[];

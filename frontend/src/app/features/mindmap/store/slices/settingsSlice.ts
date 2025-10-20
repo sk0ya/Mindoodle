@@ -1,71 +1,9 @@
 import type { StateCreator } from 'zustand';
-import type { MindMapStore } from './types';
-import type { StorageMode } from '@core/types';
+import type { MindMapStore, AppSettings, SettingsSlice } from './types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 
-export interface AppSettings {
-  
-  theme: 'dark' | 'light';
-
-  
-  fontSize: number;
-  fontFamily: string;
-
-  
-  nodeSpacing: number; 
-
-  
-  nodeTextWrapEnabled: boolean;
-  nodeTextWrapWidth: number; 
-
-  
-  storageMode: StorageMode; 
-  cloudApiEndpoint?: string; 
-
-  
-  
-  
-  vimMindMap: boolean; 
-  vimEditor: boolean;  
-  
-  
-  vimLeader: string; 
-  vimCustomKeybindings: Record<string, string>; 
-  vimMappingsSource: string; 
-  
-  vimEditorLeader: string;
-  vimEditorCustomKeybindings: Record<string, string>;
-  vimEditorMappingsSource: string;
-  previewMode: boolean;
-
-  
-  addBlankLineAfterHeading: boolean; 
-  defaultCollapseDepth?: number; 
-
-  
-  edgeColorSet: string; 
-
-  
-  
-  visualizeInMapLinks: boolean;
-
-  
-  knowledgeGraph: {
-    enabled: boolean; 
-    modelDownloaded: boolean; 
-  };
-}
-
-export interface SettingsSlice {
-  settings: AppSettings;
-  
-  
-  updateSetting: <K extends keyof AppSettings>(key: K, value: AppSettings[K]) => void;
-  updateSettings: (settings: Partial<AppSettings>) => void;
-  resetSettings: () => void;
-  loadSettingsFromStorage: () => void;
-  saveSettingsToStorage: () => void;
-}
+// Re-export types for external use
+export type { AppSettings, SettingsSlice };
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
