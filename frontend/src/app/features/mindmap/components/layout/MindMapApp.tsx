@@ -31,7 +31,6 @@ import CommandPalette from '@shared/components/CommandPalette';
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
-import { CloudStorageAdapter } from '../../../../core/storage/adapters';
 import { mindMapEvents } from '@core/streams';
 
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
@@ -80,24 +79,26 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     linkActionMenuData,
     closeLinkModal,
     openLinkActionMenu, closeLinkActionMenu,
+    // Image modal
+    showImageModal,
+    currentImageUrl,
+    currentImageAlt,
+    handleShowImageModal,
+    handleCloseImageModal,
+    // Table editor
+    showTableEditor,
+    editingTableNodeId,
+    handleEditTable,
+    handleCloseTableEditor,
+    // Auth modal
+    isAuthModalOpen,
+    authCloudAdapter,
+    setAuthCloudAdapter,
+    setAuthOnSuccess,
+    setIsAuthModalOpen,
+    handleAuthModalClose,
+    handleAuthModalSuccess,
   } = useMindMapModals();
-
-  const [showImageModal, setShowImageModal] = useState(false);
-  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
-  const [currentImageAlt, setCurrentImageAlt] = useState<string>('');
-
-  const handleShowImageModal = useCallback((imageUrl: string, altText?: string) => {
-    setCurrentImageUrl(imageUrl);
-    setCurrentImageAlt(altText || '');
-    setShowImageModal(true);
-  }, []);
-
-  // Table editor modal state
-  const [showTableEditor, setShowTableEditor] = useState(false);
-  const [editingTableNodeId, setEditingTableNodeId] = useState<string | null>(null);
-
-  // Note: Knowledge Graph 2D doesn't need allMapsDataForGraph anymore
-
 
   const commandPalette = useCommandPalette({
     enabled: true,
@@ -108,19 +109,9 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     if (text !== undefined) finishEditing(nodeId, text);
   };
 
-  const handleCloseImageModal = useCallback(() => {
-    setShowImageModal(false);
-    setCurrentImageUrl(null);
-    setCurrentImageAlt('');
-  }, []);
-
   // Moved below until data is available
 
   useTheme();
-
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [authCloudAdapter, setAuthCloudAdapter] = useState<CloudStorageAdapter | null>(null);
-  const [authOnSuccess, setAuthOnSuccess] = useState<((adapter: CloudStorageAdapter) => void) | null>(null);
 
   // Consolidated initialization: settings + auth modal bridge
   React.useEffect(() => {
@@ -134,23 +125,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     });
 
     return cleanup;
-  }, [loadSettingsFromStorage]);
-
-  // Controller initialization removed (no-op)
-
-  const handleAuthModalClose = () => {
-    setIsAuthModalOpen(false);
-    setAuthCloudAdapter(null);
-    setAuthOnSuccess(() => null);
-  };
-
-  const handleAuthModalSuccess = (authenticatedAdapter: CloudStorageAdapter) => {
-    if (authOnSuccess) {
-      authOnSuccess(authenticatedAdapter);
-    }
-    handleAuthModalClose();
-  };
-
+  }, [loadSettingsFromStorage, setAuthCloudAdapter, setAuthOnSuccess, setIsAuthModalOpen]);
 
   const { showFolderGuide, closeGuide, markDismissed } = useFolderGuide();
 
@@ -265,27 +240,16 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     store.setShowContextMenu(false);
   }, [store]);
 
-  
-  const handleEditTable = useCallback((nodeId: string) => {
-    setEditingTableNodeId(nodeId);
-    setShowTableEditor(true);
-    handleContextMenuClose();
-  }, [handleContextMenuClose]);
-
   const handleTableEditorSave = useCallback((newMarkdown: string) => {
     if (!editingTableNodeId) return;
 
     const node = findNodeInRoots(data?.rootNodes || [], editingTableNodeId);
     if (!node) return;
 
-
-
     updateNode(editingTableNodeId, { text: newMarkdown });
-
-    setShowTableEditor(false);
-    setEditingTableNodeId(null);
+    handleCloseTableEditor();
     showNotification('success', 'テーブルを更新しました');
-  }, [editingTableNodeId, data, updateNode, showNotification]);
+  }, [editingTableNodeId, data, updateNode, handleCloseTableEditor, showNotification]);
 
   const markdownOps = useMarkdownOperations({
     data,
@@ -1010,10 +974,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       {}
       <TableEditorModal
         isOpen={showTableEditor}
-        onClose={() => {
-          setShowTableEditor(false);
-          setEditingTableNodeId(null);
-        }}
+        onClose={handleCloseTableEditor}
         onSave={handleTableEditorSave}
         initialMarkdown={
           editingTableNodeId
