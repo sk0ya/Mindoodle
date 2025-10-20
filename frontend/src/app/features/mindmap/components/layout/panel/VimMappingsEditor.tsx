@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { useMindMapStore } from '@mindmap/store';
+import { useSettings, useUpdateSetting } from '@mindmap/hooks/useStoreSelectors';
 import { parseVimMappingsText } from '@/app/features/vim/utils/parseVimMappings';
 import { CodeMirrorEditor, type CodeMirrorEditorRef } from '@shared/codemirror';
 import type { AppSettings } from '@mindmap/store/slices/settingsSlice';
@@ -12,7 +12,8 @@ type Props = {
 };
 
 const VimMappingsEditor: React.FC<Props> = ({ sourceKey, leaderKey, mappingsKey }) => {
-  const { settings, updateSetting } = useMindMapStore();
+  const settings = useSettings();
+  const updateSetting = useUpdateSetting();
   const editorRef = useRef<CodeMirrorEditorRef>(null);
   const applyTimerRef = useRef<number | null>(null);
 

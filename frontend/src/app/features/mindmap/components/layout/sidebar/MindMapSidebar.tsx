@@ -8,7 +8,7 @@ import ContextMenu from '../overlay/ContextMenu';
 import { ExplorerView } from './ExplorerView';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
-import { useMindMapStore } from '@mindmap/store';
+import { useSettings, useUpdateSetting } from '@mindmap/hooks/useStoreSelectors';
 import { CloudStorageAdapter } from '@/app/core/storage/adapters';
 import { WorkspaceService } from '@shared/services';
 
@@ -52,7 +52,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   explorerTree,
   onCreateFolder
 }) => {
-  const { settings, updateSetting } = useMindMapStore();
+  const settings = useSettings();
+  const updateSetting = useUpdateSetting();
   const isCloudConnected = React.useMemo(
     () => workspaces.some(ws => ws.id === 'cloud'),
     [workspaces]

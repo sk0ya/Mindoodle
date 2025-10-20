@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useMindMapStore } from '@mindmap/store';
+import { useSettings, useUpdateSetting } from '@mindmap/hooks/useStoreSelectors';
 import { embeddingService } from '@core/services/EmbeddingService';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 
@@ -8,7 +8,8 @@ interface SettingsSidebarProps {
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
-  const { settings, updateSetting } = useMindMapStore();
+  const settings = useSettings();
+  const updateSetting = useUpdateSetting();
   const [isInitializingEmbedding, setIsInitializingEmbedding] = useState(false);
   const [embeddingProgress, setEmbeddingProgress] = useState<string>('');
   const [embeddingError, setEmbeddingError] = useState<string>('');

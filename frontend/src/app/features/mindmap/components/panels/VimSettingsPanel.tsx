@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Settings, Trash2, Plus, Key } from 'lucide-react';
-import { useMindMapStore } from '../../store';
+import { useSettings, useUpdateSetting } from '../../hooks/useStoreSelectors';
 
 type VimSettings = {
   vimLeader?: string;
@@ -10,7 +10,8 @@ type VimSettings = {
 };
 
 const VimSettingsPanel: React.FC = () => {
-  const { settings, updateSetting } = useMindMapStore();
+  const settings = useSettings();
+  const updateSetting = useUpdateSetting();
   const [lhs, setLhs] = useState<string>('');
   const [rhs, setRhs] = useState<string>('');
 

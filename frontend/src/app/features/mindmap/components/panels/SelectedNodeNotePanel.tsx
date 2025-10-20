@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
+import { usePanelControls } from '../../hooks/useStoreSelectors';
 import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
@@ -25,7 +26,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
   const { isResizing, startResizing, stopResizing } = useResizingState();
   const [leftOffset, setLeftOffset] = useState<number>(0);
   const [rightOffset, setRightOffset] = useState<number>(0);
-  const { setNodeNotePanelHeight } = useMindMapStore();
+  const { setNodeNotePanelHeight } = usePanelControls();
   const [noteText, setNoteText] = useState<string>(note || '');
   const { value: editorFocused, setTrue: setEditorFocusedTrue, setFalse: setEditorFocusedFalse } = useBooleanState({ initialValue: false });
   const editorFocusedRef = useRef<boolean>(false);

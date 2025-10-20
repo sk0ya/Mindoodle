@@ -74,3 +74,36 @@ export const useCacheControls = () => {
     clearMermaidRelatedCaches: s.clearMermaidRelatedCaches,
   }));
 };
+
+// Node operations selectors
+export const useNodeOperations = () => {
+  return useMindMapStore(s => ({
+    addChildNode: s.addChildNode,
+    updateNode: s.updateNode,
+    deleteNode: s.deleteNode,
+    moveNode: s.moveNode,
+    moveNodeWithPosition: s.moveNodeWithPosition,
+    changeSiblingOrder: s.changeSiblingOrder,
+    toggleNodeCollapse: s.toggleNodeCollapse,
+  }));
+};
+
+// Map operations selectors
+export const useMapOperations = () => {
+  return useMindMapStore(s => ({
+    setData: s.setData,
+    setRootNodes: s.setRootNodes,
+    updateMapMetadata: s.updateMapMetadata,
+    applyAutoLayout: s.applyAutoLayout,
+  }));
+};
+
+// UI operations selectors
+export const useUIOperations = () => {
+  return useMindMapStore(s => ({
+    setMode: s.setMode,
+    setActiveView: s.setActiveView,
+    togglePanel: s.togglePanel,
+    toggleSidebar: s.toggleSidebar,
+  }));
+};

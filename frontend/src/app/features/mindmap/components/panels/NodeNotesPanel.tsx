@@ -4,7 +4,7 @@ import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 import { useResizingState } from '@/app/shared/hooks';
-import { useMindMapStore } from '../../store';
+import { usePanelControls } from '../../hooks/useStoreSelectors';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 interface MarkdownPanelProps {
@@ -25,11 +25,11 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   getNodeIdByMarkdownLine,
   onSelectNode
 }) => {
-  const [panelWidth, setPanelWidth] = useState(600); 
+  const [panelWidth, setPanelWidth] = useState(600);
   const { isResizing, startResizing, stopResizing } = useResizingState();
   const panelRef = useRef<HTMLDivElement>(null);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
-  const { setMarkdownPanelWidth } = useMindMapStore();
+  const { setMarkdownPanelWidth } = usePanelControls();
   const [mapMarkdown, setMapMarkdown] = useState<string>('');
   const { value: loadingMapMd, setTrue: startLoading, setFalse: stopLoading } = useBooleanState({ initialValue: false });
   const [resizeCounter, setResizeCounter] = useState<number>(0);

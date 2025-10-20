@@ -4,7 +4,7 @@ import { stopPropagationOnly } from '@shared/utils';
 import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
 import './KeyboardShortcutHelper.css';
 import { viewportService } from '@/app/core/services';
-import { useMindMapStore } from '../store/mindMapStore';
+import { useSettings } from '../hooks/useStoreSelectors';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 
@@ -63,7 +63,7 @@ function formatShortcutKeys(shortcut: ShortcutDefinition): (string | React.React
 const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisible, onClose }) => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [activeTab, setActiveTab] = useState<string>('all');
-  const { settings } = useMindMapStore();
+  const settings = useSettings();
 
   
   const allShortcuts: ShortcutCategory[] = useMemo(() => {

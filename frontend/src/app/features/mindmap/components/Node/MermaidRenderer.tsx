@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react';
 import mermaid from 'mermaid';
 import { generateId } from '@shared/utils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
-import { useMindMapStore } from '../../store';
+import { useUI } from '../../hooks/useStoreSelectors';
 
 type MermaidRendererProps = {
   code: string;
@@ -28,7 +28,7 @@ const MermaidRenderer: React.FC<MermaidRendererProps> = ({
   const [svg, setSvg] = useState<string>('');
 
   // Get UI state to monitor cache clear events
-  const { ui } = useMindMapStore();
+  const ui = useUI();
 
   // Initialize mermaid once
   useEffect(() => {
