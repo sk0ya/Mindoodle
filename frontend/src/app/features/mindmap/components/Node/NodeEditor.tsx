@@ -4,26 +4,11 @@ import { useMindMapStore } from '../../store';
 import { calculateIconLayout, wrapNodeText, resolveNodeTextWrapConfig, getMarkerPrefixTokens, TEXT_ICON_SPACING, type WrappedToken } from '@mindmap/utils';
 import { extractAllMarkdownLinksDetailed } from '../../../markdown';
 import type { MindMapNode, NodeLink } from '@shared/types';
+import { isMarkdownLink, isUrl, parseMarkdownLink } from './linkUtils';
+import { hasMermaidBlocksChanged } from './mermaidUtils';
 
-// Shared helpers (exported for reuse and to avoid duplicates)
-export const isMarkdownLink = (text: string): boolean => {
-  const markdownLinkPattern = /^\[([^\]]*)\]\(([^)]+)\)$/;
-  return markdownLinkPattern.test(text);
-};
-
-export const isUrl = (text: string): boolean => {
-  const urlPattern = /^https?:\/\/[^\s]+$/;
-  return urlPattern.test(text);
-};
-
-export const parseMarkdownLink = (text: string) => {
-  const re = /^\[([^\]]*)\]\(([^)]+)\)$/;
-  const m = re.exec(text);
-  if (m) {
-    return { label: m[1], href: m[2] };
-  }
-  return null;
-};
+// Re-export for backward compatibility
+export { isMarkdownLink, isUrl, parseMarkdownLink } from './linkUtils';
 
 interface NodeEditorProps {
   node: MindMapNode;
@@ -85,39 +70,9 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     }
   }, [isSelected, onSelectNode, onToggleLinkList, node.id]);
 
-  
+
   const clearMermaidCacheOnChange = useCallback((oldText: string, newText: string) => {
-    const extractMermaidBlocks = (text: string): string[] => {
-      const blocks: string[] = [];
-      let pos = 0;
-      const fence = '```';
-      const marker = '```mermaid';
-      while (pos < text.length) {
-        const start = text.indexOf(marker, pos);
-        if (start === -1) break;
-        // content starts after the first newline following marker (if any)
-        let contentStart = start + marker.length;
-        while (contentStart < text.length && (text[contentStart] === ' ' || text[contentStart] === '\t')) contentStart++;
-        if (text[contentStart] === '\r' && text[contentStart + 1] === '\n') contentStart += 2;
-        else if (text[contentStart] === '\n' || text[contentStart] === '\r') contentStart += 1;
-
-        const end = text.indexOf(fence, contentStart);
-        if (end === -1) break;
-        blocks.push(text.slice(contentStart, end).trim());
-        pos = end + fence.length;
-      }
-      return blocks;
-    };
-
-    const oldMermaidBlocks = extractMermaidBlocks(oldText);
-    const newMermaidBlocks = extractMermaidBlocks(newText);
-
-    
-    const hasChanges = oldMermaidBlocks.length !== newMermaidBlocks.length ||
-      oldMermaidBlocks.some(oldBlock => !newMermaidBlocks.includes(oldBlock)) ||
-      newMermaidBlocks.some(newBlock => !oldMermaidBlocks.includes(newBlock));
-
-    if (hasChanges) {
+    if (hasMermaidBlocksChanged(oldText, newText)) {
       clearMermaidRelatedCaches();
     }
   }, [clearMermaidRelatedCaches]);
