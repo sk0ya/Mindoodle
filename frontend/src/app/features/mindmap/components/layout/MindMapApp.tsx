@@ -31,18 +31,18 @@ import CommandPalette from '@shared/components/CommandPalette';
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 import { AuthModal } from '@shared/components';
-import { mindMapEvents } from '@core/streams';
 
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 import TableEditorModal from '../../../markdown/components/TableEditorModal';
 import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
 import { EmbeddingIntegration } from '@core/services/EmbeddingIntegration';
-import { parseWorkspacePath } from '@shared/utils/pathOperations';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
 
 import { useShortcutHandlers } from './useShortcutHandlers';
+import { useMindMapEventHandlers } from './useMindMapEventHandlers';
+import { useMindMapViewportEffects } from './useMindMapViewportEffects';
 
 interface MindMapAppProps {
   storageMode?: 'local' ;
@@ -215,41 +215,32 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     showNotification,
   });
 
-  const handleSelectFolder = React.useCallback(async () => {
-    await handleSelectFolderFromHook(() => {
-      closeGuide();
-      markDismissed();
-    });
-  }, [handleSelectFolderFromHook, closeGuide, markDismissed]);
-
+  // Event handlers hook
+  const {
+    handleSelectFolder,
+    handleContextMenuClose,
+    handleTableEditorSave,
+    handleOpenImageFile,
+  } = useMindMapEventHandlers({
+    data,
+    editingTableNodeId,
+    updateNode,
+    handleCloseTableEditor,
+    handleShowImageModal,
+    showNotification,
+    store,
+    mindMap,
+    handleSelectFolderFromHook,
+    closeGuide,
+    markDismissed,
+  });
 
   const { showKeyboardHelper, setShowKeyboardHelper } = {
     showKeyboardHelper: uiStore.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show)
   };
 
-
-
-
   // Node right-click is handled by event strategies; no local handler needed
-
-  const handleContextMenuClose = useCallback(() => {
-    // Type: Optional panel close method on store
-    const storeWithPanels = store as unknown as { closePanel?: (panel: string) => void };
-    storeWithPanels.closePanel?.('contextMenu');
-    store.setShowContextMenu(false);
-  }, [store]);
-
-  const handleTableEditorSave = useCallback((newMarkdown: string) => {
-    if (!editingTableNodeId) return;
-
-    const node = findNodeInRoots(data?.rootNodes || [], editingTableNodeId);
-    if (!node) return;
-
-    updateNode(editingTableNodeId, { text: newMarkdown });
-    handleCloseTableEditor();
-    showNotification('success', 'テーブルを更新しました');
-  }, [editingTableNodeId, data, updateNode, handleCloseTableEditor, showNotification]);
 
   const markdownOps = useMarkdownOperations({
     data,
@@ -266,29 +257,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   });
 
   useMindMapEvents({ mindMap, selectMapById });
-
-  // Global image open handler from Explorer (map list)
-  const handleOpenImageFile = useCallback((e: Event) => {
-    const evt = e as CustomEvent;
-    const path = evt?.detail?.path as (string | undefined);
-    if (!path) return;
-    try {
-      const { workspaceId, relativePath } = parseWorkspacePath(path);
-      const ws = workspaceId || data?.mapIdentifier?.workspaceId || '';
-      if (!relativePath || !ws) return;
-      // Ensure reader is available
-      const reader = (mindMap as unknown as { readImageAsDataURL?: (p: string, ws: string) => Promise<string | null> }).readImageAsDataURL;
-      if (typeof reader !== 'function') return;
-      reader(relativePath, ws)
-        .then((dataURL) => {
-          if (dataURL) {
-            const fileName = relativePath.split('/').pop() || 'image';
-            handleShowImageModal(dataURL, fileName);
-          }
-        })
-        .catch(() => { /* ignore */ });
-    } catch { /* ignore */ }
-  }, [mindMap, data?.mapIdentifier?.workspaceId, handleShowImageModal]);
 
   useEventListener('mindoodle:openImageFile', handleOpenImageFile, { target: window });
 
@@ -384,77 +352,15 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
 
-  // Consolidated viewport effects: ensure selected node visibility on UI changes
-  React.useEffect(() => {
-    if (!selectedNodeId) return;
-
-    const raf = () => requestAnimationFrame(() => ensureSelectedNodeVisible());
-    const timeoutId = window.setTimeout(raf, 0);
-
-    const resizeHandler = () => { ensureSelectedNodeVisible(); };
-    window.addEventListener('node-note-panel-resize', resizeHandler as EventListener);
-
-    return () => {
-      window.clearTimeout(timeoutId);
-      window.removeEventListener('node-note-panel-resize', resizeHandler as EventListener);
-    };
-  }, [
+  // Viewport effects hook
+  useMindMapViewportEffects({
     selectedNodeId,
-    uiStore.showNodeNotePanel,
-    uiStore.showNotesPanel,
-    uiStore.nodeNotePanelHeight,
-    ensureSelectedNodeVisible
-  ]);
-
-  // Center root node only once after map changes (avoid fighting user pan)
-  const centeredAfterOpenRef = React.useRef(false);
-  React.useEffect(() => {
-    if (!data?.rootNodes || data.rootNodes.length === 0) return;
-
-    // Reset flag for the new map
-    centeredAfterOpenRef.current = false;
-
-    logger.debug('📍 Map changed, resetting zoom');
-    setZoom(1.0);
-
-    // Listen for first layout completion only
-    const unsubscribe = mindMapEvents.subscribe((event) => {
-      if (event.type !== 'layout.applied') return;
-      if (centeredAfterOpenRef.current) return;
-      // If user already has a selection, don’t recenter to avoid jump
-      if (selectedNodeId) return;
-
-      const roots = data.rootNodes || [];
-      if (roots.length === 0) return;
-
-      logger.debug('📍 First layout after open; centering root node (left)');
-      centeredAfterOpenRef.current = true;
-      // Small delay to ensure DOM is updated
-      window.setTimeout(() => {
-        centerNodeInView(roots[0].id, false, { mode: 'left' });
-      }, 10);
-      // Stop listening after the first center
-      unsubscribe();
-    });
-
-    // Fallback: if no layout event, center once after a short delay
-    const timer = window.setTimeout(() => {
-      if (centeredAfterOpenRef.current) return;
-      if (selectedNodeId) return;
-      const roots = data.rootNodes || [];
-      if (roots.length > 0) {
-        logger.debug('📍 No layout event; centering root node (left) once');
-        centeredAfterOpenRef.current = true;
-        centerNodeInView(roots[0].id, false, { mode: 'left' });
-        unsubscribe();
-      }
-    }, 100);
-
-    return () => {
-      unsubscribe();
-      window.clearTimeout(timer);
-    };
-  }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId, centerNodeInView, setZoom]);
+    data,
+    uiStore,
+    ensureSelectedNodeVisible,
+    centerNodeInView,
+    setZoom,
+  });
 
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
