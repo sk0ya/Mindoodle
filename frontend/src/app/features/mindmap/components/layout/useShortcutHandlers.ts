@@ -179,7 +179,7 @@ export function useShortcutHandlers(args: Args) {
         case 'right': {
           const firstChild = getFirstVisibleChild(currentNode);
           if (firstChild) {
-            
+
             const children = currentNode.children || [];
             if (children.length > 1) {
               let closestChild = children[0];
@@ -198,8 +198,14 @@ export function useShortcutHandlers(args: Args) {
             }
           }
           else if (currentNode.children?.length && currentNode.collapsed) {
-            updateNode(currentSelectedNodeId, { collapsed: false });
-            
+            // Use toggleNodeCollapse to trigger auto-layout and ensure correct child positions
+            const store = useMindMapStore.getState();
+            if (store.toggleNodeCollapse) {
+              store.toggleNodeCollapse(currentSelectedNodeId);
+            } else {
+              updateNode(currentSelectedNodeId, { collapsed: false });
+            }
+
             const children = currentNode.children;
             if (children.length > 1) {
               let closestChild = children[0];
