@@ -126,21 +126,19 @@ interface NodeRendererProps {
         return;
       }
 
-      // 未解決の相対パス画像をフィルタリング
-      const pendingImages: FileAttachment[] = noteImageFiles
+      // 相対パス画像を抽出（resolvedImageUrlsを参照しない）
+      const relativeImages: FileAttachment[] = noteImageFiles
         .filter((imageFile): imageFile is FileAttachment => {
           const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
-          return Boolean(relativeFile.isRelativeLocal &&
-                 relativeFile.downloadUrl &&
-                 !resolvedImageUrls[relativeFile.downloadUrl]);
+          return Boolean(relativeFile.isRelativeLocal && relativeFile.downloadUrl);
         });
 
-      if (pendingImages.length === 0) {
+      if (relativeImages.length === 0) {
         return;
       }
 
       // 並列読み込み
-      const loadPromises = pendingImages.map(async (imageFile) => {
+      const loadPromises = relativeImages.map(async (imageFile) => {
         const relativeFile = imageFile as FileAttachment & { isRelativeLocal?: boolean };
         if (!relativeFile.downloadUrl) return null;
 
@@ -163,13 +161,12 @@ interface NodeRendererProps {
       });
 
       if (Object.keys(newResolvedUrls).length > 0) {
-        setResolvedImageUrls(prev => ({ ...prev, ...newResolvedUrls }));
+        setResolvedImageUrls(newResolvedUrls);
       }
     };
 
     loadRelativeImages();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [imageUrlsKey, onLoadRelativeImage, node.id]);
+  }, [imageUrlsKey, onLoadRelativeImage, noteImageFiles]);
 
   
   const [slotIndex, setSlotIndex] = useState(0);
