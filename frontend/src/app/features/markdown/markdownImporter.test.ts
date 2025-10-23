@@ -21,7 +21,7 @@ describe('MarkdownImporter', () => {
       expect(result.rootNodes).toHaveLength(1);
       expect(result.rootNodes[0].text).toBe('Heading 1');
       expect(result.rootNodes[0].children).toHaveLength(1);
-      expect(result.rootNodes[0].children![0].text).toBe('Heading 2');
+      expect(result.rootNodes[0].children[0].text).toBe('Heading 2');
     });
 
     it('should parse unordered list', () => {
@@ -49,7 +49,7 @@ describe('MarkdownImporter', () => {
       expect(result.rootNodes).toHaveLength(1);
       expect(result.rootNodes[0].text).toBe('Parent');
       expect(result.rootNodes[0].children).toHaveLength(2);
-      expect(result.rootNodes[0].children![0].text).toBe('Child 1');
+      expect(result.rootNodes[0].children[0].text).toBe('Child 1');
     });
 
     it('should parse heading with list children', () => {
@@ -414,7 +414,7 @@ describe('MarkdownImporter', () => {
       ];
 
       const result = MarkdownImporter.updateNodeInMarkdown(nodes, '2', 'Updated Child');
-      expect(result.updatedNodes[0].children![0].text).toBe('Updated Child');
+      expect(result.updatedNodes[0].children[0].text).toBe('Updated Child');
     });
   });
 

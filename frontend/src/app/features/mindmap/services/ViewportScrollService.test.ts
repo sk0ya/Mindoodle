@@ -111,8 +111,8 @@ describe('ViewportScrollService', () => {
 
     it('should pan to make node visible when off-screen to the right', () => {
       // Node far to the right
-      mockRootNodes[0].children![0].x = 2000;
-      mockRootNodes[0].children![0].y = 0;
+      mockRootNodes[0].children[0].x = 2000;
+      mockRootNodes[0].children[0].y = 0;
       mockUI.pan = { x: 0, y: 0 };
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
@@ -124,8 +124,8 @@ describe('ViewportScrollService', () => {
 
     it('should pan to make node visible when off-screen to the left', () => {
       // Node far to the left
-      mockRootNodes[0].children![0].x = -2000;
-      mockRootNodes[0].children![0].y = 0;
+      mockRootNodes[0].children[0].x = -2000;
+      mockRootNodes[0].children[0].y = 0;
       mockUI.pan = { x: 0, y: 0 };
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
@@ -137,8 +137,8 @@ describe('ViewportScrollService', () => {
 
     it('should pan to make node visible when off-screen above', () => {
       // Node far above
-      mockRootNodes[0].children![0].x = 0;
-      mockRootNodes[0].children![0].y = -2000;
+      mockRootNodes[0].children[0].x = 0;
+      mockRootNodes[0].children[0].y = -2000;
       mockUI.pan = { x: 0, y: 0 };
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
@@ -150,8 +150,8 @@ describe('ViewportScrollService', () => {
 
     it('should pan to make node visible when off-screen below', () => {
       // Node far below
-      mockRootNodes[0].children![0].x = 0;
-      mockRootNodes[0].children![0].y = 2000;
+      mockRootNodes[0].children[0].x = 0;
+      mockRootNodes[0].children[0].y = 2000;
       mockUI.pan = { x: 0, y: 0 };
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
@@ -170,8 +170,8 @@ describe('ViewportScrollService', () => {
 
     it('should account for zoom level', () => {
       // Higher zoom means nodes appear larger
-      mockRootNodes[0].children![0].x = 1000;
-      mockRootNodes[0].children![0].y = 500;
+      mockRootNodes[0].children[0].x = 1000;
+      mockRootNodes[0].children[0].y = 500;
       mockUI.zoom = 2; // 2x zoom
       mockUI.pan = { x: 0, y: 0 };
 
@@ -182,8 +182,8 @@ describe('ViewportScrollService', () => {
     });
 
     it('should handle existing pan offset', () => {
-      mockRootNodes[0].children![0].x = 1000;
-      mockRootNodes[0].children![0].y = 500;
+      mockRootNodes[0].children[0].x = 1000;
+      mockRootNodes[0].children[0].y = 500;
       mockUI.pan = { x: -500, y: -250 }; // Already panned
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
@@ -194,7 +194,7 @@ describe('ViewportScrollService', () => {
 
     it('should handle nested children', () => {
       // Add deeply nested node
-      mockRootNodes[0].children![0].children = [
+      mockRootNodes[0].children[0].children = [
         {
           id: 'grandchild-1',
           text: 'Grandchild',
@@ -204,8 +204,8 @@ describe('ViewportScrollService', () => {
         },
       ];
 
-      mockRootNodes[0].children![0].children[0].x = 2000;
-      mockRootNodes[0].children![0].children[0].y = 0;
+      mockRootNodes[0].children[0].children[0].x = 2000;
+      mockRootNodes[0].children[0].children[0].y = 0;
       mockUI.pan = { x: 0, y: 0 };
 
       ensureVisible('grandchild-1', mockUI, mockSetPan, mockRootNodes);
@@ -229,8 +229,8 @@ describe('ViewportScrollService', () => {
       container.className = 'mindmap-canvas-container';
       document.body.appendChild(container);
 
-      mockRootNodes[0].children![0].x = 800;
-      mockRootNodes[0].children![0].y = 0;
+      mockRootNodes[0].children[0].x = 800;
+      mockRootNodes[0].children[0].y = 0;
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
 
@@ -247,8 +247,8 @@ describe('ViewportScrollService', () => {
       });
       document.body.appendChild(notePanel);
 
-      mockRootNodes[0].children![0].x = 0;
-      mockRootNodes[0].children![0].y = 700;
+      mockRootNodes[0].children[0].x = 0;
+      mockRootNodes[0].children[0].y = 700;
 
       ensureVisible('child-1', mockUI, mockSetPan, mockRootNodes);
 

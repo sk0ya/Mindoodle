@@ -106,7 +106,7 @@ describe('normalizedStore', () => {
       expect(denormalized).toHaveLength(1);
       expect(denormalized[0].id).toBe('parent-1');
       expect(denormalized[0].children).toHaveLength(1);
-      expect(denormalized[0].children![0].id).toBe('child-1');
+      expect(denormalized[0].children[0].id).toBe('child-1');
     });
 
     it('should throw for missing node', () => {
