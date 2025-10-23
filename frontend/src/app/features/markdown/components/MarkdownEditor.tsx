@@ -221,9 +221,15 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
     if (!vimApi) return;
 
     try {
-      // Apply leader key and custom mappings
-      // Note: CodeMirror vim API differs from Monaco vim
-      // This will be implemented when vim mappings are properly integrated
+      // Always yank to system clipboard register (+)
+      // Make mappings idempotent by removing existing ones first
+      try { vimApi.unmap('y', 'normal'); } catch {}
+      try { vimApi.unmap('y', 'visual'); } catch {}
+      try { vimApi.unmap('Y', 'normal'); } catch {}
+
+      vimApi.noremap('y', '"+y', 'normal');
+      vimApi.noremap('y', '"+y', 'visual');
+      vimApi.noremap('Y', '"+Y', 'normal');
     } catch (error) {
       logger.warn('Failed to apply vim mappings:', error);
     }
