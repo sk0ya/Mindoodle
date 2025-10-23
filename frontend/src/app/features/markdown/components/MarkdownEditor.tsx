@@ -1,6 +1,6 @@
 import React, { useRef, useEffect, useState, useMemo, useCallback } from 'react';
 import { marked } from 'marked';
-import { FileText } from 'lucide-react';
+import { FileText, X } from 'lucide-react';
 import { useMindMapStore } from '../../mindmap/store/mindMapStore';
 import { mermaidSVGCache } from '../../mindmap/utils/mermaidCache';
 import { CodeMirrorEditor, type CodeMirrorEditorRef } from '@shared/codemirror';
@@ -13,6 +13,7 @@ interface MarkdownEditorProps {
   updatedAt?: string;
   onChange: (value: string) => void;
   onSave?: () => void;
+  onClose?: () => void;
   className?: string;
   height?: string;
   autoFocus?: boolean;
@@ -32,6 +33,7 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
   updatedAt,
   onChange,
   onSave,
+  onClose,
   className = '',
   autoFocus = false,
   readOnly = false,
@@ -361,28 +363,56 @@ export const MarkdownEditor: React.FC<MarkdownEditorProps> = React.memo(({
           <FileText size={16} style={{ marginRight: '8px' }} />
           <span>{title}</span>
         </div>
-        <div>
-          <button
-            style={buttonStyle(mode === 'edit')}
-            onClick={() => setMode('edit')}
-            title="Edit mode"
-          >
-            Edit
-          </button>
-          <button
-            style={buttonStyle(mode === 'split')}
-            onClick={() => setMode('split')}
-            title="Split mode (Ctrl/Cmd+L)"
-          >
-            Split
-          </button>
-          <button
-            style={buttonStyle(mode === 'preview')}
-            onClick={() => setMode('preview')}
-            title="Preview mode"
-          >
-            Preview
-          </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div>
+            <button
+              style={buttonStyle(mode === 'edit')}
+              onClick={() => setMode('edit')}
+              title="Edit mode"
+            >
+              Edit
+            </button>
+            <button
+              style={buttonStyle(mode === 'split')}
+              onClick={() => setMode('split')}
+              title="Split mode (Ctrl/Cmd+L)"
+            >
+              Split
+            </button>
+            <button
+              style={buttonStyle(mode === 'preview')}
+              onClick={() => setMode('preview')}
+              title="Preview mode"
+            >
+              Preview
+            </button>
+          </div>
+          {onClose && (
+            <button
+              style={{
+                padding: '4px',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                backgroundColor: isDark ? '#3c3c3c' : '#e0e0e0',
+                color: isDark ? '#cccccc' : '#333333',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'background-color 0.2s',
+              }}
+              onClick={onClose}
+              title="Close panel"
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = isDark ? '#505050' : '#d0d0d0';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = isDark ? '#3c3c3c' : '#e0e0e0';
+              }}
+            >
+              <X size={16} />
+            </button>
+          )}
         </div>
       </div>
 

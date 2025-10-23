@@ -19,7 +19,7 @@ type Props = {
 
 const HEIGHT_KEY = STORAGE_KEYS.NODE_NOTE_PANEL_HEIGHT;
 
-const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteChanges }) => {
+const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, onClose, subscribeNoteChanges }) => {
   const [height, setHeight] = useState<number>(viewportService.getDefaultNoteHeight());
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -258,6 +258,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, subscribeNoteC
         <MarkdownEditor
           value={noteText}
           onChange={handleNoteChange}
+          onClose={onClose}
           className="node-note-editor"
           autoFocus={false}
           readOnly={false}

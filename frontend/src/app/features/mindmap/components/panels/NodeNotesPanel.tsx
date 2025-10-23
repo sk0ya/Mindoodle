@@ -12,9 +12,10 @@ interface MarkdownPanelProps {
   getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
   onMapMarkdownInput?: (markdown: string) => void;
   subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
-  
+
   getNodeIdByMarkdownLine?: (line: number) => string | null;
   onSelectNode?: (nodeId: string) => void;
+  onClose?: () => void;
 }
 
 const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
@@ -23,7 +24,8 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   onMapMarkdownInput,
   subscribeMarkdownFromNodes,
   getNodeIdByMarkdownLine,
-  onSelectNode
+  onSelectNode,
+  onClose
 }) => {
   const [panelWidth, setPanelWidth] = useState(600);
   const { isResizing, startResizing, stopResizing } = useResizingState();
@@ -214,6 +216,7 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
         <MarkdownEditor
           value={mapMarkdown}
           onChange={handleMapMarkdownChange}
+          onClose={onClose}
           className={EDITOR_CLASS_NAME}
           autoFocus={false}
           readOnly={false}

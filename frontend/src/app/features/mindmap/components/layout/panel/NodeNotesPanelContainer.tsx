@@ -10,6 +10,7 @@ type Props = {
   subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;
   getNodeIdByMarkdownLine?: (line: number) => string | null;
   onSelectNode?: (nodeId: string) => void;
+  onClose?: () => void;
 };
 
 const MarkdownPanelContainer: React.FC<Props> = ({
@@ -19,6 +20,7 @@ const MarkdownPanelContainer: React.FC<Props> = ({
   subscribeMarkdownFromNodes,
   getNodeIdByMarkdownLine,
   onSelectNode,
+  onClose,
 }) => {
   return (
     <MarkdownPanel
@@ -28,6 +30,7 @@ const MarkdownPanelContainer: React.FC<Props> = ({
       subscribeMarkdownFromNodes={subscribeMarkdownFromNodes}
       getNodeIdByMarkdownLine={getNodeIdByMarkdownLine}
       onSelectNode={onSelectNode}
+      onClose={onClose}
     />
   );
 };

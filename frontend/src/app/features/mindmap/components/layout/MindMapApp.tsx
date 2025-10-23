@@ -706,6 +706,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 } catch { return null; }
               }}
               onSelectNode={selectNode}
+              onClose={() => store.setShowNotesPanel?.(false)}
             />
           )}
 
