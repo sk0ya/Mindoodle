@@ -148,9 +148,9 @@ export const selectRootNodeCommand: Command = createNavigationCommand({
 
 export const centerNodeCommand: Command = createNavigationCommand({
   name: 'center-node',
-  aliases: ['center', 'cn'],
+  aliases: ['cn'],
   description: 'Center selected node',
-  examples: ['center'],
+  examples: ['center-node', 'cn'],
   args: [{ name: 'animate', type: 'boolean', required: false, default: true, description: 'Animate' }],
   handler: (context, args) => {
     if (!context.selectedNodeId) throw new Error('No node selected');
@@ -179,7 +179,7 @@ export const jumpToNodeCommand: Command = createNavigationCommand({
 
 export const navigateToParentCommand: Command = createNavigationCommand({
   name: 'navigate-parent',
-  aliases: ['np', 'parent'],
+  aliases: ['np'],
   description: 'Navigate to parent',
   examples: ['navigate-parent'],
   handler: (context) => context.handlers.navigateToDirection('up')
@@ -187,7 +187,7 @@ export const navigateToParentCommand: Command = createNavigationCommand({
 
 export const navigateToChildCommand: Command = createNavigationCommand({
   name: 'navigate-child',
-  aliases: ['nc', 'child'],
+  aliases: ['nc'],
   description: 'Navigate to child',
   examples: ['navigate-child'],
   handler: (context) => context.handlers.navigateToDirection('right')
@@ -195,7 +195,7 @@ export const navigateToChildCommand: Command = createNavigationCommand({
 
 export const navigateToSiblingCommand: Command = createNavigationCommand({
   name: 'navigate-sibling',
-  aliases: ['ns', 'sibling'],
+  aliases: ['ns'],
   description: 'Navigate to sibling',
   examples: ['navigate-sibling'],
   args: [{ name: 'direction', type: 'string', required: false, default: 'next', description: 'next or prev' }],
@@ -228,7 +228,7 @@ export const navigateToLastChildCommand: Command = createNavigationCommand({
 
 export const navigateToNextCommand: Command = createNavigationCommand({
   name: 'navigate-next',
-  aliases: ['next', 'j'],
+  aliases: ['next'],
   description: 'Navigate to next node',
   examples: ['navigate-next'],
   args: [{ name: 'count', type: 'number', required: false, default: 1, description: 'Step count' }],
@@ -242,7 +242,7 @@ export const navigateToNextCommand: Command = createNavigationCommand({
 
 export const navigateToPreviousCommand: Command = createNavigationCommand({
   name: 'navigate-previous',
-  aliases: ['prev', 'k'],
+  aliases: ['prev'],
   description: 'Navigate to previous node',
   examples: ['navigate-previous'],
   args: [{ name: 'count', type: 'number', required: false, default: 1, description: 'Step count' }],
@@ -256,9 +256,9 @@ export const navigateToPreviousCommand: Command = createNavigationCommand({
 
 export const expandNodeCommand: Command = createNavigationCommand({
   name: 'expand-node',
-  aliases: ['expand'],
+  aliases: [],
   description: 'Expand collapsed node',
-  examples: ['expand'],
+  examples: ['expand-node'],
   handler: (context) => {
     if (!context.selectedNodeId) return;
     const node = context.handlers.findNodeById(context.selectedNodeId);
@@ -270,9 +270,9 @@ export const expandNodeCommand: Command = createNavigationCommand({
 
 export const collapseNodeCommand: Command = createNavigationCommand({
   name: 'collapse-node',
-  aliases: ['collapse'],
+  aliases: [],
   description: 'Collapse node',
-  examples: ['collapse'],
+  examples: ['collapse-node'],
   handler: (context) => {
     if (!context.selectedNodeId) return;
     const node = context.handlers.findNodeById(context.selectedNodeId);
@@ -283,8 +283,8 @@ export const collapseNodeCommand: Command = createNavigationCommand({
 });
 
 export const toggleNodeCollapseCommand: Command = createNavigationCommand({
-  name: 'toggle-collapse',
-  aliases: ['toggle'],
+  name: 'toggle-collapse-nav',
+  aliases: [],
   description: 'Toggle node collapse',
   examples: ['toggle'],
   handler: (context) => {
