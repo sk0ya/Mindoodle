@@ -276,68 +276,71 @@ export const createDataSlice: StateCreator<
         if (!layoutedNode) continue;
 
         if (index > 0) {
-          
-          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
-          const currentSubtreeTop = currentSubtreeBounds.minY;
 
-          
           const previousRoot = layoutedRootNodes[index - 1];
           const previousNodeCount = getNodeCount(previousRoot);
           const currentNodeCount = getNodeCount(layoutedNode);
 
-          
+
           const baseSpacing = 8;
           const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
           const adaptiveSpacing = baseSpacing + complexityFactor;
 
-          
-          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
-          const offsetY = targetTopY - currentSubtreeTop;
 
-          
-          const nodesToProcess = [layoutedNode];
-          while (nodesToProcess.length > 0) {
-            const currentNode = nodesToProcess.pop();
-            if (!currentNode) continue;
-            currentNode.y = (currentNode.y || 0) + offsetY;
+          const invalidateAllNodeCaches = (node: MindMapNode) => {
+            const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
+            const nodeKind = nodeWithKind.kind || 'text';
+            const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
 
-            if (currentNode.children) {
-              nodesToProcess.push(...currentNode.children);
-            }
-          }
 
-          
-          const invalidateNodeBounds = (node: MindMapNode) => {
-            
-            const cacheKeyCollapsed = `${node.id}_${node.y || 0}_true`;
-            const cacheKeyExpanded = `${node.id}_${node.y || 0}_false`;
-            boundsCache.delete(cacheKeyCollapsed);
-            boundsCache.delete(cacheKeyExpanded);
+            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+            nodeSizeCache.delete(sizeKey);
 
-            
+
             const countKeyCollapsed = `${node.id}_true`;
             const countKeyExpanded = `${node.id}_false`;
             nodeCountCache.delete(countKeyCollapsed);
             nodeCountCache.delete(countKeyExpanded);
 
 
-            const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
-            const nodeKind = nodeWithKind.kind || 'text';
-            const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
-            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
-            nodeSizeCache.delete(sizeKey);
+            const currentY = node.y || 0;
+            boundsCache.delete(`${node.id}_${currentY}_true`);
+            boundsCache.delete(`${node.id}_${currentY}_false`);
+
 
             if (node.children && !node.collapsed) {
-              for (const child of node.children) invalidateNodeBounds(child);
+              for (const child of node.children) invalidateAllNodeCaches(child);
             }
           };
-          invalidateNodeBounds(layoutedNode);
 
-          
+
+          invalidateAllNodeCaches(layoutedNode);
+
+
+          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
+          const currentSubtreeTop = currentSubtreeBounds.minY;
+
+
+          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
+          const offsetY = targetTopY - currentSubtreeTop;
+
+
+          const applyOffsetToTree = (node: MindMapNode) => {
+            node.y = (node.y || 0) + offsetY;
+            if (node.children) {
+              for (const child of node.children) applyOffsetToTree(child);
+            }
+          };
+          applyOffsetToTree(layoutedNode);
+
+
+          invalidateAllNodeCaches(layoutedNode);
+
+
           const finalBounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = finalBounds.maxY;
         } else {
-          
+
           const bounds = getSubtreeBounds(layoutedNode);
           previousSubtreeBottom = bounds.maxY;
         }
