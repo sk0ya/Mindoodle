@@ -3,7 +3,7 @@
  */
 
 import { EditorState, Extension, type Range } from '@codemirror/state';
-import { EditorView, keymap, ViewUpdate, lineNumbers, Decoration } from '@codemirror/view';
+import { EditorView, keymap, ViewUpdate, lineNumbers, Decoration, drawSelection } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
 import { markdown } from '@codemirror/lang-markdown';
 import { autocompletion, completionKeymap } from '@codemirror/autocomplete';
@@ -142,6 +142,7 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
   const extensions: Extension[] = [
     lineNumbers(),
     history(),
+    drawSelection(), // Enable selection display
     autocompletion(),
     highlightSelectionMatches(),
 
@@ -220,8 +221,30 @@ export function createBaseExtensions(config: EditorConfig): Extension[] {
       '.cm-cursor, .cm-dropCursor': {
         borderLeftColor: isDark ? '#58a6ff' : '#0969da',
       },
-      '&.cm-focused .cm-selectionBackground, ::selection': {
-        backgroundColor: isDark ? '#388bfd26' : '#b6e3ff',
+      // Selection background - always visible, not just when focused
+      '.cm-selectionBackground, &.cm-focused .cm-selectionBackground': {
+        backgroundColor: isDark ? '#264f78 !important' : '#b6e3ff',
+      },
+      // Browser native selection
+      '::selection': {
+        backgroundColor: isDark ? '#264f78 !important' : '#b6e3ff',
+      },
+      // Vim visual mode selection
+      '.cm-vim-visual .cm-selectionBackground': {
+        backgroundColor: isDark ? '#3a5f8f !important' : '#a5d6ff',
+      },
+      // Selection match highlighting (other occurrences of selected text)
+      '.cm-selectionMatch': {
+        backgroundColor: isDark ? '#1e3a5f !important' : '#e6f2ff',
+        outline: 'none',
+      },
+      // Search match highlighting
+      '.cm-searchMatch': {
+        backgroundColor: isDark ? '#1e3a5f !important' : '#e6f2ff',
+        outline: isDark ? '1px solid #3d5a80' : '1px solid #c8e1ff',
+      },
+      '.cm-searchMatch.cm-searchMatch-selected': {
+        backgroundColor: isDark ? '#264f78 !important' : '#b6e3ff',
       },
       '.cm-activeLine': {
         backgroundColor: isDark ? '#161b22' : '#f6f8fa',
