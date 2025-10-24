@@ -3,6 +3,8 @@ import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store';
 import type { MindMapNode } from '@shared/types';
 import { useStableCallback } from '@shared/hooks';
+import { useEffect, useRef } from 'react';
+import { mindMapEvents } from '@core/streams';
 
 export interface ViewportOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
@@ -34,10 +36,36 @@ export function useMindMapViewport({
 }: ViewportOperationsParams) {
 
   
-  const ensureSelectedNodeVisible = useStableCallback(() => {
+  // Suppress auto-pan immediately after layout application to avoid unexpected jumps
+  const suppressAutoPanUntilRef = useRef<number>(0);
+  // Suppress auto-pan right after selection changes (e.g., insert selects new node)
+  const suppressAfterSelectionUntilRef = useRef<number>(0);
+  const lastSelectedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    const unsubscribe = mindMapEvents.subscribe((event) => {
+      if (event.type === 'layout.applied') {
+        // Suppress for a short window; debounced layouts will extend suppression
+        suppressAutoPanUntilRef.current = performance.now() + 800; // ms
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  const ensureSelectedNodeVisible = useStableCallback((options?: { force?: boolean }) => {
+    // Skip adjustments during suppression window unless forced (keyboard nav)
+    if (!options?.force && performance.now() < suppressAutoPanUntilRef.current) return;
     try {
       const st = useMindMapStore.getState();
       const selId: string | null = st.selectedNodeId || null;
+      // If selection just changed, suppress briefly to avoid jumpiness (e.g., after insert)
+      if (!options?.force && selId !== lastSelectedIdRef.current) {
+        lastSelectedIdRef.current = selId;
+        suppressAfterSelectionUntilRef.current = performance.now() + 600; // ms
+        return;
+      }
+      if (!options?.force && performance.now() < suppressAfterSelectionUntilRef.current) {
+        return;
+      }
       const mapData = st.data || null;
       if (!selId || !mapData) return;
       const roots = mapData.rootNodes || [];
@@ -153,10 +181,13 @@ export function useMindMapViewport({
           return noteH === 0 ? 6 : 0;
         } catch { return 0; }
       })();
-      const leftBound = margin;
-      const rightBound = effectiveWidth - margin;
-      const topBound = topMargin;
-      const bottomBound = effectiveHeight - topMargin - bottomExtra;
+      // Add slack so we don't overreact to small movements near the edges
+      const slackX = Math.max(40, Math.round(effectiveWidth * 0.05));
+      const slackY = Math.max(40, Math.round(effectiveHeight * 0.05));
+      const leftBound = margin + slackX;
+      const rightBound = effectiveWidth - margin - slackX;
+      const topBound = topMargin + slackY;
+      const bottomBound = effectiveHeight - topMargin - bottomExtra - slackY;
 
       const isOutsideLeft = (screenX - halfW) < leftBound;
       const isOutsideRight = (screenX + halfW) > rightBound;

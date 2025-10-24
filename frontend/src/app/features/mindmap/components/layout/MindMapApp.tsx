@@ -360,6 +360,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     ensureSelectedNodeVisible,
     centerNodeInView,
     setZoom,
+    autoEnsureVisible: false,
   });
 
   const handleLinkNavigate2 = async (link: NodeLink) => {
@@ -394,6 +395,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     logger,
     showNotification,
     centerNodeInView,
+    ensureSelectedNodeVisible,
     selectedNodeId,
     editingNodeId,
     setEditText,

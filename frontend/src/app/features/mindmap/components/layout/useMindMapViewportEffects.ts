@@ -18,6 +18,12 @@ interface UseMindMapViewportEffectsProps {
   ensureSelectedNodeVisible: () => void;
   centerNodeInView: (nodeId: string, animate?: any, options?: { x: number; y: number } | { mode: string }) => void;
   setZoom: (zoom: number) => void;
+  /**
+   * When true, automatically ensures the selected node stays visible
+   * on certain UI changes (panel resize/toggle). Defaults to false to
+   * avoid surprising viewport jumps.
+   */
+  autoEnsureVisible?: boolean;
 }
 
 export function useMindMapViewportEffects({
@@ -27,12 +33,14 @@ export function useMindMapViewportEffects({
   ensureSelectedNodeVisible,
   centerNodeInView,
   setZoom,
+  autoEnsureVisible = false,
 }: UseMindMapViewportEffectsProps) {
 
   /**
    * Ensure selected node visibility on UI changes
    */
   useEffect(() => {
+    if (!autoEnsureVisible) return;
     if (!selectedNodeId) return;
 
     const raf = () => requestAnimationFrame(() => ensureSelectedNodeVisible());
@@ -46,6 +54,7 @@ export function useMindMapViewportEffects({
       window.removeEventListener('node-note-panel-resize', resizeHandler as EventListener);
     };
   }, [
+    autoEnsureVisible,
     selectedNodeId,
     uiStore.showNodeNotePanel,
     uiStore.showNotesPanel,
@@ -54,39 +63,45 @@ export function useMindMapViewportEffects({
   ]);
 
   /**
-   * Center root node only once after map changes (avoid fighting user pan)
+   * Center root node only once after actual map identity changes (avoid fighting user pan)
    */
   const centeredAfterOpenRef = useRef(false);
-  useEffect(() => {
-    if (!data?.rootNodes || data.rootNodes.length === 0) return;
+  const lastMapKeyRef = useRef<string | null>(null);
+  const setZoomRef = useRef(setZoom);
+  const centerNodeInViewRef = useRef(centerNodeInView);
 
-    // Reset flag for the new map
+  // Keep refs up to date without retriggering the effect
+  useEffect(() => { setZoomRef.current = setZoom; }, [setZoom]);
+  useEffect(() => { centerNodeInViewRef.current = centerNodeInView; }, [centerNodeInView]);
+
+  useEffect(() => {
+    const currentKey = data?.mapIdentifier ? `${data.mapIdentifier.workspaceId}::${data.mapIdentifier.mapId}` : null;
+    if (!currentKey || !data?.rootNodes || data.rootNodes.length === 0) return;
+
+    // Only run when the map identity actually changes
+    if (lastMapKeyRef.current === currentKey) return;
+    lastMapKeyRef.current = currentKey;
     centeredAfterOpenRef.current = false;
 
     logger.debug('📍 Map changed, resetting zoom');
-    setZoom(1.0);
+    setZoomRef.current(1.0);
 
-    // Listen for first layout completion only
     const unsubscribe = mindMapEvents.subscribe((event) => {
       if (event.type !== 'layout.applied') return;
       if (centeredAfterOpenRef.current) return;
-      // If user already has a selection, don't recenter to avoid jump
-      if (selectedNodeId) return;
+      if (selectedNodeId) return; // avoid jump when user already selected
 
       const roots = data.rootNodes || [];
       if (roots.length === 0) return;
 
       logger.debug('📍 First layout after open; centering root node (left)');
       centeredAfterOpenRef.current = true;
-      // Small delay to ensure DOM is updated
       window.setTimeout(() => {
-        centerNodeInView(roots[0].id, false, { mode: 'left' });
+        centerNodeInViewRef.current(roots[0].id, false, { mode: 'left' });
       }, 10);
-      // Stop listening after the first center
       unsubscribe();
     });
 
-    // Fallback: if no layout event, center once after a short delay
     const timer = window.setTimeout(() => {
       if (centeredAfterOpenRef.current) return;
       if (selectedNodeId) return;
@@ -94,7 +109,7 @@ export function useMindMapViewportEffects({
       if (roots.length > 0) {
         logger.debug('📍 No layout event; centering root node (left) once');
         centeredAfterOpenRef.current = true;
-        centerNodeInView(roots[0].id, false, { mode: 'left' });
+        centerNodeInViewRef.current(roots[0].id, false, { mode: 'left' });
         unsubscribe();
       }
     }, 100);
@@ -103,5 +118,5 @@ export function useMindMapViewportEffects({
       unsubscribe();
       window.clearTimeout(timer);
     };
-  }, [data?.rootNodes, selectedNodeId, setZoom, centerNodeInView]);
+  }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId, selectedNodeId, data?.rootNodes]);
 }

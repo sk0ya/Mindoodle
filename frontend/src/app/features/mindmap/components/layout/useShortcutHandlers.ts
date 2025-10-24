@@ -4,7 +4,7 @@ import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentN
 import { useMindMapStore } from '../../store';
 import type { MindMapNode, MindMapData } from '@shared/types';
 
-import { ensureVisible as ensureNodeVisibleSvc } from '@mindmap/services/ViewportScrollService';
+// ensureSelectedNodeVisible is passed in from viewport ops
 
 // Helpers extracted to avoid deep nested function definitions
 const convertNodeToMarkdown = (n: MindMapNode, level = 0): string => {
@@ -77,6 +77,7 @@ interface Args {
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
 
   centerNodeInView: (nodeId: string, animate?: boolean) => void;
+  ensureSelectedNodeVisible?: (options?: { force?: boolean }) => void;
 
   selectedNodeId: string | null;
   editingNodeId: string | null;
@@ -105,6 +106,7 @@ export function useShortcutHandlers(args: Args) {
   const {
     data, ui, store, logger, showNotification,
     centerNodeInView,
+    ensureSelectedNodeVisible,
     selectedNodeId, editingNodeId, editText, setEditText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
@@ -257,8 +259,8 @@ export function useShortcutHandlers(args: Args) {
       if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(currentSelectedNodeId, direction, currentRoot);
       if (nextNodeId) {
         selectNode(nextNodeId);
-        const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
-        ensureNodeVisibleSvc(nextNodeId, ui, (p: { x: number; y: number }) => setPan(p), roots);
+        // Only ensure visibility on keyboard navigation. Use viewport hook API and force it.
+        try { ensureSelectedNodeVisible?.({ force: true }); } catch {}
       }
     },
     showMapList: ui.showMapList,
@@ -434,6 +436,7 @@ export function useShortcutHandlers(args: Args) {
     onMarkdownNodeType: changeNodeType,
     changeSiblingOrder,
     centerNodeInView,
+    ensureSelectedNodeVisible,
     
     switchToPrevMap: () => {
       try {

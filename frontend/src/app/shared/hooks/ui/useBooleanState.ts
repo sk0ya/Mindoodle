@@ -142,7 +142,7 @@ export const useMouseEvents = (
         document.removeEventListener('keydown', onKeyDown);
       }
     };
-  }, [isActive, handlers, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
+  }, [isActive, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
 };
 
 

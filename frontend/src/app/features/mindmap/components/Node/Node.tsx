@@ -70,6 +70,7 @@ const Node: React.FC<NodeProps> = ({
   const { isDragging, handleMouseDown } = useNodeDragHandler({
     node,
     zoom,
+    pan,
     svgRef,
     onDragStart,
     onDragMove,

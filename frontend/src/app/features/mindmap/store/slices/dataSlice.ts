@@ -357,15 +357,33 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
 
-      // Compute pan compensation to keep selected node anchored on screen
+      // Compute pan compensation to keep view stable across layout changes.
+      // For insertion (Enter/Tab), anchor to the selection BEFORE insert to avoid large jumps.
       let compensatedPan: { x: number; y: number } | null = null;
       if (selectedId) {
-        const beforeSelected = findNodeInRoots(rootNodes, selectedId);
-        const afterSelected = findNodeInRoots(layoutedRootNodes, selectedId);
-        if (beforeSelected && afterSelected) {
-          const dx = (beforeSelected.x || 0) - (afterSelected.x || 0);
-          const dy = (beforeSelected.y || 0) - (afterSelected.y || 0);
-          compensatedPan = { x: currentPan.x + dx, y: currentPan.y + dy };
+        const lastBeforeInsert = (state as typeof state & { lastSelectionBeforeInsert?: string | null }).lastSelectionBeforeInsert || null;
+        const anchorId = lastBeforeInsert || selectedId;
+
+        const before = findNodeInRoots(rootNodes, anchorId);
+        const after = findNodeInRoots(layoutedRootNodes, anchorId);
+        if (before && after) {
+          let dx = (before.x || 0) - (after.x || 0);
+          let dy = (before.y || 0) - (after.y || 0);
+
+          // Clamp compensation per layout to avoid runaway jumps
+          const currentZoom = (state.ui?.zoom || 1) * 1.5;
+          const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
+          const maxScreenX = 120; // px
+          const maxScreenY = 80;  // px
+
+          const dxScreen = dx * currentZoom;
+          const dyScreen = dy * currentZoom;
+          const clampedDxScreen = clamp(dxScreen, -maxScreenX, maxScreenX);
+          const clampedDyScreen = clamp(dyScreen, -maxScreenY, maxScreenY);
+          const clampedDxWorld = clampedDxScreen / currentZoom;
+          const clampedDyWorld = clampedDyScreen / currentZoom;
+
+          compensatedPan = { x: currentPan.x + clampedDxWorld, y: currentPan.y + clampedDyWorld };
         }
       }
 
@@ -384,9 +402,14 @@ export const createDataSlice: StateCreator<
           }
         }
 
-        // Apply pan compensation after layout to keep selection position stable
+        // Apply pan compensation after layout to keep view stable (unless skipped)
         if (compensatedPan) {
           draft.ui.pan = compensatedPan;
+        }
+
+        // Clear the insert anchor after this layout frame
+        if ('lastSelectionBeforeInsert' in draft) {
+          draft.lastSelectionBeforeInsert = null;
         }
       });
 

@@ -8,6 +8,7 @@ import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 interface NodeDragHandlerProps {
   node: MindMapNode;
   zoom: number;
+  pan: { x: number; y: number };
   svgRef: React.RefObject<SVGSVGElement>;
   onDragStart?: (nodeId: string) => void;
   onDragMove?: (x: number, y: number) => void;
@@ -17,6 +18,7 @@ interface NodeDragHandlerProps {
 export const useNodeDragHandler = ({
   node,
   zoom,
+  pan,
   svgRef,
   onDragStart,
   onDragMove,
@@ -44,7 +46,7 @@ export const useNodeDragHandler = ({
       onDragEnd: (_nodeId, position) => {
         if (!svgRef.current) return;
 
-        const svgCoords = convertScreenToSVG(position.x, position.y, svgRef, zoom, { x: 0, y: 0 });
+        const svgCoords = convertScreenToSVG(position.x, position.y, svgRef, zoom, pan);
         if (!svgCoords) return;
 
         const newX = svgCoords.svgX - (dragState.dragOffset?.x || 0);
@@ -73,7 +75,7 @@ export const useNodeDragHandler = ({
 
     if (!svgRef.current) return;
 
-    const svgCoords = convertScreenToSVG(e.clientX, e.clientY, svgRef, zoom, { x: 0, y: 0 });
+    const svgCoords = convertScreenToSVG(e.clientX, e.clientY, svgRef, zoom, pan);
     if (!svgCoords) return;
 
     const dragOffset = {
@@ -82,7 +84,7 @@ export const useNodeDragHandler = ({
     };
 
     handleStart(e, node.id, dragOffset);
-  }, [node.id, node.x, node.y, zoom, svgRef, handleStart]);
+  }, [node.id, node.x, node.y, zoom, pan, svgRef, handleStart]);
 
   return {
     isDragging,

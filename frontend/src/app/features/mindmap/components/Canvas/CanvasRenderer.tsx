@@ -148,7 +148,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           transition: 'border-color 0.2s ease'
         }}
       >
-        <g transform={`scale(${zoom * 1.5}) translate(${pan?.x || 0}, ${pan?.y || 0})`}>
+        <g transform={`translate(${pan?.x || 0}, ${pan?.y || 0}) scale(${zoom * 1.5})`}>
           {}
           <CanvasDragGuide
             dragState={dragState}

@@ -83,7 +83,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   });
 
   
-  const { handleWheel, handleMouseDown, getCursor, getIsPanning } = useCanvasViewportHandler({
+  const { handleWheel, handleMouseDown, handleMouseUp: handleViewportMouseUp, getCursor, getIsPanning } = useCanvasViewportHandler({
     zoom,
     setZoom,
     setPan,
@@ -125,6 +125,11 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     }
   }, [handleCanvasMouseDown, handleMouseDown]);
 
+  const combinedHandleMouseUp = useCallback((e: React.MouseEvent) => {
+    handleViewportMouseUp();
+    handleCanvasMouseUp(e);
+  }, [handleViewportMouseUp, handleCanvasMouseUp]);
+
   return (
     <>
       <CanvasRenderer
@@ -141,7 +146,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
         dragState={dragState}
         onWheel={handleWheel}
         onMouseDown={combinedHandleMouseDown}
-        onMouseUp={handleCanvasMouseUp}
+        onMouseUp={combinedHandleMouseUp}
         onContextMenu={handleContextMenu}
         onNodeSelect={handleNodeSelect}
         onStartEdit={onStartEdit}

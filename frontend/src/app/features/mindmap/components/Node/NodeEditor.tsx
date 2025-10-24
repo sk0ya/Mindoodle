@@ -96,8 +96,38 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
     if (isEditing && inputRef.current) {
       // 少し遅延してからフォーカス（DOM更新完了後）
       setTimeout(() => {
+        // Capture window and scrollable container scroll to prevent page jump caused by focus/selection
+        const winX = window.scrollX || window.pageXOffset;
+        const winY = window.scrollY || window.pageYOffset;
+        const containers = Array.from(document.querySelectorAll<HTMLElement>(
+          '.mindmap-canvas-container, .workspace-container, .mindmap-app, .mindmap-sidebar, .markdown-panel'
+        ));
+        const containerScroll = containers.map((el) => ({ el, x: el.scrollLeft, y: el.scrollTop }));
+        const restoreScroll = () => {
+          try { window.scrollTo(winX, winY); } catch {}
+          try {
+            const se = document.scrollingElement as HTMLElement | null;
+            if (se) {
+              se.scrollLeft = winX;
+              se.scrollTop = winY;
+            }
+          } catch {}
+          try {
+            for (const { el, x, y } of containerScroll) {
+              el.scrollLeft = x;
+              el.scrollTop = y;
+            }
+          } catch {}
+        };
+
         if (inputRef.current) {
-          inputRef.current.focus();
+          // Prevent the browser from scrolling the page when focusing the textarea
+          try {
+            (inputRef.current as unknown as { focus: (opts?: { preventScroll?: boolean }) => void })
+              .focus({ preventScroll: true });
+          } catch {
+            inputRef.current.focus();
+          }
 
           // 編集モードに応じてカーソル位置を制御
           const editingMode = useMindMapStore.getState().editingMode;
@@ -112,6 +142,11 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
             
             inputRef.current.select();
           }
+
+          // Restore scroll synchronously and in next ticks to defeat browser auto-scroll
+          restoreScroll();
+          requestAnimationFrame(() => restoreScroll());
+          setTimeout(restoreScroll, 0);
         }
       }, 10);
     }
