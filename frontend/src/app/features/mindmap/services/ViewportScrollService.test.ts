@@ -1,7 +1,6 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { ensureVisible, type EnsureVisibleUI } from './ViewportScrollService';
 import type { MindMapNode } from '@shared/types';
-import * as viewportService from '@/app/core/services/viewportService';
 
 // Mock dependencies
 vi.mock('@/app/core/services', () => ({

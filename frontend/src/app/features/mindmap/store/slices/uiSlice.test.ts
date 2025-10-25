@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import { createUISlice } from './uiSlice';
 import type { MindMapStore } from './types';
-import type { Position, UIMode } from '@shared/types';
+import type { Position } from '@shared/types';
 
 // Create a minimal test store with only UI slice
 const createTestStore = () => {

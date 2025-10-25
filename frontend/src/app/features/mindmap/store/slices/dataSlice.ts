@@ -171,7 +171,7 @@ export const createDataSlice: StateCreator<
     const executeAutoLayout = () => {
       const state = get();
       const rootNodes = state.data?.rootNodes || [];
-      const selectedId = state.selectedNodeId || null;
+      const selectedId = state.selectedNodeId;
       const currentPan = state.ui?.pan || { x: 0, y: 0 };
 
       logger.debug(immediate ? '⚡ Immediate autoLayout execution started' : '🔄 Debounced autoLayout execution started');
@@ -357,33 +357,25 @@ export const createDataSlice: StateCreator<
         layoutedNodesCount: layoutedRootNodes.length
       });
 
-      // Compute pan compensation to keep view stable across layout changes.
-      // For insertion (Enter/Tab), anchor to the selection BEFORE insert to avoid large jumps.
+      // Compensate pan to keep parent node at same screen position after layout
       let compensatedPan: { x: number; y: number } | null = null;
-      if (selectedId) {
-        const lastBeforeInsert = (state as typeof state & { lastSelectionBeforeInsert?: string | null }).lastSelectionBeforeInsert || null;
-        const anchorId = lastBeforeInsert || selectedId;
+      const lastBeforeInsert = (state as typeof state & { lastSelectionBeforeInsert?: string | null }).lastSelectionBeforeInsert;
 
-        const before = findNodeInRoots(rootNodes, anchorId);
-        const after = findNodeInRoots(layoutedRootNodes, anchorId);
+      if (lastBeforeInsert && selectedId) {
+        // This is the first layout after insertion - compensate once
+        // Track the PARENT node to keep it visually stable
+        const before = findNodeInRoots(rootNodes, lastBeforeInsert);
+        const after = findNodeInRoots(layoutedRootNodes, lastBeforeInsert);
+
         if (before && after) {
-          let dx = (before.x || 0) - (after.x || 0);
-          let dy = (before.y || 0) - (after.y || 0);
+          const dx = (after.x || 0) - (before.x || 0);
+          const dy = (after.y || 0) - (before.y || 0);
 
-          // Clamp compensation per layout to avoid runaway jumps
-          const currentZoom = (state.ui?.zoom || 1) * 1.5;
-          const clamp = (val: number, min: number, max: number) => Math.max(min, Math.min(max, val));
-          const maxScreenX = 120; // px
-          const maxScreenY = 80;  // px
-
-          const dxScreen = dx * currentZoom;
-          const dyScreen = dy * currentZoom;
-          const clampedDxScreen = clamp(dxScreen, -maxScreenX, maxScreenX);
-          const clampedDyScreen = clamp(dyScreen, -maxScreenY, maxScreenY);
-          const clampedDxWorld = clampedDxScreen / currentZoom;
-          const clampedDyWorld = clampedDyScreen / currentZoom;
-
-          compensatedPan = { x: currentPan.x + clampedDxWorld, y: currentPan.y + clampedDyWorld };
+          // Compensate viewport pan to keep parent at same screen position
+          compensatedPan = {
+            x: currentPan.x + dx,
+            y: currentPan.y + dy
+          };
         }
       }
 
@@ -394,7 +386,7 @@ export const createDataSlice: StateCreator<
             rootNodes: layoutedRootNodes
           };
 
-          
+
           try {
             draft.normalizedData = normalizeTreeData(layoutedRootNodes);
           } catch (normalizeError) {
@@ -402,12 +394,13 @@ export const createDataSlice: StateCreator<
           }
         }
 
-        // Apply pan compensation after layout to keep view stable (unless skipped)
+        // Apply one-time pan compensation if calculated
         if (compensatedPan) {
           draft.ui.pan = compensatedPan;
         }
 
         // Clear the insert anchor after this layout frame
+        // This ensures compensation only happens once
         if ('lastSelectionBeforeInsert' in draft) {
           draft.lastSelectionBeforeInsert = null;
         }
