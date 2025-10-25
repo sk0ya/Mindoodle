@@ -1,290 +1,64 @@
+/**
+ * Insert/Append commands - refactored with functional patterns
+ * Reduced from 414 lines to ~180 lines through reusable factories
+ */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
+import {
+  createEditCommand,
+  createSiblingCommand,
+  getArg,
+  getNodeId,
+  requireNode,
+  failure,
+  success,
+  withErrorHandling
+} from '../utils/commandFactories';
 
+// === Simple Edit Commands ===
 
-export const insertCommand: Command = {
+export const insertCommand = createEditCommand({
   name: 'insert',
   aliases: ['i', 'insert-start'],
   description: 'Start editing at the beginning of node text (vim i)',
-  category: 'editing',
-  examples: [
-    'insert',
-    'i',
-    'insert node-123'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to edit (uses selected node if not specified)'
-    }
-  ],
+  cursorPosition: 'start',
+  examples: ['insert', 'i', 'insert node-123']
+});
 
-  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
-    const nodeId = (args as Record<string, string | undefined>)['nodeId'] || context.selectedNodeId;
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
-    }
-
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      context.handlers.startEditWithCursorAtStart(nodeId);
-
-      return {
-        success: true,
-        message: `Started editing "${node.text}" at cursor start`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to start insert mode'
-      };
-    }
-  }
-};
-
-
-export const appendCommand: Command = {
+export const appendCommand = createEditCommand({
   name: 'append',
   aliases: ['a', 'insert-end'],
   description: 'Start editing at the end of node text (vim a)',
-  category: 'editing',
-  examples: [
-    'append',
-    'a',
-    'append node-123'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to edit (uses selected node if not specified)'
-    }
-  ],
+  cursorPosition: 'end',
+  examples: ['append', 'a', 'append node-123']
+});
 
-  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
-    const nodeId = (args as Record<string, string | undefined>)['nodeId'] || context.selectedNodeId;
+// === Sibling Creation Commands ===
 
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
-    }
-
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      context.handlers.startEditWithCursorAtEnd(nodeId);
-
-      return {
-        success: true,
-        message: `Started editing "${node.text}" at cursor end`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to start append mode'
-      };
-    }
-  }
-};
-
-
-export const openCommand: Command = {
+export const openCommand = createSiblingCommand({
   name: 'open',
   aliases: ['o', 'add-younger-sibling'],
   description: 'Create new younger sibling node and start editing (vim o)',
-  category: 'editing',
-  examples: [
-    'open',
-    'o',
-    'open node-123',
-    'add-younger-sibling --text "Initial text"'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Reference node ID (uses selected node if not specified)'
-    },
-    {
-      name: 'text',
-      type: 'string',
-      required: false,
-      default: '',
-      description: 'Initial text for the new sibling node'
-    }
-  ],
+  insertAfter: true,
+  examples: ['open', 'o', 'open node-123', 'add-younger-sibling --text "Initial text"']
+});
 
-  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
-    const typedArgs = args as Record<string, string | undefined>;
-    const nodeId = typedArgs['nodeId'] || context.selectedNodeId;
-    const initialText = typedArgs['text'] || '';
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    const referenceNode = context.handlers.findNodeById(nodeId);
-    if (!referenceNode) {
-      return {
-        success: false,
-        error: `Reference node ${nodeId} not found`
-      };
-    }
-
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      
-      const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true);
-
-      if (!newNodeId) {
-        return {
-          success: false,
-          error: 'Failed to create new sibling node'
-        };
-      }
-
-      return {
-        success: true,
-        message: `Created new sibling node after "${referenceNode.text}" and started editing`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to open new sibling node'
-      };
-    }
-  }
-};
-
-
-export const openAboveCommand: Command = {
+export const openAboveCommand = createSiblingCommand({
   name: 'open-above',
   aliases: ['O', 'add-elder-sibling'],
   description: 'Create new elder sibling node and start editing (vim O)',
-  category: 'editing',
-  examples: [
-    'open-above',
-    'O',
-    'open-above node-123',
-    'add-elder-sibling --text "Initial text"'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Reference node ID (uses selected node if not specified)'
-    },
-    {
-      name: 'text',
-      type: 'string',
-      required: false,
-      default: '',
-      description: 'Initial text for the new sibling node'
-    }
-  ],
+  insertAfter: false,
+  examples: ['open-above', 'O', 'open-above node-123', 'add-elder-sibling --text "Initial text"']
+});
 
-  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
-    const typedArgs = args as Record<string, string | undefined>;
-    const nodeId = typedArgs['nodeId'] || context.selectedNodeId;
-    const initialText = typedArgs['text'] || '';
+// === Checkbox Command (complex logic preserved) ===
 
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    const referenceNode = context.handlers.findNodeById(nodeId);
-    if (!referenceNode) {
-      return {
-        success: false,
-        error: `Reference node ${nodeId} not found`
-      };
-    }
-
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      
-      const newNodeId = await context.handlers.addSiblingNode(nodeId, initialText, true, false);
-
-      if (!newNodeId) {
-        return {
-          success: false,
-          error: 'Failed to create new elder sibling node'
-        };
-      }
-
-      return {
-        success: true,
-        message: `Created new elder sibling node before "${referenceNode.text}" and started editing`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to open new sibling node above'
-      };
-    }
-  }
-};
 export const insertCheckboxChildCommand: Command = {
   name: 'insert-checkbox-child',
   aliases: ['X', 'add-checkbox-child'],
   description: 'Add a new checkbox list child node, positioning before heading nodes',
   category: 'editing',
-  examples: [
-    'insert-checkbox-child',
-    'X'
-  ],
+  examples: ['insert-checkbox-child', 'X'],
   args: [
     {
       name: 'parentId',
@@ -308,91 +82,67 @@ export const insertCheckboxChildCommand: Command = {
     }
   ],
 
-  async execute(context: CommandContext, args: Record<string, unknown>): Promise<CommandResult> {
-    const typedArgs = args as Record<string, string | boolean | undefined>;
-    const parentId = (typedArgs['parentId'] as string | undefined) || context.selectedNodeId;
-    const text = (typedArgs['text'] as string | undefined) || '';
-    const startEdit = (typedArgs['edit'] as boolean | undefined) ?? true;
+  execute: withErrorHandling(
+    async (context: CommandContext, args: Record<string, unknown> = {}): Promise<CommandResult> => {
+      const parentId = getArg<string>(args, 'parentId') ?? context.selectedNodeId;
+      const text = getArg<string>(args, 'text') ?? '';
+      const startEdit = getArg<boolean>(args, 'edit') ?? true;
 
-    if (!parentId) {
-      return {
-        success: false,
-        error: 'No node selected and no parent ID provided'
-      };
-    }
+      if (!parentId) {
+        return failure('No node selected and no parent ID provided');
+      }
 
-    const parentNode = context.handlers.findNodeById(parentId);
-    if (!parentNode) {
-      return {
-        success: false,
-        error: `Parent node ${parentId} not found`
-      };
-    }
+      const parentNode = context.handlers.findNodeById(parentId);
+      if (!parentNode) {
+        return failure(`Parent node ${parentId} not found`);
+      }
 
-    try {
-      
+      // Find first heading sibling to insert before
       const currentSiblings = parentNode.children || [];
-      let targetInsertIndex = -1; 
+      const targetInsertIndex = currentSiblings.findIndex(
+        (sibling) => sibling.markdownMeta?.type === 'heading'
+      );
 
-      for (let i = 0; i < currentSiblings.length; i++) {
-        const sibling = currentSiblings[i];
-        if (sibling.markdownMeta?.type === 'heading') {
-          targetInsertIndex = i;
-          break;
-        }
-      }
-
-      
-      
-      const newNodeId = await context.handlers.addChildNode(parentId, text, false); 
-
+      // Create new child node
+      const newNodeId = await context.handlers.addChildNode(parentId, text, false);
       if (!newNodeId) {
-        return {
-          success: false,
-          error: 'Failed to create new child node'
-        };
+        return failure('Failed to create new child node');
       }
 
+      // Calculate indentation based on parent
+      const level = parentNode.markdownMeta &&
+        (parentNode.markdownMeta.type === 'unordered-list' ||
+          parentNode.markdownMeta.type === 'ordered-list')
+        ? Math.max((parentNode.markdownMeta.level || 1) + 1, 1)
+        : 1;
 
-      let level = 1;
-      let indentLevel = 0;
+      const indentLevel = Math.max(level - 1, 0) * 2;
 
-      if (parentNode.markdownMeta && (parentNode.markdownMeta.type === 'unordered-list' || parentNode.markdownMeta.type === 'ordered-list')) {
-        level = Math.max((parentNode.markdownMeta.level || 1) + 1, 1);
-        indentLevel = Math.max(level - 1, 0) * 2;
-      }
-      // heading type uses default values (level=1, indentLevel=0)
-
-      const checkboxMarkdownMeta = {
-        type: 'unordered-list' as const,
-        level,
-        originalFormat: '- [ ]',
-        indentLevel,
-        lineNumber: 0,
-        isCheckbox: true,
-        isChecked: false
-      };
-
-      
+      // Update node with checkbox metadata
       context.handlers.updateNode(newNodeId, {
-        markdownMeta: checkboxMarkdownMeta
+        markdownMeta: {
+          type: 'unordered-list' as const,
+          level,
+          originalFormat: '- [ ]',
+          indentLevel,
+          lineNumber: 0,
+          isCheckbox: true,
+          isChecked: false
+        }
       });
 
-      
+      // Reorder if needed
       if (targetInsertIndex >= 0 && context.handlers.changeSiblingOrder) {
-        
         const updatedParentNode = context.handlers.findNodeById(parentId);
-        if (updatedParentNode && updatedParentNode.children) {
-          const targetSibling = updatedParentNode.children[targetInsertIndex];
-          if (targetSibling) {
-            
-            context.handlers.changeSiblingOrder(newNodeId, targetSibling.id, true); 
-          }
+        const targetSibling = updatedParentNode?.children?.[targetInsertIndex];
+
+        if (targetSibling) {
+          context.handlers.changeSiblingOrder(newNodeId, targetSibling.id, true);
         }
       }
 
-      
-      if (context.vim && context.vim.isEnabled) {
+      // Start editing
+      if (context.vim?.isEnabled) {
         context.vim.setMode('insert');
       }
 
@@ -400,15 +150,13 @@ export const insertCheckboxChildCommand: Command = {
         context.handlers.startEdit(newNodeId);
       }
 
-      return {
-        success: true,
-        message: `Added checkbox child node to "${parentNode.text}"${targetInsertIndex >= 0 ? ' (positioned before heading)' : ''}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to insert checkbox child node'
-      };
-    }
-  }
-};;
+      const positionMsg =
+        targetInsertIndex >= 0 ? ' (positioned before heading)' : '';
+
+      return success(
+        `Added checkbox child node to "${parentNode.text}"${positionMsg}`
+      );
+    },
+    'Failed to insert checkbox child node'
+  )
+};
