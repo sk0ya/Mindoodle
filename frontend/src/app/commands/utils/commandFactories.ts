@@ -148,3 +148,95 @@ export const createNodeCommand = (config: {
   repeatable: config.repeatable ?? false,
   countable: config.countable ?? false
 });
+
+// Edit command factory (for insert/append style commands)
+export const createEditCommand = (config: {
+  name: string;
+  aliases?: string[];
+  description: string;
+  cursorPosition: 'start' | 'end';
+  examples?: string[];
+}): Command =>
+  createNodeCommand({
+    name: config.name,
+    aliases: config.aliases,
+    description: config.description,
+    execute: (nodeId, _node, ctx) => {
+      if (ctx.vim?.isEnabled) {
+        ctx.vim.setMode('insert');
+      }
+
+      if (config.cursorPosition === 'end') {
+        ctx.handlers.startEditWithCursorAtEnd(nodeId);
+      } else {
+        ctx.handlers.startEditWithCursorAtStart(nodeId);
+      }
+    },
+    successMsg: (node) =>
+      `Started editing "${node.text}" at cursor ${config.cursorPosition}`,
+    repeatable: false,
+    countable: false
+  });
+
+// Sibling command factory (for open/open-above style commands)
+export const createSiblingCommand = (config: {
+  name: string;
+  aliases?: string[];
+  description: string;
+  insertAfter: boolean;
+  examples?: string[];
+}): Command => ({
+  name: config.name,
+  aliases: config.aliases,
+  description: config.description,
+  category: 'editing',
+  examples: config.examples ?? [config.name, ...(config.aliases || [])],
+  args: [
+    {
+      name: 'nodeId',
+      type: 'node-id',
+      required: false,
+      description: 'Reference node ID (uses selected node if not specified)'
+    },
+    {
+      name: 'text',
+      type: 'string',
+      required: false,
+      default: '',
+      description: 'Initial text for the new sibling node'
+    }
+  ],
+
+  execute: withErrorHandling(
+    async (context: CommandContext, args: Record<string, unknown> = {}) => {
+      const nodeId = getNodeId(args, context);
+      const initialText = getArg<string>(args, 'text') ?? '';
+
+      const nodeResult = requireNode(nodeId, context);
+      if (!isNodeSuccess(nodeResult)) {
+        return nodeResult;
+      }
+
+      if (context.vim?.isEnabled) {
+        context.vim.setMode('insert');
+      }
+
+      const newNodeId = await context.handlers.addSiblingNode(
+        nodeResult.nodeId,
+        initialText,
+        true,
+        config.insertAfter
+      );
+
+      if (!newNodeId) {
+        return failure('Failed to create new sibling node');
+      }
+
+      const position = config.insertAfter ? 'after' : 'before';
+      return success(
+        `Created new sibling node ${position} "${nodeResult.node.text}" and started editing`
+      );
+    },
+    `Failed to ${config.name}`
+  )
+});

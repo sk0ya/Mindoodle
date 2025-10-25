@@ -1,20 +1,29 @@
-
+/**
+ * Edit commands - refactored with functional patterns
+ * Reduced from 378 lines to ~200 lines
+ */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
+import {
+  createSimpleCommand,
+  createEditCommand,
+  createNodeCommand,
+  getArg,
+  getNodeId,
+  failure,
+  success,
+  withErrorHandling
+} from '../utils/commandFactories';
+
+// === Complex Edit Command ===
 
 export const editCommand: Command = {
   name: 'edit',
   aliases: ['ciw', 'change', 'clear-edit'],
   description: 'Clear node text and start editing',
   category: 'editing',
-  examples: [
-    'edit',
-    'ciw',
-    'edit node-123',
-    'edit --text "New text"',
-    'change --keep-text'
-  ],
+  examples: ['edit', 'ciw', 'edit node-123', 'edit --text "New text"', 'change --keep-text'],
   args: [
     {
       name: 'nodeId',
@@ -44,253 +53,131 @@ export const editCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
-    const nodeId = (args['nodeId'] as string | undefined) || context.selectedNodeId;
-    const newText = args['text'] as string | undefined;
-    const keepText = (args['keep-text'] as boolean | undefined) ?? false;
-    const cursorPosition = (args['cursor'] as string | undefined) || 'start';
+  execute: withErrorHandling((context: CommandContext, args: Record<string, unknown> = {}) => {
+    const nodeId = getNodeId(args, context);
+    const newText = getArg<string>(args, 'text');
+    const keepText = getArg<boolean>(args, 'keep-text') ?? false;
+    const cursorPosition = getArg<string>(args, 'cursor') ?? 'start';
 
     if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
+      return failure('No node selected and no node ID provided');
     }
 
-    
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
+      return failure(`Node ${nodeId} not found`);
     }
 
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
+    // Set vim mode
+    if (context.vim?.isEnabled) {
+      context.vim.setMode('insert');
+    }
 
-      
-      if (newText !== undefined) {
-        context.handlers.updateNode(nodeId, { text: newText });
-      } else if (!keepText) {
-        context.handlers.updateNode(nodeId, { text: '' });
-      }
+    // Update text
+    if (newText !== undefined) {
+      context.handlers.updateNode(nodeId, { text: newText });
+    } else if (!keepText) {
+      context.handlers.updateNode(nodeId, { text: '' });
+    }
 
-      // Start editing with appropriate cursor position
-      setTimeout(() => {
-        if (cursorPosition === 'end') {
-          context.handlers.startEditWithCursorAtEnd(nodeId);
-        } else {
-          context.handlers.startEditWithCursorAtStart(nodeId);
-        }
-      }, 10);
-
-      let action: string;
-      if (newText !== undefined) {
-        action = 'set text and started editing';
-      } else if (keepText) {
-        action = 'started editing';
+    // Start editing with cursor position
+    setTimeout(() => {
+      if (cursorPosition === 'end') {
+        context.handlers.startEditWithCursorAtEnd(nodeId);
       } else {
-        action = 'cleared text and started editing';
+        context.handlers.startEditWithCursorAtStart(nodeId);
       }
+    }, 10);
 
-      return {
-        success: true,
-        message: `${action} node "${node.text}"`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to edit node'
-      };
-    }
-  }
+    const action = newText !== undefined
+      ? 'set text and started editing'
+      : keepText
+        ? 'started editing'
+        : 'cleared text and started editing';
+
+    return success(`${action} node "${node.text}"`);
+  }, 'Failed to edit node')
 };
 
+// === Simple Edit Commands ===
 
-export const insertCommand: Command = {
+export const insertCommand = createNodeCommand({
   name: 'insert',
   aliases: ['i'],
   description: 'Start editing the selected node',
-  category: 'editing',
-  examples: ['insert', 'i'],
-
-  execute(context: CommandContext): CommandResult {
-    const nodeId = context.selectedNodeId;
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected'
-      };
+  args: [], // No args, only uses selected node
+  execute: (nodeId, _node, ctx) => {
+    if (ctx.vim?.isEnabled) {
+      ctx.vim.setMode('insert');
     }
+    ctx.handlers.startEdit(nodeId);
+  },
+  successMsg: (node) => `Started editing node "${node.text}"`,
+  repeatable: false,
+  countable: false
+});
 
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
-    }
-
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      context.handlers.startEdit(nodeId);
-
-      return {
-        success: true,
-        message: `Started editing node "${node.text}"`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to start editing'
-      };
-    }
-  }
-};
-
-
-export const appendCommand: Command = {
+export const appendCommand = createSimpleCommand({
   name: 'append',
   aliases: ['a'],
   description: 'Create a child node and start editing',
-  category: 'editing',
-  examples: ['append', 'a'],
-
-  execute(context: CommandContext): CommandResult {
-    const nodeId = context.selectedNodeId;
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected'
-      };
+  canExecute: (ctx) => !!ctx.selectedNodeId,
+  execute: (ctx) => {
+    if (ctx.vim?.isEnabled) {
+      ctx.vim.setMode('insert');
     }
+    ctx.handlers.addChildNode(ctx.selectedNodeId!, '', true);
+  },
+  nothingMsg: 'No node selected',
+  successMsg: 'Created child node and started editing'
+});
 
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      context.handlers.addChildNode(nodeId, '', true);
-
-      return {
-        success: true,
-        message: 'Created child node and started editing'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to create child node'
-      };
-    }
-  }
-};
-
-
-export const appendEndCommand: Command = {
+export const appendEndCommand = createEditCommand({
   name: 'append-end',
   aliases: ['A'],
   description: 'Start editing at the end of the node text',
-  category: 'editing',
-  examples: ['append-end', 'A'],
+  cursorPosition: 'end',
+  examples: ['append-end', 'A']
+});
 
-  execute(context: CommandContext): CommandResult {
-    const nodeId = context.selectedNodeId;
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected'
-      };
-    }
-
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
-    }
-
-    try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      context.handlers.startEditWithCursorAtEnd(nodeId);
-
-      return {
-        success: true,
-        message: `Started editing node "${node.text}" with cursor at end`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to start editing at end'
-      };
-    }
-  }
-};
-
-
-export const insertBeginningCommand: Command = {
+export const insertBeginningCommand = createEditCommand({
   name: 'insert-beginning',
   aliases: ['I'],
   description: 'Start editing at the beginning of the node text',
-  category: 'editing',
-  examples: ['insert-beginning', 'I'],
+  cursorPosition: 'start',
+  examples: ['insert-beginning', 'I']
+});
 
-  execute(context: CommandContext): CommandResult {
-    const nodeId = context.selectedNodeId;
+// === Cut Command ===
 
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected'
-      };
-    }
+// Helper: Create history group wrapper
+const withHistoryGroup = <T extends unknown[]>(
+  groupName: string,
+  fn: (...args: T) => CommandResult | Promise<CommandResult>
+) => async (...args: T): Promise<CommandResult> => {
+  const store = useMindMapStore.getState();
 
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return {
-        success: false,
-        error: `Node ${nodeId} not found`
-      };
-    }
+  try {
+    store.beginHistoryGroup?.(groupName);
+  } catch {
+    // History group not available
+  }
 
+  try {
+    const result = await fn(...args);
     try {
-      
-      if (context.vim && context.vim.isEnabled) {
-        context.vim.setMode('insert');
-      }
-
-      
-      context.handlers.startEditWithCursorAtStart(nodeId);
-
-      return {
-        success: true,
-        message: `Started editing node "${node.text}" with cursor at beginning`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to start editing at beginning'
-      };
+      store.endHistoryGroup?.(true);
+    } catch {
+      // History group not available
     }
+    return result;
+  } catch (error) {
+    try {
+      store.endHistoryGroup?.(false);
+    } catch {
+      // History group not available
+    }
+    throw error;
   }
 };
 
@@ -299,11 +186,7 @@ export const cutCommand: Command = {
   aliases: ['dd', 'cut-node'],
   description: 'Cut the selected node (copy then delete)',
   category: 'editing',
-  examples: [
-    'cut',
-    'dd',
-    'cut node-123'
-  ],
+  examples: ['cut', 'dd', 'cut node-123'],
   args: [
     {
       name: 'nodeId',
@@ -313,24 +196,14 @@ export const cutCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
-    const nodeId = (args['nodeId'] as string | undefined) || context.selectedNodeId;
-    const count = context.count ?? 1;
+  execute: withErrorHandling(
+    withHistoryGroup('cut', (context: CommandContext, args: Record<string, unknown> = {}) => {
+      const nodeId = getNodeId(args, context);
+      const count = context.count ?? 1;
 
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    try {
-
-      const store = useMindMapStore.getState();
-      try { store.beginHistoryGroup?.('cut'); } catch {
-        // History group not available
+      if (!nodeId) {
+        return failure('No node selected and no node ID provided');
       }
-
 
       let cutCount = 0;
 
@@ -338,42 +211,19 @@ export const cutCommand: Command = {
         const currentNode = context.handlers.findNodeById(nodeId);
         if (!currentNode || currentNode.id === 'root') break;
 
-
         context.handlers.copyNode(nodeId);
-
-
         context.handlers.deleteNode(nodeId);
         cutCount++;
       }
 
-
-      try { store.endHistoryGroup?.(true); } catch {
-        // History group not available
-      }
-
       if (cutCount === 0) {
-        return {
-          success: false,
-          error: 'No nodes to cut'
-        };
+        return failure('No nodes to cut');
       }
 
-      return {
-        success: true,
-        message: cutCount > 1 ? `Cut ${cutCount} nodes` : `Cut node`
-      };
-    } catch (error) {
-
-      const store = useMindMapStore.getState();
-      try { store.endHistoryGroup?.(false); } catch {
-        // History group not available
-      }
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to cut node'
-      };
-    }
-  },
+      return success(cutCount > 1 ? `Cut ${cutCount} nodes` : 'Cut node');
+    }),
+    'Failed to cut node'
+  ),
   countable: true,
   repeatable: true
 };

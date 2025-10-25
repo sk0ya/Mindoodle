@@ -1,21 +1,82 @@
+/**
+ * Toggle/Collapse commands - refactored with functional patterns
+ * Reduced from 513 lines to ~280 lines through functional composition
+ */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 import { MarkdownImporter } from '../../features/markdown/markdownImporter';
 import { statusMessages } from '@shared/utils';
+import {
+  getArg,
+  getNodeId,
+  failure,
+  success,
+  withErrorHandling
+} from '../utils/commandFactories';
+
+// === Pure Helper Functions ===
+
+const requireNodeWithChildren = (
+  nodeId: string | null,
+  context: CommandContext
+): { success: true; node: MindMapNode; nodeId: string } | { success: false; error: string } => {
+  if (!nodeId) {
+    const errorMessage = 'ノードが選択されておらず、ノードIDも指定されていません';
+    statusMessages.customError(errorMessage);
+    return failure(errorMessage);
+  }
+
+  const node = context.handlers.findNodeById(nodeId);
+  if (!node) {
+    const errorMessage = `ノード ${nodeId} が見つかりません`;
+    statusMessages.customError(errorMessage);
+    return failure(errorMessage);
+  }
+
+  if (!node.children || node.children.length === 0) {
+    const errorMessage = `ノード「${node.text}」にはトグルできる子ノードがありません`;
+    statusMessages.customWarning(errorMessage);
+    return failure(errorMessage);
+  }
+
+  return { success: true, node, nodeId };
+};
+
+const toggleNodeCollapse = (nodeId: string, context: CommandContext): void => {
+  const store = useMindMapStore.getState();
+  if (store.toggleNodeCollapse) {
+    store.toggleNodeCollapse(nodeId);
+  } else {
+    const node = context.handlers.findNodeById(nodeId);
+    context.handlers.updateNode(nodeId, { collapsed: !node?.collapsed });
+  }
+};
+
+const setNodeCollapsed = (nodeId: string, collapsed: boolean, context: CommandContext): void => {
+  const store = useMindMapStore.getState();
+  const node = context.handlers.findNodeById(nodeId);
+
+  if (node?.collapsed === collapsed) {
+    return; // Already in desired state
+  }
+
+  if (store.toggleNodeCollapse && node?.collapsed !== collapsed) {
+    store.toggleNodeCollapse(nodeId);
+  } else {
+    context.handlers.updateNode(nodeId, { collapsed });
+  }
+};
+
+// === Toggle Command ===
 
 export const toggleCommand: Command = {
   name: 'toggle',
   aliases: ['za', 'toggle-collapse', 'fold'],
   description: 'Toggle the collapse state of node children',
   category: 'structure',
-  examples: [
-    'toggle',
-    'za',
-    'toggle node-123',
-    'fold --expand'
-  ],
+  examples: ['toggle', 'za', 'toggle node-123', 'fold --expand'],
   args: [
     {
       name: 'nodeId',
@@ -31,328 +92,113 @@ export const toggleCommand: Command = {
     }
   ],
 
-  execute(context: CommandContext, args: Record<string, string | number | boolean>): CommandResult {
-    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
-    const forceState = typeof args['expand'] === 'boolean' ? args['expand'] : undefined;
+  execute: withErrorHandling((context: CommandContext, args: Record<string, unknown> = {}) => {
+    const nodeId = getNodeId(args, context);
+    const forceState = getArg<boolean>(args, 'expand');
 
-    if (!nodeId) {
-      const errorMessage = 'ノードが選択されておらず、ノードIDも指定されていません';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+    const nodeResult = requireNodeWithChildren(nodeId, context);
+    if (!nodeResult.success) {
+      return nodeResult;
     }
 
-    
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      const errorMessage = `ノード ${nodeId} が見つかりません`;
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
+    const { node } = nodeResult;
 
-    
-    if (!node.children || node.children.length === 0) {
-      const errorMessage = `ノード「${node.text}」にはトグルできる子ノードがありません`;
-      statusMessages.customWarning(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-
-    
-    let newCollapsedState: boolean;
     if (forceState !== undefined) {
-      newCollapsedState = !forceState; 
-    } else {
-      newCollapsedState = !node.collapsed; 
-    }
-
-    try {
-      // Use toggleNodeCollapse to ensure auto-layout is triggered
-      const store = useMindMapStore.getState();
-      if (store.toggleNodeCollapse) {
-        store.toggleNodeCollapse(nodeId);
-      } else {
-        context.handlers.updateNode(nodeId, { collapsed: newCollapsedState });
-      }
-
+      const newCollapsedState = !forceState;
+      setNodeCollapsed(node.id, newCollapsedState, context);
       const action = newCollapsedState ? 'collapsed' : 'expanded';
-      return {
-        success: true,
-        message: `${action} node "${node.text}" (${node.children.length} children)`
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'ノード状態の切り替えに失敗しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return success(`${action} node "${node.text}" (${node.children!.length} children)`);
+    } else {
+      toggleNodeCollapse(node.id, context);
+      const action = !node.collapsed ? 'collapsed' : 'expanded';
+      return success(`${action} node "${node.text}" (${node.children!.length} children)`);
     }
-  }
+  }, 'ノード状態の切り替えに失敗しました')
 };
 
-export const expandCommand: Command = {
-  name: 'expand',
-  aliases: ['zo', 'open-fold'],
-  description: 'Expand the selected node to show its children',
+// === Expand/Collapse Commands ===
+
+const createCollapseCommand = (collapsed: boolean, actionName: string): Command => ({
+  name: collapsed ? 'collapse' : 'expand',
+  aliases: collapsed ? ['zc', 'close-fold'] : ['zo', 'open-fold'],
+  description: collapsed
+    ? 'Collapse the selected node to hide its children'
+    : 'Expand the selected node to show its children',
   category: 'structure',
-  examples: ['expand', 'zo'],
+  examples: collapsed ? ['collapse', 'zc'] : ['expand', 'zo'],
 
-  execute(context: CommandContext): CommandResult {
-    const nodeId = context.selectedNodeId;
-
-    if (!nodeId) {
-      const errorMessage = 'ノードが選択されていません';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+  execute: withErrorHandling((context: CommandContext) => {
+    const nodeResult = requireNodeWithChildren(context.selectedNodeId, context);
+    if (!nodeResult.success) {
+      return nodeResult;
     }
 
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      const errorMessage = `ノード ${nodeId} が見つかりません`;
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+    const { node } = nodeResult;
+
+    if (node.collapsed === collapsed) {
+      return success(`Node "${node.text}" is already ${actionName}`);
     }
 
-    if (!node.children || node.children.length === 0) {
-      const errorMessage = `ノード「${node.text}」には展開できる子ノードがありません`;
-      statusMessages.customWarning(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
+    setNodeCollapsed(node.id, collapsed, context);
+    return success(`${actionName} node "${node.text}" (${node.children!.length} children)`);
+  }, collapsed ? 'ノードの折りたたみに失敗しました' : 'ノードの展開に失敗しました')
+});
 
-    if (!node.collapsed) {
-      return {
-        success: true,
-        message: `Node "${node.text}" is already expanded`
-      };
-    }
+export const expandCommand = createCollapseCommand(false, 'expanded');
+export const collapseCommand = createCollapseCommand(true, 'collapsed');
 
-    try {
-      // Use toggleNodeCollapse to ensure auto-layout is triggered
-      const store = useMindMapStore.getState();
-      if (store.toggleNodeCollapse) {
-        store.toggleNodeCollapse(nodeId);
-      } else {
-        context.handlers.updateNode(nodeId, { collapsed: false });
-      }
-      return {
-        success: true,
-        message: `Expanded node "${node.text}" (${node.children.length} children)`
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'ノードの展開に失敗しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-  }
-};
+// === Expand/Collapse All Commands ===
 
-export const collapseCommand: Command = {
-  name: 'collapse',
-  aliases: ['zc', 'close-fold'],
-  description: 'Collapse the selected node to hide its children',
+const createCollapseAllCommand = (collapsed: boolean, actionName: string): Command => ({
+  name: collapsed ? 'collapse-all' : 'expand-all',
+  aliases: collapsed ? ['zM', 'close-all-folds'] : ['zR', 'open-all-folds'],
+  description: collapsed
+    ? 'Collapse all nodes in the mindmap'
+    : 'Expand all nodes in the mindmap',
   category: 'structure',
-  examples: ['collapse', 'zc'],
+  examples: collapsed ? ['collapse-all', 'zM'] : ['expand-all', 'zR'],
 
-  execute(context: CommandContext): CommandResult {
-    const nodeId = context.selectedNodeId;
+  execute: withErrorHandling((context: CommandContext) => {
+    const state = useMindMapStore.getState();
+    const rootNodes: MindMapNode[] = state?.data?.rootNodes || [];
 
-    if (!nodeId) {
-      const errorMessage = 'ノードが選択されていません';
+    if (rootNodes.length === 0) {
+      const errorMessage = '現在のマインドマップにノードが見つかりません';
       statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return failure(errorMessage);
     }
 
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      const errorMessage = `ノード ${nodeId} が見つかりません`;
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
+    let changeCount = 0;
 
-    if (!node.children || node.children.length === 0) {
-      const errorMessage = `ノード「${node.text}」には折りたたみできる子ノードがありません`;
-      statusMessages.customWarning(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-
-    if (node.collapsed) {
-      return {
-        success: true,
-        message: `Node "${node.text}" is already collapsed`
-      };
-    }
-
-    try {
-      // Use toggleNodeCollapse to ensure auto-layout is triggered
-      const store = useMindMapStore.getState();
-      if (store.toggleNodeCollapse) {
-        store.toggleNodeCollapse(nodeId);
-      } else {
-        context.handlers.updateNode(nodeId, { collapsed: true });
-      }
-      return {
-        success: true,
-        message: `Collapsed node "${node.text}" (${node.children.length} children)`
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'ノードの折りたたみに失敗しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-  }
-};
-
-export const expandAllCommand: Command = {
-  name: 'expand-all',
-  aliases: ['zR', 'open-all-folds'],
-  description: 'Expand all nodes in the mindmap',
-  category: 'structure',
-  examples: ['expand-all', 'zR'],
-
-  execute(context: CommandContext): CommandResult {
-    try {
-
-      const state = useMindMapStore.getState();
-      const rootNodes: MindMapNode[] = state?.data?.rootNodes || [];
-
-      if (rootNodes.length === 0) {
-        const errorMessage = '現在のマインドマップにノードが見つかりません';
-        statusMessages.customError(errorMessage);
-        return {
-          success: false,
-          error: errorMessage
-        };
-      }
-
-      let expandedCount = 0;
-
-
-      function expandAllNodes(nodes: MindMapNode[]): void {
-        for (const node of nodes) {
-          if (node.children && node.children.length > 0 && node.collapsed) {
-            context.handlers.updateNode(node.id, { collapsed: false });
-            expandedCount++;
-          }
-          if (node.children) {
-            expandAllNodes(node.children);
-          }
+    // Recursive collapse/expand
+    const processNodes = (nodes: MindMapNode[]): void => {
+      nodes.forEach((node) => {
+        if (node.children?.length && node.collapsed !== collapsed) {
+          context.handlers.updateNode(node.id, { collapsed });
+          changeCount++;
         }
-      }
-
-      expandAllNodes(rootNodes);
-
-      // Trigger auto-layout after expanding all nodes
-      const store = useMindMapStore.getState();
-      if (store.data?.settings?.autoLayout) {
-        store.applyAutoLayout?.(true);
-      }
-
-      return {
-        success: true,
-        message: `Expanded all nodes (${expandedCount} nodes were collapsed)`
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'すべてのノードの展開に失敗しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-  }
-};
-
-export const collapseAllCommand: Command = {
-  name: 'collapse-all',
-  aliases: ['zM', 'close-all-folds'],
-  description: 'Collapse all nodes in the mindmap',
-  category: 'structure',
-  examples: ['collapse-all', 'zM'],
-
-  execute(context: CommandContext): CommandResult {
-    try {
-
-      const state = useMindMapStore.getState();
-      const rootNodes: MindMapNode[] = state?.data?.rootNodes || [];
-
-      if (rootNodes.length === 0) {
-        const errorMessage = '現在のマインドマップにノードが見つかりません';
-        statusMessages.customError(errorMessage);
-        return {
-          success: false,
-          error: errorMessage
-        };
-      }
-
-      let collapsedCount = 0;
-
-
-      function collapseAllNodes(nodes: MindMapNode[]): void {
-        for (const node of nodes) {
-          if (node.children && node.children.length > 0 && !node.collapsed) {
-            context.handlers.updateNode(node.id, { collapsed: true });
-            collapsedCount++;
-          }
-          if (node.children) {
-            collapseAllNodes(node.children);
-          }
+        if (node.children) {
+          processNodes(node.children);
         }
-      }
+      });
+    };
 
-      collapseAllNodes(rootNodes);
+    processNodes(rootNodes);
 
-      // Trigger auto-layout after collapsing all nodes
-      const store = useMindMapStore.getState();
-      if (store.data?.settings?.autoLayout) {
-        store.applyAutoLayout?.();
-      }
-
-      return {
-        success: true,
-        message: `Collapsed all nodes (${collapsedCount} nodes were expanded)`
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'すべてのノードの折りたたみに失敗しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+    // Trigger auto-layout
+    if (state.data?.settings?.autoLayout) {
+      state.applyAutoLayout?.(collapsed ? undefined : true);
     }
-  }
-};
+
+    const pastAction = collapsed ? 'expanded' : 'collapsed';
+    return success(`${actionName} all nodes (${changeCount} nodes were ${pastAction})`);
+  }, collapsed ? 'すべてのノードの折りたたみに失敗しました' : 'すべてのノードの展開に失敗しました')
+});
+
+export const expandAllCommand = createCollapseAllCommand(false, 'Expanded');
+export const collapseAllCommand = createCollapseAllCommand(true, 'Collapsed');
+
+// === Toggle Checkbox Command ===
 
 export const toggleCheckboxCommand: Command = {
   name: 'toggle-checkbox',
@@ -361,90 +207,62 @@ export const toggleCheckboxCommand: Command = {
   category: 'structure',
   examples: ['toggle-checkbox', 'x'],
 
-  execute(context: CommandContext): CommandResult {
+  execute: withErrorHandling((context: CommandContext) => {
     const nodeId = context.selectedNodeId;
 
     if (!nodeId) {
       const errorMessage = 'ノードが選択されていません';
       statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return failure(errorMessage);
     }
 
     const node = context.handlers.findNodeById(nodeId);
     if (!node) {
       const errorMessage = `ノード ${nodeId} が見つかりません`;
       statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return failure(errorMessage);
     }
 
-    try {
+    const store = useMindMapStore.getState();
 
-      const store = useMindMapStore.getState();
+    // Toggle existing checkbox
+    if (node.markdownMeta?.isCheckbox) {
+      const normalizedNode = store.normalizedData?.nodes[nodeId];
+      const currentChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta.isChecked ?? false;
+      const newChecked = !currentChecked;
 
+      if (store.toggleNodeCheckbox) {
+        store.toggleNodeCheckbox(nodeId, newChecked);
+        return success(`Checkbox ${newChecked ? 'checked' : 'unchecked'} for "${node.text}"`);
+      }
+    }
 
-      if (node.markdownMeta?.isCheckbox) {
-        
-        
-        const normalizedNode = store.normalizedData?.nodes[nodeId];
-        const currentChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta.isChecked ?? false;
-        const newChecked = !currentChecked;
+    // Convert to checkbox
+    const data = store.data;
+    if (!data?.rootNodes) {
+      const errorMessage = 'マップデータが利用できません';
+      statusMessages.customError(errorMessage);
+      return failure(errorMessage);
+    }
 
-        if (store.toggleNodeCheckbox) {
-          store.toggleNodeCheckbox(nodeId, newChecked);
-          return {
-            success: true,
-            message: `Checkbox ${newChecked ? 'checked' : 'unchecked'} for "${node.text}"`
-          };
-        }
-      } else {
-        
-        const data = store.data;
-        if (!data || !data.rootNodes) {
-          const errorMessage = 'マップデータが利用できません';
-          statusMessages.customError(errorMessage);
-          return {
-            success: false,
-            error: errorMessage
-          };
-        }
+    // Safety check for heading conversion
+    if (node.markdownMeta?.type === 'heading') {
+      const safetyCheck = MarkdownImporter.canSafelyConvertToList(data.rootNodes, nodeId);
+      if (!safetyCheck.canConvert) {
+        const errorMessage = safetyCheck.reason || '見出しノードから変換できません';
+        statusMessages.customError(errorMessage);
+        return failure(errorMessage);
+      }
+    }
 
-        
-        if (node.markdownMeta?.type === 'heading') {
-          
-          const safetyCheck = MarkdownImporter.canSafelyConvertToList(data.rootNodes, nodeId);
-
-          if (!safetyCheck.canConvert) {
-            const errorMessage = safetyCheck.reason || '見出しノードから変換できません';
-            statusMessages.customError(errorMessage);
-            return {
-              success: false,
-              error: errorMessage
-            };
-          }
-        }
-
-        const updateNodeInTree = (nodes: MindMapNode[]): MindMapNode[] => {
-          return nodes.map((n: MindMapNode) => {
-            if (n.id === nodeId) {
-              let newMarkdownMeta;
-              
-              if (node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list') {
-                
-                newMarkdownMeta = {
-                  ...node.markdownMeta,
-                  isCheckbox: true,
-                  isChecked: false
-                };
-              } else {
-                
-                
-                newMarkdownMeta = {
+    // Update node to checkbox
+    const updateNodeInTree = (nodes: MindMapNode[]): MindMapNode[] =>
+      nodes.map((n) => {
+        if (n.id === nodeId) {
+          const newMarkdownMeta =
+            node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list'
+              ? { ...node.markdownMeta, isCheckbox: true, isChecked: false }
+              : {
                   type: 'unordered-list' as const,
                   level: 1,
                   originalFormat: '-',
@@ -453,61 +271,22 @@ export const toggleCheckboxCommand: Command = {
                   isCheckbox: true,
                   isChecked: false
                 };
-              }
 
-              return {
-                ...n,
-                markdownMeta: newMarkdownMeta
-              };
-            }
-
-            if (n.children && n.children.length > 0) {
-              return {
-                ...n,
-                children: updateNodeInTree(n.children)
-              };
-            }
-
-            return n;
-          });
-        };
-
-        
-        const updatedRootNodes = updateNodeInTree(data.rootNodes);
-        
-        
-        
-        store.setRootNodes(updatedRootNodes, { emit: true, source: 'toggle-checkbox-convert' });
-
-        let sourceType: string;
-        const nodeType = node.markdownMeta?.type;
-        if (nodeType === 'heading') {
-          sourceType = '見出し';
-        } else if (nodeType === 'unordered-list' || nodeType === 'ordered-list') {
-          sourceType = 'リスト';
-        } else {
-          sourceType = '通常';
+          return { ...n, markdownMeta: newMarkdownMeta };
         }
 
-        return {
-          success: true,
-          message: `${sourceType}ノード「${node.text}」をチェックボックスリストに変換しました (unchecked)`
-        };
-      }
+        return n.children?.length ? { ...n, children: updateNodeInTree(n.children) } : n;
+      });
 
-      const errorMessage = 'チェックボックスのトグルに失敗しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'チェックボックスのトグルでエラーが発生しました';
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
-    }
-  }
+    const updatedRootNodes = updateNodeInTree(data.rootNodes);
+    store.setRootNodes(updatedRootNodes, { emit: true, source: 'toggle-checkbox-convert' });
+
+    const sourceType = node.markdownMeta?.type === 'heading'
+      ? '見出し'
+      : node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list'
+        ? 'リスト'
+        : '通常';
+
+    return success(`${sourceType}ノード「${node.text}」をチェックボックスリストに変換しました (unchecked)`);
+  }, 'チェックボックスのトグルでエラーが発生しました')
 };
