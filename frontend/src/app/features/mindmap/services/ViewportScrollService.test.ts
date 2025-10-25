@@ -54,12 +54,16 @@ describe('ViewportScrollService', () => {
         text: 'Root Node',
         x: 0,
         y: 0,
+        fontSize: 16,
+        fontWeight: 'normal',
         children: [
           {
             id: 'child-1',
             text: 'Child 1',
             x: 200,
             y: 100,
+            fontSize: 14,
+            fontWeight: 'normal',
             children: [],
           },
           {
@@ -67,6 +71,8 @@ describe('ViewportScrollService', () => {
             text: 'Child 2',
             x: 200,
             y: 200,
+            fontSize: 14,
+            fontWeight: 'normal',
             children: [],
           },
         ],
@@ -199,6 +205,8 @@ describe('ViewportScrollService', () => {
           text: 'Grandchild',
           x: 400,
           y: 150,
+          fontSize: 12,
+          fontWeight: 'normal',
           children: [],
         },
       ];

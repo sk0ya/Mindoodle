@@ -1,16 +1,20 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { create } from 'zustand';
+import { create, type StoreApi } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { createUISlice } from './uiSlice';
-import type { MindMapStore } from './types';
+import { createUISlice, type UISlice } from './uiSlice';
 import type { Position } from '@shared/types';
+import type { MindMapStore } from './types';
 
 // Create a minimal test store with only UI slice
 const createTestStore = () => {
-  return create<Pick<MindMapStore, keyof ReturnType<typeof createUISlice>>>()(
-    immer((...args) => ({
-      ...createUISlice(...args),
-    }))
+  return create<UISlice>()(
+    immer((set, get, api) => {
+      // Cast all parameters to match what createUISlice expects
+      const mockSet = set as any;
+      const mockGet = get as any;
+      const mockApi = api as unknown as StoreApi<MindMapStore>;
+      return createUISlice(mockSet, mockGet, mockApi);
+    })
   );
 };
 
@@ -44,13 +48,14 @@ describe('UISlice', () => {
 
   describe('mode management', () => {
     it('should change mode', () => {
-      store.getState().setMode('insert');
+      const state = store.getState();
+      state.setMode?.('insert');
       expect(store.getState().ui.mode).toBe('insert');
 
-      store.getState().setMode('visual');
+      store.getState().setMode?.('visual');
       expect(store.getState().ui.mode).toBe('visual');
 
-      store.getState().setMode('normal');
+      store.getState().setMode?.('normal');
       expect(store.getState().ui.mode).toBe('normal');
     });
 
@@ -58,36 +63,36 @@ describe('UISlice', () => {
       const { setMode } = store.getState();
 
       // Normal -> Insert
-      setMode('insert');
+      setMode?.('insert');
       expect(store.getState().ui.mode).toBe('insert');
 
       // Insert -> Normal
-      setMode('normal');
+      setMode?.('normal');
       expect(store.getState().ui.mode).toBe('normal');
     });
   });
 
   describe('zoom management', () => {
     it('should set zoom level', () => {
-      store.getState().setZoom(1.5);
+      store.getState().setZoom?.(1.5);
       expect(store.getState().ui.zoom).toBe(1.5);
     });
 
     it('should clamp zoom to minimum 0.1', () => {
-      store.getState().setZoom(0.05);
+      store.getState().setZoom?.(0.05);
       expect(store.getState().ui.zoom).toBe(0.1);
     });
 
     it('should clamp zoom to maximum 3', () => {
-      store.getState().setZoom(5);
+      store.getState().setZoom?.(5);
       expect(store.getState().ui.zoom).toBe(3);
     });
 
     it('should reset zoom to 1 and pan to origin', () => {
-      store.getState().setZoom(2);
-      store.getState().setPan({ x: 100, y: 200 });
+      store.getState().setZoom?.(2);
+      store.getState().setPan?.({ x: 100, y: 200 });
 
-      store.getState().resetZoom();
+      store.getState().resetZoom?.();
 
       expect(store.getState().ui.zoom).toBe(1);
       expect(store.getState().ui.pan).toEqual({ x: 0, y: 0 });
@@ -97,35 +102,35 @@ describe('UISlice', () => {
   describe('pan management', () => {
     it('should set pan position', () => {
       const newPan: Position = { x: 150, y: 250 };
-      store.getState().setPan(newPan);
+      store.getState().setPan?.(newPan);
 
       expect(store.getState().ui.pan).toEqual(newPan);
     });
 
     it('should update pan position independently', () => {
-      store.getState().setPan({ x: 100, y: 0 });
+      store.getState().setPan?.({ x: 100, y: 0 });
       expect(store.getState().ui.pan.x).toBe(100);
 
-      store.getState().setPan({ x: 100, y: 200 });
+      store.getState().setPan?.({ x: 100, y: 200 });
       expect(store.getState().ui.pan.y).toBe(200);
     });
   });
 
   describe('context menu', () => {
     it('should show context menu', () => {
-      store.getState().setShowContextMenu(true);
+      store.getState().setShowContextMenu?.(true);
       expect(store.getState().ui.showContextMenu).toBe(true);
     });
 
     it('should hide context menu', () => {
-      store.getState().setShowContextMenu(true);
-      store.getState().setShowContextMenu(false);
+      store.getState().setShowContextMenu?.(true);
+      store.getState().setShowContextMenu?.(false);
       expect(store.getState().ui.showContextMenu).toBe(false);
     });
 
     it('should set context menu position', () => {
       const position: Position = { x: 300, y: 400 };
-      store.getState().setContextMenuPosition(position);
+      store.getState().setContextMenuPosition?.(position);
 
       expect(store.getState().ui.contextMenuPosition).toEqual(position);
     });
@@ -133,26 +138,26 @@ describe('UISlice', () => {
 
   describe('panels and modals', () => {
     it('should toggle shortcut helper', () => {
-      store.getState().setShowShortcutHelper(true);
+      store.getState().setShowShortcutHelper?.(true);
       expect(store.getState().ui.showShortcutHelper).toBe(true);
 
-      store.getState().setShowShortcutHelper(false);
+      store.getState().setShowShortcutHelper?.(false);
       expect(store.getState().ui.showShortcutHelper).toBe(false);
     });
 
     it('should toggle map list', () => {
-      store.getState().setShowMapList(true);
+      store.getState().setShowMapList?.(true);
       expect(store.getState().ui.showMapList).toBe(true);
 
-      store.getState().setShowMapList(false);
+      store.getState().setShowMapList?.(false);
       expect(store.getState().ui.showMapList).toBe(false);
     });
 
     it('should toggle sidebar collapsed state', () => {
-      store.getState().setSidebarCollapsed(true);
+      store.getState().setSidebarCollapsed?.(true);
       expect(store.getState().ui.sidebarCollapsed).toBe(true);
 
-      store.getState().setSidebarCollapsed(false);
+      store.getState().setSidebarCollapsed?.(false);
       expect(store.getState().ui.sidebarCollapsed).toBe(false);
     });
   });
@@ -180,7 +185,7 @@ describe('UISlice', () => {
       const initialState = store.getState().ui;
       const initialZoom = initialState.zoom;
 
-      store.getState().setZoom(2);
+      store.getState().setZoom?.(2);
 
       // Initial state reference should remain unchanged (Immer creates new state)
       expect(initialZoom).toBe(1);
@@ -190,7 +195,7 @@ describe('UISlice', () => {
     it('should not mutate previous state when updating pan', () => {
       const initialPan = store.getState().ui.pan;
 
-      store.getState().setPan({ x: 100, y: 200 });
+      store.getState().setPan?.({ x: 100, y: 200 });
 
       // Initial pan reference should remain unchanged
       expect(initialPan).toEqual({ x: 0, y: 0 });
@@ -206,10 +211,10 @@ describe('UISlice', () => {
 
       expect(store.getState().ui.mode).toBe('normal');
 
-      setMode('insert');
+      setMode?.('insert');
       expect(store.getState().ui.mode).toBe('insert');
 
-      setMode('normal');
+      setMode?.('normal');
       expect(store.getState().ui.mode).toBe('normal');
     });
   });

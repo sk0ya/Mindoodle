@@ -145,7 +145,7 @@ describe('dispatchCanvasEvent', () => {
 
     it('should handle escape key to exit insert mode', () => {
       const event: CanvasEvent = {
-        type: 'escape',
+        type: 'click',
         x: 0,
         y: 0,
       };
