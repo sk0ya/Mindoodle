@@ -240,3 +240,86 @@ export const createSiblingCommand = (config: {
     `Failed to ${config.name}`
   )
 });
+
+// Format toggle command factory (for bold/italic/strikethrough)
+export const createFormatToggleCommand = (config: {
+  name: string;
+  aliases: string[];
+  description: string;
+  formatType: 'bold' | 'italic' | 'strikethrough';
+}): Command =>
+  createNodeCommand({
+    name: config.name,
+    aliases: config.aliases,
+    description: config.description,
+    args: [], // Only uses selected node
+    execute: async (nodeId, node, ctx) => {
+      const { toggleInlineMarkdown } = await import('../../features/markdown/parseInlineMarkdown');
+      const currentText = node.text || '';
+      const { newText } = toggleInlineMarkdown(currentText, config.formatType);
+      ctx.handlers.updateNode(nodeId, { text: newText });
+    },
+    successMsg: (node) => `Toggled ${config.formatType} formatting for node "${node.text}"`,
+    repeatable: false,
+    countable: false
+  });
+
+// UI Toggle command factory (for panel toggles)
+export const createToggleCommand = (config: {
+  name: string;
+  aliases?: string[];
+  description: string;
+  getState: (ctx: CommandContext) => boolean;
+  setState: (ctx: CommandContext, value: boolean) => void;
+  panelName: string;
+}): Command => ({
+  name: config.name,
+  aliases: config.aliases,
+  description: config.description,
+  category: 'utility',
+  examples: [config.name, ...(config.aliases || [])],
+
+  execute: withErrorHandling((context: CommandContext) => {
+    const currentState = config.getState(context);
+    config.setState(context, !currentState);
+    return success(`${currentState ? 'Closed' : 'Opened'} ${config.panelName}`);
+  }, `Failed to toggle ${config.panelName}`)
+});
+
+// Panel toggle with fallback factory
+export const createPanelToggleCommand = (config: {
+  name: string;
+  aliases?: string[];
+  description: string;
+  panelName: string;
+  toggleFn?: string;
+  setFn?: string;
+  stateProp?: string;
+}): Command => ({
+  name: config.name,
+  aliases: config.aliases,
+  description: config.description,
+  category: 'ui',
+  examples: [config.name, ...(config.aliases || [])],
+
+  execute: withErrorHandling((context: CommandContext) => {
+    const handlers = context.handlers as Record<string, unknown>;
+
+    // Try toggle function first
+    if (config.toggleFn && typeof handlers[config.toggleFn] === 'function') {
+      (handlers[config.toggleFn] as () => void)();
+      return success(`Toggled ${config.panelName}`);
+    }
+
+    // Fall back to set function with state
+    if (config.setFn && config.stateProp &&
+        typeof handlers[config.setFn] === 'function' &&
+        typeof handlers[config.stateProp] === 'boolean') {
+      const currentState = handlers[config.stateProp] as boolean;
+      (handlers[config.setFn] as (b: boolean) => void)(!currentState);
+      return success(`Toggled ${config.panelName}`);
+    }
+
+    return failure(`${config.panelName} controls are not available`);
+  }, `Failed to toggle ${config.panelName}`)
+});
