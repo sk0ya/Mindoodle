@@ -120,7 +120,7 @@ export function createEditingOperations(
       const state5 = get() as MindMapStore & { endHistoryGroup?: (commit: boolean) => void };
       try { state5.endHistoryGroup?.(true); } catch {}
 
-      // Apply auto layout if enabled
+      // Apply auto layout if enabled (debounced to batch multiple rapid operations)
       const { data } = get();
       logger.debug('🔍 Auto layout check (finishEditing):', {
         hasData: !!data,
@@ -132,7 +132,7 @@ export function createEditingOperations(
         logger.debug('✅ Applying auto layout after finishEditing');
         const applyAutoLayout = get().applyAutoLayout;
         if (typeof applyAutoLayout === 'function') {
-          applyAutoLayout(true);
+          applyAutoLayout();
         } else {
           logger.error('❌ applyAutoLayout function not found');
         }

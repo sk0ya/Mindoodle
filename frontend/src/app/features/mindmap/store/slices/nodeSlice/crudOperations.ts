@@ -208,7 +208,7 @@ export function createCRUDOperations(
         try { state.endHistoryGroup?.(true); } catch {}
       }
 
-      // Apply auto layout
+      // Apply auto layout (debounced to batch multiple rapid operations)
       const { data } = get();
       logger.debug('🔍 Auto layout check (addChildNode):', {
         hasData: !!data,
@@ -220,7 +220,7 @@ export function createCRUDOperations(
         logger.debug('✅ Applying auto layout after addChildNode');
         const applyAutoLayout = get().applyAutoLayout;
         if (typeof applyAutoLayout === 'function') {
-          applyAutoLayout(true);
+          applyAutoLayout();
         } else {
           logger.error('❌ applyAutoLayout function not found');
         }
@@ -380,7 +380,7 @@ export function createCRUDOperations(
         try { state2.endHistoryGroup?.(true); } catch {}
       }
 
-      // Apply auto layout
+      // Apply auto layout (debounced to batch multiple rapid operations)
       const { data } = get();
       logger.debug('🔍 Auto layout check (addSiblingNode):', {
         hasData: !!data,
@@ -392,7 +392,7 @@ export function createCRUDOperations(
         logger.debug('✅ Applying auto layout after addSiblingNode');
         const applyAutoLayout = get().applyAutoLayout;
         if (typeof applyAutoLayout === 'function') {
-          applyAutoLayout(true);
+          applyAutoLayout();
         } else {
           logger.error('❌ applyAutoLayout function not found');
         }
