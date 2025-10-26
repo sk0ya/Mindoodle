@@ -1,112 +1,80 @@
+/**
+ * Convert node to map command - refactored with functional patterns
+ * Reduced from 112 lines to 80 lines (29% reduction)
+ */
+
 import type { Command, CommandContext, CommandResult, ArgsMap } from '../system/types';
 import type { MindMapNode } from '@shared/types';
-import { statusMessages, logger } from '@shared/utils';
+import { logger } from '@shared/utils';
 import { nodeToMarkdown } from '@markdown/markdownExport';
+import { structureCommand, failure, success } from '../utils/commandFunctional';
 
-/**
- * Prepare node data for converting to a separate map
- * Returns the node data as markdown and removes children from original node
- * File creation and map switching should be handled by the caller
- */
-export const convertNodeToMapCommand: Command = {
-  name: 'convert-node-to-map',
-  aliases: ['split-map', 'extract-map'],
-  description: 'ノードとその子要素を別のマップに変換',
-  category: 'structure',
-  examples: [
-    'convert-node-to-map',
-    'split-map',
-    'extract-map'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to convert (uses selected node if not specified)'
-    }
-  ],
+// === Helpers ===
 
-  guard(context: CommandContext): boolean {
-    const nodeId = context.selectedNodeId;
-    if (!nodeId) {
-      return false;
-    }
+const isRootLevelNode = (context: CommandContext, nodeId: string): boolean => {
+  const parent = context.handlers.findParentNode?.(nodeId);
+  return !parent || parent.id === 'root';
+};
 
-    // Cannot convert root node
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return false;
-    }
+const validateNodeForConversion = (context: CommandContext, nodeId: string | null) => {
+  if (!nodeId) return failure('No node selected');
 
-    // Check if this is a root-level node (has no parent except 'root')
-    const parent = context.handlers.findParentNode?.(nodeId);
-    if (!parent || parent.id === 'root') {
-      // Root-level nodes cannot be converted
-      return false;
-    }
+  const node = context.handlers.findNodeById(nodeId);
+  if (!node) return failure(`Node ${nodeId} not found`);
 
-    return true;
-  },
+  if (isRootLevelNode(context, nodeId)) {
+    return failure('Root-level nodes cannot be converted to separate maps');
+  }
 
-  async execute(context: CommandContext, args: ArgsMap): Promise<CommandResult> {
-    const nodeId = (typeof args['nodeId'] === 'string' ? args['nodeId'] : undefined) || context.selectedNodeId;
+  return { success: true, node };
+};
 
-    if (!nodeId) {
-      const errorMessage = 'ノードが選択されていません';
-      statusMessages.customError(errorMessage);
-      return { success: false, error: errorMessage };
-    }
+const createNewRootNode = (node: MindMapNode): MindMapNode => ({
+  ...node,
+  x: 0,
+  y: 0,
+  children: node.children || []
+});
 
-    const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      const errorMessage = `ノード ${nodeId} が見つかりません`;
-      statusMessages.customError(errorMessage);
-      return { success: false, error: errorMessage };
-    }
+// === Command ===
 
-    // Check if this is a root-level node
-    const parent = context.handlers.findParentNode?.(nodeId);
-    if (!parent || parent.id === 'root') {
-      const errorMessage = 'ルートレベルのノードはマップに変換できません';
-      statusMessages.customError(errorMessage);
-      return { success: false, error: errorMessage };
-    }
+export const convertNodeToMapCommand: Command = structureCommand(
+  'convert-node-to-map',
+  'Convert node and its children to a separate map',
+  async (context, args) => {
+    const nodeId = (args['nodeId'] as string) ?? context.selectedNodeId;
+    const validation = validateNodeForConversion(context, nodeId);
+    if (!validation.success) return validation;
+
+    const { node } = validation;
 
     try {
-      // Create new map data structure with the node as root
-      const newRootNode: MindMapNode = {
-        ...node,
-        x: 0,
-        y: 0,
-        children: node.children || [] // Preserve all children
-      };
-
-      // Serialize the node and its children to markdown
+      const newRootNode = createNewRootNode(node);
       const markdown = nodeToMarkdown(newRootNode, 0);
 
-      // Note: Children removal will be handled by the caller after this returns
-      // This is because state updates are asynchronous and the caller needs
-      // to ensure the removal is reflected before saving
-
-      // Return the markdown and node info for the caller to handle file creation
-      return {
-        success: true,
-        message: 'Node prepared for conversion',
-        data: {
-          markdown,
-          nodeText: node.text,
-          nodeId
-        }
-      };
+      return success('Node prepared for conversion', {
+        markdown,
+        nodeText: node.text,
+        nodeId
+      });
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'ノードの処理に失敗しました';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to process node';
       logger.error('convertNodeToMap error:', error);
-      statusMessages.customError(errorMessage);
-      return {
-        success: false,
-        error: errorMessage
-      };
+      return failure(errorMessage);
+    }
+  },
+  {
+    aliases: ['split-map', 'extract-map'],
+    examples: ['convert-node-to-map', 'split-map', 'extract-map'],
+    args: [{ name: 'nodeId', type: 'node-id', required: false, description: 'Node ID to convert (uses selected node if not specified)' }],
+    guard: (context) => {
+      const nodeId = context.selectedNodeId;
+      if (!nodeId) return false;
+
+      const node = context.handlers.findNodeById(nodeId);
+      if (!node) return false;
+
+      return !isRootLevelNode(context, nodeId);
     }
   }
-};
+);

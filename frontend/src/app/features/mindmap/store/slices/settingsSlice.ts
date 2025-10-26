@@ -1,37 +1,56 @@
+/**
+ * Settings slice - refactored with functional patterns
+ * Reduced from 124 lines to 115 lines (7% reduction)
+ */
+
 import type { StateCreator } from 'zustand';
 import type { MindMapStore, AppSettings, SettingsSlice } from './types';
 import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
 
-// Re-export types for external use
 export type { AppSettings, SettingsSlice };
 
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   fontSize: 14,
   fontFamily: 'system-ui',
-  nodeSpacing: 8, 
+  nodeSpacing: 8,
   nodeTextWrapEnabled: true,
   nodeTextWrapWidth: 240,
-  storageMode: 'local', 
+  storageMode: 'local',
   cloudApiEndpoint: 'https://mindoodle-backend-production.shigekazukoya.workers.dev',
   vimMindMap: true,
   vimEditor: false,
   vimLeader: ',',
   vimCustomKeybindings: {},
-  vimMappingsSource: `" Vim-style mappings for Mindoodle\n" Lines starting with '"' are comments.\n\nset leader ,\n\n" Examples:\n" map <leader>h left\n" map <leader>j down\n" map <leader>k up\n" map <leader>l right\n` ,
+  vimMappingsSource: `" Vim-style mappings for Mindoodle\n" Lines starting with '"' are comments.\n\nset leader ,\n\n" Examples:\n" map <leader>h left\n" map <leader>j down\n" map <leader>k up\n" map <leader>l right\n`,
   vimEditorLeader: ',',
   vimEditorCustomKeybindings: {},
-  vimEditorMappingsSource: `" Vim-style mappings for CodeMirror editor (experimental)\nset leader ,\n` ,
+  vimEditorMappingsSource: `" Vim-style mappings for CodeMirror editor (experimental)\nset leader ,\n`,
   previewMode: false,
-  addBlankLineAfterHeading: true, 
-  defaultCollapseDepth: 2, 
-  edgeColorSet: 'vibrant', 
-  visualizeInMapLinks: false, 
-  knowledgeGraph: {
-    enabled: false, 
-    modelDownloaded: false,
-  },
+  addBlankLineAfterHeading: true,
+  defaultCollapseDepth: 2,
+  edgeColorSet: 'vibrant',
+  visualizeInMapLinks: false,
+  knowledgeGraph: { enabled: false, modelDownloaded: false },
 };
+
+const LAYOUT_AFFECTING_SETTINGS: (keyof AppSettings)[] = [
+  'nodeSpacing',
+  'fontSize',
+  'nodeTextWrapEnabled',
+  'nodeTextWrapWidth'
+];
+
+const applyLayoutAfterDelay = (get: () => MindMapStore) => {
+  setTimeout(() => get().applyAutoLayout?.(), 50);
+};
+
+const saveSettingsAfterDelay = (get: () => MindMapStore) => {
+  setTimeout(() => get().saveSettingsToStorage(), 0);
+};
+
+const shouldApplyLayout = (keys: (keyof AppSettings)[]): boolean =>
+  keys.some(key => LAYOUT_AFFECTING_SETTINGS.includes(key));
 
 export const createSettingsSlice: StateCreator<
   MindMapStore,
@@ -45,20 +64,9 @@ export const createSettingsSlice: StateCreator<
     set((state) => {
       state.settings[key] = value;
     });
-    
-    setTimeout(() => {
-      get().saveSettingsToStorage();
-    }, 0);
-
-    
-    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize', 'nodeTextWrapEnabled', 'nodeTextWrapWidth'];
-    if (layoutAffectingSettings.includes(key)) {
-      setTimeout(() => {
-        const state = get();
-        if (state.applyAutoLayout) {
-          state.applyAutoLayout();
-        }
-      }, 50); 
+    saveSettingsAfterDelay(get);
+    if (LAYOUT_AFFECTING_SETTINGS.includes(key)) {
+      applyLayoutAfterDelay(get);
     }
   },
 
@@ -66,24 +74,9 @@ export const createSettingsSlice: StateCreator<
     set((state) => {
       Object.assign(state.settings, newSettings);
     });
-    
-    setTimeout(() => {
-      get().saveSettingsToStorage();
-    }, 0);
-
-    
-    const layoutAffectingSettings: (keyof AppSettings)[] = ['nodeSpacing', 'fontSize', 'nodeTextWrapEnabled', 'nodeTextWrapWidth'];
-    const hasLayoutAffectingChanges = layoutAffectingSettings.some(setting =>
-      setting in newSettings
-    );
-
-    if (hasLayoutAffectingChanges) {
-      setTimeout(() => {
-        const state = get();
-        if (state.applyAutoLayout) {
-          state.applyAutoLayout();
-        }
-      }, 50); 
+    saveSettingsAfterDelay(get);
+    if (shouldApplyLayout(Object.keys(newSettings) as (keyof AppSettings)[])) {
+      applyLayoutAfterDelay(get);
     }
   },
 
@@ -100,14 +93,12 @@ export const createSettingsSlice: StateCreator<
       set((state) => {
         const loaded: AppSettings = { ...DEFAULT_SETTINGS, ...result.data };
 
-
         const legacyData = result.data as AppSettings & { vimMode?: boolean };
         if (typeof legacyData.vimMode === 'boolean') {
           if (typeof loaded.vimMindMap !== 'boolean') loaded.vimMindMap = legacyData.vimMode;
           if (typeof loaded.vimEditor !== 'boolean') loaded.vimEditor = legacyData.vimMode;
         }
 
-        
         if (loaded.cloudApiEndpoint === 'https://mindoodle-backend.your-subdomain.workers.dev') {
           loaded.cloudApiEndpoint = DEFAULT_SETTINGS.cloudApiEndpoint;
         }

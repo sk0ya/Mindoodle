@@ -1,3 +1,7 @@
+/**
+ * Vim sequence parser - refactored with functional patterns
+ * Reduced from 178 lines to 118 lines (34% reduction)
+ */
 
 export interface VimSequenceResult {
   isComplete: boolean;
@@ -5,174 +9,110 @@ export interface VimSequenceResult {
   command?: string;
   count?: number;
   shouldClear?: boolean;
-  isCountDigit?: boolean; 
-  isDotRepeat?: boolean; 
+  isCountDigit?: boolean;
+  isDotRepeat?: boolean;
 }
 
+// === Helpers ===
 
+const createResult = (
+  isComplete: boolean,
+  isPartial: boolean,
+  options?: { command?: string; count?: number; shouldClear?: boolean; isDotRepeat?: boolean }
+): VimSequenceResult => ({
+  isComplete,
+  isPartial,
+  ...options
+});
 
-const VIM_COMMAND_PATTERNS = {
-  
-  'zz': { keys: ['z', 'z'], command: 'zz' },
-  'zt': { keys: ['z', 't'], command: 'zt' },
-  'za': { keys: ['z', 'a'], command: 'za' },
-  'zo': { keys: ['z', 'o'], command: 'zo' },
-  'zc': { keys: ['z', 'c'], command: 'zc' },
-  'zR': { keys: ['z', 'R'], command: 'zR' },
-  'zM': { keys: ['z', 'M'], command: 'zM' },
-  'dd': { keys: ['d', 'd'], command: 'dd' },
-  'yy': { keys: ['y', 'y'], command: 'yy' },
-  'gg': { keys: ['g', 'g'], command: 'gg' },
-  'gt': { keys: ['g', 't'], command: 'gt' },
-  'gT': { keys: ['g', 'T'], command: 'gT' },
-  'gv': { keys: ['g', 'v'], command: 'gv' },
-  'ciw': { keys: ['c', 'i', 'w'], command: 'ciw' },
-  '>>': { keys: ['>', '>'], command: '>>' },
-  '<<': { keys: ['<', '<'], command: '<<' },
+const singleKey = (key: string) => [key];
+const doubleKey = (k1: string, k2: string) => [k1, k2];
+const tripleKey = (k1: string, k2: string, k3: string) => [k1, k2, k3];
 
-  
-  'r': { keys: ['r'], command: 'r' },  
-  'h': { keys: ['h'], command: 'h' },
-  'j': { keys: ['j'], command: 'j' },
-  'k': { keys: ['k'], command: 'k' },
-  'l': { keys: ['l'], command: 'l' },
-  'i': { keys: ['i'], command: 'i' },
-  'a': { keys: ['a'], command: 'a' },
-  'A': { keys: ['A'], command: 'A' },
-  'I': { keys: ['I'], command: 'I' },
-  'o': { keys: ['o'], command: 'o' },
-  'O': { keys: ['O'], command: 'O' },
-  'X': { keys: ['X'], command: 'X' },
-  'p': { keys: ['p'], command: 'p' },
-  'P': { keys: ['P'], command: 'P' },
-  'm': { keys: ['m'], command: 'm' },
-  'M': { keys: ['M'], command: 'M' },
-  'G': { keys: ['G'], command: 'G' },
-  't': { keys: ['t'], command: 't' },
-  'T': { keys: ['T'], command: 'T' },
-  '0': { keys: ['0'], command: '0' },
-  '/': { keys: ['/'], command: '/' },
-  'n': { keys: ['n'], command: 'n' },
-  'N': { keys: ['N'], command: 'N' },
-  's': { keys: ['s'], command: 's' },
-  'x': { keys: ['x'], command: 'x' },
-  'u': { keys: ['u'], command: 'u' },
-  
-  'S': { keys: ['S'], command: 'S' },  
-  'B': { keys: ['B'], command: 'B' },  
-  '~': { keys: ['~'], command: '~' },  
-  '.': { keys: ['.'], command: '.' },  
-} as const;;
+// === Command Patterns ===
 
+const VIM_COMMAND_PATTERNS: Record<string, string[]> = {
+  // Multi-key commands
+  zz: doubleKey('z', 'z'), zt: doubleKey('z', 't'), za: doubleKey('z', 'a'),
+  zo: doubleKey('z', 'o'), zc: doubleKey('z', 'c'), zR: doubleKey('z', 'R'), zM: doubleKey('z', 'M'),
+  dd: doubleKey('d', 'd'), yy: doubleKey('y', 'y'), gg: doubleKey('g', 'g'),
+  gt: doubleKey('g', 't'), gT: doubleKey('g', 'T'), gv: doubleKey('g', 'v'),
+  ciw: tripleKey('c', 'i', 'w'),
+  '>>': doubleKey('>', '>'), '<<': doubleKey('<', '<'),
 
-function generatePartialSequences(): Set<string> {
-  const partials = new Set<string>();
+  // Single-key commands
+  r: singleKey('r'), h: singleKey('h'), j: singleKey('j'), k: singleKey('k'), l: singleKey('l'),
+  i: singleKey('i'), a: singleKey('a'), A: singleKey('A'), I: singleKey('I'),
+  o: singleKey('o'), O: singleKey('O'), X: singleKey('X'), p: singleKey('p'), P: singleKey('P'),
+  m: singleKey('m'), M: singleKey('M'), G: singleKey('G'), t: singleKey('t'), T: singleKey('T'),
+  '0': singleKey('0'), '/': singleKey('/'), n: singleKey('n'), N: singleKey('N'),
+  s: singleKey('s'), x: singleKey('x'), u: singleKey('u'),
+  S: singleKey('S'), B: singleKey('B'), '~': singleKey('~'), '.': singleKey('.')
+};
 
-  for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
-    for (let i = 1; i < pattern.keys.length; i++) {
-      const partial = pattern.keys.slice(0, i).join('');
-      partials.add(partial);
-    }
-  }
+const PARTIAL_SEQUENCES = new Set(
+  Object.values(VIM_COMMAND_PATTERNS).flatMap(keys =>
+    keys.slice(0, -1).map((_, i) => keys.slice(0, i + 1).join(''))
+  )
+);
 
-  return partials;
-}
+// === Parser ===
 
-const PARTIAL_SEQUENCES = generatePartialSequences();
+const extractCount = (sequence: string): { count?: number; commandPart: string } => {
+  const match = /^([1-9]\d*)/.exec(sequence);
+  if (!match) return { commandPart: sequence };
 
-/**
- * Parse a vim key sequence and determine the result
- */
-export function parseVimSequence(sequence: string): VimSequenceResult {
-  // Don't normalize case to preserve uppercase commands like 'M'
-  const normalizedSequence = sequence.trim();
-
-  
-  
-  const countRe = /^([1-9]\d*)/;
-  const countMatch = countRe.exec(normalizedSequence);
-  let count: number | undefined;
-  let commandPart = normalizedSequence;
-
-  if (countMatch) {
-    const [countStr] = countMatch;
-    count = parseInt(countStr, 10);
-    commandPart = normalizedSequence.slice(countStr.length);
-
-    
-    if (!commandPart) {
-      return {
-        isComplete: false,
-        isPartial: true,
-        count
-      };
-    }
-  }
-
-  
-  if (commandPart === 'm' && count !== undefined) {
-    return {
-      isComplete: true,
-      isPartial: false,
-      command: `m:${count}`,
-      count
-    };
-  }
-
-  
-  if (commandPart === '.') {
-    return {
-      isComplete: true,
-      isPartial: false,
-      command: '.',
-      isDotRepeat: true
-    };
-  }
-
-  
-  for (const [key, pattern] of Object.entries(VIM_COMMAND_PATTERNS)) {
-    if (key === commandPart) {
-      return {
-        isComplete: true,
-        isPartial: false,
-        command: pattern.command,
-        count
-      };
-    }
-  }
-
-  
-  if (PARTIAL_SEQUENCES.has(commandPart)) {
-    return {
-      isComplete: false,
-      isPartial: true,
-      count
-    };
-  }
-
-  
+  const countStr = match[1];
   return {
-    isComplete: false,
-    isPartial: false,
-    shouldClear: true
+    count: parseInt(countStr, 10),
+    commandPart: sequence.slice(countStr.length)
   };
+};
+
+export function parseVimSequence(sequence: string): VimSequenceResult {
+  const normalizedSequence = sequence.trim();
+  const { count, commandPart } = extractCount(normalizedSequence);
+
+  // Partial count (waiting for command)
+  if (count !== undefined && !commandPart) {
+    return createResult(false, true, { count });
+  }
+
+  // Special: numbered markdown conversion (e.g., "3m")
+  if (commandPart === 'm' && count !== undefined) {
+    return createResult(true, false, { command: `m:${count}`, count });
+  }
+
+  // Special: dot repeat
+  if (commandPart === '.') {
+    return createResult(true, false, { command: '.', isDotRepeat: true });
+  }
+
+  // Complete command match
+  if (commandPart in VIM_COMMAND_PATTERNS) {
+    return createResult(true, false, { command: commandPart, count });
+  }
+
+  // Partial sequence match
+  if (PARTIAL_SEQUENCES.has(commandPart)) {
+    return createResult(false, true, { count });
+  }
+
+  // Invalid sequence
+  return createResult(false, false, { shouldClear: true });
 }
 
 export function getVimKeys(): string[] {
   const keys = new Set<string>();
 
+  // Add all keys from patterns
+  Object.values(VIM_COMMAND_PATTERNS).forEach(pattern =>
+    pattern.forEach(key => keys.add(key))
+  );
 
-  for (const pattern of Object.values(VIM_COMMAND_PATTERNS)) {
-    pattern.keys.forEach(key => keys.add(key));
-  }
-
-
-
+  // Add special keys
   keys.add('escape');
-
-
   '0123456789'.split('').forEach(k => keys.add(k));
 
   return Array.from(keys);
 }
-

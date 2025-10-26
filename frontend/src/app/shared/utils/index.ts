@@ -4,6 +4,8 @@ export * from './clipboard';
 export * from './env';
 export * from './eventUtils';
 export * from './folderUtils';
+export * from './functionalHelpers';
+export * from './functionalReact';
 export * from './hashUtils';
 export * from './highlightUtils';
 export * from './idGenerator';

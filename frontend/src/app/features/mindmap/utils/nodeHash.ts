@@ -1,131 +1,87 @@
 /**
- * Node hashing utilities for memoization
- * Provides fast structural hash for detecting node changes
+ * Node hashing utilities for memoization - refactored with functional patterns
+ * Reduced from 133 lines to 90 lines (32% reduction)
  */
 
 import type { MindMapNode } from '@shared/types';
 
-/**
- * Generates a fast structural hash of node tree
- * Includes fields that affect Markdown conversion to ensure stream updates
- * when structure/format changes (e.g., heading level, list type/indent, checkboxes, kind).
- * Still ignores visual-only state (position, collapse, etc.).
- */
-export function hashNodeTree(nodes: MindMapNode[]): string {
+// === Helpers ===
+
+const extractNodeMetadata = (node: MindMapNode): string => {
+  const noteHash = (node.note || '').length;
+  const kind = (node as MindMapNode & { kind?: string }).kind || 'text';
+  const mm = (node as MindMapNode & { markdownMeta?: unknown }).markdownMeta as {
+    type?: string;
+    level?: number;
+    indentLevel?: number;
+    originalFormat?: string;
+    isCheckbox?: boolean;
+    isChecked?: boolean;
+  } | undefined || {};
+
+  return [
+    node.id,
+    node.text,
+    noteHash,
+    kind,
+    mm.type || '',
+    typeof mm.level === 'number' ? mm.level : -1,
+    typeof mm.indentLevel === 'number' ? mm.indentLevel : -1,
+    mm.originalFormat || '',
+    mm.isCheckbox ? 1 : 0,
+    mm.isCheckbox && mm.isChecked ? 1 : 0,
+    node.children?.length || 0,
+  ].join(':');
+};
+
+const hashNodeRecursive = (node: MindMapNode, parts: string[]) => {
+  parts.push(extractNodeMetadata(node));
+  node.children?.forEach(child => hashNodeRecursive(child, parts));
+};
+
+// === Main Functions ===
+
+export const hashNodeTree = (nodes: MindMapNode[]): string => {
   const parts: string[] = [];
-
-  const hashNode = (node: MindMapNode) => {
-    // Hash fields relevant to markdown output
-    const noteHash = (node.note || '').length; // length is sufficient to reflect note presence/changes
-    const kind = (node as MindMapNode & { kind?: string }).kind || 'text';
-    const mm = (node as MindMapNode & { markdownMeta?: {
-      type?: string;
-      level?: number;
-      indentLevel?: number;
-      originalFormat?: string;
-      isCheckbox?: boolean;
-      isChecked?: boolean;
-    }}).markdownMeta || {};
-
-    const metaType = mm.type || '';
-    const metaLevel = typeof mm.level === 'number' ? mm.level : -1;
-    const metaIndent = typeof mm.indentLevel === 'number' ? mm.indentLevel : -1;
-    const metaFmt = mm.originalFormat || '';
-    const metaCb = mm.isCheckbox ? 1 : 0;
-    // Extract nested ternary to separate statement
-    let metaChecked = 0;
-    if (mm.isCheckbox) {
-      metaChecked = mm.isChecked ? 1 : 0;
-    }
-
-    // Hash format captures order as we traverse children in-order
-    parts.push([
-      node.id,
-      node.text,
-      noteHash,
-      kind,
-      metaType,
-      metaLevel,
-      metaIndent,
-      metaFmt,
-      metaCb,
-      metaChecked,
-      node.children?.length || 0,
-    ].join(':'));
-
-    if (node.children && node.children.length > 0) {
-      for (const child of node.children) {
-        hashNode(child);
-      }
-    }
-  };
-
-  for (const node of nodes) {
-    hashNode(node);
-  }
-
-  // Simple string join - fast and collision-resistant for our use case
+  nodes.forEach(node => hashNodeRecursive(node, parts));
   return parts.join('|');
-}
+};
 
-/**
- * Memoized markdown converter with hash-based cache invalidation
- */
 export class MarkdownMemoizer {
-  private lastHash: string = '';
-  private cachedMarkdown: string = '';
-  private hitCount: number = 0;
-  private missCount: number = 0;
+  private lastHash = '';
+  private cachedMarkdown = '';
+  private hitCount = 0;
+  private missCount = 0;
 
-  /**
-   * Convert nodes to markdown with memoization
-   * @param nodes Root nodes to convert
-   * @param converter Conversion function
-   * @returns Markdown string (cached if structure unchanged)
-   */
-  convert(
-    nodes: MindMapNode[],
-    converter: (nodes: MindMapNode[]) => string
-  ): string {
+  convert(nodes: MindMapNode[], converter: (nodes: MindMapNode[]) => string): string {
     const currentHash = hashNodeTree(nodes);
 
-    // Cache hit: structure unchanged
     if (currentHash === this.lastHash && this.cachedMarkdown) {
       this.hitCount++;
       return this.cachedMarkdown;
     }
 
-    // Cache miss: convert and update cache
     this.missCount++;
     const markdown = converter(nodes);
     this.lastHash = currentHash;
     this.cachedMarkdown = markdown;
-
     return markdown;
   }
 
-  /**
-   * Force cache invalidation
-   */
   invalidate(): void {
     this.lastHash = '';
     this.cachedMarkdown = '';
   }
 
-  /**
-   * Get cache statistics (for monitoring)
-   */
   getStats() {
+    const total = this.hitCount + this.missCount;
     return {
       hitCount: this.hitCount,
       missCount: this.missCount,
-      hitRate: this.hitCount / (this.hitCount + this.missCount) || 0
+      hitRate: total ? this.hitCount / total : 0
     };
   }
 
-  /**
-   * Reset statistics
-   */
   resetStats(): void {
     this.hitCount = 0;
     this.missCount = 0;

@@ -1,89 +1,78 @@
+/**
+ * Node slice helpers - refactored with functional patterns
+ * Reduced from 89 lines to 78 lines (12% reduction)
+ */
+
 import type { MindMapNode } from '@shared/types';
 import { generateNodeId } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import type { NormalizedDataLike } from './types';
 
-/**
- * Find the nearest non-table sibling's markdown metadata
- * Used for inheriting metadata when creating new nodes near table nodes
- */
-export function nearestNonTableSiblingMeta(
+// === Helpers ===
+
+const isNonTableNode = (node: MindMapNode | undefined): boolean =>
+  !!(node && node.kind !== 'table' && node.markdownMeta);
+
+const getMetadataWithResetCheckbox = (meta: MindMapNode['markdownMeta']): Partial<MindMapNode['markdownMeta']> =>
+  meta?.isCheckbox ? { ...meta, isChecked: false } : meta || {};
+
+const checkSiblingAt = (
+  nd: NormalizedDataLike,
+  siblings: string[],
+  index: number
+): Partial<MindMapNode['markdownMeta']> | undefined => {
+  if (index < 0 || index >= siblings.length) return undefined;
+  const sib = nd.nodes[siblings[index]];
+  return isNonTableNode(sib) ? getMetadataWithResetCheckbox(sib.markdownMeta) : undefined;
+};
+
+// === Main Functions ===
+
+export const nearestNonTableSiblingMeta = (
   nd: NormalizedDataLike,
   siblings: string[],
   currentIdx: number
-): Partial<MindMapNode['markdownMeta']> | undefined {
-  const n = siblings.length;
-  for (let offset = 1; offset < n; offset++) {
-    const left = currentIdx - offset;
-    const right = currentIdx + offset;
-    if (left >= 0) {
-      const sib = nd.nodes[siblings[left]];
-      if (sib && sib.kind !== 'table' && sib.markdownMeta) {
-        if (sib.markdownMeta.isCheckbox) {
-          return { ...sib.markdownMeta, isChecked: false };
-        }
-        return sib.markdownMeta;
-      }
-    }
-    if (right < n) {
-      const sib = nd.nodes[siblings[right]];
-      if (sib && sib.kind !== 'table' && sib.markdownMeta) {
-        if (sib.markdownMeta.isCheckbox) {
-          return { ...sib.markdownMeta, isChecked: false };
-        }
-        return sib.markdownMeta;
-      }
-    }
+): Partial<MindMapNode['markdownMeta']> | undefined => {
+  for (let offset = 1; offset < siblings.length; offset++) {
+    const leftMeta = checkSiblingAt(nd, siblings, currentIdx - offset);
+    if (leftMeta) return leftMeta;
+
+    const rightMeta = checkSiblingAt(nd, siblings, currentIdx + offset);
+    if (rightMeta) return rightMeta;
   }
   return undefined;
-}
+};
 
-/**
- * Update checkbox state in tree structure (recursive)
- */
-export function updateNodeCheckedInTree(
+export const updateNodeCheckedInTree = (
   nodes: MindMapNode[],
   nodeId: string,
   checked: boolean
-): MindMapNode[] {
-  return nodes.map(node => {
-    if (node.id === nodeId) {
-      if (node.markdownMeta?.isCheckbox) {
-        return { ...node, markdownMeta: { ...node.markdownMeta, isChecked: checked } } as MindMapNode;
-      }
-      return node;
+): MindMapNode[] =>
+  nodes.map(node => {
+    if (node.id === nodeId && node.markdownMeta?.isCheckbox) {
+      return { ...node, markdownMeta: { ...node.markdownMeta, isChecked: checked } } as MindMapNode;
     }
-    if (node.children && node.children.length > 0) {
+    if (node.children?.length) {
       return { ...node, children: updateNodeCheckedInTree(node.children, nodeId, checked) } as MindMapNode;
     }
     return node;
   });
-}
 
-/**
- * Create a new node with default properties
- */
-export function createNewNode(
+export const createNewNode = (
   text: string,
   parentNode?: MindMapNode,
   settings?: { fontSize?: number; addBlankLineAfterHeading?: boolean },
   addBlankLine: boolean = false
-): MindMapNode {
-  const newNode: MindMapNode = {
-    id: generateNodeId(),
-    text,
-    x: 0,
-    y: 0,
-    children: [],
-    fontSize: 14,
-    fontWeight: 'normal',
-    lineEnding: parentNode?.lineEnding || LineEndingUtils.LINE_ENDINGS.LF
-  };
-
-  // Add blank line note after heading if configured
-  if (addBlankLine && parentNode?.markdownMeta?.type === 'heading' && settings?.addBlankLineAfterHeading !== false) {
-    newNode.note = '';
-  }
-
-  return newNode;
-}
+): MindMapNode => ({
+  id: generateNodeId(),
+  text,
+  x: 0,
+  y: 0,
+  children: [],
+  fontSize: 14,
+  fontWeight: 'normal',
+  lineEnding: parentNode?.lineEnding || LineEndingUtils.LINE_ENDINGS.LF,
+  ...(addBlankLine && parentNode?.markdownMeta?.type === 'heading' && settings?.addBlankLineAfterHeading !== false
+    ? { note: '' }
+    : {})
+});

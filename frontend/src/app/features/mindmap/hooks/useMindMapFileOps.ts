@@ -1,8 +1,10 @@
-
+/**
+ * MindMap file operations hook - refactored with functional patterns
+ * Reduced from 176 lines to 166 lines (6% reduction)
+ */
 
 import { useStableCallback } from '@shared/hooks';
 import { logger } from '@shared/utils';
-
 import type { MindMapData, MapIdentifier } from '@shared/types';
 
 export interface UseMindMapFileOpsParams {
@@ -16,32 +18,55 @@ export interface UseMindMapFileOpsParams {
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
+// === Pure Helper Functions ===
+
+const resolvePath = (baseFilePath: string, relativePath: string): string => {
+  // Absolute-like path inside workspace
+  if (/^\//.test(relativePath)) return relativePath.replace(/^\//, '');
+
+  // Get base directory of current map
+  const baseDir = baseFilePath.includes('/') ? baseFilePath.replace(/\/[^/]*$/, '') : '';
+  const baseSegs = baseDir ? baseDir.split('/') : [];
+  const relSegs = relativePath.replace(/^\.\//, '').split('/');
+  const out: string[] = [...baseSegs];
+
+  for (const seg of relSegs) {
+    if (!seg || seg === '.') continue;
+    if (seg === '..') {
+      if (out.length > 0) out.pop();
+    } else {
+      out.push(seg);
+    }
+  }
+
+  return out.join('/');
+};
+
+const findMapByIdentifier = (maps: MindMapData[], identifier: MapIdentifier): MindMapData | undefined =>
+  maps.find(map =>
+    map.mapIdentifier.mapId === identifier.mapId &&
+    map.mapIdentifier.workspaceId === identifier.workspaceId
+  );
+
+const isCurrentMap = (data: MindMapData | null, identifier: MapIdentifier): boolean =>
+  !!data &&
+  data.mapIdentifier.mapId === identifier.mapId &&
+  data.mapIdentifier.workspaceId === identifier.workspaceId;
+
+// === Hook ===
+
 export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
   const { data, allMindMaps, mindMap, showNotification } = params;
 
-  
   const loadMapData = useStableCallback(
     async (mapIdentifier: MapIdentifier): Promise<MindMapData | null> => {
       try {
-        if (
-          data &&
-          mapIdentifier.mapId === data.mapIdentifier.mapId &&
-          mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
-        ) {
-          
-          return data;
-        }
+        // Return current map if it matches
+        if (isCurrentMap(data, mapIdentifier)) return data;
 
-        
-        const targetMap = allMindMaps.find(
-          (map) =>
-            map.mapIdentifier.mapId === mapIdentifier.mapId &&
-            map.mapIdentifier.workspaceId === mapIdentifier.workspaceId
-        );
-
-        if (targetMap) {
-          return targetMap;
-        }
+        // Find target map in all maps
+        const targetMap = findMapByIdentifier(allMindMaps, mapIdentifier);
+        if (targetMap) return targetMap;
 
         logger.warn('指定されたマップが見つかりません:', mapIdentifier);
         showNotification('warning', '指定されたマップが見つかりません');
@@ -54,11 +79,10 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     }
   );
 
-  
   const onLoadRelativeImage = useStableCallback(
     async (relativePath: string): Promise<string | null> => {
       try {
-        if (typeof (mindMap).readImageAsDataURL !== 'function') {
+        if (typeof mindMap.readImageAsDataURL !== 'function') {
           logger.warn('[onLoadRelativeImage] readImageAsDataURL is not available');
           return null;
         }
@@ -66,35 +90,8 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         const workspaceId = data?.mapIdentifier?.workspaceId;
         const currentMapId = data?.mapIdentifier?.mapId || '';
 
-        // Resolve relative path against current map directory
-        const resolvePath = (baseFilePath: string, rel: string): string => {
-          // Absolute-like path inside workspace
-          if (/^\//.test(rel)) {
-            return rel.replace(/^\//, '');
-          }
-
-          // Get base directory of current map
-          const baseDir = baseFilePath.includes('/')
-            ? baseFilePath.replace(/\/[^/]*$/, '')
-            : '';
-          const baseSegs = baseDir ? baseDir.split('/') : [];
-          const relSegs = rel.replace(/^\.\//, '').split('/');
-          const out: string[] = [...baseSegs];
-
-          for (const seg of relSegs) {
-            if (!seg || seg === '.') continue;
-            if (seg === '..') {
-              if (out.length > 0) out.pop();
-            } else {
-              out.push(seg);
-            }
-          }
-
-          return out.join('/');
-        };
-
         const resolvedPath = resolvePath(currentMapId, relativePath);
-        const dataURL = await (mindMap).readImageAsDataURL(resolvedPath, workspaceId);
+        const dataURL = await mindMap.readImageAsDataURL(resolvedPath, workspaceId);
 
         return dataURL || null;
       } catch (error) {
@@ -104,28 +101,22 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     }
   );
 
-  /**
-   * Update multiple map categories in batch
-   */
   const updateMultipleMapCategories = useStableCallback(
     async (mapUpdates: Array<{ id: string; category: string }>) => {
       logger.debug('Updating multiple map categories:', mapUpdates);
-
       if (mapUpdates.length === 0) return;
 
       try {
         // Batch update map metadata
         const updatedMaps = mapUpdates
           .map(update => {
-            const mapToUpdate = allMindMaps.find(
-              (map) => map.mapIdentifier.mapId === update.id
-            );
+            const mapToUpdate = allMindMaps.find(map => map.mapIdentifier.mapId === update.id);
             if (!mapToUpdate) return null;
 
             return {
               ...mapToUpdate,
               category: update.category,
-              updatedAt: new Date().toISOString(),
+              updatedAt: new Date().toISOString()
             };
           })
           .filter(Boolean);
@@ -133,28 +124,27 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         logger.debug(`Batch updating ${updatedMaps.length} maps`);
 
         // Force refresh map list to reflect UI immediately
-        if (typeof (mindMap).refreshMapList === 'function') {
-          await (mindMap).refreshMapList();
+        if (typeof mindMap.refreshMapList === 'function') {
+          await mindMap.refreshMapList();
         }
 
         logger.debug(`Successfully batch updated ${updatedMaps.length} maps`);
       } catch (error) {
         console.error('Failed to batch update map categories:', error);
 
-        
-        if (typeof (mindMap).refreshMapList === 'function') {
-          await (mindMap).refreshMapList();
+        // Refresh even on error
+        if (typeof mindMap.refreshMapList === 'function') {
+          await mindMap.refreshMapList();
         }
       }
     }
   );
 
-  
   const handleSelectFolder = useStableCallback(
     async (onSuccess?: () => void) => {
       try {
-        if (typeof (mindMap).selectRootFolder === 'function') {
-          const ok = await (mindMap).selectRootFolder();
+        if (typeof mindMap.selectRootFolder === 'function') {
+          const ok = await mindMap.selectRootFolder();
           if (ok && onSuccess) {
             onSuccess();
           } else if (!ok) {
@@ -171,6 +161,6 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     loadMapData,
     onLoadRelativeImage,
     updateMultipleMapCategories,
-    handleSelectFolder,
+    handleSelectFolder
   };
 }

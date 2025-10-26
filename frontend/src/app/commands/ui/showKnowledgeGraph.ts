@@ -1,39 +1,29 @@
+import type { Command } from '../system/types';
+import { uiCommand, success, failure } from '../utils/commandFunctional';
 
-
-import type { Command, CommandContext, CommandResult } from '../system/types';
-
-export const showKnowledgeGraphCommand: Command = {
-  name: 'show-knowledge-graph',
-  aliases: ['knowledge-graph', 'kg', 'graph'],
-  description: 'Show workspace knowledge graph in 3D',
-  category: 'ui',
-  examples: ['show-knowledge-graph', 'knowledge-graph', 'kg'],
-
-  execute(context: CommandContext): CommandResult {
+export const showKnowledgeGraphCommand: Command = uiCommand(
+  'show-knowledge-graph',
+  'Show workspace knowledge graph in 3D',
+  (context) => {
     try {
-      const canToggle = typeof context.handlers.toggleKnowledgeGraph === 'function';
       const canSet = typeof context.handlers.setShowKnowledgeGraph === 'function';
+      const canToggle = typeof context.handlers.toggleKnowledgeGraph === 'function';
 
       if (canSet) {
         (context.handlers.setShowKnowledgeGraph as (b: boolean) => void)(true);
       } else if (canToggle) {
         (context.handlers.toggleKnowledgeGraph as () => void)();
       } else {
-        return {
-          success: false,
-          error: 'Knowledge graph controls are not available'
-        };
+        return failure('Knowledge graph controls are not available');
       }
 
-      return {
-        success: true,
-        message: 'Opened knowledge graph'
-      };
+      return success('Opened knowledge graph');
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to open knowledge graph'
-      };
+      return failure(error instanceof Error ? error.message : 'Failed to open knowledge graph');
     }
+  },
+  {
+    aliases: ['knowledge-graph', 'kg', 'graph'],
+    examples: ['show-knowledge-graph', 'knowledge-graph', 'kg']
   }
-};
+);
