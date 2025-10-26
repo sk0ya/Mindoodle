@@ -1,150 +1,128 @@
-
+/**
+ * Node tree operations - refactored with functional patterns
+ * Reduced from 256 lines to 193 lines (25% reduction)
+ */
 
 import type { MindMapNode, MindMapData } from '@shared/types';
 
+// === Generic Tree Operations ===
 
+type NodeTransformer<T> = (node: MindMapNode, parent?: MindMapNode) => T | null;
 
+const findInTree = <T>(
+  node: MindMapNode,
+  transformer: NodeTransformer<T>,
+  parent?: MindMapNode
+): T | null => {
+  const result = transformer(node, parent);
+  if (result !== null) return result;
 
-
-
-export function findNodeById(rootNode: MindMapNode, nodeId: string): MindMapNode | null {
-  if (rootNode.id === nodeId) return rootNode;
-
-  for (const child of rootNode.children || []) {
-    const result = findNodeById(child, nodeId);
-    if (result) return result;
+  for (const child of node.children || []) {
+    const found = findInTree(child, transformer, node);
+    if (found !== null) return found;
   }
-
   return null;
-}
+};
 
-
-export function findNodePathById(rootNode: MindMapNode, nodeId: string): MindMapNode[] | null {
-  if (rootNode.id === nodeId) return [rootNode];
-
-  for (const child of rootNode.children || []) {
-    const childPath = findNodePathById(child, nodeId);
-    if (childPath) return [rootNode, ...childPath];
+const collectNodes = (node: MindMapNode, collapsed: boolean = false): MindMapNode[] => {
+  const nodes = [node];
+  if (node.children && (!collapsed || !node.collapsed)) {
+    node.children.forEach(child => nodes.push(...collectNodes(child, collapsed)));
   }
+  return nodes;
+};
 
-  return null;
-}
+// === Find Operations ===
 
+export const findNodeById = (rootNode: MindMapNode, nodeId: string): MindMapNode | null =>
+  findInTree(rootNode, (node) => (node.id === nodeId ? node : null));
 
-export function traverseNodes(rootNode: MindMapNode, callback: (node: MindMapNode) => void): void {
-  callback(rootNode);
-
-  for (const child of rootNode.children || []) {
-    traverseNodes(child, callback);
-  }
-}
-
-
-export function updateNodeInTree(
-  rootNode: MindMapNode,
-  nodeId: string,
-  updater: (node: MindMapNode) => MindMapNode
-): MindMapNode {
-  if (rootNode.id === nodeId) {
-    return updater(rootNode);
-  }
-
-  return {
-    ...rootNode,
-    children: rootNode.children?.map(child =>
-      updateNodeInTree(child, nodeId, updater)
-    )
-  };
-}
-
-
-export function removeNodeFromTree(rootNode: MindMapNode, nodeId: string): MindMapNode {
-  return {
-    ...rootNode,
-    children: rootNode.children?.filter(child => child.id !== nodeId)
-      .map(child => removeNodeFromTree(child, nodeId))
-  };
-}
-
-
-export function findParentNode(rootNode: MindMapNode, nodeId: string): MindMapNode | null {
-  if (!rootNode.children) return null;
-
-  for (const child of rootNode.children) {
-    if (child.id === nodeId) return rootNode;
-    const parent = findParentNode(child, nodeId);
-    if (parent) return parent;
-  }
-
-  return null;
-}
-
-
-export function getSiblingNodes(rootNode: MindMapNode, nodeId: string): { siblings: MindMapNode[], currentIndex: number } {
-  const parent = findParentNode(rootNode, nodeId);
-  if (!parent || !parent.children) {
-    return { siblings: [], currentIndex: -1 };
-  }
-
-  const siblings = parent.children;
-  const currentIndex = siblings.findIndex(node => node.id === nodeId);
-
-  return { siblings, currentIndex };
-}
-
-
-export function getFirstVisibleChild(node: MindMapNode): MindMapNode | null {
-  if (!node.children || node.children.length === 0 || node.collapsed) {
+export const findNodePathById = (rootNode: MindMapNode, nodeId: string): MindMapNode[] | null =>
+  findInTree(rootNode, (node, parent) => {
+    if (node.id === nodeId) {
+      const path = parent ? findNodePathById(rootNode, parent.id) || [] : [];
+      return [...path, node];
+    }
     return null;
-  }
+  });
 
-  return node.children[0];
-}
+export const findParentNode = (rootNode: MindMapNode, nodeId: string): MindMapNode | null =>
+  findInTree(rootNode, (node) =>
+    node.children?.some(child => child.id === nodeId) ? node : null
+  );
 
-
-export function isRootNode(rootNode: MindMapNode, nodeId: string): boolean {
-  if (rootNode.id === nodeId) return true;
-  return findParentNode(rootNode, nodeId) === null;
-}
-
-
-export function findNodeInRoots(roots: MindMapNode[] | undefined, nodeId: string): MindMapNode | null {
-  const list = roots || [];
-  for (const r of list) {
-    const found = findNodeById(r, nodeId);
+export const findNodeInRoots = (roots: MindMapNode[] | undefined, nodeId: string): MindMapNode | null => {
+  for (const root of roots || []) {
+    const found = findNodeById(root, nodeId);
     if (found) return found;
   }
   return null;
-}
+};
 
+export const findNodeInData = (data: { rootNodes?: MindMapNode[] } | MindMapData | null | undefined, nodeId: string): MindMapNode | null =>
+  data ? findNodeInRoots((data as { rootNodes?: MindMapNode[] }).rootNodes, nodeId) : null;
 
-export function findNodeInData(data: { rootNodes?: MindMapNode[] } | MindMapData | null | undefined, nodeId: string): MindMapNode | null {
-  if (!data) return null;
-  return findNodeInRoots((data as { rootNodes?: MindMapNode[] }).rootNodes, nodeId);
-}
+// === Node Queries ===
 
+export const getSiblingNodes = (rootNode: MindMapNode, nodeId: string): { siblings: MindMapNode[], currentIndex: number } => {
+  const parent = findParentNode(rootNode, nodeId);
+  if (!parent?.children) return { siblings: [], currentIndex: -1 };
 
-
-
-
-
-export function findNodeBySpatialDirection(
-  currentNodeId: string,
-  direction: 'up' | 'down' | 'left' | 'right',
-  rootNode: MindMapNode
-): string | null {
-  const collect = (node: MindMapNode, acc: MindMapNode[]) => {
-    acc.push(node);
-    if (node.children && !node.collapsed) {
-      for (const child of node.children) collect(child, acc);
-    }
+  return {
+    siblings: parent.children,
+    currentIndex: parent.children.findIndex(node => node.id === nodeId)
   };
+};
 
-  const all: MindMapNode[] = [];
-  collect(rootNode, all);
+export const getFirstVisibleChild = (node: MindMapNode): MindMapNode | null =>
+  (node.children && node.children.length > 0 && !node.collapsed) ? node.children[0] : null;
+
+export const isRootNode = (rootNode: MindMapNode, nodeId: string): boolean =>
+  rootNode.id === nodeId || findParentNode(rootNode, nodeId) === null;
+
+// === Tree Mutations ===
+
+export const traverseNodes = (rootNode: MindMapNode, callback: (node: MindMapNode) => void): void => {
+  callback(rootNode);
+  rootNode.children?.forEach(child => traverseNodes(child, callback));
+};
+
+export const updateNodeInTree = (
+  rootNode: MindMapNode,
+  nodeId: string,
+  updater: (node: MindMapNode) => MindMapNode
+): MindMapNode =>
+  rootNode.id === nodeId
+    ? updater(rootNode)
+    : { ...rootNode, children: rootNode.children?.map(child => updateNodeInTree(child, nodeId, updater)) };
+
+export const removeNodeFromTree = (rootNode: MindMapNode, nodeId: string): MindMapNode => ({
+  ...rootNode,
+  children: rootNode.children?.filter(child => child.id !== nodeId).map(child => removeNodeFromTree(child, nodeId))
+});
+
+// === Spatial Navigation ===
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+type DirectionConfig = { check: (dx: number, dy: number) => boolean; score: (dx: number, dy: number) => number };
+
+const directionConfigs: Record<Direction, DirectionConfig> = {
+  right: { check: (dx) => dx > 20, score: (dx, dy) => dx + Math.abs(dy) * 0.5 },
+  left: { check: (dx) => dx < -20, score: (dx, dy) => -dx + Math.abs(dy) * 0.5 },
+  down: { check: (_, dy) => dy > 20, score: (dx, dy) => dy + Math.abs(dx) * 0.5 },
+  up: { check: (_, dy) => dy < -20, score: (dx, dy) => -dy + Math.abs(dx) * 0.5 }
+};
+
+export const findNodeBySpatialDirection = (
+  currentNodeId: string,
+  direction: Direction,
+  rootNode: MindMapNode
+): string | null => {
+  const all = collectNodes(rootNode, true);
   const current = all.find((n) => n.id === currentNodeId);
   if (!current) return null;
 
+  const config = directionConfigs[direction];
   let best: MindMapNode | null = null;
   let bestScore = Infinity;
 
@@ -153,78 +131,43 @@ export function findNodeBySpatialDirection(
     const dx = node.x - current.x;
     const dy = node.y - current.y;
 
-    let ok = false;
-    let score = 0;
-    switch (direction) {
-      case 'right':
-        ok = dx > 20;
-        score = dx + Math.abs(dy) * 0.5;
-        break;
-      case 'left':
-        ok = dx < -20;
-        score = -dx + Math.abs(dy) * 0.5;
-        break;
-      case 'down':
-        ok = dy > 20;
-        score = dy + Math.abs(dx) * 0.5;
-        break;
-      case 'up':
-        ok = dy < -20;
-        score = -dy + Math.abs(dx) * 0.5;
-        break;
-    }
-
-    if (ok && score < bestScore) {
-      best = node;
-      bestScore = score;
+    if (config.check(dx, dy)) {
+      const score = config.score(dx, dy);
+      if (score < bestScore) {
+        best = node;
+        bestScore = score;
+      }
     }
   }
 
   return best?.id ?? null;
-}
+};
 
-
-
-
-
+// === Validation ===
 
 export interface NodeValidationResult {
   isValid: boolean;
   errors: string[];
 }
 
+const validators: Array<(obj: Record<string, unknown>) => string | null> = [
+  (obj) => (!obj.id || typeof obj.id !== 'string') ? 'Missing or invalid node id' : null,
+  (obj) => (typeof obj.text !== 'string') ? 'Missing or invalid node text' : null,
+  (obj) => (typeof obj.x !== 'number' || isNaN(obj.x)) ? 'Missing or invalid node x coordinate' : null,
+  (obj) => (typeof obj.y !== 'number' || isNaN(obj.y)) ? 'Missing or invalid node y coordinate' : null,
+  (obj) => !Array.isArray(obj.children) ? 'Node children must be an array' : null
+];
 
-export function validateMindMapNode(node: unknown): NodeValidationResult {
-  const errors: string[] = [];
-
+export const validateMindMapNode = (node: unknown): NodeValidationResult => {
   if (!node || typeof node !== 'object') {
-    errors.push('Node must be an object');
-    return { isValid: false, errors };
+    return { isValid: false, errors: ['Node must be an object'] };
   }
 
   const obj = node as Record<string, unknown>;
+  const errors = validators.map(v => v(obj)).filter((e): e is string => e !== null);
 
-  
-  if (!obj.id || typeof obj.id !== 'string') {
-    errors.push('Missing or invalid node id');
-  }
-
-  if (typeof obj.text !== 'string') {
-    errors.push('Missing or invalid node text');
-  }
-
-  if (typeof obj.x !== 'number' || isNaN(obj.x)) {
-    errors.push('Missing or invalid node x coordinate');
-  }
-
-  if (typeof obj.y !== 'number' || isNaN(obj.y)) {
-    errors.push('Missing or invalid node y coordinate');
-  }
-
-  
-  if (!Array.isArray(obj.children)) {
-    errors.push('Node children must be an array');
-  } else {
+  // Validate children recursively
+  if (Array.isArray(obj.children)) {
     obj.children.forEach((child, index) => {
       const childValidation = validateMindMapNode(child);
       if (!childValidation.isValid) {
@@ -233,18 +176,12 @@ export function validateMindMapNode(node: unknown): NodeValidationResult {
     });
   }
 
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-}
+  return { isValid: errors.length === 0, errors };
+};
 
-
-export function isMindMapNode(node: unknown): node is MindMapNode {
+export const isMindMapNode = (node: unknown): node is MindMapNode => {
   if (!node || typeof node !== 'object') return false;
-
   const obj = node as Record<string, unknown>;
-
   return (
     typeof obj.id === 'string' &&
     typeof obj.text === 'string' &&
@@ -253,4 +190,4 @@ export function isMindMapNode(node: unknown): node is MindMapNode {
     Array.isArray(obj.children) &&
     obj.children.every((child: unknown) => isMindMapNode(child))
   );
-}
+};

@@ -1,219 +1,128 @@
 /**
- * Common helpers for Zustand store slices
+ * Common helpers for Zustand store slices - refactored with functional patterns
+ * Reduced from 235 lines to 143 lines (39% reduction)
  */
 
 import type { MindMapNode } from '@shared/types';
 import { produce, Draft } from 'immer';
 
-/**
- * Find node in tree by ID
- */
-export function findNodeById(
-  roots: MindMapNode[],
-  nodeId: string
-): MindMapNode | null {
-  for (const root of roots) {
-    if (root.id === nodeId) return root;
+// === Generic Tree Traversal ===
 
-    const found = findNodeInChildren(root.children, nodeId);
-    if (found) return found;
+type TreeVisitor<T> = (node: MindMapNode, parent: MindMapNode | null, depth: number) => T | null | undefined;
+
+const traverseTree = <T>(
+  nodes: MindMapNode[],
+  visitor: TreeVisitor<T>,
+  parent: MindMapNode | null = null,
+  depth: number = 0
+): T | null => {
+  for (const node of nodes) {
+    const result = visitor(node, parent, depth);
+    if (result !== null && result !== undefined) return result;
+
+    const childResult = traverseTree(node.children, visitor, node, depth + 1);
+    if (childResult !== null && childResult !== undefined) return childResult;
   }
   return null;
+};
+
+const flattenTree = (nodes: MindMapNode[]): MindMapNode[] =>
+  nodes.flatMap(node => [node, ...flattenTree(node.children)]);
+
+// === Find Operations ===
+
+export function findNodeById(roots: MindMapNode[], nodeId: string): MindMapNode | null {
+  return traverseTree(roots, (node) => (node.id === nodeId ? node : null));
 }
 
-/**
- * Find node in children recursively
- */
-function findNodeInChildren(
-  children: MindMapNode[],
-  nodeId: string
-): MindMapNode | null {
-  for (const child of children) {
-    if (child.id === nodeId) return child;
-
-    const found = findNodeInChildren(child.children, nodeId);
-    if (found) return found;
-  }
-  return null;
-}
-
-/**
- * Find parent node of a target node
- */
 export function findParentNode(
   roots: MindMapNode[],
   targetId: string
 ): { parent: MindMapNode; index: number } | null {
-  for (const root of roots) {
-    const result = findParentInNode(root, targetId);
-    if (result) return result;
-  }
-  return null;
-}
-
-function findParentInNode(
-  node: MindMapNode,
-  targetId: string
-): { parent: MindMapNode; index: number } | null {
-  const index = node.children.findIndex(child => child.id === targetId);
-  if (index !== -1) {
-    return { parent: node, index };
-  }
-
-  for (const child of node.children) {
-    const result = findParentInNode(child, targetId);
-    if (result) return result;
-  }
-
-  return null;
-}
-
-/**
- * Update node in tree immutably
- */
-export function updateNodeInTree(
-  roots: MindMapNode[],
-  nodeId: string,
-  updates: Partial<MindMapNode>
-): MindMapNode[] {
-  return produce(roots, (draft: Draft<MindMapNode>[]) => {
-    const node = findNodeById(draft as MindMapNode[], nodeId);
-    if (node) {
-      Object.assign(node, updates);
-    }
+  return traverseTree(roots, (node) => {
+    const index = node.children.findIndex(child => child.id === targetId);
+    return index !== -1 ? { parent: node, index } : null;
   });
 }
 
-/**
- * Delete node from tree
- */
-export function deleteNodeFromTree(
-  roots: MindMapNode[],
-  nodeId: string
-): MindMapNode[] {
-  return produce(roots, (draft: Draft<MindMapNode>[]) => {
-    // Check if it's a root node
-    const rootIndex = draft.findIndex(node => node.id === nodeId);
-    if (rootIndex !== -1) {
-      draft.splice(rootIndex, 1);
-      return;
-    }
-
-    // Find and delete from children
-    deleteNodeFromChildren(draft as MindMapNode[], nodeId);
-  });
-}
-
-function deleteNodeFromChildren(roots: MindMapNode[], nodeId: string): boolean {
-  for (const root of roots) {
-    const index = root.children.findIndex(child => child.id === nodeId);
-    if (index !== -1) {
-      root.children.splice(index, 1);
-      return true;
-    }
-
-    if (deleteNodeFromChildren(root.children, nodeId)) {
-      return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Get all nodes in tree (flattened)
- */
-export function getAllNodes(roots: MindMapNode[]): MindMapNode[] {
-  const result: MindMapNode[] = [];
-
-  function traverse(nodes: MindMapNode[]) {
-    for (const node of nodes) {
-      result.push(node);
-      if (node.children.length > 0) {
-        traverse(node.children);
-      }
-    }
-  }
-
-  traverse(roots);
-  return result;
-}
-
-/**
- * Get node depth in tree
- */
 export function getNodeDepth(roots: MindMapNode[], nodeId: string): number {
-  function getDepthInNodes(nodes: MindMapNode[], currentDepth: number): number {
-    for (const node of nodes) {
-      if (node.id === nodeId) return currentDepth;
-
-      const childDepth = getDepthInNodes(node.children, currentDepth + 1);
-      if (childDepth !== -1) return childDepth;
-    }
-    return -1;
-  }
-
-  return getDepthInNodes(roots, 0);
+  return traverseTree(roots, (node, _, depth) => (node.id === nodeId ? depth : null)) ?? -1;
 }
 
-/**
- * Check if node is ancestor of another node
- */
 export function isAncestor(
   roots: MindMapNode[],
   ancestorId: string,
   descendantId: string
 ): boolean {
   const ancestor = findNodeById(roots, ancestorId);
-  if (!ancestor) return false;
-
-  return findNodeById([ancestor], descendantId) !== null;
+  return ancestor ? findNodeById([ancestor], descendantId) !== null : false;
 }
 
-/**
- * Get siblings of a node
- */
 export function getSiblings(
   roots: MindMapNode[],
   nodeId: string
 ): { siblings: MindMapNode[]; index: number } | null {
   const parentInfo = findParentNode(roots, nodeId);
   if (parentInfo) {
-    return {
-      siblings: parentInfo.parent.children,
-      index: parentInfo.index
-    };
+    return { siblings: parentInfo.parent.children, index: parentInfo.index };
   }
 
-  // Check if it's a root node
   const index = roots.findIndex(node => node.id === nodeId);
-  if (index !== -1) {
-    return { siblings: roots, index };
-  }
-
-  return null;
+  return index !== -1 ? { siblings: roots, index } : null;
 }
 
-/**
- * Move node to new parent
- */
-export function moveNodeToParent(
-  roots: MindMapNode[],
-  nodeId: string,
-  newParentId: string,
-  index?: number
-): MindMapNode[] {
-  return produce(roots, (draft: Draft<MindMapNode>[]) => {
-    const draftRoots = draft as MindMapNode[];
+// === Mutation Operations ===
 
-    // Find and remove node from current location
-    const node = findNodeById(draftRoots, nodeId);
+const withProduce = <T extends unknown[]>(
+  operation: (draft: MindMapNode[], ...args: T) => void
+) => (roots: MindMapNode[], ...args: T): MindMapNode[] =>
+  produce(roots, (draft: Draft<MindMapNode>[]) => operation(draft as MindMapNode[], ...args));
+
+export const updateNodeInTree = withProduce(
+  (draft: MindMapNode[], nodeId: string, updates: Partial<MindMapNode>) => {
+    const node = findNodeById(draft, nodeId);
+    if (node) Object.assign(node, updates);
+  }
+);
+
+const deleteFromNodes = (nodes: MindMapNode[], nodeId: string): boolean => {
+  for (const node of nodes) {
+    const index = node.children.findIndex(child => child.id === nodeId);
+    if (index !== -1) {
+      node.children.splice(index, 1);
+      return true;
+    }
+    if (deleteFromNodes(node.children, nodeId)) return true;
+  }
+  return false;
+};
+
+export const deleteNodeFromTree = withProduce((draft: MindMapNode[], nodeId: string) => {
+  const rootIndex = draft.findIndex(node => node.id === nodeId);
+  if (rootIndex !== -1) {
+    draft.splice(rootIndex, 1);
+  } else {
+    deleteFromNodes(draft, nodeId);
+  }
+});
+
+export const moveNodeToParent = withProduce(
+  (draft: MindMapNode[], nodeId: string, newParentId: string, index?: number) => {
+    const node = findNodeById(draft, nodeId);
     if (!node) return;
 
     const clonedNode = { ...node };
-    const deleted = deleteNodeFromTree(draftRoots, nodeId);
 
-    // Find new parent and add node
-    const newParent = findNodeById(deleted as MindMapNode[], newParentId);
+    // Remove from current location
+    const rootIndex = draft.findIndex(n => n.id === nodeId);
+    if (rootIndex !== -1) {
+      draft.splice(rootIndex, 1);
+    } else {
+      deleteFromNodes(draft, nodeId);
+    }
+
+    // Add to new parent
+    const newParent = findNodeById(draft, newParentId);
     if (newParent) {
       if (index !== undefined && index >= 0 && index <= newParent.children.length) {
         newParent.children.splice(index, 0, clonedNode);
@@ -221,15 +130,14 @@ export function moveNodeToParent(
         newParent.children.push(clonedNode);
       }
     }
-  });
-}
+  }
+);
 
-/**
- * Clone node tree (deep copy)
- */
-export function cloneNodeTree(node: MindMapNode): MindMapNode {
-  return {
-    ...node,
-    children: node.children.map(child => cloneNodeTree(child))
-  };
-}
+// === Utility Operations ===
+
+export const getAllNodes = (roots: MindMapNode[]): MindMapNode[] => flattenTree(roots);
+
+export const cloneNodeTree = (node: MindMapNode): MindMapNode => ({
+  ...node,
+  children: node.children.map(cloneNodeTree)
+});
