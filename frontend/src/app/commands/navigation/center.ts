@@ -1,125 +1,37 @@
+import type { Command } from '../system/types';
+import { navigationCommand, success, failure } from '../utils/commandFunctional';
 
+// Helper to center node with mode
+const centerNode = (mode: 'center' | 'left', animate = true) =>
+  navigationCommand(
+    mode === 'center' ? 'center' : 'center-left',
+    mode === 'center' ? 'Center the selected node in the viewport' : 'Position the selected node at the left-center of the viewport',
+    (context, args) => {
+      const nodeId = (args['nodeId'] as string | undefined) || context.selectedNodeId;
+      const animateArg = (args['animate'] as boolean | undefined) ?? animate;
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+      if (!nodeId) return failure('No node selected and no node ID provided');
+      if (!context.handlers.centerNodeInView) return failure('Center function is not available');
 
-export const centerCommand: Command = {
-  name: 'center',
-  aliases: ['zz', 'center-node'],
-  description: 'Center the selected node in the viewport',
-  category: 'navigation',
-  examples: [
-    'center',
-    'zz',
-    'center-node'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to center (uses selected node if not specified)'
+      try {
+        (context.handlers as typeof context.handlers & {
+          centerNodeInView: (_nodeId: string, _animate: boolean, _options: { mode: string }) => void
+        }).centerNodeInView(nodeId, animateArg, { mode });
+
+        return success(`Centered node ${nodeId}${mode === 'left' ? ' at left' : ''}`);
+      } catch (error) {
+        return failure(error instanceof Error ? error.message : `Failed to ${mode === 'center' ? 'center' : 'center-left'} node`);
+      }
     },
     {
-      name: 'animate',
-      type: 'boolean',
-      required: false,
-      default: false,
-      description: 'Whether to animate the centering transition'
+      aliases: mode === 'center' ? ['zz', 'center-node'] : ['zt'],
+      examples: mode === 'center' ? ['center', 'zz', 'center-node'] : ['center-left', 'zt'],
+      args: [
+        { name: 'nodeId', type: 'node-id', required: false, description: 'Node ID to center (uses selected node if not specified)' },
+        { name: 'animate', type: 'boolean', required: false, default: animate, description: 'Whether to animate the centering transition' }
+      ]
     }
-  ],
+  );
 
-  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
-    const typedArgs = args as Record<string, string | boolean | undefined>;
-    const nodeId = (typedArgs['nodeId'] as string | undefined) || context.selectedNodeId;
-    const animate = (typedArgs['animate'] as boolean | undefined) ?? true;
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    if (!context.handlers.centerNodeInView) {
-      return {
-        success: false,
-        error: 'Center function is not available'
-      };
-    }
-
-    try {
-      
-      (context.handlers as typeof context.handlers & { centerNodeInView: (_nodeId: string, _animate: boolean, _options: { mode: string }) => void }).centerNodeInView(nodeId, animate, { mode: 'center' });
-      return {
-        success: true,
-        message: `Centered node ${nodeId}`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to center node'
-      };
-    }
-  }
-};
-
-
-export const centerLeftCommand: Command = {
-  name: 'center-left',
-  aliases: ['zt'],
-  description: 'Position the selected node at the left-center of the viewport',
-  category: 'navigation',
-  examples: [
-    'center-left',
-    'zt'
-  ],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to center-left (uses selected node if not specified)'
-    },
-    {
-      name: 'animate',
-      type: 'boolean',
-      required: false,
-      default: false,
-      description: 'Whether to animate the centering transition'
-    }
-  ],
-
-  execute(context: CommandContext, args: Record<string, unknown>): CommandResult {
-    const typedArgs = args as Record<string, string | boolean | undefined>;
-    const nodeId = (typedArgs['nodeId'] as string | undefined) || context.selectedNodeId;
-    const animate = (typedArgs['animate'] as boolean | undefined) ?? false;
-
-    if (!nodeId) {
-      return {
-        success: false,
-        error: 'No node selected and no node ID provided'
-      };
-    }
-
-    if (!context.handlers.centerNodeInView) {
-      return {
-        success: false,
-        error: 'Center function is not available'
-      };
-    }
-
-    try {
-      
-      (context.handlers as typeof context.handlers & { centerNodeInView: (_nodeId: string, _animate: boolean, _options: { mode: string }) => void }).centerNodeInView(nodeId, animate, { mode: 'left' });
-      return {
-        success: true,
-        message: `Centered node ${nodeId} at left`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to center-left node'
-      };
-    }
-  }
-};
+export const centerCommand: Command = centerNode('center', true);
+export const centerLeftCommand: Command = centerNode('left', false);

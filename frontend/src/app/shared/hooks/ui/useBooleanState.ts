@@ -1,6 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+/**
+ * Boolean state management hooks
+ * Delegates to functional programming library for core logic
+ */
+import { useState, useEffect } from 'react';
+import { useBooleanState as useBooleanStateBase, useDebounced, usePrevious } from '@shared/utils/functionalReact';
 import { parseStoredJson, storeJson } from '@shared/utils';
 import { useStableCallback } from '../utilities/useStableCallback';
+
+// === Types ===
 
 export interface BooleanStateOptions {
   initialValue?: boolean;
@@ -17,96 +24,57 @@ export interface BooleanStateReturn {
   setValue: (value: boolean) => void;
 }
 
+// === Core Boolean State ===
+
 export const useBooleanState = (options: BooleanStateOptions = {}): BooleanStateReturn => {
   const { initialValue = false, onToggle, onTrue, onFalse } = options;
-  const [value, setValue] = useState(initialValue);
+  const state = useBooleanStateBase(initialValue);
 
-  const setTrue = useStableCallback(() => {
-    setValue(true);
-    onToggle?.(true);
-    onTrue?.();
-  });
-
-  const setFalse = useStableCallback(() => {
-    setValue(false);
-    onToggle?.(false);
-    onFalse?.();
-  });
-
-  const toggle = useStableCallback(() => {
-    setValue(prev => {
-      const newValue = !prev;
-      onToggle?.(newValue);
-      if (newValue) {
-        onTrue?.();
-      } else {
-        onFalse?.();
+  // Wrap callbacks if provided
+  if (onToggle || onTrue || onFalse) {
+    return {
+      ...state,
+      setTrue: () => { state.setTrue(); onToggle?.(true); onTrue?.(); },
+      setFalse: () => { state.setFalse(); onToggle?.(false); onFalse?.(); },
+      toggle: () => {
+        const newValue = !state.value;
+        state.toggle();
+        onToggle?.(newValue);
+        if (newValue) onTrue?.(); else onFalse?.();
+      },
+      setValue: (newValue: boolean) => {
+        state.setValue(newValue);
+        onToggle?.(newValue);
+        if (newValue) onTrue?.(); else onFalse?.();
       }
-      return newValue;
-    });
-  });
-
-  const setValueCallback = useStableCallback((newValue: boolean) => {
-    setValue(newValue);
-    onToggle?.(newValue);
-    if (newValue) {
-      onTrue?.();
-    } else {
-      onFalse?.();
-    }
-  });
-
-  return {
-    value,
-    setTrue,
-    setFalse,
-    toggle,
-    setValue: setValueCallback,
-  };
+    };
+  }
+  return state;
 };
 
-export const useBooleanToggle = (initialValue = false) => {
-  const { value, setTrue, setFalse, toggle } = useBooleanState({ initialValue });
+// === Specialized Boolean States ===
 
-  return {
-    isActive: value,
-    activate: setTrue,
-    deactivate: setFalse,
-    toggle,
-  };
+export const useBooleanToggle = (initialValue = false) => {
+  const state = useBooleanStateBase(initialValue);
+  return { isActive: state.value, activate: state.setTrue, deactivate: state.setFalse, toggle: state.toggle };
 };
 
 export const useLoadingState = (initialValue = false) => {
-  const { value, setTrue, setFalse, setValue } = useBooleanState({ initialValue });
-
-  return {
-    isLoading: value,
-    startLoading: setTrue,
-    stopLoading: setFalse,
-    setLoading: setValue,
-  };
+  const state = useBooleanStateBase(initialValue);
+  return { isLoading: state.value, startLoading: state.setTrue, stopLoading: state.setFalse, setLoading: state.setValue };
 };
 
 export const useResizingState = (initialValue = false) => {
-  const { value, setTrue, setFalse } = useBooleanState({ initialValue });
-
-  return {
-    isResizing: value,
-    startResizing: setTrue,
-    stopResizing: setFalse,
-  };
+  const state = useBooleanStateBase(initialValue);
+  return { isResizing: state.value, startResizing: state.setTrue, stopResizing: state.setFalse };
 };
 
 export const useHoverState = (initialValue = false) => {
-  const { value, setTrue, setFalse } = useBooleanState({ initialValue });
-
-  return {
-    isHovered: value,
-    handleMouseEnter: setTrue,
-    handleMouseLeave: setFalse,
-  };
+  const state = useBooleanStateBase(initialValue);
+  return { isHovered: state.value, handleMouseEnter: state.setTrue, handleMouseLeave: state.setFalse };
 };
 
+// === Mouse Events ===
 
 export const useMouseEvents = (
   isActive: boolean,
@@ -118,33 +86,19 @@ export const useMouseEvents = (
 ) => {
   useEffect(() => {
     if (!isActive) return;
-
     const { onMouseMove, onMouseUp, onKeyDown } = handlers;
-
-    if (onMouseMove) {
-      document.addEventListener('mousemove', onMouseMove);
-    }
-    if (onMouseUp) {
-      document.addEventListener('mouseup', onMouseUp);
-    }
-    if (onKeyDown) {
-      document.addEventListener('keydown', onKeyDown);
-    }
-
+    if (onMouseMove) document.addEventListener('mousemove', onMouseMove);
+    if (onMouseUp) document.addEventListener('mouseup', onMouseUp);
+    if (onKeyDown) document.addEventListener('keydown', onKeyDown);
     return () => {
-      if (onMouseMove) {
-        document.removeEventListener('mousemove', onMouseMove);
-      }
-      if (onMouseUp) {
-        document.removeEventListener('mouseup', onMouseUp);
-      }
-      if (onKeyDown) {
-        document.removeEventListener('keydown', onKeyDown);
-      }
+      if (onMouseMove) document.removeEventListener('mousemove', onMouseMove);
+      if (onMouseUp) document.removeEventListener('mouseup', onMouseUp);
+      if (onKeyDown) document.removeEventListener('keydown', onKeyDown);
     };
   }, [isActive, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
 };
 
+// === Drag ===
 
 interface UseDragOptions {
   onDragStart?: (startPos: { x: number; y: number }) => void;
@@ -165,13 +119,8 @@ export const useDrag = (options: UseDragOptions = {}) => {
 
   const handleMouseMove = useStableCallback((e: MouseEvent) => {
     if (!startPos) return;
-
     const currentPos = { x: e.clientX, y: e.clientY };
-    const deltaPos = {
-      x: currentPos.x - startPos.x,
-      y: currentPos.y - startPos.y
-    };
-
+    const deltaPos = { x: currentPos.x - startPos.x, y: currentPos.y - startPos.y };
     if (!isDragging) {
       const distance = Math.sqrt(deltaPos.x ** 2 + deltaPos.y ** 2);
       if (distance > dragThreshold) {
@@ -186,32 +135,18 @@ export const useDrag = (options: UseDragOptions = {}) => {
   const handleMouseUp = useStableCallback((e: MouseEvent) => {
     if (startPos) {
       const endPos = { x: e.clientX, y: e.clientY };
-      const totalDelta = {
-        x: endPos.x - startPos.x,
-        y: endPos.y - startPos.y
-      };
-
-      if (isDragging) {
-        onDragEnd?.(endPos, totalDelta);
-      }
+      const totalDelta = { x: endPos.x - startPos.x, y: endPos.y - startPos.y };
+      if (isDragging) onDragEnd?.(endPos, totalDelta);
     }
-
     setIsDragging(false);
     setStartPos(null);
   });
 
-  useMouseEvents(
-    startPos !== null,
-    { onMouseMove: handleMouseMove, onMouseUp: handleMouseUp }
-  );
-
-  return {
-    isDragging,
-    isActive: startPos !== null,
-    handleMouseDown
-  };
+  useMouseEvents(startPos !== null, { onMouseMove: handleMouseMove, onMouseUp: handleMouseUp });
+  return { isDragging, isActive: startPos !== null, handleMouseDown };
 };
 
+// === Resize ===
 
 interface UseResizeOptions {
   initialValue: number;
@@ -223,102 +158,66 @@ interface UseResizeOptions {
 }
 
 export const useResize = (options: UseResizeOptions) => {
-  const {
-    initialValue,
-    minValue = 0,
-    maxValue = Infinity,
-    storageKey,
-    onResize,
-    onResizeEnd
-  } = options;
-
+  const { initialValue, minValue = 0, maxValue = Infinity, storageKey, onResize, onResizeEnd } = options;
   const [value, setValue] = useState(initialValue);
   const { value: isResizing, setTrue: startResizing, setFalse: stopResizing } = useBooleanState();
 
-  
   useEffect(() => {
     if (storageKey) {
       const savedValue = localStorage.getItem(storageKey);
       if (savedValue) {
         const parsed = parseInt(savedValue, 10);
-        if (!isNaN(parsed) && parsed >= minValue && parsed <= maxValue) {
-          setValue(parsed);
-        }
+        if (!isNaN(parsed) && parsed >= minValue && parsed <= maxValue) setValue(parsed);
       }
     }
   }, [storageKey, minValue, maxValue]);
 
-  const handleResize = useStableCallback((startX: number, startValue: number, direction: 'horizontal' | 'vertical' = 'horizontal') => {
-    return (e: MouseEvent) => {
-      const delta = direction === 'horizontal' ? e.clientX - startX : e.clientY - startX;
-      const newValue = Math.max(minValue, Math.min(maxValue, startValue + delta));
-      setValue(newValue);
-      onResize?.(newValue);
-    };
+  const handleResize = useStableCallback((startX: number, startValue: number, direction: 'horizontal' | 'vertical' = 'horizontal') => (e: MouseEvent) => {
+    const delta = direction === 'horizontal' ? e.clientX - startX : e.clientY - startX;
+    const newValue = Math.max(minValue, Math.min(maxValue, startValue + delta));
+    setValue(newValue);
+    onResize?.(newValue);
   });
 
   const handleResizeEnd = useStableCallback((finalValue: number) => {
     stopResizing();
-    if (storageKey) {
-      localStorage.setItem(storageKey, finalValue.toString());
-    }
+    if (storageKey) localStorage.setItem(storageKey, finalValue.toString());
     onResizeEnd?.(finalValue);
   });
 
-  const createResizeHandler = useStableCallback((direction: 'horizontal' | 'vertical' = 'horizontal') => {
-    return (e: React.MouseEvent) => {
-      e.preventDefault();
-      startResizing();
-
-      const startX = direction === 'horizontal' ? e.clientX : e.clientY;
-      const startValue = value;
-      const mouseMoveHandler = handleResize(startX, startValue, direction);
-
-      const mouseUpHandler = () => {
-        handleResizeEnd(value);
-        document.removeEventListener('mousemove', mouseMoveHandler);
-        document.removeEventListener('mouseup', mouseUpHandler);
-      };
-
-      document.addEventListener('mousemove', mouseMoveHandler);
-      document.addEventListener('mouseup', mouseUpHandler);
+  const createResizeHandler = useStableCallback((direction: 'horizontal' | 'vertical' = 'horizontal') => (e: React.MouseEvent) => {
+    e.preventDefault();
+    startResizing();
+    const startX = direction === 'horizontal' ? e.clientX : e.clientY;
+    const startValue = value;
+    const mouseMoveHandler = handleResize(startX, startValue, direction);
+    const mouseUpHandler = () => {
+      handleResizeEnd(value);
+      document.removeEventListener('mousemove', mouseMoveHandler);
+      document.removeEventListener('mouseup', mouseUpHandler);
     };
+    document.addEventListener('mousemove', mouseMoveHandler);
+    document.addEventListener('mouseup', mouseUpHandler);
   });
 
-  return {
-    value,
-    setValue,
-    isResizing,
-    createResizeHandler
-  };
+  return { value, setValue, isResizing, createResizeHandler };
 };
 
+// === Persisted State ===
 
 export const usePersistedState = <T>(
   key: string,
   initialValue: T,
   options: {
-    serializer?: {
-      serialize: (value: T) => string;
-      deserialize: (value: string) => T;
-    };
+    serializer?: { serialize: (value: T) => string; deserialize: (value: string) => T; };
     validator?: (value: unknown) => value is T;
   } = {}
 ) => {
-  const {
-    serializer = {
-      serialize: JSON.stringify,
-      deserialize: JSON.parse
-    },
-    validator
-  } = options;
-
+  const { serializer = { serialize: JSON.stringify, deserialize: JSON.parse }, validator } = options;
   const [state, setState] = useState<T>(() => {
     try {
       const raw = parseStoredJson<string | T | undefined>(key, undefined);
-      if (raw === undefined) {
-        return initialValue;
-      }
+      if (raw === undefined) return initialValue;
       if (typeof raw === 'string') {
         const parsed = serializer.deserialize(raw);
         if (validator ? validator(parsed) : true) return parsed;
@@ -336,11 +235,8 @@ export const usePersistedState = <T>(
       const newValue = typeof value === 'function' ? (value as (prev: T) => T)(current) : value;
       try {
         const serialized = serializer.serialize(newValue);
-        if (typeof serialized === 'string') {
-          storeJson(key, serialized);
-        } else {
-          storeJson(key, newValue as unknown as object);
-        }
+        if (typeof serialized === 'string') storeJson(key, serialized);
+        else storeJson(key, newValue as unknown as object);
       } catch (error) {
         console.warn(`Failed to save persisted state for key "${key}":`, error);
       }
@@ -351,28 +247,6 @@ export const usePersistedState = <T>(
   return [state, setValue] as const;
 };
 
+// === Re-exports ===
 
-export const useDebounce = <T>(value: T, delay: number): T => {
-  const [debouncedValue, setDebouncedValue] = useState<T>(value);
-
-  useEffect(() => {
-    const handler = setTimeout(() => {
-      setDebouncedValue(value);
-    }, delay);
-
-    return () => {
-      clearTimeout(handler);
-    };
-  }, [value, delay]);
-
-  return debouncedValue;
-};
-
-
-export const usePrevious = <T>(value: T): T | undefined => {
-  const ref = useRef<T>();
-  useEffect(() => {
-    ref.current = value;
-  });
-  return ref.current;
-};
+export { useDebounced as useDebounce, usePrevious } from '@shared/utils/functionalReact';
