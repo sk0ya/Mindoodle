@@ -1,9 +1,10 @@
+/**
+ * History slice - refactored with functional patterns
+ * Reduced from 191 lines to 182 lines (5% reduction)
+ */
+
 import type { StateCreator } from 'zustand';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
-
-
-let historyCommitTimer: ReturnType<typeof setTimeout> | null = null;
-const HISTORY_DEBOUNCE_MS = 120;
 import type { MindMapStore, HistoryState } from './types';
 import type { MindMapNode } from '@shared/types';
 
@@ -19,7 +20,29 @@ export interface HistorySlice extends HistoryState {
   endHistoryGroup?: (commit?: boolean) => void;
 }
 
-// Extract layout-independent node data for history comparison
+// === Helpers ===
+
+let historyCommitTimer: ReturnType<typeof setTimeout> | null = null;
+const HISTORY_DEBOUNCE_MS = 120;
+
+const clearTimer = () => {
+  if (historyCommitTimer) {
+    clearTimeout(historyCommitTimer);
+    historyCommitTimer = null;
+  }
+};
+
+type DraftWithGroup = MindMapStore & { _groupDepth?: number; _groupDirty?: boolean };
+
+const updateGroupDepth = (draft: MindMapStore, delta: number) => {
+  const draftWithGroup = draft as DraftWithGroup;
+  const depth = (draftWithGroup._groupDepth || 0) + delta;
+  draftWithGroup._groupDepth = depth;
+  if (delta > 0 && depth === 1) {
+    draftWithGroup._groupDirty = false;
+  }
+};
+
 const stripLayout = (nodes: MindMapNode[]): Array<Record<string, unknown>> =>
   (nodes || []).map((n) => ({
     id: n.id,
@@ -40,75 +63,62 @@ const stripLayout = (nodes: MindMapNode[]): Array<Record<string, unknown>> =>
     children: stripLayout(n.children || []),
   }));
 
+const applyHistoryState = (draft: MindMapStore, data: MindMapStore['data']) => {
+  if (!data) return;
+  draft.data = data;
+  draft.normalizedData = normalizeTreeData(data.rootNodes);
+  draft.editingNodeId = null;
+  draft.editText = '';
+};
+
+// === Slice ===
+
 export const createHistorySlice: StateCreator<
   MindMapStore,
   [["zustand/immer", never]],
   [],
   HistorySlice
 > = (set, get) => ({
-  
   history: [],
   historyIndex: -1,
-  
 
-  
   undo: () => {
-    
-    if (historyCommitTimer) { clearTimeout(historyCommitTimer); historyCommitTimer = null; }
+    clearTimer();
     const state = get();
     if (state.canUndo()) {
       const newIndex = state.historyIndex - 1;
       const previousData = state.history[newIndex];
-      
       set((draft) => {
         draft.historyIndex = newIndex;
-        draft.data = previousData;
-        
-        
-        draft.normalizedData = normalizeTreeData(previousData.rootNodes);
-        
-        
-        draft.editingNodeId = null;
-        draft.editText = '';
+        applyHistoryState(draft, previousData);
       });
     }
   },
 
   redo: () => {
-    // Avoid racing pending commit against redo
-    if (historyCommitTimer) { clearTimeout(historyCommitTimer); historyCommitTimer = null; }
+    clearTimer();
     const state = get();
     if (state.canRedo()) {
       const newIndex = state.historyIndex + 1;
       const nextData = state.history[newIndex];
-      
       set((draft) => {
         draft.historyIndex = newIndex;
-        draft.data = nextData;
-        
-        // Only use rootNodes array
-        draft.normalizedData = normalizeTreeData(nextData.rootNodes);
-        
-        // Clear editing state when redoing
-        draft.editingNodeId = null;
-        draft.editText = '';
+        applyHistoryState(draft, nextData);
       });
     }
   },
 
-  canUndo: () => {
-    const { historyIndex } = get();
-    return historyIndex > 0;
-  },
+  canUndo: () => get().historyIndex > 0,
 
   canRedo: () => {
     const { history, historyIndex } = get();
     return historyIndex < history.length - 1;
   },
-  
+
   commitSnapshot: () => {
     const state = get();
     if (!state.normalizedData || !state.data) return;
+
     set((draft) => {
       if (!draft.normalizedData || !draft.data) return;
       const nextRootNodes = denormalizeTreeData(draft.normalizedData);
@@ -117,8 +127,9 @@ export const createHistorySlice: StateCreator<
       try {
         const lastKey = last ? JSON.stringify(stripLayout(last)) : null;
         const nextKey = JSON.stringify(stripLayout(nextRootNodes));
-        if (lastKey === nextKey) return; 
+        if (lastKey === nextKey) return;
       } catch {}
+
       const newData = {
         ...draft.data,
         rootNodes: nextRootNodes,
@@ -130,9 +141,8 @@ export const createHistorySlice: StateCreator<
     });
   },
 
-  
   scheduleCommitSnapshot: () => {
-    if (historyCommitTimer) clearTimeout(historyCommitTimer);
+    clearTimer();
     historyCommitTimer = setTimeout(() => {
       historyCommitTimer = null;
       const s = get();
@@ -142,50 +152,31 @@ export const createHistorySlice: StateCreator<
     }, HISTORY_DEBOUNCE_MS);
   },
 
-  
-  cancelPendingCommit: () => {
-    if (historyCommitTimer) {
-      clearTimeout(historyCommitTimer);
-      historyCommitTimer = null;
-    }
-  },
-
-
+  cancelPendingCommit: clearTimer,
 
   beginHistoryGroup: (_label?: string) => {
-
-    set((draft) => {
-      const draftWithGroup = draft as typeof draft & { _groupDepth?: number; _groupDirty?: boolean };
-      const depth = (draftWithGroup._groupDepth || 0) + 1;
-      draftWithGroup._groupDepth = depth;
-      if (depth === 1) {
-        draftWithGroup._groupDirty = false;
-      }
-    });
-
-    if (historyCommitTimer) { clearTimeout(historyCommitTimer); historyCommitTimer = null; }
+    set((draft) => updateGroupDepth(draft, 1));
+    clearTimer();
   },
 
-
   endHistoryGroup: (commit: boolean = true) => {
-    const state = get() as ReturnType<typeof get> & { _groupDepth?: number; _groupDirty?: boolean };
+    const state = get() as DraftWithGroup;
     const depth = state._groupDepth || 0;
     if (depth <= 0) return;
-    set((draft) => {
-      const draftWithGroup = draft as typeof draft & { _groupDepth?: number; _groupDirty?: boolean };
-      draftWithGroup._groupDepth = depth - 1;
-    });
-    const stateAfter = get() as ReturnType<typeof get> & { _groupDepth?: number; _groupDirty?: boolean };
+
+    set((draft) => updateGroupDepth(draft, -1));
+
+    const stateAfter = get() as DraftWithGroup;
     const stillDepth = stateAfter._groupDepth || 0;
     if (stillDepth > 0) return;
+
     const dirty = stateAfter._groupDirty || false;
     if (commit && dirty) {
-
       get().commitSnapshot();
     }
+
     set((draft) => {
-      const draftWithGroup = draft as typeof draft & { _groupDirty?: boolean };
-      draftWithGroup._groupDirty = false;
+      (draft as DraftWithGroup)._groupDirty = false;
     });
   },
 });

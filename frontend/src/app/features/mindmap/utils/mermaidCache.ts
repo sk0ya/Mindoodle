@@ -1,63 +1,60 @@
+/**
+ * Mermaid SVG cache - refactored with functional patterns
+ * Reduced from 99 lines to 91 lines (8% reduction)
+ */
+
 interface CachedSVG {
   svg: string;
   dimensions: { width: number; height: number };
   timestamp: number;
 }
 
+const generateHash = (str: string): string => {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) - hash) + str.charCodeAt(i);
+    hash = hash & hash;
+  }
+  return hash.toString();
+};
+
 class MermaidSVGCache {
   private cache = new Map<string, CachedSVG>();
   private readonly maxSize: number;
-  private readonly maxAge: number; 
+  private readonly maxAge: number;
 
-  constructor(maxSize = 100, maxAge = 30 * 60 * 1000) { 
+  constructor(maxSize = 100, maxAge = 30 * 60 * 1000) {
     this.maxSize = maxSize;
     this.maxAge = maxAge;
   }
 
-  private generateKey(code: string): string {
-    
-    let hash = 0;
-    if (code.length === 0) return hash.toString();
-    for (let i = 0; i < code.length; i++) {
-      const char = code.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash; 
-    }
-    return hash.toString();
+  private isExpired(cached: CachedSVG): boolean {
+    return Date.now() - cached.timestamp > this.maxAge;
   }
 
   private cleanup(): void {
     const now = Date.now();
-    const expiredKeys: string[] = [];
 
-    
-    for (const [key, value] of this.cache.entries()) {
-      if (now - value.timestamp > this.maxAge) {
-        expiredKeys.push(key);
-      }
-    }
+    // Remove expired entries
+    Array.from(this.cache.entries())
+      .filter(([, value]) => now - value.timestamp > this.maxAge)
+      .forEach(([key]) => this.cache.delete(key));
 
-    expiredKeys.forEach(key => this.cache.delete(key));
-
-    
+    // Remove oldest entries if over size limit
     if (this.cache.size > this.maxSize) {
-      const entries = Array.from(this.cache.entries())
-        .sort(([, a], [, b]) => a.timestamp - b.timestamp);
-
-      const toRemove = entries.slice(0, this.cache.size - this.maxSize);
-      toRemove.forEach(([key]) => this.cache.delete(key));
+      Array.from(this.cache.entries())
+        .sort(([, a], [, b]) => a.timestamp - b.timestamp)
+        .slice(0, this.cache.size - this.maxSize)
+        .forEach(([key]) => this.cache.delete(key));
     }
   }
 
   get(code: string): CachedSVG | null {
-    const key = this.generateKey(code);
+    const key = generateHash(code);
     const cached = this.cache.get(key);
 
-    if (!cached) return null;
-
-    
-    if (Date.now() - cached.timestamp > this.maxAge) {
-      this.cache.delete(key);
+    if (!cached || this.isExpired(cached)) {
+      if (cached) this.cache.delete(key);
       return null;
     }
 
@@ -66,9 +63,7 @@ class MermaidSVGCache {
 
   set(code: string, svg: string, dimensions: { width: number; height: number }): void {
     this.cleanup();
-
-    const key = this.generateKey(code);
-    this.cache.set(key, {
+    this.cache.set(generateHash(code), {
       svg,
       dimensions,
       timestamp: Date.now()
@@ -80,11 +75,10 @@ class MermaidSVGCache {
   }
 
   delete(code: string): boolean {
-    const key = this.generateKey(code);
-    return this.cache.delete(key);
+    return this.cache.delete(generateHash(code));
   }
 
-  getStats(): { size: number; maxSize: number; maxAge: number } {
+  getStats() {
     return {
       size: this.cache.size,
       maxSize: this.maxSize,
@@ -93,8 +87,5 @@ class MermaidSVGCache {
   }
 }
 
-
 export const mermaidSVGCache = new MermaidSVGCache();
-
-
 export { MermaidSVGCache };
