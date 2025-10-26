@@ -1,18 +1,106 @@
 import React from 'react';
 
+// Theme color palette
+const colors = {
+  light: {
+    bg: '#ffffff',
+    bgGradientStart: '#f8f9fa',
+    bgGradientEnd: '#e9ecef',
+    border: 'rgba(148, 163, 184, 0.2)',
+    borderSolid: '#dee2e6',
+    text: '#333',
+    textSecondary: '#888',
+    textMuted: '#6c757d',
+    hover: 'rgba(229, 229, 229, 0.6)',
+    inputBg: 'rgba(248, 250, 252, 0.8)',
+    inputBgFocus: 'white',
+    buttonBg: 'rgba(51, 65, 85, 0.08)',
+    buttonBorder: 'rgba(51, 65, 85, 0.12)',
+    buttonColor: '#475569',
+    buttonHoverBg: 'rgba(51, 65, 85, 0.12)',
+    buttonHoverColor: '#1e293b',
+    controlBg: 'rgba(248, 250, 252, 0.9)',
+    controlHoverBg: 'rgba(236, 239, 244, 0.9)',
+    scrollThumb: 'rgba(148, 163, 184, 0.5)',
+    scrollThumbHover: 'rgba(148, 163, 184, 0.7)',
+    contextMenuBg: 'white',
+    contextMenuBorder: '#ccc',
+    contextMenuHover: '#f0f0f0',
+    separator: '#e0e0e0',
+  },
+  dark: {
+    bg: '#1f2937',
+    bgGradientStart: '#374151',
+    bgGradientEnd: '#4b5563',
+    border: 'rgba(75, 85, 99, 0.3)',
+    borderSolid: '#6b7280',
+    text: '#d1d5db',
+    textSecondary: '#9ca3af',
+    textMuted: '#9ca3af',
+    hover: 'rgba(75, 85, 99, 0.6)',
+    inputBg: 'rgba(55, 65, 81, 0.8)',
+    inputBgFocus: '#374151',
+    buttonBg: 'rgba(75, 85, 99, 0.3)',
+    buttonBorder: 'rgba(107, 114, 128, 0.4)',
+    buttonColor: '#d1d5db',
+    buttonHoverBg: 'rgba(107, 114, 128, 0.4)',
+    buttonHoverColor: '#f3f4f6',
+    controlBg: 'rgba(55, 65, 81, 0.9)',
+    controlHoverBg: 'rgba(75, 85, 99, 0.9)',
+    scrollThumb: 'rgba(107, 114, 128, 0.5)',
+    scrollThumbHover: 'rgba(107, 114, 128, 0.7)',
+    contextMenuBg: '#374151',
+    contextMenuBorder: '#6b7280',
+    contextMenuHover: '#4b5563',
+    separator: '#6b7280',
+  },
+};
+
+// Style generators
+const themed = (prop: string, lightVal: string, darkVal: string) =>
+  `${prop}: ${lightVal};\n    [data-theme="dark"] & { ${prop}: ${darkVal}; }`;
+
+const scrollbar = (theme: 'light' | 'dark' = 'light') => `
+  scrollbar-width: thin;
+  scrollbar-color: ${colors[theme].scrollThumb} transparent;
+  &::-webkit-scrollbar { width: 8px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb {
+    background-color: ${colors[theme].scrollThumb};
+    border-radius: 4px;
+  }
+  &::-webkit-scrollbar-thumb:hover {
+    background-color: ${colors[theme].scrollThumbHover};
+  }`;
+
+const button = (w = 32, h = 32) => `
+  width: ${w}px;
+  height: ${h}px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;`;
+
+const hoverEffect = (scale = false) => `
+  transition: all 0.2s ease;
+  ${scale ? 'transform: scale(1.05);' : ''}`;
+
 const SidebarStyles: React.FC = () => (
   <style>{`
+    /* Base Sidebar */
     .mind-map-sidebar,
     .mindmap-sidebar {
       width: 280px;
       height: calc(100vh);
-      background: #ffffff;
-      border-right: 1px solid rgba(148, 163, 184, 0.2);
+      ${themed('background', colors.light.bg, colors.dark.bg)}
+      ${themed('border-right', `1px solid ${colors.light.border}`, `1px solid ${colors.dark.border}`)}
       display: flex;
       flex-direction: column;
       position: fixed;
       left: 48px;
-      top:0;
+      top: 0;
       z-index: 100;
       overflow: hidden;
       box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.05);
@@ -21,17 +109,16 @@ const SidebarStyles: React.FC = () => (
 
     [data-theme="dark"] .mind-map-sidebar,
     [data-theme="dark"] .mindmap-sidebar {
-      background: #1f2937;
-      border-right: 1px solid rgba(75, 85, 99, 0.3);
       box-shadow: 4px 0 6px -1px rgba(0, 0, 0, 0.2);
     }
 
+    /* Collapsed State */
     .mind-map-sidebar.collapsed,
     .mindmap-sidebar.collapsed {
       width: 50px;
       height: 100vh;
-      background: linear-gradient(to bottom, #f8f9fa, #e9ecef);
-      border-right: 2px solid #dee2e6;
+      ${themed('background', `linear-gradient(to bottom, ${colors.light.bgGradientStart}, ${colors.light.bgGradientEnd})`, `linear-gradient(to bottom, ${colors.dark.bgGradientStart}, ${colors.dark.bgGradientEnd})`)}
+      ${themed('border-right', `2px solid ${colors.light.borderSolid}`, `2px solid ${colors.dark.borderSolid}`)}
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -43,24 +130,15 @@ const SidebarStyles: React.FC = () => (
       overflow: hidden;
     }
 
-    [data-theme="dark"] .mind-map-sidebar.collapsed,
-    [data-theme="dark"] .mindmap-sidebar.collapsed {
-      background: linear-gradient(to bottom, #374151, #4b5563);
-      border-right: 2px solid #6b7280;
-    }
-
+    /* Header */
     .sidebar-title {
       margin: 0;
       font-size: 18px;
       font-weight: 600;
-      color: #333;
+      ${themed('color', colors.light.text, colors.dark.text)}
       display: flex;
       justify-content: space-between;
       align-items: center;
-    }
-
-    [data-theme="dark"] .sidebar-title {
-      color: #e5e7eb;
     }
 
     .header-top {
@@ -81,133 +159,64 @@ const SidebarStyles: React.FC = () => (
       overflow: visible !important;
     }
 
-    .sidebar-collapse-toggle {
-      background: rgba(51, 65, 85, 0.08);
-      border: 1px solid rgba(51, 65, 85, 0.12);
-      color: #475569;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      transition: all 0.2s ease;
-    }
-
-    .sidebar-collapse-toggle:hover {
-      background: rgba(51, 65, 85, 0.12);
-      color: #1e293b;
-      transform: scale(1.05);
-    }
-
-    [data-theme="dark"] .sidebar-collapse-toggle {
-      background: rgba(75, 85, 99, 0.3);
-      border: 1px solid rgba(107, 114, 128, 0.4);
-      color: #d1d5db;
-    }
-
-    [data-theme="dark"] .sidebar-collapse-toggle:hover {
-      background: rgba(107, 114, 128, 0.4);
-      color: #f3f4f6;
-      transform: scale(1.05);
-    }
-
+    /* Toggle Buttons */
+    .sidebar-collapse-toggle,
     .sidebar-expand-toggle {
-      background: rgba(51, 65, 85, 0.08);
-      border: 1px solid rgba(51, 65, 85, 0.12);
-      color: #475569;
-      width: 32px;
-      height: 32px;
-      border-radius: 8px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      ${button()}
+      ${themed('background', colors.light.buttonBg, colors.dark.buttonBg)}
+      ${themed('border', `1px solid ${colors.light.buttonBorder}`, `1px solid ${colors.dark.buttonBorder}`)}
+      ${themed('color', colors.light.buttonColor, colors.dark.buttonColor)}
       font-size: 14px;
-      transition: all 0.2s ease;
-      margin-bottom: 12px;
     }
 
+    .sidebar-expand-toggle { margin-bottom: 12px; }
+
+    .sidebar-collapse-toggle:hover,
     .sidebar-expand-toggle:hover {
-      background: rgba(51, 65, 85, 0.12);
-      color: #1e293b;
-      transform: scale(1.05);
+      ${themed('background', colors.light.buttonHoverBg, colors.dark.buttonHoverBg)}
+      ${themed('color', colors.light.buttonHoverColor, colors.dark.buttonHoverColor)}
+      ${hoverEffect(true)}
     }
 
-    [data-theme="dark"] .sidebar-expand-toggle {
-      background: rgba(75, 85, 99, 0.3);
-      border: 1px solid rgba(107, 114, 128, 0.4);
-      color: #d1d5db;
-    }
-
-    [data-theme="dark"] .sidebar-expand-toggle:hover {
-      background: rgba(107, 114, 128, 0.4);
-      color: #f3f4f6;
-      transform: scale(1.05);
-    }
-
-    .selected-folder-info {
-      background: rgba(0, 120, 212, 0.1);
-      border: 1px solid rgba(0, 120, 212, 0.3);
-      border-radius: 6px;
-      padding: 8px 12px;
-      font-size: 12px;
-      color: #0078d4;
-      text-align: center;
-    }
-
+    /* Search */
     .search-container {
       display: flex;
       gap: 0;
       margin: 0;
-      padding: 0; /* no inner space */
+      padding: 0;
       width: 100%;
     }
 
     .search-input {
       flex: 1;
-      padding: 4px 6px; /* more compact */
-      border: 1px solid rgba(148, 163, 184, 0.3);
-      border-radius: 4px; /* more compact */
-      font-size: 12px; /* smaller */
+      padding: 4px 6px;
+      font-size: 12px;
       line-height: 1.1;
-      background: rgba(248, 250, 252, 0.8);
+      ${themed('background', colors.light.inputBg, colors.dark.inputBg)}
+      ${themed('border', `1px solid ${colors.light.border}`, `1px solid ${colors.dark.border}`)}
+      ${themed('color', colors.light.text, colors.dark.text)}
+      border-radius: 4px;
       transition: border-color 0.15s ease, background 0.15s ease;
-      color: #333;
       margin: 0;
-      min-height: 24px; /* compact min height */
-      height: 24px; /* enforce compact height */
+      min-height: 24px;
+      height: 24px;
     }
 
     .search-input:focus {
       outline: none;
+      ${themed('background', colors.light.inputBgFocus, colors.dark.inputBgFocus)}
       border-color: rgba(59, 130, 246, 0.5);
-      box-shadow: none; /* no extra visual ring to keep compact */
-      background: white;
-    }
-
-    [data-theme="dark"] .search-input {
-      background: rgba(55, 65, 81, 0.8);
-      border: 1px solid rgba(75, 85, 99, 0.4);
-      color: #e5e7eb;
-    }
-
-    [data-theme="dark"] .search-input:focus {
-      background: #374151;
-      border-color: rgba(59, 130, 246, 0.6);
       box-shadow: none;
     }
 
-    .search-input::placeholder {
-      font-size: 12px;
+    [data-theme="dark"] .search-input:focus {
+      border-color: rgba(59, 130, 246, 0.6);
     }
 
-    [data-theme="dark"] .search-input::placeholder {
-      color: #9ca3af;
-    }
+    .search-input::placeholder { font-size: 12px; }
+    [data-theme="dark"] .search-input::placeholder { color: #9ca3af; }
 
+    /* Control Buttons */
     .map-control-buttons {
       display: flex;
       gap: 2px;
@@ -216,108 +225,57 @@ const SidebarStyles: React.FC = () => (
     }
 
     .control-button {
-      background: rgba(248, 250, 252, 0.9);
-      border: 1px solid rgba(148, 163, 184, 0.2);
-      border-radius: 8px;
+      ${button(36, 36)}
+      ${themed('background', colors.light.controlBg, colors.dark.controlBg)}
+      ${themed('border', `1px solid ${colors.light.border}`, `1px solid ${colors.dark.border}`)}
+      ${themed('color', colors.light.text, colors.dark.text)}
       padding: 0;
       margin: 0;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-size: 16px;
-      transition: all 0.2s ease;
-      width: 36px;
-      height: 36px;
       min-width: 36px;
       min-height: 36px;
     }
 
     .control-button:hover {
-      background: rgba(236, 239, 244, 0.9);
-      border-color: rgba(148, 163, 184, 0.3);
+      ${themed('background', colors.light.controlHoverBg, colors.dark.controlHoverBg)}
+      ${themed('border-color', colors.light.border, colors.dark.border)}
       transform: translateY(-1px);
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
     .control-button.add-map:hover {
-      background: rgba(16, 185, 129, 0.1);
-      border-color: rgba(16, 185, 129, 0.3);
-      color: #059669;
+      ${themed('background', 'rgba(16, 185, 129, 0.1)', 'rgba(16, 185, 129, 0.15)')}
+      ${themed('border-color', 'rgba(16, 185, 129, 0.3)', 'rgba(16, 185, 129, 0.4)')}
+      ${themed('color', '#059669', '#10b981')}
     }
 
     .control-button.add-folder:hover {
-      background: rgba(251, 191, 36, 0.1);
-      border-color: rgba(251, 191, 36, 0.3);
-      color: #d97706;
+      ${themed('background', 'rgba(251, 191, 36, 0.1)', 'rgba(251, 191, 36, 0.15)')}
+      ${themed('border-color', 'rgba(251, 191, 36, 0.3)', 'rgba(251, 191, 36, 0.4)')}
+      ${themed('color', '#d97706', '#fbbf24')}
     }
 
     .control-button.expand-all:hover {
-      background: rgba(59, 130, 246, 0.1);
-      border-color: rgba(59, 130, 246, 0.3);
-      color: #2563eb;
+      ${themed('background', 'rgba(59, 130, 246, 0.1)', 'rgba(59, 130, 246, 0.15)')}
+      ${themed('border-color', 'rgba(59, 130, 246, 0.3)', 'rgba(59, 130, 246, 0.4)')}
+      ${themed('color', '#2563eb', '#3b82f6')}
     }
 
     .control-button.collapse-all:hover {
-      background: rgba(107, 114, 128, 0.1);
-      border-color: rgba(107, 114, 128, 0.3);
-      color: #374151;
+      ${themed('background', 'rgba(107, 114, 128, 0.1)', 'rgba(156, 163, 175, 0.15)')}
+      ${themed('border-color', 'rgba(107, 114, 128, 0.3)', 'rgba(156, 163, 175, 0.4)')}
+      ${themed('color', '#374151', '#d1d5db')}
     }
 
-    [data-theme="dark"] .control-button {
-      background: rgba(55, 65, 81, 0.9);
-      border: 1px solid rgba(75, 85, 99, 0.3);
-      color: #e5e7eb;
-      margin: 0;
-    }
-
-    [data-theme="dark"] .control-button:hover {
-      background: rgba(75, 85, 99, 0.9);
-      border-color: rgba(107, 114, 128, 0.4);
-    }
-
-    [data-theme="dark"] .control-button.add-map:hover {
-      background: rgba(16, 185, 129, 0.15);
-      border-color: rgba(16, 185, 129, 0.4);
-      color: #10b981;
-    }
-
-    [data-theme="dark"] .control-button.add-folder:hover {
-      background: rgba(251, 191, 36, 0.15);
-      border-color: rgba(251, 191, 36, 0.4);
-      color: #fbbf24;
-    }
-
-    [data-theme="dark"] .control-button.expand-all:hover {
-      background: rgba(59, 130, 246, 0.15);
-      border-color: rgba(59, 130, 246, 0.4);
-      color: #3b82f6;
-    }
-
-    [data-theme="dark"] .control-button.collapse-all:hover {
-      background: rgba(156, 163, 175, 0.15);
-      border-color: rgba(156, 163, 175, 0.4);
-      color: #d1d5db;
-    }
-
+    /* Action Button */
     .action-button {
       background: linear-gradient(135deg, #10b981, #059669) !important;
       color: white !important;
       border: none !important;
       border-radius: 10px !important;
-      width: 36px !important;
-      height: 36px !important;
-      min-width: 36px !important;
-      min-height: 36px !important;
-      max-width: 36px !important;
-      max-height: 36px !important;
-      cursor: pointer !important;
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
+      ${button(36, 36).split('\n').map(l => l.trim() + ' !important').join('\n      ')}
       font-size: 16px !important;
       font-weight: bold !important;
-      transition: all 0.2s ease;
       box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2) !important;
       pointer-events: auto !important;
       z-index: 1000 !important;
@@ -328,10 +286,14 @@ const SidebarStyles: React.FC = () => (
       overflow: visible !important;
       margin: 0 !important;
       padding: 0 !important;
+      min-width: 36px !important;
+      min-height: 36px !important;
+      max-width: 36px !important;
+      max-height: 36px !important;
     }
 
     .action-button:hover {
-      background: linear-gradient(135deg, #059669, #047857);
+      background: linear-gradient(135deg, #059669, #047857) !important;
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
     }
@@ -344,25 +306,16 @@ const SidebarStyles: React.FC = () => (
       background: #f57c00 !important;
     }
 
-
     .toggle-button {
       background: #6c757d;
       color: white;
       border: none;
       border-radius: 4px;
-      width: 28px;
-      height: 28px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      ${button(28, 28)}
       font-size: 12px;
-      transition: all 0.2s ease;
     }
 
-    .toggle-button:hover {
-      background: #5a6268;
-    }
+    .toggle-button:hover { background: #5a6268; }
 
     .collapsed-actions {
       display: flex;
@@ -371,79 +324,23 @@ const SidebarStyles: React.FC = () => (
       margin-top: 16px;
     }
 
-    .maps-content {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
-    }
-
-    .maps-content::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .maps-content::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .maps-content::-webkit-scrollbar-thumb {
-      background-color: rgba(148, 163, 184, 0.5);
-      border-radius: 4px;
-    }
-
-    .maps-content::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(148, 163, 184, 0.7);
-    }
-
-    [data-theme="dark"] .maps-content {
-      scrollbar-color: rgba(107, 114, 128, 0.5) transparent;
-    }
-
-    [data-theme="dark"] .maps-content::-webkit-scrollbar-thumb {
-      background-color: rgba(107, 114, 128, 0.5);
-    }
-
-    [data-theme="dark"] .maps-content::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(107, 114, 128, 0.7);
-    }
-
+    /* Scrollable Content */
+    .maps-content,
     .maps-content-wrapper {
       flex: 1;
       overflow-y: auto;
+      padding: 0;
+      ${scrollbar('light')}
+    }
+
+    [data-theme="dark"] .maps-content,
+    [data-theme="dark"] .maps-content-wrapper {
+      ${scrollbar('dark')}
+    }
+
+    .maps-content-wrapper {
       position: relative;
       min-height: 0;
-      scrollbar-width: thin;
-      scrollbar-color: rgba(148, 163, 184, 0.5) transparent;
-    }
-
-    .maps-content-wrapper::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    .maps-content-wrapper::-webkit-scrollbar-track {
-      background: transparent;
-    }
-
-    .maps-content-wrapper::-webkit-scrollbar-thumb {
-      background-color: rgba(148, 163, 184, 0.5);
-      border-radius: 4px;
-    }
-
-    .maps-content-wrapper::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(148, 163, 184, 0.7);
-    }
-
-    [data-theme="dark"] .maps-content-wrapper {
-      scrollbar-color: rgba(107, 114, 128, 0.5) transparent;
-    }
-
-    [data-theme="dark"] .maps-content-wrapper::-webkit-scrollbar-thumb {
-      background-color: rgba(107, 114, 128, 0.5);
-    }
-
-    [data-theme="dark"] .maps-content-wrapper::-webkit-scrollbar-thumb:hover {
-      background-color: rgba(107, 114, 128, 0.7);
     }
 
     .maps-content-wrapper.drag-over-root {
@@ -453,6 +350,7 @@ const SidebarStyles: React.FC = () => (
       margin: 8px;
     }
 
+    /* Category */
     .category-group {
       margin: 0;
       border-radius: 0;
@@ -467,44 +365,6 @@ const SidebarStyles: React.FC = () => (
       border: 2px dashed rgba(59, 130, 246, 0.3);
     }
 
-    /* Drag and Drop Visual Feedback */
-    .category-header[draggable="true"] {
-      cursor: grab;
-    }
-
-    .category-header[draggable="true"]:active {
-      cursor: grabbing;
-      opacity: 0.7;
-    }
-
-    .map-item[draggable="true"] {
-      cursor: grab;
-    }
-
-    .map-item[draggable="true"]:active {
-      cursor: grabbing;
-      opacity: 0.7;
-    }
-
-    /* Drop zone highlighting */
-    .category-header.drag-over {
-      background: rgba(34, 197, 94, 0.1) !important;
-      border: 2px dashed rgba(34, 197, 94, 0.5);
-      transform: scale(1.02);
-      transition: all 0.2s ease;
-    }
-
-    /* Drag preview ghost */
-    .category-header:active {
-      transform: rotate(2deg);
-      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    }
-
-    .map-item:active {
-      transform: rotate(1deg);
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
-    }
-
     .category-header {
       padding: 8px 12px;
       background: transparent;
@@ -514,22 +374,22 @@ const SidebarStyles: React.FC = () => (
       gap: 6px;
       font-weight: 500;
       font-size: 13px;
-      color: #333;
+      ${themed('color', colors.light.text, colors.dark.text)}
       transition: all 0.15s ease;
       border-bottom: none;
       height: 32px;
     }
 
+    .category-header[draggable="true"] { cursor: grab; }
+    .category-header[draggable="true"]:active {
+      cursor: grabbing;
+      opacity: 0.7;
+      transform: rotate(2deg);
+      box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+    }
+
     .category-header:hover {
-      background: rgba(229, 229, 229, 0.6);
-    }
-
-    [data-theme="dark"] .category-header {
-      color: #d1d5db;
-    }
-
-    [data-theme="dark"] .category-header:hover {
-      background: rgba(75, 85, 99, 0.6);
+      ${themed('background', colors.light.hover, colors.dark.hover)}
     }
 
     .category-header.selected {
@@ -543,12 +403,14 @@ const SidebarStyles: React.FC = () => (
     .category-header.selected .category-count {
       color: white;
     }
-    .category-header.drag-over { background: rgba(59, 130, 246, 0.15); }
-    [data-theme="dark"] .category-header.drag-over { background: rgba(59, 130, 246, 0.25); }
+
+    .category-header.drag-over {
+      ${themed('background', 'rgba(59, 130, 246, 0.15)', 'rgba(59, 130, 246, 0.25)')}
+    }
 
     .category-expand-icon {
       font-size: 10px;
-      color: #666;
+      ${themed('color', '#666', colors.dark.textSecondary)}
       width: 12px;
       text-align: center;
       transition: transform 0.15s ease;
@@ -556,40 +418,23 @@ const SidebarStyles: React.FC = () => (
 
     .category-folder-icon {
       font-size: 14px;
-      color: #dcb67a;
+      ${themed('color', '#dcb67a', '#f59e0b')}
     }
 
     .category-name {
       flex: 1;
       font-size: 13px;
-      color: #333;
+      ${themed('color', colors.light.text, colors.dark.text)}
     }
 
     .category-count {
       font-size: 11px;
-      color: #888;
-      background: rgba(200, 200, 200, 0.3);
+      ${themed('color', colors.light.textSecondary, colors.dark.textSecondary)}
+      ${themed('background', 'rgba(200, 200, 200, 0.3)', 'rgba(75, 85, 99, 0.4)')}
       padding: 1px 6px;
       border-radius: 10px;
       min-width: 18px;
       text-align: center;
-    }
-
-    [data-theme="dark"] .category-expand-icon {
-      color: #9ca3af;
-    }
-
-    [data-theme="dark"] .category-folder-icon {
-      color: #f59e0b;
-    }
-
-    [data-theme="dark"] .category-name {
-      color: #d1d5db;
-    }
-
-    [data-theme="dark"] .category-count {
-      color: #9ca3af;
-      background: rgba(75, 85, 99, 0.4);
     }
 
     .category-maps {
@@ -597,7 +442,7 @@ const SidebarStyles: React.FC = () => (
       padding-left: 18px;
     }
 
-    /* Explorer view styles */
+    /* Explorer File */
     .explorer-file {
       padding: 4px 12px;
       margin: 0;
@@ -612,31 +457,35 @@ const SidebarStyles: React.FC = () => (
     .explorer-file.is-md { cursor: pointer; }
 
     .explorer-file:hover {
-      background: rgba(229, 229, 229, 0.6);
+      ${themed('background', colors.light.hover, colors.dark.hover)}
     }
 
-    [data-theme="dark"] .explorer-file:hover {
-      background: rgba(75, 85, 99, 0.6);
+    .explorer-file .file-icon {
+      font-size: 14px;
+      ${themed('color', '#666', colors.dark.textSecondary)}
+      display: inline-flex;
+      align-items: center;
     }
 
-    .explorer-file .file-icon { font-size: 14px; color: #666; display: inline-flex; align-items: center; }
     .explorer-file .file-name {
       font-size: 13px;
-      color: #333;
+      ${themed('color', colors.light.text, colors.dark.text)}
       flex: 1;
       min-width: 0;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .explorer-file.selected { background: rgba(59, 130, 246, 0.15); }
-    .explorer-file.selected .file-name { color: #1f2937; }
 
-    [data-theme="dark"] .explorer-file .file-icon { color: #9ca3af; }
-    [data-theme="dark"] .explorer-file .file-name { color: #d1d5db; }
-    [data-theme="dark"] .explorer-file.selected { background: rgba(59, 130, 246, 0.25); }
-    [data-theme="dark"] .explorer-file.selected .file-name { color: #e5e7eb; }
+    .explorer-file.selected {
+      ${themed('background', 'rgba(59, 130, 246, 0.15)', 'rgba(59, 130, 246, 0.25)')}
+    }
 
+    .explorer-file.selected .file-name {
+      ${themed('color', '#1f2937', '#e5e7eb')}
+    }
+
+    /* Map Item */
     .map-item {
       padding: 4px 12px;
       margin: 0;
@@ -651,13 +500,17 @@ const SidebarStyles: React.FC = () => (
       font-size: 13px;
     }
 
-    .map-item:hover {
-      background: rgba(229, 229, 229, 0.6);
-      transform: none;
+    .map-item[draggable="true"] { cursor: grab; }
+    .map-item[draggable="true"]:active {
+      cursor: grabbing;
+      opacity: 0.7;
+      transform: rotate(1deg);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
     }
 
-    [data-theme="dark"] .map-item:hover {
-      background: rgba(75, 85, 99, 0.6);
+    .map-item:hover {
+      ${themed('background', colors.light.hover, colors.dark.hover)}
+      transform: none;
     }
 
     .map-item.active {
@@ -667,13 +520,8 @@ const SidebarStyles: React.FC = () => (
       box-shadow: none;
     }
 
-    .map-item.active .map-title {
-      color: white;
-    }
-
-    .map-item.active .map-meta {
-      color: rgba(255, 255, 255, 0.8);
-    }
+    .map-item.active .map-title { color: white; }
+    .map-item.active .map-meta { color: rgba(255, 255, 255, 0.8); }
 
     .map-info {
       flex: 1;
@@ -696,7 +544,7 @@ const SidebarStyles: React.FC = () => (
     .map-title {
       font-size: 13px;
       font-weight: 400;
-      color: #333;
+      ${themed('color', colors.light.text, colors.dark.text)}
       margin-bottom: 0;
       white-space: nowrap;
       overflow: hidden;
@@ -708,16 +556,8 @@ const SidebarStyles: React.FC = () => (
       display: none;
       gap: 8px;
       font-size: 11px;
-      color: #888;
+      ${themed('color', colors.light.textSecondary, colors.dark.textSecondary)}
       margin-top: 2px;
-    }
-
-    [data-theme="dark"] .map-title {
-      color: #d1d5db;
-    }
-
-    [data-theme="dark"] .map-meta {
-      color: #9ca3af;
     }
 
     .node-count,
@@ -725,41 +565,7 @@ const SidebarStyles: React.FC = () => (
       white-space: nowrap;
     }
 
-    /* Action buttons removed - now using context menu
-    .map-actions {
-      display: flex;
-      gap: 4px;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-    }
-
-    .map-item:hover .map-actions {
-      opacity: 1;
-    }
-
-    .action-btn {
-      background: none;
-      border: none;
-      padding: 6px;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-      transition: all 0.2s ease;
-      color: #6b7280;
-    }
-
-    .action-btn:hover {
-      background: rgba(107, 114, 128, 0.1);
-      color: #374151;
-      transform: scale(1.1);
-    }
-
-    .action-btn.delete:hover {
-      background: rgba(239, 68, 68, 0.1);
-      color: #dc2626;
-    }
-    */
-
+    /* Input */
     .title-input {
       width: 100%;
       border: 1px solid #4285f4;
@@ -775,10 +581,11 @@ const SidebarStyles: React.FC = () => (
       box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.2);
     }
 
+    /* Empty State */
     .empty-state {
       padding: 40px 20px;
       text-align: center;
-      color: #6c757d;
+      ${themed('color', colors.light.textMuted, colors.dark.textMuted)}
     }
 
     .empty-icon {
@@ -791,7 +598,7 @@ const SidebarStyles: React.FC = () => (
       font-size: 18px;
       font-weight: 500;
       margin-bottom: 8px;
-      color: #495057;
+      ${themed('color', '#495057', colors.dark.text)}
     }
 
     .empty-description {
@@ -799,24 +606,20 @@ const SidebarStyles: React.FC = () => (
       line-height: 1.5;
     }
 
-    [data-theme="dark"] .empty-state {
-      color: #9ca3af;
-    }
-
-    [data-theme="dark"] .empty-title {
-      color: #d1d5db;
-    }
-
-    /* Context Menu Styles */
+    /* Context Menu */
     .context-menu {
-      background: white;
-      border: 1px solid #ccc;
+      ${themed('background', colors.light.contextMenuBg, colors.dark.contextMenuBg)}
+      ${themed('border', `1px solid ${colors.light.contextMenuBorder}`, `1px solid ${colors.dark.contextMenuBorder}`)}
       border-radius: 4px;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
       padding: 4px 0;
       min-width: 180px;
       font-size: 13px;
       z-index: 9999;
+    }
+
+    [data-theme="dark"] .context-menu {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
 
     .context-menu-item {
@@ -826,39 +629,19 @@ const SidebarStyles: React.FC = () => (
       align-items: center;
       gap: 8px;
       transition: background-color 0.15s ease;
-      color: #333;
+      ${themed('color', colors.light.text, colors.dark.text)}
     }
 
     .context-menu-item:hover {
-      background-color: #f0f0f0;
+      ${themed('background-color', colors.light.contextMenuHover, colors.dark.contextMenuHover)}
     }
 
     .context-menu-item.disabled {
-      color: #999;
+      ${themed('color', '#999', '#6b7280')}
       cursor: not-allowed;
     }
 
-    .context-menu-item.disabled:hover {
-      background-color: transparent;
-    }
-
-    [data-theme="dark"] .context-menu {
-      background: #374151;
-      border: 1px solid #6b7280;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-    }
-
-    [data-theme="dark"] .context-menu-item {
-      color: #d1d5db;
-    }
-
-    [data-theme="dark"] .context-menu-item:hover {
-      background-color: #4b5563;
-    }
-
-    [data-theme="dark"] .context-menu-item.disabled {
-      color: #6b7280;
-    }
+    .context-menu-item.disabled:hover { background-color: transparent; }
 
     .context-menu-icon {
       width: 16px;
@@ -866,21 +649,15 @@ const SidebarStyles: React.FC = () => (
       flex-shrink: 0;
     }
 
-    .context-menu-label {
-      flex: 1;
-    }
+    .context-menu-label { flex: 1; }
 
     .context-menu-separator {
       height: 1px;
-      background-color: #e0e0e0;
+      ${themed('background-color', colors.light.separator, colors.dark.separator)}
       margin: 4px 0;
     }
 
-    [data-theme="dark"] .context-menu-separator {
-      background-color: #6b7280;
-    }
-
-    /* 検索ハイライト */
+    /* Search Highlight */
     .search-highlight {
       background-color: #fef3c7;
       color: #d97706;
@@ -890,22 +667,15 @@ const SidebarStyles: React.FC = () => (
       box-shadow: 0 0 0 1px rgba(217, 119, 6, 0.2);
     }
 
-    .search-highlight:first-child {
-      margin-left: 0;
-    }
+    .search-highlight:first-child { margin-left: 0; }
+    .search-highlight:last-child { margin-right: 0; }
 
-    .search-highlight:last-child {
-      margin-right: 0;
-    }
-
-    /* フォルダ名のハイライト */
     .category-name .search-highlight {
       background-color: #ecfdf5;
       color: #059669;
       box-shadow: 0 0 0 1px rgba(5, 150, 105, 0.2);
     }
 
-    /* マップタイトルのハイライト */
     .map-title .search-highlight {
       background-color: #fef3c7;
       color: #d97706;
