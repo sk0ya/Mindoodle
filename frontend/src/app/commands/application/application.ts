@@ -1,165 +1,110 @@
 /**
  * Application commands - refactored with functional patterns
- * Reduced from 587 lines to ~200 lines through composition and reusable utilities
+ * Reduced from 165 lines to 110 lines (33% reduction)
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
-import {
-  createSimpleCommand,
-  createNodeCommand
-} from '../utils/commandFactories';
+import { editingCommand, utilityCommand, failure, success } from '../utils/commandFunctional';
 import { executePasteSibling } from '../utils/pasteHelpers';
+
+// === Helpers ===
+
+const createSimpleCommand = (
+  name: string,
+  aliases: string[],
+  description: string,
+  canExecute: (ctx: CommandContext) => boolean | undefined,
+  execute: (ctx: CommandContext) => void,
+  nothingMsg: string,
+  successMsg: string
+): Command =>
+  utilityCommand(
+    name,
+    description,
+    (context) => {
+      if (!canExecute(context)) return failure(nothingMsg);
+      execute(context);
+      return success(successMsg);
+    },
+    { aliases, examples: [name, ...aliases] }
+  );
+
+const createNodeCommand = (
+  name: string,
+  aliases: string[],
+  description: string,
+  execute: (nodeId: string, ctx: CommandContext) => void | Promise<void>,
+  successMsg: (nodeText: string) => string
+): Command =>
+  editingCommand(
+    name,
+    description,
+    async (context) => {
+      if (!context.selectedNodeId) return failure('No node selected');
+      const node = context.handlers.findNodeById(context.selectedNodeId);
+      if (!node) return failure('Node not found');
+      await execute(context.selectedNodeId, context);
+      const msg = successMsg(node.text);
+      return msg ? success(msg) : success();
+    },
+    { aliases, examples: [name, ...aliases], repeatable: true, countable: false }
+  );
 
 // === History Commands ===
 
-export const undoCommand = createSimpleCommand({
-  name: 'undo',
-  aliases: ['u'],
-  description: 'Undo the last operation',
-  canExecute: (ctx) => ctx.handlers.canUndo,
-  execute: (ctx) => ctx.handlers.undo(),
-  nothingMsg: 'Nothing to undo',
-  successMsg: 'Undid last operation'
-});
-
-export const redoCommand = createSimpleCommand({
-  name: 'redo',
-  aliases: ['r'],
-  description: 'Redo the last undone operation',
-  canExecute: (ctx) => ctx.handlers.canRedo,
-  execute: (ctx) => ctx.handlers.redo(),
-  nothingMsg: 'Nothing to redo',
-  successMsg: 'Redid last operation'
-});
+export const undoCommand = createSimpleCommand('undo', ['u'], 'Undo the last operation', (ctx) => ctx.handlers.canUndo, (ctx) => ctx.handlers.undo(), 'Nothing to undo', 'Undid last operation');
+export const redoCommand = createSimpleCommand('redo', ['r'], 'Redo the last undone operation', (ctx) => ctx.handlers.canRedo, (ctx) => ctx.handlers.redo(), 'Nothing to redo', 'Redid last operation');
 
 // === Clipboard Commands ===
 
-export const copyCommand = createNodeCommand({
-  name: 'copy',
-  aliases: ['c'],
-  description: 'Copy the selected node',
-  execute: (nodeId, _node, ctx) => ctx.handlers.copyNode(nodeId),
-  successMsg: (node) => `Copied node "${node.text}"`,
-  repeatable: true,
-  countable: false
-});
+export const copyCommand = createNodeCommand('copy', ['c'], 'Copy the selected node', (nodeId, ctx) => ctx.handlers.copyNode(nodeId), (text) => `Copied node "${text}"`);
+export const copyTextCommand = createNodeCommand('copy-text', [], 'Copy node text only (without markdown formatting) to system clipboard', async (nodeId, ctx) => { if (ctx.handlers.copyNodeText) await ctx.handlers.copyNodeText(nodeId); }, () => '');
 
-export const copyTextCommand = createNodeCommand({
-  name: 'copy-text',
-  description: 'Copy node text only (without markdown formatting) to system clipboard',
-  execute: async (nodeId, _node, ctx) => {
-    if (ctx.handlers.copyNodeText) {
-      await ctx.handlers.copyNodeText(nodeId);
-    }
-  },
-  successMsg: () => '',
-  repeatable: true,
-  countable: false
-});
-
-export const pasteCommand: Command = {
-  name: 'paste',
-  aliases: ['v'],
-  description: 'Paste copied node as child',
-  category: 'editing',
-  examples: ['paste', 'v', 'paste node-123'],
-  args: [
-    {
-      name: 'targetId',
-      type: 'node-id',
-      required: false,
-      description: 'Target node ID to paste into (uses selected node if not specified)'
-    }
-  ],
-
-  async execute(context: CommandContext, args: Record<string, unknown> = {}): Promise<CommandResult> {
-    const targetId = (args['targetId'] as string | undefined) || context.selectedNodeId;
-
-    if (!targetId) {
-      return {
-        success: false,
-        error: 'No node selected and no target ID provided'
-      };
-    }
+export const pasteCommand: Command = editingCommand(
+  'paste',
+  'Paste copied node as child',
+  async (context, args) => {
+    const targetId = (args['targetId'] as string) ?? context.selectedNodeId;
+    if (!targetId) return failure('No node selected and no target ID provided');
 
     const targetNode = context.handlers.findNodeById(targetId);
-    if (!targetNode) {
-      return {
-        success: false,
-        error: `Target node ${targetId} not found`
-      };
-    }
+    if (!targetNode) return failure(`Target node ${targetId} not found`);
 
-    try {
-      await context.handlers.pasteNode(targetId);
-      return {
-        success: true,
-        message: `Pasted as child of "${targetNode.text}"`
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to paste'
-      };
-    }
+    await context.handlers.pasteNode(targetId);
+    return success(`Pasted as child of "${targetNode.text}"`);
+  },
+  {
+    aliases: ['v'],
+    examples: ['paste', 'v', 'paste node-123'],
+    args: [{ name: 'targetId', type: 'node-id', required: false, description: 'Target node ID to paste into (uses selected node if not specified)' }]
   }
-};
+);
 
 // === Paste Sibling Commands ===
-// Dramatically simplified using shared executePasteSibling logic
 
-export const pasteSiblingAfterCommand: Command = {
-  name: 'paste-sibling-after',
-  description: 'Paste as younger sibling (after selected node)',
+const createPasteSiblingCommand = (name: string, description: string, after: boolean): Command => ({
+  name,
+  description,
   category: 'editing',
-  examples: ['paste-sibling-after'],
-  execute: (ctx) => executePasteSibling(ctx, true),
+  examples: [name],
+  execute: (ctx) => executePasteSibling(ctx, after),
   repeatable: true,
   countable: false
-};
+});
 
-export const pasteSiblingBeforeCommand: Command = {
-  name: 'paste-sibling-before',
-  description: 'Paste as elder sibling (before selected node)',
-  category: 'editing',
-  examples: ['paste-sibling-before'],
-  execute: (ctx) => executePasteSibling(ctx, false),
-  repeatable: true,
-  countable: false
-};
+export const pasteSiblingAfterCommand = createPasteSiblingCommand('paste-sibling-after', 'Paste as younger sibling (after selected node)', true);
+export const pasteSiblingBeforeCommand = createPasteSiblingCommand('paste-sibling-before', 'Paste as elder sibling (before selected node)', false);
 
 // === Workspace Commands ===
 
-export const addWorkspaceCommand: Command = {
-  name: 'addworkspace',
-  aliases: ['workspace-add', 'ws-add'],
-  description: 'Add a new workspace by selecting a folder',
-  category: 'utility',
-  examples: ['addworkspace', 'workspace-add'],
-
-  async execute(): Promise<CommandResult> {
-    try {
-      const addWorkspaceFn = (
-        window as Window & { mindoodleAddWorkspace?: () => Promise<void> }
-      ).mindoodleAddWorkspace;
-
-      if (typeof addWorkspaceFn !== 'function') {
-        return {
-          success: false,
-          error: 'Workspace functionality not available'
-        };
-      }
-
-      await addWorkspaceFn();
-      return {
-        success: true,
-        message: 'New workspace added successfully'
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to add workspace'
-      };
-    }
-  }
-};
+export const addWorkspaceCommand: Command = utilityCommand(
+  'addworkspace',
+  'Add a new workspace by selecting a folder',
+  async () => {
+    const addWorkspaceFn = (window as Window & { mindoodleAddWorkspace?: () => Promise<void> }).mindoodleAddWorkspace;
+    if (typeof addWorkspaceFn !== 'function') return failure('Workspace functionality not available');
+    await addWorkspaceFn();
+    return success('New workspace added successfully');
+  },
+  { aliases: ['workspace-add', 'ws-add'], examples: ['addworkspace', 'workspace-add'] }
+);
