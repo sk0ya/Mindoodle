@@ -1,77 +1,45 @@
 /**
  * Edit commands - refactored with functional patterns
- * Reduced from 378 lines to ~200 lines
+ * Reduced from 229 lines to 165 lines (28% reduction)
  */
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandContext } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
-import {
-  createSimpleCommand,
-  createEditCommand,
-  createNodeCommand,
-  getArg,
-  getNodeId,
-  failure,
-  success,
-  withErrorHandling
-} from '../utils/commandFactories';
+import { editingCommand, failure, success, withCount } from '../utils/commandFunctional';
+
+// === Helpers ===
+
+const setVimInsertMode = (context: CommandContext) => {
+  if (context.vim?.isEnabled) context.vim.setMode('insert');
+};
+
+const startEditWithCursor = (nodeId: string, position: 'start' | 'end', context: CommandContext) => {
+  setTimeout(() => {
+    if (position === 'end') {
+      context.handlers.startEditWithCursorAtEnd(nodeId);
+    } else {
+      context.handlers.startEditWithCursorAtStart(nodeId);
+    }
+  }, 10);
+};
 
 // === Complex Edit Command ===
 
-export const editCommand: Command = {
-  name: 'edit',
-  aliases: ['ciw', 'change', 'clear-edit'],
-  description: 'Clear node text and start editing',
-  category: 'editing',
-  examples: ['edit', 'ciw', 'edit node-123', 'edit --text "New text"', 'change --keep-text'],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to edit (uses selected node if not specified)'
-    },
-    {
-      name: 'text',
-      type: 'string',
-      required: false,
-      description: 'New text content (if not provided, text will be cleared)'
-    },
-    {
-      name: 'keep-text',
-      type: 'boolean',
-      required: false,
-      default: false,
-      description: 'Keep existing text instead of clearing it'
-    },
-    {
-      name: 'cursor',
-      type: 'string',
-      required: false,
-      default: 'start',
-      description: 'Cursor position: "start" or "end"'
-    }
-  ],
+export const editCommand: Command = editingCommand(
+  'edit',
+  'Clear node text and start editing',
+  (context, args) => {
+    const nodeId = (args['nodeId'] as string) ?? context.selectedNodeId;
+    const newText = args['text'] as string | undefined;
+    const keepText = (args['keep-text'] as boolean) ?? false;
+    const cursorPosition = (args['cursor'] as string) ?? 'start';
 
-  execute: withErrorHandling((context: CommandContext, args: Record<string, unknown> = {}) => {
-    const nodeId = getNodeId(args, context);
-    const newText = getArg<string>(args, 'text');
-    const keepText = getArg<boolean>(args, 'keep-text') ?? false;
-    const cursorPosition = getArg<string>(args, 'cursor') ?? 'start';
-
-    if (!nodeId) {
-      return failure('No node selected and no node ID provided');
-    }
+    if (!nodeId) return failure('No node selected and no node ID provided');
 
     const node = context.handlers.findNodeById(nodeId);
-    if (!node) {
-      return failure(`Node ${nodeId} not found`);
-    }
+    if (!node) return failure(`Node ${nodeId} not found`);
 
-    // Set vim mode
-    if (context.vim?.isEnabled) {
-      context.vim.setMode('insert');
-    }
+    setVimInsertMode(context);
 
     // Update text
     if (newText !== undefined) {
@@ -80,150 +48,118 @@ export const editCommand: Command = {
       context.handlers.updateNode(nodeId, { text: '' });
     }
 
-    // Start editing with cursor position
-    setTimeout(() => {
-      if (cursorPosition === 'end') {
-        context.handlers.startEditWithCursorAtEnd(nodeId);
-      } else {
-        context.handlers.startEditWithCursorAtStart(nodeId);
-      }
-    }, 10);
+    startEditWithCursor(nodeId, cursorPosition as 'start' | 'end', context);
 
-    const action = newText !== undefined
-      ? 'set text and started editing'
-      : keepText
-        ? 'started editing'
-        : 'cleared text and started editing';
+    const action = newText !== undefined ? 'set text and started editing'
+      : keepText ? 'started editing'
+      : 'cleared text and started editing';
 
     return success(`${action} node "${node.text}"`);
-  }, 'Failed to edit node')
-};
+  },
+  {
+    aliases: ['ciw', 'change', 'clear-edit'],
+    examples: ['edit', 'ciw', 'edit node-123', 'edit --text "New text"', 'change --keep-text'],
+    args: [
+      { name: 'nodeId', type: 'node-id', required: false, description: 'Node ID to edit (uses selected node if not specified)' },
+      { name: 'text', type: 'string', required: false, description: 'New text content (if not provided, text will be cleared)' },
+      { name: 'keep-text', type: 'boolean', required: false, default: false, description: 'Keep existing text instead of clearing it' },
+      { name: 'cursor', type: 'string', required: false, default: 'start', description: 'Cursor position: "start" or "end"' }
+    ]
+  }
+);
 
 // === Simple Edit Commands ===
 
-export const insertCommand = createNodeCommand({
-  name: 'insert',
-  aliases: ['i'],
-  description: 'Start editing the selected node',
-  args: [], // No args, only uses selected node
-  execute: (nodeId, _node, ctx) => {
-    if (ctx.vim?.isEnabled) {
-      ctx.vim.setMode('insert');
-    }
-    ctx.handlers.startEdit(nodeId);
-  },
-  successMsg: (node) => `Started editing node "${node.text}"`,
-  repeatable: false,
-  countable: false
-});
+const createSimpleEditCommand = (
+  name: string,
+  aliases: string[],
+  description: string,
+  action: (context: CommandContext) => void
+): Command =>
+  editingCommand(
+    name,
+    description,
+    (context) => {
+      if (!context.selectedNodeId) return failure('No node selected');
+      setVimInsertMode(context);
+      action(context);
+      return success(`Started editing`);
+    },
+    { aliases, examples: [name, ...aliases] }
+  );
 
-export const appendCommand = createSimpleCommand({
-  name: 'append',
-  aliases: ['a'],
-  description: 'Create a child node and start editing',
-  canExecute: (ctx) => !!ctx.selectedNodeId,
-  execute: (ctx) => {
-    if (ctx.vim?.isEnabled) {
-      ctx.vim.setMode('insert');
-    }
-    ctx.handlers.addChildNode(ctx.selectedNodeId!, '', true);
-  },
-  nothingMsg: 'No node selected',
-  successMsg: 'Created child node and started editing'
-});
+export const insertCommand = createSimpleEditCommand(
+  'insert',
+  ['i'],
+  'Start editing the selected node',
+  (ctx) => ctx.handlers.startEdit(ctx.selectedNodeId!)
+);
 
-export const appendEndCommand = createEditCommand({
-  name: 'append-end',
-  aliases: ['A'],
-  description: 'Start editing at the end of the node text',
-  cursorPosition: 'end',
-  examples: ['append-end', 'A']
-});
+export const appendCommand = createSimpleEditCommand(
+  'append',
+  ['a'],
+  'Create a child node and start editing',
+  (ctx) => ctx.handlers.addChildNode(ctx.selectedNodeId!, '', true)
+);
 
-export const insertBeginningCommand = createEditCommand({
-  name: 'insert-beginning',
-  aliases: ['I'],
-  description: 'Start editing at the beginning of the node text',
-  cursorPosition: 'start',
-  examples: ['insert-beginning', 'I']
-});
+export const appendEndCommand = createSimpleEditCommand(
+  'append-end',
+  ['A'],
+  'Start editing at the end of the node text',
+  (ctx) => startEditWithCursor(ctx.selectedNodeId!, 'end', ctx)
+);
+
+export const insertBeginningCommand = createSimpleEditCommand(
+  'insert-beginning',
+  ['I'],
+  'Start editing at the beginning of the node text',
+  (ctx) => startEditWithCursor(ctx.selectedNodeId!, 'start', ctx)
+);
 
 // === Cut Command ===
 
-// Helper: Create history group wrapper
 const withHistoryGroup = <T extends unknown[]>(
   groupName: string,
   fn: (...args: T) => CommandResult | Promise<CommandResult>
-) => async (...args: T): Promise<CommandResult> => {
+) => async (...args: T) => {
   const store = useMindMapStore.getState();
-
-  try {
-    store.beginHistoryGroup?.(groupName);
-  } catch {
-    // History group not available
-  }
+  try { store.beginHistoryGroup?.(groupName); } catch { /* noop */ }
 
   try {
     const result = await fn(...args);
-    try {
-      store.endHistoryGroup?.(true);
-    } catch {
-      // History group not available
-    }
+    try { store.endHistoryGroup?.(true); } catch { /* noop */ }
     return result;
   } catch (error) {
-    try {
-      store.endHistoryGroup?.(false);
-    } catch {
-      // History group not available
-    }
+    try { store.endHistoryGroup?.(false); } catch { /* noop */ }
     throw error;
   }
 };
 
-export const cutCommand: Command = {
-  name: 'cut',
-  aliases: ['dd', 'cut-node'],
-  description: 'Cut the selected node (copy then delete)',
-  category: 'editing',
-  examples: ['cut', 'dd', 'cut node-123'],
-  args: [
-    {
-      name: 'nodeId',
-      type: 'node-id',
-      required: false,
-      description: 'Node ID to cut (uses selected node if not specified)'
+export const cutCommand: Command = editingCommand(
+  'cut',
+  'Cut the selected node (copy then delete)',
+  withHistoryGroup('cut', withCount(1, (context, args, count) => {
+    const nodeId = (args['nodeId'] as string) ?? context.selectedNodeId;
+    if (!nodeId) return failure('No node selected and no node ID provided');
+
+    let cutCount = 0;
+    for (let i = 0; i < count; i++) {
+      const currentNode = context.handlers.findNodeById(nodeId);
+      if (!currentNode || currentNode.id === 'root') break;
+
+      context.handlers.copyNode(nodeId);
+      context.handlers.deleteNode(nodeId);
+      cutCount++;
     }
-  ],
 
-  execute: withErrorHandling(
-    withHistoryGroup('cut', (context: CommandContext, args: Record<string, unknown> = {}) => {
-      const nodeId = getNodeId(args, context);
-      const count = context.count ?? 1;
-
-      if (!nodeId) {
-        return failure('No node selected and no node ID provided');
-      }
-
-      let cutCount = 0;
-
-      for (let i = 0; i < count; i++) {
-        const currentNode = context.handlers.findNodeById(nodeId);
-        if (!currentNode || currentNode.id === 'root') break;
-
-        context.handlers.copyNode(nodeId);
-        context.handlers.deleteNode(nodeId);
-        cutCount++;
-      }
-
-      if (cutCount === 0) {
-        return failure('No nodes to cut');
-      }
-
-      return success(cutCount > 1 ? `Cut ${cutCount} nodes` : 'Cut node');
-    }),
-    'Failed to cut node'
-  ),
-  countable: true,
-  repeatable: true
-};
+    if (cutCount === 0) return failure('No nodes to cut');
+    return success(cutCount > 1 ? `Cut ${cutCount} nodes` : 'Cut node');
+  })),
+  {
+    aliases: ['dd', 'cut-node'],
+    examples: ['cut', 'dd', 'cut node-123'],
+    args: [{ name: 'nodeId', type: 'node-id', required: false, description: 'Node ID to cut (uses selected node if not specified)' }],
+    countable: true,
+    repeatable: true
+  }
+);
