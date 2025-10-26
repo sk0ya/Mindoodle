@@ -1,74 +1,78 @@
+/**
+ * Mind map search utilities - refactored with functional patterns
+ * Reduced from 132 lines to 121 lines (8% reduction)
+ */
+
 import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '@core/data/normalizedStore';
 
+// === Helpers ===
+
+const nodeMatchesSearch = (node: MindMapNode | undefined, searchTerm: string): boolean =>
+  !!(node?.text && node.text.toLowerCase().includes(searchTerm));
+
+const collectMatchingNodeIds = (nodes: Record<string, MindMapNode>, searchTerm: string): Set<string> =>
+  new Set(
+    Object.values(nodes)
+      .filter(node => nodeMatchesSearch(node, searchTerm))
+      .map(node => node.id)
+  );
+
+const buildAncestorChain = (
+  nodeId: string,
+  parentMap: Record<string, string>,
+  ancestors: string[] = []
+): string[] => {
+  const parentId = parentMap[nodeId];
+  if (!parentId || parentId === 'root') return ancestors;
+  return buildAncestorChain(parentId, parentMap, [...ancestors, parentId]);
+};
+
+const collectDescendants = (
+  nodeId: string,
+  childrenMap: Record<string, string[]>
+): string[] => {
+  const children = childrenMap[nodeId] || [];
+  return children.flatMap(childId => [childId, ...collectDescendants(childId, childrenMap)]);
+};
+
+const expandWithRelatives = (
+  nodeIds: Set<string>,
+  normalizedData: NormalizedData,
+  getRelatives: (nodeId: string, data: NormalizedData) => string[]
+): Set<string> => {
+  const expanded = new Set(nodeIds);
+  nodeIds.forEach(nodeId => {
+    getRelatives(nodeId, normalizedData).forEach(id => expanded.add(id));
+  });
+  return expanded;
+};
+
+// === Main Functions ===
 
 export function searchNodesInCurrentMap(
   query: string,
   normalizedData: NormalizedData | null
 ): Set<string> {
-  if (!query.trim() || !normalizedData) {
-    return new Set();
-  }
+  if (!query.trim() || !normalizedData) return new Set();
 
-  const matchingNodeIds = new Set<string>();
   const searchTerm = query.toLowerCase().trim();
-
-  
-  Object.values(normalizedData.nodes).forEach((node: MindMapNode) => {
-    if (node && node.text) {
-      const nodeText = node.text.toLowerCase();
-      if (nodeText.includes(searchTerm)) {
-        matchingNodeIds.add(node.id);
-      }
-    }
-  });
-
-  return matchingNodeIds;
+  return collectMatchingNodeIds(normalizedData.nodes, searchTerm);
 }
-
 
 export function getAncestorNodeIds(
   nodeId: string,
   normalizedData: NormalizedData
 ): string[] {
-  const ancestors: string[] = [];
-  let currentNodeId: string | undefined = nodeId;
-
-  while (currentNodeId && currentNodeId !== 'root') {
-    const parentId: string | undefined = normalizedData.parentMap[currentNodeId];
-    if (parentId && parentId !== 'root') {
-      ancestors.push(parentId);
-      currentNodeId = parentId;
-    } else {
-      break;
-    }
-  }
-
-  return ancestors;
+  return buildAncestorChain(nodeId, normalizedData.parentMap);
 }
-
 
 export function getDescendantNodeIds(
   nodeId: string,
   normalizedData: NormalizedData
 ): string[] {
-  const descendants: string[] = [];
-  const queue: string[] = [nodeId];
-
-  while (queue.length > 0) {
-    const currentNodeId = queue.shift();
-    if (!currentNodeId) continue;
-    const childIds = normalizedData.childrenMap[currentNodeId] || [];
-
-    childIds.forEach(childId => {
-      descendants.push(childId);
-      queue.push(childId);
-    });
-  }
-
-  return descendants;
+  return collectDescendants(nodeId, normalizedData.childrenMap);
 }
-
 
 export function expandSearchResults(
   matchingNodeIds: Set<string>,
@@ -76,25 +80,18 @@ export function expandSearchResults(
   includeAncestors: boolean = true,
   includeDescendants: boolean = false
 ): Set<string> {
-  const expandedIds = new Set(matchingNodeIds);
+  let expanded = new Set(matchingNodeIds);
 
-  matchingNodeIds.forEach(nodeId => {
-    if (includeAncestors) {
-      
-      const ancestors = getAncestorNodeIds(nodeId, normalizedData);
-      ancestors.forEach(ancestorId => expandedIds.add(ancestorId));
-    }
+  if (includeAncestors) {
+    expanded = expandWithRelatives(expanded, normalizedData, getAncestorNodeIds);
+  }
 
-    if (includeDescendants) {
-      
-      const descendants = getDescendantNodeIds(nodeId, normalizedData);
-      descendants.forEach(descendantId => expandedIds.add(descendantId));
-    }
-  });
+  if (includeDescendants) {
+    expanded = expandWithRelatives(expanded, normalizedData, getDescendantNodeIds);
+  }
 
-  return expandedIds;
+  return expanded;
 }
-
 
 export function performNodeSearch(
   query: string,
@@ -108,14 +105,10 @@ export function performNodeSearch(
   highlightedNodes: Set<string>;
 } {
   const { includeAncestors = true, includeDescendants = false } = options;
-
   const matchingNodes = searchNodesInCurrentMap(query, normalizedData);
 
   if (!normalizedData || matchingNodes.size === 0) {
-    return {
-      matchingNodes,
-      highlightedNodes: matchingNodes
-    };
+    return { matchingNodes, highlightedNodes: matchingNodes };
   }
 
   const highlightedNodes = expandSearchResults(
@@ -125,8 +118,5 @@ export function performNodeSearch(
     includeDescendants
   );
 
-  return {
-    matchingNodes,
-    highlightedNodes
-  };
+  return { matchingNodes, highlightedNodes };
 }
