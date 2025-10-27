@@ -224,6 +224,17 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       }
     }
 
+    // Ensure Enter/Tab work regardless of Vim state when not editing inputs
+    if (!isInTextInput && !isInCodeMirrorEditor && !mod && handlers.selectedNodeId && (key === 'Enter' || key === 'Tab')) {
+      event.preventDefault();
+      event.stopPropagation();
+      try {
+        handlers.closeAttachmentAndLinkLists();
+        await commands.execute(key === 'Enter' ? 'add-sibling' : 'add-child');
+      } catch {}
+      return;
+    }
+
     if (vim?.isEnabled) {
       if (vim.mode === 'search' || vim.mode === 'command') return;
 
