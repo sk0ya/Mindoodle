@@ -24,7 +24,7 @@ interface MindMapAppModalsContainerProps {
   showLinkActionMenu: boolean;
   linkActionMenuData: any;
   showImageModal: boolean;
-  currentImageUrl: string;
+  currentImageUrl: string | null;
   currentImageAlt: string;
   showTableEditor: boolean;
   editingTableNodeId: string | null;
@@ -64,7 +64,7 @@ interface MindMapAppModalsContainerProps {
   onCloseImageModal: () => void;
   onShowImageModal: (file: any) => void;
   onExecuteCommand: (command: string) => Promise<void>;
-  onSelectMap: (mapId: MapIdentifier) => Promise<void>;
+  onSelectMap: (mapId: MapIdentifier) => Promise<unknown>;
   onCloseTableEditor: () => void;
   onTableEditorSave: (markdown: string) => void;
   onAuthModalClose: () => void;

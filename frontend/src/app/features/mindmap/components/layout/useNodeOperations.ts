@@ -4,6 +4,7 @@ import { findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import { pasteFromClipboard } from '../../utils/clipboardPaste';
 import type { MindMapNode } from '@shared/types';
+import type { NotificationType } from '@shared/hooks';
 
 interface UseNodeOperationsProps {
   data: any;
@@ -11,7 +12,7 @@ interface UseNodeOperationsProps {
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   selectNode: (nodeId: string | null) => void;
   deleteNode: (nodeId: string) => void;
-  showNotification: (type: string, message: string) => void;
+  showNotification: (type: NotificationType, message: string, duration?: number) => void;
 }
 
 export const useNodeOperations = ({

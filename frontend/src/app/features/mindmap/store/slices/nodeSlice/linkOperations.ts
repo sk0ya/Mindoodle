@@ -14,8 +14,8 @@ import type { MindMapStore } from '../types';
 
 // === Helpers ===
 
-type LinkTreeOperation = (node: MindMapNode, nodeId: string, ...args: unknown[]) => MindMapNode;
-type NormalizedOperation = (node: MindMapNode, ...args: unknown[]) => MindMapNode;
+type LinkTreeOperation = (...args: any[]) => MindMapNode;
+type NormalizedOperation = (...args: any[]) => MindMapNode;
 
 const executeLinkOperation = (
   set: (fn: (state: MindMapStore) => void) => void,

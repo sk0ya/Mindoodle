@@ -234,7 +234,7 @@ export const createSiblingCommand = (config: {
 
       const position = config.insertAfter ? 'after' : 'before';
       return success(
-        `Created new sibling node ${position} "${nodeResult.node.text}" and started editing`
+        `Created new sibling node ${position} "${nodeResult.node!.text}" and started editing`
       );
     },
     `Failed to ${config.name}`

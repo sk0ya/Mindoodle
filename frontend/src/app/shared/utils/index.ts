@@ -4,7 +4,8 @@ export * from './clipboard';
 export * from './env';
 export * from './eventUtils';
 export * from './folderUtils';
-export * from './functionalHelpers';
+// Re-export selected functional helpers to avoid name conflicts with arrayUtils
+export { pipe, compose, groupBy, uniqueBy, partition, sortBy, pick, omit, mapValues, filterObject, memoize } from './functionalHelpers';
 export * from './functionalReact';
 export * from './hashUtils';
 export * from './highlightUtils';

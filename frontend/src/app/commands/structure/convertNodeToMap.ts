@@ -16,7 +16,11 @@ const isRootLevelNode = (context: CommandContext, nodeId: string): boolean => {
   return !parent || parent.id === 'root';
 };
 
-const validateNodeForConversion = (context: CommandContext, nodeId: string | null) => {
+type Validation = CommandResult | { success: true; node: MindMapNode };
+const isValidWithNode = (v: Validation): v is { success: true; node: MindMapNode } =>
+  (v as any).success === true && 'node' in (v as any);
+
+const validateNodeForConversion = (context: CommandContext, nodeId: string | null): Validation => {
   if (!nodeId) return failure('No node selected');
 
   const node = context.handlers.findNodeById(nodeId);
@@ -44,7 +48,7 @@ export const convertNodeToMapCommand: Command = structureCommand(
   async (context, args) => {
     const nodeId = (args['nodeId'] as string) ?? context.selectedNodeId;
     const validation = validateNodeForConversion(context, nodeId);
-    if (!validation.success) return validation;
+    if (!isValidWithNode(validation)) return validation;
 
     const { node } = validation;
 

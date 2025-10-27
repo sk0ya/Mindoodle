@@ -101,6 +101,7 @@ export function useOnceCallback<T extends (...args: unknown[]) => unknown>(
         calledRef.current = true;
         return callback(...args);
       }
+      return undefined as unknown as ReturnType<T>;
     }) as T,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [callback, ...deps]
@@ -173,6 +174,7 @@ export function useSafeCallback<T extends (...args: unknown[]) => unknown>(
       } catch (error) {
         if (onError) onError(error as Error);
         console.error('Callback error:', error);
+        return undefined as unknown as ReturnType<T>;
       }
     }) as T,
     [callback, onError]

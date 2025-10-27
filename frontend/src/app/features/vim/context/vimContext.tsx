@@ -1,7 +1,7 @@
 import React, { createContext, useContext } from "react";
 import { useVimMode } from "../hooks/useVimMode";
 
-type VimContextType = ReturnType<typeof useVimMode>;
+export type VimContextType = ReturnType<typeof useVimMode>;
 
 const VimContext = createContext<VimContextType | null>(null);
 

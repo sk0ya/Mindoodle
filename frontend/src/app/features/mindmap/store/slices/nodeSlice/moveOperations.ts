@@ -10,6 +10,7 @@ import {
   changeSiblingOrderNormalized
 } from '@core/data/normalizedStore';
 import type { MindMapStore } from '../types';
+import type { NormalizedData } from '@core/data/normalizedStore';
 
 // === Helpers ===
 
@@ -40,7 +41,7 @@ const executeMoveOperation = (
 
     const result = operation(state);
     if (result.success && result.data) {
-      state.normalizedData = result.data;
+      state.normalizedData = result.data as NormalizedData;
       moveResult = { success: true };
     } else {
       moveResult = { success: false, reason: result.reason };

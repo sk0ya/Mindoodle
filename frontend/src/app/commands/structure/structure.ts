@@ -3,9 +3,9 @@
  * Reduced from 273 lines to 157 lines (42% reduction)
  */
 
-import type { Command, CommandContext, CommandResult, MarkdownNodeType, ArgsMap } from '../system/types';
-import { statusMessages } from '@shared/utils';
-import { structureCommand, failure, success, withCount } from '../utils/commandFunctional';
+import type { Command, CommandContext, CommandResult, MarkdownNodeType } from '../system/types';
+import type { MindMapNode } from '@shared/types';
+import { structureCommand, failure, success } from '../utils/commandFunctional';
 
 // === Add Node Commands ===
 
@@ -132,7 +132,7 @@ export const moveAsChildOfSiblingCommand = createMoveCommand(
     if (!parentNode) return failure('Cannot move root node as child of sibling');
 
     const siblings = parentNode.children || [];
-    const currentIndex = siblings.findIndex(s => s.id === nodeId);
+    const currentIndex = siblings.findIndex((s: MindMapNode) => s.id === nodeId);
     if (currentIndex <= 0) return failure('No previous sibling to move under');
 
     const previousSibling = siblings[currentIndex - 1];

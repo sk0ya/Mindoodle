@@ -25,8 +25,8 @@ export function createStateSetter<T, K extends keyof T>(
 export function createStateSetters<T>(
   setState: Dispatch<SetStateAction<T>>,
   keys: (keyof T)[]
-): Record<string, (value: unknown) => void> {
-  const setters: Record<string, (value: unknown) => void> = {};
+): Record<string, (value: T[keyof T]) => void> {
+  const setters: Record<string, (value: T[keyof T]) => void> = {};
 
   keys.forEach((key) => {
     setters[`set${String(key).charAt(0).toUpperCase()}${String(key).slice(1)}`] =

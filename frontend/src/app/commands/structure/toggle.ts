@@ -11,7 +11,11 @@ import { structureCommand, failure, success } from '../utils/commandFunctional';
 
 // === Pure Helper Functions ===
 
-const getNodeWithChildren = (nodeId: string | null, context: CommandContext) => {
+type ToggleValidation = CommandResult | { success: true; node: MindMapNode; nodeId: string };
+const isToggleSuccess = (v: ToggleValidation): v is { success: true; node: MindMapNode; nodeId: string } =>
+  (v as any).success === true && 'node' in (v as any) && 'nodeId' in (v as any);
+
+const getNodeWithChildren = (nodeId: string | null, context: CommandContext): ToggleValidation => {
   if (!nodeId) return failure('No node selected and no node ID provided');
   const node = context.handlers.findNodeById(nodeId);
   if (!node) return failure(`Node ${nodeId} not found`);
@@ -51,7 +55,7 @@ export const toggleCommand: Command = structureCommand(
     const forceState = args['expand'] as boolean | undefined;
 
     const result = getNodeWithChildren(nodeId, context);
-    if (!result.success) return result;
+    if (!isToggleSuccess(result)) return result;
 
     const { node } = result;
 
@@ -84,7 +88,7 @@ const createCollapseCommand = (collapsed: boolean, actionName: string): Command 
     collapsed ? 'Collapse the selected node to hide its children' : 'Expand the selected node to show its children',
     (context) => {
       const result = getNodeWithChildren(context.selectedNodeId, context);
-      if (!result.success) return result;
+      if (!isToggleSuccess(result)) return result;
 
       const { node } = result;
       if (node.collapsed === collapsed) return success(`Node "${node.text}" is already ${actionName}`);

@@ -99,6 +99,9 @@ export interface CommandContext {
     setShowKnowledgeGraph?: (show: boolean) => void;
     toggleKnowledgeGraph?: () => void;
 
+    // Vim settings panel toggle (present in UI slice)
+    toggleVimSettingsPanel?: () => void;
+
     
     closeAttachmentAndLinkLists: () => void;
 
