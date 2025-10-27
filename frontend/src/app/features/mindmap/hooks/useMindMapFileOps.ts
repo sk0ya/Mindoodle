@@ -18,6 +18,7 @@ export interface UseMindMapFileOpsParams {
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
+// === Pure Helper Functions ===
 
 const resolvePath = (baseFilePath: string, relativePath: string): string => {
   // Absolute-like path inside workspace
@@ -52,6 +53,7 @@ const isCurrentMap = (data: MindMapData | null, identifier: MapIdentifier): bool
   data.mapIdentifier.mapId === identifier.mapId &&
   data.mapIdentifier.workspaceId === identifier.workspaceId;
 
+// === Hook ===
 
 export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
   const { data, allMindMaps, mindMap, showNotification } = params;

@@ -20,6 +20,7 @@ export interface HistorySlice extends HistoryState {
   endHistoryGroup?: (commit?: boolean) => void;
 }
 
+// === Helpers ===
 
 let historyCommitTimer: ReturnType<typeof setTimeout> | null = null;
 const HISTORY_DEBOUNCE_MS = 120;
@@ -70,6 +71,7 @@ const applyHistoryState = (draft: MindMapStore, data: MindMapStore['data']) => {
   draft.editText = '';
 };
 
+// === Slice ===
 
 export const createHistorySlice: StateCreator<
   MindMapStore,

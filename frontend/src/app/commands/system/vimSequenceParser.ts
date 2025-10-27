@@ -13,6 +13,7 @@ export interface VimSequenceResult {
   isDotRepeat?: boolean;
 }
 
+// === Helpers ===
 
 const createResult = (
   isComplete: boolean,
@@ -28,6 +29,7 @@ const singleKey = (key: string) => [key];
 const doubleKey = (k1: string, k2: string) => [k1, k2];
 const tripleKey = (k1: string, k2: string, k3: string) => [k1, k2, k3];
 
+// === Command Patterns ===
 
 const VIM_COMMAND_PATTERNS: Record<string, string[]> = {
   // Multi-key commands
@@ -54,6 +56,7 @@ const PARTIAL_SEQUENCES = new Set(
   )
 );
 
+// === Parser ===
 
 const extractCount = (sequence: string): { count?: number; commandPart: string } => {
   const match = /^([1-9]\d*)/.exec(sequence);

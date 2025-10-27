@@ -3,7 +3,9 @@ import { calculateNodeSize, type NodeSize } from './nodeSize';
 import { getNodeRightX, getNodeLeftX } from './nodeGeometry';
 import type { NodeTextWrapConfig } from './nodeMeasurement';
 
+// ========================================
 // Toggle Button Positioning
+// ========================================
 
 export function getToggleButtonPosition(
   node: MindMapNode,
@@ -51,7 +53,9 @@ export function getToggleButtonPosition(
   return { x: toggleX, y: toggleY };
 }
 
+// ========================================
 // Node Spacing Calculation
+// ========================================
 
 export function getDynamicNodeSpacing(
   parentNodeSize: NodeSize,
@@ -72,7 +76,9 @@ export function getDynamicNodeSpacing(
   return Math.round(Math.max(calculatedSpacing, minRequiredSpacing));
 }
 
+// ========================================
 // Child Node Position Calculation
+// ========================================
 
 export function calculateChildNodeX(
   parentNode: MindMapNode,

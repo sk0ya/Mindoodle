@@ -7,6 +7,7 @@ import { useBooleanState as useBooleanStateBase } from '@shared/utils/functional
 import { parseStoredJson, storeJson } from '@shared/utils';
 import { useStableCallback } from '../utilities/useStableCallback';
 
+// === Types ===
 
 export interface BooleanStateOptions {
   initialValue?: boolean;
@@ -23,6 +24,7 @@ export interface BooleanStateReturn {
   setValue: (value: boolean) => void;
 }
 
+// === Core Boolean State ===
 
 export const useBooleanState = (options: BooleanStateOptions = {}): BooleanStateReturn => {
   const { initialValue = false, onToggle, onTrue, onFalse } = options;
@@ -50,6 +52,7 @@ export const useBooleanState = (options: BooleanStateOptions = {}): BooleanState
   return state;
 };
 
+// === Specialized Boolean States ===
 
 export const useBooleanToggle = (initialValue = false) => {
   const state = useBooleanStateBase(initialValue);
@@ -71,6 +74,7 @@ export const useHoverState = (initialValue = false) => {
   return { isHovered: state.value, handleMouseEnter: state.setTrue, handleMouseLeave: state.setFalse };
 };
 
+// === Mouse Events ===
 
 export const useMouseEvents = (
   isActive: boolean,
@@ -94,6 +98,7 @@ export const useMouseEvents = (
   }, [isActive, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
 };
 
+// === Drag ===
 
 interface UseDragOptions {
   onDragStart?: (startPos: { x: number; y: number }) => void;
@@ -141,6 +146,7 @@ export const useDrag = (options: UseDragOptions = {}) => {
   return { isDragging, isActive: startPos !== null, handleMouseDown };
 };
 
+// === Resize ===
 
 interface UseResizeOptions {
   initialValue: number;
@@ -197,6 +203,7 @@ export const useResize = (options: UseResizeOptions) => {
   return { value, setValue, isResizing, createResizeHandler };
 };
 
+// === Persisted State ===
 
 export const usePersistedState = <T>(
   key: string,
@@ -240,5 +247,6 @@ export const usePersistedState = <T>(
   return [state, setValue] as const;
 };
 
+// === Re-exports ===
 
 export { useDebounced as useDebounce, usePrevious } from '@shared/utils/functionalReact';

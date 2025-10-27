@@ -7,6 +7,7 @@ import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
 import { editingCommand, failure, success, withCount } from '../utils/commandFunctional';
 
+// === Helpers ===
 
 const setVimInsertMode = (context: CommandContext) => {
   if (context.vim?.isEnabled) context.vim.setMode('insert');
@@ -22,6 +23,7 @@ const startEditWithCursor = (nodeId: string, position: 'start' | 'end', context:
   }, 10);
 };
 
+// === Complex Edit Command ===
 
 export const editCommand: Command = editingCommand(
   'edit',
@@ -66,6 +68,7 @@ export const editCommand: Command = editingCommand(
   }
 );
 
+// === Simple Edit Commands ===
 
 const createSimpleEditCommand = (
   name: string,
@@ -113,6 +116,7 @@ export const insertBeginningCommand = createSimpleEditCommand(
   (ctx) => startEditWithCursor(ctx.selectedNodeId!, 'start', ctx)
 );
 
+// === Cut Command ===
 
 const withHistoryGroup = <T extends unknown[]>(
   groupName: string,

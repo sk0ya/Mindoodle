@@ -9,6 +9,7 @@ import { useMindMapStore } from '@mindmap/store';
 import { MarkdownImporter } from '../../features/markdown/markdownImporter';
 import { structureCommand, failure, success } from '../utils/commandFunctional';
 
+// === Pure Helper Functions ===
 
 type ToggleValidation = CommandResult | { success: true; node: MindMapNode; nodeId: string };
 const isToggleSuccess = (v: ToggleValidation): v is { success: true; node: MindMapNode; nodeId: string } =>
@@ -44,6 +45,7 @@ const setNodeCollapsed = (nodeId: string, collapsed: boolean, context: CommandCo
   }
 };
 
+// === Toggle Command ===
 
 export const toggleCommand: Command = structureCommand(
   'toggle',
@@ -78,6 +80,7 @@ export const toggleCommand: Command = structureCommand(
   }
 );
 
+// === Expand/Collapse Commands ===
 
 const createCollapseCommand = (collapsed: boolean, actionName: string): Command =>
   structureCommand(
@@ -102,6 +105,7 @@ const createCollapseCommand = (collapsed: boolean, actionName: string): Command 
 export const expandCommand = createCollapseCommand(false, 'expanded');
 export const collapseCommand = createCollapseCommand(true, 'collapsed');
 
+// === Expand/Collapse All Commands ===
 
 const processNodesRecursively = (nodes: MindMapNode[], collapsed: boolean, context: CommandContext): number => {
   let count = 0;
@@ -142,6 +146,7 @@ const createCollapseAllCommand = (collapsed: boolean, actionName: string): Comma
 export const expandAllCommand = createCollapseAllCommand(false, 'Expanded');
 export const collapseAllCommand = createCollapseAllCommand(true, 'Collapsed');
 
+// === Toggle Checkbox Command ===
 
 const createCheckboxMeta = (node: MindMapNode) => {
   const isListType = node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list';

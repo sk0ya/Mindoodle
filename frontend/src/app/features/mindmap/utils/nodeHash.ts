@@ -5,6 +5,7 @@
 
 import type { MindMapNode } from '@shared/types';
 
+// === Helpers ===
 
 const extractNodeMetadata = (node: MindMapNode): string => {
   const noteHash = (node.note || '').length;
@@ -38,6 +39,7 @@ const hashNodeRecursive = (node: MindMapNode, parts: string[]) => {
   node.children?.forEach(child => hashNodeRecursive(child, parts));
 };
 
+// === Main Functions ===
 
 export const hashNodeTree = (nodes: MindMapNode[]): string => {
   const parts: string[] = [];

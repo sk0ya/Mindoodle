@@ -7,6 +7,7 @@ import type { Command, CommandContext } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { editingCommand, failure, success } from '../utils/commandFunctional';
 
+// === Helpers ===
 
 const setVimInsertMode = (context: CommandContext) => {
   if (context.vim?.isEnabled) context.vim.setMode('insert');
@@ -63,14 +64,17 @@ const createSiblingCommand = (name: string, aliases: string[], description: stri
     }
   );
 
+// === Simple Edit Commands ===
 
 export const insertCommand = createEditCommand('insert', ['i', 'insert-start'], 'Start editing at the beginning of node text (vim i)', 'start');
 export const appendCommand = createEditCommand('append', ['a', 'insert-end'], 'Start editing at the end of node text (vim a)', 'end');
 
+// === Sibling Creation Commands ===
 
 export const openCommand = createSiblingCommand('open', ['o', 'add-younger-sibling'], 'Create new younger sibling node and start editing (vim o)', true);
 export const openAboveCommand = createSiblingCommand('open-above', ['O', 'add-elder-sibling'], 'Create new elder sibling node and start editing (vim O)', false);
 
+// === Checkbox Command ===
 
 const calculateCheckboxLevel = (parentNode: MindMapNode): { level: number; indentLevel: number } => {
   const isListType = parentNode.markdownMeta?.type === 'unordered-list' || parentNode.markdownMeta?.type === 'ordered-list';

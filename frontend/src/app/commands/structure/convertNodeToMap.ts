@@ -9,6 +9,7 @@ import { logger } from '@shared/utils';
 import { nodeToMarkdown } from '@markdown/markdownExport';
 import { structureCommand, failure, success } from '../utils/commandFunctional';
 
+// === Helpers ===
 
 const isRootLevelNode = (context: CommandContext, nodeId: string): boolean => {
   const parent = context.handlers.findParentNode?.(nodeId);
@@ -39,6 +40,7 @@ const createNewRootNode = (node: MindMapNode): MindMapNode => ({
   children: node.children || []
 });
 
+// === Command ===
 
 export const convertNodeToMapCommand: Command = structureCommand(
   'convert-node-to-map',

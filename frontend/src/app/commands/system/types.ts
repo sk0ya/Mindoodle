@@ -2,6 +2,7 @@
 import type { MindMapNode, UIMode, PanelId } from '@shared/types';
 import type { VimModeHook } from '@vim/hooks/useVimMode';
 
+
 export type CommandArgType = 'string' | 'number' | 'boolean' | 'node-id';
 
 // Centralized literal unions and arg map
@@ -28,6 +29,7 @@ export interface CommandArg {
   default?: string | number | boolean;
 }
 
+
 export interface CommandContext {
   selectedNodeId: string | null;
   editingNodeId: string | null;
@@ -44,6 +46,7 @@ export interface CommandContext {
     deleteNode: (_id: string) => void;
     findNodeById: (_nodeId: string) => MindMapNode | null;
     findParentNode?: (_nodeId: string) => MindMapNode | null;
+
 
     centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
     navigateToDirection: (direction: Direction, count?: number) => void;
@@ -111,12 +114,14 @@ export interface CommandContext {
   };
 }
 
+
 export interface CommandResult {
   success: boolean;
   message?: string;
   error?: string;
   data?: unknown;
 }
+
 
 export interface Command {
   name: string;
@@ -133,11 +138,13 @@ export interface Command {
   countable?: boolean;  
 }
 
+
 export interface ParsedCommand {
   name: string;
   args: ArgsMap;
   rawInput: string;
 }
+
 
 export interface ParseResult {
   success: boolean;
@@ -145,6 +152,7 @@ export interface ParseResult {
   error?: string;
   suggestions?: string[];
 }
+
 
 export interface CommandRegistry {
   register: (command: Command) => void;
@@ -156,6 +164,7 @@ export interface CommandRegistry {
   execute: (nameOrAlias: string, context: CommandContext, args?: ArgsMap) => Promise<CommandResult>;
   canExecute: (nameOrAlias: string, context: CommandContext, args?: ArgsMap) => boolean;
 }
+
 
 export interface ExecuteOptions {
   dryRun?: boolean;
