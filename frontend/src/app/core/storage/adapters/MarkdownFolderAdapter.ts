@@ -401,18 +401,27 @@ export class MarkdownFolderAdapter implements StorageAdapter {
 
   private async handleLoadError(e: ErrorWithName, fileHandle: FileHandle): Promise<void> {
     const name = await this.getFileName(fileHandle).catch(() => 'unknown.md');
-    const errorMessage = e?.message || '';
+    const errorMessage = e?.message || String(e) || '';
+    const errorName = e?.name || '';
 
-    if (e?.name === 'NotReadableError' || /NotReadable/i.test(String(e?.name || errorMessage))) {
+    logger.debug(`MarkdownFolderAdapter: Error loading file "${name}"`, {
+      errorName,
+      errorMessage,
+      hasMessage: !!e?.message,
+      errorType: typeof e,
+    });
+
+    if (errorName === 'NotReadableError' || /NotReadable/i.test(errorName) || /NotReadable/i.test(errorMessage)) {
       if (!this.permissionWarned) {
         logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
         statusMessages.fileReadPermissionDenied();
         this.permissionWarned = true;
       }
     } else if (errorMessage.includes('見出しが見つかりません') || errorMessage.includes('構造要素が見つかりません')) {
+      logger.debug(`MarkdownFolderAdapter: File "${name}" has no structure elements, skipping`);
       statusMessages.customWarning(errorMessage || `「${name}」は見出しやリストがないためマインドマップとして開けません`);
     } else {
-      logger.warn('MarkdownFolderAdapter: Failed to load from file', e);
+      logger.warn(`MarkdownFolderAdapter: Failed to load from file "${name}": ${errorMessage}`);
       statusMessages.fileReadFailed(name);
     }
   }
