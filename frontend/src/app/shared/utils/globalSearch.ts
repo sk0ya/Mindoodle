@@ -22,6 +22,15 @@ export interface FileBasedSearchResult {
   matchType: 'text' | 'note';
 }
 
+const matchesQuery = (text: string | undefined, query: string): boolean =>
+  text?.toLowerCase().includes(query.toLowerCase().trim()) ?? false;
+
+function* walkNodes(nodes: MindMapNode[]): Generator<MindMapNode> {
+  for (const node of nodes) {
+    yield node;
+    if (node.children) yield* walkNodes(node.children);
+  }
+}
 
 export function searchNodesRecursively(
   node: MindMapNode,
@@ -30,10 +39,8 @@ export function searchNodesRecursively(
   results: SearchResult[] = []
 ): SearchResult[] {
   const searchTerm = query.toLowerCase().trim();
-  
-  
-  const textMatch = node.text.toLowerCase().includes(searchTerm);
-  const noteMatch = node.note?.toLowerCase().includes(searchTerm);
+  const textMatch = matchesQuery(node.text, searchTerm);
+  const noteMatch = matchesQuery(node.note, searchTerm);
 
   if (textMatch || noteMatch) {
     results.push({
@@ -47,92 +54,51 @@ export function searchNodesRecursively(
     });
   }
 
-  
-  if (node.children) {
-    node.children.forEach(child => {
-      searchNodesRecursively(child, query, mapData, results);
-    });
-  }
-
+  node.children?.forEach(child => searchNodesRecursively(child, query, mapData, results));
   return results;
 }
 
+export const searchNodes = (query: string, mapData: MindMapData | null): SearchResult[] =>
+  !query.trim() || !mapData
+    ? []
+    : (mapData.rootNodes || []).flatMap(node => searchNodesRecursively(node, query, mapData));
 
-export function searchNodes(query: string, mapData: MindMapData | null): SearchResult[] {
-  if (!query.trim() || !mapData) return [];
-
-  const results: SearchResult[] = [];
-  const rootNodes = mapData.rootNodes || [];
-  for (const rootNode of rootNodes) {
-    results.push(...searchNodesRecursively(rootNode, query, mapData));
-  }
-  return results;
-}
-
-
-export function searchMultipleMaps(query: string, maps: MindMapData[]): SearchResult[] {
-  if (!query.trim() || maps.length === 0) return [];
-  
-  const allResults: SearchResult[] = [];
-  
-  maps.forEach(mapData => {
-    const rootNodes = mapData.rootNodes || [];
-    rootNodes.forEach(rootNode => {
-      const mapResults = searchNodesRecursively(rootNode, query, mapData);
-      allResults.push(...mapResults);
-    });
-  });
-  
-  return allResults;
-}
-
+export const searchMultipleMaps = (query: string, maps: MindMapData[]): SearchResult[] =>
+  !query.trim() || !maps.length
+    ? []
+    : maps.flatMap(map => (map.rootNodes || []).flatMap(node => searchNodesRecursively(node, query, map)));
 
 export async function searchFilesForContent(
   query: string,
   storageAdapter: StorageAdapter,
   workspaces?: Array<{ id: string; name: string }>
 ): Promise<FileBasedSearchResult[]> {
-  if (!query.trim() || !storageAdapter) {
-    return [];
-  }
+  if (!query.trim() || !storageAdapter) return [];
 
   const results: FileBasedSearchResult[] = [];
   const searchTerm = query.toLowerCase();
 
   try {
-    
-    const maps: MindMapData[] = await storageAdapter.loadAllMaps();
+    const maps = await storageAdapter.loadAllMaps();
 
     for (const map of maps) {
-      const mapId = map.mapIdentifier.mapId;
-      const workspaceId = map.mapIdentifier.workspaceId;
-
-      
-      const workspace = workspaces?.find(w => w.id === workspaceId);
-      const workspaceName = workspace?.name || workspaceId || 'デフォルト';
-
-      
+      const { mapId, workspaceId } = map.mapIdentifier;
+      const workspaceName = workspaces?.find(w => w.id === workspaceId)?.name || workspaceId || 'デフォルト';
       const mapName = map.title || mapId;
-
-      
       const filePath = `${workspaceName}/${mapName}`;
 
-      
       if (typeof storageAdapter.getMapMarkdown === 'function') {
         try {
-          const markdownContent = await storageAdapter.getMapMarkdown(map.mapIdentifier);
-          if (markdownContent) {
-            const lines = markdownContent.split('\n');
-
-            lines.forEach((line: string, index: number) => {
-              const lowerLine = line.toLowerCase();
-              if (lowerLine.includes(searchTerm)) {
+          const markdown = await storageAdapter.getMapMarkdown(map.mapIdentifier);
+          if (markdown) {
+            markdown.split('\n').forEach((line, index) => {
+              if (line.toLowerCase().includes(searchTerm)) {
                 results.push({
                   filePath,
                   fileName: mapName,
                   mapId,
                   workspaceId: workspaceId || '',
-                  lineNumber: index + 1, // 1-based line numbers
+                  lineNumber: index + 1,
                   lineContent: line.trim(),
                   matchedText: query,
                   matchType: 'text'
@@ -142,8 +108,6 @@ export async function searchFilesForContent(
           }
         } catch (error) {
           console.warn(`Failed to get markdown for ${mapId}:`, error);
-          
-          continue;
         }
       }
     }
@@ -154,22 +118,15 @@ export async function searchFilesForContent(
   return results;
 }
 
-
-
 export function findNodeByLineNumber(
   map: MindMapData,
   targetLineNumber: number
 ): { node: MindMapNode; depth: number } | null {
-  
-  const findInNodes = (nodes: MindMapNode[], depth: number = 0): { node: MindMapNode; depth: number } | null => {
+  const findInNodes = (nodes: MindMapNode[], depth = 0): { node: MindMapNode; depth: number } | null => {
     for (const node of nodes) {
-      
-      const nodeLineNumber = node.markdownMeta?.lineNumber;
-      if (typeof nodeLineNumber === 'number' && nodeLineNumber + 1 === targetLineNumber) {
+      if (node.markdownMeta?.lineNumber !== undefined && node.markdownMeta.lineNumber + 1 === targetLineNumber) {
         return { node, depth };
       }
-
-      
       if (node.children) {
         const result = findInNodes(node.children, depth + 1);
         if (result) return result;
@@ -181,7 +138,6 @@ export function findNodeByLineNumber(
   return findInNodes(map.rootNodes || []);
 }
 
-
 export function getMatchPosition(text: string, query: string): {
   beforeMatch: string;
   match: string;
@@ -190,14 +146,13 @@ export function getMatchPosition(text: string, query: string): {
   if (!query.trim()) return null;
 
   const searchTerm = query.toLowerCase();
-  const lowerText = text.toLowerCase();
-  const startIndex = lowerText.indexOf(searchTerm);
+  const startIndex = text.toLowerCase().indexOf(searchTerm);
 
-  if (startIndex === -1) return null;
-
-  return {
-    beforeMatch: text.slice(0, startIndex),
-    match: text.slice(startIndex, startIndex + searchTerm.length),
-    afterMatch: text.slice(startIndex + searchTerm.length)
-  };
+  return startIndex === -1
+    ? null
+    : {
+        beforeMatch: text.slice(0, startIndex),
+        match: text.slice(startIndex, startIndex + searchTerm.length),
+        afterMatch: text.slice(startIndex + searchTerm.length)
+      };
 }
