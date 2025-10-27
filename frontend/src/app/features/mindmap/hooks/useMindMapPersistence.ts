@@ -17,9 +17,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
   const prevConfigRef = useRef<StorageConfig | null>(null);
 
-  
+
   useEffect(() => {
-    const prevConfig = prevConfigRef.current;
+    const prevConfig = prevConfigRef?.current;
     const modeChanged = prevConfig?.mode !== config.mode;
 
     if (!prevConfig || modeChanged) {
