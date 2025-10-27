@@ -5,7 +5,11 @@ import { parseMarkdownTable, toMarkdownTable } from '../utils/table-editor';
 import { useTableSelection } from '../hooks/useTableSelection';
 import { useTableEditor } from '../hooks/useTableEditor';
 import { useTableKeyboard } from '../hooks/useTableKeyboard';
+import { useTableDragDrop } from '../hooks/useTableDragDrop';
+import { useTableSelectionHandlers } from '../hooks/useTableSelectionHandlers';
 import { TableContextMenu } from './table-editor/TableContextMenu';
+import { EditableCell } from './table-editor/EditableCell';
+import { TableHeaderCell } from './table-editor/TableHeaderCell';
 
 interface TableEditorModalProps {
   isOpen: boolean;
@@ -23,8 +27,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
   const [tableData, setTableData] = useState<TableData>({ headers: [], rows: [] });
   const [error, setError] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenu | null>(null);
-  const [dragType, setDragType] = useState<'select' | 'reorder' | null>(null);
-  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
 
   const {
@@ -71,6 +73,25 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     },
   });
 
+  const {
+    dragType,
+    dragOverIndex,
+    handleRowDragStart,
+    handleRowDragOver,
+    handleRowDrop,
+    handleColumnDragStart,
+    handleColumnDragOver,
+    handleColumnDrop,
+    resetDrag,
+  } = useTableDragDrop({ tableData, setTableData, selection, setSelection });
+
+  const {
+    handleRowHeaderClick,
+    handleRowHeaderContextMenu,
+    handleColumnHeaderClick,
+    handleColumnHeaderContextMenu,
+  } = useTableSelectionHandlers({ selection, setSelection, setEditingCell, setContextMenu });
+
   useEffect(() => {
     if (!isOpen) return;
 
@@ -113,73 +134,6 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [contextMenu]);
 
-  const handleRowHeaderClick = (rowIndex: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenu(null);
-
-    if (e.shiftKey && selection.type === 'rows' && selection.indices.length > 0) {
-      const lastIndex = selection.indices[selection.indices.length - 1];
-      const start = Math.min(lastIndex, rowIndex);
-      const end = Math.max(lastIndex, rowIndex);
-      const newIndices = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-      setSelection({ type: 'rows', indices: newIndices });
-    } else if (e.ctrlKey || e.metaKey) {
-      if (selection.type === 'rows') {
-        const newIndices = selection.indices.includes(rowIndex)
-          ? selection.indices.filter(i => i !== rowIndex)
-          : [...selection.indices, rowIndex].sort((a, b) => a - b);
-        setSelection(newIndices.length > 0 ? { type: 'rows', indices: newIndices } : { type: 'none' });
-      } else {
-        setSelection({ type: 'rows', indices: [rowIndex] });
-      }
-    } else {
-      setSelection({ type: 'rows', indices: [rowIndex] });
-      setEditingCell(null);
-    }
-  };
-
-  const handleRowHeaderContextMenu = (rowIndex: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    if (selection.type !== 'rows' || !selection.indices.includes(rowIndex)) {
-      setSelection({ type: 'rows', indices: [rowIndex] });
-    }
-    setContextMenu({ x: e.clientX, y: e.clientY, type: 'row', target: rowIndex });
-  };
-
-  const handleColumnHeaderClick = (colIndex: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    setContextMenu(null);
-
-    if (e.shiftKey && selection.type === 'columns' && selection.indices.length > 0) {
-      const lastIndex = selection.indices[selection.indices.length - 1];
-      const start = Math.min(lastIndex, colIndex);
-      const end = Math.max(lastIndex, colIndex);
-      const newIndices = Array.from({ length: end - start + 1 }, (_, i) => start + i);
-      setSelection({ type: 'columns', indices: newIndices });
-    } else if (e.ctrlKey || e.metaKey) {
-      if (selection.type === 'columns') {
-        const newIndices = selection.indices.includes(colIndex)
-          ? selection.indices.filter(i => i !== colIndex)
-          : [...selection.indices, colIndex].sort((a, b) => a - b);
-        setSelection(newIndices.length > 0 ? { type: 'columns', indices: newIndices } : { type: 'none' });
-      } else {
-        setSelection({ type: 'columns', indices: [colIndex] });
-      }
-    } else if (selection.type === 'columns' && selection.indices.length === 1 && selection.indices[0] === colIndex) {
-      setEditingCell({ row: -1, col: colIndex });
-    } else {
-      setSelection({ type: 'columns', indices: [colIndex] });
-      setEditingCell(null);
-    }
-  };
-
-  const handleColumnHeaderContextMenu = (colIndex: number, e: React.MouseEvent) => {
-    e.preventDefault();
-    if (selection.type !== 'columns' || !selection.indices.includes(colIndex)) {
-      setSelection({ type: 'columns', indices: [colIndex] });
-    }
-    setContextMenu({ x: e.clientX, y: e.clientY, type: 'column', target: colIndex });
-  };
 
   const handleCellMouseDown = (rowIndex: number, cellIndex: number) => {
     if (editingCell?.row === rowIndex && editingCell?.col === cellIndex) {
@@ -202,116 +156,13 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
     setSelection({ type: 'range', startRow, startCol, endRow, endCol });
   };
 
-  const handleRowHeaderDragStart = (rowIndex: number, e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', rowIndex.toString());
-    setDragType('reorder');
-
-    if (selection.type !== 'rows' || !selection.indices.includes(rowIndex)) {
-      setSelection({ type: 'rows', indices: [rowIndex] });
-    }
-  };
-
-  const handleRowHeaderDragOver = (rowIndex: number, e: React.DragEvent) => {
-    if (dragType === 'reorder') {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      setDragOverIndex(rowIndex);
-    }
-  };
-
-  const handleRowHeaderDrop = (targetRowIndex: number, e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragType !== 'reorder' || selection.type !== 'rows') return;
-
-    const selectedIndices = [...selection.indices].sort((a, b) => a - b);
-    const newRows = [...tableData.rows];
-    const movedRows = selectedIndices.map(idx => newRows[idx]);
-
-    [...selectedIndices].reverse().forEach(idx => {
-      newRows.splice(idx, 1);
-    });
-
-    let insertIndex = targetRowIndex;
-    selectedIndices.forEach(idx => {
-      if (idx < targetRowIndex) insertIndex--;
-    });
-
-    newRows.splice(insertIndex, 0, ...movedRows);
-
-    setTableData({ ...tableData, rows: newRows });
-    setDragType(null);
-    setDragOverIndex(null);
-
-    const newIndices = movedRows.map((_, i) => insertIndex + i);
-    setSelection({ type: 'rows', indices: newIndices });
-  };
-
-  const handleColumnHeaderDragStart = (colIndex: number, e: React.DragEvent) => {
-    e.dataTransfer.effectAllowed = 'move';
-    e.dataTransfer.setData('text/plain', colIndex.toString());
-    setDragType('reorder');
-
-    if (selection.type !== 'columns' || !selection.indices.includes(colIndex)) {
-      setSelection({ type: 'columns', indices: [colIndex] });
-    }
-  };
-
-  const handleColumnHeaderDragOver = (colIndex: number, e: React.DragEvent) => {
-    if (dragType === 'reorder') {
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      setDragOverIndex(colIndex);
-    }
-  };
-
-  const handleColumnHeaderDrop = (targetColIndex: number, e: React.DragEvent) => {
-    e.preventDefault();
-    if (dragType !== 'reorder' || selection.type !== 'columns') return;
-
-    const selectedIndices = [...selection.indices].sort((a, b) => a - b);
-    const newHeaders = [...tableData.headers];
-    const movedHeaders = selectedIndices.map(idx => newHeaders[idx]);
-
-    [...selectedIndices].reverse().forEach(idx => {
-      newHeaders.splice(idx, 1);
-    });
-
-    let insertIndex = targetColIndex;
-    selectedIndices.forEach(idx => {
-      if (idx < targetColIndex) insertIndex--;
-    });
-
-    newHeaders.splice(insertIndex, 0, ...movedHeaders);
-
-    const newRows = tableData.rows.map(row => {
-      const newRow = [...row];
-      const movedCells = selectedIndices.map(idx => newRow[idx]);
-      [...selectedIndices].reverse().forEach(idx => {
-        newRow.splice(idx, 1);
-      });
-      newRow.splice(insertIndex, 0, ...movedCells);
-      return newRow;
-    });
-
-    setTableData({ headers: newHeaders, rows: newRows });
-    setDragType(null);
-    setDragOverIndex(null);
-
-    const newIndices = movedHeaders.map((_, i) => insertIndex + i);
-    setSelection({ type: 'columns', indices: newIndices });
-  };
 
   const handleMouseUp = () => {
     if (isDragging) {
       setIsDragging(false);
       setDragStart(null);
     }
-
-    if (dragType === 'reorder') {
-      setDragType(null);
-      setDragOverIndex(null);
-    }
+    resetDrag();
   };
 
   const handleCellDoubleClick = (rowIndex: number, cellIndex: number) => {
@@ -374,33 +225,22 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                 <tr>
                   <th className="corner-cell"></th>
                   {tableData.headers.map((header, idx) => (
-                    <th
+                    <TableHeaderCell
                       key={idx}
-                      className={`column-header ${
-                        selection.type === 'columns' && selection.indices.includes(idx) ? 'selected' : ''
-                      } ${dragOverIndex === idx && dragType === 'reorder' ? 'drag-over' : ''}`}
+                      index={idx}
+                      header={header}
+                      editingCell={editingCell}
+                      isSelected={selection.type === 'columns' && selection.indices.includes(idx)}
+                      isDragOver={dragOverIndex === idx && dragType === 'reorder'}
+                      isDraggable={selection.type === 'columns' && selection.indices.includes(idx)}
                       onClick={e => handleColumnHeaderClick(idx, e)}
                       onContextMenu={e => handleColumnHeaderContextMenu(idx, e)}
-                      draggable={selection.type === 'columns' && selection.indices.includes(idx)}
-                      onDragStart={e => handleColumnHeaderDragStart(idx, e)}
-                      onDragOver={e => handleColumnHeaderDragOver(idx, e)}
-                      onDrop={e => handleColumnHeaderDrop(idx, e)}
-                    >
-                      {editingCell?.row === -1 && editingCell?.col === idx ? (
-                        <input
-                          type="text"
-                          value={header.value}
-                          onChange={e => handleHeaderChange(idx, e.target.value)}
-                          placeholder={`Header ${idx + 1}`}
-                          className="header-input editing"
-                          autoFocus
-                          onBlur={() => setEditingCell(null)}
-                          onClick={e => e.stopPropagation()}
-                        />
-                      ) : (
-                        <div className="header-display">{header.value || `Header ${idx + 1}`}</div>
-                      )}
-                    </th>
+                      onDragStart={e => handleColumnDragStart(idx, e)}
+                      onDragOver={e => handleColumnDragOver(idx, e)}
+                      onDrop={e => handleColumnDrop(idx, e)}
+                      onChange={value => handleHeaderChange(idx, value)}
+                      onBlur={() => setEditingCell(null)}
+                    />
                   ))}
                   <th className="add-column-header">
                     <button
@@ -424,34 +264,26 @@ export const TableEditorModal: React.FC<TableEditorModalProps> = ({
                       onClick={e => handleRowHeaderClick(rowIdx, e)}
                       onContextMenu={e => handleRowHeaderContextMenu(rowIdx, e)}
                       draggable={selection.type === 'rows' && selection.indices.includes(rowIdx)}
-                      onDragStart={e => handleRowHeaderDragStart(rowIdx, e)}
-                      onDragOver={e => handleRowHeaderDragOver(rowIdx, e)}
-                      onDrop={e => handleRowHeaderDrop(rowIdx, e)}
+                      onDragStart={e => handleRowDragStart(rowIdx, e)}
+                      onDragOver={e => handleRowDragOver(rowIdx, e)}
+                      onDrop={e => handleRowDrop(rowIdx, e)}
                     >
                       {rowIdx + 1}
                     </td>
                     {row.map((cell, cellIdx) => (
-                      <td
+                      <EditableCell
                         key={cellIdx}
-                        className={isCellInSelection(rowIdx, cellIdx) ? 'selected-cell' : ''}
+                        rowIndex={rowIdx}
+                        cellIndex={cellIdx}
+                        cell={cell}
+                        editingCell={editingCell}
+                        isSelected={isCellInSelection(rowIdx, cellIdx)}
                         onMouseDown={() => handleCellMouseDown(rowIdx, cellIdx)}
                         onMouseEnter={() => handleCellMouseEnter(rowIdx, cellIdx)}
                         onDoubleClick={() => handleCellDoubleClick(rowIdx, cellIdx)}
-                      >
-                        {editingCell?.row === rowIdx && editingCell?.col === cellIdx ? (
-                          <input
-                            type="text"
-                            value={cell.value}
-                            onChange={e => handleCellChange(rowIdx, cellIdx, e.target.value)}
-                            placeholder=" "
-                            className="cell-input editing"
-                            autoFocus
-                            onBlur={() => setEditingCell(null)}
-                          />
-                        ) : (
-                          <div className="cell-display">{cell.value || ' '}</div>
-                        )}
-                      </td>
+                        onChange={value => handleCellChange(rowIdx, cellIdx, value)}
+                        onBlur={() => setEditingCell(null)}
+                      />
                     ))}
                     <td className="empty-cell"></td>
                   </tr>
