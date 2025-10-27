@@ -5,6 +5,8 @@
 
 import type { MindMapNode, MindMapData } from '@shared/types';
 
+// === Generic Tree Operations ===
+
 type NodeTransformer<T> = (node: MindMapNode, parent?: MindMapNode) => T | null;
 
 const findInTree = <T>(
@@ -30,8 +32,19 @@ const collectNodes = (node: MindMapNode, collapsed: boolean = false): MindMapNod
   return nodes;
 };
 
+// === Find Operations ===
+
 export const findNodeById = (rootNode: MindMapNode, nodeId: string): MindMapNode | null =>
   findInTree(rootNode, (node) => (node.id === nodeId ? node : null));
+
+export const findNodePathById = (rootNode: MindMapNode, nodeId: string): MindMapNode[] | null =>
+  findInTree(rootNode, (node, parent) => {
+    if (node.id === nodeId) {
+      const path = parent ? findNodePathById(rootNode, parent.id) || [] : [];
+      return [...path, node];
+    }
+    return null;
+  });
 
 export const findParentNode = (rootNode: MindMapNode, nodeId: string): MindMapNode | null =>
   findInTree(rootNode, (node) =>
@@ -45,6 +58,11 @@ export const findNodeInRoots = (roots: MindMapNode[] | undefined, nodeId: string
   }
   return null;
 };
+
+export const findNodeInData = (data: { rootNodes?: MindMapNode[] } | MindMapData | null | undefined, nodeId: string): MindMapNode | null =>
+  data ? findNodeInRoots((data as { rootNodes?: MindMapNode[] }).rootNodes, nodeId) : null;
+
+// === Node Queries ===
 
 export const getSiblingNodes = (rootNode: MindMapNode, nodeId: string): { siblings: MindMapNode[], currentIndex: number } => {
   const parent = findParentNode(rootNode, nodeId);
@@ -61,6 +79,8 @@ export const getFirstVisibleChild = (node: MindMapNode): MindMapNode | null =>
 
 export const isRootNode = (rootNode: MindMapNode, nodeId: string): boolean =>
   rootNode.id === nodeId || findParentNode(rootNode, nodeId) === null;
+
+// === Tree Mutations ===
 
 export const traverseNodes = (rootNode: MindMapNode, callback: (node: MindMapNode) => void): void => {
   callback(rootNode);
@@ -80,6 +100,8 @@ export const removeNodeFromTree = (rootNode: MindMapNode, nodeId: string): MindM
   ...rootNode,
   children: rootNode.children?.filter(child => child.id !== nodeId).map(child => removeNodeFromTree(child, nodeId))
 });
+
+// === Spatial Navigation ===
 
 type Direction = 'up' | 'down' | 'left' | 'right';
 type DirectionConfig = { check: (dx: number, dy: number) => boolean; score: (dx: number, dy: number) => number };
@@ -120,6 +142,8 @@ export const findNodeBySpatialDirection = (
 
   return best?.id ?? null;
 };
+
+// === Validation ===
 
 export interface NodeValidationResult {
   isValid: boolean;

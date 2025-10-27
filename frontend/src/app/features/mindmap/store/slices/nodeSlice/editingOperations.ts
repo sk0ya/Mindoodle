@@ -7,6 +7,7 @@ import { logger } from '@shared/utils';
 import { updateNormalizedNode, denormalizeTreeData } from '@core/data/normalizedStore';
 import type { MindMapStore } from '../types';
 
+// === Helpers ===
 
 type EditingMode = 'select-all' | 'cursor-at-end' | 'cursor-at-start' | null;
 
@@ -65,6 +66,7 @@ const computeFallbackSelection = (
   state.lastSelectionBeforeInsert = null;
 };
 
+// === Operations ===
 
 export function createEditingOperations(
   set: (fn: (state: MindMapStore) => void) => void,

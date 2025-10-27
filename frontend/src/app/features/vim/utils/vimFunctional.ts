@@ -7,6 +7,7 @@ import type { VimMode } from '../hooks/useVimMode';
 import type { MindMapNode } from '@shared/types';
 // removed unused pipe import
 
+// === Mode Predicates ===
 
 export const isNormalMode = (mode: VimMode): mode is 'normal' => mode === 'normal';
 export const isInsertMode = (mode: VimMode): mode is 'insert' => mode === 'insert';
@@ -19,6 +20,7 @@ export const modeIs = (expected: VimMode) => (actual: VimMode) => actual === exp
 export const modeIsOneOf = (...expected: VimMode[]) => (actual: VimMode) =>
   expected.includes(actual);
 
+// === Mode Transitions ===
 
 export type ModeTransition = {
   from: VimMode;
@@ -39,6 +41,7 @@ export const transitionMode = (
   return validTransition?.to ?? current;
 };
 
+// === Command Buffer ===
 
 export const isDigit = (char: string): boolean => /^\d$/.test(char);
 export const isMotion = (char: string): boolean => /^[hjklwbefntT\[\]{}\(\)%\^$0G]$/.test(char);
@@ -81,6 +84,7 @@ export const parseVimCommand = (buffer: string): VimCommand => {
   };
 };
 
+// === Buffer Manipulation ===
 
 export const appendToBuffer = (buffer: string, char: string): string =>
   buffer + char;
@@ -99,6 +103,7 @@ export const isBufferComplete = (buffer: string): boolean => {
   return !!(cmd.motion || (cmd.operator && cmd.count));
 };
 
+// === Node Predicates ===
 
 export const nodeHasChildren = (node: MindMapNode): boolean =>
   !!node.children && node.children.length > 0;
@@ -118,6 +123,7 @@ export const nodeIsChecked = (node: MindMapNode): boolean =>
 export const nodeHasLink = (node: MindMapNode): boolean =>
   Array.isArray(node.links) && node.links.length > 0;
 
+// === Node Transformations ===
 
 export const toggleNodeCollapsed = (node: MindMapNode): MindMapNode => ({
   ...node,
@@ -147,6 +153,7 @@ export const updateNodeNote = (note: string) => (node: MindMapNode): MindMapNode
   note
 });
 
+// === Search Helpers ===
 
 export const searchInNode = (query: string, caseSensitive = false) => (node: MindMapNode): boolean => {
   const text = caseSensitive ? node.text : node.text.toLowerCase();
@@ -175,6 +182,7 @@ export const searchNodes = (query: string, caseSensitive = false) =>
   (nodes: MindMapNode[]): MindMapNode[] =>
     findNodesMatching(nodes, searchInNode(query, caseSensitive));
 
+// === Jump Labels ===
 
 export const JUMP_CHARS = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -196,6 +204,7 @@ export const createJumpMapping = (nodeIds: string[]): Array<{ nodeId: string; la
     label: generateJumpLabel(index)
   }));
 
+// === Motion Helpers ===
 
 export type Direction = 'up' | 'down' | 'left' | 'right';
 
@@ -219,6 +228,7 @@ export const directionToMotion = (direction: Direction): string => {
   return map[direction];
 };
 
+// === Repeat Helpers ===
 
 export const repeatAction = <T>(action: () => T, count: number): T[] =>
   Array.from({ length: count }, action);
@@ -226,6 +236,7 @@ export const repeatAction = <T>(action: () => T, count: number): T[] =>
 export const repeatWith = <T>(count: number, action: () => T): T[] =>
   repeatAction(action, count);
 
+// === State Composition ===
 
 export type VimStateUpdate<T> = (state: T) => T;
 
@@ -241,6 +252,7 @@ export const updateWhen = <T>(predicate: (state: T) => boolean, update: VimState
   (state: T): T =>
     predicate(state) ? update(state) : state;
 
+// === Command Execution ===
 
 export type CommandContext = {
   count?: number;
@@ -268,6 +280,7 @@ export const requireMotion = <T>(executor: CommandExecutor<T>) =>
   (context: CommandContext): T | undefined =>
     context.motion ? executor(context) : undefined;
 
+// === Key Mapping ===
 
 export type KeyMapping = {
   key: string;
@@ -298,6 +311,7 @@ export const findKeyMapping = (
 export const filterMappingsByMode = (mappings: KeyMapping[], mode: VimMode): KeyMapping[] =>
   mappings.filter(m => m.mode === mode);
 
+// === Vim Command Builder ===
 
 export class VimCommandBuilder {
   private command: VimCommand = {};

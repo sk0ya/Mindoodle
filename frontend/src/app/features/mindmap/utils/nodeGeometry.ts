@@ -6,12 +6,14 @@
 import type { MindMapNode } from '@shared/types';
 import type { NodeSize } from './nodeSize';
 
+// === Position Calculation ===
 
 export const getNodeLeftX = (node: MindMapNode, nodeWidth: number): number => node.x - nodeWidth / 2;
 export const getNodeRightX = (node: MindMapNode, nodeWidth: number): number => node.x + nodeWidth / 2;
 export const getNodeTopY = (node: MindMapNode, nodeHeight: number): number => node.y - nodeHeight / 2;
 export const getNodeBottomY = (node: MindMapNode, nodeHeight: number): number => node.y + nodeHeight / 2;
 
+// === Bounds Calculation ===
 
 export const getNodeBounds = (node: MindMapNode, nodeSize: NodeSize) => ({
   left: getNodeLeftX(node, nodeSize.width),

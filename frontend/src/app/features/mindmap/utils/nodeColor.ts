@@ -5,6 +5,7 @@
 
 import type { NormalizedData } from '../../../core/data/normalizedStore';
 
+// === Color Set Management ===
 
 const COLOR_SETS: Record<string, string[]> = {
   vibrant: ['#FF6B6B', '#4ECDC4', '#FECA57', '#54A0FF', '#FF9FF3', '#96CEB4'],
@@ -20,6 +21,7 @@ const COLOR_SETS: Record<string, string[]> = {
 export const getColorSetColors = (colorSetName: string = 'vibrant'): string[] =>
   COLOR_SETS[colorSetName] || COLOR_SETS.vibrant;
 
+// === Color Conversion ===
 
 const hexToHSL = (hex: string) => {
   const cleanHex = hex.replace('#', '');
@@ -75,6 +77,7 @@ const hslToHex = (h: number, s: number, l: number): string => {
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
 };
 
+// === Branch Color Generation ===
 
 export const generateBranchColors = (baseColor: string): string[] => {
   const baseHSL = hexToHSL(baseColor);
@@ -87,6 +90,7 @@ export const generateBranchColors = (baseColor: string): string[] => {
   ];
 };
 
+// === Branch Color Lookup ===
 
 const findBranchRoot = (
   nodeId: string,

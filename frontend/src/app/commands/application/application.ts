@@ -7,6 +7,7 @@ import type { Command, CommandContext } from '../system/types';
 import { editingCommand, utilityCommand, failure, success } from '../utils/commandFunctional';
 import { executePasteSibling } from '../utils/pasteHelpers';
 
+// === Helpers ===
 
 const createSimpleCommand = (
   name: string,
@@ -49,10 +50,12 @@ const createNodeCommand = (
     { aliases, examples: [name, ...aliases], repeatable: true, countable: false }
   );
 
+// === History Commands ===
 
 export const undoCommand = createSimpleCommand('undo', ['u'], 'Undo the last operation', (ctx) => ctx.handlers.canUndo, (ctx) => ctx.handlers.undo(), 'Nothing to undo', 'Undid last operation');
 export const redoCommand = createSimpleCommand('redo', ['r'], 'Redo the last undone operation', (ctx) => ctx.handlers.canRedo, (ctx) => ctx.handlers.redo(), 'Nothing to redo', 'Redid last operation');
 
+// === Clipboard Commands ===
 
 export const copyCommand = createNodeCommand('copy', ['c'], 'Copy the selected node', (nodeId, ctx) => ctx.handlers.copyNode(nodeId), (text) => `Copied node "${text}"`);
 export const copyTextCommand = createNodeCommand('copy-text', [], 'Copy node text only (without markdown formatting) to system clipboard', async (nodeId, ctx) => { if (ctx.handlers.copyNodeText) await ctx.handlers.copyNodeText(nodeId); }, () => '');
@@ -77,6 +80,7 @@ export const pasteCommand: Command = editingCommand(
   }
 );
 
+// === Paste Sibling Commands ===
 
 const createPasteSiblingCommand = (name: string, description: string, after: boolean): Command => ({
   name,
@@ -91,6 +95,7 @@ const createPasteSiblingCommand = (name: string, description: string, after: boo
 export const pasteSiblingAfterCommand = createPasteSiblingCommand('paste-sibling-after', 'Paste as younger sibling (after selected node)', true);
 export const pasteSiblingBeforeCommand = createPasteSiblingCommand('paste-sibling-before', 'Paste as elder sibling (before selected node)', false);
 
+// === Workspace Commands ===
 
 export const addWorkspaceCommand: Command = utilityCommand(
   'addworkspace',

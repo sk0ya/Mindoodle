@@ -66,7 +66,9 @@ interface UseCommandsProps {
     
     closeAttachmentAndLinkLists: () => void;
 
+
     onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
+
 
     switchToNextMap?: () => void;
     switchToPrevMap?: () => void;
