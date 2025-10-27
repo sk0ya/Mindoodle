@@ -1,32 +1,16 @@
 import { useMemo } from 'react';
-import { findNodeById, getFirstVisibleChild, findNodeInRoots, findNodeBySpatialDirection } from '@mindmap/utils';
-import { getSiblingNodes as selGetSiblingNodes, findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
+import { findNodeById, findNodeInRoots } from '@mindmap/utils';
+import { findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
 import { useMindMapStore } from '../../store';
 import type { MindMapNode, MindMapData } from '@shared/types';
+import { navigateToDirection } from './navigationStrategies';
+import { extractNodeMarkdown, copyNodeWithMarkdown, copyNodeTextOnly } from './copyNodeUtils';
+import { switchMap, withNotification } from './shortcutHandlerUtils';
 
-// ensureSelectedNodeVisible is passed in from viewport ops
-
-// Helpers extracted to avoid deep nested function definitions
-const convertNodeToMarkdown = (n: MindMapNode, level = 0): string => {
-  const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
-  const text = n.text ?? '';  // undefined の場合は空文字列
-  let md = `${prefix}${text}\n`;
-  if (n.note != undefined) md += `${n.note}\n`;
-  if (n.children && n.children.length) {
-    for (const c of n.children) md += convertNodeToMarkdown(c, level + 1);
-  }
-  return md;
-};
-
-const isMapEmpty = (m: MindMapData): boolean => {
-  try {
-    const roots = m?.rootNodes || [];
-    if (!Array.isArray(roots) || roots.length === 0) return true;
-    const onlyRoot = roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
-    return onlyRoot;
-  } catch {
-    return false;
-  }
+type WindowWithMindoodle = Window & {
+  mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }>;
+  mindoodleAllMaps?: MindMapData[];
+  mindoodleCurrentMapId?: string;
 };
 
 type StoreActions = {
@@ -157,109 +141,28 @@ export function useShortcutHandlers(args: Args) {
     selectNode,
     setPan,
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count: number = 1) => {
-      
-      const currentSelectedNodeId = useMindMapStore.getState().selectedNodeId;
+      const state = useMindMapStore.getState();
+      const currentSelectedNodeId = state.selectedNodeId;
       if (!currentSelectedNodeId) return;
-      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+
+      const roots = state.data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
       const currentRoot = roots.find(r => !!findNodeById(r, currentSelectedNodeId)) || roots[0];
       if (!currentRoot) return;
+
       const currentNode = findNodeById(currentRoot, currentSelectedNodeId);
       if (!currentNode) return;
-      let nextNodeId: string | null = null;
-      switch (direction) {
-        case 'left': {
-          
-          const stack: MindMapNode[] = currentRoot ? [currentRoot] as MindMapNode[] : [];
-          while (stack.length) {
-            const node = stack.pop();
-            if (!node) continue;
-            if (node.children?.some(c => c.id === currentSelectedNodeId)) { nextNodeId = node.id; break; }
-            if (node.children) stack.push(...node.children);
-          }
-          break;
-        }
-        case 'right': {
-          const firstChild = getFirstVisibleChild(currentNode);
-          if (firstChild) {
 
-            const children = currentNode.children || [];
-            if (children.length > 1) {
-              let closestChild = children[0];
-              let minDistance = Math.abs(children[0].y - currentNode.y);
+      const nextNodeId = navigateToDirection(direction, {
+        currentNodeId: currentSelectedNodeId,
+        currentNode,
+        currentRoot,
+        roots,
+        updateNode,
+        toggleNodeCollapse: state.toggleNodeCollapse,
+      }, count);
 
-              for (let i = 1; i < children.length; i++) {
-                const distance = Math.abs(children[i].y - currentNode.y);
-                if (distance < minDistance) {
-                  minDistance = distance;
-                  closestChild = children[i];
-                }
-              }
-              nextNodeId = closestChild.id;
-            } else {
-              nextNodeId = firstChild.id;
-            }
-          }
-          else if (currentNode.children?.length && currentNode.collapsed) {
-            // Use toggleNodeCollapse to trigger auto-layout and ensure correct child positions
-            const store = useMindMapStore.getState();
-            if (store.toggleNodeCollapse) {
-              store.toggleNodeCollapse(currentSelectedNodeId);
-            } else {
-              updateNode(currentSelectedNodeId, { collapsed: false });
-            }
-
-            const children = currentNode.children;
-            if (children.length > 1) {
-              let closestChild = children[0];
-              let minDistance = Math.abs(children[0].y - currentNode.y);
-
-              for (let i = 1; i < children.length; i++) {
-                const distance = Math.abs(children[i].y - currentNode.y);
-                if (distance < minDistance) {
-                  minDistance = distance;
-                  closestChild = children[i];
-                }
-              }
-              nextNodeId = closestChild.id;
-            } else {
-              nextNodeId = children[0].id;
-            }
-          }
-          break;
-        }
-        case 'up':
-        case 'down': {
-          const { siblings, currentIndex } = selGetSiblingNodes(currentRoot, currentSelectedNodeId);
-          if (siblings.length > 1 && currentIndex !== -1) {
-            let targetIndex = -1;
-            
-            if (direction === 'up') {
-              targetIndex = Math.max(0, currentIndex - count);
-            } else if (direction === 'down') {
-              targetIndex = Math.min(siblings.length - 1, currentIndex + count);
-            }
-            if (targetIndex !== -1 && targetIndex !== currentIndex) {
-              nextNodeId = siblings[targetIndex].id;
-            }
-          }
-          
-          if (!nextNodeId) {
-            const rootIndex = roots.findIndex(r => r.id === currentRoot.id);
-            if (rootIndex !== -1) {
-              if (direction === 'down' && rootIndex < roots.length - 1) {
-                nextNodeId = roots[rootIndex + 1].id;
-              } else if (direction === 'up' && rootIndex > 0) {
-                nextNodeId = roots[rootIndex - 1].id;
-              }
-            }
-          }
-          break;
-        }
-      }
-      if (!nextNodeId) nextNodeId = findNodeBySpatialDirection(currentSelectedNodeId, direction, currentRoot);
       if (nextNodeId) {
         selectNode(nextNodeId);
-        // Only ensure visibility on keyboard navigation. Use viewport hook API and force it.
         try { ensureSelectedNodeVisible?.({ force: true }); } catch {}
       }
     },
@@ -272,143 +175,30 @@ export function useShortcutHandlers(args: Args) {
     showKeyboardHelper: ui.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show),
     copyNode: async (nodeId: string) => {
-      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const state = useMindMapStore.getState();
+      const roots = state.data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
       const node = findNodeInRoots(roots, nodeId);
-      if (!node) {
-        return;
-      }
+      if (!node) return;
 
       store.setClipboard(node);
 
-      // Extract markdown text following the required flow:
-      // 1. copyNode is called ✓
-      // 2. Get markdown text from stream
-      // 3. Walk through the map structure and match with markdown lines to find the node's position
-      // 4. Extract text from those lines
-      // 5. Put extracted text in clipboard
-      let markdownText: string;
+      const markdownText = getCurrentMarkdownContent
+        ? extractNodeMarkdown(nodeId, roots, node, getCurrentMarkdownContent())
+        : '';
 
-      if (getCurrentMarkdownContent) {
-        try {
-          // Step 2: Get markdown content from stream
-          const markdownContent = getCurrentMarkdownContent();
-          const lines = markdownContent.split('\n');
-
-          // Step 3: Walk through map structure and match with markdown lines
-          let startLine: number | null = null;
-          let endLine: number | null = null;
-
-          // Count lines for each node: text line + note lines + children
-          const countNodeLines = (n: MindMapNode): number => {
-            // Special handling for table nodes
-            if ('kind' in n && (n as { kind: string }).kind === 'table') {
-              // Table node's text contains the entire table (multiple lines)
-              const textLines = (n.text?.match(/\n/g) || []).length + 1;
-              let count = textLines;
-
-              if (n.note != null) {
-                const noteNewlines = (n.note.match(/\n/g) || []).length;
-                count += noteNewlines + 1;
-              }
-
-              if (n.children?.length) {
-                for (const child of n.children) {
-                  count += countNodeLines(child);
-                }
-              }
-
-              return count;
-            }
-
-            // Normal nodes
-            let count = 1; // text line
-            if (n.note != null) {
-              // note adds: \n + note content
-              // count newlines in note content
-              const noteNewlines = (n.note.match(/\n/g) || []).length;
-              count += noteNewlines + 1; // +1 for the \n before note
-            }
-            if (n.children?.length) {
-              for (const child of n.children) {
-                count += countNodeLines(child);
-              }
-            }
-            return count;
-          };
-
-          // Find target node by walking tree and counting lines
-          const findNodeAndCountLines = (nodes: MindMapNode[], currentLineRef: { value: number }): boolean => {
-            for (const n of nodes || []) {
-              const nodeStartLine = currentLineRef.value;
-
-              // Check if this is our target node
-              if (n.id === nodeId) {
-                startLine = nodeStartLine;
-                const lineCount = countNodeLines(n);
-                endLine = nodeStartLine + lineCount - 1;
-                return true;
-              }
-
-              // Count this node's lines
-              // Special handling for table nodes
-              if ('kind' in n && (n as { kind: string }).kind === 'table') {
-                const textLines = (n.text?.match(/\n/g) || []).length + 1;
-                currentLineRef.value += textLines;
-              } else {
-                currentLineRef.value += 1; // text line
-              }
-
-              // Count note lines if present (undefined/null以外)
-              if (n.note != null) {
-                const noteNewlines = (n.note.match(/\n/g) || []).length;
-                currentLineRef.value += noteNewlines + 1;
-              }
-
-              // Search in children
-              if (n.children?.length) {
-                if (findNodeAndCountLines(n.children, currentLineRef)) {
-                  return true;
-                }
-              }
-            }
-            return false;
-          };
-
-          findNodeAndCountLines(roots, { value: 0 });
-
-          // Step 4: Extract text from start to end line
-          if (startLine !== null && endLine !== null) {
-            const extractedLines = lines.slice(startLine, endLine + 1);
-            markdownText = extractedLines.join('\n');
-          } else {
-            // Fallback if node not found
-            markdownText = convertNodeToMarkdown(node);
-          }
-        } catch (error) {
-          console.warn('Failed to get markdown from stream, using fallback:', error);
-          markdownText = convertNodeToMarkdown(node);
-        }
-      } else {
-        // Fallback if stream functions not available
-        markdownText = convertNodeToMarkdown(node);
-      }
-
-      // Step 5: Put extracted text in clipboard
-      const { copyNodeToClipboard } = await import('@mindmap/services/NodeClipboardService');
-      await copyNodeToClipboard(node, markdownText, (message) => {
+      await copyNodeWithMarkdown(node, markdownText, (message) => {
         showNotification('success', message);
       });
     },
     copyNodeText: async (nodeId: string) => {
-      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const state = useMindMapStore.getState();
+      const roots = state.data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) {
         logger.error('copyNodeText: node not found', nodeId);
         return;
       }
-      const { copyNodeTextToClipboard } = await import('@mindmap/services/NodeClipboardService');
-      await copyNodeTextToClipboard(node);
-      showNotification('success', `「${node.text}」のテキストをコピーしました`);
+      await copyNodeTextOnly(node, (message) => showNotification('success', message));
     },
     pasteNode: async (parentId: string) => {
       
@@ -437,73 +227,62 @@ export function useShortcutHandlers(args: Args) {
     changeSiblingOrder,
     centerNodeInView,
     ensureSelectedNodeVisible,
-    
+
     switchToPrevMap: () => {
       try {
-        const order = ((window as Window & { mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }> }).mindoodleOrderedMaps) || [];
-        const maps = ((window as Window & { mindoodleAllMaps?: MindMapData[] }).mindoodleAllMaps) || [];
-        const currentId: string | null = ((window as Window & { mindoodleCurrentMapId?: string }).mindoodleCurrentMapId) || null;
-        if (!Array.isArray(order) || order.length === 0) return;
-
-        const isEmpty = isMapEmpty;
-
-        let idx = order.findIndex((o) => o?.mapId === currentId);
-        if (idx < 0) idx = 0;
-        for (let step = 0; step < order.length; step++) {
-          idx = idx <= 0 ? order.length - 1 : idx - 1;
-          const cand = order[idx];
-          const mapData = maps.find((m) => m?.mapIdentifier?.mapId === cand.mapId);
-          
-          if (!mapData || !isEmpty(mapData)) {
-            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId, source: 'keyboard', direction: 'prev' } });
-            window.dispatchEvent(ev);
-            break;
-          }
+        const win = window as WindowWithMindoodle;
+        const target = switchMap(
+          'prev',
+          win.mindoodleOrderedMaps || [],
+          win.mindoodleAllMaps || [],
+          win.mindoodleCurrentMapId || null
+        );
+        if (target) {
+          const ev = new CustomEvent('mindoodle:selectMapById', {
+            detail: { ...target, source: 'keyboard', direction: 'prev' }
+          });
+          window.dispatchEvent(ev);
         }
       } catch {}
     },
     switchToNextMap: () => {
       try {
-        const order = ((window as Window & { mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }> }).mindoodleOrderedMaps) || [];
-        const maps = ((window as Window & { mindoodleAllMaps?: MindMapData[] }).mindoodleAllMaps) || [];
-        const currentId: string | null = ((window as Window & { mindoodleCurrentMapId?: string }).mindoodleCurrentMapId) || null;
-        if (!Array.isArray(order) || order.length === 0) return;
-
-        const isEmpty = isMapEmpty;
-
-        let idx = order.findIndex((o) => o?.mapId === currentId);
-        if (idx < 0) idx = 0;
-        for (let step = 0; step < order.length; step++) {
-          idx = idx >= order.length - 1 ? 0 : idx + 1;
-          const cand = order[idx];
-          const mapData = maps.find((m) => m?.mapIdentifier?.mapId === cand.mapId);
-          if (!mapData || !isEmpty(mapData)) {
-            const ev = new CustomEvent('mindoodle:selectMapById', { detail: { mapId: cand.mapId, workspaceId: cand.workspaceId, source: 'keyboard', direction: 'next' } });
-            window.dispatchEvent(ev);
-            break;
-          }
+        const win = window as WindowWithMindoodle;
+        const target = switchMap(
+          'next',
+          win.mindoodleOrderedMaps || [],
+          win.mindoodleAllMaps || [],
+          win.mindoodleCurrentMapId || null
+        );
+        if (target) {
+          const ev = new CustomEvent('mindoodle:selectMapById', {
+            detail: { ...target, source: 'keyboard', direction: 'next' }
+          });
+          window.dispatchEvent(ev);
         }
       } catch {}
     },
 
-    
+
     moveNode: async (nodeId: string, newParentId: string) => {
-      const result = store.moveNode(nodeId, newParentId);
-      if (result.success) {
-        showNotification('success', 'ノードを移動しました');
-      } else {
-        showNotification('warning', result.reason || 'ノードの移動ができませんでした');
-        logger.warn('moveNode constraint violation:', result.reason);
-      }
+      withNotification(
+        () => store.moveNode(nodeId, newParentId),
+        () => showNotification('success', 'ノードを移動しました'),
+        (reason) => {
+          showNotification('warning', reason || 'ノードの移動ができませんでした');
+          logger.warn('moveNode constraint violation:', reason);
+        }
+      );
     },
     moveNodeWithPosition: async (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => {
-      const result = store.moveNodeWithPosition(nodeId, targetNodeId, position);
-      if (result.success) {
-        showNotification('success', 'ノードを移動しました');
-      } else {
-        showNotification('warning', result.reason || 'ノードの移動ができませんでした');
-        logger.warn('moveNodeWithPosition constraint violation:', result.reason);
-      }
+      withNotification(
+        () => store.moveNodeWithPosition(nodeId, targetNodeId, position),
+        () => showNotification('success', 'ノードを移動しました'),
+        (reason) => {
+          showNotification('warning', reason || 'ノードの移動ができませんでした');
+          logger.warn('moveNodeWithPosition constraint violation:', reason);
+        }
+      );
     },
     findParentNode: (nodeId: string) => {
       const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
