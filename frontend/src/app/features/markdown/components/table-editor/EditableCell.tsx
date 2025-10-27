@@ -1,10 +1,10 @@
 import React from 'react';
-import type { Cell, EditingCell } from '../../utils/table-editor/types';
+import type { TableCell, EditingCell } from '../../utils/table-editor/types';
 
 interface EditableCellProps {
   rowIndex: number;
   cellIndex: number;
-  cell: Cell;
+  cell: TableCell;
   editingCell: EditingCell | null;
   isSelected: boolean;
   onMouseDown: () => void;
