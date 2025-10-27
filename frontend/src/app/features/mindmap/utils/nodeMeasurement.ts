@@ -1,8 +1,6 @@
 import { parseInlineMarkdown } from '../../markdown/parseInlineMarkdown';
 
-// ========================================
 // Types and Interfaces
-// ========================================
 
 interface RawTextToken {
   text: string;
@@ -48,9 +46,7 @@ export type NodeTextWrapSettingsLike = Partial<{
   nodeTextWrapWidth: number;
 }>;
 
-// ========================================
 // Constants
-// ========================================
 
 const NODE_TEXT_MIN_WIDTH = 160;
 const NODE_TEXT_BASE_MAX_WIDTH = 240;
@@ -72,9 +68,7 @@ export const BREAK_BEFORE_CHARS = new Set<string>([
   '(','[','{'
 ]);
 
-// ========================================
 // Canvas Measurement Context
-// ========================================
 
 let measureCanvas: HTMLCanvasElement | null = null;
 let measureContext: CanvasRenderingContext2D | null = null;
@@ -98,9 +92,7 @@ const ensureMeasureContext = (): CanvasRenderingContext2D | null => {
   return measureContext;
 };
 
-// ========================================
 // Text Measurement Functions
-// ========================================
 
 const isWideChar = (code: number): boolean =>
   (code >= 0x3040 && code <= 0x309F) ||
@@ -140,9 +132,7 @@ export const resolveNodeTextWrapConfig = (settings?: NodeTextWrapSettingsLike, f
   maxWidth: Math.max(NODE_TEXT_MIN_WIDTH, settings?.nodeTextWrapWidth ?? getNodeTextMaxWidth(fontSize))
 });
 
-// ========================================
 // Text Breaking Functions
-// ========================================
 
 const hasChar = (char: string, set: Set<string>): boolean => !!char && set.has(char);
 const isPrimaryBreak = (char: string): boolean => hasChar(char, PRIMARY_BREAK_CHARS);
@@ -177,9 +167,7 @@ const smartSplitText = (text: string, formatting: { bold?: boolean; italic?: boo
   return flush(Array.from(text).reduce(processChar, { pieces: [], buffer: '' })).pieces;
 };
 
-// ========================================
 // Text Wrapping Function
-// ========================================
 
 export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNodeTextResult {
   const { fontSize, fontFamily, fontWeight, fontStyle, maxWidth, prefixTokens } = options;

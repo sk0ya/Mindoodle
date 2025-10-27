@@ -7,7 +7,6 @@ import type { Command, CommandContext, CommandResult, MarkdownNodeType } from '.
 import type { MindMapNode } from '@shared/types';
 import { structureCommand, failure, success } from '../utils/commandFunctional';
 
-// === Add Node Commands ===
 
 const createAddNodeCommand = (
   name: string,
@@ -57,7 +56,6 @@ const createAddNodeCommand = (
 export const addChildCommand = createAddNodeCommand('add-child', ['child', 'tab'], 'Add a new child node to the selected node', 'child');
 export const addSiblingCommand = createAddNodeCommand('add-sibling', ['sibling', 'enter'], 'Add a new sibling node after the selected node', 'sibling');
 
-// === Convert Node Command ===
 
 const determineTargetType = (specifiedType: string | undefined, currentType?: string): MarkdownNodeType => {
   if (specifiedType === 'heading' || specifiedType === 'unordered-list' || specifiedType === 'ordered-list') {
@@ -94,7 +92,6 @@ export const convertNodeCommand: Command = structureCommand(
   }
 );
 
-// === Move Node Commands ===
 
 const createMoveCommand = (
   name: string,

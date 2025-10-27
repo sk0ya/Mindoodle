@@ -4,7 +4,6 @@ import { COORDINATES, LAYOUT } from '../../../shared/constants/index';
 import { calculateNodeSize, getDynamicNodeSpacing, calculateChildNodeX, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig, type NodeTextWrapConfig } from './nodeUtils';
 import type { MindMapNode } from '../../../shared/types';
 
-
 interface LayoutOptions {
   centerX?: number;
   centerY?: number;
@@ -16,7 +15,6 @@ interface LayoutOptions {
   sidebarCollapsed?: boolean;
   activeView?: string | null;
 }
-
 
 const calculateDynamicCenterX = (
   sidebarCollapsed?: boolean,
@@ -41,9 +39,6 @@ const getChildNodeXFromParentEdge = (
   const edgeToEdgeDistance = getDynamicNodeSpacing(parentNodeSize, childNodeSize, false);
   return calculateChildNodeX(parentNode, childNodeSize, edgeToEdgeDistance, globalFontSize, wrapConfig);
 };
-
-
-
 
 export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
   const uiAwareCenterX = calculateDynamicCenterX(options.sidebarCollapsed, options.activeView);

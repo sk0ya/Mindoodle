@@ -7,7 +7,6 @@ import { logger } from '@shared/utils';
 import type { MindMapStore } from '../types';
 import { updateNodeCheckedInTree } from './helpers';
 
-// === Helpers ===
 
 const updateNormalizedCheckbox = (state: MindMapStore, nodeId: string, checked: boolean) => {
   if (!state.normalizedData) return;
@@ -35,7 +34,6 @@ const updateTreeCheckbox = (state: MindMapStore, nodeId: string, checked: boolea
   }
 };
 
-// === Operations ===
 
 export const createCheckboxOperations = (
   set: (fn: (state: MindMapStore) => void) => void,

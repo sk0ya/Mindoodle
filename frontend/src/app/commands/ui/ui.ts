@@ -8,7 +8,6 @@ import { uiCommand, editingCommand, failure, success } from '../utils/commandFun
 
 export { showKnowledgeGraphCommand } from './showKnowledgeGraph';
 
-// === Toggle Commands ===
 
 const createToggleCommand = (
   name: string,
@@ -52,7 +51,6 @@ export const closePanelsCommand: Command = uiCommand(
   { aliases: ['close', 'escape'], examples: ['close-panels', 'close', 'escape'] }
 );
 
-// === Panel Toggle Commands ===
 
 const createPanelToggleCommand = (
   name: string,
@@ -97,7 +95,6 @@ export const toggleVimSettingsPanelCommand = createPanelToggleCommand(
   'toggleVimSettingsPanel'
 );
 
-// === Edit Commands ===
 
 const createStartEditCommand = (
   name: string,
@@ -130,7 +127,6 @@ const createStartEditCommand = (
 export const startEditCommand = createStartEditCommand('start-edit', ['edit-start'], 'Start editing the selected node', false);
 export const startEditEndCommand = createStartEditCommand('start-edit-end', ['edit-end'], 'Start editing with cursor at the end of node text', true);
 
-// === Markdown Conversion Command ===
 
 export const markdownConvertCommand: Command = editingCommand(
   'markdown-convert',

@@ -2,7 +2,6 @@ import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
 import { generateId as generateLinkId } from '@shared/utils';
 import { findNodeInRoots } from './nodeOperations';
 
-
 export const addLinkToNode = (
   node: MindMapNode,
   linkData: Partial<NodeLink>
@@ -19,7 +18,6 @@ export const addLinkToNode = (
     links: [...(node.links || []), newLink]
   };
 };
-
 
 export const updateLinkInNode = (
   node: MindMapNode,
@@ -41,7 +39,6 @@ export const updateLinkInNode = (
   };
 };
 
-
 export const removeLinkFromNode = (
   node: MindMapNode,
   linkId: string
@@ -53,7 +50,6 @@ export const removeLinkFromNode = (
     links: node.links.filter(link => link.id !== linkId)
   };
 };
-
 
 export const addLinkToNodeInTree = (
   rootNode: MindMapNode,
@@ -71,7 +67,6 @@ export const addLinkToNodeInTree = (
     )
   };
 };
-
 
 export const updateLinkInNodeTree = (
   rootNode: MindMapNode,
@@ -91,7 +86,6 @@ export const updateLinkInNodeTree = (
   };
 };
 
-
 export const removeLinkFromNodeTree = (
   rootNode: MindMapNode,
   nodeId: string,
@@ -109,14 +103,11 @@ export const removeLinkFromNodeTree = (
   };
 };
 
-
-
 export const validateLink = (linkData: Partial<NodeLink>): {
   isValid: boolean;
   errors: string[];
 } => {
   const errors: string[] = [];
-
 
   if (linkData.targetMapId && linkData.targetMapId.length > 50) {
     errors.push('ターゲットマップIDは50文字以内で入力してください');
@@ -131,7 +122,6 @@ export const validateLink = (linkData: Partial<NodeLink>): {
     errors
   };
 };
-
 
 export const getLinkTargetInfo = (
   link: NodeLink,
@@ -158,7 +148,6 @@ export const getLinkTargetInfo = (
   };
 };
 
-
 export const generateLinkUrl = (link: NodeLink): string | null => {
   if (!link.targetMapId && !link.targetNodeId) {
     return null;
@@ -176,7 +165,6 @@ export const generateLinkUrl = (link: NodeLink): string | null => {
 
   return `${window.location.pathname}?${params.toString()}`;
 };
-
 
 export const getLinkDisplayText = (link: NodeLink): string => {
   const parts: string[] = [];

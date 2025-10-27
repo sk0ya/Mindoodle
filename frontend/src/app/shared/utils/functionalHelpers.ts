@@ -3,7 +3,6 @@
  * Generic helpers for array, object, and data manipulation
  */
 
-// === Array Utilities ===
 
 /**
  * Pipe: Compose functions from left to right
@@ -85,7 +84,6 @@ export const sortBy = <T>(...keyFns: Array<(item: T) => number | string>) =>
       return 0;
     });
 
-// === Object Utilities ===
 
 /**
  * Pick specific keys from object
@@ -143,7 +141,6 @@ export const filterObject = <T extends object>(
     return acc;
   }, {} as Partial<T>);
 
-// === Function Utilities ===
 
 /**
  * Memoize function results
@@ -212,7 +209,6 @@ export const retry = async <T>(
   throw new Error('Retry failed');
 };
 
-// === Conditional Utilities ===
 
 /**
  * Safe property access with default value
@@ -251,7 +247,6 @@ export const chain = <T, R>(
 ): R | undefined =>
   value != null ? fn(value) : undefined;
 
-// === Type Guards ===
 
 /**
  * Check if value is defined (not null or undefined)

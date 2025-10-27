@@ -9,7 +9,6 @@ export interface TreeNode<T = unknown> {
   [key: string]: unknown;
 }
 
-// === Common Helpers ===
 
 const getChildren = <T extends TreeNode>(node: T, key: keyof T = 'children' as keyof T): T[] | undefined =>
   node[key] as unknown as T[] | undefined;
@@ -25,7 +24,6 @@ const transformNode = <T extends TreeNode, R extends TreeNode>(
   return fn(node, transformedChildren || []);
 };
 
-// === Tree Traversal ===
 
 export function* walkTree<T extends TreeNode>(
   nodes: T[],
@@ -198,7 +196,6 @@ export const sortTree = <T extends TreeNode>(
     )
   );
 
-// === Tree Building ===
 
 export const buildTree = <T extends { id: string; parentId?: string | null }>(
   items: T[],

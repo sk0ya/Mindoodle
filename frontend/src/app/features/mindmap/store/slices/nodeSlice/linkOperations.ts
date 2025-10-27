@@ -12,7 +12,6 @@ import {
 } from '../../../utils';
 import type { MindMapStore } from '../types';
 
-// === Helpers ===
 
 type LinkTreeOperation = (...args: any[]) => MindMapNode;
 type NormalizedOperation = (...args: any[]) => MindMapNode;
@@ -66,7 +65,6 @@ const executeLinkOperation = (
   get().syncToMindMapData();
 };
 
-// === Normalized Operations ===
 
 const addLinkNormalized = (node: MindMapNode, linkData: Partial<NodeLink>): MindMapNode =>
   addLinkToNodeInTree(node, node.id, linkData);
@@ -85,7 +83,6 @@ const deleteLinkNormalized = (node: MindMapNode, linkId: string): MindMapNode =>
   return { ...node, links: filteredLinks };
 };
 
-// === Operations ===
 
 export function createLinkOperations(
   set: (fn: (state: MindMapStore) => void) => void,

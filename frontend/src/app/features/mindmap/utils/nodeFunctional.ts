@@ -5,7 +5,6 @@
 
 import type { MindMapNode } from '@shared/types';
 
-// === Node Predicates ===
 
 export const hasChildren = (node: MindMapNode): boolean =>
   !!node.children && node.children.length > 0;
@@ -46,7 +45,6 @@ export const matchesText = (query: string, caseSensitive = false) => (node: Mind
   return text.includes(search);
 };
 
-// === Node Transformations ===
 
 export const setText = (text: string) => (node: MindMapNode): MindMapNode => ({
   ...node,
@@ -98,7 +96,6 @@ export const moveBy = (dx: number, dy: number) => (node: MindMapNode): MindMapNo
   y: (node.y ?? 0) + dy
 });
 
-// === Node Tree Operations ===
 
 /**
  * Map over all nodes in tree (depth-first)
@@ -332,7 +329,6 @@ export const appendChild = (parentId: string, child: MindMapNode) =>
 export const prependChild = (parentId: string, child: MindMapNode) =>
   insertChild(parentId, child, 0);
 
-// === Node Statistics ===
 
 export const countNodes = (root: MindMapNode): number =>
   1 + (root.children?.reduce((sum, child) => sum + countNodes(child), 0) ?? 0);
@@ -348,7 +344,6 @@ export const maxDepth = (node: MindMapNode): number => {
   return 1 + Math.max(...node.children.map(maxDepth));
 };
 
-// === Node Validation ===
 
 export const isValidNode = (node: unknown): node is MindMapNode =>
   typeof node === 'object' &&
@@ -372,7 +367,6 @@ export const validateTree = (root: MindMapNode): boolean => {
   return traverse(root);
 };
 
-// === Comparison ===
 
 export const nodesEqual = (a: MindMapNode, b: MindMapNode): boolean =>
   a.id === b.id &&
@@ -391,7 +385,6 @@ export const treesEqual = (a: MindMapNode, b: MindMapNode): boolean => {
   return aChildren.every((child, i) => treesEqual(child, bChildren[i]));
 };
 
-// === Sorting ===
 
 export const sortChildren = (compareFn: (a: MindMapNode, b: MindMapNode) => number) =>
   (node: MindMapNode): MindMapNode => ({
@@ -408,7 +401,6 @@ export const sortByText = sortChildren((a, b) => a.text.localeCompare(b.text));
 export const sortByCreated = sortChildren(() => 0);
 export const sortByUpdated = sortChildren(() => 0);
 
-// === Cloning ===
 
 export const cloneNode = (node: MindMapNode): MindMapNode => ({
   ...node,

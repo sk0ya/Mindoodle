@@ -5,12 +5,10 @@
 
 import type { Command, CommandContext, CommandResult, CommandCategory, ArgsMap } from '../system/types';
 
-// === Type Aliases ===
 
 export type CommandExecutor = (context: CommandContext, args: ArgsMap) => CommandResult | Promise<CommandResult>;
 export type CommandGuard = (context: CommandContext, args: ArgsMap) => boolean;
 
-// === Result Helpers ===
 
 export const success = (message?: string, data?: unknown): CommandResult => ({
   success: true,
@@ -24,7 +22,6 @@ export const failure = (error: string, data?: unknown): CommandResult => ({
   data
 });
 
-// === Command Builders ===
 
 export type CommandBuilder = {
   name: string;
@@ -99,7 +96,6 @@ export const command = (
   ...options
 });
 
-// === Guard Composition ===
 
 /**
  * Combine multiple guards with AND logic
@@ -132,7 +128,6 @@ export const alwaysGuard: CommandGuard = () => true;
  */
 export const neverGuard: CommandGuard = () => false;
 
-// === Common Guards ===
 
 /**
  * Guard that checks if a node is selected
@@ -187,7 +182,6 @@ export const hasArg = (name: string): CommandGuard =>
  */
 export const requireSelectedNode: CommandGuard = hasSelectedNode;
 
-// === Command Execution Helpers ===
 
 /**
  * Execute command with error handling
@@ -223,7 +217,6 @@ export const timeExecute = (
     return result;
   };
 
-// === Command Composition ===
 
 /**
  * Chain multiple commands
@@ -260,7 +253,6 @@ export const unlessGuard = (
 ): CommandExecutor =>
   whenGuard(notGuard(guard), execute);
 
-// === Command Registry Helpers ===
 
 /**
  * Filter commands by category
@@ -289,7 +281,6 @@ export const matchesQuery = (query: string) =>
     );
   };
 
-// === Command Categories ===
 
 export const categories = {
   NAVIGATION: 'navigation' as CommandCategory,
@@ -301,7 +292,6 @@ export const categories = {
   UTILITY: 'utility' as CommandCategory
 };
 
-// === Command Definition Helpers ===
 
 /**
  * Define a navigation command
@@ -384,7 +374,6 @@ export const utilityCommand = (
 ): Command =>
   command(name, description, execute, { ...options, category: categories.UTILITY });
 
-// === Batch Command Registration ===
 
 /**
  * Create multiple commands at once
@@ -415,7 +404,6 @@ export const createCommandsWithDefaults = (
     command(def.name, def.description, def.execute, { ...defaults, ...def.options })
   );
 
-// === Node Helpers ===
 
 /**
  * Get selected node from context

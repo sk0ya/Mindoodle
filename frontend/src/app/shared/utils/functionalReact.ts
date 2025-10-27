@@ -5,7 +5,6 @@
 
 import { useCallback, useMemo, useRef, useEffect, useState, type DependencyList } from 'react';
 
-// === State Management ===
 
 /**
  * Create a boolean state with toggle, setTrue, setFalse helpers
@@ -101,7 +100,6 @@ export const useStableValue = <T>(
   return valueRef.current as T;
 };
 
-// === Event Handlers ===
 
 /**
  * Create an event handler that prevents default and stops propagation
@@ -133,7 +131,6 @@ export const usePreventDefaults = <T extends Record<string, (e: Event) => void>>
     [Object.keys(handlers).join(',')]
   );
 
-// === Derived State ===
 
 /**
  * Create derived state from multiple sources
@@ -159,7 +156,6 @@ export const useDerivedValues = <T extends Record<string, () => any>>(
     [Object.keys(computations).join(',')]
   );
 
-// === Conditional Hooks ===
 
 /**
  * Conditionally run effect
@@ -191,7 +187,6 @@ export const useEffectOnce = (
   }, [condition]);
 };
 
-// === State Reducers ===
 
 /**
  * Create a state object with updater functions
@@ -230,7 +225,6 @@ export const useStateObject = <T extends Record<string, unknown>>(
 const capitalize = (str: string) =>
   str.charAt(0).toUpperCase() + str.slice(1);
 
-// === Async State ===
 
 /**
  * Handle async operations with loading/error states
@@ -267,7 +261,6 @@ export const useAsyncState = <T, Args extends unknown[] = []>(
   return { ...state, execute, reset };
 };
 
-// === Previous Value ===
 
 /**
  * Get previous value of a state or prop
@@ -290,7 +283,6 @@ export const useChanged = <T>(value: T): boolean => {
   return prev !== undefined && !Object.is(prev, value);
 };
 
-// === Debounce & Throttle ===
 
 /**
  * Debounced value
@@ -339,7 +331,6 @@ export const useThrottledCallback = <T extends (...args: any[]) => any>(
   }) as T);
 };
 
-// === Array State Helpers ===
 
 /**
  * Array state with helper methods
@@ -364,7 +355,6 @@ export const useArrayState = <T>(initial: T[] = []) => {
   }), [array]);
 };
 
-// === Map/Set State Helpers ===
 
 /**
  * Map state with helper methods
