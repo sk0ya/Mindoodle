@@ -59,6 +59,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
   private workspaces: Workspace[] = [];
   private saveTargets = new Map<string, SaveTarget>();
   private permissionWarned = false;
+  // To avoid spamming warnings during periodic scans
+  private warnedFiles = new Set<string>();
   private allMaps: MindMapData[] = [];
   private saveLocks = new Map<string, Promise<void>>();
   private lastSavedContent = new Map<string, string>();
@@ -411,6 +413,8 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       errorType: typeof e,
     });
 
+    // Only surface permission-related warnings to the UI (once),
+    // other parsing/IO errors during background scans should be logged but not spammed.
     if (errorName === 'NotReadableError' || /NotReadable/i.test(errorName) || /NotReadable/i.test(errorMessage)) {
       if (!this.permissionWarned) {
         logger.warn(`MarkdownFolderAdapter: Failed to read file due to permission ("${name}"). Please reselect the folder.`);
@@ -418,11 +422,19 @@ export class MarkdownFolderAdapter implements StorageAdapter {
         this.permissionWarned = true;
       }
     } else if (errorMessage.includes('見出しが見つかりません') || errorMessage.includes('構造要素が見つかりません')) {
-      logger.debug(`MarkdownFolderAdapter: File "${name}" has no structure elements, skipping`);
-      statusMessages.customWarning(errorMessage || `「${name}」は見出しやリストがないためマインドマップとして開けません`);
+      // Treat non-structural markdown files as non-maps during scans; do not show repeated warnings
+      if (!this.warnedFiles.has(name)) {
+        logger.debug(`MarkdownFolderAdapter: File "${name}" has no structure elements, skipping`);
+        this.warnedFiles.add(name);
+      }
     } else {
-      logger.warn(`MarkdownFolderAdapter: Failed to load from file "${name}": ${errorMessage}`);
-      statusMessages.fileReadFailed(name);
+      // Generic read/parse failure: warn once per file to avoid repeated alerts from periodic refreshes
+      if (!this.warnedFiles.has(name)) {
+        logger.warn(`MarkdownFolderAdapter: Failed to load from file "${name}": ${errorMessage}`);
+        this.warnedFiles.add(name);
+      } else {
+        logger.debug(`MarkdownFolderAdapter: (suppressed repeat) Failed to load from file "${name}": ${errorMessage}`);
+      }
     }
   }
 

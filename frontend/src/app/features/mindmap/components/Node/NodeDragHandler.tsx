@@ -52,13 +52,13 @@ export const useNodeDragHandler = ({
         const newX = svgCoords.svgX - (dragState.dragOffset?.x || 0);
         const newY = svgCoords.svgY - (dragState.dragOffset?.y || 0);
 
-        logger.debug('Node ドラッグ終了通知:', {
+        logger.debug('Node ドラッグ終了:', {
           nodeId: node.id,
           newX,
           newY
         });
-        try { dispatchCanvasEvent({ type: 'nodeDragEnd', x: newX, y: newY, targetNodeId: node.id }); } catch {}
-
+        // Note: nodeDragEnd のディスパッチは CanvasDragHandler に集約
+        // ここでは座標計算後のコールバックのみ伝播する
         if (onDragEnd) {
           onDragEnd(node.id, newX, newY);
         }

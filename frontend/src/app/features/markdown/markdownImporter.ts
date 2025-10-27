@@ -151,7 +151,7 @@ export class MarkdownImporter {
       const heading = parseHeading(line);
       if (heading) {
         return {
-          elements: flushElement(addPreface(state)),
+          elements: flushElement({ ...state, elements: addPreface(state) }),
           preface: [],
           current: { type: 'heading', level: heading.level, text: heading.text, originalFormat: '#'.repeat(heading.level), lineNumber: i },
           buffer: [],
@@ -162,7 +162,7 @@ export class MarkdownImporter {
       const listItem = parseListItem(line);
       if (listItem) {
         return {
-          elements: flushElement(addPreface(state)),
+          elements: flushElement({ ...state, elements: addPreface(state) }),
           preface: [],
           current: {
             type: listItem.type as 'unordered-list' | 'ordered-list',
