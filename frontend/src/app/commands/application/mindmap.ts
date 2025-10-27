@@ -7,7 +7,6 @@ import type { Command, CommandResult } from '../system/types';
 import type { MapIdentifier } from '@shared/types';
 import { utilityCommand, applicationCommand, failure, success } from '../utils/commandFunctional';
 
-// === Simple Utility Commands ===
 
 export const newMindmapCommand: Command = utilityCommand(
   'new',
@@ -68,7 +67,6 @@ export const themeCommand: Command = utilityCommand(
   }
 );
 
-// === Map Switching ===
 
 const findWorkspaceForMap = (mapId: string): string | undefined => {
   try {

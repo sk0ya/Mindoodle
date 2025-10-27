@@ -6,7 +6,6 @@
 import type { MindMapNode } from '@shared/types';
 import { produce, Draft } from 'immer';
 
-// === Generic Tree Traversal ===
 
 type TreeVisitor<T> = (node: MindMapNode, parent: MindMapNode | null, depth: number) => T | null | undefined;
 
@@ -29,7 +28,6 @@ const traverseTree = <T>(
 const flattenTree = (nodes: MindMapNode[]): MindMapNode[] =>
   nodes.flatMap(node => [node, ...flattenTree(node.children)]);
 
-// === Find Operations ===
 
 export function findNodeById(roots: MindMapNode[], nodeId: string): MindMapNode | null {
   return traverseTree(roots, (node) => (node.id === nodeId ? node : null));
@@ -71,7 +69,6 @@ export function getSiblings(
   return index !== -1 ? { siblings: roots, index } : null;
 }
 
-// === Mutation Operations ===
 
 const withProduce = <T extends unknown[]>(
   operation: (draft: MindMapNode[], ...args: T) => void
@@ -133,7 +130,6 @@ export const moveNodeToParent = withProduce(
   }
 );
 
-// === Utility Operations ===
 
 export const getAllNodes = (roots: MindMapNode[]): MindMapNode[] => flattenTree(roots);
 

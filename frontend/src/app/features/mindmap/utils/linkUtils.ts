@@ -2,7 +2,6 @@ import type { NodeLink, MindMapNode, MindMapData } from '@shared/types';
 import { generateId as generateLinkId } from '@shared/utils';
 import { findNodeInRoots } from './nodeOperations';
 
-
 export const addLinkToNode = (
   node: MindMapNode,
   linkData: Partial<NodeLink>
@@ -19,7 +18,6 @@ export const addLinkToNode = (
     links: [...(node.links || []), newLink]
   };
 };
-
 
 export const updateLinkInNode = (
   node: MindMapNode,
@@ -41,7 +39,6 @@ export const updateLinkInNode = (
   };
 };
 
-
 export const removeLinkFromNode = (
   node: MindMapNode,
   linkId: string
@@ -53,7 +50,6 @@ export const removeLinkFromNode = (
     links: node.links.filter(link => link.id !== linkId)
   };
 };
-
 
 export const addLinkToNodeInTree = (
   rootNode: MindMapNode,
@@ -71,7 +67,6 @@ export const addLinkToNodeInTree = (
     )
   };
 };
-
 
 export const updateLinkInNodeTree = (
   rootNode: MindMapNode,
@@ -91,7 +86,6 @@ export const updateLinkInNodeTree = (
   };
 };
 
-
 export const removeLinkFromNodeTree = (
   rootNode: MindMapNode,
   nodeId: string,
@@ -107,91 +101,4 @@ export const removeLinkFromNodeTree = (
       removeLinkFromNodeTree(child, nodeId, linkId)
     )
   };
-};
-
-
-
-export const validateLink = (linkData: Partial<NodeLink>): {
-  isValid: boolean;
-  errors: string[];
-} => {
-  const errors: string[] = [];
-
-
-  if (linkData.targetMapId && linkData.targetMapId.length > 50) {
-    errors.push('ターゲットマップIDは50文字以内で入力してください');
-  }
-
-  if (linkData.targetNodeId && linkData.targetNodeId.length > 50) {
-    errors.push('ターゲットノードIDは50文字以内で入力してください');
-  }
-
-  return {
-    isValid: errors.length === 0,
-    errors
-  };
-};
-
-
-export const getLinkTargetInfo = (
-  link: NodeLink,
-  currentData: MindMapData
-): {
-  isCurrentMap: boolean;
-  targetNode: MindMapNode | null;
-  canNavigate: boolean;
-} => {
-  const isCurrentMap = !link.targetMapId || link.targetMapId === currentData.mapIdentifier.mapId;
-  
-  let targetNode: MindMapNode | null = null;
-  
-  if (isCurrentMap && link.targetNodeId) {
-    targetNode = findNodeInRoots(currentData.rootNodes || [], link.targetNodeId);
-  }
-
-  const canNavigate = isCurrentMap && (targetNode !== null || !link.targetNodeId);
-
-  return {
-    isCurrentMap,
-    targetNode,
-    canNavigate
-  };
-};
-
-
-export const generateLinkUrl = (link: NodeLink): string | null => {
-  if (!link.targetMapId && !link.targetNodeId) {
-    return null;
-  }
-
-  const params = new URLSearchParams();
-  
-  if (link.targetMapId) {
-    params.set('mapId', link.targetMapId);
-  }
-  
-  if (link.targetNodeId) {
-    params.set('nodeId', link.targetNodeId);
-  }
-
-  return `${window.location.pathname}?${params.toString()}`;
-};
-
-
-export const getLinkDisplayText = (link: NodeLink): string => {
-  const parts: string[] = [];
-  
-  if (link.targetMapId) {
-    parts.push(`Map: ${link.targetMapId}`);
-  }
-  
-  if (link.targetNodeId) {
-    parts.push(`Node: ${link.targetNodeId}`);
-  }
-
-  if (parts.length === 0) {
-    return '内部リンク';
-  }
-
-  return parts.join(' → ');
 };

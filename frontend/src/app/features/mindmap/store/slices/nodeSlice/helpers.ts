@@ -8,7 +8,6 @@ import { generateNodeId } from '@shared/utils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import type { NormalizedDataLike } from './types';
 
-// === Helpers ===
 
 const isNonTableNode = (node: MindMapNode | undefined): boolean =>
   !!(node && node.kind !== 'table' && node.markdownMeta);
@@ -26,7 +25,6 @@ const checkSiblingAt = (
   return isNonTableNode(sib) ? getMetadataWithResetCheckbox(sib.markdownMeta) : undefined;
 };
 
-// === Main Functions ===
 
 export const nearestNonTableSiblingMeta = (
   nd: NormalizedDataLike,

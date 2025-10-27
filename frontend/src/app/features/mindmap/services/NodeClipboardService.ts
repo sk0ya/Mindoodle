@@ -6,14 +6,12 @@
 import type { MindMapNode } from '@shared/types';
 import { generateObjectHash } from '@shared/utils';
 
-// === State ===
 
 let lastCopiedHash: string | null = null;
 
 export const getLastCopiedHash = (): string | null => lastCopiedHash;
 export const setLastCopiedHash = (hash: string | null): void => { lastCopiedHash = hash; };
 
-// === Helpers ===
 
 const removeHeadingMarkers = (text: string): string => {
   const match = /^(#{1,6})\s+/.exec(text);
@@ -28,7 +26,6 @@ const getListPrefix = (meta?: MindMapNode['markdownMeta']): string => {
   return '';
 };
 
-// === Converters ===
 
 export const nodeToMarkdownTree = (node: MindMapNode, level = 0): string => {
   const prefix = '#'.repeat(Math.min(level + 1, 6)) + ' ';
@@ -49,7 +46,6 @@ export const nodeToIndentedText = (node: MindMapNode, level = 0): string => {
   return result;
 };
 
-// === Clipboard Operations ===
 
 export const copyNodeToClipboard = async (
   node: MindMapNode,

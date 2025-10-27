@@ -6,7 +6,6 @@
 import type { MindMapNode } from '@shared/types';
 import type { NormalizedData } from '@core/data/normalizedStore';
 
-// === Helpers ===
 
 const nodeMatchesSearch = (node: MindMapNode | undefined, searchTerm: string): boolean =>
   !!(node?.text && node.text.toLowerCase().includes(searchTerm));
@@ -48,7 +47,6 @@ const expandWithRelatives = (
   return expanded;
 };
 
-// === Main Functions ===
 
 export function searchNodesInCurrentMap(
   query: string,

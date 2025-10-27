@@ -31,7 +31,6 @@ export {
   type DataValidationResult
 } from './validation';
 
-
 export {
   STORAGE_KEYS,
   getLocalStorage,

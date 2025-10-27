@@ -10,9 +10,7 @@ import {
   type WrappedToken
 } from './nodeMeasurement';
 
-// ========================================
 // Types and Interfaces
-// ========================================
 
 export interface IconLayout {
   totalWidth: number;
@@ -28,15 +26,11 @@ export interface NodeSize {
   imageHeight: number;
 }
 
-// ========================================
 // Constants
-// ========================================
 
 export const TEXT_ICON_SPACING = 1;
 
-// ========================================
 // Helper Functions
-// ========================================
 
 export function getNodeHorizontalPadding(textLength: number, isEditing: boolean): number {
   if (isEditing) {
@@ -96,9 +90,7 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
   };
 }
 
-// ========================================
 // Table Size Calculation
-// ========================================
 
 function parseTableFromString(src?: string): { headers?: string[]; rows: string[][] } | null {
   if (!src) return null;
@@ -169,9 +161,7 @@ function calculateTableDimensions(
   return { width: Math.max(150, tableWidth), height: tableHeight };
 }
 
-// ========================================
 // Main Size Calculation Function
-// ========================================
 
 export function calculateNodeSize(
   node: MindMapNode,

@@ -12,7 +12,6 @@ import {
 import type { MindMapStore } from '../types';
 import type { NormalizedData } from '@core/data/normalizedStore';
 
-// === Helpers ===
 
 const applyAutoLayoutIfNeeded = (get: () => MindMapStore) => {
   const { data, applyAutoLayout } = get();
@@ -54,7 +53,6 @@ const executeMoveOperation = (
   return moveResult;
 };
 
-// === Operations ===
 
 export function createMoveOperations(
   set: (fn: (state: MindMapStore) => void) => void,

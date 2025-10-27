@@ -48,7 +48,6 @@ export const generateErrorId = () => generateId('error');
 export const generateWorkspaceId = () => generateId('workspace');
 export const generateUrlId = () => generateId('url');
 
-
 export function generateFileIdWithName(_filename: string): string {
   const timestamp = Date.now();
   const random = (() => {
@@ -63,7 +62,6 @@ export function generateFileIdWithName(_filename: string): string {
   })();
   return `file_${timestamp}_${random}`;
 }
-
 
 export function generateTimestampedFilename(base: string, ext: string = ''): string {
   return `${base}-${Date.now()}${ext}`;

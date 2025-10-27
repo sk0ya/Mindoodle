@@ -8,7 +8,6 @@ import type { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
 import { navigationCommand, success, failure, hasSelectedNode, withCount } from '../utils/commandFunctional';
 
-// === Arrow Navigation ===
 
 export const arrowNavigateCommand: Command = navigationCommand(
   'arrow-navigate',
@@ -28,7 +27,6 @@ export const arrowNavigateCommand: Command = navigationCommand(
   }
 );
 
-// === Node Selection ===
 
 export const selectNodeCommand: Command = navigationCommand(
   'select-node',
@@ -60,7 +58,6 @@ export const findNodeCommand: Command = navigationCommand(
   }
 );
 
-// === Zoom (not implemented) ===
 
 const createZoomCommand = (name: string, aliases: string[], description: string): Command =>
   navigationCommand(name, description, () => failure('Zoom functionality not yet implemented'), { aliases, examples: [name] });
@@ -69,7 +66,6 @@ export const zoomInCommand = createZoomCommand('zoom-in', ['zoom+', 'zi'], 'Zoom
 export const zoomOutCommand = createZoomCommand('zoom-out', ['zoom-'], 'Zoom out');
 export const zoomResetCommand = createZoomCommand('zoom-reset', ['zoom-fit', 'fit'], 'Reset zoom');
 
-// === Scroll/Pan ===
 
 const createScrollCommand = (name: string, aliases: string[], description: string, dx: number, dy: number): Command =>
   navigationCommand(
@@ -90,7 +86,6 @@ export const scrollDownCommand = createScrollCommand('scroll-down', ['ctrl-d'], 
 export const scrollLeftCommand = createScrollCommand('scroll-left', [], 'Pan view left', 100, 0);
 export const scrollRightCommand = createScrollCommand('scroll-right', [], 'Pan view right', -100, 0);
 
-// === Root Navigation ===
 
 export const selectRootNodeCommand: Command = navigationCommand(
   'select-root',
@@ -105,7 +100,6 @@ export const selectRootNodeCommand: Command = navigationCommand(
   { aliases: ['root', 'go-root', 'gg'], examples: ['select-root'] }
 );
 
-// === Center Node ===
 
 export const centerNodeCommand: Command = navigationCommand(
   'center-node',
@@ -126,7 +120,6 @@ export const centerNodeCommand: Command = navigationCommand(
   }
 );
 
-// === Jump to Node ===
 
 export const jumpToNodeCommand: Command = navigationCommand(
   'jump-to',
@@ -145,7 +138,6 @@ export const jumpToNodeCommand: Command = navigationCommand(
   }
 );
 
-// === Simple Direction Commands ===
 
 const createSimpleNavigationCommand = (name: string, aliases: string[], description: string, direction: Direction): Command =>
   navigationCommand(
@@ -161,7 +153,6 @@ const createSimpleNavigationCommand = (name: string, aliases: string[], descript
 export const navigateToParentCommand = createSimpleNavigationCommand('navigate-parent', ['np'], 'Navigate to parent', 'up');
 export const navigateToChildCommand = createSimpleNavigationCommand('navigate-child', ['nc'], 'Navigate to child', 'right');
 
-// === Sibling Navigation ===
 
 export const navigateToSiblingCommand: Command = navigationCommand(
   'navigate-sibling',
@@ -178,7 +169,6 @@ export const navigateToSiblingCommand: Command = navigationCommand(
   }
 );
 
-// === First/Last Child ===
 
 export const navigateToFirstChildCommand: Command = navigationCommand(
   'navigate-first-child',
@@ -202,7 +192,6 @@ export const navigateToLastChildCommand: Command = navigationCommand(
   { aliases: ['nlc'], examples: ['navigate-last-child'] }
 );
 
-// === Next/Previous with Count ===
 
 const createCountNavigationCommand = (name: string, aliases: string[], description: string, direction: Direction): Command =>
   navigationCommand(
@@ -218,7 +207,6 @@ const createCountNavigationCommand = (name: string, aliases: string[], descripti
 export const navigateToNextCommand = createCountNavigationCommand('navigate-next', ['next'], 'Navigate to next node', 'down');
 export const navigateToPreviousCommand = createCountNavigationCommand('navigate-previous', ['prev'], 'Navigate to previous node', 'up');
 
-// === Expand/Collapse ===
 
 export const expandNodeCommand: Command = navigationCommand(
   'expand-node',

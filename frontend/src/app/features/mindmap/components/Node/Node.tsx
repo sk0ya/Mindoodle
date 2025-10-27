@@ -77,7 +77,6 @@ const Node: React.FC<NodeProps> = ({
     onDragEnd
   });
 
-
   
   useEffect(() => {
     return () => {
@@ -243,7 +242,6 @@ const Node: React.FC<NodeProps> = ({
     try { dispatchCanvasEvent({ type: 'nodeContextMenu', x: e.clientX, y: e.clientY, targetNodeId: node.id }); } catch {}
   }, [node.id]);
 
-
   
   const effectiveFontSize = globalFontSize ?? settings.fontSize ?? 14;
   const wrapConfig = resolveNodeTextWrapConfig(settings, effectiveFontSize);
@@ -329,11 +327,9 @@ const Node: React.FC<NodeProps> = ({
         nodeHeight={isEditing && editHeight !== null ? editHeight : nodeHeight}
       />
 
-
     </g>
   );
 };
-
 
 export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
   // Node content and position changes

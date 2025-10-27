@@ -23,7 +23,6 @@ import { COLORS } from '@shared/constants';
 import type { MindMapStore } from '../types';
 import { createNewNode, nearestNonTableSiblingMeta } from './helpers';
 
-// === Helpers ===
 
 const beginHistoryGroup = (get: () => MindMapStore, type: string, pasteInProgress?: boolean) => {
   if (pasteInProgress) return;
@@ -196,7 +195,6 @@ const updateSelection = (state: MindMapStore, nodeId: string, previousNodeId?: s
   state.selectedNodeId = nodeId;
 };
 
-// === Operations ===
 
 export function createCRUDOperations(
   set: (fn: (state: MindMapStore) => void) => void,
