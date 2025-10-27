@@ -230,7 +230,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       event.stopPropagation();
       try {
         handlers.closeAttachmentAndLinkLists();
-        await commands.execute(key === 'Enter' ? 'add-sibling' : 'add-child');
+        void commands.execute(key === 'Enter' ? 'add-sibling' : 'add-child').catch(() => {});
       } catch {}
       return;
     }
