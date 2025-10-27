@@ -1,6 +1,5 @@
 import { useCallback } from 'react';
-import { useMindMapStore } from '../../store';
-import { findNodeInRoots } from '@mindmap/utils';
+// removed unused imports
 import { statusMessages } from '@shared/utils';
 import type { MindMapNode } from '@shared/types';
 

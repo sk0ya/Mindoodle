@@ -25,12 +25,7 @@ export interface FileBasedSearchResult {
 const matchesQuery = (text: string | undefined, query: string): boolean =>
   text?.toLowerCase().includes(query.toLowerCase().trim()) ?? false;
 
-function* walkNodes(nodes: MindMapNode[]): Generator<MindMapNode> {
-  for (const node of nodes) {
-    yield node;
-    if (node.children) yield* walkNodes(node.children);
-  }
-}
+// removed unused walkNodes generator
 
 export function searchNodesRecursively(
   node: MindMapNode,

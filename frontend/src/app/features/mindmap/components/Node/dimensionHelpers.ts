@@ -1,7 +1,7 @@
 import type { MindMapNode } from '@shared/types';
 import type { DisplayEntry } from './nodeRendererHelpers';
 
-export const parseImageDimensions = (entry: DisplayEntry, index: number): { width: number; height: number } | null => {
+export const parseImageDimensions = (entry: DisplayEntry, _index: number): { width: number; height: number } | null => {
   if (entry.kind !== 'image' || entry.subType !== 'html') return null;
 
   const wMatch = /\swidth=["']?(\d+)(?:px)?["']?/i.exec(entry.tag);
@@ -41,7 +41,7 @@ export const calculateImagePosition = (
     : node.y - nodeHeight / 2 + 4
 });
 
-export const constrainDimensions = (width: number, height: number, aspectRatio: number) => {
+export const constrainDimensions = (width: number, _height: number, aspectRatio: number) => {
   const MIN_WIDTH = 50;
   const MAX_WIDTH = 400;
   const newWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, width));

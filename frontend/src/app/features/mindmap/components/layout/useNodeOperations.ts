@@ -47,7 +47,7 @@ export const useNodeOperations = ({
     );
   }, [ui.clipboard, store, updateNode, selectNode, showNotification]);
 
-  const handleAddChild = useCallback((parentId: string, text?: string): string => {
+  const handleAddChild = useCallback((parentId: string, text?: string): string | undefined => {
     return store.addChildNode(parentId, text || 'New Node');
   }, [store]);
 

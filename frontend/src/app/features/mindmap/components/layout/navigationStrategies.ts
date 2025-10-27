@@ -1,6 +1,6 @@
 import type { MindMapNode } from '@shared/types';
-import { findNodeById, getFirstVisibleChild, findNodeBySpatialDirection } from '@mindmap/utils';
-import { getSiblingNodes, findParentNode } from '@mindmap/selectors/mindMapSelectors';
+import { getFirstVisibleChild, findNodeBySpatialDirection } from '@mindmap/utils';
+import { getSiblingNodes } from '@mindmap/selectors/mindMapSelectors';
 import { findClosestChild } from './shortcutHandlerUtils';
 
 export type NavigationDirection = 'up' | 'down' | 'left' | 'right';

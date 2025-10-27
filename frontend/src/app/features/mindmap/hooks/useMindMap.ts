@@ -427,7 +427,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           .then(ts => ts ? new Date(ts).toISOString() : new Date().toISOString())
           .catch(() => new Date().toISOString());
 
-        const parsed = createMapData(mapId, workspaceId, parseResult.rootNodes, fileLastModified);
+        const parsed = createMapData(mapId || '', workspaceId || '', parseResult.rootNodes, String(fileLastModified));
         actionsHook.selectMap(parsed);
 
         try {

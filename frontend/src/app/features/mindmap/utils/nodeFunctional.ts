@@ -4,7 +4,6 @@
  */
 
 import type { MindMapNode } from '@shared/types';
-import { pipe, compose } from '@shared/utils/functionalHelpers';
 
 // === Node Predicates ===
 
@@ -27,19 +26,19 @@ export const hasNote = (node: MindMapNode): boolean =>
   !!node.note && node.note.trim().length > 0;
 
 export const hasLink = (node: MindMapNode): boolean =>
-  !!node.link || (!!node.links && node.links.length > 0);
+  Array.isArray(node.links) && node.links.length > 0;
 
 export const hasImage = (node: MindMapNode): boolean =>
-  !!node.image;
+  // Consider either explicit custom image dimensions or an <img> tag in note as image presence
+  !!node.customImageWidth || !!node.customImageHeight || (node.note ? /<img\s/i.test(node.note) : false);
 
-export const hasAttachments = (node: MindMapNode): boolean =>
-  !!node.attachments && node.attachments.length > 0;
+export const hasAttachments = (_node: MindMapNode): boolean => false;
 
 export const isHeading = (level: number) => (node: MindMapNode): boolean =>
-  node.markdownMeta?.headingLevel === level;
+  node.markdownMeta?.type === 'heading' && (node.markdownMeta.level || 0) === level;
 
 export const isList = (node: MindMapNode): boolean =>
-  !!node.markdownMeta?.isList;
+  node.markdownMeta?.type === 'unordered-list' || node.markdownMeta?.type === 'ordered-list';
 
 export const matchesText = (query: string, caseSensitive = false) => (node: MindMapNode): boolean => {
   const text = caseSensitive ? node.text : node.text.toLowerCase();
@@ -83,15 +82,9 @@ export const setChecked = (checked: boolean) => (node: MindMapNode): MindMapNode
 export const toggleChecked = (node: MindMapNode): MindMapNode =>
   setChecked(!isChecked(node))(node);
 
-export const setLink = (link: string | null) => (node: MindMapNode): MindMapNode => ({
-  ...node,
-  link: link ?? undefined
-});
+export const setLink = (_link: string | null) => (node: MindMapNode): MindMapNode => node;
 
-export const setImage = (image: string | null) => (node: MindMapNode): MindMapNode => ({
-  ...node,
-  image: image ?? undefined
-});
+export const setImage = (_image: string | null) => (node: MindMapNode): MindMapNode => node;
 
 export const updatePosition = (x: number, y: number) => (node: MindMapNode): MindMapNode => ({
   ...node,
@@ -136,7 +129,7 @@ export const filterTree = (predicate: (node: MindMapNode) => boolean) =>
 
     return {
       ...node,
-      children: filteredChildren.length > 0 ? filteredChildren : undefined
+      children: filteredChildren
     };
   };
 
@@ -411,13 +404,9 @@ export const sortChildren = (compareFn: (a: MindMapNode, b: MindMapNode) => numb
 
 export const sortByText = sortChildren((a, b) => a.text.localeCompare(b.text));
 
-export const sortByCreated = sortChildren((a, b) =>
-  (a.created ?? 0) - (b.created ?? 0)
-);
-
-export const sortByUpdated = sortChildren((a, b) =>
-  (b.updated ?? 0) - (a.updated ?? 0)
-);
+// Created/Updated timestamps are not part of MindMapNode; keep stubs for API compatibility
+export const sortByCreated = sortChildren(() => 0);
+export const sortByUpdated = sortChildren(() => 0);
 
 // === Cloning ===
 

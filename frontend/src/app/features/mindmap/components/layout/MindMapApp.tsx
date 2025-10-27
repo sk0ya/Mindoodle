@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useMarkdownOperations, useEditorEffects, useCommandExecution } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
 import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
-import { nodeToMarkdown, useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
+import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
 import PrimarySidebarContainer from './sidebar/PrimarySidebarContainer';
 import TopLeftTitlePanel from './panel/TopLeftTitlePanel';
@@ -17,7 +17,7 @@ import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
 import { MindMapController } from '@mindmap/controllers/MindMapController';
-import { logger, statusMessages } from '@shared/utils';
+import { logger } from '@shared/utils';
 import './MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
@@ -143,7 +143,6 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     finishEditing,
 
     // UI操作
-    closeAllPanels,
     setZoom,
     setPan,
     setEditText,
@@ -414,7 +413,7 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   // Type-safe shortcut handler wiring via parameter inference
   type KeyboardShortcutHandlersT = Parameters<typeof useKeyboardShortcuts>[0];
   useKeyboardShortcuts(shortcutHandlers as unknown as KeyboardShortcutHandlersT, vim);
-  const handleCloseLinkActionMenu = closeLinkActionMenu;
+  // no-op: removed unused alias
 
   type CommandsHandlers = Parameters<typeof useCommands>[0]['handlers'];
   const commands = useCommands({

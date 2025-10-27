@@ -61,10 +61,7 @@ interface VimActions {
 
 export interface VimModeHook extends VimState, VimActions {}
 
-const createStateUpdater = <K extends keyof Omit<VimState, 'isEnabled'>>(
-  setState: React.Dispatch<React.SetStateAction<Omit<VimState, 'isEnabled'>>>,
-  updates: Partial<Omit<VimState, 'isEnabled'>>
-) => () => setState(prev => ({ ...prev, ...updates }));
+// removed unused helper createStateUpdater
 
 const rebuildMappingsSource = () => {
   try {

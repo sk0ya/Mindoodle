@@ -13,6 +13,7 @@ import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
 import { EmbeddingIntegration } from '@core/services/EmbeddingIntegration';
 import type { MindMapNode, NodeLink, MapIdentifier, MindMapData } from '@shared/types';
 import type { VimContextType } from '../../../vim/context/vimContext';
+import type { CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
 
 interface MindMapAppModalsContainerProps {
   // Modals state
@@ -68,7 +69,7 @@ interface MindMapAppModalsContainerProps {
   onCloseTableEditor: () => void;
   onTableEditorSave: (markdown: string) => void;
   onAuthModalClose: () => void;
-  onAuthModalSuccess: () => void;
+  onAuthModalSuccess: (authenticatedAdapter: CloudStorageAdapter) => void;
   onCloseKnowledgeGraph: () => void;
 
   // Node operations
@@ -78,7 +79,7 @@ interface MindMapAppModalsContainerProps {
     onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
     onCopyNode: (node: MindMapNode) => void;
     onPasteNode: (parentId: string) => Promise<void>;
-    onAddChild: (parentId: string, text?: string) => string;
+    onAddChild: (parentId: string, text?: string) => string | undefined;
   };
 
   // Storage & Mind Map

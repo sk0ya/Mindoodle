@@ -203,9 +203,9 @@ export const sortTree = <T extends TreeNode>(
 export const buildTree = <T extends { id: string; parentId?: string | null }>(
   items: T[],
   rootParentId: string | null = null
-): Array<T & { children?: Array<T & { children?: unknown }> }> => {
-  const itemMap = new Map(items.map(item => [item.id, { ...item, children: [] }]));
-  const roots: Array<T & { children?: Array<T & { children?: unknown }> }> = [];
+): Array<T & { children?: T[] }> => {
+  const itemMap = new Map<string, T & { children: T[] }>(items.map(item => [item.id, { ...(item as T), children: [] }]));
+  const roots: Array<T & { children?: T[] }> = [];
 
   for (const item of items) {
     const node = itemMap.get(item.id)!;
@@ -228,9 +228,11 @@ export const treeToFlat = <T extends TreeNode>(
   childrenKey: keyof T = 'children' as keyof T
 ): Array<T & { parentId: string | null }> =>
   nodes.flatMap(node => {
-    const { [childrenKey]: children, ...rest } = node;
+    const children = (node as any)[childrenKey] as T[] | undefined;
+    const rest = { ...(node as any) } as T;
+    delete (rest as any)[childrenKey as any];
     return [
-      { ...rest, parentId } as T & { parentId: string | null },
-      ...(children?.length ? treeToFlat(children as T[], node.id, childrenKey) : [])
+      { ...(rest as any), parentId } as T & { parentId: string | null },
+      ...(children?.length ? treeToFlat(children, node.id, childrenKey) : [])
     ];
   });

@@ -265,7 +265,9 @@ export function createCRUDOperations(
           newNodeId = newNode.id;
 
           const childIds = state.normalizedData.childrenMap[parentId] || [];
-          const childNodes = childIds.map((id: string) => state.normalizedData?.nodes[id]).filter(Boolean);
+          const childNodes = childIds
+            .map((id: string) => state.normalizedData?.nodes[id])
+            .filter((n): n is MindMapNode => Boolean(n));
 
           // Calculate position
           calculateNodePosition(newNode, parentNode, state.settings, { x: parentNode.x, y: parentNode.y });

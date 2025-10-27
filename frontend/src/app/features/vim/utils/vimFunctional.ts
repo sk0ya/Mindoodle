@@ -5,7 +5,7 @@
 
 import type { VimMode } from '../hooks/useVimMode';
 import type { MindMapNode } from '@shared/types';
-import { pipe } from '@shared/utils/functionalHelpers';
+// removed unused pipe import
 
 // === Mode Predicates ===
 
@@ -121,7 +121,7 @@ export const nodeIsChecked = (node: MindMapNode): boolean =>
   !!node.markdownMeta?.isChecked;
 
 export const nodeHasLink = (node: MindMapNode): boolean =>
-  !!node.link || (!!node.links && node.links.length > 0);
+  Array.isArray(node.links) && node.links.length > 0;
 
 // === Node Transformations ===
 

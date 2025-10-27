@@ -113,7 +113,7 @@ export const createNodeCommand = (config: {
   description: string;
   category?: 'editing' | 'navigation' | 'utility';
   args?: Command['args'];
-  execute: (nodeId: string, node: ReturnType<CommandContext['handlers']['findNodeById']>, context: CommandContext) => void | Promise<void>;
+  execute: (nodeId: string, node: NonNullable<ReturnType<CommandContext['handlers']['findNodeById']>>, context: CommandContext) => void | Promise<void>;
   successMsg: (node: NonNullable<ReturnType<CommandContext['handlers']['findNodeById']>>) => string;
   repeatable?: boolean;
   countable?: boolean;

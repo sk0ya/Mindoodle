@@ -42,7 +42,7 @@ export const useBooleanStates = <T extends string>(
  * Stable callback that never changes reference
  * Eliminates need for useCallback with dependencies
  */
-export const useStableCallback = <T extends (...args: unknown[]) => unknown>(
+export const useStableCallback = <T extends (...args: any[]) => any>(
   callback: T
 ): T => {
   const callbackRef = useRef(callback);
@@ -57,7 +57,7 @@ export const useStableCallback = <T extends (...args: unknown[]) => unknown>(
 /**
  * Create multiple stable callbacks at once
  */
-export const useStableCallbacks = <T extends Record<string, (...args: unknown[]) => unknown>>(
+export const useStableCallbacks = <T extends Record<string, (...args: any[]) => any>>(
   callbacks: T
 ): T => {
   const refs = useRef(callbacks);
@@ -69,7 +69,7 @@ export const useStableCallbacks = <T extends Record<string, (...args: unknown[])
   return useMemo(
     () =>
       Object.keys(callbacks).reduce((acc, key) => {
-        acc[key as keyof T] = ((...args: unknown[]) =>
+        acc[key as keyof T] = ((...args: any[]) =>
           refs.current[key as keyof T](...args)
         ) as T[keyof T];
         return acc;
@@ -147,7 +147,7 @@ export const useDerived = <T, Deps extends readonly unknown[]>(
 /**
  * Create multiple derived values at once
  */
-export const useDerivedValues = <T extends Record<string, () => unknown>>(
+export const useDerivedValues = <T extends Record<string, () => any>>(
   computations: T
 ): { [K in keyof T]: ReturnType<T[K]> } =>
   useMemo(
@@ -212,7 +212,7 @@ export const useStateObject = <T extends Record<string, unknown>>(
             [k]: typeof value === 'function' ? (value as (prev: T[typeof k]) => T[typeof k])(prev[k]) : value
           }));
         return acc;
-      }, {} as Record<string, (value: unknown) => void>),
+      }, {} as Record<string, (value: any) => void>),
     []
   );
 
@@ -309,7 +309,7 @@ export const useDebounced = <T>(value: T, delay: number): T => {
 /**
  * Debounced callback
  */
-export const useDebouncedCallback = <T extends (...args: unknown[]) => unknown>(
+export const useDebouncedCallback = <T extends (...args: any[]) => any>(
   callback: T,
   delay: number
 ): T => {
@@ -324,7 +324,7 @@ export const useDebouncedCallback = <T extends (...args: unknown[]) => unknown>(
 /**
  * Throttled callback
  */
-export const useThrottledCallback = <T extends (...args: unknown[]) => unknown>(
+export const useThrottledCallback = <T extends (...args: any[]) => any>(
   callback: T,
   limit: number
 ): T => {
