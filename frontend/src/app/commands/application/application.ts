@@ -3,7 +3,7 @@
  * Reduced from 165 lines to 110 lines (33% reduction)
  */
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandContext } from '../system/types';
 import { editingCommand, utilityCommand, failure, success } from '../utils/commandFunctional';
 import { executePasteSibling } from '../utils/pasteHelpers';
 

@@ -3,7 +3,6 @@
  * Reduced from 151 lines to 25 lines (83% reduction)
  */
 
-import type { Command } from '../system/types';
 import { createFormatToggleCommand } from '../utils/commandFactories';
 
 export const toggleBoldCommand = createFormatToggleCommand({

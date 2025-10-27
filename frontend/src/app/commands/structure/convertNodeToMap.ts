@@ -3,7 +3,7 @@
  * Reduced from 112 lines to 80 lines (29% reduction)
  */
 
-import type { Command, CommandContext, CommandResult, ArgsMap } from '../system/types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import { nodeToMarkdown } from '@markdown/markdownExport';

@@ -3,7 +3,7 @@
  * Reduced from 218 lines to 128 lines (41% reduction)
  */
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandResult } from '../system/types';
 import type { MapIdentifier } from '@shared/types';
 import { utilityCommand, applicationCommand, failure, success } from '../utils/commandFunctional';
 

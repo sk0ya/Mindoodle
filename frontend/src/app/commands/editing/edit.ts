@@ -3,7 +3,7 @@
  * Reduced from 229 lines to 165 lines (28% reduction)
  */
 
-import type { Command, CommandContext } from '../system/types';
+import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
 import { editingCommand, failure, success, withCount } from '../utils/commandFunctional';
 

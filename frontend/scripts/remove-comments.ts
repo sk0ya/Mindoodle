@@ -5,9 +5,22 @@ import strip from "strip-comments";
 const targetDir = path.resolve("src");
 const exts = [".ts", ".tsx", ".js", ".jsx"];
 
+function protectSpecialBlockComments(input: string): string {
+  // Protect block comments containing TS/ESLint hints by turning /* into /*! so strip keeps them
+  return input.replace(/\/\*([\s\S]*?)\*\//g, (m) => {
+    const body = m.slice(2, -2);
+    if (/@ts-|ts-expect-error|eslint|tslint|istanbul|<reference|@jsx|@jsxRuntime/i.test(body)) {
+      return `/*!${body}*/`;
+    }
+    return m;
+  });
+}
+
 function removeCommentsFromFile(filePath: string) {
   const code = fs.readFileSync(filePath, "utf8");
-  const cleaned = strip(code, { safe: false });
+  const protectedCode = protectSpecialBlockComments(code);
+  // Strip only block comments to avoid breaking 'http://' in strings
+  const cleaned = strip.block(protectedCode, { keepProtected: true, preserveNewlines: true } as any);
   fs.writeFileSync(filePath, cleaned, "utf8");
   console.log(`🧹 Cleaned: ${filePath}`);
 }

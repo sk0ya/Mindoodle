@@ -3,7 +3,7 @@
  * Reduced from 162 lines to 143 lines (12% reduction)
  */
 
-import type { Command, CommandContext, CommandResult } from '../system/types';
+import type { Command, CommandContext } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { editingCommand, failure, success } from '../utils/commandFunctional';
 
