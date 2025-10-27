@@ -1,9 +1,9 @@
 import React from 'react';
-import type { Header, EditingCell } from '../../utils/table-editor/types';
+import type { TableCell, EditingCell } from '../../utils/table-editor/types';
 
 interface TableHeaderCellProps {
   index: number;
-  header: Header;
+  header: TableCell;
   editingCell: EditingCell | null;
   isSelected: boolean;
   isDragOver: boolean;

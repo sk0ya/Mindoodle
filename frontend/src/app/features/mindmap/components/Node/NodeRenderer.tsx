@@ -202,6 +202,19 @@ interface NodeRendererProps {
     [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight, node.id]
   );
 
+  // Use the image resize hook - MUST be defined before using isResizing
+  const { isResizing, localDims, handleResizePointerDown } = useImageResize({
+    node,
+    svgRef,
+    zoom,
+    pan,
+    imageDimensions,
+    slotIndex,
+    displayEntries,
+    onUpdateNode,
+    onAutoLayout
+  });
+
   // 決定した画像サイズに基づき、一度だけ自動レイアウトを発火
   const lastLayoutKeyRef = useRef<string | null>(null);
   useEffect(() => {
@@ -215,19 +228,6 @@ interface NodeRendererProps {
       onAutoLayout();
     });
   }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, slotIndex, isResizing]);
-
-  // Use the image resize hook
-  const { isResizing, localDims, handleResizePointerDown } = useImageResize({
-    node,
-    svgRef,
-    zoom,
-    pan,
-    imageDimensions,
-    slotIndex,
-    displayEntries,
-    onUpdateNode,
-    onAutoLayout
-  });
 
   const handleImageDoubleClick = useCallback((e: React.MouseEvent, file: FileAttachment & { isImage?: boolean }) => {
     e.stopPropagation();

@@ -46,9 +46,7 @@ const createSiblingCommand = (name: string, aliases: string[], description: stri
       const node = context.handlers.findNodeById(nodeId);
       if (!node) return failure(`Node ${nodeId} not found`);
 
-      const newNodeId = insertAfter
-        ? await context.handlers.addSiblingNode(nodeId, text, startEdit)
-        : await context.handlers.addSiblingBefore(nodeId, text, startEdit);
+      const newNodeId = await context.handlers.addSiblingNode(nodeId, text, startEdit, insertAfter);
 
       if (!newNodeId) return failure('Failed to create sibling node');
 
