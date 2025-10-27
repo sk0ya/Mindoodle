@@ -7,14 +7,10 @@ import ActivityBar from './common/ActivityBar';
 import PrimarySidebarContainer from './sidebar/PrimarySidebarContainer';
 import TopLeftTitlePanel from './panel/TopLeftTitlePanel';
 import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
-import MindMapModals from '../modals/MindMapModals';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
-import MindMapLinkOverlays from './overlay/MindMapLinkOverlays';
 import SelectedNodeNotePanel from '../panels/SelectedNodeNotePanel';
 import MarkdownPanelContainer from './panel/NodeNotesPanelContainer';
-import MindMapContextMenuOverlay from './overlay/MindMapContextMenuOverlay';
-import ImageModal from '../modals/ImageModal';
 import { useNotification, useErrorHandler, useGlobalErrorHandlers } from '@shared/hooks';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { useTheme } from '../../../theme/hooks/useTheme';
@@ -22,20 +18,12 @@ import { useMindMapModals } from './useMindMapModals';
 import MindMapProviders from './MindMapProviders';
 import { MindMapController } from '@mindmap/controllers/MindMapController';
 import { logger, statusMessages } from '@shared/utils';
-import MindMapOverlays from './overlay/MindMapOverlays';
 import './MindMapApp.css';
 import { useVim, VimProvider } from "../../../vim/context/vimContext";
-import { JumpyLabels } from "../../../vim";
-import VimStatusBar from "../VimStatusBar";
-import CommandPalette from '@shared/components/CommandPalette';
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
-import { AuthModal } from '@shared/components';
 
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
-import TableEditorModal from '../../../markdown/components/TableEditorModal';
-import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
-import { EmbeddingIntegration } from '@core/services/EmbeddingIntegration';
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 import type { StorageConfig } from '@core/types';
@@ -43,6 +31,9 @@ import type { StorageConfig } from '@core/types';
 import { useShortcutHandlers } from './useShortcutHandlers';
 import { useMindMapEventHandlers } from './useMindMapEventHandlers';
 import { useMindMapViewportEffects } from './useMindMapViewportEffects';
+import { MindMapAppModalsContainer } from './MindMapAppModalsContainer';
+import { useNodeOperations } from './useNodeOperations';
+import { useContextMenuHandlers } from './useContextMenuHandlers';
 
 interface MindMapAppProps {
   storageMode?: 'local' ;
@@ -438,6 +429,23 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     showNotification,
   });
 
+  const { nodeOperations, findNode, handleCopyNode, handlePasteNode } = useNodeOperations({
+    data,
+    ui,
+    updateNode,
+    selectNode,
+    deleteNode,
+    showNotification,
+  });
+
+  const { handleMarkdownNodeType, handleAddLinkFromContextMenu } = useContextMenuHandlers({
+    data,
+    markdownSync,
+    store,
+    selectNode,
+    handleContextMenuClose,
+  });
+
   // Convert node to map handler - defined after commands is initialized
   const handleConvertToMap = useCallback(async (nodeId: string) => {
     try {
@@ -729,180 +737,65 @@ const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         </div>
       </div>
 
-      <MindMapModals
-        ui={ui}
-        selectedNodeId={selectedNodeId}
-        nodeOperations={{
-          findNode: (nodeId: string) => findNodeInRoots(data?.rootNodes || [], nodeId),
-          onDeleteNode: deleteNode,
-          onUpdateNode: updateNode,
-          onCopyNode: (node: MindMapNode) => {
-            // 内部クリップボードに保存
-            store.setClipboard(node);
-            // システムクリップボードにMarkdownで書き出し
-            navigator.clipboard?.writeText?.(nodeToMarkdown(node)).catch(() => { });
-            showNotification('success', `「${node.text}」をコピーしました`);
-          },
-          onPasteNode: async (parentId: string) => {
-            const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
-            await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
-          },
-          onAddChild: (parentId: string, text?: string) => {
-            return store.addChildNode(parentId, text || 'New Node');
-          }
-        }}
-        uiOperations={{
-          onCloseContextMenu: closeAllPanels,
-          onCloseImageModal: handleCloseImageModal,
-          onCloseFileActionMenu: closeAllPanels,
-          onShowImageModal: handleShowImageModal
-        }}
-      />
-
-      <MindMapOverlays
+      <MindMapAppModalsContainer
         showKeyboardHelper={showKeyboardHelper}
         setShowKeyboardHelper={setShowKeyboardHelper}
-      />
-
-      <JumpyLabels vim={vim} />
-      <VimStatusBar vim={vim} />
-
-      <MindMapLinkOverlays
-        allMaps={allMindMaps.map((map: import('@shared/types').MindMapData) => ({
-          mapIdentifier: map.mapIdentifier,
-          title: map.title,
-        }))}
-        currentMapData={data}
         showLinkModal={showLinkModal}
         linkModalNodeId={linkModalNodeId}
         editingLink={editingLink}
+        showLinkActionMenu={showLinkActionMenu}
+        linkActionMenuData={linkActionMenuData}
+        showImageModal={showImageModal}
+        currentImageUrl={currentImageUrl}
+        currentImageAlt={currentImageAlt}
+        showTableEditor={showTableEditor}
+        editingTableNodeId={editingTableNodeId}
+        isAuthModalOpen={isAuthModalOpen}
+        authCloudAdapter={authCloudAdapter}
+        showKnowledgeGraph={!!store.ui.showKnowledgeGraph}
+        commandPaletteIsOpen={commandPalette.isOpen}
+        commandPaletteClose={commandPalette.close}
+        data={data}
+        allMindMaps={allMindMaps}
+        ui={ui}
+        selectedNodeId={selectedNodeId}
+        explorerTree={explorerTree}
+        vim={vim}
+        commands={commands}
+        onCloseKeyboardHelper={() => setShowKeyboardHelper(false)}
         onCloseLinkModal={closeLinkModal}
         onSaveLink={handleSaveLink}
         onDeleteLink={handleDeleteLink}
         onLoadMapData={loadMapData}
-        loadExplorerTree={async () => explorerTree}
-        showLinkActionMenu={showLinkActionMenu}
-        linkActionMenuData={linkActionMenuData}
-        onCloseLinkActionMenu={handleCloseLinkActionMenu}
+        onCloseLinkActionMenu={closeLinkActionMenu}
         onNavigate={handleLinkNavigate2}
-      />
-
-      {}
-
-      <MindMapContextMenuOverlay
-        dataRoot={data?.rootNodes?.[0] || null}
-        dataRoots={data?.rootNodes || []}
-        onDelete={deleteNode}
-        onAddLink={(nodeId) => {
-          setLinkModalNodeId(nodeId);
-          setShowLinkModal(true);
-          handleContextMenuClose();
-        }}
+        onCloseContextMenu={handleContextMenuClose}
+        onDeleteNode={deleteNode}
+        onAddLink={(nodeId) => handleAddLinkFromContextMenu(nodeId, setLinkModalNodeId, setShowLinkModal)}
         onCopyNode={(nodeId) => {
-          const nodeToFind = findNodeInRoots(data?.rootNodes || [], nodeId);
-          if (!nodeToFind) return;
-          store.setClipboard(nodeToFind);
-          const markdownText = nodeToMarkdown(nodeToFind);
-          navigator.clipboard?.writeText?.(markdownText).catch(() => { });
-          showNotification('success', `「${nodeToFind.text}」をコピーしました`);
+          const node = findNode(nodeId);
+          if (node) handleCopyNode(node);
         }}
-        onPasteNode={async (parentId: string) => {
-          const { pasteFromClipboard } = await import('../../utils/clipboardPaste');
-          await pasteFromClipboard(parentId, ui.clipboard, store.addChildNode, updateNode, selectNode, showNotification);
+        onPasteNode={async (parentId) => {
+          await handlePasteNode(parentId);
           handleContextMenuClose();
         }}
         onEditTable={handleEditTable}
         onConvertToMap={handleConvertToMap}
-        commandRegistry={commands.registry}
-        commandContext={commands.context}
-        onMarkdownNodeType={(nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => {
-          if (data?.rootNodes?.[0]) {
-            
-            handleContextMenuClose();
-
-            // Type: changeNodeType callback receives nodes or error object
-            markdownSync.changeNodeType(data.rootNodes, nodeId, newType, (updatedNodes) => {
-              const nodesWithError = updatedNodes as unknown as { __conversionError?: string };
-              if (nodesWithError.__conversionError) {
-                const errorMessage = nodesWithError.__conversionError;
-                let typeDisplayName: string;
-                if (newType === 'heading') typeDisplayName = '見出し';
-                else if (newType === 'unordered-list') typeDisplayName = '箇条書きリスト';
-                else typeDisplayName = '番号付きリスト';
-                statusMessages.customError(`${typeDisplayName}への変換に失敗しました: ${errorMessage}`);
-                return;
-              }
-
-              // Type: Store extension with setRootNodes method
-              const storeWithSetRootNodes = store as unknown as {
-                setRootNodes: (nodes: MindMapNode[], options: { emit: boolean; source: string }) => void;
-              };
-              storeWithSetRootNodes.setRootNodes(updatedNodes, { emit: true, source: 'contextMenu.changeNodeType' });
-              
-              try { store.applyAutoLayout(); } catch {}
-              
-              setTimeout(() => {
-                try { selectNode(nodeId); } catch {  }
-              }, 0);
-            });
-          }
-        }}
-        onAIGenerate={undefined}
-        onClose={handleContextMenuClose}
-      />
-
-      {}
-      <ImageModal
-        isOpen={showImageModal}
-        imageUrl={currentImageUrl}
-        altText={currentImageAlt}
-        onClose={handleCloseImageModal}
-      />
-
-      {}
-      <CommandPalette
-        isOpen={commandPalette.isOpen}
-        onClose={commandPalette.close}
+        onMarkdownNodeType={handleMarkdownNodeType}
+        onCloseImageModal={handleCloseImageModal}
+        onShowImageModal={handleShowImageModal}
         onExecuteCommand={handleExecuteCommand}
-        onSelectMap={async (mapId) => {
-          await selectMapById(mapId);
-        }}
+        onSelectMap={selectMapById}
+        onCloseTableEditor={handleCloseTableEditor}
+        onTableEditorSave={handleTableEditorSave}
+        onAuthModalClose={handleAuthModalClose}
+        onAuthModalSuccess={handleAuthModalSuccess}
+        onCloseKnowledgeGraph={() => store.setShowKnowledgeGraph?.(false)}
+        nodeOperations={nodeOperations}
         storageAdapter={mindMap?.storageAdapter ?? undefined}
+        mindMap={mindMap}
       />
-
-      {}
-      {isAuthModalOpen && authCloudAdapter && (
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          cloudAdapter={authCloudAdapter}
-          onClose={handleAuthModalClose}
-          onSuccess={handleAuthModalSuccess}
-        />
-      )}
-
-      {}
-      <TableEditorModal
-        isOpen={showTableEditor}
-        onClose={handleCloseTableEditor}
-        onSave={handleTableEditorSave}
-        initialMarkdown={
-          editingTableNodeId
-            ? (findNodeInRoots(data?.rootNodes || [], editingTableNodeId)?.text || '')
-            : ''
-        }
-      />
-
-      {/* Knowledge Graph Modal */}
-      <KnowledgeGraphModal2D
-        isOpen={!!store.ui.showKnowledgeGraph}
-        onClose={() => store.setShowKnowledgeGraph?.(false)}
-        mapIdentifier={data?.mapIdentifier || null}
-        getMapMarkdown={mindMap.getMapMarkdown}
-        getWorkspaceMapIdentifiers={(mindMap)?.getWorkspaceMapIdentifiers}
-      />
-
-      {/* Embedding Integration (監視のみ、レンダリングなし) */}
-      <EmbeddingIntegration />
     </div>
   );
 };
