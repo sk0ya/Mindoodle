@@ -2,7 +2,7 @@ import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from '
 import MermaidRenderer from './MermaidRenderer';
 import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode, FileAttachment } from '@shared/types';
-import { useResizingState, useHoverState } from '@shared/hooks';
+import { useHoverState } from '@shared/hooks';
 import {
   getBaseNodeStyles,
   getSelectionBorderStyles,
@@ -10,11 +10,22 @@ import {
   DEFAULT_ANIMATION_CONFIG
 } from '@mindmap/handlers/BaseRenderer';
 import {
-  parseTableFromString,
   extractDisplayEntries,
   displayEntriesToFileAttachments,
   type DisplayEntry
 } from './nodeRendererHelpers';
+import { PaginationControl } from './PaginationControl';
+import { CheckboxNode } from './CheckboxNode';
+import { TableNodeContent } from './TableNodeContent';
+import { ImageNodeContent } from './ImageNodeContent';
+import { ResizeHandle } from './ResizeHandle';
+import { useImageResize } from './useImageResize';
+import {
+  parseImageDimensions,
+  calculateImageDimensions,
+  calculateImagePosition,
+  getEntryKey
+} from './dimensionHelpers';
 
 interface NodeRendererProps {
   node: MindMapNode;
@@ -76,12 +87,6 @@ interface NodeRendererProps {
   onToggleCheckbox
 }) => {
   const { settings, normalizedData } = useMindMapStore();
-
-  
-  const { isResizing, startResizing, stopResizing } = useResizingState();
-  const [resizeStartPos, setResizeStartPos] = useState({ x: 0, y: 0 });
-  const [resizeStartSize, setResizeStartSize] = useState({ width: 0, height: 0 });
-  const [originalAspectRatio, setOriginalAspectRatio] = useState(1);
 
   
   const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
@@ -191,42 +196,11 @@ interface NodeRendererProps {
   
 
 
-  const parseNoteSizeByIndex = useCallback((index: number): { width: number; height: number } | null => {
-    const entry = displayEntries[index];
-    if (!entry || entry.kind !== 'image' || entry.subType !== 'html') {
-      return null;
-    }
-
-    const tag = entry.tag;
-    const wRe = /\swidth=["']?(\d+)(?:px)?["']?/i;
-    const hRe = /\sheight=["']?(\d+)(?:px)?["']?/i;
-    const wMatch = wRe.exec(tag);
-    const hMatch = hRe.exec(tag);
-    if (!wMatch || !hMatch) return null;
-    const w = parseInt(wMatch[1], 10);
-    const h = parseInt(hMatch[1], 10);
-    if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
-      return { width: w, height: h };
-    }
-    return null;
-  }, [displayEntries]);
-
-  // (old parseNoteImageSizeByIndex removed; merged into parseNoteSizeByIndex)
-
-  // サイズ（カスタムがあれば優先、なければノート内のHTML画像サイズ属性を使用）
-  const noteSize = currentEntry ? parseNoteSizeByIndex(slotIndex) : null;
-
-
-  // If table node, prefer using existing node size props
-  const imageDimensions = useMemo(() => {
-    const imageDimensionsBase = node.customImageWidth && node.customImageHeight
-      ? { width: node.customImageWidth, height: node.customImageHeight }
-      : noteSize || { width: 150, height: 105 };
-
-    return (node.kind === 'table')
-      ? { width: node.customImageWidth ?? Math.max(50, nodeWidth - 10), height: node.customImageHeight ?? imageHeight }
-      : imageDimensionsBase;
-  }, [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight, node.id]);
+  const noteSize = currentEntry ? parseImageDimensions(currentEntry, slotIndex) : null;
+  const imageDimensions = useMemo(
+    () => calculateImageDimensions(node, noteSize, nodeWidth, imageHeight),
+    [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight, node.id]
+  );
 
   // 決定した画像サイズに基づき、一度だけ自動レイアウトを発火
   const lastLayoutKeyRef = useRef<string | null>(null);
@@ -242,138 +216,18 @@ interface NodeRendererProps {
     });
   }, [onAutoLayout, node.id, imageDimensions.width, imageDimensions.height, slotIndex, isResizing]);
 
-  // 画像リサイズハンドラー
-  const [localDims, setLocalDims] = useState<{ width: number; height: number } | null>(null);
-  const handleResizeStart = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-
-    if (!onUpdateNode) return;
-    if (!svgRef.current) return;
-
-    const svgRect = svgRef.current.getBoundingClientRect();
-    const scale = zoom * 1.5; // match CanvasRenderer group scale
-    const currentDimensions = imageDimensions;
-
-    startResizing();
-    setResizeStartPos({
-      x: (e.clientX - svgRect.left) / scale - pan.x,
-      y: (e.clientY - svgRect.top) / scale - pan.y
-    });
-    setResizeStartSize({
-      width: currentDimensions.width,
-      height: currentDimensions.height
-    });
-    setOriginalAspectRatio(currentDimensions.width / currentDimensions.height);
-    setLocalDims({ width: currentDimensions.width, height: currentDimensions.height });
-  }, [imageDimensions, onUpdateNode, svgRef, zoom, pan, startResizing]);
-
-  const handleResizeMove = useCallback((e: MouseEvent) => {
-    if (!isResizing || !onUpdateNode || !svgRef.current) return;
-
-    const svgRect = svgRef.current.getBoundingClientRect();
-    const scale = zoom * 1.5; // match CanvasRenderer group scale
-    const currentPos = {
-      x: (e.clientX - svgRect.left) / scale - pan.x,
-      y: (e.clientY - svgRect.top) / scale - pan.y
-    };
-
-    const deltaX = currentPos.x - resizeStartPos.x;
-    const deltaY = currentPos.y - resizeStartPos.y;
-
-    // 対角線方向の距離を計算
-    const diagonal = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    const direction = deltaX + deltaY > 0 ? 1 : -1;
-
-    // 最小・最大サイズの制限
-    const minWidth = 50;
-    const maxWidth = 400;
-    const newWidth = Math.max(minWidth, Math.min(maxWidth, resizeStartSize.width + diagonal * direction));
-    const newHeight = newWidth / originalAspectRatio;
-
-    setLocalDims({ width: Math.round(newWidth), height: Math.round(newHeight) });
-  }, [isResizing, onUpdateNode, svgRef, zoom, pan, resizeStartPos, resizeStartSize, originalAspectRatio]);
-
-  const handleResizePointerDown = useCallback((e: React.PointerEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    try {
-      const target = e.currentTarget;
-      if (target && 'setPointerCapture' in target && typeof target.setPointerCapture === 'function') {
-        target.setPointerCapture(e.pointerId);
-      }
-    } catch {}
-    handleResizeStart(e as unknown as React.MouseEvent);
-  }, [handleResizeStart]);
-
-  const updateNoteImageSizeByIndex = useCallback((note: string | undefined, index: number, w: number, h: number): string | undefined => {
-    if (!note) return note;
-    const entry = displayEntries[index];
-    if (!entry) return note;
-    if (entry.kind !== 'image') return note;
-    const width = Math.round(w);
-    const height = Math.round(h);
-    let replacement: string;
-    const imgEntry = entry;
-    if (imgEntry.subType === 'html') {
-      replacement = imgEntry.tag
-        .replace(/\swidth=["']?\d+(?:px)?["']?/ig, '')
-        .replace(/\sheight=["']?\d+(?:px)?["']?/ig, '')
-        .replace(/<img([^>]*)>/i, (_m, attrs: string) => `<img${attrs} width="${width}" height="${height}">`);
-    } else {
-      replacement = `<img src="${imgEntry.url}" width="${width}" height="${height}">`;
-    }
-    return note.slice(0, imgEntry.start) + replacement + note.slice(imgEntry.end);
-  }, [displayEntries]);
-
-  const handleResizeEnd = useCallback(() => {
-    if (!isResizing) return;
-    stopResizing();
-
-    const finalW = Math.round(localDims?.width ?? imageDimensions.width);
-    const finalH = Math.round(localDims?.height ?? imageDimensions.height);
-
-
-    if (onUpdateNode) {
-      const updates: Partial<MindMapNode> & { note?: string } = { customImageWidth: finalW, customImageHeight: finalH };
-      // Only update note markup when resizing embedded note images
-      if (node.kind !== 'table') {
-        const maybeUpdatedNote = updateNoteImageSizeByIndex(node.note, slotIndex, finalW, finalH);
-        if (maybeUpdatedNote && maybeUpdatedNote !== node.note) {
-          updates.note = maybeUpdatedNote;
-        }
-      }
-      onUpdateNode(node.id, updates);
-    }
-
-    setLocalDims(null);
-    if (onAutoLayout) {
-      requestAnimationFrame(() => { onAutoLayout(); });
-    }
-  }, [isResizing, stopResizing, onAutoLayout, onUpdateNode, node.id, node.kind, node.note, imageDimensions.width, imageDimensions.height, slotIndex, localDims, updateNoteImageSizeByIndex]);
-
-  // マウス/ポインタイベントリスナーの管理（foreignObject越境対策）
-  useEffect(() => {
-    if (isResizing) {
-      const mouseMove = (e: MouseEvent) => handleResizeMove(e);
-      const mouseUp = () => handleResizeEnd();
-      const pointerMove = (e: PointerEvent) => handleResizeMove(e as unknown as MouseEvent);
-      const pointerUp = () => handleResizeEnd();
-
-      window.addEventListener('mousemove', mouseMove);
-      window.addEventListener('mouseup', mouseUp);
-      window.addEventListener('pointermove', pointerMove);
-      window.addEventListener('pointerup', pointerUp);
-
-      return () => {
-        window.removeEventListener('mousemove', mouseMove);
-        window.removeEventListener('mouseup', mouseUp);
-        window.removeEventListener('pointermove', pointerMove);
-        window.removeEventListener('pointerup', pointerUp);
-      };
-    }
-    return undefined;
-  }, [isResizing, handleResizeMove, handleResizeEnd]);
+  // Use the image resize hook
+  const { isResizing, localDims, handleResizePointerDown } = useImageResize({
+    node,
+    svgRef,
+    zoom,
+    pan,
+    imageDimensions,
+    slotIndex,
+    displayEntries,
+    onUpdateNode,
+    onAutoLayout
+  });
 
   const handleImageDoubleClick = useCallback((e: React.MouseEvent, file: FileAttachment & { isImage?: boolean }) => {
     e.stopPropagation();
@@ -431,41 +285,20 @@ interface NodeRendererProps {
     }
   }, [onShowFileActionMenu, node.id]);
 
-  // 画像位置計算を統一（ノード上部に配置、4pxマージン）
   const renderDims = localDims || imageDimensions;
-  const imageY = node.kind === 'table'
-    ? node.y - renderDims.height / 2  // テーブルは実際のレンダリングサイズの中心に配置
-    : node.y - nodeHeight / 2 + 4;    // 他のノードは従来通り
-  const imageX = node.x - renderDims.width / 2;
+  const { x: imageX, y: imageY } = calculateImagePosition(node, renderDims, nodeHeight);
 
-  // no-op
-
-  // A) 画像/Mermaidを切り替えたら、そのエントリ固有のサイズに合わせる
-  // エントリキー（画像:URL / Mermaid:コード先頭と長さ）
-  const getEntryKey = useCallback((entry?: DisplayEntry): string => {
-    if (!entry) return 'none';
-    if (entry.kind === 'image') return `img:${entry.url}`;
-    if (entry.kind === 'mermaid') {
-      const code = entry.code || '';
-      return `mmd:${code.length}:${code.slice(0, 50)}`;
-    }
-    return 'none';
-  }, []);
   const prevEntryKeyRef = useRef<string>('');
   useEffect(() => {
     type TableNode = MindMapNode & { tableData?: { headers?: string[]; rows?: string[][] } };
     const key = node.kind === 'table' ? `tbl:${(node as TableNode).tableData?.rows?.length || 0}` : getEntryKey(currentEntry);
     if (key !== prevEntryKeyRef.current) {
       prevEntryKeyRef.current = key;
-      // 新しいエントリの自然サイズに合わせるため、一旦カスタムサイズを解除
-      setLocalDims(null);
       if (onUpdateNode) {
         onUpdateNode(node.id, { customImageWidth: undefined as unknown as number, customImageHeight: undefined as unknown as number });
       }
-      // autoLayoutはsize決定後（onLoadやonLoadedDimensions後）に発火する既存ロジックで反映
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentEntry, node.id, node.kind, getEntryKey, onUpdateNode]);
+  }, [currentEntry, node.id, node.kind, onUpdateNode]);
 
   // 表示中の画像に合わせてノードの画像サイズを更新
   const handleImageLoadDimensions = useCallback((w: number, h: number) => {
@@ -503,14 +336,10 @@ interface NodeRendererProps {
   const nodeStyles = getBaseNodeStyles(renderingState, themeConfig, DEFAULT_ANIMATION_CONFIG);
   const backgroundFill = getBackgroundFill(themeConfig);
 
-  // 画像もMermaidもなく、かつテーブルノードでもない場合は背景のみ
   if (!currentEntry && node.kind !== 'table') {
-    // 正規化データを優先して、最新の状態を即座に反映
     const normalizedNode = normalizedData?.nodes[node.id];
     const isCheckboxNode = normalizedNode?.markdownMeta?.isCheckbox ?? node.markdownMeta?.isCheckbox ?? false;
     const isChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta?.isChecked ?? false;
-    const checkboxSize = 16;
-    const checkboxMargin = 8;
 
     return (
       <g>
@@ -536,39 +365,13 @@ interface NodeRendererProps {
           onDragOver={onDragOver}
           onDrop={onDrop}
         />
-
-        {}
         {isCheckboxNode && (
-          <g>
-            {}
-            <rect
-              x={nodeLeftX + checkboxMargin}
-              y={node.y - checkboxSize / 2}
-              width={checkboxSize}
-              height={checkboxSize}
-              fill={isChecked ? '#4caf50' : 'white'}
-              stroke={isChecked ? '#4caf50' : '#ccc'}
-              strokeWidth="1"
-              rx="2"
-              ry="2"
-              onClick={handleCheckboxClick}
-              style={{ cursor: 'pointer' }}
-            />
-
-            {}
-            {isChecked && (
-              <path
-                d={`M${nodeLeftX + checkboxMargin + 3} ${node.y - 1} L${nodeLeftX + checkboxMargin + 7} ${node.y + 3} L${nodeLeftX + checkboxMargin + 13} ${node.y - 5}`}
-                stroke="white"
-                strokeWidth="2"
-                fill="none"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                onClick={handleCheckboxClick}
-                style={{ cursor: 'pointer', pointerEvents: 'none' }}
-              />
-            )}
-          </g>
+          <CheckboxNode
+            nodeLeftX={nodeLeftX}
+            nodeY={node.y}
+            isChecked={isChecked}
+            onClick={handleCheckboxClick}
+          />
         )}
       </g>
     );
@@ -644,191 +447,28 @@ interface NodeRendererProps {
                   onMouseEnter={handleMouseEnter}
                   onMouseLeave={handleMouseLeave}
                 />
-                {}
                 {displayEntries.length > 1 && (isSelected || isHovered) && (
-                  (() => {
-                    const tiny = renderDims.width < 100;
-                    const compact = renderDims.width < 140;
-                    let fontSize = 12;
-                    if (tiny) fontSize = 9; else if (compact) fontSize = 10;
-                    let padH = '2px 6px';
-                    if (tiny) padH = '0 3px'; else if (compact) padH = '1px 4px';
-                    const btnPad = tiny ? '0 3px' : '0 4px';
-                    return (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 6,
-                          bottom: 6,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: tiny ? 2 : 4,
-                          background: 'rgba(0,0,0,0.45)',
-                          color: '#fff',
-                          borderRadius: 9999,
-                          padding: padH,
-                          pointerEvents: 'auto',
-                          lineHeight: 1
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length); }}
-                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
-                          aria-label="前の画像"
-                          title="前の画像"
-                        >
-                          ‹
-                        </button>
-                        <div style={{ fontSize: fontSize - 1 }}>{slotIndex + 1}/{displayEntries.length}</div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev + 1) % displayEntries.length); }}
-                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
-                          aria-label="次の画像"
-                          title="次の画像"
-                        >
-                          ›
-                        </button>
-                      </div>
-                    );
-                  })()
-                )}
-                {isSelected && (
-                  <div
-                    onPointerDown={handleResizePointerDown}
-                    title="サイズ変更"
-                    style={{
-                      position: 'absolute',
-                      right: 2,
-                      bottom: 2,
-                      width: 12,
-                      height: 12,
-                      background: 'white',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: 2,
-                      cursor: isResizing ? 'nw-resize' : 'se-resize',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                    }}
+                  <PaginationControl
+                    currentIndex={slotIndex}
+                    totalCount={displayEntries.length}
+                    width={renderDims.width}
+                    onPrevious={() => setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length)}
+                    onNext={() => setSlotIndex((prev) => (prev + 1) % displayEntries.length)}
                   />
                 )}
+                {isSelected && <ResizeHandle isResizing={isResizing} onPointerDown={handleResizePointerDown} />}
               </div>
             )}
             {!showMermaid && isTableNode && (
-              <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
-                   onClick={(e) => { e.stopPropagation(); if (!isSelected && onSelectNode) onSelectNode(node.id); }}
-                   onDoubleClick={(e) => { e.stopPropagation(); }}
-                   onContextMenu={onContextMenu}
-                   onMouseEnter={handleMouseEnter}
-                   onMouseLeave={handleMouseLeave}
-              >
-                <div className="table-wrap" style={{
-                  width: '100%',
-                  height: '100%',
-                  overflow: 'hidden',
-                  borderRadius: '10px',
-                  boxSizing: 'border-box',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center'
-                }}>
-                  <table style={{
-                    width: 'auto',
-                    borderCollapse: 'collapse',
-                    overflow: 'hidden',
-                    borderRadius: '10px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-                    background: 'white',
-                    fontSize: `${(settings.fontSize || node.fontSize || 14) * 0.95}px`,
-                    lineHeight: 1.5
-                  }}>
-                    {(() => {
-                      type TableNode = MindMapNode & { note?: string; tableData?: { headers?: string[]; rows?: string[][] } };
-                      const tableNode = node as TableNode;
-                      // Prefer parsing from node.text (canonical); fallback to note
-                      let parsed = parseTableFromString(node.text) || parseTableFromString(tableNode.note);
-                      if (!parsed) {
-                        const td = tableNode.tableData;
-                        if (td && Array.isArray(td.rows)) {
-                          parsed = { headers: td.headers, rows: td.rows };
-                        }
-                      }
-
-                      const headers = parsed?.headers;
-                      const dataRows = parsed?.rows || [];
-                      const rowsOrPlaceholder = headers || dataRows.length > 0 ? [headers, ...dataRows].filter(Boolean) : [['', ''], ['', '']];
-
-                      const hasHeaders = !!headers;
-
-                      return (
-                        <>
-                          {hasHeaders && (
-                            <thead>
-                              <tr>
-                                {headers.map((cell: string, ci: number) => (
-                                  <th
-                                    key={ci}
-                                    style={{
-                                      border: 0,
-                                      borderRight: ci < headers.length - 1 ? '1px solid rgba(255,255,255,0.3)' : undefined,
-                                      padding: '12px 16px',
-                                      verticalAlign: 'middle',
-                                      fontWeight: 600,
-                                      background: '#6b7280',
-                                      color: 'white',
-                                      borderBottom: '2px solid #e2e8f0',
-                                      textAlign: 'left',
-                                      borderTopLeftRadius: ci === 0 ? '10px' : undefined,
-                                      borderTopRightRadius: ci === headers.length - 1 ? '10px' : undefined,
-                                      whiteSpace: 'nowrap'
-                                    }}
-                                  >{cell}</th>
-                                ))}
-                              </tr>
-                            </thead>
-                          )}
-                          <tbody>
-                            {(hasHeaders ? dataRows : rowsOrPlaceholder).filter((row): row is string[] => !!row).map((row: string[], ri: number) => {
-                              const isLastRow = ri === (hasHeaders ? dataRows : rowsOrPlaceholder).length - 1;
-                              return (
-                                <tr
-                                  key={ri}
-                                  style={{
-                                    transition: 'background 0.15s ease'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.currentTarget.style.background = '#f9fafb';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.currentTarget.style.background = ri % 2 === 0 ? 'white' : '#fcfcfd';
-                                  }}
-                                >
-                                  {row.map((cell: string, ci: number) => (
-                                    <td
-                                      key={ci}
-                                      style={{
-                                        border: 0,
-                                        padding: '12px 16px',
-                                        verticalAlign: 'middle',
-                                        background: ri % 2 === 0 ? 'white' : '#fcfcfd',
-                                        color: 'black',
-                                        borderTop: ri > 0 ? '1px solid #f1f5f9' : undefined,
-                                        borderBottomLeftRadius: isLastRow && ci === 0 ? '10px' : undefined,
-                                        borderBottomRightRadius: isLastRow && ci === row.length - 1 ? '10px' : undefined,
-                                        whiteSpace: 'nowrap'
-                                      }}
-                                    >{cell}</td>
-                                  ))}
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </>
-                      );
-                    })()}
-                  </table>
-                </div>
-                {}
-              </div>
+              <TableNodeContent
+                node={node}
+                fontSize={settings.fontSize || node.fontSize || 14}
+                isSelected={isSelected}
+                onSelect={() => onSelectNode?.(node.id)}
+                onContextMenu={onContextMenu}
+                onMouseEnter={handleMouseEnter}
+                onMouseLeave={handleMouseLeave}
+              />
             )}
             {!showMermaid && !isTableNode && (
               <div style={{
@@ -852,189 +492,33 @@ interface NodeRendererProps {
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
               >
-                {currentImage && (() => {
-                  const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
-
-                  // 画像のソースURL決定
-                  let imageSrc = '';
-
-                  if (relativeFile.isRelativeLocal && relativeFile.downloadUrl) {
-                    // 相対パスの場合：解決済みDataURLのみ使用（まだ解決されていない場合はローディング表示）
-                    imageSrc = resolvedImageUrls[relativeFile.downloadUrl] || '';
-
-                    if (!imageSrc) {
-                      // まだ読み込み中
-                      return (
-                        <div style={{
-                          width: '100%',
-                          height: '100%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          background: '#f3f4f6',
-                          color: '#6b7280',
-                          fontSize: '12px',
-                          fontFamily: 'system-ui, sans-serif'
-                        }}>
-                          画像を読み込み中...
-                        </div>
-                      );
-                    }
-                  } else {
-                    // 絶対URLまたはDataURLの場合：優先順位に従って選択
-                    imageSrc = currentImage.dataURL || currentImage.downloadUrl || currentImage.data || '';
-                  }
-
-                  // 画像ソースが無効な場合はプレースホルダーを表示
-                  if (!imageSrc) {
-                    return (
-                      <div style={{
-                        width: '100%',
-                        height: '100%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: '#f3f4f6',
-                        color: '#6b7280',
-                        fontSize: '12px',
-                        fontFamily: 'system-ui, sans-serif'
-                      }}>
-                        画像を読み込めません
-                      </div>
-                    );
-                  }
-
-                  return (
-                    <img
-                      src={imageSrc}
-                      alt={currentImage.name || '画像'}
-                      style={{
-                        maxWidth: '100%',
-                        maxHeight: '100%',
-                        width: 'auto',
-                        height: 'auto',
-                        objectFit: 'contain',
-                        cursor: 'pointer',
-                        transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                        display: 'block',
-                        margin: '0 auto'
-                      }}
-                      onClick={(e) => handleImageClick(e, currentImage)}
-                      onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
-                      onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
-                      onError={(e) => {
-                        console.warn('[NodeRenderer] 画像の読み込みに失敗:', {
-                          name: currentImage.name,
-                          src: imageSrc,
-                          isRelative: relativeFile.isRelativeLocal
-                        });
-                        // エラー時はalt属性でフォールバック表示
-                        const img = e.currentTarget;
-                        img.style.display = 'none';
-                        const parent = img.parentElement;
-                        if (parent) {
-                          const errorDiv = document.createElement('div');
-                          errorDiv.style.cssText = `
-                            width: 100%;
-                            height: 100%;
-                            display: flex;
-                            align-items: center;
-                            justify-content: center;
-                            background: #fef2f2;
-                            color: #dc2626;
-                            fontSize: 12px;
-                            fontFamily: system-ui, sans-serif;
-                            text-align: center;
-                            padding: 8px;
-                          `;
-                          errorDiv.textContent = `画像の読み込みに失敗しました\n${currentImage.name}`;
-                          parent.appendChild(errorDiv);
-                        }
-                      }}
-                      onLoad={(e) => {
-                        const img = e.currentTarget as HTMLImageElement;
-                        const w = img.naturalWidth || 0;
-                        const h = img.naturalHeight || 0;
-                        if (w > 0 && h > 0) {
-                          handleImageLoadDimensions(w, h);
-                        }
-                      }}
-                    />
-                  );
-                })()}
-
-                {}
-                {displayEntries.length > 1 && (isSelected || isHovered) && (
-                  (() => {
-                    const tiny = imageDimensions.width < 100;
-                    const compact = imageDimensions.width < 140;
-                    let fontSize = 12;
-                    if (tiny) fontSize = 9;
-                    else if (compact) fontSize = 10;
-
-                    let padH = '2px 6px';
-                    if (tiny) padH = '0 3px';
-                    else if (compact) padH = '1px 4px';
-
-                    const btnPad = tiny ? '0 3px' : '0 4px';
-                    return (
-                      <div
-                        style={{
-                          position: 'absolute',
-                          left: 6,
-                          bottom: 6,
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: tiny ? 2 : 4,
-                          background: 'rgba(0,0,0,0.45)',
-                          color: '#fff',
-                          borderRadius: 9999,
-                          padding: padH,
-                          pointerEvents: 'auto',
-                          lineHeight: 1
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length); }}
-                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
-                          aria-label="前の画像"
-                          title="前の画像"
-                        >
-                          ‹
-                        </button>
-                        <div style={{ fontSize: fontSize - 1 }}>{slotIndex + 1}/{displayEntries.length}</div>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setSlotIndex((prev) => (prev + 1) % displayEntries.length); }}
-                          style={{ background: 'transparent', color: '#fff', border: 'none', padding: btnPad, cursor: 'pointer', fontSize }}
-                          aria-label="次の画像"
-                          title="次の画像"
-                        >
-                          ›
-                        </button>
-                      </div>
-                    );
-                  })()
-                )}
-
-                {isSelected && (
-                  <div
-                    onPointerDown={handleResizePointerDown}
-                    title="サイズ変更"
-                    style={{
-                      position: 'absolute',
-                      right: 2,
-                      bottom: 2,
-                      width: 12,
-                      height: 12,
-                      background: 'white',
-                      border: '1px solid #bfdbfe',
-                      borderRadius: 2,
-                      cursor: isResizing ? 'nw-resize' : 'se-resize',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                    }}
+                {currentImage && (
+                  <ImageNodeContent
+                    image={currentImage}
+                    resolvedUrl={(() => {
+                      const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
+                      return relativeFile.isRelativeLocal && relativeFile.downloadUrl
+                        ? resolvedImageUrls[relativeFile.downloadUrl]
+                        : undefined;
+                    })()}
+                    onClick={(e) => handleImageClick(e, currentImage)}
+                    onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
+                    onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
+                    onLoad={handleImageLoadDimensions}
                   />
                 )}
+
+                {displayEntries.length > 1 && (isSelected || isHovered) && (
+                  <PaginationControl
+                    currentIndex={slotIndex}
+                    totalCount={displayEntries.length}
+                    width={imageDimensions.width}
+                    onPrevious={() => setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length)}
+                    onNext={() => setSlotIndex((prev) => (prev + 1) % displayEntries.length)}
+                  />
+                )}
+
+                {isSelected && <ResizeHandle isResizing={isResizing} onPointerDown={handleResizePointerDown} />}
 
               </div>
             )}
