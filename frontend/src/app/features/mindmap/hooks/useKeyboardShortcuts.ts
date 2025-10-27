@@ -44,305 +44,220 @@ interface KeyboardShortcutHandlers {
   closeAttachmentAndLinkLists: () => void;
   onMarkdownNodeType?: (_nodeId: string, _newType: MarkdownNodeType) => void;
   centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
-  
   switchToPrevMap?: () => void;
   switchToNextMap?: () => void;
 }
 
-function handleStandardShortcut(
+const isModifier = (event: KeyboardEvent): boolean => event.ctrlKey || event.metaKey;
+
+const handleStandardShortcut = (
   event: KeyboardEvent,
   commands: UseCommandsReturn,
   handlers: KeyboardShortcutHandlers
-): boolean {
-  const { key, ctrlKey, metaKey, shiftKey } = event;
-  const isModifier = ctrlKey || metaKey;
+): boolean => {
+  const { key, shiftKey, selectedNodeId } = { ...event, selectedNodeId: handlers.selectedNodeId };
+  const mod = isModifier(event);
 
-  
-  if (!isModifier && handlers.selectedNodeId) {
-    if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(key)) {
+  if (!mod && selectedNodeId) {
+    const arrowDir: Record<string, Direction> = {
+      ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right'
+    };
+
+    if (arrowDir[key]) {
       event.preventDefault();
-      const direction = key.replace('Arrow', '').toLowerCase() as Direction;
-      commands.execute(`arrow-navigate --direction ${direction}`);
+      commands.execute(`arrow-navigate --direction ${arrowDir[key]}`);
       return true;
     }
 
-    
-    if (key === 'Tab') {
-      
+    const actions: Record<string, string> = {
+      Tab: 'add-child',
+      Enter: 'add-sibling',
+      Delete: 'delete',
+      Backspace: 'delete'
+    };
+
+    if (actions[key]) {
       event.preventDefault();
       handlers.closeAttachmentAndLinkLists();
-      commands.execute('add-child');
-      return true;
-    }
-    if (key === 'Enter') {
-      event.preventDefault();
-      handlers.closeAttachmentAndLinkLists();
-      commands.execute('add-sibling');
-      return true;
-    }
-    if (key === 'Delete' || key === 'Backspace') {
-      event.preventDefault();
-      handlers.closeAttachmentAndLinkLists();
-      commands.execute('delete');
+      commands.execute(actions[key]);
       return true;
     }
   }
 
-
-  if (isModifier) {
-
-    switch (key.toLowerCase()) {
-      case 'n':
-        event.preventDefault();
-        commands.execute('switch-map --direction next');
-        return true;
+  if (mod) {
+    if (key.toLowerCase() === 'n') {
+      event.preventDefault();
+      commands.execute('switch-map --direction next');
+      return true;
     }
 
-    
-    if (!handlers.selectedNodeId) {
-      return false;
-    }
-    switch (key.toLowerCase()) {
-      case 'c':
+    if (!selectedNodeId) return false;
+
+    const modActions: Record<string, string> = {
+      c: shiftKey ? 'copy-text' : 'copy',
+      v: '',
+      z: shiftKey ? 'redo' : 'undo',
+      y: 'redo'
+    };
+
+    const action = modActions[key.toLowerCase()];
+    if (action !== undefined) {
+      if (action) {
         event.preventDefault();
-        commands.execute(shiftKey ? 'copy-text' : 'copy');
-        return true;
-      case 'v':
-        
-        return true;
-      case 'z':
-        event.preventDefault();
-        if (shiftKey) {
-          commands.execute('redo');
-        } else {
-          commands.execute('undo');
-        }
-        return true;
-      case 'y':
-        event.preventDefault();
-        commands.execute('redo');
-        return true;
+        commands.execute(action);
+      }
+      return true;
     }
   }
 
   return false;
-}
-
-
+};
 
 export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: VimModeHook) => {
-
-  
   const commands = useCommands({
     selectedNodeId: handlers.selectedNodeId,
     editingNodeId: handlers.editingNodeId,
     vim,
     handlers: {
       ...handlers,
-      
       switchToNextMap: handlers.switchToNextMap,
       switchToPrevMap: handlers.switchToPrevMap,
     }
   });
 
   const handlePaste = async (evt: ClipboardEvent) => {
-      const event = evt; // alias for clarity; expected ClipboardEvent
-      try {
-        
-        const activeEl = (document.activeElement as HTMLElement | null);
-        const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
-        const isInTextInput = !!activeEl && (
-          activeEl.tagName === 'INPUT' ||
-          activeEl.tagName === 'TEXTAREA' ||
-          activeEl.contentEditable === 'true'
-        );
-        if (monacoFocused || isInTextInput) {
+    try {
+      const activeEl = document.activeElement as HTMLElement | null;
+      const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
+      const isInTextInput = !!activeEl && (
+        activeEl.tagName === 'INPUT' ||
+        activeEl.tagName === 'TEXTAREA' ||
+        activeEl.contentEditable === 'true'
+      );
+
+      if (monacoFocused || isInTextInput || !handlers.selectedNodeId) return;
+
+      const dt = evt.clipboardData;
+      if (!dt) return;
+
+      const items = Array.from(dt.items || []);
+      const imageItem = items.find(it => it.kind === 'file' && it.type?.startsWith('image/'));
+
+      if (!imageItem && dt.files) {
+        const imageFile = Array.from(dt.files).find(f => f.type?.startsWith('image/'));
+        if (imageFile) {
+          evt.preventDefault();
+          await handlers.pasteImageFromClipboard(handlers.selectedNodeId, imageFile as File);
           return;
         }
+      }
 
-        
-        if (!handlers.selectedNodeId) return;
-
-        const dt = event.clipboardData;
-        if (!dt) return;
-
-
-        const items = dt.items || [];
-        let imageItem: DataTransferItem | null = null;
-        for (let i = 0; i < items.length; i++) {
-          const it = items[i];
-          if (it && it.kind === 'file' && it.type && it.type.startsWith('image/')) {
-            imageItem = it;
-            break;
-          }
-        }
-
-        
-        if (!imageItem && dt.files && dt.files.length > 0) {
-          for (let i = 0; i < dt.files.length; i++) {
-            const f = dt.files[i];
-            if (f && f.type && f.type.startsWith('image/')) {
-              
-              
-              
-              event.preventDefault();
-              await handlers.pasteImageFromClipboard(handlers.selectedNodeId, f as unknown as File);
-              return;
-            }
-          }
-        }
-
-        if (imageItem) {
-          const type = imageItem.type || 'image/png';
-          const blob = imageItem.getAsFile();
-          if (blob) {
-            event.preventDefault();
-            const ext = (type.split('/')[1] || 'png');
-            const file = new File([blob], `image-${Date.now()}.${ext}`, { type });
-            await handlers.pasteImageFromClipboard(handlers.selectedNodeId, file);
-            return;
-          }
-        }
-
-
-        event.preventDefault();
-        await commands.execute('paste');
-      } catch (e) {
-        console.warn('Paste primary attempt failed:', e);
-        event.preventDefault();
-        // Fallback without throwing
-        try {
-          await commands.execute('paste');
-        } catch (fallbackError) {
-          console.error('Paste fallback failed:', fallbackError);
+      if (imageItem) {
+        const blob = imageItem.getAsFile();
+        if (blob) {
+          evt.preventDefault();
+          const ext = (imageItem.type.split('/')[1] || 'png');
+          const file = new File([blob], `image-${Date.now()}.${ext}`, { type: imageItem.type });
+          await handlers.pasteImageFromClipboard(handlers.selectedNodeId, file);
+          return;
         }
       }
-    };
+
+      evt.preventDefault();
+      await commands.execute('paste');
+    } catch (e) {
+      console.warn('Paste primary attempt failed:', e);
+      evt.preventDefault();
+      try {
+        await commands.execute('paste');
+      } catch (fallbackError) {
+        console.error('Paste fallback failed:', fallbackError);
+      }
+    }
+  };
 
   const handleKeyDown = (event: KeyboardEvent) => {
-      
+    try {
+      const activeEl = document.activeElement as HTMLElement | null;
+      const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
+      if (monacoFocused) return;
+    } catch {}
+
+    const target = event.target as HTMLElement;
+    const isInTextInput = target.tagName === 'INPUT' ||
+      target.tagName === 'TEXTAREA' ||
+      target.contentEditable === 'true';
+    const isInCodeMirrorEditor = target.closest('.cm-editor') !== null;
+
+    if (isInTextInput || isInCodeMirrorEditor) {
+      if (handlers.editingNodeId && !isInCodeMirrorEditor && ['Enter', 'Tab', 'Escape'].includes(event.key)) {
+        event.preventDefault();
+        handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
+          if (vim?.isEnabled) vim.setMode('normal');
+        });
+      }
+      return;
+    }
+
+    const { key, ctrlKey, metaKey, altKey } = event;
+    const mod = isModifier(event);
+
+    if (mod && !altKey && (key === 'b' || key === 'B')) {
+      event.preventDefault();
       try {
-        const activeEl = (document.activeElement as HTMLElement | null);
-        const monacoFocused = !!(activeEl && (activeEl.closest('.monaco-editor') || activeEl.classList?.contains('monaco-editor')));
-        if (monacoFocused) {
-          return; 
-        }
+        const { ui, setActiveView } = useMindMapStore.getState();
+        setActiveView(ui?.activeView ? null : 'maps');
       } catch {}
-      
-      const target = event.target as HTMLElement;
-      const isInTextInput = target.tagName === 'INPUT' ||
-        target.tagName === 'TEXTAREA' ||
-        target.contentEditable === 'true';
-      const isInCodeMirrorEditor = target.closest('.cm-editor') !== null;
+      return;
+    }
 
-      if (isInTextInput || isInCodeMirrorEditor) {
-
-        if (handlers.editingNodeId && !isInCodeMirrorEditor && (event.key === 'Enter' || event.key === 'Tab' || event.key === 'Escape')) {
-          event.preventDefault();
-          handlers.finishEdit(handlers.editingNodeId, handlers.editText).then(() => {
-            if (vim && vim.isEnabled) vim.setMode('normal');
-          });
-          return;
-        }
-
-        return;
-      }
-
-      const { key, ctrlKey, metaKey, altKey } = event;
-      const isModifier = ctrlKey || metaKey;
-
-      
-      
-      if ((ctrlKey || metaKey) && !altKey && (key === 'b' || key === 'B')) {
+    if (mod && !altKey) {
+      if (event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
-        try {
-          const { ui, setActiveView } = useMindMapStore.getState();
-          const next = ui?.activeView ? null : 'maps';
-          setActiveView(next);
-        } catch {}
+        commands.execute('toggle-node-note-panel').catch(err => console.warn('toggle-node-note-panel failed', err));
         return;
       }
-
-      
-      if ((ctrlKey || metaKey) && !altKey && event.shiftKey && (key === 'm' || key === 'M')) {
+      if (!event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
-        commands.execute('toggle-node-note-panel').catch(err => {
-          console.warn('toggle-node-note-panel failed', err);
-        });
+        commands.execute('toggle-markdown-panel').catch(err => console.warn('toggle-markdown-panel failed', err));
         return;
       }
+    }
 
-      
-      if ((ctrlKey || metaKey) && !altKey && !event.shiftKey && (key === 'm' || key === 'M')) {
-        event.preventDefault();
-        commands.execute('toggle-markdown-panel').catch(err => {
-          console.warn('toggle-markdown-panel failed', err);
-        });
-        return;
-      }
+    if (vim?.isEnabled) {
+      if (vim.mode === 'search' || vim.mode === 'command') return;
 
-      
-      if (vim && vim.isEnabled && vim.mode === 'search') {
-        
-        return;
-      }
-
-      
-      if (vim && vim.isEnabled && vim.mode === 'jumpy') {
-        const { key } = event;
-
+      if (vim.mode === 'jumpy') {
         if (key === 'Escape') {
           event.preventDefault();
           vim.exitJumpy();
-          return;
         } else if (key === 'Enter' && vim.jumpyBuffer) {
           event.preventDefault();
-          
           const exactMatch = vim.jumpyLabels.find(jl => jl.label === vim.jumpyBuffer);
           if (exactMatch) {
-            const { selectNode } = useMindMapStore.getState();
-            selectNode(exactMatch.nodeId);
+            useMindMapStore.getState().selectNode(exactMatch.nodeId);
             vim.exitJumpy();
           }
-          return;
-        } else if (key.length === 1 && !event.ctrlKey && !event.metaKey && !event.altKey) {
+        } else if (key.length === 1 && !ctrlKey && !metaKey && !altKey && JUMP_CHARS.includes(key.toLowerCase())) {
           event.preventDefault();
-          
-          if (JUMP_CHARS.includes(key.toLowerCase())) {
-            vim.jumpToNode(key.toLowerCase());
-            return;
-          }
+          vim.jumpToNode(key.toLowerCase());
         }
         return;
       }
 
-      
-      if (vim && vim.isEnabled && vim.mode === 'command') {
-        
-        return;
-      }
-
-      
-      if (vim && vim.isEnabled && vim.mode === 'normal') {
-        
+      if (vim.mode === 'normal') {
         const { settings } = useMindMapStore.getState();
-        const customMap: Record<string, string> = (settings?.vimCustomKeybindings || {});
-        let leader: string = (settings?.vimLeader ?? ',');
+        const customMap: Record<string, string> = settings?.vimCustomKeybindings || {};
+        let leader: string = settings?.vimLeader ?? ',';
         if (typeof leader !== 'string' || leader.length !== 1) leader = ',';
 
-        
-        const expandLhs = (lhs: string): string => {
-          let out = lhs.replace(/<\s*leader\s*>/ig, leader);
-          out = out.replace(/<\s*space\s*>/ig, ' ');
-          return out;
-        };
+        const expandLhs = (lhs: string): string =>
+          lhs.replace(/<\s*leader\s*>/ig, leader).replace(/<\s*space\s*>/ig, ' ');
 
-        
         const expandedEntries = Object.entries(customMap).map(([lhs, cmd]) => [expandLhs(lhs), cmd]);
-        const expandedKeysStart = new Set(expandedEntries.map(([lhs]) => (lhs[0] || '')));
+        const expandedKeysStart = new Set(expandedEntries.map(([lhs]) => lhs[0] || ''));
 
-        // Handle Ctrl+U and Ctrl+D scroll commands, and map switching with Ctrl+[/]
-        if (isModifier) {
+        if (mod) {
           const lower = key.toLowerCase();
           if (lower === 'u' && ctrlKey) {
             event.preventDefault();
@@ -362,10 +277,8 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             handlers.switchToNextMap();
             return;
           }
-
         }
 
-        
         if (altKey && !ctrlKey && !metaKey) {
           const lower = key.toLowerCase();
           if (lower === 'p' && handlers.switchToPrevMap) {
@@ -379,75 +292,46 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           }
         }
 
-        
         if (key === 'Escape') {
           event.preventDefault();
-          
           if (vim.searchQuery || vim.searchResults.length > 0) {
             vim.exitSearch();
             return;
           }
         }
 
-        
-        if (!isModifier) {
-          
-          if (['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(key)) {
-            return;
-          }
-
-          
-          
-          const specialKeyMap: Record<string, string> = {};
-
-          
-          const normalizedKey = specialKeyMap[key] || key;
-
-          
+        if (!mod && !['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(key)) {
           const vimKeys = commands.getVimKeys();
-          if (vimKeys.includes(normalizedKey) || expandedKeysStart.has(normalizedKey)) {
+          if (vimKeys.includes(key) || expandedKeysStart.has(key)) {
             event.preventDefault();
             event.stopPropagation();
           }
 
-          
-          
-
-          
-          
-          
           const currentBuffer = vim.commandBuffer;
           const currentCount = vim.countBuffer;
-
-          const isDigitInput = /^\d$/.test(normalizedKey) && !currentBuffer;
-          const isValidCountStart = isDigitInput && normalizedKey !== '0' && !currentCount;
+          const isDigitInput = /^\d$/.test(key) && !currentBuffer;
+          const isValidCountStart = isDigitInput && key !== '0' && !currentCount;
           const isValidCountContinue = isDigitInput && currentCount;
 
           if (isValidCountStart || isValidCountContinue) {
-            vim.appendToCountBuffer(normalizedKey);
+            vim.appendToCountBuffer(key);
             return;
           }
 
-          
-          const testSequence = currentBuffer + normalizedKey;
-
-          
+          const testSequence = currentBuffer + key;
           const complete = expandedEntries.find(([lhs]) => lhs === testSequence);
+
           if (complete) {
             const [, rhs] = complete;
             try {
               handlers.closeAttachmentAndLinkLists();
-              
-              const isCmd = commands.isValidCommand(rhs);
-              if (isCmd) {
+              if (commands.isValidCommand(rhs)) {
                 commands.execute(rhs);
               } else {
                 const seqRes = commands.parseVimSequence(rhs);
                 if (seqRes.isComplete && seqRes.command) {
-                  
                   commands.executeVimCommand(seqRes.command, seqRes.count);
                 } else {
-                  
                   commands.execute(rhs);
                 }
               }
@@ -455,62 +339,50 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             vim.clearCommandBuffer();
             return;
           }
-          
+
           const hasPartial = expandedEntries.some(([lhs]) => lhs.startsWith(testSequence));
           if (hasPartial) {
-            vim.appendToCommandBuffer(normalizedKey);
+            vim.appendToCommandBuffer(key);
             return;
           }
 
-          
           const result = commands.parseVimSequence(testSequence);
-
           if (result.isComplete && result.command) {
-            
             handlers.closeAttachmentAndLinkLists();
-            
             const count = vim.hasCount() ? vim.getCount() : result.count;
             commands.executeVimCommand(result.command, count);
             vim.clearCommandBuffer();
-            vim.clearCountBuffer(); 
+            vim.clearCountBuffer();
             return;
           } else if (result.isPartial) {
-            
-            vim.appendToCommandBuffer(normalizedKey);
+            vim.appendToCommandBuffer(key);
             return;
           } else if (result.shouldClear) {
-            
             vim.clearCommandBuffer();
           }
 
-          
-          if (normalizedKey === ':') {
+          if (key === ':') {
             event.preventDefault();
             event.stopPropagation();
             vim.startCommandLine();
             return;
           }
 
-          
-          const singleKeyResult = commands.parseVimSequence(normalizedKey);
+          const singleKeyResult = commands.parseVimSequence(key);
           if (singleKeyResult.isComplete && singleKeyResult.command) {
             handlers.closeAttachmentAndLinkLists();
-            
             const count = vim.hasCount() ? vim.getCount() : singleKeyResult.count;
             commands.executeVimCommand(singleKeyResult.command, count);
-            vim.clearCountBuffer(); 
+            vim.clearCountBuffer();
             return;
           }
         }
       }
+    }
 
+    if (handleStandardShortcut(event, commands, handlers)) return;
+  };
 
-      if (handleStandardShortcut(event, commands, handlers)) {
-        return;
-      }
-    };
-
-  
   useEventListener('keydown', (e) => handleKeyDown(e as KeyboardEvent), { target: document, capture: true });
   useEventListener('paste', (e) => handlePaste(e as ClipboardEvent), { target: document, capture: true });
 };
