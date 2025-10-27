@@ -17,9 +17,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
   const prevConfigRef = useRef<StorageConfig | null>(null);
 
-  
+
   useEffect(() => {
-    const prevConfig = prevConfigRef.current;
+    const prevConfig = prevConfigRef?.current;
     const modeChanged = prevConfig?.mode !== config.mode;
 
     if (!prevConfig || modeChanged) {
@@ -32,8 +32,8 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         try {
           setError(null);
 
-          
-          if (adapterManager) {
+
+          if (adapterManager && typeof adapterManager.cleanup === 'function') {
             logger.debug('Cleaning up previous AdapterManager');
             adapterManager.cleanup();
           }
@@ -56,7 +56,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       initManager();
       prevConfigRef.current = config;
     }
-  }, [config, adapterManager]);
+  }, [config]);
 
   
   useEffect(() => {
