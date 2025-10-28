@@ -77,7 +77,14 @@ export default [
       'sonarjs/no-collapsible-if': 'warn',
       'sonarjs/cognitive-complexity': ['warn', 15],
       'sonarjs/no-duplicated-branches': 'error',
-      'sonarjs/no-small-switch': 'warn'
+      'sonarjs/no-small-switch': 'warn',
+
+      // 📏 ファイルと関数の肥大化ガード（段階的に導入・現在はwarn）
+      'max-lines': ['warn', { max: 500, skipBlankLines: true, skipComments: true }],
+      'max-lines-per-function': ['warn', { max: 150, skipBlankLines: true, skipComments: true, IIFEs: true }],
+      'complexity': ['warn', 12],
+      'max-depth': ['warn', 4],
+      'max-params': ['warn', 6]
     },
     settings: {
       react: { version: 'detect' }
