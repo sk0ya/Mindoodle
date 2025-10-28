@@ -47,7 +47,7 @@ interface MindMapAppContentProps extends MindMapAppProps {
   mindMap: MindMapControllerData;
 }
 
-const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
+export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   mindMap
 }) => {
 
