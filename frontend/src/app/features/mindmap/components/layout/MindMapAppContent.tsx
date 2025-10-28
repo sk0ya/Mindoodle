@@ -9,7 +9,7 @@ import TopLeftTitlePanel from './panel/TopLeftTitlePanel';
 import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
-import SelectedNodeNotePanel from '../panels/SelectedNodeNotePanel';
+import SelectedNodeNotePanelSection from './sections/SelectedNodeNotePanelSection';
 import MarkdownPanelContainer from './panel/NodeNotesPanelContainer';
 import { useNotification, useErrorHandler, useGlobalErrorHandlers } from '@shared/hooks';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
@@ -717,14 +717,11 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
           
 
-          {uiStore.showNodeNotePanel && (
-            <SelectedNodeNotePanel
-              nodeId={selectedNodeId}
-              nodeTitle={(selectedNodeId ? (findNodeInRoots(data?.rootNodes || [], selectedNodeId)?.text || '') : '')}
-              note={(selectedNodeId ? (findNodeInRoots(data?.rootNodes || [], selectedNodeId)?.note || '') : '')}
-              onChange={(val) => {
-                if (selectedNodeId) updateNode(selectedNodeId, { note: val });
-              }}
+          {uiStore.showNodeNotePanel && selectedNodeId && (
+            <SelectedNodeNotePanelSection
+              selectedNodeId={selectedNodeId}
+              data={data}
+              updateNode={updateNode}
               onClose={() => store.setShowNodeNotePanel?.(false)}
               subscribeNoteChanges={subscribeNoteChanges}
             />
