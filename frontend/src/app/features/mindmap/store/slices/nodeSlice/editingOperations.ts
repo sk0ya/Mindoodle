@@ -123,7 +123,8 @@ export function createEditingOperations(
         hasData: !!get().data,
         autoLayoutEnabled: get().data?.settings?.autoLayout
       });
-      applyAutoLayoutIfEnabled(get);
+      // Use immediate layout to ensure position is calculated with updated text
+      applyAutoLayoutIfEnabled(get, true);
     },
 
     cancelEditing: () => {
