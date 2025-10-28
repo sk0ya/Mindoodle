@@ -10,7 +10,7 @@ import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
 import SelectedNodeNotePanelSection from './sections/SelectedNodeNotePanelSection';
-import MarkdownPanelContainer from './panel/NodeNotesPanelContainer';
+import MarkdownPanelSection from './sections/MarkdownPanelSection';
 import { useNotification, useErrorHandler, useGlobalErrorHandlers } from '@shared/hooks';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { useTheme } from '../../../theme/hooks/useTheme';
@@ -22,7 +22,7 @@ import { useVim } from "../../../vim/context/vimContext";
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
 
-import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
+// moved usage into MarkdownPanelSection
 
 import type { MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 // wrapper-only StorageConfig is used in MindMapApp.tsx
@@ -700,15 +700,12 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           />
 
           {uiStore.showNotesPanel && (
-            <MarkdownPanelContainer
-              currentMapIdentifier={data ? data.mapIdentifier : null}
-              getMapMarkdown={(mindMap).getMapMarkdown}
-              onMapMarkdownInput={(mindMap).onMapMarkdownInput}
-              subscribeMarkdownFromNodes={(mindMap).subscribeMarkdownFromNodes}
-              getNodeIdByMarkdownLine={(line: number) => {
-                try {
-                  return selectNodeIdByMarkdownLine(data?.rootNodes || [], line);
-                } catch { return null; }
+            <MarkdownPanelSection
+              data={data}
+              mindMap={{
+                getMapMarkdown: (mindMap).getMapMarkdown,
+                onMapMarkdownInput: (mindMap).onMapMarkdownInput,
+                subscribeMarkdownFromNodes: (mindMap).subscribeMarkdownFromNodes,
               }}
               onSelectNode={selectNode}
               onClose={() => store.setShowNotesPanel?.(false)}
