@@ -5,6 +5,7 @@ import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
 import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
 import SidebarSection from './sections/SidebarSection';
+import { useSidebarHandlers } from './useSidebarHandlers';
 import MindMapTopBar from './sections/MindMapTopBar';
 import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
 import FolderGuideModal from '../modals/FolderGuideModal';
@@ -522,12 +523,15 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
       />
 
+      {(() => {
+        const sidebarHandlers = useSidebarHandlers({ selectMapById, selectNode, centerNodeInView, storageAdapter });
+        return (
       <SidebarSection
         activeView={activeView}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
         storageAdapter={storageAdapter || undefined}
-        onSelectMap={async (id: MapIdentifier) => {
+        onSelectMap={async (id: MapIdentifier): Promise<void> => {
           
           logger.debug('🖱️ Map clicked:', {
             clickedMapId: id.mapId,
@@ -575,62 +579,11 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           }
         }}
         currentMapData={data}
-        onMapSwitch={useCallback(
-          async (targetMapIdentifier: MapIdentifier) => {
-            const currentMapData = useMindMapStore.getState().data;
-
-            // Skip if same map is already selected
-            if (currentMapData?.mapIdentifier?.mapId === targetMapIdentifier.mapId &&
-                currentMapData?.mapIdentifier?.workspaceId === targetMapIdentifier.workspaceId) {
-              return;
-            }
-
-            await selectMapById(targetMapIdentifier);
-          },
-          [selectMapById])}
-
-        onNodeSelectByLine={useCallback(
-          async (lineNumber: number) => {
-            const currentMapData = useMindMapStore.getState().data;
-
-            if (!currentMapData || !storageAdapter) return;
-
-            try {
-              // ノードツリーを走査して、markdownMeta.lineNumberが一致するノードを見つける
-              let foundNodeId: string | null = null;
-
-              // Type: Node array with optional markdownMeta property
-              const findNodeByMarkdownLine = (nodes: MindMapNode[]): boolean => {
-                for (const node of nodes) {
-                  // markdownMetaに保存されている行番号を確認
-                  const nodeLineNumber = node.markdownMeta?.lineNumber;
-
-                  // lineNumberは0-based、検索結果のlineNumberは1-based
-                  if (typeof nodeLineNumber === 'number' && nodeLineNumber + 1 === lineNumber) {
-                    foundNodeId = node.id;
-                    return true;
-                  }
-
-                  if (node.children && node.children.length > 0 &&
-                      findNodeByMarkdownLine(node.children)) {
-                    return true;
-                  }
-                }
-                return false;
-              };
-
-              findNodeByMarkdownLine(currentMapData.rootNodes || []);
-
-              if (foundNodeId) {
-                selectNode(foundNodeId);
-                centerNodeInView(foundNodeId, false);
-              }
-            } catch (error) {
-              console.error('Error finding node by line number:', error);
-            }
-          },
-          [selectNode, centerNodeInView, storageAdapter])}
+        onMapSwitch={sidebarHandlers.onMapSwitch}
+        onNodeSelectByLine={sidebarHandlers.onNodeSelectByLine}
       />
+        );
+      })()}
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
         <FolderGuideModal
