@@ -4,7 +4,7 @@ import { useMindMapStore } from '../../store';
 import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
 import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
-import PrimarySidebarContainer from './sidebar/PrimarySidebarContainer';
+import SidebarSection from './sections/SidebarSection';
 import MindMapTopBar from './sections/MindMapTopBar';
 import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
 import FolderGuideModal from '../modals/FolderGuideModal';
@@ -522,12 +522,12 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
       />
 
-      <PrimarySidebarContainer
+      <SidebarSection
         activeView={activeView}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
         storageAdapter={storageAdapter || undefined}
-        onSelectMap={async (id) => {
+        onSelectMap={async (id: MapIdentifier) => {
           
           logger.debug('🖱️ Map clicked:', {
             clickedMapId: id.mapId,
@@ -549,8 +549,8 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onCreateMap={(title: string, workspaceId: string, category?: string) => {
           return createAndSelectMap(title, workspaceId, category);
         }}
-        onRenameMap={(id, title) => updateMapMetadata(id, { title })}
-        onChangeCategory={(id, category) => updateMapMetadata(id, { category })}
+        onRenameMap={(id: MapIdentifier, title: string) => updateMapMetadata(id, { title })}
+        onChangeCategory={(id: MapIdentifier, category: string) => updateMapMetadata(id, { category })}
         onChangeCategoryBulk={updateMultipleMapCategories}
         workspaces={workspaces}
         currentWorkspaceId={currentWorkspaceId}
