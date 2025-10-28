@@ -5,8 +5,8 @@ import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
 import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
 import PrimarySidebarContainer from './sidebar/PrimarySidebarContainer';
-import TopLeftTitlePanel from './panel/TopLeftTitlePanel';
-import MindMapWorkspaceContainer from './MindMapWorkspaceContainer';
+import MindMapTopBar from './sections/MindMapTopBar';
+import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
 import SelectedNodeNotePanelSection from './sections/SelectedNodeNotePanelSection';
@@ -638,7 +638,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           onClose={closeGuide}
           onSelectFolder={async () => { await handleSelectFolder(); markDismissed(); }}
         />
-        <TopLeftTitlePanel
+        <MindMapTopBar
           title={data?.title || ''}
           activeView={activeView}
           sidebarCollapsed={uiStore.sidebarCollapsed}
@@ -664,7 +664,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         />
 
         <div className="workspace-container">
-          <MindMapWorkspaceContainer
+          <MindMapWorkspacePane
             data={data}
             selectedNodeId={selectedNodeId}
             editingNodeId={editingNodeId}
