@@ -1,5 +1,6 @@
 import React from 'react';
-import SelectedNodeNotePanel from '../../panels/SelectedNodeNotePanel';
+// Lazy-load the Node Note panel (uses MarkdownEditor with codemirror)
+const SelectedNodeNotePanel = React.lazy(() => import('../../panels/SelectedNodeNotePanel'));
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapData, MindMapNode } from '@shared/types';
 
@@ -21,16 +22,21 @@ const SelectedNodeNotePanelSection: React.FC<Props> = ({
   if (!selectedNodeId) return null;
   const node = findNodeInRoots(data?.rootNodes || [], selectedNodeId);
   return (
-    <SelectedNodeNotePanel
-      nodeId={selectedNodeId}
-      nodeTitle={node?.text || ''}
-      note={node?.note || ''}
-      onChange={(val) => updateNode(selectedNodeId, { note: val })}
-      onClose={onClose}
-      subscribeNoteChanges={subscribeNoteChanges}
-    />
+    <React.Suspense fallback={
+      <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="text-sm" style={{ padding: 8 }}>Loading note editor…</div>
+      </div>
+    }>
+      <SelectedNodeNotePanel
+        nodeId={selectedNodeId}
+        nodeTitle={node?.text || ''}
+        note={node?.note || ''}
+        onChange={(val) => updateNode(selectedNodeId, { note: val })}
+        onClose={onClose}
+        subscribeNoteChanges={subscribeNoteChanges}
+      />
+    </React.Suspense>
   );
 };
 
 export default SelectedNodeNotePanelSection;
-

@@ -1,5 +1,6 @@
 import React from 'react';
-import MarkdownPanelContainer from '../panel/NodeNotesPanelContainer';
+// Lazy-load the Markdown panel to defer heavy editor deps (codemirror/marked/mermaid)
+const MarkdownPanelContainer = React.lazy(() => import('../panel/NodeNotesPanelContainer'));
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { selectNodeIdByMarkdownLine } from '@mindmap/selectors/mindMapSelectors';
 
@@ -16,21 +17,27 @@ interface Props {
 
 const MarkdownPanelSection: React.FC<Props> = ({ data, mindMap, onSelectNode, onClose }) => {
   return (
-    <MarkdownPanelContainer
-      currentMapIdentifier={data ? data.mapIdentifier : null}
-      getMapMarkdown={mindMap.getMapMarkdown}
-      onMapMarkdownInput={mindMap.onMapMarkdownInput}
-      subscribeMarkdownFromNodes={mindMap.subscribeMarkdownFromNodes}
-      getNodeIdByMarkdownLine={(line: number) => {
-        try {
-          return selectNodeIdByMarkdownLine(data?.rootNodes || [], line);
-        } catch {
-          return null;
-        }
-      }}
-      onSelectNode={onSelectNode}
-      onClose={onClose}
-    />
+    <React.Suspense fallback={
+      <div style={{ width: 400, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="text-sm" style={{ padding: 12 }}>Loading editor…</div>
+      </div>
+    }>
+      <MarkdownPanelContainer
+        currentMapIdentifier={data ? data.mapIdentifier : null}
+        getMapMarkdown={mindMap.getMapMarkdown}
+        onMapMarkdownInput={mindMap.onMapMarkdownInput}
+        subscribeMarkdownFromNodes={mindMap.subscribeMarkdownFromNodes}
+        getNodeIdByMarkdownLine={(line: number) => {
+          try {
+            return selectNodeIdByMarkdownLine(data?.rootNodes || [], line);
+          } catch {
+            return null;
+          }
+        }}
+        onSelectNode={onSelectNode}
+        onClose={onClose}
+      />
+    </React.Suspense>
   );
 };
 
