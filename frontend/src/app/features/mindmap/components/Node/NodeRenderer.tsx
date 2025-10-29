@@ -17,7 +17,7 @@ import {
 import { PaginationControl } from './PaginationControl';
 import { CheckboxNode } from './CheckboxNode';
 import { TableNodeContent } from './TableNodeContent';
-import { ImageNodeContent } from './ImageNodeContent';
+import ImageDisplayPane from './ImageDisplayPane';
 import { ResizeHandle } from './ResizeHandle';
 import { useImageResize } from './useImageResize';
 import {
@@ -471,43 +471,28 @@ interface NodeRendererProps {
               />
             )}
             {!showMermaid && !isTableNode && (
-              <div style={{
-                position: 'relative',
-                width: '100%',
-                height: '100%',
-                borderRadius: '6px',
-                overflow: 'hidden',
-                border: 'none',
-                boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
-                backgroundColor: 'transparent',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',
-                cursor: 'pointer'
-              }}
-              onClick={(e) => currentImage && handleImageClick(e, currentImage)}
-              onDoubleClick={(e) => currentImage && handleImageDoubleClick(e, currentImage)}
-              onContextMenu={(e) => currentImage && handleFileActionMenu(e, currentImage)}
-              onMouseEnter={handleMouseEnter}
-              onMouseLeave={handleMouseLeave}
-              >
-                {currentImage && (
-                  <ImageNodeContent
-                    image={currentImage}
-                    resolvedUrl={(() => {
-                      const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
-                      return relativeFile.isRelativeLocal && relativeFile.downloadUrl
-                        ? resolvedImageUrls[relativeFile.downloadUrl]
-                        : undefined;
-                    })()}
-                    onClick={(e) => handleImageClick(e, currentImage)}
-                    onDoubleClick={(e) => handleImageDoubleClick(e, currentImage)}
-                    onContextMenu={(e) => handleFileActionMenu(e, currentImage)}
-                    onLoad={handleImageLoadDimensions}
-                  />
-                )}
-
+              <div onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                <ImageDisplayPane
+                  currentImage={currentImage}
+                  resolvedUrl={(() => {
+                    const relativeFile = currentImage as FileAttachment & { isRelativeLocal?: boolean };
+                    return currentImage && relativeFile.isRelativeLocal && relativeFile.downloadUrl
+                      ? resolvedImageUrls[relativeFile.downloadUrl]
+                      : undefined;
+                  })()}
+                  imageWidth={imageDimensions.width}
+                  isSelected={isSelected}
+                  isHovered={isHovered}
+                  onClick={(e, file) => handleImageClick(e, file)}
+                  onDoubleClick={(e, file) => handleImageDoubleClick(e, file)}
+                  onContextMenu={(e, file) => handleFileActionMenu(e, file)}
+                  onLoad={handleImageLoadDimensions}
+                  isResizing={isResizing}
+                  onResizePointerDown={handleResizePointerDown}
+                  slotIndex={slotIndex}
+                  totalCount={displayEntries.length}
+                />
+                {/* PaginationControl's handlers still in parent to keep slotIndex state */}
                 {displayEntries.length > 1 && (isSelected || isHovered) && (
                   <PaginationControl
                     currentIndex={slotIndex}
@@ -517,9 +502,6 @@ interface NodeRendererProps {
                     onNext={() => setSlotIndex((prev) => (prev + 1) % displayEntries.length)}
                   />
                 )}
-
-                {isSelected && <ResizeHandle isResizing={isResizing} onPointerDown={handleResizePointerDown} />}
-
               </div>
             )}
           </foreignObject>
