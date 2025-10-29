@@ -3,7 +3,7 @@ import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
 import { usePanelControls } from '../../hooks/useStoreSelectors';
 import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
-import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@shared/utils';
+import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@core/storage/localStorage';
 import { viewportService } from '@/app/core/services';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';

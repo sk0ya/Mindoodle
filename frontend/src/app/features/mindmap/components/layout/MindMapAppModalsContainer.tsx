@@ -3,12 +3,12 @@ import MindMapModals from '../modals/MindMapModals';
 import MindMapOverlays from './overlay/MindMapOverlays';
 import { JumpyLabels } from "../../../vim";
 import VimStatusBar from "../VimStatusBar";
-import CommandPalette from '@shared/components/CommandPalette';
-import { AuthModal } from '@shared/components';
+const CommandPalette = React.lazy(() => import('@shared/components/CommandPalette'));
+const AuthModal = React.lazy(() => import('@shared/components').then(m => ({ default: m.AuthModal })));
 import MindMapLinkOverlays from './overlay/MindMapLinkOverlays';
 import MindMapContextMenuOverlay from './overlay/MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
-import TableEditorModal from '../../../markdown/components/TableEditorModal';
+const TableEditorModal = React.lazy(() => import('../../../markdown/components/TableEditorModal'));
 // Lazy-load heavy knowledge-graph and embedding integration to avoid pulling ML runtime on boot
 const KnowledgeGraphModal2D = React.lazy(() => import('../modals/KnowledgeGraphModal2D').then(m => ({ default: m.KnowledgeGraphModal2D })));
 const EmbeddingIntegration = React.lazy(() => import('@core/services/EmbeddingIntegration').then(m => ({ default: m.EmbeddingIntegration })));
@@ -222,33 +222,43 @@ export const MindMapAppModalsContainer: React.FC<MindMapAppModalsContainerProps>
         onClose={onCloseImageModal}
       />
 
-      <CommandPalette
-        isOpen={commandPaletteIsOpen}
-        onClose={commandPaletteClose}
-        onExecuteCommand={onExecuteCommand}
-        onSelectMap={onSelectMap}
-        storageAdapter={storageAdapter}
-      />
-
-      {isAuthModalOpen && authCloudAdapter && (
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          cloudAdapter={authCloudAdapter}
-          onClose={onAuthModalClose}
-          onSuccess={onAuthModalSuccess}
-        />
+      {commandPaletteIsOpen && (
+        <React.Suspense fallback={null}>
+          <CommandPalette
+            isOpen={commandPaletteIsOpen}
+            onClose={commandPaletteClose}
+            onExecuteCommand={onExecuteCommand}
+            onSelectMap={onSelectMap}
+            storageAdapter={storageAdapter}
+          />
+        </React.Suspense>
       )}
 
-      <TableEditorModal
-        isOpen={showTableEditor}
-        onClose={onCloseTableEditor}
-        onSave={onTableEditorSave}
-        initialMarkdown={
-          editingTableNodeId
-            ? (findNode(editingTableNodeId)?.text || '')
-            : ''
-        }
-      />
+      {isAuthModalOpen && authCloudAdapter && (
+        <React.Suspense fallback={null}>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            cloudAdapter={authCloudAdapter}
+            onClose={onAuthModalClose}
+            onSuccess={onAuthModalSuccess}
+          />
+        </React.Suspense>
+      )}
+
+      {showTableEditor && (
+        <React.Suspense fallback={null}>
+          <TableEditorModal
+            isOpen={showTableEditor}
+            onClose={onCloseTableEditor}
+            onSave={onTableEditorSave}
+            initialMarkdown={
+              editingTableNodeId
+                ? (findNode(editingTableNodeId)?.text || '')
+                : ''
+            }
+          />
+        </React.Suspense>
+      )}
 
       {showKnowledgeGraph && (
         <React.Suspense fallback={null}>

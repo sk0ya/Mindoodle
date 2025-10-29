@@ -11,8 +11,13 @@ import { createNodeSlice } from './slices/nodeSlice';
 import { createSettingsSlice } from './slices/settingsSlice';
 import { mindMapEvents } from '@core/streams';
 
+// Only enable devtools in development to avoid extra overhead in production
+const withDevtools = <TState, TMiddleware>(
+  sc: Parameters<typeof devtools>[0]
+) => (import.meta.env?.DEV ? devtools(sc) : sc);
+
 export const useMindMapStore = create<MindMapStore>()(
-  devtools(
+  withDevtools(
     subscribeWithSelector(
       immer((...args) => ({
         ...createDataSlice(...args),

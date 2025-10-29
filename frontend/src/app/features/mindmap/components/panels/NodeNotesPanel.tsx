@@ -2,7 +2,7 @@ import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Loader } from 'lucide-react';
 import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
 import type { MapIdentifier } from '@shared/types';
-import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@shared/utils';
+import { STORAGE_KEYS, getLocalStorage, setLocalStorage } from '@core/storage/localStorage';
 import { useResizingState } from '@/app/shared/hooks';
 import { usePanelControls } from '../../hooks/useStoreSelectors';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
