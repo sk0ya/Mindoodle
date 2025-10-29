@@ -157,27 +157,35 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
       {}
       <div className="action-group help-actions">
-        {onToggleNotesPanel && (
-          <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">
-            <button 
-              className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`}
-              onClick={onToggleNotesPanel}
-            >
-              <FileText size={16} />
-            </button>
-          </ShortcutTooltip>
-        )}
+            {onToggleNotesPanel && (
+              <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">
+                <button 
+                  className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`}
+                  onClick={onToggleNotesPanel}
+                  onMouseEnter={() => {
+                    // Prefetch editor bundle to reduce perceived latency
+                    try { import('../layout/panel/NodeNotesPanelContainer'); } catch {}
+                  }}
+                >
+                  <FileText size={16} />
+                </button>
+              </ShortcutTooltip>
+            )}
 
-        {onToggleNodeNotePanel && (
-          <ShortcutTooltip shortcut="Ctrl+Shift+M" description="選択ノードのノート">
-            <button 
-              className={`toolbar-btn notes ${showNodeNotePanel ? 'active' : ''}`}
-              onClick={onToggleNodeNotePanel}
-            >
-              <StickyNote size={16} />
-            </button>
-          </ShortcutTooltip>
-        )}
+            {onToggleNodeNotePanel && (
+              <ShortcutTooltip shortcut="Ctrl+Shift+M" description="選択ノードのノート">
+                <button 
+                  className={`toolbar-btn notes ${showNodeNotePanel ? 'active' : ''}`}
+                  onClick={onToggleNodeNotePanel}
+                  onMouseEnter={() => {
+                    // Prefetch node note editor bundle
+                    try { import('../panels/SelectedNodeNotePanel'); } catch {}
+                  }}
+                >
+                  <StickyNote size={16} />
+                </button>
+              </ShortcutTooltip>
+            )}
 
       </div>
     </div>
