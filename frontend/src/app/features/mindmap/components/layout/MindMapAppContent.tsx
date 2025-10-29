@@ -6,6 +6,7 @@ import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
 import SidebarSection from './sections/SidebarSection';
 import { useSidebarHandlers } from './useSidebarHandlers';
+import { useExplorerFolderOps } from './useExplorerFolderOps';
 import MindMapTopBar from './sections/MindMapTopBar';
 import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
 import FolderGuideModal from '../modals/FolderGuideModal';
@@ -562,22 +563,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onRemoveWorkspace={removeWorkspace}
         onSwitchWorkspace={switchWorkspace}
         explorerTree={(mindMap).explorerTree || { type: 'folder', name: '', path: '', children: [] }}
-        onCreateFolder={async (path: string) => {
-          if (typeof (mindMap).createFolder === 'function') {
-            // Parse leading workspace segment without regex
-            const trimmed = String(path || '').replace(/^\/+/, '');
-            const parts = trimmed.split('/');
-            const first = parts[0];
-            if (first && (first.startsWith('ws_') || first === 'cloud')) {
-              const workspaceId = first;
-              const relativePath = parts.slice(1).join('/');
-              await (mindMap).createFolder(relativePath, workspaceId);
-            } else {
-              // フォールバック: 相対パスとして処理
-              await (mindMap).createFolder(path);
-            }
-          }
-        }}
+        onCreateFolder={useExplorerFolderOps(mindMap).handleCreateFolder}
         currentMapData={data}
         onMapSwitch={sidebarHandlers.onMapSwitch}
         onNodeSelectByLine={sidebarHandlers.onNodeSelectByLine}
