@@ -9,8 +9,10 @@ import MindMapLinkOverlays from './overlay/MindMapLinkOverlays';
 import MindMapContextMenuOverlay from './overlay/MindMapContextMenuOverlay';
 import ImageModal from '../modals/ImageModal';
 import TableEditorModal from '../../../markdown/components/TableEditorModal';
-import { KnowledgeGraphModal2D } from '../modals/KnowledgeGraphModal2D';
-import { EmbeddingIntegration } from '@core/services/EmbeddingIntegration';
+// Lazy-load heavy knowledge-graph and embedding integration to avoid pulling ML runtime on boot
+const KnowledgeGraphModal2D = React.lazy(() => import('../modals/KnowledgeGraphModal2D').then(m => ({ default: m.KnowledgeGraphModal2D })));
+const EmbeddingIntegration = React.lazy(() => import('@core/services/EmbeddingIntegration').then(m => ({ default: m.EmbeddingIntegration })));
+import { useMindMapStore } from '../../store';
 import type { MindMapNode, NodeLink, MapIdentifier, MindMapData } from '@shared/types';
 import type { VimContextType } from '../../../vim/context/vimContext';
 import type { CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
@@ -139,6 +141,7 @@ export const MindMapAppModalsContainer: React.FC<MindMapAppModalsContainerProps>
   storageAdapter,
   mindMap,
 }) => {
+  const enableKnowledgeGraph = useMindMapStore().settings?.knowledgeGraph?.enabled ?? false;
   const findNode = React.useCallback((nodeId: string) => {
     if (!data?.rootNodes) return null;
     const findInNodes = (nodes: MindMapNode[]): MindMapNode | null => {
@@ -247,15 +250,23 @@ export const MindMapAppModalsContainer: React.FC<MindMapAppModalsContainerProps>
         }
       />
 
-      <KnowledgeGraphModal2D
-        isOpen={showKnowledgeGraph}
-        onClose={onCloseKnowledgeGraph}
-        mapIdentifier={data?.mapIdentifier || null}
-        getMapMarkdown={mindMap.getMapMarkdown}
-        getWorkspaceMapIdentifiers={mindMap?.getWorkspaceMapIdentifiers}
-      />
+      {showKnowledgeGraph && (
+        <React.Suspense fallback={null}>
+          <KnowledgeGraphModal2D
+            isOpen={showKnowledgeGraph}
+            onClose={onCloseKnowledgeGraph}
+            mapIdentifier={data?.mapIdentifier || null}
+            getMapMarkdown={mindMap.getMapMarkdown}
+            getWorkspaceMapIdentifiers={mindMap?.getWorkspaceMapIdentifiers}
+          />
+        </React.Suspense>
+      )}
 
-      <EmbeddingIntegration />
+      {enableKnowledgeGraph && (
+        <React.Suspense fallback={null}>
+          <EmbeddingIntegration />
+        </React.Suspense>
+      )}
     </>
   );
 };
