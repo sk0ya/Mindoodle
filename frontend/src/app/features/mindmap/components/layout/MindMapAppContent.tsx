@@ -512,6 +512,25 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   }, [commands, handleContextMenuClose, showNotification, allMindMaps, data, currentMapId, storageAdapter, refreshMapList, selectMapById, deleteNode, flushMarkdownStream]);
 
+  const wsHandlers = (() => {
+    return require('./useWorkspaceHandlers').useWorkspaceHandlers({
+      selectNode,
+      startEditing,
+      finishEditing,
+      addNode,
+      addSiblingNode: useMindMapStore().addSiblingNode,
+      deleteNode,
+      toggleNodeCollapse,
+      handleShowLinkActionMenu,
+      handleAddLink,
+      updateNode,
+      applyAutoLayout,
+      allMindMaps,
+      data,
+      handleLinkNavigate2,
+    });
+  })();
+
   return (
     <div
       className="mindmap-app"
@@ -609,26 +628,20 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             editingNodeId={editingNodeId}
             editText={editText}
             setEditText={setEditText}
-            onSelectNode={(nodeId) => {
-              selectNode(nodeId);
-            }}
-            onStartEdit={startEditing}
-            onFinishEdit={finishEditing}
-            
-            onAddChild={(parentId) => { addNode(parentId); }}
-            onAddSibling={(nodeId) => { store.addSiblingNode(nodeId); }}
-            onDeleteNode={deleteNode}
-            onToggleCollapse={toggleNodeCollapse}
-            onShowLinkActionMenu={handleShowLinkActionMenu}
-            onAddLink={handleAddLink}
-            onUpdateNode={updateNode}
-            onAutoLayout={applyAutoLayout}
-            availableMaps={allMindMaps.map((map: import('@shared/types').MindMapData) => ({
-              id: map.mapIdentifier.mapId,
-              title: map.title,
-            }))}
-            currentMapData={data}
-            onLinkNavigate={handleLinkNavigate2}
+            onSelectNode={wsHandlers.onSelectNode}
+            onStartEdit={wsHandlers.onStartEdit}
+            onFinishEdit={wsHandlers.onFinishEdit}
+            onAddChild={wsHandlers.onAddChild}
+            onAddSibling={wsHandlers.onAddSibling}
+            onDeleteNode={wsHandlers.onDeleteNode}
+            onToggleCollapse={wsHandlers.onToggleCollapse}
+            onShowLinkActionMenu={wsHandlers.onShowLinkActionMenu}
+            onAddLink={wsHandlers.onAddLink}
+            onUpdateNode={wsHandlers.onUpdateNode}
+            onAutoLayout={wsHandlers.onAutoLayout}
+            availableMaps={wsHandlers.availableMaps}
+            currentMapData={wsHandlers.currentMapData}
+            onLinkNavigate={wsHandlers.onLinkNavigate}
             zoom={uiStore.zoom}
             setZoom={setZoom}
             pan={uiStore.pan}
