@@ -9,6 +9,7 @@ import { useSidebarHandlers } from './useSidebarHandlers';
 import { useExplorerFolderOps } from './useExplorerFolderOps';
 import MindMapTopBar from './sections/MindMapTopBar';
 import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
+import { useWorkspaceHandlers } from './useWorkspaceHandlers';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
 import SelectedNodeNotePanelSection from './sections/SelectedNodeNotePanelSection';
@@ -512,24 +513,22 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     }
   }, [commands, handleContextMenuClose, showNotification, allMindMaps, data, currentMapId, storageAdapter, refreshMapList, selectMapById, deleteNode, flushMarkdownStream]);
 
-  const wsHandlers = (() => {
-    return require('./useWorkspaceHandlers').useWorkspaceHandlers({
-      selectNode,
-      startEditing,
-      finishEditing,
-      addNode,
-      addSiblingNode: useMindMapStore().addSiblingNode,
-      deleteNode,
-      toggleNodeCollapse,
-      handleShowLinkActionMenu,
-      handleAddLink,
-      updateNode,
-      applyAutoLayout,
-      allMindMaps,
-      data,
-      handleLinkNavigate2,
-    });
-  })();
+  const wsHandlers = useWorkspaceHandlers({
+    selectNode,
+    startEditing,
+    finishEditing,
+    addNode,
+    addSiblingNode: useMindMapStore().addSiblingNode,
+    deleteNode,
+    toggleNodeCollapse,
+    handleShowLinkActionMenu,
+    handleAddLink,
+    updateNode,
+    applyAutoLayout,
+    allMindMaps,
+    data,
+    handleLinkNavigate2,
+  });
 
   return (
     <div
