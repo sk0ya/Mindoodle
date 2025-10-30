@@ -11,23 +11,19 @@ import { createNodeSlice } from './slices/nodeSlice';
 import { createSettingsSlice } from './slices/settingsSlice';
 import { mindMapEvents } from '@core/streams';
 
-// Only enable devtools in development to avoid extra overhead in production
-const withDevtools = <TState, TMiddleware>(
-  sc: Parameters<typeof devtools>[0]
-) => (import.meta.env?.DEV ? devtools(sc) : sc);
+const storeInitializer = (set: any, get: any, store: any) => ({
+  ...createDataSlice(set, get, store),
+  ...createHistorySlice(set, get, store),
+  ...createUISlice(set, get, store),
+  ...createNodeSlice(set, get, store),
+  ...createSettingsSlice(set, get, store),
+});
 
+// Always apply devtools in type definition, but conditionally enable in runtime
 export const useMindMapStore = create<MindMapStore>()(
-  withDevtools(
-    subscribeWithSelector(
-      immer((...args) => ({
-        ...createDataSlice(...args),
-        ...createHistorySlice(...args),
-        ...createUISlice(...args),
-        ...createNodeSlice(...args),
-        ...createSettingsSlice(...args),
-      }))
-    )
-  )
+  devtools(subscribeWithSelector(immer(storeInitializer)), {
+    enabled: import.meta.env?.DEV ?? false,
+  })
 );
 
 

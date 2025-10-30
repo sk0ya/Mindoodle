@@ -310,9 +310,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         const node = findNodeInRoots(state.data?.rootNodes || [], selectedNodeId);
         return node?.note || '';
       },
-      (note) => {
-        cb(note);
-      }
+      (note) => cb(note)
     );
     return unsubStore;
   }, [selectedNodeId]);
