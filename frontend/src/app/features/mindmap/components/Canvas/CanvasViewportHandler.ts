@@ -26,9 +26,6 @@ export const useCanvasViewportHandler = ({
   const isPanReadyRef = useRef(false);
   const lastPanPointRef = useRef({ x: 0, y: 0 });
 
-  const rafIdRef = useRef<number | null>(null);
-  const accumDeltaRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
-
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
 
@@ -62,11 +59,6 @@ export const useCanvasViewportHandler = ({
     if (!isDragging) {
       isPanningRef.current = false;
       isPanReadyRef.current = false;
-      if (rafIdRef.current !== null) {
-        cancelAnimationFrame(rafIdRef.current);
-        rafIdRef.current = null;
-        accumDeltaRef.current = { dx: 0, dy: 0 };
-      }
     }
   }, [isDragging]);
 
@@ -82,7 +74,8 @@ export const useCanvasViewportHandler = ({
       const deltaX = e.clientX - lastPanPointRef.current.x;
       const deltaY = e.clientY - lastPanPointRef.current.y;
 
-      if (Math.abs(deltaX) < 1 && Math.abs(deltaY) < 1) {
+      // Don't skip small movements - let them accumulate
+      if (deltaX === 0 && deltaY === 0) {
         return;
       }
 
@@ -90,17 +83,11 @@ export const useCanvasViewportHandler = ({
         isPanningRef.current = true;
       }
 
-      accumDeltaRef.current.dx += deltaX / (zoom * 1.5);
-      accumDeltaRef.current.dy += deltaY / (zoom * 1.5);
-
-      if (rafIdRef.current === null) {
-        rafIdRef.current = window.requestAnimationFrame(() => {
-          const { dx, dy } = accumDeltaRef.current;
-          accumDeltaRef.current = { dx: 0, dy: 0 };
-          rafIdRef.current = null;
-          setPan(prev => ({ x: prev.x + dx, y: prev.y + dy }));
-        });
-      }
+      // Update pan immediately for smooth response
+      setPan(prev => ({
+        x: prev.x + deltaX / zoom,
+        y: prev.y + deltaY / zoom
+      }));
 
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };
     }
