@@ -56,6 +56,10 @@ const handleStandardShortcut = (
   handlers: KeyboardShortcutHandlers
 ): boolean => {
   const { key, shiftKey, selectedNodeId } = { ...event, selectedNodeId: handlers.selectedNodeId };
+
+  // Guard against undefined key
+  if (!key) return false;
+
   const mod = isModifier(event);
 
   if (!mod && selectedNodeId) {
