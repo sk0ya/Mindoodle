@@ -476,4 +476,29 @@ const SelectedNodeLinkList: React.FC<SelectedNodeLinkListProps> = ({
   );
 };
 
-export default memo(SelectedNodeLinkList);
+// Custom comparison function to prevent unnecessary re-renders
+// Only re-render when important props actually change
+const arePropsEqual = (prevProps: SelectedNodeLinkListProps, nextProps: SelectedNodeLinkListProps): boolean => {
+  // Re-render if node identity or note content changes
+  if (prevProps.node.id !== nextProps.node.id) return false;
+  if (prevProps.node.note !== nextProps.node.note) return false;
+
+  // Re-render if visibility changes
+  if (prevProps.isVisible !== nextProps.isVisible) return false;
+
+  // Re-render if map context changes (for link resolution)
+  const prevMapId = prevProps.currentMapData?.mapIdentifier?.mapId;
+  const nextMapId = nextProps.currentMapData?.mapIdentifier?.mapId;
+  if (prevMapId !== nextMapId) return false;
+
+  // Re-render if root nodes change (for internal link resolution)
+  const prevRootsLength = prevProps.currentMapData?.rootNodes?.length || 0;
+  const nextRootsLength = nextProps.currentMapData?.rootNodes?.length || 0;
+  if (prevRootsLength !== nextRootsLength) return false;
+
+  // Don't re-render for other props (callbacks, dimensions, availableMaps)
+  // These change frequently but don't affect the rendered output
+  return true;
+};
+
+export default memo(SelectedNodeLinkList, arePropsEqual);

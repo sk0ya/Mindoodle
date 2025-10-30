@@ -12,14 +12,14 @@ type Props = {
   nodeId?: string | null;
   nodeTitle?: string;
   note: string;
-  onChange: (value: string) => void;
+  updateNode: (nodeId: string, updates: Partial<import('@shared/types').MindMapNode>) => void;
   onClose?: () => void;
   subscribeNoteChanges?: (cb: (text: string) => void) => () => void;
 };
 
 const HEIGHT_KEY = STORAGE_KEYS.NODE_NOTE_PANEL_HEIGHT;
 
-const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, onClose, subscribeNoteChanges }) => {
+const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onClose, subscribeNoteChanges }) => {
   const [height, setHeight] = useState<number>(viewportService.getDefaultNoteHeight());
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
@@ -31,6 +31,12 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, onClose, subsc
   const { value: editorFocused, setTrue: setEditorFocusedTrue, setFalse: setEditorFocusedFalse } = useBooleanState({ initialValue: false });
   const editorFocusedRef = useRef<boolean>(false);
   const pendingNoteTextRef = useRef<string | null>(null);
+
+  // Store nodeId in ref to always use the current value in onChange
+  const nodeIdRef = useRef<string | null>(nodeId || null);
+  useEffect(() => {
+    nodeIdRef.current = nodeId || null;
+  }, [nodeId]);
 
   
   useEffect(() => {
@@ -197,13 +203,15 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ note, onChange, onClose, subsc
   }, [note, editorFocused]);
 
   // Handle note changes from editor
+  // Use nodeIdRef to always get the current nodeId, preventing stale closure bugs
   const handleNoteChange = useCallback((value: string) => {
     setNoteText(value);
-    // Push to parent onChange callback
-    if (onChange) {
-      onChange(value);
+    // Use current nodeId from ref to prevent stale closure
+    const currentNodeId = nodeIdRef.current;
+    if (updateNode && currentNodeId) {
+      updateNode(currentNodeId, { note: value });
     }
-  }, [onChange]);
+  }, [updateNode]);
 
 
   useEffect(() => {

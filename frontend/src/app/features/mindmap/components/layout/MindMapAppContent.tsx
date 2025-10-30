@@ -302,18 +302,18 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   });
 
   // Stable subscription callback for SelectedNodeNotePanel
-  const subscribeNoteChanges = React.useCallback((cb: (text: string) => void) => {
+  // Takes nodeId as parameter to track the correct node's note
+  const subscribeNoteChanges = React.useCallback((nodeId: string, cb: (text: string) => void) => {
     // Subscribe to node note changes from store
     const unsubStore = useMindMapStore.subscribe(
       (state) => {
-        if (!selectedNodeId) return '';
-        const node = findNodeInRoots(state.data?.rootNodes || [], selectedNodeId);
+        const node = findNodeInRoots(state.data?.rootNodes || [], nodeId);
         return node?.note || '';
       },
       (note) => cb(note)
     );
     return unsubStore;
-  }, [selectedNodeId]);
+  }, []); // Empty deps - callback is now stable
 
   const handleAddLink = (nodeId: string) => linkOps.handleAddLink(nodeId);
   const handleSaveLink = async (linkData: Partial<NodeLink>) => {

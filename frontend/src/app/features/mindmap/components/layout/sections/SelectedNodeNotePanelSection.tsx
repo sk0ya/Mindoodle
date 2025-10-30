@@ -9,7 +9,7 @@ interface Props {
   data: MindMapData | null;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onClose: () => void;
-  subscribeNoteChanges: (cb: (text: string) => void) => () => void;
+  subscribeNoteChanges: (nodeId: string, cb: (text: string) => void) => () => void;
 }
 
 const SelectedNodeNotePanelSection: React.FC<Props> = ({
@@ -19,6 +19,8 @@ const SelectedNodeNotePanelSection: React.FC<Props> = ({
   onClose,
   subscribeNoteChanges,
 }) => {
+  // Pass updateNode directly to SelectedNodeNotePanel
+  // It will use nodeId internally to prevent stale closure bugs
   if (!selectedNodeId) return null;
   const node = findNodeInRoots(data?.rootNodes || [], selectedNodeId);
   return (
@@ -31,9 +33,9 @@ const SelectedNodeNotePanelSection: React.FC<Props> = ({
         nodeId={selectedNodeId}
         nodeTitle={node?.text || ''}
         note={node?.note || ''}
-        onChange={(val) => updateNode(selectedNodeId, { note: val })}
+        updateNode={updateNode}
         onClose={onClose}
-        subscribeNoteChanges={subscribeNoteChanges}
+        subscribeNoteChanges={(cb) => subscribeNoteChanges(selectedNodeId, cb)}
       />
     </React.Suspense>
   );
