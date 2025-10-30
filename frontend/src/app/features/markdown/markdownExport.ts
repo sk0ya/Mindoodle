@@ -69,18 +69,15 @@ export function nodeToMarkdown(node: MindMapNode, level = 0, parentType?: 'headi
     md += `${lineEnding}${node.note}`;
   }
 
+  // Always end with line break to prevent sibling concatenation
+  md += lineEnding;
+
   // Add children with proper line breaks (do not inject extra blank lines)
   if (node.children && node.children.length > 0) {
-    md += lineEnding;
     node.children.forEach((child: MindMapNode) => {
       const childLevel = nodeType === 'unordered-list' || nodeType === 'ordered-list' ? level : level + 1;
       md += nodeToMarkdown(child, childLevel, nodeType);
     });
-  }
-
-  
-  if ((node.children && node.children.length > 0) || (node.note != null)) {
-    md += lineEnding;
   }
 
   return md;
