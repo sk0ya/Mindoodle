@@ -303,9 +303,11 @@ export const createDataSlice: StateCreator<
             nodeCountCache.delete(countKeyExpanded);
 
 
-            const currentY = node.y || 0;
-            boundsCache.delete(`${node.id}_${currentY}_true`);
-            boundsCache.delete(`${node.id}_${currentY}_false`);
+            // Delete ALL bounds caches for this node (all Y positions, all collapsed states)
+            // Since LRUCache doesn't expose keys(), we use a different approach:
+            // Clear the entire bounds cache when invalidating to ensure no stale entries
+            // This is acceptable because bounds will be recalculated on demand
+            boundsCache.clear();
 
 
             if (node.children && !node.collapsed) {

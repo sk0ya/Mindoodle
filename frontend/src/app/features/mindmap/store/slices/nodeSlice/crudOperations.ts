@@ -47,7 +47,9 @@ const applyAutoLayoutIfEnabled = (get: () => MindMapStore, operationName: string
   if (data?.settings?.autoLayout) {
     logger.debug(`Applying auto layout after ${operationName}`);
     if (typeof applyAutoLayout === 'function') {
-      applyAutoLayout();
+      // For node insertion operations, apply layout immediately to prevent visual overlap
+      const immediate = operationName === 'addChildNode' || operationName === 'addSiblingNode';
+      applyAutoLayout(immediate);
     } else {
       logger.error('applyAutoLayout function not found');
     }
