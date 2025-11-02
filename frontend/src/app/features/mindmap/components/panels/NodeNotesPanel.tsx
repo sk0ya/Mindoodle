@@ -143,7 +143,9 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
       e.preventDefault();
       e.stopPropagation();
       const deltaX = startX - e.clientX; // Reverse direction for left panel
-      currentWidth = Math.max(300, Math.min(1200, startWidth + deltaX));
+      // Allow up to window width minus 300px margin for canvas
+      const maxWidth = window.innerWidth - 300;
+      currentWidth = Math.max(300, Math.min(maxWidth, startWidth + deltaX));
       setPanelWidth(currentWidth);
       // Trigger CodeMirror Editor layout update
       setResizeCounter(prev => prev + 1);
@@ -175,7 +177,8 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
     const result = getLocalStorage<number>(STORAGE_KEYS.NOTES_PANEL_WIDTH);
     if (result.success && result.data !== undefined) {
       const width = result.data;
-      if (width >= 300 && width <= 1200) {
+      const maxWidth = window.innerWidth - 300;
+      if (width >= 300 && width <= maxWidth) {
         setPanelWidth(width);
         setMarkdownPanelWidth?.(width);
       }
