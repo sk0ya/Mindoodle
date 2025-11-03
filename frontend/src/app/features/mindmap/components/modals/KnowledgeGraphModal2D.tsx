@@ -7,7 +7,7 @@ import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 // storageAdapter no longer passed; use getMapMarkdown when needed
-import { getCommandRegistry } from '@commands/system/registry';
+// Note: Do not rely on global command registry here; directly dispatch events for robustness
 
 type MapListItem = {
   mapIdentifier: MapIdentifier;
@@ -505,18 +505,11 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       
       const parsed = parseVectorKey(nodeId);
       const mapId = parsed.mapId;
-
-      // コマンドレジストリを使ってマップを切り替え
-      const registry = getCommandRegistry();
-      // ダミーコンテキスト（switch-mapコマンドは_contextを使用しない）
-      const context = {
-        selectedNodeId: null,
-        editingNodeId: null,
-        handlers: {} as Record<string, unknown>,
-      };
       const ws = (parsed.workspaceId ?? effectiveWorkspaceId ?? mapIdentifier?.workspaceId ?? '');
-      // switch-map doesn't depend on context shape strictly; cast for typing
-      await registry.execute('switch-map', context as unknown as import('@commands/system/types').CommandContext, { mapId, workspaceId: ws });
+      // 直接イベントを発火して map 切替（グローバルレジストリ未初期化でも動作）
+      window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
+        detail: { mapId, workspaceId: ws }
+      }));
 
       
       onClose();
