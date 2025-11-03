@@ -382,6 +382,14 @@ interface NodeRendererProps {
 
 
   const isTableNode = node.kind === 'table';
+  const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+  const hasAnyVisualEntries = isTableNode || displayEntries.some(e => e.kind === 'image' || e.kind === 'mermaid');
+  const handleToggleContent = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onUpdateNode?.(node.id, { contentHidden: !contentHidden });
+    onAutoLayout?.();
+  }, [onUpdateNode, onAutoLayout, node.id, contentHidden]);
 
   // Stable key for switching between mermaid/table/image/empty without nested ternary
   let contentKey = `empty-${node.id}`;
@@ -417,18 +425,20 @@ interface NodeRendererProps {
 
       {}
       <g key={contentKey}>
+          {!contentHidden && (
           <foreignObject
             x={imageX}
             y={imageY}
             width={renderDims.width}
             height={renderDims.height}
+            style={{ pointerEvents: 'auto' as const }}
           >
             {showMermaid && (
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
                 <MermaidRenderer
                   code={(currentEntry).code}
                   onLoadedDimensions={(w, h) => {
-                    
+                  
                     handleImageLoadDimensions(w, h);
                   }}
                   onClick={(e) => {
@@ -505,6 +515,38 @@ interface NodeRendererProps {
               </div>
             )}
           </foreignObject>
+          )}
+
+          {hasAnyVisualEntries && (
+            <g
+              onClick={handleToggleContent}
+              onMouseDown={(e) => { e.stopPropagation(); }}
+              style={{ cursor: 'pointer' }}
+            >
+              {(() => {
+                const btnSize = 14;
+                const contentW = (localDims || imageDimensions).width;
+                const contentH = (localDims || imageDimensions).height;
+                const isVisibleContent = contentW > 0 && contentH > 0 && !contentHidden;
+                const btnX = isVisibleContent
+                  ? imageX - (btnSize + 6) // next to visible content
+                  : (nodeLeftX - btnSize); // touch the node's left edge when hidden
+                const baseY = isVisibleContent
+                  ? imageY + (contentH - btnSize) / 2 // center alongside content
+                  : (node.y - btnSize / 2); // center vertically with node
+                return (
+                  <g>
+                    <rect x={btnX} y={baseY} width={btnSize} height={btnSize} rx={3} ry={3} fill="#e5e7eb" stroke="#9ca3af" />
+                    {contentHidden ? (
+                      <path d={`M ${btnX + 5} ${baseY + 3} L ${btnX + 9} ${baseY + btnSize / 2} L ${btnX + 5} ${baseY + btnSize - 3}`} fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                    ) : (
+                      <path d={`M ${btnX + 9} ${baseY + 3} L ${btnX + 5} ${baseY + btnSize / 2} L ${btnX + 9} ${baseY + btnSize - 3}`} fill="none" stroke="#374151" strokeWidth={1.5} strokeLinecap="round" strokeLinejoin="round" />
+                    )}
+                  </g>
+                );
+              })()}
+            </g>
+          )}
 
           {}
           {isSelected && node.kind !== 'table' && (
@@ -596,6 +638,7 @@ export default memo(NodeRenderer, (prevProps, nextProps) => {
     prevProps.node.y === nextProps.node.y &&
     prevProps.node.customImageWidth === nextProps.node.customImageWidth &&
     prevProps.node.customImageHeight === nextProps.node.customImageHeight &&
+    (prevProps.node as unknown as { contentHidden?: boolean }).contentHidden === (nextProps.node as unknown as { contentHidden?: boolean }).contentHidden &&
     prevProps.isSelected === nextProps.isSelected &&
     prevProps.isDragging === nextProps.isDragging &&
     prevProps.nodeWidth === nextProps.nodeWidth &&

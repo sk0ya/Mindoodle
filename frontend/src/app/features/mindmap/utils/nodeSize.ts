@@ -139,7 +139,7 @@ function calculateTableDimensions(
 
   if (allRows.length === 0) return { width: 200, height: 70 };
 
-  const cellPadding = 32;
+  const cellPadding = 32; // 16px left/right (matches TableNodeContent)
   const fontSize = (globalFontSize || 14) * 0.95;
   const fontFamily = 'system-ui, -apple-system, sans-serif';
   const fontWeight = 'normal';
@@ -162,9 +162,11 @@ function calculateTableDimensions(
   const borderWidth = 1;
   const tableWidth = columnWidths.reduce((sum, width) => sum + width, 0) + (numCols - 1) * borderWidth;
 
-  const rowHeight = 44;
+  // Estimate row height based on font metrics and vertical padding (12px top + 12px bottom)
+  const estimatedTextHeight = Math.ceil(fontSize * 1.3); // closer to CSS line-height without overshoot
+  const rowHeight = estimatedTextHeight + 24; // + 24px vertical padding
   const totalRows = allRows.length;
-  const tableHeight = Math.max(70, totalRows * rowHeight + 12);
+  const tableHeight = Math.max(70, totalRows * rowHeight);
 
   return { width: Math.max(150, tableWidth), height: tableHeight };
 }
@@ -180,8 +182,9 @@ export function calculateNodeSize(
   globalFontSize?: number,
   wrapConfig?: NodeTextWrapConfig
 ): NodeSize {
-  // Table nodes
-  if (node.kind === 'table') {
+  const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+  // Table nodes (unless content is hidden)
+  if (node.kind === 'table' && !contentHidden) {
     if (node.customImageWidth && node.customImageHeight) {
       const contentWidth = node.customImageWidth;
       const contentHeight = node.customImageHeight;
@@ -202,7 +205,7 @@ export function calculateNodeSize(
     }
 
     const { width: contentWidth, height: contentHeight } = calculateTableDimensions(parsed, globalFontSize);
-    const padding = 10;
+    const padding = 4; // tighter padding to avoid large perceived margins
     const nodeWidth = contentWidth + padding;
     const nodeHeight = contentHeight + padding;
 
@@ -213,11 +216,13 @@ export function calculateNodeSize(
     };
   }
 
-  // Regular nodes with images/mermaid
-  const noteStr = node.note || '';
+  // Regular nodes with images/mermaid (or table treated as text-only when hidden)
+  const isTableNode = node.kind === 'table';
+  // When table content is hidden, do not let note influence height
+  const noteStr = contentHidden && isTableNode ? '' : (node.note || '');
   const hasNoteImages = !!noteStr && (/!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr));
   const hasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
-  const hasImages = hasNoteImages || hasMermaid;
+  const hasImages = contentHidden ? false : (hasNoteImages || hasMermaid);
 
   let imageHeight = 0;
   let imageWidth = 0;
@@ -271,7 +276,12 @@ export function calculateNodeSize(
   };
 
   const resolvedEditText = editText ?? node.text;
-  const baseDisplayText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
+  let baseDisplayText = isMarkdownLink(node.text) ? getDisplayTextFromMarkdownLink(node.text) : node.text;
+  // For hidden tables, shrink to first line only to avoid multi-line table text affecting height
+  if (contentHidden && isTableNode && typeof baseDisplayText === 'string') {
+    const firstLine = baseDisplayText.split(/\r?\n/)[0] ?? '';
+    baseDisplayText = firstLine;
+  }
   const displayText = isEditing ? resolvedEditText : baseDisplayText;
   const measurementText = isEditing ? resolvedEditText : stripInlineMarkdown(baseDisplayText);
 
@@ -281,7 +291,8 @@ export function calculateNodeSize(
   const fontStyle = node.fontStyle || 'normal';
 
   const resolvedWrap = wrapConfig ?? resolveNodeTextWrapConfig(undefined, fontSize);
-  const wrapEnabled = resolvedWrap.enabled !== false;
+  // When table content is hidden, force single-line height (no wrapping)
+  const wrapEnabled = (contentHidden && isTableNode) ? false : (resolvedWrap.enabled !== false);
   const wrapMaxWidth = wrapEnabled ? Math.max(20, resolvedWrap.maxWidth) : Number.MAX_SAFE_INTEGER;
 
   const hasLinks = hasInternalMarkdownLinks(noteStr) || (extractExternalLinksFromMarkdown(noteStr).length > 0);

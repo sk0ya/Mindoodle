@@ -74,6 +74,8 @@ export interface MindMapNode {
   note?: string;
   customImageWidth?: number;
   customImageHeight?: number;
+  // When true, hide visual content (images/tables/mermaid) in this node
+  contentHidden?: boolean;
   
   kind?: 'text' | 'table';
   tableData?: {
@@ -133,4 +135,3 @@ export interface UIStateDependency {
 
 
 export const DEFAULT_WORKSPACE_ID = '__default__';
-

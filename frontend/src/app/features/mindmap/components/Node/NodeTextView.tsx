@@ -35,10 +35,11 @@ const NodeTextView: React.FC<NodeTextViewProps> = ({
 }) => {
   const { ui, settings } = useMindMapStore();
 
+  const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
   const noteStr: string = (node as MindMapNode & { note?: string })?.note || '';
   const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
   const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);
-  const hasImage = noteHasImages || noteHasMermaid;
+  const hasImage = (noteHasImages || noteHasMermaid) && !contentHidden;
 
   const getActualImageHeight = () => {
     if (!hasImage) return 0;

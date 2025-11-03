@@ -349,6 +349,7 @@ export default memo(Node, (prevProps: NodeProps, nextProps: NodeProps) => {
       prevProps.node.fontWeight !== nextProps.node.fontWeight ||
       prevProps.node.color !== nextProps.node.color ||
       prevProps.node.collapsed !== nextProps.node.collapsed ||
+      (prevProps.node as unknown as { contentHidden?: boolean }).contentHidden !== (nextProps.node as unknown as { contentHidden?: boolean }).contentHidden ||
       prevProps.node.customImageWidth !== nextProps.node.customImageWidth ||
       prevProps.node.customImageHeight !== nextProps.node.customImageHeight) {
     return false;

@@ -23,7 +23,7 @@ const getCellStyle = (isHeader: boolean, isEven: boolean, isLastRow: boolean, ce
   background: isHeader ? '#6b7280' : isEven ? 'white' : '#fcfcfd',
   color: isHeader ? 'white' : 'black',
   borderBottom: isHeader ? '2px solid #e2e8f0' : undefined,
-  borderTop: !isHeader && cellIndex > 0 ? '1px solid #f1f5f9' : undefined,
+  borderTop: !isHeader ? '1px solid #f1f5f9' : undefined,
   borderTopLeftRadius: isHeader && cellIndex === 0 ? '10px' : undefined,
   borderTopRightRadius: isHeader && cellIndex === rowLength - 1 ? '10px' : undefined,
   borderBottomLeftRadius: isLastRow && cellIndex === 0 ? '10px' : undefined,
@@ -63,13 +63,11 @@ export const TableNodeContent: React.FC<TableNodeContentProps> = ({
         height: '100%',
         overflow: 'hidden',
         borderRadius: '10px',
-        boxSizing: 'border-box',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
+        boxSizing: 'border-box'
       }}>
         <table style={{
           width: 'auto',
+          margin: 0,
           borderCollapse: 'collapse',
           overflow: 'hidden',
           borderRadius: '10px',
