@@ -2,6 +2,7 @@ import React, { memo, useEffect } from 'react';
 import CanvasConnections from './CanvasConnections';
 import CanvasDragGuide from './CanvasDragGuide';
 import InMapLinkConnections from './InMapLinkConnections';
+import LayoutSelector from './LayoutSelector';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
 import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
@@ -234,6 +235,8 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
         </g>
       </svg>
 
+      {/* Layout selector positioned in bottom-left corner */}
+      <LayoutSelector />
 
       <style>{`
         .mindmap-canvas-container {

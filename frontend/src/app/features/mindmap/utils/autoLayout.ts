@@ -251,6 +251,89 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   return newRootNode;
 };
 
+/**
+ * Tree layout - root at top-left, expanding right and down
+ */
+export const treeLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
+  const uiAwareCenterX = calculateDynamicCenterX(options.sidebarCollapsed, options.activeView);
+
+  const {
+    centerX = uiAwareCenterX,
+    centerY = COORDINATES.DEFAULT_CENTER_Y,
+    levelSpacing = LAYOUT.LEVEL_SPACING,
+    nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN,
+    globalFontSize,
+    wrapConfig: providedWrapConfig
+  } = options;
+
+  const effectiveFontSize = globalFontSize ?? 14;
+  const wrapConfig = providedWrapConfig ?? resolveNodeTextWrapConfig(undefined, effectiveFontSize);
+
+  const newRootNode = cloneDeep(rootNode);
+
+  // Calculate the total height of a subtree
+  const calculateSubtreeHeight = (node: MindMapNode): number => {
+    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
+    // Respect the configured nodeSpacing directly (with a tiny floor for safety)
+    const spacing = Math.max(nodeSpacing, 1);
+
+    if (node.collapsed || !node.children || node.children.length === 0) {
+      return nodeSize.height;
+    }
+
+    // Sum up all children's subtree heights plus spacing
+    const childrenHeight = node.children.reduce((total, child, index) => {
+      const childHeight = calculateSubtreeHeight(child);
+      const childSpacing = index > 0 ? spacing : 0;
+      return total + childHeight + childSpacing;
+    }, 0);
+
+    // Return the maximum of node height and children height
+    return Math.max(nodeSize.height, childrenHeight);
+  };
+
+  // Positioning based on TOP Y baseline for consistent stacking.
+  // Convert top-based coordinates to center-based before assigning to node.y.
+  const positionNodeTop = (node: MindMapNode, x: number, topY: number): number => {
+    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
+    const spacing = Math.max(nodeSpacing, 1);
+
+    // Set node center Y from topY for rendering (renderer uses centers)
+    node.x = x;
+    node.y = topY + nodeSize.height / 2;
+
+    // If leaf/collapsed: return next top pointer after this node
+    if (node.collapsed || !node.children || node.children.length === 0) {
+      return topY + nodeSize.height + spacing;
+    }
+
+    // Stack children from the same top as parent (first child's subtree top == parent's top)
+    let nextChildTop = topY;
+    for (const child of node.children) {
+      const childSubtreeHeight = calculateSubtreeHeight(child);
+      const childX = getChildNodeXFromParentEdge(node, child, globalFontSize, wrapConfig);
+      // Place child by its subtree top; it will compute its own center internally
+      positionNodeTop(child, childX, nextChildTop);
+      nextChildTop += childSubtreeHeight + spacing;
+    }
+
+    // Return the next available top position after finishing this subtree
+    return nextChildTop;
+  };
+
+  // Preserve root visual center at centerY by converting to top baseline first
+  const rootSize = calculateNodeSize(newRootNode, undefined, false, globalFontSize, wrapConfig);
+  const rootTop = centerY - rootSize.height / 2;
+  positionNodeTop(newRootNode, centerX, rootTop);
+
+  return newRootNode;
+};
+/**
+ * Automatically select the appropriate layout based on settings or default to mindmap layout
+ * Note: The actual layout selection is handled by dataSlice using layoutType setting.
+ * This function is kept for backward compatibility and defaults to mindmap layout.
+ */
 export const autoSelectLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
+  // Default to mindmap layout - the store uses specific layout functions based on settings
   return simpleHierarchicalLayout(rootNode, options);
 };

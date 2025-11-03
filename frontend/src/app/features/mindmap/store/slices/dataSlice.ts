@@ -4,7 +4,7 @@ import { logger, LRUCache } from '@shared/utils';
 import { memoryService } from '@/app/core/services';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
-import { autoSelectLayout } from '../../utils/autoLayout';
+import { autoSelectLayout, simpleHierarchicalLayout, treeLayout } from '../../utils/autoLayout';
 import { findNodeInRoots } from '../../utils/nodeOperations';
 import { calculateNodeSize, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig } from '../../utils/nodeUtils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
@@ -265,7 +265,11 @@ export const createDataSlice: StateCreator<
       for (let index = 0; index < rootNodes.length; index++) {
         const rootNode = rootNodes[index];
         const settingsWithSpacing = state.settings as typeof state.settings & { nodeSpacing?: number };
-        const layoutedNode = autoSelectLayout(rootNode, {
+
+        // Select layout function based on settings
+        const layoutFunction = state.settings.layoutType === 'tree' ? treeLayout : simpleHierarchicalLayout;
+
+        const layoutedNode = layoutFunction(rootNode, {
           globalFontSize: state.settings.fontSize,
           nodeSpacing: settingsWithSpacing.nodeSpacing || 8,
           sidebarCollapsed: state.ui.sidebarCollapsed,

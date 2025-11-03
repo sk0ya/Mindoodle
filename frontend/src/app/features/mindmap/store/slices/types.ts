@@ -13,6 +13,7 @@ export interface AppSettings {
   nodeSpacing: number;
   nodeTextWrapEnabled: boolean;
   nodeTextWrapWidth: number;
+  layoutType: 'mindmap' | 'tree';
   storageMode: StorageMode;
   cloudApiEndpoint?: string;
   vimMindMap: boolean;

@@ -2,6 +2,7 @@
 export { default as CanvasRenderer } from './CanvasRenderer';
 export { default as CanvasConnections } from './CanvasConnections';
 export { default as CanvasDragGuide } from './CanvasDragGuide';
+export { default as LayoutSelector } from './LayoutSelector';
 
 
 export * from './CanvasDragHandler';

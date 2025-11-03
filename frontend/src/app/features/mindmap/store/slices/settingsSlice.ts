@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   nodeSpacing: 8,
   nodeTextWrapEnabled: true,
   nodeTextWrapWidth: 240,
+  layoutType: 'mindmap',
   storageMode: 'local',
   cloudApiEndpoint: 'https://mindoodle-backend-production.shigekazukoya.workers.dev',
   vimMindMap: true,
@@ -38,7 +39,8 @@ const LAYOUT_AFFECTING_SETTINGS: (keyof AppSettings)[] = [
   'nodeSpacing',
   'fontSize',
   'nodeTextWrapEnabled',
-  'nodeTextWrapWidth'
+  'nodeTextWrapWidth',
+  'layoutType'
 ];
 
 const applyLayoutAfterDelay = (get: () => MindMapStore) => {
