@@ -382,7 +382,9 @@ interface NodeRendererProps {
 
 
   const isTableNode = node.kind === 'table';
-  const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+  const defaultVisible = settings.showVisualContentByDefault !== false;
+  const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+  const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
   const hasAnyVisualEntries = isTableNode || displayEntries.some(e => e.kind === 'image' || e.kind === 'mermaid');
   const handleToggleContent = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();

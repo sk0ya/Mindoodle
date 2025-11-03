@@ -35,7 +35,9 @@ const NodeTextView: React.FC<NodeTextViewProps> = ({
 }) => {
   const { ui, settings } = useMindMapStore();
 
-  const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+  const defaultVisible = settings.showVisualContentByDefault !== false;
+  const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+  const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
   const noteStr: string = (node as MindMapNode & { note?: string })?.note || '';
   const noteHasImages = !!noteStr && ( /!\[[^\]]*\]\(([^)]+)\)/.test(noteStr) || /<img[^>]*\ssrc=["'][^"'\s>]+["'][^>]*>/i.test(noteStr) );
   const noteHasMermaid = !!noteStr && /```mermaid[\s\S]*?```/i.test(noteStr);

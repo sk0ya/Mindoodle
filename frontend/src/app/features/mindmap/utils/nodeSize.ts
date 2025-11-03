@@ -1,4 +1,5 @@
 import type { MindMapNode } from '@shared/types';
+import { useMindMapStore } from '@mindmap/store';
 import { hasInternalMarkdownLinks, extractExternalLinksFromMarkdown } from '../../markdown/markdownLinkUtils';
 import { LineEndingUtils } from '@shared/utils/lineEndingUtils';
 import { stripInlineMarkdown } from '../../markdown/parseInlineMarkdown';
@@ -182,7 +183,9 @@ export function calculateNodeSize(
   globalFontSize?: number,
   wrapConfig?: NodeTextWrapConfig
 ): NodeSize {
-  const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+  const settingsShowDefault = (useMindMapStore as unknown as { getState?: () => { settings?: { showVisualContentByDefault?: boolean } } }).getState?.()?.settings?.showVisualContentByDefault;
+  const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+  const contentHidden = explicitHidden === true || (explicitHidden === undefined && settingsShowDefault === false);
   // Table nodes (unless content is hidden)
   if (node.kind === 'table' && !contentHidden) {
     if (node.customImageWidth && node.customImageHeight) {

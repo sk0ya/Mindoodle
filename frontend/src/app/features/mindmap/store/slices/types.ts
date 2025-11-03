@@ -13,6 +13,8 @@ export interface AppSettings {
   nodeSpacing: number;
   nodeTextWrapEnabled: boolean;
   nodeTextWrapWidth: number;
+  // When true, images/tables/mermaid are shown by default
+  showVisualContentByDefault?: boolean;
   layoutType: 'mindmap' | 'tree';
   storageMode: StorageMode;
   cloudApiEndpoint?: string;

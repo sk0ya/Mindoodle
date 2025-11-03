@@ -150,6 +150,21 @@ const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
           <div className="settings-toggle" style={{ marginTop: '12px' }}>
             <input
               type="checkbox"
+              id="visual-content-default-visible"
+              checked={settings.showVisualContentByDefault !== false}
+              onChange={(e) => handleSettingChange('showVisualContentByDefault', e.target.checked)}
+            />
+            <label htmlFor="visual-content-default-visible" className="settings-toggle-label">
+              画像・テーブル・Mermaid をデフォルトで表示
+            </label>
+          </div>
+          <div className="settings-description">
+            新規ノードや既存ノードで非表示フラグが未設定の場合の既定動作を切り替えます
+          </div>
+
+          <div className="settings-toggle" style={{ marginTop: '12px' }}>
+            <input
+              type="checkbox"
               id="visualize-inmap-links"
               checked={settings.visualizeInMapLinks}
               onChange={(e) => handleSettingChange('visualizeInMapLinks', e.target.checked)}

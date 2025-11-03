@@ -198,7 +198,9 @@ export const createDataSlice: StateCreator<
           const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
           const nodeKind = nodeWithKind.kind || 'text';
           const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
-          const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+          const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+          const defaultVisible = state.settings.showVisualContentByDefault !== false;
+          const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
           const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}_hidden:${contentHidden}`;
           const cached = nodeSizeCache.get(cacheKey);
           if (cached) {
@@ -210,7 +212,9 @@ export const createDataSlice: StateCreator<
         };
 
         const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-          const contentHidden = (node as unknown as { contentHidden?: boolean }).contentHidden === true;
+          const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+          const defaultVisible = state.settings.showVisualContentByDefault !== false;
+          const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
           const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}_hidden:${contentHidden}`;
           const cached = boundsCache.get(cacheKey);
           if (cached) {

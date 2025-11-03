@@ -16,6 +16,7 @@ const DEFAULT_SETTINGS: AppSettings = {
   nodeSpacing: 8,
   nodeTextWrapEnabled: true,
   nodeTextWrapWidth: 240,
+  showVisualContentByDefault: true,
   layoutType: 'mindmap',
   storageMode: 'local',
   cloudApiEndpoint: 'https://mindoodle-backend-production.shigekazukoya.workers.dev',
@@ -40,6 +41,7 @@ const LAYOUT_AFFECTING_SETTINGS: (keyof AppSettings)[] = [
   'fontSize',
   'nodeTextWrapEnabled',
   'nodeTextWrapWidth',
+  'showVisualContentByDefault',
   'layoutType'
 ];
 
