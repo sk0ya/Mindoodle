@@ -260,7 +260,6 @@ export const treeLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): 
   const {
     centerX = uiAwareCenterX,
     centerY = COORDINATES.DEFAULT_CENTER_Y,
-    levelSpacing = LAYOUT.LEVEL_SPACING,
     nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN,
     globalFontSize,
     wrapConfig: providedWrapConfig

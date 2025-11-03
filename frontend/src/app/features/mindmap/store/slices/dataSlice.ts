@@ -218,7 +218,6 @@ export const createDataSlice: StateCreator<
           }
 
           const nodeSize = getNodeSize(node);
-          const nodeWithKind = node as MindMapNode & { kind?: string };
           // No extra outer margin; keep bounds tight to actual node size
           const outerMarginY = 0;
           const nodeTop = getNodeTopY(node, nodeSize.height) - outerMarginY;
