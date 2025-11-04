@@ -1,5 +1,6 @@
 import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import MermaidRenderer from './MermaidRenderer';
+// Lazy-load MermaidRenderer to avoid pulling mermaid into initial bundle
+const MermaidRenderer = React.lazy(() => import('./MermaidRenderer'));
 import { useMindMapStore } from '@mindmap/store';
 import type { MindMapNode, FileAttachment } from '@shared/types';
 import { useHoverState } from '@shared/hooks';
@@ -437,28 +438,29 @@ interface NodeRendererProps {
           >
             {showMermaid && (
               <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-                <MermaidRenderer
-                  code={(currentEntry).code}
-                  onLoadedDimensions={(w, h) => {
-                  
-                    handleImageLoadDimensions(w, h);
-                  }}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    if (!isSelected && onSelectNode) onSelectNode(node.id);
-                  }}
-                  onDoubleClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  onContextMenu={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                  }}
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                />
+                <React.Suspense fallback={<div style={{ padding: 8, fontSize: 12 }}>Loading diagram…</div>}>
+                  <MermaidRenderer
+                    code={(currentEntry).code}
+                    onLoadedDimensions={(w, h) => {
+                      handleImageLoadDimensions(w, h);
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                      if (!isSelected && onSelectNode) onSelectNode(node.id);
+                    }}
+                    onDoubleClick={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    onContextMenu={(e) => {
+                      e.stopPropagation();
+                      e.preventDefault();
+                    }}
+                    onMouseEnter={handleMouseEnter}
+                    onMouseLeave={handleMouseLeave}
+                  />
+                </React.Suspense>
                 {displayEntries.length > 1 && (isSelected || isHovered) && (
                   <PaginationControl
                     currentIndex={slotIndex}
