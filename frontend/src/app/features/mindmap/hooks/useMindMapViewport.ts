@@ -8,7 +8,6 @@ import { mindMapEvents } from '@core/streams';
 
 export interface ViewportOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
-  activeView: string | null;
   uiStore: {
     sidebarCollapsed: boolean;
     showNotesPanel: boolean;
@@ -29,7 +28,6 @@ export interface ViewportOperationsParams {
 
 export function useMindMapViewport({
   data,
-  activeView,
   uiStore,
   settings: _settings,
   setPan,

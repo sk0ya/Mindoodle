@@ -287,7 +287,6 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
   const viewportOps = useMindMapViewport({
     data,
-    activeView,
     uiStore: {
       sidebarCollapsed: uiStore.sidebarCollapsed ?? false,
       showNotesPanel: uiStore.showNotesPanel ?? false,
