@@ -55,9 +55,12 @@ const handleStandardShortcut = (
   commands: UseCommandsReturn,
   handlers: KeyboardShortcutHandlers
 ): boolean => {
-  const { key, shiftKey, selectedNodeId } = { ...event, selectedNodeId: handlers.selectedNodeId };
+  // Access properties directly from the event; spreading KeyboardEvent loses non-enumerable props
+  const key = event.key;
+  const shiftKey = event.shiftKey;
+  const selectedNodeId = handlers.selectedNodeId;
 
-  // Guard against undefined key
+  // Guard against undefined/empty key
   if (!key) return false;
 
   const mod = isModifier(event);

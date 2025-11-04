@@ -72,150 +72,131 @@ export function useMindMapViewport({
       const targetNode = findNodeInRoots(roots, selId);
       if (!targetNode) return;
 
-      
-      const currentUI = st.ui || {};
-      const currentActiveView = currentUI.activeView;
-      const currentSidebarCollapsed = currentUI.sidebarCollapsed;
+      // Base container rect and inner SVG border/padding
+      const containerEl = document.querySelector('.mindmap-canvas-container') as HTMLElement | null;
+      const containerRect = containerEl?.getBoundingClientRect();
+      const svgEl = containerEl?.querySelector('svg') as SVGSVGElement | null;
+      const svgStyles = svgEl ? getComputedStyle(svgEl) : null;
+      const svgBorderLeft = svgStyles ? parseFloat(svgStyles.borderLeftWidth || '0') || 0 : 0;
+      const svgBorderTop = svgStyles ? parseFloat(svgStyles.borderTopWidth || '0') || 0 : 0;
 
-      const mindmapContainer = document.querySelector('.mindmap-canvas-container') ||
-                               document.querySelector('.workspace-container') ||
-                               document.querySelector('.mindmap-app');
+      const containerLeft = (containerRect?.left ?? 0) + svgBorderLeft;
+      const containerTop = (containerRect?.top ?? 0) + svgBorderTop;
+      const containerWidth = (containerRect?.width ?? viewportService.getSize().width);
+      const containerHeight = (containerRect?.height ?? viewportService.getSize().height);
+      const containerBottom = containerTop + containerHeight;
 
-      let { width: effectiveWidth, height: effectiveHeight } = viewportService.getSize();
-      let offsetX = 0;
-      let offsetY = 0;
-
-      if (mindmapContainer) {
-        const rect = mindmapContainer.getBoundingClientRect();
-        effectiveWidth = rect.width;
-        effectiveHeight = rect.height;
-        offsetX = rect.left;
-        offsetY = rect.top;
-
-        
-        
-        if (currentActiveView && !currentSidebarCollapsed && offsetX === 0) {
-          
-          const ACTIVITY_BAR_WIDTH = 48;
-          const sidebarPanel = document.querySelector('.mindmap-sidebar');
-          let sidebarWidth = 0;
-          if (sidebarPanel) {
-            try {
-              const sidebarRect = sidebarPanel.getBoundingClientRect();
-              sidebarWidth = sidebarRect.width;
-            } catch {}
-          } else {
-            sidebarWidth = 280; 
-          }
-          const totalLeftOffset = ACTIVITY_BAR_WIDTH + sidebarWidth;
-          offsetX = totalLeftOffset;
-        }
-      } else {
-        
-        const ACTIVITY_BAR_WIDTH = 48;
-        const SIDEBAR_WIDTH = 280; 
-        let leftPanelWidth = ACTIVITY_BAR_WIDTH;
-
-        if (currentActiveView && !currentSidebarCollapsed) {
-          
-          const sidebarPanel = document.querySelector('.mindmap-sidebar');
-          if (sidebarPanel) {
-            try {
-              const sidebarRect = sidebarPanel.getBoundingClientRect();
-              leftPanelWidth += sidebarRect.width;
-            } catch {}
-          } else {
-            
-            leftPanelWidth += SIDEBAR_WIDTH;
-          }
-        }
-
-        effectiveWidth -= leftPanelWidth;
-        offsetX = leftPanelWidth;
-
-        
-        const markdownPanel = document.querySelector('.markdown-panel');
-        if (markdownPanel) {
-          try {
-            const pr = markdownPanel.getBoundingClientRect();
-            effectiveWidth -= pr.width;
-          } catch {}
-        } else if (currentUI.showNotesPanel && currentUI.markdownPanelWidth) {
-          
-          const w = Math.max(0, currentUI.markdownPanelWidth);
-          effectiveWidth -= w;
-        }
-      }
-
-      
-      
+      // UI overlays that occlude the canvas
+      const ACTIVITY_BAR_WIDTH = 48; // always present
+      const SIDEBAR_WIDTH = 280; // when sidebar shown
+      const leftOverlay = ACTIVITY_BAR_WIDTH + ((st.ui?.activeView && !st.ui?.sidebarCollapsed) ? SIDEBAR_WIDTH : 0);
+      const rightOverlay = st.ui?.showNotesPanel ? Math.max(0, st.ui?.markdownPanelWidth || 0) : 0;
+      // Measure Vim status bar height dynamically (fallback 24)
+      let statusBarHeight = 24;
       try {
-        const notePanel = document.querySelector('.selected-node-note-panel');
-        const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
-        effectiveHeight -= noteH;
+        const vimBar = document.querySelector('.vim-status-bar') as HTMLElement | null;
+        const vimH = vimBar ? Math.round(vimBar.getBoundingClientRect().height) : 0;
+        if (vimH > 0) statusBarHeight = vimH;
       } catch {}
-      
-      effectiveHeight -= 24;
+      const defaultNoteHeight = viewportService.getDefaultNoteHeight();
+      let noteOverlay = 0;
+      if (st.ui?.showNodeNotePanel) {
+        const h = st.ui?.nodeNotePanelHeight || 0;
+        noteOverlay = h > 0 ? h : defaultNoteHeight;
+      }
+      // Prefer DOM-measured height when available
+      try {
+        const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+        const domH = el ? Math.round(el.getBoundingClientRect().height) : 0;
+        if (domH > 0) noteOverlay = domH;
+      } catch {}
+      const viewportH = viewportService.getSize().height;
+      // Overlay sits above Vim status bar, so subtract both (note + status)
+      const overlayTopY = viewportH - (noteOverlay + statusBarHeight);
+
+      // Visible map area bottom is the smaller of container bottom and overlay top
+      const visibleBottom = Math.min(containerBottom, overlayTopY);
+      const mapAreaRect = new DOMRect(
+        containerLeft + leftOverlay,
+        containerTop,
+        Math.max(0, containerWidth - leftOverlay - rightOverlay),
+        Math.max(0, visibleBottom - containerTop)
+      );
 
       const currentZoom = (st.ui?.zoom || 1) * 1.5;
       const currentPan = st.ui?.pan || { x: 0, y: 0 };
 
+      // Prefer DOM-based measurement to avoid math drift (especially on Y)
+      const nodeEl = (document.querySelector(
+        '.mindmap-canvas-container svg g[data-node-id="' + selId + '"]'
+      ) as SVGGElement | null);
 
-      const fontSize = st.settings?.fontSize ?? 14;
-      const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
-      const nodeSize = calculateNodeSize(targetNode, undefined, false, fontSize, wrapConfig);
-      const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
-      const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
+      // Enforce full visibility: no slack vertically; minimal slack horizontally to reduce jitter
+      const slackX = Math.max(20, Math.round(mapAreaRect.width * 0.03));
+      const slackY = 0;
+      // Nudge a bit more upward so text never peeks under the status bar
+      const bottomSafeGap = Math.max(12, Math.round(statusBarHeight * 0.35));
+      const leftBound = mapAreaRect.left + slackX;
+      const rightBound = mapAreaRect.left + mapAreaRect.width - slackX;
+      const topBound = mapAreaRect.top + slackY;
+      const bottomBound = mapAreaRect.top + mapAreaRect.height - bottomSafeGap;
 
-      
-      const screenX = currentZoom * (targetNode.x + currentPan.x) - offsetX;
-      const screenY = currentZoom * (targetNode.y + currentPan.y) - offsetY;
+      if (nodeEl) {
+        const nodeRect = nodeEl.getBoundingClientRect();
+        let deltaX = 0;
+        let deltaY = 0;
+        if (nodeRect.left < leftBound) deltaX = leftBound - nodeRect.left;
+        if (nodeRect.right > rightBound) deltaX = rightBound - nodeRect.right;
+        if (nodeRect.top < topBound) deltaY = topBound - nodeRect.top;
+        if (nodeRect.bottom > bottomBound) deltaY = bottomBound - nodeRect.bottom;
 
-      const margin = 0;
-      const topMargin = 0; 
-      const bottomExtra = (function() {
-        
-        try {
-          const notePanel = document.querySelector('.selected-node-note-panel');
-          const noteH = notePanel ? Math.round(notePanel.getBoundingClientRect().height) : 0;
-          return noteH === 0 ? 6 : 0;
-        } catch { return 0; }
-      })();
-      // Add slack so we don't overreact to small movements near the edges
-      const slackX = Math.max(40, Math.round(effectiveWidth * 0.05));
-      const slackY = Math.max(40, Math.round(effectiveHeight * 0.05));
-      const leftBound = margin + slackX;
-      const rightBound = effectiveWidth - margin - slackX;
-      const topBound = topMargin + slackY;
-      const bottomBound = effectiveHeight - topMargin - bottomExtra - slackY;
-
-      const isOutsideLeft = (screenX - halfW) < leftBound;
-      const isOutsideRight = (screenX + halfW) > rightBound;
-      const isOutsideTop = (screenY - halfH) < topBound;
-      const isOutsideBottom = (screenY + halfH) > bottomBound;
-
-      if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
-        let newPanX = currentPan.x;
-        let newPanY = currentPan.y;
-
-        if (isOutsideLeft) {
-          
-          newPanX = ((leftBound + offsetX + halfW) / currentZoom) - targetNode.x;
-        } else if (isOutsideRight) {
-          
-          newPanX = ((rightBound + offsetX - halfW) / currentZoom) - targetNode.x;
+        if (deltaX !== 0 || deltaY !== 0) {
+          const setPanLocal = (st.setPan || setPan);
+          setPanLocal({
+            x: currentPan.x + (deltaX / currentZoom),
+            y: currentPan.y + (deltaY / currentZoom)
+          });
         }
+      } else {
+        // Fallback to geometry-based approach
+        const fontSize = st.settings?.fontSize ?? 14;
+        const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
+        const isEditing = st.editingNodeId === selId;
+        const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
+        const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
+        const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
 
-        if (isOutsideTop) {
-          
-          newPanY = ((topBound + offsetY + halfH) / currentZoom) - targetNode.y;
-        } else if (isOutsideBottom) {
-          
-          newPanY = ((bottomBound + offsetY - halfH) / currentZoom) - targetNode.y;
+        const screenX = containerLeft + currentZoom * (targetNode.x + currentPan.x);
+        const screenY = containerTop + currentZoom * (targetNode.y + currentPan.y);
+
+        const isOutsideLeft = (screenX - halfW) < leftBound;
+        const isOutsideRight = (screenX + halfW) > rightBound;
+        const isOutsideTop = (screenY - halfH) < topBound;
+        const isOutsideBottom = (screenY + halfH) > bottomBound;
+
+        if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
+          let newPanX = currentPan.x;
+          let newPanY = currentPan.y;
+
+          if (isOutsideLeft) {
+            const target = leftBound + halfW;
+            newPanX = ((target - containerLeft) / currentZoom) - targetNode.x;
+          } else if (isOutsideRight) {
+            const target = rightBound - halfW;
+            newPanX = ((target - containerLeft) / currentZoom) - targetNode.x;
+          }
+
+          if (isOutsideTop) {
+            const target = topBound + halfH;
+            newPanY = ((target - containerTop) / currentZoom) - targetNode.y;
+          } else if (isOutsideBottom) {
+            const target = bottomBound - halfH;
+            newPanY = ((target - containerTop) / currentZoom) - targetNode.y;
+          }
+
+          const setPanLocal = (st.setPan || setPan);
+          setPanLocal({ x: newPanX, y: newPanY });
         }
-
-        const setPanLocal = (st.setPan || setPan);
-        setPanLocal({ x: newPanX, y: newPanY });
       }
     } catch {}
   });
@@ -234,41 +215,52 @@ export function useMindMapViewport({
       : findNodeInRoots(rootNodes, nodeId);
 
     
-    const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
+    // Use container and inner SVG borders for accurate positioning
+    const containerEl = document.querySelector('.mindmap-canvas-container') as HTMLElement | null;
+    const containerRect = containerEl?.getBoundingClientRect();
+    const svgEl = containerEl?.querySelector('svg') as SVGSVGElement | null;
+    const svgStyles = svgEl ? getComputedStyle(svgEl) : null;
+    const svgBorderLeft = svgStyles ? parseFloat(svgStyles.borderLeftWidth || '0') || 0 : 0;
+    const svgBorderTop = svgStyles ? parseFloat(svgStyles.borderTopWidth || '0') || 0 : 0;
 
-    
+    const containerLeft = (containerRect?.left ?? 0) + svgBorderLeft;
+    const containerTop = (containerRect?.top ?? 0) + svgBorderTop;
+    const containerWidth = (containerRect?.width ?? viewportService.getSize().width);
+    const containerHeight = (containerRect?.height ?? viewportService.getSize().height);
+
     const ACTIVITY_BAR_WIDTH = 48;
     const SIDEBAR_WIDTH = 280;
-    const leftPanelWidth = ACTIVITY_BAR_WIDTH + (activeView && !uiStore.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
-
-    
-    const rightPanelWidth = uiStore.showNotesPanel ? (uiStore.markdownPanelWidth || 0) : 0;
-
-    
-    const VIM_HEIGHT = 24;
+    const leftOverlay = ACTIVITY_BAR_WIDTH + (activeView && !uiStore.sidebarCollapsed ? SIDEBAR_WIDTH : 0);
+    const rightOverlay = uiStore.showNotesPanel ? (uiStore.markdownPanelWidth || 0) : 0;
+    // Measure Vim status bar height dynamically (fallback 24)
+    let statusBarHeight = 24;
+    try {
+      const vimBar = document.querySelector('.vim-status-bar') as HTMLElement | null;
+      const vimH = vimBar ? Math.round(vimBar.getBoundingClientRect().height) : 0;
+      if (vimH > 0) statusBarHeight = vimH;
+    } catch {}
     const defaultNoteHeight = viewportService.getDefaultNoteHeight();
-    let noteHeight = 0;
+    let noteOverlay = 0;
     if (uiStore.showNodeNotePanel) {
       const h = uiStore.nodeNotePanelHeight || 0;
-      noteHeight = h > 0 ? h : defaultNoteHeight;
+      noteOverlay = h > 0 ? h : defaultNoteHeight;
     }
-
-    
-    let domNoteHeight = 0;
+    // Prefer DOM measurement for panel height
     try {
-      const el = document.querySelector('.selected-node-note-panel');
-      domNoteHeight = el ? Math.round(el.getBoundingClientRect().height) : 0;
+      const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
+      const domH = el ? Math.round(el.getBoundingClientRect().height) : 0;
+      if (domH > 0) noteOverlay = domH;
     } catch {}
-    if (domNoteHeight > 0 && domNoteHeight !== noteHeight) {
-      noteHeight = domNoteHeight;
-    }
-    const bottomOverlay = Math.max(noteHeight, VIM_HEIGHT);
+    const viewportH = viewportService.getSize().height;
+    const overlayTopY = viewportH - (noteOverlay + statusBarHeight);
+    const containerBottom = containerTop + containerHeight;
+    const visibleBottom = Math.min(containerBottom, overlayTopY);
 
     const mapAreaRect = new DOMRect(
-      leftPanelWidth,
-      0,
-      Math.max(0, viewportWidth - leftPanelWidth - rightPanelWidth),
-      Math.max(0, viewportHeight - bottomOverlay)
+      containerLeft + leftOverlay,
+      containerTop,
+      Math.max(0, containerWidth - leftOverlay - rightOverlay),
+      Math.max(0, visibleBottom - containerTop)
     );
 
     if (!targetNode) {
