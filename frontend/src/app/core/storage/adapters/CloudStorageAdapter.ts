@@ -616,6 +616,12 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     try {
+      // Guard: Do not overwrite files with empty content
+      if (typeof markdown !== 'string' || markdown.trim().length === 0) {
+        logger.warn('CloudStorageAdapter: Skipping save because markdown is empty', { id: id.mapId });
+        return;
+      }
+
       
       // Extract first level-1 heading as title without using complex regex
       let title = 'Untitled';

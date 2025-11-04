@@ -281,6 +281,12 @@ export class MarkdownFolderAdapter implements StorageAdapter {
       return;
     }
 
+    // Guard: Do not overwrite files with empty content
+    if (typeof markdown !== 'string' || markdown.trim().length === 0) {
+      logger.warn('MarkdownFolderAdapter: Skipping save because markdown is empty');
+      return;
+    }
+
     const saveKey = `${id.workspaceId || '__default__'}::${id.mapId}`;
     if (this.lastSavedContent.get(saveKey) === markdown) {
       logger.debug('📾 MarkdownFolderAdapter: Skipped markdown save (no changes) for', id.mapId);

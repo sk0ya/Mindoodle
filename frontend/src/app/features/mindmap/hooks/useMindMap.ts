@@ -413,7 +413,8 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
         }
 
         const text = await adapter.getMapMarkdown?.(target);
-        if (!text) {
+        // Treat null/undefined as missing; empty string is a valid (empty) file
+        if (text == null) {
           delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
           logger.warn('⚠️ No file found for map:', mapId);
           return false;
