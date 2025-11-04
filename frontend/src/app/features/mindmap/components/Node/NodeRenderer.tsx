@@ -551,7 +551,7 @@ interface NodeRendererProps {
           )}
 
           {}
-          {isSelected && node.kind !== 'table' && (
+          {isSelected && node.kind !== 'table' && !contentHidden && (
             <g>
               {}
               <rect
