@@ -167,6 +167,11 @@ const NodeTextEditor: React.FC<NodeTextEditorProps> = ({
         onChange={(e) => setEditText(e.target.value)}
         onKeyDown={handleKeyDown}
         onBlur={handleInputBlur}
+        onMouseDown={(e) => { e.stopPropagation(); }}
+        onMouseUp={(e) => { e.stopPropagation(); }}
+        onClick={(e) => { e.stopPropagation(); }}
+        onDoubleClick={(e) => { e.stopPropagation(); }}
+        onPointerDown={(e) => { e.stopPropagation(); }}
         style={{
           width: '100%',
           height: '100%',
