@@ -196,92 +196,57 @@ export function useMindMapViewport({
   const centerNodeInView = useStableCallback((nodeId: string, _animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
     if (!data) return;
 
-    const isLeftMode = fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left';
+    const isLeftMode = !!(fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left');
 
-    
     const rootNodes = data.rootNodes || [];
     const targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
       ? rootNodes[0]
       : findNodeInRoots(rootNodes, nodeId);
 
-    
-    // Use container and inner SVG borders for accurate positioning
+    // Resolve SVG rect; use it consistently for coordinate transforms
     const containerEl = document.querySelector('.mindmap-canvas-container') as HTMLElement | null;
-    const containerRect = containerEl?.getBoundingClientRect();
     const svgEl = containerEl?.querySelector('svg') as SVGSVGElement | null;
-    const svgStyles = svgEl ? getComputedStyle(svgEl) : null;
-    const svgBorderLeft = svgStyles ? parseFloat(svgStyles.borderLeftWidth || '0') || 0 : 0;
-    const svgBorderTop = svgStyles ? parseFloat(svgStyles.borderTopWidth || '0') || 0 : 0;
-    const svgBorderRight = svgStyles ? parseFloat(svgStyles.borderRightWidth || '0') || 0 : 0;
-    const svgBorderBottom = svgStyles ? parseFloat(svgStyles.borderBottomWidth || '0') || 0 : 0;
-    // Prefer the SVG rect for precise content box and center calculations
     const svgRect = svgEl?.getBoundingClientRect();
-    const containerLeft = ((svgRect?.left ?? containerRect?.left ?? 0) + svgBorderLeft);
-    const containerTop = ((svgRect?.top ?? containerRect?.top ?? 0) + svgBorderTop);
-    const rawContainerWidth = (svgRect?.width ?? containerRect?.width ?? viewportService.getSize().width);
-    const rawContainerHeight = (svgRect?.height ?? containerRect?.height ?? viewportService.getSize().height);
-    const containerWidth = Math.max(0, rawContainerWidth - svgBorderLeft - svgBorderRight);
-    const containerHeight = Math.max(0, rawContainerHeight - svgBorderTop - svgBorderBottom);
+    const fallbackRect = new DOMRect(0, 0, viewportService.getSize().width, viewportService.getSize().height);
+    const rect = svgRect ?? fallbackRect;
 
-    // For centering, use the visual center of the SVG content box directly
-    const mapAreaRect = new DOMRect(
-      containerLeft,
-      containerTop,
-      containerWidth,
-      containerHeight
-    );
+    // Desired screen-space target points and effective scale
+    const scale = uiStore.zoom * 1.5;
+    const centerScreenX = rect.left + rect.width / 2;
+    const centerScreenY = rect.top + rect.height / 2;
+    const leftMargin = 150; // used for 'zt'-style left alignment
+    const leftScreenX = rect.left + leftMargin;
+
+    // Helper to compute pan from a desired screen target and node svg coords
+    // Assume SVG applies transforms as scale then translate when rendering,
+    // i.e., screen = node*scale + pan + rect.left/top.
+    const computePan = (nodeSvgX: number, nodeSvgY: number, targetScreenX: number, targetScreenY: number) => {
+      const panX = targetScreenX - rect.left - nodeSvgX * scale;
+      const panY = targetScreenY - rect.top - nodeSvgY * scale;
+      return { x: panX, y: panY };
+    };
 
     if (!targetNode) {
       if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
-
         const nodeX = fallbackCoords.x;
         const nodeY = fallbackCoords.y;
-
-        // Position at left edge (X) and center (Y), or fully centered
-        const leftMarginFromMapArea = 150;
-        const targetX = isLeftMode
-          ? mapAreaRect.left + leftMarginFromMapArea  // Left edge of map area + margin
-          : mapAreaRect.left + (mapAreaRect.width / 2);
-        // Always center vertically regardless of mode
-        const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-        const currentZoom = uiStore.zoom * 1.5;
-
-        // Convert from screen coordinates to SVG coordinates by removing container offset
-        const newPanX = ((targetX - containerLeft) / currentZoom) - nodeX;
-        const newPanY = ((targetY - containerTop) / currentZoom) - nodeY;
-
-        setPan({ x: newPanX, y: newPanY });
+        const targetX = isLeftMode ? leftScreenX : centerScreenX;
+        const targetY = centerScreenY;
+        setPan(computePan(nodeX, nodeY, targetX, targetY));
       }
       return;
     }
 
-    
     const nodeX = targetNode.x || 0;
     const nodeY = targetNode.y || 0;
 
-    
-    const currentZoom = uiStore.zoom * 1.5;
-
-
     if (isLeftMode) {
-      // Position node at the left edge (X) and vertical center of the SVG content box
-      const leftMarginFromMapArea = 150;
-      const targetX = mapAreaRect.left + leftMarginFromMapArea;
-      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-      // Translate screen-space target to SVG-space pan using container offsets
-      const newPanX = ((targetX - containerLeft) / currentZoom) - nodeX;
-      const newPanY = ((targetY - containerTop) / currentZoom) - nodeY;
-      setPan({ x: newPanX, y: newPanY });
+      setPan(computePan(nodeX, nodeY, leftScreenX, centerScreenY));
       return;
     }
 
-    // Full center of the SVG content box
-    const targetX = mapAreaRect.left + (mapAreaRect.width / 2);
-    const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
-    // Convert from screen coordinates to SVG coordinates by removing container offset
-    const newPanX = ((targetX - containerLeft) / currentZoom) - nodeX;
-    const newPanY = ((targetY - containerTop) / currentZoom) - nodeY;
-    setPan({ x: newPanX, y: newPanY });
+    // Full center
+    setPan(computePan(nodeX, nodeY, centerScreenX, centerScreenY));
   });
 
   return {
