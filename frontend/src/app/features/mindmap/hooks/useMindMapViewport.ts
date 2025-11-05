@@ -19,6 +19,7 @@ export interface ViewportOperationsParams {
   };
   settings: {
     fontSize?: number;
+    layoutType?: 'mindmap' | 'tree';
   };
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 }
@@ -29,7 +30,7 @@ export interface ViewportOperationsParams {
 export function useMindMapViewport({
   data,
   uiStore,
-  settings: _settings,
+  settings,
   setPan,
 }: ViewportOperationsParams) {
 
@@ -197,6 +198,7 @@ export function useMindMapViewport({
     if (!data) return;
 
     const isLeftMode = !!(fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left');
+    const isTreeLayout = settings?.layoutType === 'tree' || useMindMapStore.getState().settings?.layoutType === 'tree';
 
     const rootNodes = data.rootNodes || [];
     const targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
@@ -215,6 +217,7 @@ export function useMindMapViewport({
     const centerScreenX = rect.left + rect.width / 2;
     const centerScreenY = rect.top + rect.height / 2;
     const leftMargin = 150; // used for 'zt'-style left alignment
+    const topMargin = 24;   // used for tree layout top alignment
     const leftScreenX = rect.left + leftMargin;
 
     // Helper to compute pan from a desired screen target and node svg coords
@@ -241,7 +244,23 @@ export function useMindMapViewport({
     const nodeY = targetNode.y || 0;
 
     if (isLeftMode) {
-      setPan(computePan(nodeX, nodeY, leftScreenX, centerScreenY));
+      if (isTreeLayout) {
+        // Align node's top-left to margins by targeting its center with half size offsets
+        const st = useMindMapStore.getState();
+        const fontSize = st.settings?.fontSize ?? 14;
+        const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
+        const isEditing = st.editingNodeId === targetNode.id;
+        const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
+        const halfW = ((nodeSize?.width ?? 80) / 2);
+        const halfH = ((nodeSize?.height ?? 24) / 2);
+
+        const targetX = rect.left + leftMargin + halfW * scale;
+        const targetY = rect.top + topMargin + halfH * scale;
+        setPan(computePan(nodeX, nodeY, targetX, targetY));
+      } else {
+        // Left + vertical center
+        setPan(computePan(nodeX, nodeY, leftScreenX, centerScreenY));
+      }
       return;
     }
 
