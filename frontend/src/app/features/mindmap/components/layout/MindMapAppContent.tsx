@@ -347,6 +347,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     ensureSelectedNodeVisible,
     centerNodeInView,
     setZoom,
+    setPan,
     autoEnsureVisible: false,
   });
 

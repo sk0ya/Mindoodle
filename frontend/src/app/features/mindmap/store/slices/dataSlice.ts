@@ -273,7 +273,8 @@ export const createDataSlice: StateCreator<
         const settingsWithSpacing = state.settings as typeof state.settings & { nodeSpacing?: number };
 
         // Select layout function based on settings
-        const layoutFunction = state.settings.layoutType === 'tree' ? treeLayout : simpleHierarchicalLayout;
+        const isTree = state.settings.layoutType === 'tree';
+        const layoutFunction = isTree ? treeLayout : simpleHierarchicalLayout;
 
         const layoutedNode = layoutFunction(rootNode, {
           globalFontSize: state.settings.fontSize,
