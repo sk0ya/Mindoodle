@@ -320,10 +320,12 @@ export const treeLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): 
     return nextChildTop;
   };
 
-  // Preserve root visual center at centerY by converting to top baseline first
-  const rootSize = calculateNodeSize(newRootNode, undefined, false, globalFontSize, wrapConfig);
-  const rootTop = centerY - rootSize.height / 2;
-  positionNodeTop(newRootNode, centerX, rootTop);
+  // Anchor root to top-left with a margin that clears the top-left button; ignore sidebar state
+  void centerY; // satisfy noUnusedParameters
+  void centerX; // satisfy noUnusedParameters
+  const rootX = 180; // 180px left margin as requested
+  const rootTop = COORDINATES.CANVAS_PADDING;
+  positionNodeTop(newRootNode, rootX, rootTop);
 
   return newRootNode;
 };
