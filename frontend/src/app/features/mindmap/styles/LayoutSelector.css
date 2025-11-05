@@ -1,7 +1,7 @@
 .layout-selector {
   position: absolute;
-  bottom: calc(var(--vim-statusbar-height, 24px) + 6px);
-  /* left is set dynamically via inline style to adjust for sidebar */
+  bottom: 12px;
+  /* left is set inline */
   display: flex;
   gap: 8px;
   background: var(--bg-primary, #1e1e1e);

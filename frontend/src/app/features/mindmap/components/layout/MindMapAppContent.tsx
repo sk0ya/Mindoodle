@@ -36,6 +36,7 @@ import { useMindMapViewportEffects } from './useMindMapViewportEffects';
 import { MindMapAppModalsContainer } from './MindMapAppModalsContainer';
 import { useNodeOperations } from './useNodeOperations';
 import { useContextMenuHandlers } from './useContextMenuHandlers';
+import VimStatusBar from '../VimStatusBar';
 
 // props for wrapper are declared in MindMapApp.tsx
 
@@ -660,18 +661,18 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             />
           )}
 
-          
-
-          {uiStore.showNodeNotePanel && selectedNodeId && (
-            <SelectedNodeNotePanelSection
-              selectedNodeId={selectedNodeId}
-              data={data}
-              updateNode={updateNode}
-              onClose={() => store.setShowNodeNotePanel?.(false)}
-              subscribeNoteChanges={subscribeNoteChanges}
-            />
-          )}
         </div>
+
+        {uiStore.showNodeNotePanel && selectedNodeId && (
+          <SelectedNodeNotePanelSection
+            selectedNodeId={selectedNodeId}
+            data={data}
+            updateNode={updateNode}
+            onClose={() => store.setShowNodeNotePanel?.(false)}
+            subscribeNoteChanges={subscribeNoteChanges}
+          />
+        )}
+        <VimStatusBar vim={vim} />
       </div>
 
       <MindMapAppModalsContainer

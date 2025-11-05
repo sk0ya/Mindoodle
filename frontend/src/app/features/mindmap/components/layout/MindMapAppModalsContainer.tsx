@@ -2,7 +2,6 @@ import React from 'react';
 import MindMapModals from '../modals/MindMapModals';
 import MindMapOverlays from './overlay/MindMapOverlays';
 import { JumpyLabels } from "../../../vim";
-import VimStatusBar from "../VimStatusBar";
 const CommandPalette = React.lazy(() => import('@shared/components/CommandPalette'));
 const AuthModal = React.lazy(() => import('@shared/components').then(m => ({ default: m.AuthModal })));
 import MindMapLinkOverlays from './overlay/MindMapLinkOverlays';
@@ -177,7 +176,6 @@ export const MindMapAppModalsContainer: React.FC<MindMapAppModalsContainerProps>
       />
 
       <JumpyLabels vim={vim} />
-      <VimStatusBar vim={vim} />
 
       <MindMapLinkOverlays
         allMaps={allMindMaps.map((map) => ({

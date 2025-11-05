@@ -197,10 +197,7 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
 
       <style>{`
         .vim-status-bar {
-          position: fixed;
-          bottom: 0;
-          left: 0;
-          right: 0;
+          position: static;
           height: var(--vim-statusbar-height, 24px);
           background: var(--bg-secondary);
           border-top: 1px solid var(--border-color);
@@ -209,8 +206,8 @@ const VimStatusBar: React.FC<Props> = ({ vim }) => {
           padding: 0 12px;
           font-family: 'Consolas', 'Monaco', 'Courier New', monospace;
           font-size: 12px;
-          z-index: 1000;
           gap: 12px;
+          flex-shrink: 0;
         }
 
         .vim-mode-indicator {

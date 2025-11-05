@@ -5,7 +5,6 @@ import { useMindMapStore } from '../../store';
 import { useResizingState } from '@/app/shared/hooks';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@core/storage/localStorage';
 import { viewportService } from '@/app/core/services';
-import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 
 type Props = {
@@ -24,8 +23,6 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
   const containerRef = useRef<HTMLDivElement>(null);
   const handleRef = useRef<HTMLDivElement>(null);
   const { isResizing, startResizing, stopResizing } = useResizingState();
-  const [leftOffset, setLeftOffset] = useState<number>(0);
-  const [rightOffset, setRightOffset] = useState<number>(0);
   const { setNodeNotePanelHeight } = usePanelControls();
   const [noteText, setNoteText] = useState<string>(note || '');
   const { value: editorFocused, setTrue: setEditorFocusedTrue, setFalse: setEditorFocusedFalse } = useBooleanState({ initialValue: false });
@@ -86,70 +83,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
   }, [height, startResizing, stopResizing]);
 
   
-  useEffect(() => {
-    const calcOffsets = () => {
-      try {
-        const act = document.querySelector<HTMLElement>('.activity-bar');
-        const leftA = act?.offsetWidth || 0;
-        const side = document.querySelector<HTMLElement>('.primary-sidebar');
-        
-        const style = side ? window.getComputedStyle(side) : null;
-        const isSideVisible = !!side && style?.display !== 'none' && style?.visibility !== 'hidden';
-        const leftB = isSideVisible ? (side.offsetWidth || 0) : 0;
-
-        const md = document.querySelector<HTMLElement>('.markdown-panel');
-        const rightW = md?.offsetWidth || 0;
-
-        setLeftOffset(leftA + leftB);
-        setRightOffset(rightW);
-      } catch {}
-    };
-
-    
-    calcOffsets();
-    setNodeNotePanelHeight?.(height);
-    try { window.dispatchEvent(new CustomEvent('node-note-panel-resize')); } catch {}
-    
-
-
-    const observers: ResizeObserver[] = [];
-    const observeEl = (sel: string) => {
-      const el = document.querySelector<HTMLElement>(sel);
-      if (!el || !('ResizeObserver' in window)) return;
-      const ro = new ResizeObserver(() => { calcOffsets(); });
-      try { ro.observe(el); } catch {}
-      observers.push(ro);
-    };
-    observeEl('.activity-bar');
-    observeEl('.primary-sidebar');
-    observeEl('.markdown-panel');
-
-    
-    const mo = new MutationObserver(() => calcOffsets());
-    mo.observe(document.body, { childList: true, subtree: true });
-
-    return () => {
-      observers.forEach(o => { try { o.disconnect(); } catch {} });
-      try { mo.disconnect(); } catch {}
-    };
-  }, [height, setNodeNotePanelHeight]);
-
-  
-  const onWinResize = useCallback(() => {
-    
-    try {
-      const act = document.querySelector<HTMLElement>('.activity-bar');
-      const leftA = act?.offsetWidth || 0;
-      const sidebar = document.querySelector<HTMLElement>('.primary-sidebar');
-      const leftB = (sidebar?.offsetWidth || 0);
-      setLeftOffset(leftA + leftB);
-      const mdPanel = document.querySelector<HTMLElement>('.markdown-panel');
-      const rightA = mdPanel?.offsetWidth || 0;
-      setRightOffset(rightA);
-    } catch {}
-  }, []);
-
-  useEventListener('resize', onWinResize);
+  // Note panel height updates are handled by the ResizeObserver below
 
   // Stream subscription: receive note updates from external sources
   useEffect(() => {
@@ -258,7 +192,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
   })();
 
   return (
-    <div ref={containerRef} className="selected-node-note-panel" style={{ height, left: leftOffset, right: rightOffset }}>
+    <div ref={containerRef} className="selected-node-note-panel" style={{ height, width: '100%' }}>
       <div ref={handleRef} className={`drag-handle ${isResizing ? 'resizing' : ''}`} onMouseDown={handleResizeStart} />
 
       {}
@@ -286,15 +220,13 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
 function getStyles(isResizing: boolean) {
   return `
     .selected-node-note-panel {
-      position: fixed;
-      bottom: var(--vim-statusbar-height, 24px);
+      position: relative;
       background: var(--bg-primary);
       border-top: 1px solid var(--border-color);
-      box-shadow: 0 -6px 20px rgba(0,0,0,0.12);
-      z-index: 900;
       display: flex;
       flex-direction: column;
       user-select: ${isResizing ? 'none' : 'auto'};
+      flex-shrink: 0;
     }
 
     .selected-node-note-panel .drag-handle {

@@ -77,28 +77,21 @@ export function useMindMapViewport({
       const svgStyles = svgEl ? getComputedStyle(svgEl) : null;
       const svgBorderLeft = svgStyles ? parseFloat(svgStyles.borderLeftWidth || '0') || 0 : 0;
       const svgBorderTop = svgStyles ? parseFloat(svgStyles.borderTopWidth || '0') || 0 : 0;
-
-      const containerLeft = (containerRect?.left ?? 0) + svgBorderLeft;
-      const containerTop = (containerRect?.top ?? 0) + svgBorderTop;
-      const containerWidth = (containerRect?.width ?? viewportService.getSize().width);
-      const containerHeight = (containerRect?.height ?? viewportService.getSize().height);
+      const svgBorderRight = svgStyles ? parseFloat(svgStyles.borderRightWidth || '0') || 0 : 0;
+      const svgBorderBottom = svgStyles ? parseFloat(svgStyles.borderBottomWidth || '0') || 0 : 0;
+      // Compute the actual SVG content box (inside borders)
+      const svgRect = svgEl?.getBoundingClientRect();
+      const containerLeft = ((svgRect?.left ?? containerRect?.left ?? 0) + svgBorderLeft);
+      const containerTop = ((svgRect?.top ?? containerRect?.top ?? 0) + svgBorderTop);
+      const rawContainerWidth = (svgRect?.width ?? containerRect?.width ?? viewportService.getSize().width);
+      const rawContainerHeight = (svgRect?.height ?? containerRect?.height ?? viewportService.getSize().height);
+      const containerWidth = Math.max(0, rawContainerWidth - svgBorderLeft - svgBorderRight);
+      const containerHeight = Math.max(0, rawContainerHeight - svgBorderTop - svgBorderBottom);
       const containerBottom = containerTop + containerHeight;
 
-      // UI overlays that occlude the canvas (measure from DOM when possible)
-      let activityWidth = 48;
-      try {
-        const act = document.querySelector('.activity-bar') as HTMLElement | null;
-        const w = act ? Math.round(act.getBoundingClientRect().width) : 0;
-        if (w > 0) activityWidth = w;
-      } catch {}
-      let sidebarWidth = 0;
-      try {
-        const side = document.querySelector('.primary-sidebar') as HTMLElement | null;
-        const w = side ? Math.round(side.getBoundingClientRect().width) : 0;
-        if (w > 0) sidebarWidth = w;
-      } catch {}
-      const leftOverlay = activityWidth + sidebarWidth;
-      // Markdown panel is in normal flow (flex sibling), so containerRect already reflects its presence
+      // The canvas container's rect already accounts for sidebars and activity bar
+      // because they are outside the container's flow. Do not subtract them again.
+      const leftOverlay = 0;
       const rightOverlay = 0;
       // Measure Vim status bar height dynamically (fallback 24)
       let statusBarHeight = 24;
@@ -107,23 +100,11 @@ export function useMindMapViewport({
         const vimH = vimBar ? Math.round(vimBar.getBoundingClientRect().height) : 0;
         if (vimH > 0) statusBarHeight = vimH;
       } catch {}
-      const defaultNoteHeight = viewportService.getDefaultNoteHeight();
-      let noteOverlay = 0;
-      if (st.ui?.showNodeNotePanel) {
-        const h = st.ui?.nodeNotePanelHeight || 0;
-        noteOverlay = h > 0 ? h : defaultNoteHeight;
-      }
-      // Prefer DOM-measured height when available
-      try {
-        const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
-        const domH = el ? Math.round(el.getBoundingClientRect().height) : 0;
-        if (domH > 0) noteOverlay = domH;
-      } catch {}
+      // NOTE: The node note panel is part of normal layout flow (a flex sibling),
+      // so containerRect already excludes its height. Do NOT subtract it again here.
       const viewportH = viewportService.getSize().height;
-      // Overlay sits above Vim status bar, so subtract both (note + status)
-      const overlayTopY = viewportH - (noteOverlay + statusBarHeight);
-
-      // Visible map area bottom is the smaller of container bottom and overlay top
+      // Visible bottom is limited by fixed overlays (Vim bar) if they overlap the SVG area
+      const overlayTopY = viewportH - statusBarHeight;
       const visibleBottom = Math.min(containerBottom, overlayTopY);
       const mapAreaRect = new DOMRect(
         containerLeft + leftOverlay,
@@ -233,59 +214,21 @@ export function useMindMapViewport({
     const svgBorderTop = svgStyles ? parseFloat(svgStyles.borderTopWidth || '0') || 0 : 0;
     const svgBorderRight = svgStyles ? parseFloat(svgStyles.borderRightWidth || '0') || 0 : 0;
     const svgBorderBottom = svgStyles ? parseFloat(svgStyles.borderBottomWidth || '0') || 0 : 0;
-
-    const containerLeft = (containerRect?.left ?? 0) + svgBorderLeft;
-    const containerTop = (containerRect?.top ?? 0) + svgBorderTop;
-    const rawContainerWidth = (containerRect?.width ?? viewportService.getSize().width);
-    const rawContainerHeight = (containerRect?.height ?? viewportService.getSize().height);
+    // Prefer the SVG rect for precise content box and center calculations
+    const svgRect = svgEl?.getBoundingClientRect();
+    const containerLeft = ((svgRect?.left ?? containerRect?.left ?? 0) + svgBorderLeft);
+    const containerTop = ((svgRect?.top ?? containerRect?.top ?? 0) + svgBorderTop);
+    const rawContainerWidth = (svgRect?.width ?? containerRect?.width ?? viewportService.getSize().width);
+    const rawContainerHeight = (svgRect?.height ?? containerRect?.height ?? viewportService.getSize().height);
     const containerWidth = Math.max(0, rawContainerWidth - svgBorderLeft - svgBorderRight);
     const containerHeight = Math.max(0, rawContainerHeight - svgBorderTop - svgBorderBottom);
 
-    // Measure overlays: left fixed ActivityBar + PrimarySidebar (fixed)
-    let activityWidth = 48;
-    try {
-      const act = document.querySelector('.activity-bar') as HTMLElement | null;
-      const w = act ? Math.round(act.getBoundingClientRect().width) : 0;
-      if (w > 0) activityWidth = w;
-    } catch {}
-    let sidebarWidth = 0;
-    try {
-      const side = document.querySelector('.primary-sidebar') as HTMLElement | null;
-      const w = side ? Math.round(side.getBoundingClientRect().width) : 0;
-      if (w > 0) sidebarWidth = w;
-    } catch {}
-    const leftOverlay = activityWidth + sidebarWidth;
-    // Right markdown panel is in-flow (flex), containerRect already accounts for it
-    const rightOverlay = 0;
-    // Measure Vim status bar height dynamically (fallback 24)
-    let statusBarHeight = 24;
-    try {
-      const vimBar = document.querySelector('.vim-status-bar') as HTMLElement | null;
-      const vimH = vimBar ? Math.round(vimBar.getBoundingClientRect().height) : 0;
-      if (vimH > 0) statusBarHeight = vimH;
-    } catch {}
-    const defaultNoteHeight = viewportService.getDefaultNoteHeight();
-    let noteOverlay = 0;
-    if (uiStore.showNodeNotePanel) {
-      const h = uiStore.nodeNotePanelHeight || 0;
-      noteOverlay = h > 0 ? h : defaultNoteHeight;
-    }
-    // Prefer DOM measurement for panel height
-    try {
-      const el = document.querySelector('.selected-node-note-panel') as HTMLElement | null;
-      const domH = el ? Math.round(el.getBoundingClientRect().height) : 0;
-      if (domH > 0) noteOverlay = domH;
-    } catch {}
-    const viewportH = viewportService.getSize().height;
-    const overlayTopY = viewportH - (noteOverlay + statusBarHeight);
-    const containerBottom = containerTop + containerHeight;
-    const visibleBottom = Math.min(containerBottom, overlayTopY);
-
+    // For centering, use the visual center of the SVG content box directly
     const mapAreaRect = new DOMRect(
-      containerLeft + leftOverlay,
+      containerLeft,
       containerTop,
-      Math.max(0, containerWidth - leftOverlay - rightOverlay),
-      Math.max(0, visibleBottom - containerTop)
+      containerWidth,
+      containerHeight
     );
 
     if (!targetNode) {
@@ -321,11 +264,10 @@ export function useMindMapViewport({
 
 
     if (isLeftMode) {
-      // Position node at the left edge (X) and center (Y), accounting for sidebar
-      const leftMarginFromMapArea = 150;  // Margin within the map area
-      // mapAreaRect.left already accounts for sidebars, so add margin from there
+      // Position node at the left edge (X) and vertical center of the SVG content box
+      const leftMarginFromMapArea = 150;
       const targetX = mapAreaRect.left + leftMarginFromMapArea;
-      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);  // Vertical center
+      const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
       // Translate screen-space target to SVG-space pan using container offsets
       const newPanX = ((targetX - containerLeft) / currentZoom) - nodeX;
       const newPanY = ((targetY - containerTop) / currentZoom) - nodeY;
@@ -333,7 +275,7 @@ export function useMindMapViewport({
       return;
     }
 
-    
+    // Full center of the SVG content box
     const targetX = mapAreaRect.left + (mapAreaRect.width / 2);
     const targetY = mapAreaRect.top + (mapAreaRect.height / 2);
     // Convert from screen coordinates to SVG coordinates by removing container offset
