@@ -30,7 +30,7 @@ export interface ViewportOperationsParams {
 export function useMindMapViewport({
   data,
   uiStore,
-  settings,
+  settings: _settings,
   setPan,
 }: ViewportOperationsParams) {
 
@@ -114,6 +114,7 @@ export function useMindMapViewport({
         Math.max(0, visibleBottom - containerTop)
       );
 
+      // Match the renderer's effective scale (zoom * 1.5)
       const currentZoom = (st.ui?.zoom || 1) * 1.5;
       const currentPan = st.ui?.pan || { x: 0, y: 0 };
 
@@ -198,7 +199,7 @@ export function useMindMapViewport({
     if (!data) return;
 
     const isLeftMode = !!(fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left');
-    const isTreeLayout = settings?.layoutType === 'tree' || useMindMapStore.getState().settings?.layoutType === 'tree';
+    const isTopLeftMode = !!(fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'top-left');
 
     const rootNodes = data.rootNodes || [];
     const targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
@@ -213,19 +214,21 @@ export function useMindMapViewport({
     const rect = svgRect ?? fallbackRect;
 
     // Desired screen-space target points and effective scale
+    // Match the renderer's effective scale (zoom * 1.5)
     const scale = uiStore.zoom * 1.5;
     const centerScreenX = rect.left + rect.width / 2;
     const centerScreenY = rect.top + rect.height / 2;
-    const leftMargin = 150; // used for 'zt'-style left alignment
-    const topMargin = 24;   // used for tree layout top alignment
+    const leftMargin = 150; // zt margin
+    const topLeftMargins = { left: 12, top: 8 }; // tree-initial anchor margins
     const leftScreenX = rect.left + leftMargin;
 
     // Helper to compute pan from a desired screen target and node svg coords
-    // Assume SVG applies transforms as scale then translate when rendering,
-    // i.e., screen = node*scale + pan + rect.left/top.
+    // CanvasRenderer applies transforms as translate then scale:
+    // <g transform={`translate(pan.x, pan.y) scale(scale)`}>
+    // So: screen = rect.left/top + (node + pan) * scale
     const computePan = (nodeSvgX: number, nodeSvgY: number, targetScreenX: number, targetScreenY: number) => {
-      const panX = targetScreenX - rect.left - nodeSvgX * scale;
-      const panY = targetScreenY - rect.top - nodeSvgY * scale;
+      const panX = (targetScreenX - rect.left) / scale - nodeSvgX;
+      const panY = (targetScreenY - rect.top) / scale - nodeSvgY;
       return { x: panX, y: panY };
     };
 
@@ -233,8 +236,15 @@ export function useMindMapViewport({
       if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
         const nodeX = fallbackCoords.x;
         const nodeY = fallbackCoords.y;
-        const targetX = isLeftMode ? leftScreenX : centerScreenX;
-        const targetY = centerScreenY;
+        let targetX = centerScreenX;
+        let targetY = centerScreenY;
+        if (isLeftMode) {
+          targetX = leftScreenX;
+          targetY = centerScreenY;
+        } else if (isTopLeftMode) {
+          targetX = rect.left + topLeftMargins.left; // will be corrected by computePan
+          targetY = rect.top + topLeftMargins.top;
+        }
         setPan(computePan(nodeX, nodeY, targetX, targetY));
       }
       return;
@@ -244,23 +254,24 @@ export function useMindMapViewport({
     const nodeY = targetNode.y || 0;
 
     if (isLeftMode) {
-      if (isTreeLayout) {
-        // Align node's top-left to margins by targeting its center with half size offsets
-        const st = useMindMapStore.getState();
-        const fontSize = st.settings?.fontSize ?? 14;
-        const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
-        const isEditing = st.editingNodeId === targetNode.id;
-        const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
-        const halfW = ((nodeSize?.width ?? 80) / 2);
-        const halfH = ((nodeSize?.height ?? 24) / 2);
+      // zt: left + vertical center for all layouts
+      setPan(computePan(nodeX, nodeY, leftScreenX, centerScreenY));
+      return;
+    }
 
-        const targetX = rect.left + leftMargin + halfW * scale;
-        const targetY = rect.top + topMargin + halfH * scale;
-        setPan(computePan(nodeX, nodeY, targetX, targetY));
-      } else {
-        // Left + vertical center
-        setPan(computePan(nodeX, nodeY, leftScreenX, centerScreenY));
-      }
+    if (isTopLeftMode) {
+      // Align node's top-left to small margins
+      const st = useMindMapStore.getState();
+      const fontSize = st.settings?.fontSize ?? 14;
+      const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
+      const isEditing = st.editingNodeId === targetNode.id;
+      const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
+      const halfW = ((nodeSize?.width ?? 80) / 2);
+      const halfH = ((nodeSize?.height ?? 24) / 2);
+
+      const targetX = rect.left + topLeftMargins.left + halfW * scale;
+      const targetY = rect.top + topLeftMargins.top + halfH * scale;
+      setPan(computePan(nodeX, nodeY, targetX, targetY));
       return;
     }
 
