@@ -1,5 +1,6 @@
 import type { Command } from '../system/types';
 import { editingCommand, failure, success, withCount } from '../utils/commandFunctional';
+import { logger } from '@shared/utils';
 
 export const deleteCommand: Command = editingCommand(
   'delete',
@@ -16,7 +17,7 @@ export const deleteCommand: Command = editingCommand(
 
     // Warn if deleting node with children
     if (!skipConfirm && node.children?.length) {
-      console.warn(`Deleting node "${node.text}" with ${node.children.length} children`);
+      logger.warn(`Deleting node "${node.text}" with ${node.children.length} children`);
     }
 
     // Delete nodes based on count

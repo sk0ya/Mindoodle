@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import type { MapIdentifier, MindMapData } from '@shared/types';
 import type { ExplorerItem } from '@core/types/storage.types';
+import { logger } from '@shared/utils';
 
 interface WindowGlobalsBridgeParams {
   workspaces: Array<{ id: string; name: string }> | undefined;
@@ -90,7 +91,7 @@ export function useWindowGlobalsBridge({
 
       const schedulePendingMapSwitch = (pendingKey: string, identifier: MapIdentifier, fn: (id: MapIdentifier) => Promise<void | boolean>) => {
         if (window.__mindoodlePendingMapKey === pendingKey) {
-          fn(identifier).catch((err: unknown) => console.warn('map switch failed', err));
+          fn(identifier).catch((err: unknown) => logger.warn('map switch failed', err));
         }
       };
 
@@ -114,7 +115,7 @@ export function useWindowGlobalsBridge({
             schedulePendingMapSwitch.bind(null, pendingKey, target.mapIdentifier, selectMapById),
             150
           );
-        } catch (err) { console.warn('window message handler error', err); }
+        } catch (err) { logger.warn('window message handler error', err); }
       };
     } catch { }
   }, [allMindMaps, currentMapId, currentWorkspaceId, selectMapById, explorerTree]);

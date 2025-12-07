@@ -1,4 +1,5 @@
 import type { Command } from './system/types';
+import { logger } from '@shared/utils';
 
 import * as navigationCommands from './navigation/navigate';
 import * as centerCommands from './navigation/center';
@@ -42,10 +43,10 @@ export function registerAllCommands(registry: { register: (_command: Command) =>
       if (command && typeof command === 'object' && command.name) {
         registry.register(command);
       } else {
-        console.warn('Invalid command structure:', command);
+        logger.warn('Invalid command structure:', command);
       }
     } catch (error) {
-      console.warn(`Failed to register command: ${command?.name ?? 'unknown'}`, error);
+      logger.warn(`Failed to register command: ${command?.name ?? 'unknown'}`, error);
     }
   }
 }

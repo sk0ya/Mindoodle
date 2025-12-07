@@ -196,7 +196,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
         logger.debug('⏸️ Nodes -> Markdown: no change, skipping');
       }
     } catch (e) {
-      console.error('❌ Nodes->Markdown conversion error:', e);
+      logger.error('❌ Nodes->Markdown conversion error:', e);
     }
   }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
 
@@ -268,7 +268,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
       try {
         return await (fn as (...args: unknown[]) => Promise<T>).apply(adapter, args);
       } catch (e) {
-        console.error(`${String(method)} failed:`, e);
+        logger.error(`${String(method)} failed:`, e);
         return fallback;
       }
     }
@@ -389,7 +389,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           actionsHook.selectMap(loadedMapData);
         }
       } catch (error) {
-        console.error('createAndSelectMap: Failed to load created map:', error);
+        logger.error('createAndSelectMap: Failed to load created map:', error);
       }
 
       return mapIdentifier.mapId;

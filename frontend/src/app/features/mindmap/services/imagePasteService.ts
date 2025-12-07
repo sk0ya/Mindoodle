@@ -1,4 +1,5 @@
 import { readClipboardImageAsFile } from '@shared/utils/clipboard';
+import { logger } from '@shared/utils';
 import { StorageAdapter } from '@core/types';
 import { WorkspaceService } from '@shared/services/WorkspaceService';
 
@@ -83,7 +84,7 @@ export class ImagePasteServiceImpl implements ImagePasteService {
 
       return relativeImagePath;
     } catch (error) {
-      console.error('Failed to paste image:', error);
+      logger.error('Failed to paste image:', error);
       throw new Error(error instanceof Error ? error.message : 'Failed to paste image');
     }
   }

@@ -130,7 +130,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
 
         logger.debug(`Successfully batch updated ${updatedMaps.length} maps`);
       } catch (error) {
-        console.error('Failed to batch update map categories:', error);
+        logger.error('Failed to batch update map categories:', error);
 
         // Refresh even on error
         if (typeof mindMap.refreshMapList === 'function') {
@@ -148,11 +148,11 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
           if (ok && onSuccess) {
             onSuccess();
           } else if (!ok) {
-            console.warn('selectRootFolder is not available on current adapter');
+            logger.warn('selectRootFolder is not available on current adapter');
           }
         }
       } catch (e) {
-        console.error('Folder selection failed:', e);
+        logger.error('Folder selection failed:', e);
       }
     }
   );

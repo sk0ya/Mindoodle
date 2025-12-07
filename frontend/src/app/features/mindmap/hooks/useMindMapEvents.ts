@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { useStableCallback } from '@shared/hooks';
 import { useMindMapStore } from '../store';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+import { logger } from '@shared/utils';
 
 interface UseMindMapEventsParams {
   mindMap: {
@@ -62,11 +63,11 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
       if (typeof (mindMap).refreshMapList === 'function') {
         const r = (mindMap).refreshMapList();
         if (r && typeof (r).then === 'function') {
-          (r as Promise<unknown>).catch((err) => console.warn('Refresh list failed:', err));
+          (r as Promise<unknown>).catch((err) => logger.warn('Refresh list failed:', err));
         }
       }
     } catch (e) {
-      console.error('Explorer refresh failed:', e);
+      logger.error('Explorer refresh failed:', e);
     }
   });
 
@@ -95,7 +96,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
         .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         })
-        .catch((err: unknown) => console.error('Rename failed:', err));
+        .catch((err: unknown) => logger.error('Rename failed:', err));
     }
   });
 
@@ -107,7 +108,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
         .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         })
-        .catch((err: unknown) => console.error('Delete failed:', err));
+        .catch((err: unknown) => logger.error('Delete failed:', err));
     }
   });
 
@@ -125,7 +126,7 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
         .then(() => {
           window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
         })
-        .catch((err: unknown) => console.error('Move failed:', err));
+        .catch((err: unknown) => logger.error('Move failed:', err));
     }
   });
 

@@ -4,7 +4,7 @@
  */
 
 import type { MindMapNode } from '@shared/types';
-import { generateObjectHash } from '@shared/utils';
+import { generateObjectHash, logger } from '@shared/utils';
 
 // === State ===
 
@@ -61,7 +61,7 @@ export const copyNodeToClipboard = async (
     await navigator.clipboard?.writeText(markdownText);
     onCopied?.(`「${node.text}」をコピーしました`);
   } catch (error) {
-    console.error('Failed to write to clipboard', error);
+    logger.error('Failed to write to clipboard', error);
   }
 };
 

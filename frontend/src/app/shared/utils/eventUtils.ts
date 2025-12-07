@@ -1,6 +1,7 @@
 
 
 import { useCallback, useEffect, useRef } from 'react';
+import { logger } from './logger';
 
 
 export function stopEventPropagation(e: Event | React.SyntheticEvent): void {
@@ -76,7 +77,7 @@ export function createSafeClickHandler(
     try {
       callback();
     } catch (error) {
-      console.error('Click handler error:', error);
+      logger.error('Click handler error:', error);
       if (onError && error instanceof Error) {
         onError(error);
       }

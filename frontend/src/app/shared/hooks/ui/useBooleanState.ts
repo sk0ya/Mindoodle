@@ -4,7 +4,7 @@
  */
 import { useState, useEffect } from 'react';
 import { useBooleanState as useBooleanStateBase } from '@shared/utils/functionalReact';
-import { parseStoredJson, storeJson } from '@shared/utils';
+import { parseStoredJson, storeJson, logger } from '@shared/utils';
 import { useStableCallback } from '../utilities/useStableCallback';
 
 // === Types ===
@@ -225,7 +225,7 @@ export const usePersistedState = <T>(
         if (validator ? validator(raw) : true) return raw;
       }
     } catch (error) {
-      console.warn(`Failed to load persisted state for key "${key}":`, error);
+      logger.warn(`Failed to load persisted state for key "${key}":`, error);
     }
     return initialValue;
   });
@@ -238,7 +238,7 @@ export const usePersistedState = <T>(
         if (typeof serialized === 'string') storeJson(key, serialized);
         else storeJson(key, newValue as unknown as object);
       } catch (error) {
-        console.warn(`Failed to save persisted state for key "${key}":`, error);
+        logger.warn(`Failed to save persisted state for key "${key}":`, error);
       }
       return newValue;
     });

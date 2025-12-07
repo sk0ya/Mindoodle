@@ -6,6 +6,7 @@ import { useCommands, type UseCommandsReturn } from '@commands/system/useCommand
 import { useMindMapStore } from '../store/mindMapStore';
 import { JUMP_CHARS } from '../../vim/constants';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+import { logger } from '@shared/utils';
 
 interface KeyboardShortcutHandlers {
   selectedNodeId: string | null;
@@ -173,12 +174,12 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       evt.preventDefault();
       await commands.execute('paste');
     } catch (e) {
-      console.warn('Paste primary attempt failed:', e);
+      logger.warn('Paste primary attempt failed:', e);
       evt.preventDefault();
       try {
         await commands.execute('paste');
       } catch (fallbackError) {
-        console.error('Paste fallback failed:', fallbackError);
+        logger.error('Paste fallback failed:', fallbackError);
       }
     }
   };
@@ -221,12 +222,12 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
     if (mod && !altKey) {
       if (event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
-        commands.execute('toggle-node-note-panel').catch(err => console.warn('toggle-node-note-panel failed', err));
+        commands.execute('toggle-node-note-panel').catch(err => logger.warn('toggle-node-note-panel failed', err));
         return;
       }
       if (!event.shiftKey && (key === 'm' || key === 'M')) {
         event.preventDefault();
-        commands.execute('toggle-markdown-panel').catch(err => console.warn('toggle-markdown-panel failed', err));
+        commands.execute('toggle-markdown-panel').catch(err => logger.warn('toggle-markdown-panel failed', err));
         return;
       }
     }

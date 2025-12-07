@@ -8,6 +8,7 @@ import type { CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
 import { isMindMeisterFormat, parseMindMeisterMarkdown } from '../../features/markdown';
 import { success, failure } from './commandFactories';
+import { logger } from '@shared/utils';
 
 type ExtendedStoreState = ReturnType<typeof useMindMapStore.getState> & {
   beginHistoryGroup?: (group: string) => void;
@@ -233,7 +234,7 @@ export const executePasteSibling = async (
         }
       }
     } catch (e) {
-      console.warn(`paste-sibling-${position}: clipboard read failed`, e);
+      logger.warn(`paste-sibling-${position}: clipboard read failed`, e);
     }
 
     // Fall back to UI clipboard only

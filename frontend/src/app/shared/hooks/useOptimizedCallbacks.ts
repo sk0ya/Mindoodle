@@ -4,6 +4,7 @@
  */
 
 import { useCallback, useMemo, useRef, useEffect } from 'react';
+import { logger } from '@shared/utils';
 
 /**
  * Create multiple callbacks at once with automatic memoization
@@ -173,7 +174,7 @@ export function useSafeCallback<T extends (...args: unknown[]) => unknown>(
         return callback(...args);
       } catch (error) {
         if (onError) onError(error as Error);
-        console.error('Callback error:', error);
+        logger.error('Callback error:', error);
         return undefined as unknown as ReturnType<T>;
       }
     }) as T,

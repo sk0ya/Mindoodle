@@ -7,6 +7,7 @@ import { registerAllCommands } from '../../commands/index';
 import type { Command } from '../../commands/system/types';
 import type { MindMapData } from '@shared/types';
 import { getFolderName } from '../utils/folderUtils';
+import { logger } from '@shared/utils';
 
 interface StorageAdapter {
   loadAllMaps?: () => Promise<MindMapData[]>;
@@ -69,8 +70,8 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
             setLoadedMaps(maps);
           }
         } catch (error) {
-          console.warn('Failed to load maps from storage:', error);
-          
+          logger.warn('Failed to load maps from storage:', error);
+
           setLoadedMaps([]);
         } finally {
           setMapsLoading(false);

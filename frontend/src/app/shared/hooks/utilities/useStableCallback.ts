@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
+import { logger } from '@shared/utils';
 
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -16,7 +17,7 @@ export function useStableCallback<T extends (...args: any[]) => any>(
   return useCallback((
     ((...args: Parameters<T>) => {
       if (!callbackRef || typeof callbackRef.current !== 'function') {
-        console.error('[useStableCallback] callbackRef or callbackRef.current is invalid', {
+        logger.error('[useStableCallback] callbackRef or callbackRef.current is invalid', {
           hasRef: !!callbackRef,
           currentType: typeof callbackRef?.current
         });

@@ -98,7 +98,7 @@ export const useSidebar = ({
             return newSet;
           });
         }).catch((err) => {
-          console.error('useSidebar: onCreateFolder failed:', err);
+          logger.error('useSidebar: onCreateFolder failed:', err);
         });
       } else {
         setEmptyFolders(prev => new Set([...prev, newFolderPath]));
@@ -345,7 +345,7 @@ export const useSidebar = ({
     );
 
     if (!workspaceNode) {
-      console.warn('useSidebar: Workspace node not found in tree');
+      logger.warn('useSidebar: Workspace node not found in tree');
       return clonedTree;
     }
 

@@ -1,5 +1,6 @@
 import type { MindMapNode, MindMapData } from '../types';
 import type { StorageAdapter } from '../../core/types/storage.types';
+import { logger } from './logger';
 
 export interface SearchResult {
   nodeId: string;
@@ -102,12 +103,12 @@ export async function searchFilesForContent(
             });
           }
         } catch (error) {
-          console.warn(`Failed to get markdown for ${mapId}:`, error);
+          logger.warn(`Failed to get markdown for ${mapId}:`, error);
         }
       }
     }
   } catch (error) {
-    console.error('File-based search error:', error);
+    logger.error('File-based search error:', error);
   }
 
   return results;
