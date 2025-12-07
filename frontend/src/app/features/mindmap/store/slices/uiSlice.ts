@@ -7,6 +7,20 @@ import * as panelManager from '@mindmap/state/panelManager';
 // Re-export types for external use
 export type { UISlice };
 
+// Helper to reset all panel state flags
+const resetAllPanelFlags = (ui: UIState) => {
+  ui.showContextMenu = false;
+  ui.showShortcutHelper = false;
+  ui.showMapList = false;
+  ui.showLocalStoragePanel = false;
+  ui.showImageModal = false;
+  ui.showFileActionMenu = false;
+  ui.showTutorial = false;
+  ui.showLinkListForNode = null;
+  const uiWithVim = ui as UIState & { showVimSettingsPanel?: boolean };
+  uiWithVim.showVimSettingsPanel = false;
+};
+
 export const createUISlice: StateCreator<
   MindMapStore,
   [["zustand/immer", never]],
@@ -258,16 +272,7 @@ export const createUISlice: StateCreator<
   // Composite Actions
   closeAllPanels: () => {
     set((state) => {
-      state.ui.showContextMenu = false;
-      state.ui.showShortcutHelper = false;
-      state.ui.showMapList = false;
-      state.ui.showLocalStoragePanel = false;
-      state.ui.showImageModal = false;
-      state.ui.showFileActionMenu = false;
-      state.ui.showTutorial = false;
-      state.ui.showLinkListForNode = null;
-      const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
-      uiWithVim.showVimSettingsPanel = false;
+      resetAllPanelFlags(state.ui);
       // Managed panels reset
       state.ui.openPanels = {};
       // Note: showNotesPanel は意図的に closeAllPanels から除外
@@ -358,16 +363,7 @@ export const createUISlice: StateCreator<
   closeAllPanelsManaged: () => {
     set((state) => {
       state.ui.openPanels = panelManager.closeAll();
-      state.ui.showContextMenu = false;
-      state.ui.showShortcutHelper = false;
-      state.ui.showMapList = false;
-      state.ui.showLocalStoragePanel = false;
-      state.ui.showImageModal = false;
-      state.ui.showFileActionMenu = false;
-      state.ui.showTutorial = false;
-      state.ui.showLinkListForNode = null;
-      const uiWithVim = state.ui as UIState & { showVimSettingsPanel?: boolean };
-      uiWithVim.showVimSettingsPanel = false;
+      resetAllPanelFlags(state.ui);
     });
   },
 

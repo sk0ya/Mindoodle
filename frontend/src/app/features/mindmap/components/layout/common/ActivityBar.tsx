@@ -54,7 +54,7 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
   ];
 
   const handleItemClick = (itemId: string) => {
-    
+
     if (activeView === itemId) {
       onViewChange(null);
     } else {
@@ -62,34 +62,28 @@ const ActivityBar: React.FC<ActivityBarProps> = ({ activeView, onViewChange, onS
     }
   };
 
+  const renderActivityBarItems = (items: ActivityBarItem[]) => (
+    items.map((item) => (
+      <button
+        key={item.id}
+        className={`activity-bar-item ${item.isActive ? 'active' : ''}`}
+        onClick={() => handleItemClick(item.id)}
+        title={item.label}
+        aria-label={item.label}
+      >
+        <span className="activity-bar-icon">{item.icon}</span>
+      </button>
+    ))
+  );
+
   return (
     <div className="activity-bar">
       <div className="activity-bar-items">
-        {topItems.map((item) => (
-          <button
-            key={item.id}
-            className={`activity-bar-item ${item.isActive ? 'active' : ''}`}
-            onClick={() => handleItemClick(item.id)}
-            title={item.label}
-            aria-label={item.label}
-          >
-            <span className="activity-bar-icon">{item.icon}</span>
-          </button>
-        ))}
+        {renderActivityBarItems(topItems)}
       </div>
 
       <div className="activity-bar-bottom">
-        {bottomItems.map((item) => (
-          <button
-            key={item.id}
-            className={`activity-bar-item ${item.isActive ? 'active' : ''}`}
-            onClick={() => handleItemClick(item.id)}
-            title={item.label}
-            aria-label={item.label}
-          >
-            <span className="activity-bar-icon">{item.icon}</span>
-          </button>
-        ))}
+        {renderActivityBarItems(bottomItems)}
         <button
           className="activity-bar-item"
           title="キーボードショートカット"

@@ -30,10 +30,78 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
   showNotesPanel = false,
   onToggleNodeNotePanel,
   showNodeNotePanel = false,
-  
+
   onCenterRootNode,
   layout = 'default'
 }) => {
+  // Shared button rendering components
+  const UndoButton = () => (
+    <ShortcutTooltip shortcut="Ctrl+Z" description="元に戻す">
+      <button className={`toolbar-btn undo ${!canUndo ? 'disabled' : ''}`} onClick={onUndo} disabled={!canUndo}>
+        <RotateCcw size={16} />
+      </button>
+    </ShortcutTooltip>
+  );
+
+  const RedoButton = () => (
+    <ShortcutTooltip shortcut="Ctrl+Y" description="やり直し">
+      <button className={`toolbar-btn redo ${!canRedo ? 'disabled' : ''}`} onClick={onRedo} disabled={!canRedo}>
+        <RotateCw size={16} />
+      </button>
+    </ShortcutTooltip>
+  );
+
+  const ZoomResetButton = () => (
+    <ShortcutTooltip description={`ズームリセット (現在: ${Math.round(zoom * 100)}%)`}>
+      <button className="toolbar-btn zoom-reset" onClick={onZoomReset}>
+        <Search size={16} /> {Math.round(zoom * 100)}%
+      </button>
+    </ShortcutTooltip>
+  );
+
+  const AutoLayoutButton = () => onAutoLayout ? (
+    <ShortcutTooltip shortcut="Ctrl+L" description="自動整列">
+      <button className="toolbar-btn auto-layout" onClick={onAutoLayout}>
+        <Ruler size={16} />
+      </button>
+    </ShortcutTooltip>
+  ) : null;
+
+  const CenterRootButton = () => onCenterRootNode ? (
+    <ShortcutTooltip description="ルートノードを左端中央に表示">
+      <button className="toolbar-btn center-root" onClick={onCenterRootNode}>
+        <Target size={16} />
+      </button>
+    </ShortcutTooltip>
+  ) : null;
+
+  const NotesPanelButton = ({ enablePrefetch = false }) => onToggleNotesPanel ? (
+    <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">
+      <button
+        className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`}
+        onClick={onToggleNotesPanel}
+        onMouseEnter={enablePrefetch ? () => {
+          try { import('../layout/panel/NodeNotesPanelContainer'); } catch {}
+        } : undefined}
+      >
+        <FileText size={16} />
+      </button>
+    </ShortcutTooltip>
+  ) : null;
+
+  const NodeNotePanelButton = ({ enablePrefetch = false }) => onToggleNodeNotePanel ? (
+    <ShortcutTooltip shortcut="Ctrl+Shift+M" description="選択ノードのノート">
+      <button
+        className={`toolbar-btn notes ${showNodeNotePanel ? 'active' : ''}`}
+        onClick={onToggleNodeNotePanel}
+        onMouseEnter={enablePrefetch ? () => {
+          try { import('../panels/SelectedNodeNotePanel'); } catch {}
+        } : undefined}
+      >
+        <StickyNote size={16} />
+      </button>
+    </ShortcutTooltip>
+  ) : null;
 
   if (layout === 'twoRows') {
     return (
@@ -41,54 +109,18 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
         {}
         <div className="action-row">
           <div className="action-group edit-actions">
-            <ShortcutTooltip shortcut="Ctrl+Z" description="元に戻す">
-              <button className={`toolbar-btn undo ${!canUndo ? 'disabled' : ''}`} onClick={onUndo} disabled={!canUndo}>
-                <RotateCcw size={16} />
-              </button>
-            </ShortcutTooltip>
-            <ShortcutTooltip shortcut="Ctrl+Y" description="やり直し">
-              <button className={`toolbar-btn redo ${!canRedo ? 'disabled' : ''}`} onClick={onRedo} disabled={!canRedo}>
-                <RotateCw size={16} />
-              </button>
-            </ShortcutTooltip>
-            <ShortcutTooltip description={`ズームリセット (現在: ${Math.round(zoom * 100)}%)`}>
-              <button className="toolbar-btn zoom-reset" onClick={onZoomReset}>
-                <Search size={16} /> {Math.round(zoom * 100)}%
-              </button>
-            </ShortcutTooltip>
+            <UndoButton />
+            <RedoButton />
+            <ZoomResetButton />
           </div>
         </div>
         {}
         <div className="action-row">
           <div className="action-group view-actions">
-            {onAutoLayout && (
-              <ShortcutTooltip shortcut="Ctrl+L" description="自動整列">
-                <button className="toolbar-btn auto-layout" onClick={onAutoLayout}>
-                  <Ruler size={16} />
-                </button>
-              </ShortcutTooltip>
-            )}
-            {onCenterRootNode && (
-              <ShortcutTooltip description="ルートノードを左端中央に表示">
-                <button className="toolbar-btn center-root" onClick={onCenterRootNode}>
-                  <Target size={16} />
-                </button>
-              </ShortcutTooltip>
-            )}
-            {onToggleNotesPanel && (
-              <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">
-                <button className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`} onClick={onToggleNotesPanel}>
-                  <FileText size={16} />
-                </button>
-              </ShortcutTooltip>
-            )}
-            {onToggleNodeNotePanel && (
-              <ShortcutTooltip shortcut="Ctrl+Shift+M" description="選択ノードのノート">
-                <button className={`toolbar-btn notes ${showNodeNotePanel ? 'active' : ''}`} onClick={onToggleNodeNotePanel}>
-                  <StickyNote size={16} />
-                </button>
-              </ShortcutTooltip>
-            )}
+            <AutoLayoutButton />
+            <CenterRootButton />
+            <NotesPanelButton enablePrefetch={false} />
+            <NodeNotePanelButton enablePrefetch={false} />
           </div>
         </div>
       </div>
@@ -97,96 +129,23 @@ const ActionButtons: React.FC<ActionButtonsProps> = ({
 
   return (
     <div className="toolbar-actions">
-
       {}
       <div className="action-group edit-actions">
-        <ShortcutTooltip shortcut="Ctrl+Z" description="元に戻す">
-          <button 
-            className={`toolbar-btn undo ${!canUndo ? 'disabled' : ''}`}
-            onClick={onUndo}
-            disabled={!canUndo}
-          >
-            <RotateCcw size={16} />
-          </button>
-        </ShortcutTooltip>
-        
-        <ShortcutTooltip shortcut="Ctrl+Y" description="やり直し">
-          <button 
-            className={`toolbar-btn redo ${!canRedo ? 'disabled' : ''}`}
-            onClick={onRedo}
-            disabled={!canRedo}
-          >
-            <RotateCw size={16} />
-          </button>
-        </ShortcutTooltip>
+        <UndoButton />
+        <RedoButton />
       </div>
 
       {}
       <div className="action-group view-actions">
-        <ShortcutTooltip description={`ズームリセット (現在: ${Math.round(zoom * 100)}%)`}>
-          <button 
-            className="toolbar-btn zoom-reset"
-            onClick={onZoomReset}
-          >
-            <Search size={16} /> {Math.round(zoom * 100)}%
-          </button>
-        </ShortcutTooltip>
-        
-        {onAutoLayout && (
-          <ShortcutTooltip shortcut="Ctrl+L" description="自動整列">
-            <button 
-              className="toolbar-btn auto-layout"
-              onClick={onAutoLayout}
-            >
-              <Ruler size={16} />
-            </button>
-          </ShortcutTooltip>
-        )}
-        
-        {onCenterRootNode && (
-          <ShortcutTooltip description="ルートノードを左端中央に表示">
-            <button
-              className="toolbar-btn center-root"
-              onClick={onCenterRootNode}
-            >
-              <Target size={16} />
-            </button>
-          </ShortcutTooltip>
-        )}
+        <ZoomResetButton />
+        <AutoLayoutButton />
+        <CenterRootButton />
       </div>
 
       {}
       <div className="action-group help-actions">
-            {onToggleNotesPanel && (
-              <ShortcutTooltip shortcut="Ctrl+Shift+N" description="マップのMarkdown">
-                <button 
-                  className={`toolbar-btn notes ${showNotesPanel ? 'active' : ''}`}
-                  onClick={onToggleNotesPanel}
-                  onMouseEnter={() => {
-                    // Prefetch editor bundle to reduce perceived latency
-                    try { import('../layout/panel/NodeNotesPanelContainer'); } catch {}
-                  }}
-                >
-                  <FileText size={16} />
-                </button>
-              </ShortcutTooltip>
-            )}
-
-            {onToggleNodeNotePanel && (
-              <ShortcutTooltip shortcut="Ctrl+Shift+M" description="選択ノードのノート">
-                <button 
-                  className={`toolbar-btn notes ${showNodeNotePanel ? 'active' : ''}`}
-                  onClick={onToggleNodeNotePanel}
-                  onMouseEnter={() => {
-                    // Prefetch node note editor bundle
-                    try { import('../panels/SelectedNodeNotePanel'); } catch {}
-                  }}
-                >
-                  <StickyNote size={16} />
-                </button>
-              </ShortcutTooltip>
-            )}
-
+        <NotesPanelButton enablePrefetch={true} />
+        <NodeNotePanelButton enablePrefetch={true} />
       </div>
     </div>
   );

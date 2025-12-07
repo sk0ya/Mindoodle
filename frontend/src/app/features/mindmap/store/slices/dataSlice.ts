@@ -15,9 +15,15 @@ let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
 const AUTOLAYOUT_DEBOUNCE_MS = 50;
 
 
-const nodeSizeCache = new LRUCache<string, { width: number; height: number }>(500, 300000); 
-const boundsCache = new LRUCache<string, { minY: number; maxY: number }>(300, 300000); 
-const nodeCountCache = new LRUCache<string, number>(200, 600000); 
+const nodeSizeCache = new LRUCache<string, { width: number; height: number }>(500, 300000);
+const boundsCache = new LRUCache<string, { minY: number; maxY: number }>(300, 300000);
+const nodeCountCache = new LRUCache<string, number>(200, 600000);
+
+// Helper to determine if content should be hidden for a node
+const isContentHidden = (node: MindMapNode, defaultVisible: boolean): boolean => {
+  const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+  return explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
+}; 
 
 
 if (typeof window !== 'undefined') {
@@ -193,9 +199,8 @@ export const createDataSlice: StateCreator<
           const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
           const nodeKind = nodeWithKind.kind || 'text';
           const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
-          const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
           const defaultVisible = state.settings.showVisualContentByDefault !== false;
-          const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
+          const contentHidden = isContentHidden(node, defaultVisible);
           const cacheKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}_hidden:${contentHidden}`;
           const cached = nodeSizeCache.get(cacheKey);
           if (cached) {
@@ -207,9 +212,8 @@ export const createDataSlice: StateCreator<
         };
 
         const getSubtreeBounds = (node: MindMapNode): { minY: number; maxY: number } => {
-          const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
           const defaultVisible = state.settings.showVisualContentByDefault !== false;
-          const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
+          const contentHidden = isContentHidden(node, defaultVisible);
           const cacheKey = `${node.id}_${node.y || 0}_${node.collapsed || false}_hidden:${contentHidden}`;
           const cached = boundsCache.get(cacheKey);
           if (cached) {
@@ -301,9 +305,8 @@ export const createDataSlice: StateCreator<
             const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
 
             // Invalidate size cache
-            const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
             const defaultVisible = state.settings.showVisualContentByDefault !== false;
-            const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
+            const contentHidden = isContentHidden(node, defaultVisible);
             const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}_hidden:${contentHidden}`;
             nodeSizeCache.delete(sizeKey);
 
