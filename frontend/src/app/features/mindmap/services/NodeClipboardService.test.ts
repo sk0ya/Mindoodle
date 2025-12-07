@@ -5,24 +5,9 @@ import {
   getLastCopiedHash,
   setLastCopiedHash,
 } from './NodeClipboardService';
-import type { MindMapNode } from '@shared/types';
+import { createTestNode as createNode } from '../test-helpers/testNodeFactory';
 
 describe('NodeClipboardService', () => {
-  function createNode(overrides: Partial<MindMapNode>): MindMapNode {
-    return {
-      id: 'node-1',
-      text: 'Test Node',
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 40,
-      level: 1,
-      collapsed: false,
-      children: [],
-      ...overrides,
-    } as MindMapNode;
-  }
-
   describe('nodeToMarkdownTree', () => {
     it('should convert single node to markdown', () => {
       const node = createNode({ text: 'Hello World' });

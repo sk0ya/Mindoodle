@@ -5,25 +5,9 @@ import {
   getSiblingNodes,
   flattenVisibleNodes,
 } from './mindMapSelectors';
-import type { MindMapNode } from '@shared/types';
+import { createTestNode as createNode } from '../test-helpers/testNodeFactory';
 
 describe('mindMapSelectors', () => {
-  // Test data factory
-  function createNode(overrides: Partial<MindMapNode>): MindMapNode {
-    return {
-      id: 'node-1',
-      text: 'Test Node',
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 40,
-      level: 1,
-      collapsed: false,
-      children: [],
-      ...overrides,
-    } as MindMapNode;
-  }
-
   describe('selectNodeIdByMarkdownLine', () => {
     it('should find node by markdown line number', () => {
       const nodes = [

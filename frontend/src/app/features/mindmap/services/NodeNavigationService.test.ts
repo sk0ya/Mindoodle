@@ -1,23 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { getNextNodeId, findParent } from './NodeNavigationService';
-import type { MindMapNode } from '@shared/types';
+import { createTestNode as createNode } from '../test-helpers/testNodeFactory';
 
 describe('NodeNavigationService', () => {
-  function createNode(overrides: Partial<MindMapNode>): MindMapNode {
-    return {
-      id: 'node-1',
-      text: 'Test Node',
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 40,
-      level: 1,
-      collapsed: false,
-      children: [],
-      ...overrides,
-    } as MindMapNode;
-  }
-
   describe('getNextNodeId', () => {
     describe('left navigation (parent)', () => {
       it('should navigate to parent node', () => {

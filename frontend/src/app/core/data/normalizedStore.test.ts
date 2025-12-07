@@ -12,23 +12,9 @@ import {
   addRootSiblingNode,
   changeSiblingOrderNormalized,
 } from './normalizedStore';
-import type { MindMapNode } from '@shared/types';
+import { createTestNode as createNode } from '@mindmap/test-helpers/testNodeFactory';
 
 describe('normalizedStore', () => {
-  function createNode(overrides: Partial<MindMapNode>): MindMapNode {
-    return {
-      id: 'test-id',
-      text: 'Test',
-      x: 0,
-      y: 0,
-      children: [],
-      fontSize: 14,
-      fontWeight: 'normal',
-      lineEnding: '\n',
-      ...overrides,
-    };
-  }
-
   describe('normalizeTreeData', () => {
     it('should normalize simple tree', () => {
       const tree = [createNode({ id: 'root-1', text: 'Root' })];
