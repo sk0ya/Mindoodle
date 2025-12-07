@@ -18,23 +18,9 @@ import {
   calculateChildNodeX,
   getBranchColor,
 } from './nodeUtils';
-import type { MindMapNode } from '@shared/types';
+import { createTestNode as createNode } from '../test-utils/testHelpers';
 
 describe('nodeUtils', () => {
-  function createNode(overrides: Partial<MindMapNode>): MindMapNode {
-    return {
-      id: 'node-1',
-      text: 'Test Node',
-      x: 0,
-      y: 0,
-      width: 100,
-      height: 40,
-      level: 1,
-      collapsed: false,
-      children: [],
-      ...overrides,
-    } as MindMapNode;
-  }
 
   describe('getNodeTextLineHeight', () => {
     it('should calculate line height with ratio', () => {

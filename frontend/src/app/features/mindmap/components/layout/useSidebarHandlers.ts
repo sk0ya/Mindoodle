@@ -1,5 +1,5 @@
 import React from 'react';
-import { useMindMapStore } from '../../store';
+import { getStoreState } from '../../hooks/useStoreSelectors';
 import type { MapIdentifier, MindMapNode } from '@shared/types';
 
 interface Options {
@@ -11,7 +11,7 @@ interface Options {
 
 export const useSidebarHandlers = ({ selectMapById, selectNode, centerNodeInView, storageAdapter }: Options) => {
   const onMapSwitch = React.useCallback(async (targetMapIdentifier: MapIdentifier) => {
-    const currentMapData = useMindMapStore.getState().data;
+    const currentMapData = getStoreState().data;
     if (
       currentMapData?.mapIdentifier?.mapId === targetMapIdentifier.mapId &&
       currentMapData?.mapIdentifier?.workspaceId === targetMapIdentifier.workspaceId
@@ -23,7 +23,7 @@ export const useSidebarHandlers = ({ selectMapById, selectNode, centerNodeInView
   }, [selectMapById]);
 
   const onNodeSelectByLine = React.useCallback(async (lineNumber: number) => {
-    const currentMapData = useMindMapStore.getState().data;
+    const currentMapData = getStoreState().data;
     if (!currentMapData || !storageAdapter) return;
 
     try {

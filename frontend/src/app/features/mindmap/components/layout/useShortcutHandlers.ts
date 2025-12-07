@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { findParentNode as selFindParentNode } from '@mindmap/selectors/mindMapSelectors';
-import { useMindMapStore } from '../../store';
+import { getStoreState, getRootNodes } from '../../hooks/useStoreSelectors';
 import type { MindMapNode, MindMapData } from '@shared/types';
 import { navigateToDirection } from './navigationStrategies';
 import { extractNodeMarkdown, copyNodeWithMarkdown, copyNodeTextOnly } from './copyNodeUtils';
@@ -141,11 +141,11 @@ export function useShortcutHandlers(args: Args) {
     selectNode,
     setPan,
     navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right', count: number = 1) => {
-      const state = useMindMapStore.getState();
+      const state = getStoreState();
       const currentSelectedNodeId = state.selectedNodeId;
       if (!currentSelectedNodeId) return;
 
-      const roots = state.data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
       const currentRoot = roots.find(r => !!findNodeById(r, currentSelectedNodeId)) || roots[0];
       if (!currentRoot) return;
 
@@ -175,8 +175,7 @@ export function useShortcutHandlers(args: Args) {
     showKeyboardHelper: ui.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show),
     copyNode: async (nodeId: string) => {
-      const state = useMindMapStore.getState();
-      const roots = state.data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) return;
 
@@ -191,8 +190,7 @@ export function useShortcutHandlers(args: Args) {
       });
     },
     copyNodeText: async (nodeId: string) => {
-      const state = useMindMapStore.getState();
-      const roots = state.data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) {
         logger.error('copyNodeText: node not found', nodeId);
@@ -207,20 +205,20 @@ export function useShortcutHandlers(args: Args) {
     },
     pasteImageFromClipboard,
     findNodeById: (nodeId: string) => {
-      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
       return findNodeInRoots(roots, nodeId);
     },
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
-    
-    showNotesPanel: !!useMindMapStore.getState().ui?.showNotesPanel,
+
+    showNotesPanel: !!getStoreState().ui?.showNotesPanel,
     setShowNotesPanel: (show: boolean) => store.setShowNotesPanel?.(show),
     toggleNotesPanel: () => store.toggleNotesPanel?.(),
-    
-    showNodeNotePanel: !!useMindMapStore.getState().ui?.showNodeNotePanel,
+
+    showNodeNotePanel: !!getStoreState().ui?.showNodeNotePanel,
     setShowNodeNotePanel: (show: boolean) => store.setShowNodeNotePanel?.(show),
     toggleNodeNotePanel: () => store.toggleNodeNotePanel?.(),
-    
-    showKnowledgeGraph: !!useMindMapStore.getState().ui?.showKnowledgeGraph,
+
+    showKnowledgeGraph: !!getStoreState().ui?.showKnowledgeGraph,
     setShowKnowledgeGraph: (show: boolean) => store.setShowKnowledgeGraph?.(show),
     toggleKnowledgeGraph: () => store.toggleKnowledgeGraph?.(),
     onMarkdownNodeType: changeNodeType,
@@ -285,7 +283,7 @@ export function useShortcutHandlers(args: Args) {
       );
     },
     findParentNode: (nodeId: string) => {
-      const roots = useMindMapStore.getState().data?.rootNodes || (data?.rootNode ? [data.rootNode] : []);
+      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
       return selFindParentNode(roots, nodeId);
     },
   }), [

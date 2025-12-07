@@ -3,9 +3,12 @@ import type { MindMapNode, NodeLink } from '@shared/types';
 /**
  * Interface for the node slice of the MindMap store
  * Defines all operations for managing nodes in the mind map
+ *
+ * Note: This is a subset of MindMapStore defined in ../types.ts
+ * Used for type safety within nodeSlice implementation
  */
 export interface NodeSlice {
-  // Query operations (O(1) with normalized data)
+  // Query operations
   findNode: (nodeId: string) => MindMapNode | null;
   getChildNodes: (nodeId: string) => MindMapNode[];
 
@@ -18,6 +21,7 @@ export interface NodeSlice {
   moveNodeWithPosition: (nodeId: string, targetNodeId: string, position: 'before' | 'after' | 'child') => { success: boolean; reason?: string };
   changeSiblingOrder: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;
   toggleNodeCollapse: (nodeId: string) => void;
+  toggleNodeCheckbox: (nodeId: string, checked: boolean) => void;
 
   // Editing operations
   selectNode: (nodeId: string | null) => void;
@@ -32,9 +36,6 @@ export interface NodeSlice {
   addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) => void;
   updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) => void;
   deleteNodeLink: (nodeId: string, linkId: string) => void;
-
-  // Checkbox operations
-  toggleNodeCheckbox: (nodeId: string, checked: boolean) => void;
 }
 
 /**

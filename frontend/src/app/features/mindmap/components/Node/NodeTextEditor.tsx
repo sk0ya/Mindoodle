@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useCallback, memo } from 'react';
 import { useMindMapStore } from '../../store';
+import { getEditingMode } from '../../hooks/useStoreSelectors';
 import { resolveNodeTextWrapConfig, wrapNodeText } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
 
@@ -59,7 +60,7 @@ const NodeTextEditor: React.FC<NodeTextEditorProps> = ({
         };
         try { (inputRef.current as unknown as { focus: (o?: { preventScroll?: boolean }) => void }).focus({ preventScroll: true }); } catch { inputRef.current?.focus(); }
 
-        const editingMode = useMindMapStore.getState().editingMode;
+        const editingMode = getEditingMode();
         if (editingMode === 'cursor-at-end') {
           const length = inputRef.current?.value.length ?? 0;
           inputRef.current?.setSelectionRange(length, length);

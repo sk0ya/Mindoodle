@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useStableCallback } from '@shared/hooks';
-import { useMindMapStore } from '../store';
+import { getRootNodes } from './useStoreSelectors';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { logger } from '@shared/utils';
 
@@ -31,10 +31,9 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     const trySelect = async (mapId: string, workspaceId: string): Promise<boolean> => {
       const ok = await selectMapById({ mapId, workspaceId });
       if (!ok) return false;
-      
+
       await Promise.resolve();
-      const current = useMindMapStore.getState().data;
-      const roots = current?.rootNodes || [];
+      const roots = getRootNodes();
       const empty = !Array.isArray(roots) || roots.length === 0 || (roots.length === 1 && (!roots[0].children || roots[0].children.length === 0));
       return !empty;
     };

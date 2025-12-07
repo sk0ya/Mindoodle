@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { mindMapEvents } from '@core/streams';
 import { logger } from '@shared/utils';
 import type { MindMapData } from '@shared/types';
-import { useMindMapStore } from '../../store';
+import { getStoreState } from '../../hooks/useStoreSelectors';
 
 /**
  * Custom hook for MindMap viewport-related effects
@@ -96,7 +96,7 @@ export function useMindMapViewportEffects({
     let settleTimer: number | null = null;
     const tryCenterAfterSettle = () => {
       if (centeredAfterOpenRef.current) return;
-      const isTreeLayout = useMindMapStore.getState().settings?.layoutType === 'tree';
+      const isTreeLayout = getStoreState().settings?.layoutType === 'tree';
       if (!isTreeLayout) return;
       const roots = data.rootNodes || [];
       if (roots.length === 0) return;

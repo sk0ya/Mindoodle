@@ -1,6 +1,7 @@
 import React, { useCallback } from 'react';
 import { useMindMap, useKeyboardShortcuts, useMindMapLinks, useMindMapFileOps, useMindMapEvents, useMindMapClipboard, useMindMapViewport, useWindowGlobalsBridge, useMarkdownOperations, useEditorEffects, useCommandExecution } from '@mindmap/hooks';
 import { useMindMapStore } from '../../store';
+import { getRootNodes, getStoreState } from '../../hooks/useStoreSelectors';
 import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
 import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
@@ -361,15 +362,15 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       centerNodeInView,
       notify: showNotification,
       getCurrentRootNode: () => {
-        const st = useMindMapStore.getState();
-        const roots = st.data?.rootNodes || [];
+        const st = getStoreState();
+        const roots = getRootNodes();
         const sel = st.selectedNodeId;
         if (sel) {
           return roots.find(r => !!findNodeById(r, sel)) || roots[0] || null;
         }
         return roots[0] || null;
       },
-      getAllRootNodes: () => useMindMapStore.getState().data?.rootNodes || null,
+      getAllRootNodes: () => getRootNodes().length > 0 ? getRootNodes() : null,
       resolveAnchorToNode,
     });
   };

@@ -1,4 +1,5 @@
 import { useMindMapStore } from '../store';
+import type { MindMapNode } from '@shared/types';
 
 /**
  * Store selectors for data access
@@ -9,6 +10,15 @@ import { useMindMapStore } from '../store';
  * creating new object references on every render, which would cause
  * infinite re-render loops in components.
  */
+
+// Non-reactive store getters (for use in callbacks and event handlers)
+// These are not hooks and don't cause re-renders
+export const getStoreState = () => useMindMapStore.getState();
+export const getRootNodes = (): MindMapNode[] => getStoreState().data?.rootNodes || [];
+export const getEditingNodeId = () => getStoreState().editingNodeId;
+export const getEditingMode = () => getStoreState().editingMode;
+export const getSelectedNodeId = () => getStoreState().selectedNodeId;
+export const getUIMode = () => getStoreState().ui.mode;
 
 // Data selectors
 export const useRootNodes = () => {
