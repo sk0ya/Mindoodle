@@ -3,6 +3,7 @@ import { Link } from 'lucide-react';
 import type { NodeLink } from '@shared/types';
 import { viewportService } from '@/app/core/services';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+import { menuStyles, menuContainerStyles } from '../shared/menuStyles';
 
 interface LinkActionMenuProps {
   isOpen: boolean;
@@ -95,123 +96,10 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
 
       <style>{`
         .link-action-menu {
-          background: white;
-          border: 1px solid #e5e7eb;
-          border-radius: 8px;
-          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
-          min-width: 220px;
-          max-width: 300px;
-          overflow: hidden;
-          font-size: 14px;
-          font-family: system-ui, -apple-system, sans-serif;
+          ${menuContainerStyles}
         }
 
-        .menu-header {
-          padding: 12px 16px;
-          background: #f9fafb;
-          border-bottom: 1px solid #e5e7eb;
-        }
-
-        .link-title {
-          font-weight: 600;
-          color: #111827;
-          margin-bottom: 2px;
-          word-wrap: break-word;
-        }
-
-        .link-description {
-          font-size: 12px;
-          color: #6b7280;
-          line-height: 1.4;
-          word-wrap: break-word;
-        }
-
-        .menu-divider {
-          height: 1px;
-          background: #e5e7eb;
-          margin: 4px 0;
-        }
-
-        .menu-items {
-          padding: 4px 0;
-        }
-
-        .menu-item {
-          display: flex;
-          align-items: center;
-          width: 100%;
-          padding: 8px 16px;
-          border: none;
-          background: none;
-          color: #374151;
-          font-size: 14px;
-          text-align: left;
-          cursor: pointer;
-          transition: background-color 0.15s ease;
-        }
-
-        .menu-item:hover {
-          background: #f3f4f6;
-        }
-
-        .menu-item.primary {
-          color: #2563eb;
-          font-weight: 500;
-        }
-
-        .menu-item.primary:hover {
-          background: #dbeafe;
-        }
-
-        .menu-item.danger {
-          color: #dc2626;
-        }
-
-        .menu-item.danger:hover {
-          background: #fef2f2;
-        }
-
-        .menu-icon {
-          margin-right: 8px;
-          font-size: 14px;
-          width: 16px;
-          text-align: center;
-        }
-
-        .menu-text {
-          flex: 1;
-        }
-
-        .menu-footer {
-          padding: 8px 16px;
-          background: #f9fafb;
-          border-top: 1px solid #e5e7eb;
-        }
-
-        .link-info {
-          font-size: 11px;
-          color: #6b7280;
-        }
-
-        .info-item {
-          display: flex;
-          margin-bottom: 2px;
-        }
-
-        .info-item:last-child {
-          margin-bottom: 0;
-        }
-
-        .info-label {
-          font-weight: 500;
-          margin-right: 4px;
-          min-width: 55px;
-        }
-
-        .info-value {
-          word-break: break-all;
-          opacity: 0.8;
-        }
+        ${menuStyles}
       `}</style>
     </div>
   );
