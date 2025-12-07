@@ -2,23 +2,12 @@
 import React from 'react';
 import { Folder, FolderOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
 import { highlightSearchTerm } from '@shared/utils';
-import type { ExplorerItem } from '@core/types';
-
-export interface ExplorerNodeViewProps {
-  item: ExplorerItem;
-  searchTerm?: string;
-  collapsed?: Record<string, boolean>;
-  onTogglePath?: (path: string) => void;
-  onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void;
-  currentMapId?: string | null;
-  currentWorkspaceId?: string | null;
-  dragOverPath?: string | null;
-  setDragOverPath?: (path: string | null) => void;
-  editingMapId?: string | null;
-  editingTitle?: string;
-  onCancelRename?: () => void;
-  onEditingTitleChange?: (title: string) => void;
-}
+import {
+  type ExplorerNodeViewProps,
+  parseWorkspaceAndMapId,
+  extractRelativePath,
+  isImageFile,
+} from './explorerUtils';
 
 export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   item,
@@ -39,23 +28,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   const isMarkdown = isFile && item.isMarkdown;
   const isCollapsed = collapsed[item.path] || false;
 
-  
-  let workspaceId: string | null = null;
-  let mapId: string | null = null;
-
-  if (isMarkdown) {
-    
-    const re = /^\/(ws_[^/]+|cloud)\/(.+)$/;
-    const pathMatch = re.exec(item.path);
-    if (pathMatch) {
-      workspaceId = pathMatch[1];
-      mapId = pathMatch[2].replace(/\.md$/i, '');
-    } else {
-      // Fallback for other patterns
-      workspaceId = item.path.startsWith('/ws_') ? item.path.split('/')[1] : null;
-      mapId = item.path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
-    }
-  }
+  const { workspaceId, mapId } = isMarkdown ? parseWorkspaceAndMapId(item.path) : { workspaceId: null, mapId: null };
   const isActive = isMarkdown && mapId && currentMapId === mapId && (
     currentWorkspaceId ? (workspaceId === currentWorkspaceId) : true
   );
@@ -71,11 +44,6 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
         detail: { mapId, workspaceId }
       }));
     }
-  };
-
-  const isImageFile = (name: string | undefined): boolean => {
-    if (!name) return false;
-    return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name);
   };
 
   const handleDoubleClick = () => {
@@ -102,11 +70,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
-    
-    
-    const relativePath = item.path.startsWith('/ws_')
-      ? item.path.replace(/^\/ws_[^/]+\//, '')
-      : item.path.replace(/^\/cloud\//, '');
+    const relativePath = extractRelativePath(item.path);
 
     // Set the relative path for file system operations (without workspaceId prefix)
     e.dataTransfer.setData('mindoodle/path', relativePath);
@@ -145,11 +109,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
         const sourcePath = e.dataTransfer.getData('mindoodle/path');
         const sourceWorkspaceId = e.dataTransfer.getData('mindoodle/workspaceId');
 
-        
-        
-        const targetRelativePath = item.path.startsWith('/ws_')
-          ? item.path.replace(/^\/ws_[^/]+\//, '')
-          : item.path.replace(/^\/cloud\//, '');
+        const targetRelativePath = extractRelativePath(item.path);
 
         if (sourcePath && sourcePath !== targetRelativePath) {
 

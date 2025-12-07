@@ -3,6 +3,7 @@ import React from 'react';
 import { Moon, Sun } from 'lucide-react';
 import { useSettings, useUpdateSetting } from '../../../hooks/useStoreSelectors';
 import { colorSetStyles } from './colorSetStyles';
+import { sharedSidebarStyles } from './sharedSidebarStyles';
 
 interface ColorSettingsSidebarProps {
 }
@@ -96,70 +97,7 @@ const ColorSettingsSidebar: React.FC<ColorSettingsSidebarProps> = () => {
           background-color: var(--bg-primary);
         }
 
-        .settings-section {
-          margin-bottom: 24px;
-        }
-
-        .settings-section-title {
-          font-size: 12px;
-          font-weight: 600;
-          color: var(--text-secondary);
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-          margin: 0 0 12px 0;
-          padding-bottom: 8px;
-          border-bottom: 1px solid var(--border-color);
-        }
-
-        .settings-section-content {
-          display: flex;
-          flex-direction: column;
-          gap: 12px;
-        }
-
-        .settings-radio-group {
-          display: flex;
-          flex-direction: column;
-          gap: 8px;
-        }
-
-        .settings-radio-option {
-          display: flex;
-          align-items: center;
-          padding: 8px;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: background-color 0.2s;
-        }
-
-        .settings-radio-option:hover {
-          background-color: var(--hover-color);
-        }
-
-        .settings-radio-option input[type="radio"] {
-          margin-right: 8px;
-          accent-color: var(--accent-color);
-        }
-
-        .settings-radio-label {
-          display: flex;
-          align-items: center;
-          color: var(--text-primary);
-          font-size: 14px;
-        }
-
-        .settings-icon {
-          margin-right: 8px;
-        }
-
-        .settings-description {
-          font-size: 12px;
-          color: var(--text-secondary);
-          line-height: 1.4;
-          margin-top: 4px;
-          padding-left: 4px;
-        }
-
+        ${sharedSidebarStyles}
         ${colorSetStyles}
       `}</style>
     </div>
