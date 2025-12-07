@@ -35,7 +35,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
     nodeIdRef.current = nodeId || null;
   }, [nodeId]);
 
-  
+
   useEffect(() => {
     try {
       const res = getLocalStorage<number>(HEIGHT_KEY);
@@ -47,7 +47,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
     } catch {}
   }, []);
 
-  
+
   const handleResizeStart = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();

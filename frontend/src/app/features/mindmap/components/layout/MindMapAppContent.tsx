@@ -620,35 +620,49 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           onCenterRootNode={handleCenterRootNode}
         />
 
-        <div className="workspace-container">
-          <MindMapWorkspacePane
-            data={data}
-            selectedNodeId={selectedNodeId}
-            editingNodeId={editingNodeId}
-            editText={editText}
-            setEditText={setEditText}
-            onSelectNode={wsHandlers.onSelectNode}
-            onStartEdit={wsHandlers.onStartEdit}
-            onFinishEdit={wsHandlers.onFinishEdit}
-            onAddChild={wsHandlers.onAddChild}
-            onAddSibling={wsHandlers.onAddSibling}
-            onDeleteNode={wsHandlers.onDeleteNode}
-            onToggleCollapse={wsHandlers.onToggleCollapse}
-            onShowLinkActionMenu={wsHandlers.onShowLinkActionMenu}
-            onAddLink={wsHandlers.onAddLink}
-            onUpdateNode={wsHandlers.onUpdateNode}
-            onAutoLayout={wsHandlers.onAutoLayout}
-            availableMaps={wsHandlers.availableMaps}
-            currentMapData={wsHandlers.currentMapData}
-            onLinkNavigate={wsHandlers.onLinkNavigate}
-            zoom={uiStore.zoom}
-            setZoom={setZoom}
-            pan={uiStore.pan}
-            setPan={setPan}
-            onToggleLinkList={store.toggleLinkListForNode}
-            onLoadRelativeImage={onLoadRelativeImage}
-            onImageClick={handleShowImageModal}
-          />
+        <div className="workspace-and-panels-container">
+          <div className="workspace-with-note-container">
+            <div className="workspace-container">
+              <MindMapWorkspacePane
+                data={data}
+                selectedNodeId={selectedNodeId}
+                editingNodeId={editingNodeId}
+                editText={editText}
+                setEditText={setEditText}
+                onSelectNode={wsHandlers.onSelectNode}
+                onStartEdit={wsHandlers.onStartEdit}
+                onFinishEdit={wsHandlers.onFinishEdit}
+                onAddChild={wsHandlers.onAddChild}
+                onAddSibling={wsHandlers.onAddSibling}
+                onDeleteNode={wsHandlers.onDeleteNode}
+                onToggleCollapse={wsHandlers.onToggleCollapse}
+                onShowLinkActionMenu={wsHandlers.onShowLinkActionMenu}
+                onAddLink={wsHandlers.onAddLink}
+                onUpdateNode={wsHandlers.onUpdateNode}
+                onAutoLayout={wsHandlers.onAutoLayout}
+                availableMaps={wsHandlers.availableMaps}
+                currentMapData={wsHandlers.currentMapData}
+                onLinkNavigate={wsHandlers.onLinkNavigate}
+                zoom={uiStore.zoom}
+                setZoom={setZoom}
+                pan={uiStore.pan}
+                setPan={setPan}
+                onToggleLinkList={store.toggleLinkListForNode}
+                onLoadRelativeImage={onLoadRelativeImage}
+                onImageClick={handleShowImageModal}
+              />
+            </div>
+
+            {uiStore.showNodeNotePanel && selectedNodeId && (
+              <SelectedNodeNotePanelSection
+                selectedNodeId={selectedNodeId}
+                data={data}
+                updateNode={updateNode}
+                onClose={() => store.setShowNodeNotePanel?.(false)}
+                subscribeNoteChanges={subscribeNoteChanges}
+              />
+            )}
+          </div>
 
           {uiStore.showNotesPanel && (
             <MarkdownPanelSection
@@ -662,18 +676,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               onClose={() => store.setShowNotesPanel?.(false)}
             />
           )}
-
         </div>
-
-        {uiStore.showNodeNotePanel && selectedNodeId && (
-          <SelectedNodeNotePanelSection
-            selectedNodeId={selectedNodeId}
-            data={data}
-            updateNode={updateNode}
-            onClose={() => store.setShowNodeNotePanel?.(false)}
-            subscribeNoteChanges={subscribeNoteChanges}
-          />
-        )}
         <VimStatusBar vim={vim} />
       </div>
 

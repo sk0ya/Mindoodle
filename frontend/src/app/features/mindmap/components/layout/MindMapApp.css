@@ -58,6 +58,28 @@
   /* サイドバーが表示されている場合の調整 */
 }
 
+/* ワークスペースとパネルのコンテナ - 横並びレイアウト */
+.workspace-and-panels-container {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+}
+
+/* ワークスペースとノートパネルのコンテナ - 縦並びレイアウト */
+.workspace-with-note-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow: hidden;
+  background: var(--bg-primary);
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
 .workspace-container {
   display: flex;
   flex: 1;
@@ -65,6 +87,8 @@
   background: var(--bg-primary);
   margin: 0;
   padding: 0;
+  min-width: 0;
+  min-height: 0;
 }
 
 .workspace-container > *:first-child {
