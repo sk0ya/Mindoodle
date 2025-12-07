@@ -6,6 +6,7 @@
 import { logger } from '@shared/utils';
 import { updateNormalizedNode, denormalizeTreeData } from '@core/data/normalizedStore';
 import type { MindMapStore } from '../types';
+import { applyAutoLayoutIfEnabled } from './layoutHelpers';
 
 // === Helpers ===
 
@@ -22,21 +23,6 @@ const endHistoryGroup = (get: () => MindMapStore, commit: boolean) => {
   try {
     state.endHistoryGroup?.(commit);
   } catch {}
-};
-
-const applyAutoLayoutIfEnabled = (get: () => MindMapStore, immediate: boolean = false) => {
-  const { data, applyAutoLayout } = get();
-  if (!data?.settings?.autoLayout) {
-    logger.debug('Auto layout disabled or settings missing');
-    return;
-  }
-
-  logger.debug('Applying auto layout', { immediate });
-  if (typeof applyAutoLayout === 'function') {
-    applyAutoLayout(immediate);
-  } else {
-    logger.error('applyAutoLayout function not found');
-  }
 };
 
 const setEditingState = (state: MindMapStore, nodeId: string, mode: EditingMode) => {

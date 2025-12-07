@@ -4,7 +4,7 @@ import { logger, LRUCache } from '@shared/utils';
 import { memoryService } from '@/app/core/services';
 import { normalizeTreeData, denormalizeTreeData } from '@core/data/normalizedStore';
 import { mindMapEvents } from '@core/streams';
-import { autoSelectLayout, simpleHierarchicalLayout, treeLayout } from '../../utils/autoLayout';
+import { simpleHierarchicalLayout, treeLayout } from '../../utils/autoLayout';
 import { findNodeInRoots } from '../../utils/nodeOperations';
 import { calculateNodeSize, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig } from '../../utils/nodeUtils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
@@ -181,11 +181,6 @@ export const createDataSlice: StateCreator<
         return;
       }
 
-      if (typeof autoSelectLayout !== 'function') {
-        logger.error('❌ Auto layout: autoSelectLayout function not found');
-        return;
-      }
-
       try {
         logger.debug('🎯 Applying auto layout to root nodes:', {
           rootNodesCount: rootNodes.length,
@@ -263,11 +258,13 @@ export const createDataSlice: StateCreator<
 
       const layoutWrapConfig = resolveNodeTextWrapConfig(state.settings, state.settings.fontSize);
 
-      
+      // Clear bounds cache once at start of layout cycle (Y positions will change)
+      boundsCache.clear();
+
       const layoutedRootNodes: MindMapNode[] = [];
       let previousSubtreeBottom = 0;
 
-      
+
       for (let index = 0; index < rootNodes.length; index++) {
         const rootNode = rootNodes[index];
         const settingsWithSpacing = state.settings as typeof state.settings & { nodeSpacing?: number };
@@ -303,22 +300,22 @@ export const createDataSlice: StateCreator<
             const nodeKind = nodeWithKind.kind || 'text';
             const textKey = nodeKind === 'table' ? JSON.stringify(nodeWithKind.tableData || {}) : node.text;
 
-
-            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}`;
+            // Invalidate size cache
+            const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+            const defaultVisible = state.settings.showVisualContentByDefault !== false;
+            const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
+            const sizeKey = `${node.id}_${textKey}_${state.settings.fontSize}_${nodeKind}_hidden:${contentHidden}`;
             nodeSizeCache.delete(sizeKey);
 
-
+            // Invalidate count cache
             const countKeyCollapsed = `${node.id}_true`;
             const countKeyExpanded = `${node.id}_false`;
             nodeCountCache.delete(countKeyCollapsed);
             nodeCountCache.delete(countKeyExpanded);
 
-
-            // Delete ALL bounds caches for this node (all Y positions, all collapsed states)
-            // Since LRUCache doesn't expose keys(), we use a different approach:
-            // Clear the entire bounds cache when invalidating to ensure no stale entries
-            // This is acceptable because bounds will be recalculated on demand
-            boundsCache.clear();
+            // Note: boundsCache depends on Y position which changes after layout
+            // We clear it once per layout cycle rather than per-node to avoid repeated clears
+            // Bounds will be recalculated with new Y positions after applyOffsetToTree
 
 
             if (node.children && !node.collapsed) {

@@ -22,6 +22,7 @@ import {
 import { COLORS } from '@shared/constants';
 import type { MindMapStore } from '../types';
 import { createNewNode, nearestNonTableSiblingMeta } from './helpers';
+import { applyAutoLayoutIfEnabled } from './layoutHelpers';
 
 // === Helpers ===
 
@@ -37,30 +38,11 @@ const endHistoryGroup = (get: () => MindMapStore, commit: boolean, pasteInProgre
   try { state.endHistoryGroup?.(commit); } catch {}
 };
 
-const applyAutoLayoutIfEnabled = (get: () => MindMapStore, operationName: string) => {
-  const { data, applyAutoLayout } = get();
-  logger.debug(`Auto layout check (${operationName}):`, {
-    hasData: !!data,
-    autoLayoutEnabled: data?.settings?.autoLayout
-  });
-
-  if (data?.settings?.autoLayout) {
-    logger.debug(`Applying auto layout after ${operationName}`);
-    if (typeof applyAutoLayout === 'function') {
-      // For node insertion operations, apply layout immediately to prevent visual overlap
-      const immediate = operationName === 'addChildNode' || operationName === 'addSiblingNode';
-      applyAutoLayout(immediate);
-    } else {
-      logger.error('applyAutoLayout function not found');
-    }
-  } else {
-    logger.debug('Auto layout disabled or settings missing');
-  }
-};
-
 const syncAndApplyLayout = (get: () => MindMapStore, operationName: string) => {
   get().syncToMindMapData();
-  applyAutoLayoutIfEnabled(get, operationName);
+  // For node insertion operations, apply layout immediately to prevent visual overlap
+  const immediate = operationName === 'addChildNode' || operationName === 'addSiblingNode';
+  applyAutoLayoutIfEnabled(get, immediate);
 };
 
 const calculateNodePosition = (

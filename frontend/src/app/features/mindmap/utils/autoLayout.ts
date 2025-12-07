@@ -52,7 +52,7 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
     centerX = uiAwareCenterX,
     centerY = COORDINATES.DEFAULT_CENTER_Y,
     levelSpacing = LAYOUT.LEVEL_SPACING,
-    nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN, 
+    nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN,
     globalFontSize,
     wrapConfig: providedWrapConfig
   } = options;
@@ -61,46 +61,79 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   const wrapConfig = providedWrapConfig ?? resolveNodeTextWrapConfig(undefined, effectiveFontSize);
 
   const newRootNode = cloneDeep(rootNode);
-  
+
   newRootNode.x = centerX;
   newRootNode.y = centerY;
 
-  
+  // Memoization caches for performance
+  const heightCache = new Map<string, number>();
+  const countCache = new Map<string, number>();
+
+
   const calculateSubtreeActualHeight = (node: MindMapNode): number => {
+    // Check cache first
+    const cached = heightCache.get(node.id);
+    if (cached !== undefined) return cached;
+
     const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
 
-    
+
     if (node.collapsed || !node.children || node.children.length === 0) {
-      return nodeSize.height;
+      const result = nodeSize.height;
+      heightCache.set(node.id, result);
+      return result;
     }
 
-    
+
     const childrenTotalHeight = node.children.reduce((sum, child, index) => {
       const childHeight = calculateSubtreeActualHeight(child);
 
-      
+
       let spacing = 0;
       if (index > 0) {
-        
-        spacing = Math.max(nodeSpacing, 2); 
+
+        spacing = Math.max(nodeSpacing, 2);
       }
 
       return sum + childHeight + spacing;
     }, 0);
 
-    
-    return Math.max(nodeSize.height, childrenTotalHeight);
+
+    const result = Math.max(nodeSize.height, childrenTotalHeight);
+    heightCache.set(node.id, result);
+    return result;
   };
 
-  
+
   const calculateSubtreeNodeCount = (node: MindMapNode): number => {
+    // Check cache first
+    const cached = countCache.get(node.id);
+    if (cached !== undefined) return cached;
+
     if (node.collapsed || !node.children || node.children.length === 0) {
+      countCache.set(node.id, 1);
       return 1;
     }
-    return node.children.reduce((sum, child) => sum + calculateSubtreeNodeCount(child), 0);
+    const result = node.children.reduce((sum, child) => sum + calculateSubtreeNodeCount(child), 0);
+    countCache.set(node.id, result);
+    return result;
   };
 
-  
+  // Shared helper: calculate bounds of subtree (min/max Y)
+  const calculateNodeBounds = (node: MindMapNode, bounds: { minY: number; maxY: number }): void => {
+    const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
+    const nodeTop = getNodeTopY(node, nodeSize.height);
+    const nodeBottom = getNodeBottomY(node, nodeSize.height);
+
+    bounds.minY = Math.min(bounds.minY, nodeTop);
+    bounds.maxY = Math.max(bounds.maxY, nodeBottom);
+
+    if (node.children && !node.collapsed) {
+      node.children.forEach(child => calculateNodeBounds(child, bounds));
+    }
+  };
+
+
   const positionNode = (node: MindMapNode, parent: MindMapNode | null, depth: number, yOffset: number): void => {
     if (depth === 0) return; 
 
@@ -154,30 +187,13 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
         }
       });
 
-      
+
       if (childrenWithHeights.length > 0) {
-        
-        let minY = Infinity;
-        let maxY = -Infinity;
+        const bounds = { minY: Infinity, maxY: -Infinity };
+        node.children.forEach(child => calculateNodeBounds(child, bounds));
 
-        const calculateNodeBounds = (childNode: MindMapNode) => {
-        const nodeSize = calculateNodeSize(childNode, undefined, false, globalFontSize, wrapConfig);
-          const nodeTop = getNodeTopY(childNode, nodeSize.height);
-          const nodeBottom = getNodeBottomY(childNode, nodeSize.height);
 
-          minY = Math.min(minY, nodeTop);
-          maxY = Math.max(maxY, nodeBottom);
-
-          
-          if (childNode.children && !childNode.collapsed) {
-            childNode.children.forEach(grandChild => calculateNodeBounds(grandChild));
-          }
-        };
-
-        node.children.forEach(child => calculateNodeBounds(child));
-
-        
-        const childrenCenterY = (minY + maxY) / 2;
+        const childrenCenterY = (bounds.minY + bounds.maxY) / 2;
         node.y = childrenCenterY;
       }
     }
@@ -219,30 +235,13 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
       }
     });
 
-    
+
     if (childrenWithHeights.length > 0) {
-      
-      let minY = Infinity;
-      let maxY = -Infinity;
+      const bounds = { minY: Infinity, maxY: -Infinity };
+      newRootNode.children.forEach(child => calculateNodeBounds(child, bounds));
 
-      const calculateNodeBounds = (node: MindMapNode) => {
-        const nodeSize = calculateNodeSize(node, undefined, false, globalFontSize, wrapConfig);
-        const nodeTop = getNodeTopY(node, nodeSize.height);
-        const nodeBottom = getNodeBottomY(node, nodeSize.height);
 
-        minY = Math.min(minY, nodeTop);
-        maxY = Math.max(maxY, nodeBottom);
-
-        
-        if (node.children && !node.collapsed) {
-          node.children.forEach(child => calculateNodeBounds(child));
-        }
-      };
-
-      newRootNode.children.forEach(child => calculateNodeBounds(child));
-
-      
-      const childrenCenterY = (minY + maxY) / 2;
+      const childrenCenterY = (bounds.minY + bounds.maxY) / 2;
       newRootNode.y = childrenCenterY;
     }
 
@@ -328,13 +327,4 @@ export const treeLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): 
   positionNodeTop(newRootNode, rootX, rootTop);
 
   return newRootNode;
-};
-/**
- * Automatically select the appropriate layout based on settings or default to mindmap layout
- * Note: The actual layout selection is handled by dataSlice using layoutType setting.
- * This function is kept for backward compatibility and defaults to mindmap layout.
- */
-export const autoSelectLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
-  // Default to mindmap layout - the store uses specific layout functions based on settings
-  return simpleHierarchicalLayout(rootNode, options);
 };

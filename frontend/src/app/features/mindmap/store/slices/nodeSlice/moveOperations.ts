@@ -11,19 +11,13 @@ import {
 } from '@core/data/normalizedStore';
 import type { MindMapStore } from '../types';
 import type { NormalizedData } from '@core/data/normalizedStore';
+import { applyAutoLayoutIfEnabled } from './layoutHelpers';
 
 // === Helpers ===
 
-const applyAutoLayoutIfNeeded = (get: () => MindMapStore) => {
-  const { data, applyAutoLayout } = get();
-  if (data?.settings?.autoLayout && applyAutoLayout) {
-    applyAutoLayout();
-  }
-};
-
 const syncAndLayout = (get: () => MindMapStore) => {
   get().syncToMindMapData();
-  applyAutoLayoutIfNeeded(get);
+  applyAutoLayoutIfEnabled(get, false);
 };
 
 type MoveResult = { success: boolean; reason?: string };
