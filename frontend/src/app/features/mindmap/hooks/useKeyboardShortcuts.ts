@@ -343,6 +343,23 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             return;
           }
 
+          // Special handling for 'm' key with count buffer (e.g., "3m" -> ordered list starting with 3)
+          if (key === 'm' && currentCount && !currentBuffer) {
+            // parseVimSequence expects "3m" format, not "m:3"
+            const vimSequence = `${currentCount}m`;
+            console.log('[DEBUG] 数字m detected:', { key, currentCount, currentBuffer, vimSequence });
+            const numberedResult = commands.parseVimSequence(vimSequence);
+            console.log('[DEBUG] parseVimSequence result:', numberedResult);
+            if (numberedResult.isComplete && numberedResult.command) {
+              handlers.closeAttachmentAndLinkLists();
+              console.log('[DEBUG] Executing vim command:', numberedResult.command, 'with count:', numberedResult.count);
+              commands.executeVimCommand(numberedResult.command, numberedResult.count);
+              vim.clearCountBuffer();
+              vim.clearCommandBuffer();
+              return;
+            }
+          }
+
           const testSequence = currentBuffer + key;
           const complete = expandedEntries.find(([lhs]) => lhs === testSequence);
 

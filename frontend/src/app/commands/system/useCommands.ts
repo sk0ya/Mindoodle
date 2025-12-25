@@ -214,26 +214,27 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     
     
     if (/^m:\d+$/.test(vimKey)) {
+      console.log('[DEBUG useCommands] m:number command detected:', vimKey);
       try {
         const num = parseInt(vimKey.split(':')[1], 10);
-        if (!selectedNodeId || !handlers.findNodeById) {
+        console.log('[DEBUG useCommands] Parsed number:', num);
+        if (!selectedNodeId) {
           return { success: false, error: 'No node selected' };
         }
-        const node = handlers.findNodeById(selectedNodeId);
+
+        const node = handlers.findNodeById?.(selectedNodeId);
+        console.log('[DEBUG useCommands] Current node:', node);
         if (!node) {
           return { success: false, error: 'Selected node not found' };
         }
 
-        
-        
+        // Calculate level based on parent
         let level = 1;
-        
         let indentLevel = 0;
 
-        
+        // Get parent node to calculate proper level
         try {
           const roots: MindMapNode[] = useMindMapStore.getState?.().data?.rootNodes || [];
-
           const findParent = (list: MindMapNode[], targetId: string, parent: MindMapNode | null = null): MindMapNode | null => {
             for (const n of list) {
               if (n.id === targetId) return parent;
@@ -249,7 +250,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
             level = Math.max((parent.markdownMeta.level || 1) + 1, 1);
             indentLevel = Math.max(level - 1, 0) * 2;
           }
-        } catch {  }
+        } catch { /* ignore */ }
 
         const newMeta = {
           type: 'ordered-list' as const,
@@ -259,11 +260,20 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
           lineNumber: node.markdownMeta?.lineNumber ?? 0
         };
 
-        
+        console.log('[DEBUG useCommands] New metadata:', newMeta);
+        // Update node with new metadata
         handlers.updateNode(selectedNodeId, { markdownMeta: newMeta });
+
+        // Trigger store update to sync with markdown
+        const store = useMindMapStore.getState();
+        console.log('[DEBUG useCommands] Store state:', { hasData: !!store.data, hasRootNodes: !!store.data?.rootNodes });
+        if (store.data?.rootNodes) {
+          store.setRootNodes(store.data.rootNodes, { emit: true, source: 'vim-ordered-list-conversion' });
+        }
 
         return { success: true, message: `Converted to ${num}. ordered list` };
       } catch (e) {
+        console.error('[DEBUG useCommands] Error:', e);
         return { success: false, error: e instanceof Error ? e.message : 'Failed to set ordered number' };
       }
     }
