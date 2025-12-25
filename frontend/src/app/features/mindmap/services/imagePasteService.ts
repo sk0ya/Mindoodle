@@ -24,8 +24,13 @@ export class ImagePasteServiceImpl implements ImagePasteService {
     imageFileOverride?: File
   ): Promise<string> {
     try {
-      
-      const imageFile = imageFileOverride ?? await readClipboardImageAsFile('image');
+      // Get image file from override or clipboard
+      let imageFile: File;
+      if (imageFileOverride) {
+        imageFile = imageFileOverride;
+      } else {
+        imageFile = await readClipboardImageAsFile('image');
+      }
 
       
       const now = new Date();
@@ -85,7 +90,10 @@ export class ImagePasteServiceImpl implements ImagePasteService {
       return relativeImagePath;
     } catch (error) {
       logger.error('Failed to paste image:', error);
-      throw new Error(error instanceof Error ? error.message : 'Failed to paste image');
+      if (error instanceof Error) {
+        throw error;
+      }
+      throw new Error('画像の貼り付けに失敗しました');
     }
   }
 }

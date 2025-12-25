@@ -151,31 +151,37 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
       const items = Array.from(dt.items || []);
       const imageItem = items.find(it => it.kind === 'file' && it.type?.startsWith('image/'));
 
+      // Check for image in files array
       if (!imageItem && dt.files) {
         const imageFile = Array.from(dt.files).find(f => f.type?.startsWith('image/'));
         if (imageFile) {
           evt.preventDefault();
+          logger.debug('Pasting image from files array:', imageFile.type);
           await handlers.pasteImageFromClipboard(handlers.selectedNodeId, imageFile as File);
           return;
         }
       }
 
+      // Check for image in clipboard items
       if (imageItem) {
         const blob = imageItem.getAsFile();
         if (blob) {
           evt.preventDefault();
           const ext = (imageItem.type.split('/')[1] || 'png');
           const file = new File([blob], `image-${Date.now()}.${ext}`, { type: imageItem.type });
+          logger.debug('Pasting image from clipboard item:', file.type);
           await handlers.pasteImageFromClipboard(handlers.selectedNodeId, file);
           return;
         }
       }
 
+      // No image found, try regular paste command
       evt.preventDefault();
       await commands.execute('paste');
     } catch (e) {
-      logger.warn('Paste primary attempt failed:', e);
+      logger.error('Paste failed:', e);
       evt.preventDefault();
+      // Try fallback paste command
       try {
         await commands.execute('paste');
       } catch (fallbackError) {

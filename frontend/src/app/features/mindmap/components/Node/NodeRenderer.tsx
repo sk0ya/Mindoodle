@@ -337,6 +337,20 @@ interface NodeRendererProps {
   const nodeStyles = getBaseNodeStyles(renderingState, themeConfig, DEFAULT_ANIMATION_CONFIG);
   const backgroundFill = getBackgroundFill(themeConfig);
 
+  // Define all hooks before any early returns to follow Rules of Hooks
+  const showMermaid = !!currentEntry && (currentEntry).kind === 'mermaid';
+  const isTableNode = node.kind === 'table';
+  const defaultVisible = settings.showVisualContentByDefault !== false;
+  const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
+  const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
+  const hasAnyVisualEntries = isTableNode || displayEntries.some(e => e.kind === 'image' || e.kind === 'mermaid');
+  const handleToggleContent = useCallback((e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    onUpdateNode?.(node.id, { contentHidden: !contentHidden });
+    onAutoLayout?.();
+  }, [onUpdateNode, onAutoLayout, node.id, contentHidden]);
+
   if (!currentEntry && node.kind !== 'table') {
     const normalizedNode = normalizedData?.nodes[node.id];
     const isCheckboxNode = normalizedNode?.markdownMeta?.isCheckbox ?? node.markdownMeta?.isCheckbox ?? false;
@@ -377,22 +391,6 @@ interface NodeRendererProps {
       </g>
     );
   }
-
-
-  const showMermaid = !!currentEntry && (currentEntry).kind === 'mermaid';
-
-
-  const isTableNode = node.kind === 'table';
-  const defaultVisible = settings.showVisualContentByDefault !== false;
-  const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
-  const contentHidden = explicitHidden === true || (explicitHidden === undefined && !defaultVisible);
-  const hasAnyVisualEntries = isTableNode || displayEntries.some(e => e.kind === 'image' || e.kind === 'mermaid');
-  const handleToggleContent = useCallback((e: React.MouseEvent) => {
-    e.stopPropagation();
-    e.preventDefault();
-    onUpdateNode?.(node.id, { contentHidden: !contentHidden });
-    onAutoLayout?.();
-  }, [onUpdateNode, onAutoLayout, node.id, contentHidden]);
 
   // Stable key for switching between mermaid/table/image/empty without nested ternary
   let contentKey = `empty-${node.id}`;

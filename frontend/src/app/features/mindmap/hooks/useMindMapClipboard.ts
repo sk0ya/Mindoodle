@@ -32,27 +32,27 @@ export function useMindMapClipboard({
   
   const pasteImageFromClipboard = useStableCallback(async (nodeId?: string, fileOverride?: File) => {
     try {
-      
+      // Validate target node
       const targetNodeId = nodeId || selectedNodeId;
       if (!targetNodeId) {
         showNotification('warning', '画像を貼り付けるノードを選択してください');
         return;
       }
 
-      
+      // Validate storage adapter
       if (!storageAdapter) {
         showNotification('error', 'ストレージが初期化されていません');
         return;
       }
 
-      
+      // Validate node exists
       const targetNode = findNodeInRoots(data?.rootNodes || [], targetNodeId);
       if (!targetNode) {
         showNotification('error', 'ノードが見つかりません');
         return;
       }
 
-      
+      // Paste image to node
       const imagePath = await imagePasteService.pasteImageToNode(
         targetNodeId,
         storageAdapter,
@@ -61,15 +61,23 @@ export function useMindMapClipboard({
         fileOverride
       );
 
-      
+      // Update node with new image
       const currentNote = targetNode.note || '';
       const imageMarkdown = `![](${imagePath})`;
       const newNote = currentNote
         ? `${currentNote}\n\n${imageMarkdown}`
         : imageMarkdown;
 
-      // Update the node with new note
-      updateNode(targetNodeId, { note: newNote });
+      // Update the node with new note and ensure kind is set to text
+      updateNode(targetNodeId, {
+        note: newNote,
+        kind: 'text',
+        // Clear any custom image dimensions to allow auto-sizing
+        customImageWidth: undefined,
+        customImageHeight: undefined,
+        // Ensure visual content is visible when pasting image
+        contentHidden: false
+      });
 
       // Refresh the explorer to show the new image file
       await refreshMapList();
