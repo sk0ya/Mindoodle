@@ -84,12 +84,12 @@ interface NodeRendererProps {
   onShowFileActionMenu,
   onUpdateNode,
   onAutoLayout,
-  
+
   onToggleCheckbox
 }) => {
-  const { settings, normalizedData } = useMindMapStore();
+  const settings = useMindMapStore(s => s.settings);
+  const normalizedData = useMindMapStore(s => s.normalizedData);
 
-  
   const handleCheckboxClick = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -398,6 +398,10 @@ interface NodeRendererProps {
   else if (isTableNode) contentKey = `table-${node.id}`;
   else if (currentImage) contentKey = currentImage.id;
 
+  const normalizedNode = normalizedData?.nodes[node.id];
+  const isCheckboxNode = normalizedNode?.markdownMeta?.isCheckbox ?? node.markdownMeta?.isCheckbox ?? false;
+  const isChecked = normalizedNode?.markdownMeta?.isChecked ?? node.markdownMeta?.isChecked ?? false;
+
   return (
     <>
       {}
@@ -423,6 +427,14 @@ interface NodeRendererProps {
         onDragOver={onDragOver}
         onDrop={onDrop}
       />
+      {isCheckboxNode && (
+        <CheckboxNode
+          nodeLeftX={nodeLeftX}
+          nodeY={node.y}
+          isChecked={isChecked}
+          onClick={handleCheckboxClick}
+        />
+      )}
 
       {}
       <g key={contentKey}>
@@ -630,21 +642,4 @@ export const NodeSelectionBorder: React.FC<{
   );
 };
 
-export default memo(NodeRenderer, (prevProps, nextProps) => {
-
-  return (
-    prevProps.node.id === nextProps.node.id &&
-    prevProps.node.text === nextProps.node.text &&
-    prevProps.node.note === nextProps.node.note &&
-    prevProps.node.x === nextProps.node.x &&
-    prevProps.node.y === nextProps.node.y &&
-    prevProps.node.customImageWidth === nextProps.node.customImageWidth &&
-    prevProps.node.customImageHeight === nextProps.node.customImageHeight &&
-    (prevProps.node as unknown as { contentHidden?: boolean }).contentHidden === (nextProps.node as unknown as { contentHidden?: boolean }).contentHidden &&
-    prevProps.isSelected === nextProps.isSelected &&
-    prevProps.isDragging === nextProps.isDragging &&
-    prevProps.nodeWidth === nextProps.nodeWidth &&
-    prevProps.nodeHeight === nextProps.nodeHeight &&
-    JSON.stringify(prevProps.node.markdownMeta) === JSON.stringify(nextProps.node.markdownMeta)
-  );
-});
+export default memo(NodeRenderer);

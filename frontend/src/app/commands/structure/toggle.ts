@@ -6,7 +6,6 @@
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { useMindMapStore } from '@mindmap/store';
-import { MarkdownImporter } from '../../features/markdown/markdownImporter';
 import { structureCommand, failure, success } from '../utils/commandFunctional';
 
 // === Pure Helper Functions ===
@@ -196,17 +195,13 @@ export const toggleCheckboxCommand: Command = structureCommand(
     }
 
     // Convert to checkbox
-    const data = store.data;
-    if (!data?.rootNodes) return failure('Map data not available');
+    const newMeta = createCheckboxMeta(node);
+    context.handlers.updateNode(nodeId, { markdownMeta: newMeta });
 
-    // Safety check for heading conversion
-    if (node.markdownMeta?.type === 'heading') {
-      const safetyCheck = MarkdownImporter.canSafelyConvertToList(data.rootNodes, nodeId);
-      if (!safetyCheck.canConvert) return failure(safetyCheck.reason || 'Cannot convert heading node');
+    // Force layout recalculation to update UI immediately
+    if (store.applyAutoLayout) {
+      store.applyAutoLayout(true);
     }
-
-    const updatedRootNodes = updateNodeInTree(data.rootNodes, nodeId, node);
-    store.setRootNodes(updatedRootNodes, { emit: true, source: 'toggle-checkbox-convert' });
 
     const sourceType = node.markdownMeta?.type === 'heading' ? 'heading' : 'list';
     return success(`Converted ${sourceType} node "${node.text}" to checkbox list (unchecked)`);
