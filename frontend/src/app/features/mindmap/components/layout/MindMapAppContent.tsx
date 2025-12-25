@@ -8,7 +8,7 @@ import ActivityBar from './common/ActivityBar';
 import SidebarSection from './sections/SidebarSection';
 import { useSidebarHandlers } from './useSidebarHandlers';
 import { useExplorerFolderOps } from './useExplorerFolderOps';
-import MindMapTopBar from './sections/MindMapTopBar';
+import FloatingActionButton from './FloatingActionButton';
 import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
 import { useWorkspaceHandlers } from './useWorkspaceHandlers';
 import FolderGuideModal from '../modals/FolderGuideModal';
@@ -330,17 +330,6 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const ensureSelectedNodeVisible = viewportOps.ensureSelectedNodeVisible;
   const centerNodeInView = viewportOps.centerNodeInView;
 
-  const handleCenterRootNode = useCallback(() => {
-    const roots = data?.rootNodes || [];
-    if (roots.length === 0) return;
-    if (selectedNodeId) {
-      const root = roots.find((r: MindMapNode) => !!findNodeById(r, selectedNodeId)) || roots[0];
-      centerNodeInView(root.id, false, { mode: 'left' });
-    } else {
-      centerNodeInView(roots[0].id, false, { mode: 'left' });
-    }
-  }, [data?.rootNodes, selectedNodeId, centerNodeInView]);
-
   // Viewport effects hook
   useMindMapViewportEffects({
     selectedNodeId,
@@ -603,30 +592,29 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           onClose={closeGuide}
           onSelectFolder={async () => { await handleSelectFolder(); markDismissed(); }}
         />
-        <MindMapTopBar
-          title={data?.title || ''}
-          activeView={activeView}
-          sidebarCollapsed={uiStore.sidebarCollapsed}
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          zoom={uiStore.zoom}
-          onZoomReset={() => setZoom(1.0)}
-          onAutoLayout={() => {
-            logger.info('Manual auto layout triggered');
-            if (typeof mindMap.applyAutoLayout === 'function') {
-              mindMap.applyAutoLayout();
-            } else {
-              logger.error('applyAutoLayout function not available');
-            }
-          }}
-          onToggleNotesPanel={() => store.toggleNotesPanel()}
-          showNotesPanel={uiStore.showNotesPanel}
-          onToggleNodeNotePanel={() => store.toggleNodeNotePanel?.()}
-          showNodeNotePanel={!!uiStore.showNodeNotePanel}
-          onCenterRootNode={handleCenterRootNode}
-        />
+
+        {data?.title && (
+          <div
+            style={{
+              position: 'fixed',
+              top: 8,
+              left: activeView ? 336 : 56,
+              zIndex: 100,
+              fontSize: 18,
+              fontWeight: 700,
+              color: 'var(--text-primary)',
+              padding: '4px 12px',
+              transition: 'left 0.3s ease',
+              maxWidth: 'calc(100vw - 400px)',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+            title={data.title}
+          >
+            {data.title}
+          </div>
+        )}
 
         <div className="workspace-and-panels-container">
           <div className="workspace-with-note-container">
@@ -686,6 +674,19 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           )}
         </div>
         <VimStatusBar vim={vim} />
+
+        <FloatingActionButton
+          onUndo={undo}
+          onRedo={redo}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          zoom={uiStore.zoom}
+          onZoomReset={() => setZoom(1.0)}
+          showNotesPanel={uiStore.showNotesPanel}
+          showNodeNotePanel={uiStore.showNodeNotePanel}
+          markdownPanelWidth={uiStore.markdownPanelWidth}
+          nodeNotePanelHeight={uiStore.nodeNotePanelHeight}
+        />
       </div>
 
       <MindMapAppModalsContainer
