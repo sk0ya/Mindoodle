@@ -18,9 +18,9 @@ export function useCommandExecution({
 }: CommandExecutionParams) {
 
 
-  const handleExecuteCommand = useStableCallback(async (commandName: string, _args?: Record<string, unknown>) => {
+  const handleExecuteCommand = useStableCallback(async (commandName: string, args?: Record<string, unknown>) => {
     try {
-      const result = await commands.execute(commandName);
+      const result = await commands.execute(commandName, args);
       if (result.success) {
         if (result.message) {
           showNotification('success', result.message);

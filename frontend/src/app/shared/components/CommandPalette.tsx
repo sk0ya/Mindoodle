@@ -209,7 +209,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
 
   const handleSelectItem = useCallback((item: CombinedItem) => {
     if (item.type === 'command' && item.command) {
-      onExecuteCommand(item.command.name);
+      onExecuteCommand(item.command.name, {});
     } else if (item.type === 'map' && item.mapData && onSelectMap) {
       onSelectMap({
         mapId: item.mapData.mapId,
