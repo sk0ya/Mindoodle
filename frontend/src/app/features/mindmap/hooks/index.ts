@@ -24,3 +24,4 @@ export * from './useDataFeatures';
 export * from './useNodeSelection';
 export * from './useNodeEditing';
 export * from './useStoreSelectors';
+export * from './useAutoScrollToSelectedNode';

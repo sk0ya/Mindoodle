@@ -38,6 +38,7 @@ import { MindMapAppModalsContainer } from './MindMapAppModalsContainer';
 import { useNodeOperations } from './useNodeOperations';
 import { useContextMenuHandlers } from './useContextMenuHandlers';
 import VimStatusBar from '../VimStatusBar';
+import { useAutoScrollToSelectedNode } from '@mindmap/hooks/useAutoScrollToSelectedNode';
 
 // props for wrapper are declared in MindMapApp.tsx
 
@@ -352,6 +353,14 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     autoEnsureVisible: false,
   });
 
+  // Auto-scroll to selected node (Single Responsibility Principle)
+  // When a node is selected, ensure it's visible (only scrolls if off-screen)
+  useAutoScrollToSelectedNode({
+    selectedNodeId,
+    ensureSelectedNodeVisible,
+    disabled: false,
+  });
+
   const handleLinkNavigate2 = async (link: NodeLink) => {
     await navigateLink(link, {
       currentMapId,
@@ -359,7 +368,6 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       selectMapById,
       currentWorkspaceId: data?.mapIdentifier?.workspaceId as string,
       selectNode,
-      centerNodeInView,
       notify: showNotification,
       getCurrentRootNode: () => {
         const st = getStoreState();
@@ -543,7 +551,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       />
 
       {(() => {
-        const sidebarHandlers = useSidebarHandlers({ selectMapById, selectNode, centerNodeInView, storageAdapter });
+        const sidebarHandlers = useSidebarHandlers({ selectMapById, selectNode, storageAdapter });
         return (
       <SidebarSection
         activeView={activeView}

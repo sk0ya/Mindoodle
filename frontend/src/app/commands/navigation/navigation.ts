@@ -99,7 +99,7 @@ export const selectRootNodeCommand: Command = navigationCommand(
     const roots: MindMapNode[] = useMindMapStore.getState()?.data?.rootNodes || [];
     if (!roots.length) return failure('No root nodes found');
     context.handlers.selectNode(roots[0].id);
-    if (context.handlers.centerNodeInView) context.handlers.centerNodeInView(roots[0].id, true);
+    // Auto-scroll handled by useAutoScrollToSelectedNode hook
     return success('Selected root node');
   },
   { aliases: ['root', 'go-root', 'gg'], examples: ['select-root'] }
@@ -135,7 +135,7 @@ export const jumpToNodeCommand: Command = navigationCommand(
     const nodeId = args['nodeId'] as string;
     if (!context.handlers.findNodeById(nodeId)) return failure(`Node ${nodeId} not found`);
     context.handlers.selectNode(nodeId);
-    if (context.handlers.centerNodeInView) context.handlers.centerNodeInView(nodeId, true);
+    // Auto-scroll handled by useAutoScrollToSelectedNode hook
     return success(`Jumped to node ${nodeId}`);
   },
   {

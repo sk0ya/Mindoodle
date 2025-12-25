@@ -32,7 +32,6 @@ interface Ctx {
   selectMapById: (id: MapIdentifier) => Promise<boolean> | boolean;
   currentWorkspaceId: string | null | undefined;
   selectNode: (id: string) => void;
-  centerNodeInView: (id: string, animate?: boolean, fallbackCoords?: { x: number; y: number }) => void;
   notify: (type: 'success'|'error'|'info'|'warning', message: string) => void;
   getCurrentRootNode: () => MindMapNode | null | undefined;
   getAllRootNodes?: () => MindMapNode[] | null | undefined;
@@ -42,7 +41,7 @@ interface Ctx {
 
 
 export async function navigateLink(link: NodeLink, ctx: Ctx) {
-  const { currentMapId, dataRoot, selectMapById, selectNode, centerNodeInView, notify, getCurrentRootNode } = ctx;
+  const { currentMapId, dataRoot, selectMapById, selectNode, notify, getCurrentRootNode } = ctx;
   try {
     if (link.targetMapId && link.targetMapId !== currentMapId) {
       const wsid = ctx.currentWorkspaceId as string;
@@ -68,14 +67,11 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
           const node = findNodeByTextInMultipleRoots(roots, targetText);
           if (node) {
             selectNode(node.id);
-            
-            const nodeCoords = { x: node.x || 0, y: node.y || 0 };
-            
-            centerNodeInView(node.id, true, nodeCoords);
+            // Auto-scroll handled by useAutoScrollToSelectedNode hook
           }
         } else {
           selectNode(tn);
-          centerNodeInView(tn);
+          // Auto-scroll handled by useAutoScrollToSelectedNode hook
         }
       }
       return;
@@ -98,7 +94,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
           const node = findNodeByTextInMultipleRoots(roots, targetText);
           if (node) {
             selectNode(node.id);
-            centerNodeInView(node.id);
+            // Auto-scroll handled by useAutoScrollToSelectedNode hook
             notify('success', `ノード "${node.text}" に移動しました`);
             return;
           }
@@ -107,7 +103,7 @@ export async function navigateLink(link: NodeLink, ctx: Ctx) {
         return;
       } else {
         selectNode(tn);
-        centerNodeInView(tn);
+        // Auto-scroll handled by useAutoScrollToSelectedNode hook
         notify('success', `ノードに移動しました`);
         return;
       }

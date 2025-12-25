@@ -5,11 +5,10 @@ import type { MapIdentifier, MindMapNode } from '@shared/types';
 interface Options {
   selectMapById: (id: MapIdentifier) => Promise<unknown> | void;
   selectNode: (id: string | null) => void;
-  centerNodeInView: (nodeId: string, animate?: any) => void;
   storageAdapter?: unknown;
 }
 
-export const useSidebarHandlers = ({ selectMapById, selectNode, centerNodeInView, storageAdapter }: Options) => {
+export const useSidebarHandlers = ({ selectMapById, selectNode, storageAdapter }: Options) => {
   const onMapSwitch = React.useCallback(async (targetMapIdentifier: MapIdentifier) => {
     const currentMapData = getStoreState().data;
     if (
@@ -45,14 +44,14 @@ export const useSidebarHandlers = ({ selectMapById, selectNode, centerNodeInView
       findNodeByMarkdownLine(currentMapData.rootNodes || []);
       if (foundNodeId) {
         selectNode(foundNodeId);
-        centerNodeInView(foundNodeId, false);
+        // Auto-scroll handled by useAutoScrollToSelectedNode hook
       }
     } catch (error) {
       // keep silent to match original behaviour
       // eslint-disable-next-line no-console
       console.error('Error finding node by line number:', error);
     }
-  }, [selectNode, centerNodeInView, storageAdapter]);
+  }, [selectNode, storageAdapter]);
 
   return { onMapSwitch, onNodeSelectByLine };
 };
