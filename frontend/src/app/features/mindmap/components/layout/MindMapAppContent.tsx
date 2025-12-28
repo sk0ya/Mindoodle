@@ -8,7 +8,6 @@ import ActivityBar from './common/ActivityBar';
 import PrimarySidebarContainer from './sidebar/PrimarySidebarContainer';
 import { useSidebarHandlers } from './useSidebarHandlers';
 import { useExplorerFolderOps } from './useExplorerFolderOps';
-import FloatingActionButton from './FloatingActionButton';
 import MindMapWorkspace from './MindMapWorkspace';
 import { useWorkspaceHandlers } from './useWorkspaceHandlers';
 import FolderGuideModal from '../modals/FolderGuideModal';
@@ -643,6 +642,11 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 onToggleLinkList={store.toggleLinkListForNode}
                 onLoadRelativeImage={onLoadRelativeImage}
                 onImageClick={handleShowImageModal}
+                onUndo={undo}
+                onRedo={redo}
+                canUndo={canUndo}
+                canRedo={canRedo}
+                onZoomReset={() => setZoom(1.0)}
               />
             </div>
 
@@ -671,19 +675,6 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           )}
         </div>
         <VimStatusBar vim={vim} />
-
-        <FloatingActionButton
-          onUndo={undo}
-          onRedo={redo}
-          canUndo={canUndo}
-          canRedo={canRedo}
-          zoom={uiStore.zoom}
-          onZoomReset={() => setZoom(1.0)}
-          showNotesPanel={uiStore.showNotesPanel}
-          showNodeNotePanel={uiStore.showNodeNotePanel}
-          markdownPanelWidth={uiStore.markdownPanelWidth}
-          nodeNotePanelHeight={uiStore.nodeNotePanelHeight}
-        />
       </div>
 
       <MindMapAppModalsContainer

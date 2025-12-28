@@ -12,29 +12,36 @@ interface MindMapWorkspaceProps {
   onSelectNode: (nodeId: string | null) => void;
   onStartEdit: (nodeId: string) => void;
   onFinishEdit: (nodeId: string, text: string) => void;
-  
+
   onToggleCollapse: (nodeId: string) => void;
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<import('@shared/types').MindMapNode>) => void;
   onAutoLayout?: () => void;
-  
-  
+
+
   availableMaps?: { id: string; title: string }[];
   currentMapData?: import('@shared/types').MindMapData | null;
-  
-  
+
+
   onLinkNavigate?: (link: NodeLink) => void;
-  
+
   zoom: number;
   setZoom: (zoom: number) => void;
   pan: Position;
   setPan: (pan: Position | ((prev: Position) => Position)) => void;
-  
-  
+
+
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string) => void;
+
+  // Floating action button props
+  onUndo?: () => Promise<void>;
+  onRedo?: () => Promise<void>;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onZoomReset?: () => void;
 }
 
 const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
@@ -46,7 +53,7 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   onSelectNode,
   onStartEdit,
   onFinishEdit,
-  
+
   onToggleCollapse,
   onShowLinkActionMenu,
   onAddLink,
@@ -61,7 +68,12 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
   setPan,
   onToggleLinkList,
   onLoadRelativeImage,
-  onImageClick
+  onImageClick,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  onZoomReset
 }) => {
   
   return (
@@ -75,9 +87,9 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onSelectNode={onSelectNode}
         onStartEdit={onStartEdit}
         onFinishEdit={onFinishEdit}
-        
+
         onToggleCollapse={onToggleCollapse}
-        
+
         onShowLinkActionMenu={onShowLinkActionMenu}
         onAddLink={onAddLink}
         onUpdateNode={onUpdateNode}
@@ -92,6 +104,11 @@ const MindMapWorkspace: React.FC<MindMapWorkspaceProps> = ({
         onToggleLinkList={onToggleLinkList}
         onLoadRelativeImage={onLoadRelativeImage}
         onImageClick={onImageClick}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onZoomReset={onZoomReset}
       />
     </ErrorBoundary>
   );

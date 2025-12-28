@@ -18,23 +18,30 @@ interface MindMapCanvasProps {
   onAddLink: (nodeId: string) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
-  
+
   // Type: Map data for link resolution
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode?: MindMapNode; rootNodes?: MindMapNode[]; mapIdentifier?: Record<string, unknown> };
-  
-  
+
+
   onLinkNavigate?: (link: NodeLink) => void;
-  
+
   zoom: number;
   setZoom: (zoom: number) => void;
   pan: { x: number; y: number };
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
-  
-  
+
+
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string) => void;
+
+  // Floating action button props
+  onUndo?: () => Promise<void>;
+  onRedo?: () => Promise<void>;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onZoomReset?: () => void;
 }
 
 const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
@@ -47,7 +54,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     onSelectNode,
     onStartEdit,
     onFinishEdit,
-    
+
     onToggleCollapse,
     onShowLinkActionMenu,
     onUpdateNode,
@@ -61,7 +68,12 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     setPan,
     onToggleLinkList,
     onLoadRelativeImage,
-    onImageClick
+    onImageClick,
+    onUndo,
+    onRedo,
+    canUndo,
+    canRedo,
+    onZoomReset
   } = props;
 
   const svgRef = useRef<SVGSVGElement>(null);
@@ -166,6 +178,11 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
         onLoadRelativeImage={onLoadRelativeImage}
         onImageClick={onImageClick}
         onPreviewUrl={setPreviewUrl}
+        onUndo={onUndo}
+        onRedo={onRedo}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onZoomReset={onZoomReset}
       />
 
       {}

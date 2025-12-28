@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { RotateCcw, RotateCw, Menu, X } from 'lucide-react';
+import { RotateCcw, RotateCw, Menu, X, Network, GitBranch } from 'lucide-react';
 import { ShortcutTooltip } from '../KeyboardShortcutHelper';
+import { useMindMapStore } from '../../store';
 
 interface FloatingActionButtonProps {
   onUndo: () => Promise<void>;
@@ -22,32 +23,33 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   canRedo,
   zoom,
   onZoomReset,
-  showNotesPanel = false,
   showNodeNotePanel = false,
-  markdownPanelWidth = 0,
   nodeNotePanelHeight = 0,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
+  const { settings, updateSetting } = useMindMapStore();
 
-  // Calculate right offset for markdown panel
-  const rightOffset = showNotesPanel ? markdownPanelWidth + 24 : 24;
-
-  // Calculate bottom offset for node note panel
+  // Position in bottom-left corner
+  const leftOffset = 24;
   const bottomOffset = showNodeNotePanel ? nodeNotePanelHeight + 24 : 24;
+
+  const handleLayoutChange = (layoutType: 'mindmap' | 'tree') => {
+    updateSetting('layoutType', layoutType);
+  };
 
   return (
     <div
       className="floating-action-button"
       style={{
-        position: 'fixed',
+        position: 'absolute',
         bottom: bottomOffset,
-        right: rightOffset,
+        left: leftOffset,
         zIndex: 1000,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'flex-end',
+        alignItems: 'flex-start',
         gap: 8,
-        transition: 'bottom 0.3s ease, right 0.3s ease',
+        transition: 'bottom 0.3s ease, left 0.3s ease',
       }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
@@ -62,6 +64,79 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
             animation: 'fabSlideIn 0.2s ease-out',
           }}
         >
+          {/* Layout selector buttons */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <ShortcutTooltip description="マインドマップレイアウト">
+              <button
+                className={`fab-button ${settings.layoutType === 'mindmap' ? 'active' : ''}`}
+                onClick={() => handleLayoutChange('mindmap')}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: settings.layoutType === 'mindmap'
+                    ? 'var(--hover-color)'
+                    : 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.backgroundColor = 'var(--hover-color)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  if (settings.layoutType !== 'mindmap') {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                  }
+                }}
+              >
+                <Network size={18} />
+              </button>
+            </ShortcutTooltip>
+
+            <ShortcutTooltip description="ツリーレイアウト">
+              <button
+                className={`fab-button ${settings.layoutType === 'tree' ? 'active' : ''}`}
+                onClick={() => handleLayoutChange('tree')}
+                style={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: '50%',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: settings.layoutType === 'tree'
+                    ? 'var(--hover-color)'
+                    : 'var(--bg-secondary)',
+                  color: 'var(--text-primary)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                  e.currentTarget.style.backgroundColor = 'var(--hover-color)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                  if (settings.layoutType !== 'tree') {
+                    e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                  }
+                }}
+              >
+                <GitBranch size={18} />
+              </button>
+            </ShortcutTooltip>
+          </div>
+
           <ShortcutTooltip shortcut="Ctrl+Z" description="元に戻す">
             <button
               className={`fab-button ${!canUndo ? 'disabled' : ''}`}
@@ -72,7 +147,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
                 height: 44,
                 borderRadius: '50%',
                 border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--background-primary)',
+                backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -85,12 +160,12 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
               onMouseEnter={(e) => {
                 if (canUndo) {
                   e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.backgroundColor = 'var(--background-secondary)';
+                  e.currentTarget.style.backgroundColor = 'var(--hover-color)';
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = 'var(--background-primary)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
               }}
             >
               <RotateCcw size={18} />
@@ -107,7 +182,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
                 height: 44,
                 borderRadius: '50%',
                 border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--background-primary)',
+                backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -120,12 +195,12 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
               onMouseEnter={(e) => {
                 if (canRedo) {
                   e.currentTarget.style.transform = 'scale(1.05)';
-                  e.currentTarget.style.backgroundColor = 'var(--background-secondary)';
+                  e.currentTarget.style.backgroundColor = 'var(--hover-color)';
                 }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = 'var(--background-primary)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
               }}
             >
               <RotateCw size={18} />
@@ -141,7 +216,7 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
                 height: 44,
                 borderRadius: '50%',
                 border: '1px solid var(--border-color)',
-                backgroundColor: 'var(--background-primary)',
+                backgroundColor: 'var(--bg-secondary)',
                 color: 'var(--text-primary)',
                 display: 'flex',
                 alignItems: 'center',
@@ -154,11 +229,11 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.transform = 'scale(1.05)';
-                e.currentTarget.style.backgroundColor = 'var(--background-secondary)';
+                e.currentTarget.style.backgroundColor = 'var(--hover-color)';
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.transform = 'scale(1)';
-                e.currentTarget.style.backgroundColor = 'var(--background-primary)';
+                e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
               }}
             >
               {Math.round(zoom * 100)}%
@@ -175,8 +250,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
           height: 56,
           borderRadius: '50%',
           border: '1px solid var(--border-color)',
-          backgroundColor: 'var(--accent-color)',
-          color: 'white',
+          backgroundColor: 'var(--bg-secondary)',
+          color: 'var(--text-primary)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -186,10 +261,12 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
         }}
         onMouseEnter={(e) => {
           e.currentTarget.style.transform = 'scale(1.05)';
+          e.currentTarget.style.backgroundColor = 'var(--hover-color)';
           e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.25)';
         }}
         onMouseLeave={(e) => {
           e.currentTarget.style.transform = 'scale(1)';
+          e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
           e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)';
         }}
       >

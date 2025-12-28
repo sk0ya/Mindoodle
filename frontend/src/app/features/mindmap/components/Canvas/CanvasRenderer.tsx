@@ -2,9 +2,9 @@ import React, { memo, useEffect } from 'react';
 import CanvasConnections from './CanvasConnections';
 import CanvasDragGuide from './CanvasDragGuide';
 import InMapLinkConnections from './InMapLinkConnections';
-import LayoutSelector from './LayoutSelector';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
+import FloatingActionButton from '../layout/FloatingActionButton';
 import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { useSettings, useUI, getStoreState } from '@mindmap/hooks/useStoreSelectors';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
@@ -31,7 +31,7 @@ interface CanvasRendererProps {
   cursor: string;
   dragState: DragState;
 
-  
+
   onWheel: (e: React.WheelEvent) => void;
   onMouseDown: (e: React.MouseEvent) => void;
   onMouseUp: (e: React.MouseEvent) => void;
@@ -43,24 +43,31 @@ interface CanvasRendererProps {
   onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   onUpdateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   onAutoLayout?: () => void;
-  
-  
+
+
   availableMaps?: { id: string; title: string }[];
   currentMapData?: { id: string; rootNode?: MindMapNode; rootNodes?: MindMapNode[] };
-  
-  
+
+
   onLinkNavigate?: (link: NodeLink) => void;
 
-  
+
   onDragStart: (nodeId: string) => void;
   onDragMove: (x: number, y: number) => void;
   onDragEnd: (nodeId: string, x: number, y: number) => void;
-  
-  
+
+
   onToggleLinkList?: (nodeId: string) => void;
   onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;
   onImageClick?: (imageUrl: string, altText?: string) => void;
   onPreviewUrl?: (url: string) => void;
+
+
+  onUndo?: () => Promise<void>;
+  onRedo?: () => Promise<void>;
+  canUndo?: boolean;
+  canRedo?: boolean;
+  onZoomReset?: () => void;
 }
 
 const CanvasRenderer: React.FC<CanvasRendererProps> = ({
@@ -95,7 +102,12 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onToggleLinkList,
   onLoadRelativeImage,
   onImageClick,
-  onPreviewUrl
+  onPreviewUrl,
+  onUndo,
+  onRedo,
+  canUndo,
+  canRedo,
+  onZoomReset
 }) => {
   const settings = useSettings();
   const ui = useUI();
@@ -236,8 +248,19 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
         </g>
       </svg>
 
-      {/* Layout selector positioned in bottom-left corner */}
-      <LayoutSelector />
+      {/* Floating Action Button positioned inside canvas */}
+      {onUndo && onRedo && onZoomReset && (
+        <FloatingActionButton
+          onUndo={onUndo}
+          onRedo={onRedo}
+          canUndo={canUndo ?? false}
+          canRedo={canRedo ?? false}
+          zoom={zoom}
+          onZoomReset={onZoomReset}
+          showNodeNotePanel={ui.showNodeNotePanel}
+          nodeNotePanelHeight={ui.nodeNotePanelHeight}
+        />
+      )}
 
       <style>{`
         .mindmap-canvas-container {
