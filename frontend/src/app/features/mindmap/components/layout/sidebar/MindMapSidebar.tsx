@@ -140,18 +140,24 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       <div className="workspaces-header" style={{ padding: '8px 8px 4px 8px', borderBottom: '1px solid var(--border-color)' }}>
         <div style={flexStyles.spaceBetween}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>workspaces</div>
-          <div style={flexRow(4)}>
-            <button
-              className="maps-action-button"
-              onClick={handleToggleCloud}
-              title={isCloudConnected ? "Disconnect from cloud" : "Connect to cloud"}
-              style={{
-                color: isCloudConnected ? 'var(--accent-color)' : 'var(--text-secondary)'
-              }}
-            >
-              {isCloudConnected ? <Cloud size={14} /> : <CloudOff size={14} />}
-            </button>
-          </div>
+          <button
+            onClick={handleToggleCloud}
+            title={isCloudConnected ? "Disconnect from cloud" : "Connect to cloud"}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '4px 8px',
+              border: '1px solid var(--border-color)',
+              borderRadius: 4,
+              fontSize: 12,
+              cursor: 'pointer',
+              backgroundColor: 'transparent',
+              color: isCloudConnected ? 'var(--accent-color)' : 'var(--text-secondary)',
+              transition: 'all 0.2s ease'
+            }}
+          >
+            {isCloudConnected ? <Cloud size={14} /> : <CloudOff size={14} />}
+          </button>
         </div>
         <div style={combineStyles(flexRow(6), { marginTop: 6, flexWrap: 'wrap' })}>
           {workspaces && workspaces.length > 0 ? (
@@ -288,7 +294,13 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
       <SidebarStyles />
       <style>{`
-        .workspace-chip button:hover { color: var(--text-primary); }
+        .workspace-chip button:hover {
+          color: var(--text-primary);
+        }
+        .workspaces-header > div > button:hover {
+          background-color: var(--hover-color);
+          border-color: var(--accent-color);
+        }
       `}</style>
     </div>
   );
