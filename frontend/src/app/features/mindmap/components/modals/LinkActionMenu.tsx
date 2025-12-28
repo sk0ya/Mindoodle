@@ -2,8 +2,8 @@ import React, { useRef, useCallback } from 'react';
 import { Link } from 'lucide-react';
 import type { NodeLink } from '@shared/types';
 import { viewportService } from '@/app/core/services';
-import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { menuStyles, menuContainerStyles } from '../shared/menuStyles';
+import { useClickOutside } from '../shared/useModalBehavior';
 
 interface LinkActionMenuProps {
   isOpen: boolean;
@@ -22,23 +22,7 @@ const LinkActionMenu: React.FC<LinkActionMenuProps> = ({
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
 
-  
-  const handleClickOutside = useCallback((event: Event) => {
-    const e = event as MouseEvent;
-    if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-      onClose();
-    }
-  }, [onClose]);
-
-  const handleEscape = useCallback((event: Event) => {
-    const e = event as KeyboardEvent;
-    if (e.key === 'Escape') {
-      onClose();
-    }
-  }, [onClose]);
-
-  useEventListener('mousedown', handleClickOutside, { target: document, enabled: isOpen });
-  useEventListener('keydown', handleEscape, { target: document, enabled: isOpen });
+  useClickOutside(menuRef, isOpen, onClose);
 
   
   const adjustedPosition = useCallback(() => {

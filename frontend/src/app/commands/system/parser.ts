@@ -6,33 +6,22 @@ import type { ParseResult, ParsedCommand, Command, CommandArg, ArgsMap, ArgPrimi
 export function parseCommand(input: string): ParseResult {
   const trimmed = input.trim();
   if (!trimmed) {
-    return {
-      success: false,
-      error: 'Empty command'
-    };
+    return { success: false, error: 'Empty command' };
   }
 
   try {
     const tokens = tokenize(trimmed);
-    if (!Array.isArray(tokens) || tokens.length === 0) {
-      return {
-        success: false,
-        error: 'No valid tokens found'
-      };
+    if (tokens.length === 0) {
+      return { success: false, error: 'No valid tokens found' };
     }
-
-    const commandName = tokens[0];
-    const args = parseArguments(tokens.slice(1));
-
-    const parsedCommand: ParsedCommand = {
-      name: commandName,
-      args,
-      rawInput: trimmed
-    };
 
     return {
       success: true,
-      command: parsedCommand
+      command: {
+        name: tokens[0],
+        args: parseArguments(tokens.slice(1)),
+        rawInput: trimmed
+      }
     };
   } catch (error) {
     return {
@@ -44,14 +33,12 @@ export function parseCommand(input: string): ParseResult {
 
 
 export function validateCommand(parsed: ParsedCommand, command: Command): ParseResult {
-  if (!command.args || command.args.length === 0) {
+  if (!command.args?.length) {
     return { success: true, command: parsed };
   }
 
   const errors: string[] = [];
   const processedArgs: ArgsMap = { ...parsed.args } as ArgsMap;
-
-
 
   for (const argDef of command.args) {
     const hasValue = argDef.name in processedArgs;
@@ -62,12 +49,10 @@ export function validateCommand(parsed: ParsedCommand, command: Command): ParseR
       continue;
     }
 
-
     if (!hasValue && argDef.default !== undefined) {
       processedArgs[argDef.name] = argDef.default as ArgPrimitive;
       continue;
     }
-
 
     if (hasValue) {
       const normalized = normalizeArgumentValue(value as unknown as ArgPrimitive, argDef);
@@ -80,19 +65,10 @@ export function validateCommand(parsed: ParsedCommand, command: Command): ParseR
   }
 
   if (errors.length > 0) {
-    return {
-      success: false,
-      error: errors.join(', ')
-    };
+    return { success: false, error: errors.join(', ') };
   }
 
-  return {
-    success: true,
-    command: {
-      ...parsed,
-      args: processedArgs
-    }
-  };
+  return { success: true, command: { ...parsed, args: processedArgs } };
 }
 
 
@@ -165,20 +141,16 @@ function parseArguments(tokens: string[]): ArgsMap {
     if (!token) { i++; continue; }
 
     if (token.startsWith('--')) {
-
       const argName = token.slice(2);
       const next = tokens[i + 1];
-      if (i + 1 < tokens.length && next && !next.startsWith('--')) {
-        // assign raw token; conversion happens in validation
+      if (next && !next.startsWith('--')) {
         args[argName] = parseValue(next);
         i += 2;
       } else {
-        
         args[argName] = true;
         i++;
       }
     } else {
-      // positional arg; conversion happens in validation
       args[`_${i}`] = parseValue(token);
       i++;
     }
@@ -187,11 +159,8 @@ function parseArguments(tokens: string[]): ArgsMap {
   return args;
 }
 
-
 function parseValue(value: string): string {
-  // keep values as strings during tokenization; trim wrapping quotes if present
-  if ((value.startsWith('"') && value.endsWith('"')) ||
-      (value.startsWith("'") && value.endsWith("'"))) {
+  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
     return value.slice(1, -1);
   }
   return value;

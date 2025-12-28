@@ -10,7 +10,6 @@ import type {
 import { parseCommand, validateCommand, generateSuggestions } from './parser';
 import { CommandRegistryImpl } from './registry';
 import { registerAllCommands } from '../registerCommands';
-import { parseVimSequence, getVimKeys, type VimSequenceResult } from './vimSequenceParser';
 import { logger } from '@shared/utils';
 import { useMindMapStore } from '@mindmap/store';
 import type { VimModeHook } from '@vim/hooks/useVimMode';
@@ -83,8 +82,6 @@ export interface UseCommandsReturn {
   getHelp: (commandName?: string) => string;
   isValidCommand: (commandName: string) => boolean;
   executeVimCommand: (vimKey: string, count?: number) => Promise<CommandResult>;
-  parseVimSequence: (sequence: string) => VimSequenceResult;
-  getVimKeys: () => string[];
   registry: CommandRegistryImpl;
   context: CommandContext;
 }
@@ -119,10 +116,7 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     return base;
   }, [selectedNodeId, editingNodeId, vim, handlers, uiStore]);
 
-  
-  const parse = useCallback((commandString: string): ParseResult => {
-    return parseCommand(commandString);
-  }, []);
+  const parse = useCallback((commandString: string) => parseCommand(commandString), []);
 
   
   const execute = useCallback(async (
@@ -214,16 +208,13 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     
     
     if (/^m:\d+$/.test(vimKey)) {
-      console.log('[DEBUG useCommands] m:number command detected:', vimKey);
       try {
         const num = parseInt(vimKey.split(':')[1], 10);
-        console.log('[DEBUG useCommands] Parsed number:', num);
         if (!selectedNodeId) {
           return { success: false, error: 'No node selected' };
         }
 
         const node = handlers.findNodeById?.(selectedNodeId);
-        console.log('[DEBUG useCommands] Current node:', node);
         if (!node) {
           return { success: false, error: 'Selected node not found' };
         }
@@ -260,13 +251,11 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
           lineNumber: node.markdownMeta?.lineNumber ?? 0
         };
 
-        console.log('[DEBUG useCommands] New metadata:', newMeta);
         // Update node with new metadata
         handlers.updateNode(selectedNodeId, { markdownMeta: newMeta });
 
         // Trigger store update to sync with markdown
         const store = useMindMapStore.getState();
-        console.log('[DEBUG useCommands] Store state:', { hasData: !!store.data, hasRootNodes: !!store.data?.rootNodes });
         if (store.data?.rootNodes) {
           store.setRootNodes(store.data.rootNodes, { emit: true, source: 'vim-ordered-list-conversion' });
         }
@@ -389,35 +378,10 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     return result;
   }, [vim, context, registry, selectedNodeId, handlers]);
 
-  
-  const getAvailableCommands = useCallback((): string[] => {
-    return registry.getAvailableNames();
-  }, [registry]);
-
-  
-  const getSuggestions = useCallback((partialInput: string): string[] => {
-    return generateSuggestions(partialInput, registry.getAll());
-  }, [registry]);
-
-  
-  const getHelp = useCallback((commandName?: string): string => {
-    return registry.getHelp(commandName);
-  }, [registry]);
-
-  
-  const isValidCommand = useCallback((commandName: string): boolean => {
-    return registry.get(commandName) !== undefined;
-  }, [registry]);
-
-  
-  const parseVimSequenceCallback = useCallback((sequence: string): VimSequenceResult => {
-    return parseVimSequence(sequence);
-  }, []);
-
-  
-  const getVimKeysCallback = useCallback((): string[] => {
-    return getVimKeys();
-  }, []);
+  const getAvailableCommands = useCallback(() => registry.getAvailableNames(), [registry]);
+  const getSuggestions = useCallback((partialInput: string) => generateSuggestions(partialInput, registry.getAll()), [registry]);
+  const getHelp = useCallback((commandName?: string) => registry.getHelp(commandName), [registry]);
+  const isValidCommand = useCallback((commandName: string) => registry.get(commandName) !== undefined, [registry]);
 
   return {
     execute,
@@ -427,8 +391,6 @@ export function useCommands(props: UseCommandsProps): UseCommandsReturn {
     getHelp,
     isValidCommand,
     executeVimCommand,
-    parseVimSequence: parseVimSequenceCallback,
-    getVimKeys: getVimKeysCallback,
     registry,
     context
   };

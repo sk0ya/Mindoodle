@@ -4,21 +4,47 @@ import type { MindMapNode } from '@shared/types';
 /**
  * Store selectors for data access
  * Provides a layer of abstraction over direct store access
- * Phase 3: Consolidated hook patterns for common store access
+ * Phase 1b: Consolidated hook patterns for consistent store access
+ *
+ * USAGE GUIDELINES:
+ * =================
+ * 1. React Components: Use selector hooks (e.g., useRootNodes, useSelectedNodeId)
+ *    - These trigger re-renders when values change
+ *    - Optimized to prevent unnecessary re-renders
+ *
+ * 2. Event Handlers & Commands: Use non-reactive getters (e.g., getStoreState(), getRootNodes())
+ *    - These do NOT trigger re-renders
+ *    - Use for one-time reads in event handlers, callbacks, and command execute functions
+ *    - Directly access store actions via getStoreState() for mutations
+ *
+ * 3. Services: Use non-reactive getters for state reads
+ *    - Services should not cause re-renders
+ *    - Access actions via getStoreState()
  *
  * IMPORTANT: Each selector uses separate useMindMapStore calls to avoid
  * creating new object references on every render, which would cause
  * infinite re-render loops in components.
  */
 
-// Non-reactive store getters (for use in callbacks and event handlers)
+// ============================================================================
+// NON-REACTIVE GETTERS (for event handlers, commands, services)
+// ============================================================================
 // These are not hooks and don't cause re-renders
+
 export const getStoreState = () => useMindMapStore.getState();
 export const getRootNodes = (): MindMapNode[] => getStoreState().data?.rootNodes || [];
 export const getEditingNodeId = () => getStoreState().editingNodeId;
 export const getEditingMode = () => getStoreState().editingMode;
 export const getSelectedNodeId = () => getStoreState().selectedNodeId;
 export const getUIMode = () => getStoreState().ui.mode;
+export const getMapData = () => getStoreState().data;
+export const getNormalizedData = () => getStoreState().normalizedData;
+export const getSettings = () => getStoreState().settings;
+
+// ============================================================================
+// REACTIVE HOOKS (for React components)
+// ============================================================================
+// These trigger re-renders when values change
 
 // Data selectors
 export const useRootNodes = () => {
@@ -35,6 +61,23 @@ export const useMapData = () => {
 
 export const useNormalizedData = () => {
   return useMindMapStore(s => s.normalizedData);
+};
+
+// Node state selectors
+export const useSelectedNodeId = () => {
+  return useMindMapStore(s => s.selectedNodeId);
+};
+
+export const useEditingNodeId = () => {
+  return useMindMapStore(s => s.editingNodeId);
+};
+
+export const useEditingMode = () => {
+  return useMindMapStore(s => s.editingMode);
+};
+
+export const useEditText = () => {
+  return useMindMapStore(s => s.editText);
 };
 
 // UI selectors

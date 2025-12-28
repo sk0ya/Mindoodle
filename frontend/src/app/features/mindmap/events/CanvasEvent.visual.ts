@@ -1,10 +1,10 @@
 import type { EventStrategy, CanvasEvent } from './EventStrategy';
-import { useMindMapStore } from '@mindmap/store';
+import { getStoreState } from '@mindmap/hooks/useStoreSelectors';
 
 export class VisualModeStrategy implements EventStrategy {
   private handleBgClick(): void {
     try {
-      const store = useMindMapStore.getState() as unknown as {
+      const store = getStoreState() as unknown as {
         closeAttachmentAndLinkLists?: () => void;
         selectNode?: (id: string | null) => void;
         setShowContextMenu?: (show: boolean) => void;
@@ -17,7 +17,7 @@ export class VisualModeStrategy implements EventStrategy {
 
   private handleContextMenu(x: number, y: number): void {
     try {
-      const store = useMindMapStore.getState() as unknown as {
+      const store = getStoreState() as unknown as {
         setContextMenuPosition: (pos: { x: number; y: number }) => void;
         openPanel?: (panel: string) => void;
       };
@@ -28,7 +28,7 @@ export class VisualModeStrategy implements EventStrategy {
 
   private handleNodeContextMenu(nodeId: string, x: number, y: number): void {
     try {
-      const store = useMindMapStore.getState() as unknown as {
+      const store = getStoreState() as unknown as {
         selectNode?: (id: string) => void;
         setContextMenuPosition?: (pos: { x: number; y: number }) => void;
         openPanel?: (panel: string) => void;
@@ -41,7 +41,7 @@ export class VisualModeStrategy implements EventStrategy {
 
   private handleNodeClick(nodeId: string): void {
     try {
-      const store = useMindMapStore.getState() as unknown as {
+      const store = getStoreState() as unknown as {
         selectNode?: (id: string) => void;
       };
       store.selectNode?.(nodeId);
@@ -50,7 +50,7 @@ export class VisualModeStrategy implements EventStrategy {
 
   private handleNodeDragEnd(draggedNodeId: string, targetNodeId: string, dropPosition: string): void {
     try {
-      const store = useMindMapStore.getState() as unknown as {
+      const store = getStoreState() as unknown as {
         moveNodeWithPosition?: (draggedId: string, targetId: string, position: string) => void;
       };
       store.moveNodeWithPosition?.(draggedNodeId, targetNodeId, dropPosition);

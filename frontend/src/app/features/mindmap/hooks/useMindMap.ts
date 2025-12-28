@@ -13,92 +13,9 @@ import { useMarkdownStream } from '@markdown/hooks/useMarkdownStream';
 import { getAdapterForWorkspace } from '@/app/core/utils';
 import { MarkdownMemoizer } from '@mindmap/utils/nodeHash';
 import { useSettings } from './useStoreSelectors';
-
-type FlatItem = {
-  id?: string;
-  text: string;
-  note?: string;
-  t?: string;
-  lvl?: number;
-  ind?: number;
-  k?: string;
-};
-
-const flattenNodes = (nodes: MindMapNode[]): FlatItem[] =>
-  (nodes || []).flatMap(n => [
-    {
-      id: n?.id,
-      text: String(n?.text ?? ''),
-      note: n?.note,
-      t: n?.markdownMeta?.type,
-      lvl: typeof n?.markdownMeta?.level === 'number' ? n.markdownMeta.level : undefined,
-      ind: typeof n?.markdownMeta?.indentLevel === 'number' ? n.markdownMeta.indentLevel : undefined,
-      k: typeof n?.kind === 'string' ? n.kind : undefined,
-    },
-    ...flattenNodes(n?.children || [])
-  ]);
-
-const checkStructureMatch = (prev: FlatItem[], next: FlatItem[]): boolean => {
-  if (prev.length !== next.length) return false;
-  return prev.every((a, i) => {
-    const b = next[i];
-    if (a.t !== b.t || a.lvl !== b.lvl || a.k !== b.k) return false;
-    if (a.t === 'unordered-list' || a.t === 'unordered-list') {
-      const ia = typeof a.ind === 'number' ? a.ind : 0;
-      const ib = typeof b.ind === 'number' ? b.ind : 0;
-      if (ia !== ib) return false;
-    }
-    return true;
-  });
-};
-
-const buildLineMapping = (roots: MindMapNode[]): { lineToNode: Record<number, string>; nodeToLine: Record<string, number> } => {
-  const lineToNode: Record<number, string> = {};
-  const nodeToLine: Record<string, number> = {};
-
-  const walk = (nodes: MindMapNode[]) => {
-    for (const n of nodes || []) {
-      const ln = n?.markdownMeta?.lineNumber;
-      if (typeof ln === 'number' && ln >= 0 && typeof n?.id === 'string') {
-        const line1 = ln + 1;
-        lineToNode[line1] = n.id;
-        nodeToLine[n.id] = line1;
-      }
-      if (n?.children?.length) walk(n.children);
-    }
-  };
-  walk(roots);
-  return { lineToNode, nodeToLine };
-};
-
-const extractCategory = (mapId: string): string => {
-  const parts = (mapId || '').split('/').filter(Boolean);
-  return parts.length > 1 ? parts.slice(0, -1).join('/') : '';
-};
-
-const parseTitleAndCategory = (title: string, category?: string): { title: string; category: string } => {
-  if (title.includes('/')) {
-    const parts = title.split('/').filter(Boolean);
-    return { title: parts[parts.length - 1], category: parts.slice(0, -1).join('/') };
-  }
-  return { title, category: category || '' };
-};
-
-const createMapData = (
-  mapId: string,
-  workspaceId: string,
-  rootNodes: MindMapNode[],
-  updatedAt: string,
-  titleOverride?: string
-): MindMapData => ({
-  title: titleOverride || mapId,
-  category: extractCategory(mapId),
-  rootNodes,
-  createdAt: updatedAt,
-  updatedAt,
-  settings: { autoSave: true, autoLayout: true, showGrid: false, animationEnabled: true },
-  mapIdentifier: { mapId, workspaceId }
-});
+import { MarkdownConversionService } from '@mindmap/services/MarkdownConversionService';
+import { PathResolutionService } from '@mindmap/services/PathResolutionService';
+import { MapOperationsService } from '@mindmap/services/MapOperationsService';
 
 export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) => {
   const dataHook = useMindMapData();
@@ -215,7 +132,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           defaultCollapseDepth: settings.defaultCollapseDepth
         });
 
-        const { lineToNode, nodeToLine } = buildLineMapping(parsed.rootNodes || []);
+        const { lineToNode, nodeToLine } = MarkdownConversionService.buildLineMapping(parsed.rootNodes || []);
         lineToNodeIdRef.current = lineToNode;
         nodeIdToLineRef.current = nodeToLine;
 
@@ -230,9 +147,9 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           }, 300);
 
           const safeRootNodes = Array.isArray(parsed?.rootNodes) ? parsed.rootNodes : [];
-          const prevFlat = flattenNodes(currentData.rootNodes || []);
-          const nextFlat = flattenNodes(safeRootNodes);
-          const sameStructure = checkStructureMatch(prevFlat, nextFlat);
+          const prevFlat = MarkdownConversionService.flattenNodes(currentData.rootNodes || []);
+          const nextFlat = MarkdownConversionService.flattenNodes(safeRootNodes);
+          const sameStructure = MarkdownConversionService.checkStructureMatch(prevFlat, nextFlat);
 
           if (sameStructure) {
             prevFlat.forEach((a, i) => {
@@ -303,10 +220,8 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     }
   });
 
-  const extractWorkspaceId = (path: string): string | null => {
-    const match = /^\/?(ws_[^/]+|cloud)/.exec(path);
-    return match ? match[1] : null;
-  };
+  const extractWorkspaceId = (path: string): string | null =>
+    MapOperationsService.extractWorkspaceId(path);
 
   const renameItem = useStableCallback(async (path: string, newName: string): Promise<void> => {
     const workspaceId = extractWorkspaceId(path);
@@ -361,7 +276,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     createAndSelectMap: useStableCallback(async (title: string, workspaceId: string, category?: string): Promise<string> => {
       if (!workspaceId) throw new Error('workspaceId is required for creating a map');
 
-      const { title: actualTitle, category: actualCategory } = parseTitleAndCategory(title, category);
+      const { title: actualTitle, category: actualCategory } = PathResolutionService.parseTitleAndCategory(title, category);
       const initialMapId = actualCategory ? `${actualCategory}/${actualTitle}` : actualTitle;
       const mapIdentifier: MapIdentifier = { mapId: initialMapId, workspaceId };
 
@@ -379,7 +294,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           const parseResult = MarkdownImporter.parseMarkdownToNodes(loadedMarkdown, {
             defaultCollapseDepth: settings.defaultCollapseDepth
           });
-          const loadedMapData = createMapData(
+          const loadedMapData = MapOperationsService.createMapData(
             mapIdentifier.mapId,
             mapIdentifier.workspaceId,
             parseResult.rootNodes,
@@ -428,7 +343,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           .then(ts => ts ? new Date(ts).toISOString() : new Date().toISOString())
           .catch(() => new Date().toISOString());
 
-        const parsed = createMapData(mapId || '', workspaceId || '', parseResult.rootNodes, String(fileLastModified));
+        const parsed = MapOperationsService.createMapData(mapId || '', workspaceId || '', parseResult.rootNodes, String(fileLastModified));
         actionsHook.selectMap(parsed);
 
         try {
@@ -568,16 +483,8 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     saveMapMarkdown,
     subscribeMarkdownFromNodes,
     onMapMarkdownInput: (text: string) => setFromEditor(text),
-    getNodeIdByMarkdownLine: (line: number): string | null => {
-      const map = lineToNodeIdRef.current || {};
-      if (map[line]) return map[line];
-      let bestLine = 0;
-      for (const k of Object.keys(map)) {
-        const ln = parseInt(k, 10);
-        if (ln <= line && ln > bestLine) bestLine = ln;
-      }
-      return bestLine ? map[bestLine] : null;
-    },
+    getNodeIdByMarkdownLine: (line: number): string | null =>
+      MarkdownConversionService.getNodeIdByLine(lineToNodeIdRef.current || {}, line),
     getCurrentMarkdownContent: useStableCallback(() => markdownStreamHook.stream.getMarkdown()),
     setAutoSaveEnabled: setAutoSaveEnabledStable,
     flushMarkdownStream: useStableCallback(async () => { await markdownStreamHook.stream.flush(); })

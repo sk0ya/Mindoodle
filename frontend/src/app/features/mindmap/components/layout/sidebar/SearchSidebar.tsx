@@ -10,6 +10,7 @@ import {
 } from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
 import { useMindMapStore } from '@mindmap/store';
+import { getNormalizedData } from '@mindmap/hooks/useStoreSelectors';
 import { performNodeSearch } from '@mindmap/utils';
 import '../SearchSidebar.css';
 
@@ -60,7 +61,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
       setStoreSearchQuery(searchQuery);
 
       // Get fresh normalized data at execution time to avoid dependency issues
-      const currentNormalizedData = useMindMapStore.getState().normalizedData;
+      const currentNormalizedData = getNormalizedData();
       const { highlightedNodes } = performNodeSearch(searchQuery, currentNormalizedData);
       setSearchHighlightedNodes(highlightedNodes);
     }, 300);

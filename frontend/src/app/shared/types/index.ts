@@ -60,7 +60,7 @@ export type {
 
 
 export type { Result } from './result';
-export { Success, Failure, isSuccess, isFailure, map, flatMap, match, collect, tryCatch, tryCatchAsync } from './result';
+export { isSuccess, isFailure, map, flatMap, match } from './result';
 
 export type { MindFlowError } from './errors';
 export {

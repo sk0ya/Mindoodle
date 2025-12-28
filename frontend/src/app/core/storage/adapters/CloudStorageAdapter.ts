@@ -1,9 +1,10 @@
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import type { StorageAdapter, ExplorerItem } from '../../types/storage.types';
+import type { ExplorerItem } from '../../types/storage.types';
 import { logger, getLocalStorage, setLocalStorage, removeLocalStorage, STORAGE_KEYS } from '@shared/utils';
 import { WorkspaceService } from '@shared/services';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
+import { BaseStorageAdapter } from './BaseStorageAdapter';
 
 interface CloudUser {
   id: string;
@@ -45,29 +46,22 @@ interface ImageGetResponse {
   contentType?: string;
 }
 
-export class CloudStorageAdapter implements StorageAdapter {
-  private _isInitialized = false;
+export class CloudStorageAdapter extends BaseStorageAdapter {
   private baseUrl: string;
   private authToken: string | null = null;
   private user: CloudUser | null = null;
   private virtualFolders: Set<string> = new Set();
 
   constructor(baseUrl = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
+    super();
     this.baseUrl = baseUrl;
-  }
-
-  
-  
-
-  get isInitialized(): boolean {
-    return this._isInitialized;
   }
 
   get isAuthenticated(): boolean {
     return !!this.authToken && !!this.user;
   }
 
-  async initialize(): Promise<void> {
+  override async initialize(): Promise<void> {
     
     try {
       const tokenRes = getLocalStorage<string>(STORAGE_KEYS.AUTH_TOKEN);
@@ -337,6 +331,10 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
   }
 
+  async updateMapInList?(map: MindMapData): Promise<void> {
+    // For cloud storage, updating a map is the same as adding it
+    return this.addMapToList(map);
+  }
 
   async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
     
@@ -443,11 +441,8 @@ export class CloudStorageAdapter implements StorageAdapter {
         for (const child of (node.children?.values() || [])) {
           children.push(toExplorer(child, currentPath ? `${currentPath}/${child.name}` : child.name));
         }
-        
-        children.sort((a, b) => {
-          if (a.type !== b.type) return a.type === 'folder' ? -1 : 1;
-          return a.name.localeCompare(b.name);
-        });
+
+        this.sortExplorerItems(children);
         return { type: 'folder', name: currentPath ? node.name : 'Cloud', path: currentPath ? `/cloud/${currentPath}` : '/cloud', children } as ExplorerItem;
       };
 
@@ -464,10 +459,8 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     // Extract mapId from path: remove /cloud/ prefix and .md extension
-    const clean = (path || '').replace(/^\/+/, '');
-    let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
-    rel = rel.replace(/^\/+/, '');
-    const oldMapId = rel.replace(/\.md$/i, '');
+    const rel = this.cleanPath(path, 'cloud/');
+    const oldMapId = this.removeMdExtension(rel);
 
     try {
       // Get existing map content
@@ -507,13 +500,9 @@ export class CloudStorageAdapter implements StorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    
-    const clean = (path || '').replace(/^\/+/, '');
-    let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
-    // Remove leading slash if any
-    rel = rel.replace(/^\/+/, '');
-    // Remove .md extension to get full map ID including folders
-    const mapId = rel.replace(/\.md$/i, '');
+    // Extract mapId from path: remove /cloud/ prefix and .md extension
+    const rel = this.cleanPath(path, 'cloud/');
+    const mapId = this.removeMdExtension(rel);
 
     try {
       await this.makeRequest(`/api/maps/${encodeURIComponent(mapId)}`, {
@@ -533,16 +522,12 @@ export class CloudStorageAdapter implements StorageAdapter {
     }
 
     // Extract source mapId from path: remove /cloud/ prefix and .md extension
-    const clean = (sourcePath || '').replace(/^\/+/, '');
-    let rel = clean.startsWith('cloud/') ? clean.slice('cloud/'.length) : clean;
-    rel = rel.replace(/^\/+/, '');
-    const oldMapId = rel.replace(/\.md$/i, '');
+    const rel = this.cleanPath(sourcePath, 'cloud/');
+    const oldMapId = this.removeMdExtension(rel);
 
     // Extract target folder from targetFolderPath
-    const cleanTarget = (targetFolderPath || '').replace(/^\/+/, '');
-    let targetFolder = cleanTarget.startsWith('cloud/') ? cleanTarget.slice('cloud/'.length) : cleanTarget;
-    // Remove leading/trailing slashes without vulnerable regex
-    targetFolder = targetFolder.replace(/^\/+/, '');
+    let targetFolder = this.cleanPath(targetFolderPath, 'cloud/');
+    // Remove trailing slashes
     while (targetFolder.endsWith('/')) {
       targetFolder = targetFolder.slice(0, -1);
     }
@@ -617,18 +602,13 @@ export class CloudStorageAdapter implements StorageAdapter {
 
     try {
       // Guard: Do not overwrite files with empty content
-      if (typeof markdown !== 'string' || markdown.trim().length === 0) {
+      if (!this.validateMarkdown(markdown)) {
         logger.warn('CloudStorageAdapter: Skipping save because markdown is empty', { id: id.mapId });
         return;
       }
 
-      
-      // Extract first level-1 heading as title without using complex regex
-      let title = 'Untitled';
-      const lines = markdown.split(/\r?\n/);
-      for (const line of lines) {
-        if (line.startsWith('# ')) { title = line.slice(2).trim(); break; }
-      }
+      // Extract first level-1 heading as title
+      const title = this.extractTitleFromMarkdown(markdown);
 
       const idPath = (id.mapId || '').trim();
       if (!idPath || idPath === 'new') {

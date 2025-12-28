@@ -1,3 +1,4 @@
+export * from './BaseStorageAdapter';
 export * from './MarkdownFolderAdapter';
 export * from './CloudStorageAdapter';
 

@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Link } from 'lucide-react';
-import { useMindMapStore } from '../../store';
+import { useUI, useSettings, getStoreState } from '@mindmap/hooks/useStoreSelectors';
 import { calculateIconLayout, wrapNodeText, resolveNodeTextWrapConfig, getMarkerPrefixTokens, TEXT_ICON_SPACING, type WrappedToken } from '@mindmap/utils';
 import { extractAllMarkdownLinksDetailed } from '../../../markdown';
 import type { MindMapNode, NodeLink } from '@shared/types';
@@ -33,7 +33,8 @@ const NodeTextView: React.FC<NodeTextViewProps> = ({
   onDrop,
   onRightClick,
 }) => {
-  const { ui, settings } = useMindMapStore();
+  const ui = useUI();
+  const settings = useSettings();
 
   const defaultVisible = settings.showVisualContentByDefault !== false;
   const explicitHidden = (node as unknown as { contentHidden?: boolean }).contentHidden;
@@ -132,7 +133,7 @@ const NodeTextView: React.FC<NodeTextViewProps> = ({
           return;
         }
         if (!href.startsWith('http://') && !href.startsWith('https://')) {
-          const currentData = useMindMapStore.getState().data as { mapIdentifier?: { mapId?: string } } | null;
+          const currentData = getStoreState().data as { mapIdentifier?: { mapId?: string } } | null;
           const currentMapId: string = currentData?.mapIdentifier?.mapId || '';
           const [mapPath, anchor] = href.includes('#') ? href.split('#') : [href, ''];
           const clean = mapPath.replace(/\/$/, '');

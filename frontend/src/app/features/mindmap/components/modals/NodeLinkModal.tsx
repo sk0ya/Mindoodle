@@ -4,6 +4,7 @@ import { type NodeLink, type MindMapNode, type MindMapData, type MapIdentifier, 
 import type { ExplorerItem } from '@core/types';
 import { computeAnchorForNode } from '../../../markdown';
 import { useLoadingState } from '@/app/shared/hooks';
+import { combineModalStyles } from '../shared/modalStyles';
 
 interface MapOption {
   mapIdentifier: { mapId: string; workspaceId: string };
@@ -492,51 +493,13 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
       </div>
 
       <style>{`
-        .modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: rgba(0, 0, 0, 0.5);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 10000;
-          padding: 20px;
-          box-sizing: border-box;
-        }
+        ${combineModalStyles()}
 
         .modal-content {
-          background: var(--bg-primary);
-          color: var(--text-primary);
-          border-radius: 10px;
-          box-shadow: 0 16px 32px rgba(0, 0, 0, 0.25);
           width: 100%;
           max-width: 860px;
-          max-height: 90vh;
-          overflow-y: auto;
-          position: relative;
           border: 1px solid var(--border-color);
         }
-
-        .modal-header {
-          display: flex;
-          justify-content: flex-start;
-          align-items: center;
-          padding: 12px 16px;
-          border-bottom: 1px solid var(--border-color);
-          background: var(--bg-secondary);
-        }
-
-        .modal-header h2 {
-          margin: 0;
-          font-size: 16px;
-          font-weight: 600;
-          color: var(--text-primary);
-        }
-
-        /* Xボタンは削除 */
 
         .modal-body {
           padding: 12px 16px;
@@ -639,71 +602,6 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
 
         .current-node-info p:last-child {
           margin-bottom: 0;
-        }
-
-        .modal-footer {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding: 16px 24px 20px;
-          border-top: 1px solid var(--border-color);
-        }
-
-        .footer-left,
-        .footer-right {
-          display: flex;
-          gap: 8px;
-        }
-
-        .btn {
-          padding: 8px 16px;
-          border: 1px solid;
-          border-radius: 6px;
-          font-size: 14px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          outline: none;
-        }
-
-        .btn:focus {
-          box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-
-        .btn-primary {
-          background: var(--accent-color);
-          border-color: var(--accent-color);
-          color: #ffffff;
-        }
-
-        .btn-primary:hover:not(:disabled) {
-          filter: brightness(1.05);
-        }
-
-        .btn-primary:disabled {
-          opacity: 0.5;
-          cursor: not-allowed;
-        }
-
-        .btn-secondary {
-          background: transparent;
-          border-color: var(--border-color);
-          color: var(--text-primary);
-        }
-
-        .btn-secondary:hover {
-          background: var(--hover-color);
-        }
-
-        .btn-danger {
-          background: #ef4444;
-          border-color: #ef4444;
-          color: #ffffff;
-        }
-
-        .btn-danger:hover {
-          background: #dc2626;
-          border-color: #dc2626;
         }
 
         .delete-confirm-text {

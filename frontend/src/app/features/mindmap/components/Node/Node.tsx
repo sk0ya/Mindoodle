@@ -7,7 +7,7 @@ import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
 import { stopEventPropagation, getLastPathSegment, getParentPath, splitPath } from '@shared/utils';
 import type { MindMapNode, NodeLink } from '@shared/types';
 import { useSettings } from '@mindmap/hooks';
-import { useMindMapStore } from '@mindmap/store';
+import { getStoreState } from '@mindmap/hooks/useStoreSelectors';
 
 interface NodeProps {
   node: MindMapNode;
@@ -153,7 +153,7 @@ const Node: React.FC<NodeProps> = ({
 
     try {
       // Get current map ID from store for relative path calculation
-      const currentData = useMindMapStore.getState().data as unknown as Record<string, unknown> | undefined;
+      const currentData = getStoreState().data as unknown as Record<string, unknown> | undefined;
       const mapIdentifier = currentData?.mapIdentifier as Record<string, unknown> | undefined;
       const currentMapId: string = (mapIdentifier?.mapId as string) || '';
 

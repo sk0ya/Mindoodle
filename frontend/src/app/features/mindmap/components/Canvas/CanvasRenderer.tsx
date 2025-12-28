@@ -6,7 +6,7 @@ import LayoutSelector from './LayoutSelector';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
 import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
-import { useMindMapStore } from '../../store';
+import { useSettings, useUI, getStoreState } from '@mindmap/hooks/useStoreSelectors';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
 interface DragState {
@@ -97,7 +97,8 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   onImageClick,
   onPreviewUrl
 }) => {
-  const { settings, ui } = useMindMapStore();
+  const settings = useSettings();
+  const ui = useUI();
   const wrapConfig = resolveNodeTextWrapConfig(settings, settings.fontSize);
   const showLinkListForNode = ui.showLinkListForNode;
 
@@ -192,8 +193,8 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
                 onLinkNavigate={onLinkNavigate}
                 onImageClick={onImageClick}
                 onToggleCheckbox={(nodeId, checked) => {
-                  
-                  useMindMapStore.getState().toggleNodeCheckbox(nodeId, checked);
+
+                  getStoreState().toggleNodeCheckbox(nodeId, checked);
                 }}
               />
             ))}

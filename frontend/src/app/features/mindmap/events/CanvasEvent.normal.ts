@@ -1,12 +1,13 @@
 import type { EventStrategy, CanvasEvent } from './EventStrategy';
-import { useMindMapStore, type MindMapStore } from '@mindmap/store';
+import { getStoreState } from '@mindmap/hooks/useStoreSelectors';
+import type { MindMapStore } from '@mindmap/store';
 import * as panelManager from '@mindmap/state/panelManager';
 
 export class NormalModeStrategy implements EventStrategy {
   handle(event: CanvasEvent): void {
     if (event.type === 'bgclick') {
       try {
-        const store = useMindMapStore.getState();
+        const store = getStoreState();
         store.selectNode?.(null);
         store.setShowContextMenu?.(false);
       } catch (e) { console.warn('CanvasEvent.normal: bgclick handler error', e); }
@@ -14,7 +15,7 @@ export class NormalModeStrategy implements EventStrategy {
     }
     if (event.type === 'contextmenu') {
       try {
-        const store: MindMapStore = useMindMapStore.getState();
+        const store: MindMapStore = getStoreState();
         const ui = store.ui;
         const canOpen = panelManager.canOpen(ui.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
         if (!canOpen) return;
@@ -25,7 +26,7 @@ export class NormalModeStrategy implements EventStrategy {
 
     if (event.type === 'nodeContextMenu' && event.targetNodeId) {
       try {
-        const store = useMindMapStore.getState();
+        const store = getStoreState();
         const ui = store.ui;
         const canOpen = panelManager.canOpen(ui.openPanels, 'contextMenu', { exclusiveWith: ['linkList'] });
         if (!canOpen) return;
@@ -38,7 +39,7 @@ export class NormalModeStrategy implements EventStrategy {
 
     if (event.type === 'nodeClick' && event.targetNodeId) {
       try {
-        const store = useMindMapStore.getState();
+        const store = getStoreState();
         store.selectNode?.(event.targetNodeId);
       } catch (e) { console.warn('CanvasEvent.normal: nodeClick handler error', e); }
       return;
@@ -46,7 +47,7 @@ export class NormalModeStrategy implements EventStrategy {
 
     if (event.type === 'nodeDoubleClick' && event.targetNodeId) {
       try {
-        const st = useMindMapStore.getState();
+        const st = getStoreState();
         const node = st.normalizedData?.nodes?.[event.targetNodeId] || null;
         if (node && (node.kind ?? 'text') !== 'table') {
           st.startEditing?.(event.targetNodeId);
@@ -57,7 +58,7 @@ export class NormalModeStrategy implements EventStrategy {
 
     if (event.type === 'nodeDragEnd' && event.targetNodeId && event.draggedNodeId && event.dropPosition) {
       try {
-        const store = useMindMapStore.getState();
+        const store = getStoreState();
         store.moveNodeWithPosition?.(event.draggedNodeId, event.targetNodeId, event.dropPosition);
       } catch (e) { console.warn('CanvasEvent.normal: nodeDragEnd handler error', e); }
     }

@@ -2,13 +2,14 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FileAttachment } from '@shared/types';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+import { useModalBehavior } from '../shared/useModalBehavior';
 
 interface ImageModalProps {
   isOpen: boolean;
   imageUrl: string | null;
   altText?: string;
   onClose: () => void;
-  
+
   file?: FileAttachment | null;
   files?: FileAttachment[];
   currentIndex?: number;
@@ -29,32 +30,16 @@ const ImageModal: React.FC<ImageModalProps> = ({
   const [error, setError] = useState<string>('');
   const imgRef = useRef<HTMLImageElement | null>(null);
 
+  const { handleBackdropClick } = useModalBehavior(isOpen, onClose);
+
   const handleKeyDown = useCallback((event: Event) => {
     const e = event as KeyboardEvent;
-    if (e.key === 'Escape') {
-      onClose();
-    } else if (e.key === 'ArrowLeft' && onNavigate && files.length > 1) {
+    if (e.key === 'ArrowLeft' && onNavigate && files.length > 1) {
       onNavigate('prev');
     } else if (e.key === 'ArrowRight' && onNavigate && files.length > 1) {
       onNavigate('next');
     }
-  }, [onClose, onNavigate, files.length]);
-
-  const handleBackdropClick = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  }, [onClose]);
-
-  useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = 'hidden';
-    }
-
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
-  }, [isOpen]);
+  }, [onNavigate, files.length]);
 
   useEventListener('keydown', handleKeyDown, { target: document, enabled: isOpen });
 

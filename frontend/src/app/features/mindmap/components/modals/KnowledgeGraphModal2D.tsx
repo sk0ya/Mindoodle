@@ -6,6 +6,7 @@ import { ForceDirectedLayout, type Node2D } from '../../utils/forceDirectedLayou
 import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
+import { combineModalStyles } from '../shared/modalStyles';
 // storageAdapter no longer passed; use getMapMarkdown when needed
 // Note: Do not rely on global command registry here; directly dispatch events for robustness
 
@@ -637,13 +638,17 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="knowledge-graph-modal-overlay" onClick={onClose}>
-      <div className="knowledge-graph-modal-content" onClick={(e) => e.stopPropagation()}>
-        <div className="knowledge-graph-modal-header">
-          <h2 className="knowledge-graph-modal-title">Knowledge Graph</h2>
+    <div className="modal-overlay" onClick={(e) => {
+      if (e.target === e.currentTarget) {
+        onClose();
+      }
+    }}>
+      <div className="modal-content knowledge-graph-modal-content" onClick={(e) => e.stopPropagation()}>
+        <div className="modal-header">
+          <h2>Knowledge Graph</h2>
           <button
             onClick={onClose}
-            className="knowledge-graph-modal-close"
+            className="modal-close"
             aria-label="Close"
           >
             ✕
@@ -689,66 +694,18 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
           </>
         )}
 
-        <div className="knowledge-graph-modal-footer">
-          <button onClick={onClose} className="knowledge-graph-modal-button">
+        <div className="modal-footer knowledge-graph-modal-footer">
+          <button onClick={onClose} className="btn btn-primary">
             Close
           </button>
         </div>
       </div>
 
       <style>{`
-        .knowledge-graph-modal-overlay {
-          position: fixed;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background-color: rgba(0, 0, 0, 0.6);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          z-index: 9999;
-          backdrop-filter: blur(2px);
-        }
+        ${combineModalStyles()}
 
         .knowledge-graph-modal-content {
-          background-color: var(--bg-primary);
-          border-radius: 8px;
           padding: 24px;
-          box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-          max-width: 90vw;
-          max-height: 90vh;
-          display: flex;
-          flex-direction: column;
-        }
-
-        .knowledge-graph-modal-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-        }
-
-        .knowledge-graph-modal-title {
-          font-size: 20px;
-          font-weight: 600;
-          color: var(--text-primary);
-          margin: 0;
-        }
-
-        .knowledge-graph-modal-close {
-          background: none;
-          border: none;
-          font-size: 24px;
-          color: var(--text-secondary);
-          cursor: pointer;
-          padding: 4px 8px;
-          line-height: 1;
-          transition: color 0.2s;
-        }
-
-        .knowledge-graph-modal-close:hover {
-          color: var(--text-primary);
         }
 
         .knowledge-graph-modal-loading,
@@ -788,24 +745,8 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
         }
 
         .knowledge-graph-modal-footer {
-          display: flex;
           justify-content: flex-end;
           margin-top: 16px;
-        }
-
-        .knowledge-graph-modal-button {
-          padding: 8px 16px;
-          background-color: var(--accent-color);
-          color: white;
-          border: none;
-          border-radius: 4px;
-          cursor: pointer;
-          font-size: 14px;
-          transition: opacity 0.2s;
-        }
-
-        .knowledge-graph-modal-button:hover {
-          opacity: 0.9;
         }
       `}</style>
     </div>

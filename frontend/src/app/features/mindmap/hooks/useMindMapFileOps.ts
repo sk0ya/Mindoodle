@@ -1,11 +1,12 @@
 /**
- * MindMap file operations hook - refactored with functional patterns
- * Reduced from 176 lines to 166 lines (6% reduction)
+ * MindMap file operations hook - refactored with service layer
  */
 
 import { useStableCallback } from '@shared/hooks';
 import { logger } from '@shared/utils';
 import type { MindMapData, MapIdentifier } from '@shared/types';
+import { PathResolutionService } from '@mindmap/services/PathResolutionService';
+import { MapOperationsService } from '@mindmap/services/MapOperationsService';
 
 export interface UseMindMapFileOpsParams {
   data: MindMapData | null;
@@ -18,41 +19,6 @@ export interface UseMindMapFileOpsParams {
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
 
-// === Pure Helper Functions ===
-
-const resolvePath = (baseFilePath: string, relativePath: string): string => {
-  // Absolute-like path inside workspace
-  if (/^\//.test(relativePath)) return relativePath.replace(/^\//, '');
-
-  // Get base directory of current map
-  const baseDir = baseFilePath.includes('/') ? baseFilePath.replace(/\/[^/]*$/, '') : '';
-  const baseSegs = baseDir ? baseDir.split('/') : [];
-  const relSegs = relativePath.replace(/^\.\//, '').split('/');
-  const out: string[] = [...baseSegs];
-
-  for (const seg of relSegs) {
-    if (!seg || seg === '.') continue;
-    if (seg === '..') {
-      if (out.length > 0) out.pop();
-    } else {
-      out.push(seg);
-    }
-  }
-
-  return out.join('/');
-};
-
-const findMapByIdentifier = (maps: MindMapData[], identifier: MapIdentifier): MindMapData | undefined =>
-  maps.find(map =>
-    map.mapIdentifier.mapId === identifier.mapId &&
-    map.mapIdentifier.workspaceId === identifier.workspaceId
-  );
-
-const isCurrentMap = (data: MindMapData | null, identifier: MapIdentifier): boolean =>
-  !!data &&
-  data.mapIdentifier.mapId === identifier.mapId &&
-  data.mapIdentifier.workspaceId === identifier.workspaceId;
-
 // === Hook ===
 
 export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
@@ -62,10 +28,10 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
     async (mapIdentifier: MapIdentifier): Promise<MindMapData | null> => {
       try {
         // Return current map if it matches
-        if (isCurrentMap(data, mapIdentifier)) return data;
+        if (MapOperationsService.isCurrentMap(data, mapIdentifier)) return data;
 
         // Find target map in all maps
-        const targetMap = findMapByIdentifier(allMindMaps, mapIdentifier);
+        const targetMap = MapOperationsService.findMapByIdentifier(allMindMaps, mapIdentifier);
         if (targetMap) return targetMap;
 
         logger.warn('指定されたマップが見つかりません:', mapIdentifier);
@@ -90,7 +56,7 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
         const workspaceId = data?.mapIdentifier?.workspaceId;
         const currentMapId = data?.mapIdentifier?.mapId || '';
 
-        const resolvedPath = resolvePath(currentMapId, relativePath);
+        const resolvedPath = PathResolutionService.resolvePath(currentMapId, relativePath);
         const dataURL = await mindMap.readImageAsDataURL(resolvedPath, workspaceId);
 
         return dataURL || null;

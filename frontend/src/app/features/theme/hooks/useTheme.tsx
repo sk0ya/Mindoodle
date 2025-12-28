@@ -1,15 +1,15 @@
 import { useEffect } from 'react';
-import { useMindMapStore } from '../../mindmap/store';
+import { useSettings, getStoreState } from '../../mindmap/hooks/useStoreSelectors';
 
 export const useTheme = () => {
-  const { settings } = useMindMapStore();
+  const settings = useSettings();
 
   useEffect(() => {
-    
+
     const root = document.documentElement;
     root.setAttribute('data-theme', settings.theme);
-    
-    
+
+
     document.body.className = document.body.className
       .replace(/theme-\w+/g, '')
       .trim();
@@ -20,7 +20,7 @@ export const useTheme = () => {
   return {
     theme: settings.theme,
     setTheme: (theme: 'dark' | 'light') => {
-      const { updateSetting } = useMindMapStore.getState();
+      const { updateSetting } = getStoreState();
       updateSetting('theme', theme);
     }
   };

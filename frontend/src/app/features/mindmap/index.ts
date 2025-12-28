@@ -27,7 +27,18 @@ export * from './utils/canvasCoordinateUtils';
 export * from './utils/clipboardPaste';
 export * from './utils/linkNavigation';
 export * from './utils/linkUtils';
-export * from './utils/nodeOperations';
+// Export nodeOperations selectively to avoid conflicts with @shared/utils
+export {
+  findNodePathById,
+  findNodeInRoots,
+  findNodeInData,
+  traverseNodes,
+  updateNodeInTree,
+  removeNodeFromTree,
+  validateMindMapNode,
+  isMindMapNode,
+  type NodeValidationResult
+} from './utils/nodeOperations';
 export * from './utils/nodeUtils';
 export * from './utils/pasteTree';
 

@@ -1,4 +1,4 @@
-import { useMindMapStore } from '@mindmap/store';
+import { getUIMode } from '@mindmap/hooks/useStoreSelectors';
 import type { CanvasEvent } from './EventStrategy';
 import { NormalModeStrategy } from './CanvasEvent.normal';
 import { InsertModeStrategy } from './CanvasEvent.insert';
@@ -15,11 +15,11 @@ function getStrategy(mode: 'normal' | 'insert' | 'visual' | 'menu') {
 
 export function dispatchCanvasEvent(event: CanvasEvent) {
   try {
-    const currentMode = (useMindMapStore.getState()?.ui?.mode ?? 'normal') as 'normal'|'insert'|'visual'|'menu';
+    const currentMode = (getUIMode() ?? 'normal') as 'normal'|'insert'|'visual'|'menu';
     const strategy = getStrategy(currentMode);
     strategy.handle(event);
   } catch {
-    
+
   }
 }
 

@@ -1,7 +1,8 @@
 import { useMapData, useHistoryState, useMapOperations } from './useStoreSelectors';
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import { logger, safeJsonParse } from '@shared/utils';
+import { logger } from '@shared/utils';
 import { useStableCallback } from '@shared/hooks';
+import { FileOperationsService } from '@mindmap/services/FileOperationsService';
 
 
 export const useMindMapActions = () => {
@@ -88,45 +89,19 @@ export const useMindMapActions = () => {
   const fileActions = {
 
     exportData: useStableCallback((): string => {
-      if (data) {
-        return JSON.stringify(data, null, 2);
-      }
-      return '';
+      return FileOperationsService.exportMapAsJson(data);
     }),
 
     importData: useStableCallback((jsonData: string): boolean => {
-      try {
-        const parseResult = safeJsonParse(jsonData);
-        if (!parseResult.success) {
-          logger.error('Failed to parse import data:', parseResult.error);
-          return false;
-        }
-        const parsedData = parseResult.data;
+      const result = FileOperationsService.parseImportData(jsonData);
 
-        // データの妥当性検証
-        if (!parsedData || typeof parsedData !== 'object') {
-          return false;
-        }
-
-
-        if (!('id' in parsedData) || !('title' in parsedData) || !('rootNode' in parsedData)) {
-          return false;
-        }
-
-
-        const { id, title, rootNode } = parsedData;
-        if (typeof id !== 'string' || typeof title !== 'string' || !rootNode) {
-          return false;
-        }
-
-
-        const mindMapData = parsedData as unknown as MindMapData;
-        setRootNodes(mindMapData.rootNodes);
-        return true;
-      } catch (error) {
-        logger.error('Failed to import data:', error);
+      if (!result.success || !result.data) {
+        logger.error('Failed to import data:', result.error);
         return false;
       }
+
+      setRootNodes(result.data.rootNodes);
+      return true;
     })
   };
 

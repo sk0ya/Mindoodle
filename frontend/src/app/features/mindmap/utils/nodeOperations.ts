@@ -1,62 +1,32 @@
 /**
  * Node tree operations - refactored with functional patterns
  * Reduced from 256 lines to 193 lines (25% reduction)
+ * Now uses shared treeUtils for tree operations
  */
 
 import type { MindMapNode, MindMapData } from '@shared/types';
-
-// === Generic Tree Operations ===
-
-type NodeTransformer<T> = (node: MindMapNode, parent?: MindMapNode) => T | null;
-
-const findInTree = <T>(
-  node: MindMapNode,
-  transformer: NodeTransformer<T>,
-  parent?: MindMapNode
-): T | null => {
-  const result = transformer(node, parent);
-  if (result !== null) return result;
-
-  for (const child of node.children || []) {
-    const found = findInTree(child, transformer, node);
-    if (found !== null) return found;
-  }
-  return null;
-};
-
-const collectNodes = (node: MindMapNode, collapsed: boolean = false): MindMapNode[] => {
-  const nodes = [node];
-  if (node.children && (!collapsed || !node.collapsed)) {
-    node.children.forEach(child => nodes.push(...collectNodes(child, collapsed)));
-  }
-  return nodes;
-};
+import {
+  findNodeByIdInRoot,
+  findNodePath,
+  findParentNodeSimple,
+  getSiblingsInRoot,
+  getFirstVisibleChild,
+  isRootNode as isRootNodeUtil,
+  findNodeById as findNodeByIdInRoots
+} from '@shared/utils/treeUtils';
 
 // === Find Operations ===
 
-export const findNodeById = (rootNode: MindMapNode, nodeId: string): MindMapNode | null =>
-  findInTree(rootNode, (node) => (node.id === nodeId ? node : null));
+export const findNodeById = findNodeByIdInRoot;
 
 export const findNodePathById = (rootNode: MindMapNode, nodeId: string): MindMapNode[] | null =>
-  findInTree(rootNode, (node, parent) => {
-    if (node.id === nodeId) {
-      const path = parent ? findNodePathById(rootNode, parent.id) || [] : [];
-      return [...path, node];
-    }
-    return null;
-  });
+  findNodePath([rootNode], nodeId);
 
 export const findParentNode = (rootNode: MindMapNode, nodeId: string): MindMapNode | null =>
-  findInTree(rootNode, (node) =>
-    node.children?.some(child => child.id === nodeId) ? node : null
-  );
+  findParentNodeSimple([rootNode], nodeId);
 
 export const findNodeInRoots = (roots: MindMapNode[] | undefined, nodeId: string): MindMapNode | null => {
-  for (const root of roots || []) {
-    const found = findNodeById(root, nodeId);
-    if (found) return found;
-  }
-  return null;
+  return roots ? findNodeByIdInRoots(roots, nodeId) : null;
 };
 
 export const findNodeInData = (data: { rootNodes?: MindMapNode[] } | MindMapData | null | undefined, nodeId: string): MindMapNode | null =>
@@ -64,21 +34,12 @@ export const findNodeInData = (data: { rootNodes?: MindMapNode[] } | MindMapData
 
 // === Node Queries ===
 
-export const getSiblingNodes = (rootNode: MindMapNode, nodeId: string): { siblings: MindMapNode[], currentIndex: number } => {
-  const parent = findParentNode(rootNode, nodeId);
-  if (!parent?.children) return { siblings: [], currentIndex: -1 };
+export const getSiblingNodes = getSiblingsInRoot;
 
-  return {
-    siblings: parent.children,
-    currentIndex: parent.children.findIndex(node => node.id === nodeId)
-  };
-};
-
-export const getFirstVisibleChild = (node: MindMapNode): MindMapNode | null =>
-  (node.children && node.children.length > 0 && !node.collapsed) ? node.children[0] : null;
+export { getFirstVisibleChild };
 
 export const isRootNode = (rootNode: MindMapNode, nodeId: string): boolean =>
-  rootNode.id === nodeId || findParentNode(rootNode, nodeId) === null;
+  isRootNodeUtil([rootNode], nodeId);
 
 // === Tree Mutations ===
 
@@ -103,45 +64,7 @@ export const removeNodeFromTree = (rootNode: MindMapNode, nodeId: string): MindM
 
 // === Spatial Navigation ===
 
-type Direction = 'up' | 'down' | 'left' | 'right';
-type DirectionConfig = { check: (dx: number, dy: number) => boolean; score: (dx: number, dy: number) => number };
-
-const directionConfigs: Record<Direction, DirectionConfig> = {
-  right: { check: (dx) => dx > 20, score: (dx, dy) => dx + Math.abs(dy) * 0.5 },
-  left: { check: (dx) => dx < -20, score: (dx, dy) => -dx + Math.abs(dy) * 0.5 },
-  down: { check: (_, dy) => dy > 20, score: (dx, dy) => dy + Math.abs(dx) * 0.5 },
-  up: { check: (_, dy) => dy < -20, score: (dx, dy) => -dy + Math.abs(dx) * 0.5 }
-};
-
-export const findNodeBySpatialDirection = (
-  currentNodeId: string,
-  direction: Direction,
-  rootNode: MindMapNode
-): string | null => {
-  const all = collectNodes(rootNode, true);
-  const current = all.find((n) => n.id === currentNodeId);
-  if (!current) return null;
-
-  const config = directionConfigs[direction];
-  let best: MindMapNode | null = null;
-  let bestScore = Infinity;
-
-  for (const node of all) {
-    if (node.id === currentNodeId) continue;
-    const dx = node.x - current.x;
-    const dy = node.y - current.y;
-
-    if (config.check(dx, dy)) {
-      const score = config.score(dx, dy);
-      if (score < bestScore) {
-        best = node;
-        bestScore = score;
-      }
-    }
-  }
-
-  return best?.id ?? null;
-};
+export { findNodeBySpatialDirection } from '@shared/utils/treeUtils';
 
 // === Validation ===
 

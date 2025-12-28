@@ -1,12 +1,13 @@
 import type { EventStrategy, CanvasEvent } from './EventStrategy';
-import { useMindMapStore, type MindMapStore } from '@mindmap/store';
+import { getStoreState } from '@mindmap/hooks/useStoreSelectors';
+import type { MindMapStore } from '@mindmap/store';
 
 export class InsertModeStrategy implements EventStrategy {
   handle(event: CanvasEvent): void {
     if (event.type === 'bgclick') {
 
       try {
-        const store = useMindMapStore.getState();
+        const store = getStoreState();
         store.setShowContextMenu?.(false);
       } catch (err) {
         console.warn('bgclick handler failed', err);
@@ -16,7 +17,7 @@ export class InsertModeStrategy implements EventStrategy {
 
     if (event.type === 'contextmenu') {
       try {
-        const store: MindMapStore = useMindMapStore.getState();
+        const store: MindMapStore = getStoreState();
         store.setShowContextMenu(false);
       } catch (e) {
         console.warn('contextmenu handler failed', e);
@@ -25,7 +26,7 @@ export class InsertModeStrategy implements EventStrategy {
 
     if (event.type === 'nodeClick' && event.targetNodeId) {
       try {
-        const store = useMindMapStore.getState();
+        const store = getStoreState();
         store.selectNode?.(event.targetNodeId);
       } catch (err) {
         console.warn('nodeClick selection failed', err);

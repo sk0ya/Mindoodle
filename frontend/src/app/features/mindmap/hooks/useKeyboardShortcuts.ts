@@ -3,6 +3,7 @@ import type { MindMapNode } from '@shared/types';
 import type { VimModeHook } from '../../vim/hooks/useVimMode';
 import type { Direction, MarkdownNodeType } from '@commands/system/types';
 import { useCommands, type UseCommandsReturn } from '@commands/system/useCommands';
+import { parseVimSequence, getVimKeys } from '@commands/system/vimSequenceParser';
 import { useMindMapStore } from '../store/mindMapStore';
 import { JUMP_CHARS } from '../../vim/constants';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
@@ -326,7 +327,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         }
 
         if (!mod && !['Shift', 'Control', 'Alt', 'Meta', 'CapsLock'].includes(key)) {
-          const vimKeys = commands.getVimKeys();
+          const vimKeys = getVimKeys();
           if (vimKeys.includes(key) || expandedKeysStart.has(key)) {
             event.preventDefault();
             event.stopPropagation();
@@ -347,12 +348,9 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
           if (key === 'm' && currentCount && !currentBuffer) {
             // parseVimSequence expects "3m" format, not "m:3"
             const vimSequence = `${currentCount}m`;
-            console.log('[DEBUG] 数字m detected:', { key, currentCount, currentBuffer, vimSequence });
-            const numberedResult = commands.parseVimSequence(vimSequence);
-            console.log('[DEBUG] parseVimSequence result:', numberedResult);
+            const numberedResult = parseVimSequence(vimSequence);
             if (numberedResult.isComplete && numberedResult.command) {
               handlers.closeAttachmentAndLinkLists();
-              console.log('[DEBUG] Executing vim command:', numberedResult.command, 'with count:', numberedResult.count);
               commands.executeVimCommand(numberedResult.command, numberedResult.count);
               vim.clearCountBuffer();
               vim.clearCommandBuffer();
@@ -370,7 +368,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
               if (commands.isValidCommand(rhs)) {
                 commands.execute(rhs);
               } else {
-                const seqRes = commands.parseVimSequence(rhs);
+                const seqRes = parseVimSequence(rhs);
                 if (seqRes.isComplete && seqRes.command) {
                   commands.executeVimCommand(seqRes.command, seqRes.count);
                 } else {
@@ -388,7 +386,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             return;
           }
 
-          const result = commands.parseVimSequence(testSequence);
+          const result = parseVimSequence(testSequence);
           if (result.isComplete && result.command) {
             handlers.closeAttachmentAndLinkLists();
             const count = vim.hasCount() ? vim.getCount() : result.count;
@@ -410,7 +408,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
             return;
           }
 
-          const singleKeyResult = commands.parseVimSequence(key);
+          const singleKeyResult = parseVimSequence(key);
           if (singleKeyResult.isComplete && singleKeyResult.command) {
             handlers.closeAttachmentAndLinkLists();
             const count = vim.hasCount() ? vim.getCount() : singleKeyResult.count;

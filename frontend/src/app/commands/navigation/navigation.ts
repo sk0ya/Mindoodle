@@ -5,7 +5,7 @@
 
 import type { Command, Direction } from '../system/types';
 import type { MindMapNode } from '@shared/types';
-import { useMindMapStore } from '@mindmap/store';
+import { getRootNodes } from '@mindmap/hooks/useStoreSelectors';
 import { navigationCommand, success, failure, hasSelectedNode, withCount } from '../utils/commandFunctional';
 
 // === Arrow Navigation ===
@@ -96,7 +96,7 @@ export const selectRootNodeCommand: Command = navigationCommand(
   'select-root',
   'Select root node',
   (context) => {
-    const roots: MindMapNode[] = useMindMapStore.getState()?.data?.rootNodes || [];
+    const roots: MindMapNode[] = getRootNodes();
     if (!roots.length) return failure('No root nodes found');
     context.handlers.selectNode(roots[0].id);
     // Auto-scroll handled by useAutoScrollToSelectedNode hook

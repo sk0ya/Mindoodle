@@ -87,19 +87,6 @@ export function truncateString(str: string, maxLength: number, suffix: string = 
   return str.substring(0, maxLength - suffix.length) + suffix;
 }
 
-/**
- * キャメルケースをケバブケースに変換
- */
-export function camelToKebab(str: string): string {
-  return str.replace(/[A-Z]/g, (match) => `-${match.toLowerCase()}`);
-}
-
-/**
- * ケバブケースをキャメルケースに変換
- */
-export function kebabToCamel(str: string): string {
-  return str.replace(/-([a-z])/g, (_, letter) => letter.toUpperCase());
-}
 
 /**
  * 文字列が空またはnull/undefinedかチェック
@@ -108,35 +95,6 @@ export function isEmpty(str: string | null | undefined): boolean {
   return !str || str.trim().length === 0;
 }
 
-/**
- * 文字列をデフォルト値で置換（空の場合）
- */
-export function defaultIfEmpty(str: string | null | undefined, defaultValue: string): string {
-  if (isEmpty(str)) return defaultValue;
-  return (str as string);
-}
-
-/**
- * パスの階層レベルを取得
- */
-export function getPathDepth(path: string, separator: string = '/'): number {
-  if (!path) return 0;
-  return splitPath(path, separator).length;
-}
-
-/**
- * 相対パスかどうかを判定
- */
-export function isRelativePath(path: string): boolean {
-  if (!path) return false;
-  return path.startsWith('./') || path.startsWith('../') || (!path.startsWith('/') && !path.includes('://'));
-}
-
-
-export function isAbsolutePath(path: string): boolean {
-  if (!path) return false;
-  return path.startsWith('/') || path.includes('://');
-}
 
 
 export function isUrl(str: string): boolean {

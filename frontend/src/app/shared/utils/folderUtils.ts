@@ -136,18 +136,3 @@ export function createChildFolderPath(parentPath: string | null, folderName: str
   }
   return `${parentPath}/${folderName}`;
 }
-
-
-export function canMoveFolderTo(tree: FolderTree, sourcePath: string, targetPath: string): boolean {
-  if (sourcePath === targetPath) return false;
-  
-  
-  let current: string | null = targetPath;
-  while (current) {
-    if (current === sourcePath) return false;
-    const node: FolderNode | undefined = tree[current];
-    current = node?.parent || null;
-  }
-  
-  return true;
-}

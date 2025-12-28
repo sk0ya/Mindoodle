@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { MarkdownEditor } from '../../../markdown/components/MarkdownEditor';
-import { usePanelControls } from '../../hooks/useStoreSelectors';
-import { useMindMapStore } from '../../store';
+import { usePanelControls, getStoreState } from '../../hooks/useStoreSelectors';
 import { useResizingState } from '@/app/shared/hooks';
 import { getLocalStorage, setLocalStorage, STORAGE_KEYS } from '@core/storage/localStorage';
 import { viewportService } from '@/app/core/services';
@@ -186,7 +185,7 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
 
   const currentMapIdentifier = (() => {
     try {
-      const st = useMindMapStore.getState();
+      const st = getStoreState();
       return st?.data?.mapIdentifier || null;
     } catch { return null; }
   })();

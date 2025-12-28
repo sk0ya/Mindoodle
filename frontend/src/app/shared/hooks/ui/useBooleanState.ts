@@ -1,11 +1,36 @@
 /**
  * Boolean state management hooks
- * Delegates to functional programming library for core logic
  */
-import { useState, useEffect } from 'react';
-import { useBooleanState as useBooleanStateBase } from '@shared/utils/functionalReact';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { parseStoredJson, storeJson, logger } from '@shared/utils';
 import { useStableCallback } from '../utilities/useStableCallback';
+
+// Inline minimal functionalReact utilities
+const useBooleanStateBase = (initial = false) => {
+  const [value, setValue] = useState(initial);
+  return useMemo(() => ({
+    value,
+    toggle: () => setValue(v => !v),
+    setTrue: () => setValue(true),
+    setFalse: () => setValue(false),
+    setValue
+  }), [value]);
+};
+
+const useDebounced = <T>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+  useEffect(() => {
+    const timer = setTimeout(() => setDebouncedValue(value), delay);
+    return () => clearTimeout(timer);
+  }, [value, delay]);
+  return debouncedValue;
+};
+
+const usePrevious = <T>(value: T): T | undefined => {
+  const ref = useRef<T>();
+  useEffect(() => { ref.current = value; }, [value]);
+  return ref.current;
+};
 
 // === Types ===
 
@@ -249,4 +274,4 @@ export const usePersistedState = <T>(
 
 // === Re-exports ===
 
-export { useDebounced as useDebounce, usePrevious } from '@shared/utils/functionalReact';
+export { useDebounced as useDebounce, usePrevious };
