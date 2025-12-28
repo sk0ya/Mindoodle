@@ -77,7 +77,7 @@ export interface CommandContext {
     closeAttachmentAndLinkLists: () => void;
 
     
-    onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+    onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list', options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
 
     
     switchToNextMap?: () => void;

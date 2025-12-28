@@ -44,7 +44,7 @@ interface KeyboardShortcutHandlers {
   pasteImageFromClipboard: (_nodeId: string, _file?: File) => Promise<void>;
   findNodeById: (_nodeId: string) => MindMapNode | null;
   closeAttachmentAndLinkLists: () => void;
-  onMarkdownNodeType?: (_nodeId: string, _newType: MarkdownNodeType) => void;
+  onMarkdownNodeType?: (_nodeId: string, _newType: MarkdownNodeType, _options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
   centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
   switchToPrevMap?: () => void;
   switchToNextMap?: () => void;

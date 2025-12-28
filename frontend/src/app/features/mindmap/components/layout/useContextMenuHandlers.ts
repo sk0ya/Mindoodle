@@ -21,7 +21,8 @@ export const useContextMenuHandlers = ({
 
   const handleMarkdownNodeType = useCallback((
     nodeId: string,
-    newType: 'heading' | 'unordered-list' | 'ordered-list'
+    newType: 'heading' | 'unordered-list' | 'ordered-list',
+    options?: { isCheckbox?: boolean; isChecked?: boolean }
   ) => {
     if (data?.rootNodes?.[0]) {
       handleContextMenuClose();
@@ -49,7 +50,7 @@ export const useContextMenuHandlers = ({
         setTimeout(() => {
           try { selectNode(nodeId); } catch {  }
         }, 0);
-      });
+      }, options);
     }
   }, [data, markdownSync, store, selectNode, handleContextMenuClose]);
 

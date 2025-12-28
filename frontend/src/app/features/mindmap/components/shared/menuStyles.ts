@@ -105,7 +105,7 @@ export const menuContainerStyles = `
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
   min-width: 220px;
   max-width: 300px;
-  overflow: hidden;
+  overflow: visible;
   font-size: 14px;
   font-family: system-ui, -apple-system, sans-serif;
 

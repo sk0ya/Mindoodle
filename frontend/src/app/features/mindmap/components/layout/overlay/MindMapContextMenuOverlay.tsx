@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Copy, Link, Trash2, Sparkles, Table, FileOutput } from 'lucide-react';
+import { Copy, Link, Trash2, Sparkles, Table, FileOutput, Heading, List, ListOrdered, CheckSquare, FileType } from 'lucide-react';
 import ContextMenu, { type ContextMenuItem } from './ContextMenu';
 import { findNodeInRoots } from '@mindmap/utils';
 import type { MindMapNode } from '@shared/types';
@@ -16,7 +16,7 @@ type Props = {
   onCopyNode: (nodeId: string) => void;
   onPasteNode: (parentId: string) => Promise<void>;
   onAIGenerate?: (node: MindMapNode) => void;
-  onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
+  onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType, options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
   onEditTable?: (nodeId: string) => void;
   onConvertToMap?: (nodeId: string) => Promise<void>;
   commandRegistry?: CommandRegistryImpl;
@@ -32,7 +32,7 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   onCopyNode,
   onPasteNode,
   onAIGenerate,
-  onMarkdownNodeType: _onMarkdownNodeType,
+  onMarkdownNodeType,
   onEditTable,
   onConvertToMap,
   commandRegistry,
@@ -82,6 +82,66 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
     });
   }
 
+  // Markdown node type conversion options
+  const isMarkdownNode = !!selectedNode.markdownMeta;
+  const markdownMeta = selectedNode.markdownMeta;
+
+  if (isMarkdownNode && onMarkdownNodeType) {
+    const submenuItems: ContextMenuItem[] = [];
+
+    console.log('[ContextMenu] Markdown node detected:', {
+      type: markdownMeta?.type,
+      isCheckbox: markdownMeta?.isCheckbox
+    });
+
+    // 見出しに変更
+    if (markdownMeta?.type !== 'heading') {
+      submenuItems.push({
+        icon: <Heading size={14} />,
+        label: '見出し',
+        onClick: () => onMarkdownNodeType(selectedNode.id, 'heading'),
+      });
+    }
+
+    // リストに変更
+    if (markdownMeta?.type !== 'unordered-list' || markdownMeta?.isCheckbox) {
+      submenuItems.push({
+        icon: <List size={14} />,
+        label: 'リスト',
+        onClick: () => onMarkdownNodeType(selectedNode.id, 'unordered-list', { isCheckbox: false }),
+      });
+    }
+
+    // 数字付きリストに変更
+    if (markdownMeta?.type !== 'ordered-list') {
+      submenuItems.push({
+        icon: <ListOrdered size={14} />,
+        label: '数字付きリスト',
+        onClick: () => onMarkdownNodeType(selectedNode.id, 'ordered-list'),
+      });
+    }
+
+    // チェックボックス付きリストに変更
+    if (markdownMeta?.type === 'unordered-list' && !markdownMeta?.isCheckbox) {
+      submenuItems.push({
+        icon: <CheckSquare size={14} />,
+        label: 'チェックボックス付きリスト',
+        onClick: () => onMarkdownNodeType(selectedNode.id, 'unordered-list', { isCheckbox: true, isChecked: false }),
+      });
+    }
+
+    if (submenuItems.length > 0) {
+      console.log('[ContextMenu] Adding submenu with items:', submenuItems.length);
+      items.push({ separator: true });
+      items.push({
+        icon: <FileType size={14} />,
+        label: 'ノードの種類を変更',
+        submenu: submenuItems,
+      });
+    } else {
+      console.log('[ContextMenu] No submenu items to add');
+    }
+  }
 
   const isTableNode = selectedNode.kind === 'table';
   if (isTableNode && onEditTable) {

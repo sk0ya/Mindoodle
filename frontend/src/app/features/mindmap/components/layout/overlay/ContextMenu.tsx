@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { viewportService } from '@/app/core/services';
 import { menuStyles, menuContainerStyles } from '../../shared/menuStyles';
 
@@ -9,6 +10,7 @@ export interface ContextMenuItem {
   separator?: boolean;
   disabled?: boolean;
   danger?: boolean;
+  submenu?: ContextMenuItem[];
 }
 
 interface ContextMenuProps {
@@ -30,9 +32,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   header
 }) => {
   const menuRef = useRef<HTMLDivElement>(null);
+  const [openSubmenu, setOpenSubmenu] = useState<number | null>(null);
+  const submenuTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    if (!isVisible) return;
+    if (!isVisible) {
+      setOpenSubmenu(null);
+      return;
+    }
 
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -113,21 +120,73 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
             return <div key={index} className="menu-divider" />;
           }
 
+          const hasSubmenu = item.submenu && item.submenu.length > 0;
+
           return (
-            <button
+            <div
               key={index}
-              className={`menu-item ${item.disabled ? 'disabled' : ''} ${item.danger ? 'danger' : ''}`}
-              onClick={() => {
-                if (!item.disabled && item.onClick) {
-                  item.onClick();
-                  onClose();
+              className="menu-item-wrapper"
+              onMouseEnter={() => {
+                if (hasSubmenu) {
+                  if (submenuTimerRef.current) {
+                    clearTimeout(submenuTimerRef.current);
+                  }
+                  setOpenSubmenu(index);
                 }
               }}
-              disabled={item.disabled}
+              onMouseLeave={() => {
+                if (hasSubmenu) {
+                  submenuTimerRef.current = setTimeout(() => {
+                    setOpenSubmenu(null);
+                  }, 200);
+                }
+              }}
             >
-              {item.icon && <span className="menu-icon">{item.icon}</span>}
-              {item.label && <span className="menu-text">{item.label}</span>}
-            </button>
+              <button
+                className={`menu-item ${item.disabled ? 'disabled' : ''} ${item.danger ? 'danger' : ''}`}
+                onClick={() => {
+                  if (!item.disabled && !hasSubmenu && item.onClick) {
+                    item.onClick();
+                    onClose();
+                  }
+                }}
+                disabled={item.disabled}
+              >
+                {item.icon && <span className="menu-icon">{item.icon}</span>}
+                {item.label && <span className="menu-text">{item.label}</span>}
+                {hasSubmenu && <ChevronRight size={14} className="submenu-arrow" />}
+              </button>
+
+              {hasSubmenu && openSubmenu === index && (() => {
+                console.log('[ContextMenu] Rendering submenu for index:', index, 'with', item.submenu?.length, 'items');
+                return (
+                <div className="submenu" style={{display: 'block'}}>
+                  {item.submenu!.map((subItem, subIndex) => {
+                    if (subItem.separator) {
+                      return <div key={subIndex} className="menu-divider" />;
+                    }
+
+                    return (
+                      <button
+                        key={subIndex}
+                        className={`menu-item ${subItem.disabled ? 'disabled' : ''} ${subItem.danger ? 'danger' : ''}`}
+                        onClick={() => {
+                          if (!subItem.disabled && subItem.onClick) {
+                            subItem.onClick();
+                            onClose();
+                          }
+                        }}
+                        disabled={subItem.disabled}
+                      >
+                        {subItem.icon && <span className="menu-icon">{subItem.icon}</span>}
+                        {subItem.label && <span className="menu-text">{subItem.label}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                );
+              })()}
+            </div>
           );
         })}
       </div>
@@ -135,6 +194,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       <style>{`
         .node-context-menu {
           ${menuContainerStyles}
+        }
+
+        .node-context-menu .menu-items {
+          overflow: visible;
         }
 
         .node-title {
@@ -157,6 +220,40 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
         [data-theme="dark"] .node-description {
           color: #aaa;
+        }
+
+        .menu-item-wrapper {
+          position: relative;
+          width: 100%;
+        }
+
+        .menu-item-wrapper .menu-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
+
+        .submenu-arrow {
+          margin-left: 8px;
+          flex-shrink: 0;
+        }
+
+        .submenu {
+          position: absolute;
+          left: calc(100% + 4px);
+          top: 0;
+          min-width: 200px;
+          background: white;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+          padding: 4px 0;
+          z-index: 10002;
+        }
+
+        [data-theme="dark"] .submenu {
+          background: #2a2a2a;
+          border-color: #444;
         }
 
         ${menuStyles}

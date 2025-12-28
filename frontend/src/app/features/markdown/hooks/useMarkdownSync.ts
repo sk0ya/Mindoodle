@@ -353,12 +353,13 @@ export const useMarkdownSync = () => {
     nodes: MindMapNode[],
     nodeId: string,
     newType: 'heading' | 'unordered-list' | 'ordered-list',
-    onNodesUpdate: (nodes: MindMapNode[]) => void
+    onNodesUpdate: (nodes: MindMapNode[]) => void,
+    options?: { isCheckbox?: boolean; isChecked?: boolean }
   ) => {
     try {
-      let updatedNodes = MarkdownImporter.changeNodeType(nodes, nodeId, newType);
+      let updatedNodes = MarkdownImporter.changeNodeType(nodes, nodeId, newType, options);
 
-      
+
       if (newType === 'ordered-list') {
         updatedNodes = MarkdownImporter.renumberOrderedLists(updatedNodes);
       }
@@ -366,9 +367,9 @@ export const useMarkdownSync = () => {
       onNodesUpdate(updatedNodes);
       return updatedNodes;
     } catch (error) {
-      
+
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      
+
       const errorResult = {
         ...nodes,
         __conversionError: errorMessage

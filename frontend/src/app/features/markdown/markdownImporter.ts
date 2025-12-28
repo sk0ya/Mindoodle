@@ -472,7 +472,8 @@ export class MarkdownImporter {
   static changeNodeType(
     nodes: MindMapNode[],
     nodeId: string,
-    newType: 'heading' | 'unordered-list' | 'ordered-list'
+    newType: 'heading' | 'unordered-list' | 'ordered-list',
+    options?: { isCheckbox?: boolean; isChecked?: boolean }
   ): MindMapNode[] {
     const isListType = newType === 'unordered-list' || newType === 'ordered-list';
     const check = isListType
@@ -500,10 +501,21 @@ export class MarkdownImporter {
       const indentLevel = Math.max(targetLevel - 1, 0) * 2;
       const format = newType === 'unordered-list' ? '-' : '1.';
 
+      const isCheckbox = options?.isCheckbox ?? (newType === 'unordered-list' ? currentMeta.isCheckbox : false);
+      const isChecked = isCheckbox ? (options?.isChecked ?? currentMeta.isChecked ?? false) : undefined;
+
       return {
         ...node,
         text: cleanText,
-        markdownMeta: { type: newType, level: targetLevel, originalFormat: format, indentLevel, lineNumber: currentMeta.lineNumber },
+        markdownMeta: {
+          type: newType,
+          level: targetLevel,
+          originalFormat: format,
+          indentLevel,
+          lineNumber: currentMeta.lineNumber,
+          isCheckbox,
+          isChecked
+        },
       };
     });
   }

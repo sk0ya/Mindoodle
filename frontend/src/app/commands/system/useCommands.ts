@@ -66,7 +66,7 @@ interface UseCommandsProps {
     closeAttachmentAndLinkLists: () => void;
 
 
-    onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType) => void;
+    onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType, options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
 
 
     switchToNextMap?: () => void;

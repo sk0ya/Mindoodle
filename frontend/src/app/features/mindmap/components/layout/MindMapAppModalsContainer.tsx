@@ -62,7 +62,7 @@ interface MindMapAppModalsContainerProps {
   onPasteNode: (parentId: string) => Promise<void>;
   onEditTable: (nodeId: string) => void;
   onConvertToMap: (nodeId: string) => Promise<void>;
-  onMarkdownNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list') => void;
+  onMarkdownNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list', options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
   onCloseImageModal: () => void;
   onShowImageModal: (file: any) => void;
   onExecuteCommand: (command: string) => Promise<void>;
