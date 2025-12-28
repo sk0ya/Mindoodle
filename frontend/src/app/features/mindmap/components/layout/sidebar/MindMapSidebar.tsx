@@ -151,36 +151,76 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             >
               {isCloudConnected ? <Cloud size={14} /> : <CloudOff size={14} />}
             </button>
-            <button className="maps-action-button" onClick={() => onAddWorkspace && onAddWorkspace()} title="Add workspace">＋</button>
           </div>
         </div>
         <div style={combineStyles(flexRow(6), { marginTop: 6, flexWrap: 'wrap' })}>
           {workspaces && workspaces.length > 0 ? (
-            workspaces.map((ws) => (
-              <span key={ws.id}
-                className={`workspace-chip ${ws.id === currentWorkspaceId ? 'active' : ''}`}
-                onClick={() => onSwitchWorkspace && onSwitchWorkspace(ws.id)}
+            <>
+              {workspaces.map((ws) => (
+                <span key={ws.id}
+                  className={`workspace-chip ${ws.id === currentWorkspaceId ? 'active' : ''}`}
+                  onClick={() => onSwitchWorkspace && onSwitchWorkspace(ws.id)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '2px 6px',
+                    border: ws.id === currentWorkspaceId ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                    borderRadius: 999,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    backgroundColor: ws.id === currentWorkspaceId ? 'rgba(0, 122, 204, 0.1)' : 'transparent'
+                  }}>
+                  <span>{ws.name}</span>
+                  {}
+                  {onRemoveWorkspace && ws.id !== 'cloud' && <button onClick={(e) => {
+                    e.stopPropagation();
+                    onRemoveWorkspace(ws.id);
+                  }} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}
+                </span>
+              ))}
+              <button
+                className="workspace-chip"
+                onClick={() => onAddWorkspace && onAddWorkspace()}
+                title="Add workspace"
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
-                  gap: 6,
                   padding: '2px 6px',
-                  border: ws.id === currentWorkspaceId ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                  border: '1px dashed var(--border-color)',
                   borderRadius: 999,
                   fontSize: 12,
                   cursor: 'pointer',
-                  backgroundColor: ws.id === currentWorkspaceId ? 'rgba(0, 122, 204, 0.1)' : 'transparent'
-                }}>
-                <span>{ws.name}</span>
-                {}
-                {onRemoveWorkspace && ws.id !== 'cloud' && <button onClick={(e) => {
-                  e.stopPropagation();
-                  onRemoveWorkspace(ws.id);
-                }} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}
-              </span>
-            ))
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)'
+                }}
+              >
+                ＋
+              </button>
+            </>
           ) : (
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No workspace. Click ＋ to add.</span>
+            <>
+              <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>No workspace.</span>
+              <button
+                className="workspace-chip"
+                onClick={() => onAddWorkspace && onAddWorkspace()}
+                title="Add workspace"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  padding: '2px 6px',
+                  border: '1px dashed var(--border-color)',
+                  borderRadius: 999,
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  backgroundColor: 'transparent',
+                  color: 'var(--accent-color)',
+                  marginLeft: 4
+                }}
+              >
+                ＋
+              </button>
+            </>
           )}
         </div>
       </div>
