@@ -3,10 +3,9 @@ import { X, ArrowUp, ArrowDown, ArrowLeft, ArrowRight } from 'lucide-react';
 import { stopPropagationOnly } from '@shared/utils';
 import { SHORTCUT_COMMANDS, ShortcutDefinition } from '@/app/commands/system/shortcutMapper';
 import './KeyboardShortcutHelper.css';
-import { viewportService } from '@/app/core/services';
 import { useSettings } from '../hooks/useStoreSelectors';
-import { useBooleanState } from '@shared/hooks/ui/useBooleanState';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+export { ShortcutTooltip } from './Shared/ShortcutTooltip';
 
 interface ShortcutItem {
   keys: (string | React.ReactNode)[];
@@ -228,97 +227,6 @@ const KeyboardShortcutHelper: React.FC<KeyboardShortcutHelperProps> = ({ isVisib
           <kbd>Esc</kbd> で閉じる | <kbd>?</kbd> または <kbd>F1</kbd> で表示
         </div>
       </div>
-    </div>
-  );
-};
-
-
-interface ShortcutTooltipProps {
-  shortcut?: string;
-  children: React.ReactNode;
-  description: string;
-}
-
-export const ShortcutTooltip: React.FC<ShortcutTooltipProps> = ({ shortcut, children, description }) => {
-  const { value: isHovered, setTrue: show, setFalse: hide } = useBooleanState({ initialValue: false });
-  const [tooltipPosition, setTooltipPosition] = useState<'top' | 'bottom'>('bottom');
-  const [tooltipStyle, setTooltipStyle] = useState<React.CSSProperties>({});
-  const containerRef = React.useRef<HTMLDivElement>(null);
-
-  const handleMouseEnter = () => {
-    show();
-    
-    
-    if (containerRef.current) {
-      const rect = containerRef.current.getBoundingClientRect();
-      const { width: viewportWidth, height: viewportHeight } = viewportService.getSize();
-      const spaceAbove = rect.top;
-      const spaceBelow = viewportHeight - rect.bottom;
-      
-      
-      let position: 'top' | 'bottom';
-      if (spaceAbove >= 80 && spaceBelow < 80) {
-        position = 'top';
-      } else if (spaceBelow >= 80) {
-        position = 'bottom';
-      } else {
-        position = spaceAbove >= spaceBelow ? 'top' : 'bottom';
-      }
-      
-      setTooltipPosition(position);
-
-      
-      const tooltipMaxWidth = 300; 
-      const centerPosition = rect.left + rect.width / 2;
-      let leftPosition = centerPosition - tooltipMaxWidth / 2;
-      
-      
-      if (leftPosition < 8) {
-        leftPosition = 8;
-      }
-      
-      
-      if (leftPosition + tooltipMaxWidth > viewportWidth - 8) {
-        leftPosition = viewportWidth - tooltipMaxWidth - 8;
-      }
-      
-      
-      const offsetFromCenter = leftPosition + tooltipMaxWidth / 2 - centerPosition;
-      
-      setTooltipStyle({
-        transform: `translateX(calc(-50% + ${offsetFromCenter}px))`
-      });
-    }
-  };
-
-  return (
-    <div 
-      ref={containerRef}
-      className="shortcut-tooltip-container"
-      onMouseEnter={handleMouseEnter}
-      onMouseLeave={hide}
-    >
-      {children}
-      {isHovered && (
-        <div 
-          className={`shortcut-tooltip ${tooltipPosition === 'bottom' ? 'tooltip-bottom' : 'tooltip-top'}`}
-          style={tooltipStyle}
-        >
-          <div className="shortcut-tooltip-description">{description}</div>
-          {shortcut && (
-            <div className="shortcut-tooltip-keys">
-              {shortcut.split('+').map((key, index) => (
-                <React.Fragment key={index}>
-                  <kbd className="shortcut-tooltip-key">{key}</kbd>
-                  {index < shortcut.split('+').length - 1 && (
-                    <span className="shortcut-tooltip-plus">+</span>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 };

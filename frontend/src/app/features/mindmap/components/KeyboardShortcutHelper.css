@@ -278,7 +278,7 @@
 
 .shortcut-tooltip {
   position: absolute;
-  left: 50%;
+  left: 0;
   background: var(--tooltip-bg);
   color: var(--tooltip-text);
   padding: 8px 12px;
@@ -302,8 +302,7 @@
   content: '';
   position: absolute;
   top: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 12px;
   border: 5px solid transparent;
   border-top-color: var(--tooltip-bg);
 }
@@ -318,8 +317,7 @@
   content: '';
   position: absolute;
   bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
+  left: 12px;
   border: 5px solid transparent;
   border-bottom-color: var(--tooltip-bg);
 }
@@ -327,11 +325,11 @@
 @keyframes tooltipFadeIn {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(4px);
+    transform: translateY(4px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
   }
 }
 

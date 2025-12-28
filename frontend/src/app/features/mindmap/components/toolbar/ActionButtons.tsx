@@ -1,6 +1,6 @@
 import React from 'react';
 import { RotateCcw, RotateCw, Search, Ruler, Target, FileText, StickyNote } from 'lucide-react';
-import { ShortcutTooltip } from '../KeyboardShortcutHelper';
+import { ShortcutTooltip } from '../Shared/ShortcutTooltip';
 
 interface ActionButtonsProps {
   onUndo: () => Promise<void>;
