@@ -9,5 +9,6 @@ export * from './linkUtils';
 export * from './nodeFunctional';
 export * from './nodeOperations';
 export * from './nodeUtils';
+export * from './nodeTraversal';
 export * from './pasteTree';
 export * from './mapSearch';

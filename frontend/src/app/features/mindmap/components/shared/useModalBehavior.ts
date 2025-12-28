@@ -1,5 +1,6 @@
 import { useEffect, useCallback } from 'react';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
+import { useEscapeKey } from './useKeyboardHandler';
 
 /**
  * Hook for standard modal behaviors:
@@ -35,18 +36,8 @@ export const useModalBehavior = (
     };
   }, [isOpen, lockBodyScroll]);
 
-  // Handle Escape key
-  const handleKeyDown = useCallback(
-    (event: Event) => {
-      const e = event as KeyboardEvent;
-      if (closeOnEscape && e.key === 'Escape') {
-        onClose();
-      }
-    },
-    [closeOnEscape, onClose]
-  );
-
-  useEventListener('keydown', handleKeyDown, { target: document, enabled: isOpen });
+  // Handle Escape key using shared hook
+  useEscapeKey(isOpen && closeOnEscape, onClose);
 
   // Handle backdrop click
   const handleBackdropClick = useCallback(
@@ -87,16 +78,7 @@ export const useClickOutside = (
     [ref, onClose]
   );
 
-  const handleEscape = useCallback(
-    (event: Event) => {
-      const e = event as KeyboardEvent;
-      if (closeOnEscape && e.key === 'Escape') {
-        onClose();
-      }
-    },
-    [closeOnEscape, onClose]
-  );
-
   useEventListener('mousedown', handleClickOutside, { target: document, enabled: isOpen });
-  useEventListener('keydown', handleEscape, { target: document, enabled: isOpen });
+  // Use shared Escape key handler
+  useEscapeKey(isOpen && closeOnEscape, onClose);
 };

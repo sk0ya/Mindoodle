@@ -5,11 +5,11 @@ import { getRootNodes, getStoreState } from '../../hooks/useStoreSelectors';
 import { findNodeById, findNodeInRoots, navigateLink } from '@mindmap/utils';
 import { useMarkdownSync, resolveAnchorToNode } from '../../../markdown';
 import ActivityBar from './common/ActivityBar';
-import SidebarSection from './sections/SidebarSection';
+import PrimarySidebarContainer from './sidebar/PrimarySidebarContainer';
 import { useSidebarHandlers } from './useSidebarHandlers';
 import { useExplorerFolderOps } from './useExplorerFolderOps';
 import FloatingActionButton from './FloatingActionButton';
-import MindMapWorkspacePane from './sections/MindMapWorkspacePane';
+import MindMapWorkspace from './MindMapWorkspace';
 import { useWorkspaceHandlers } from './useWorkspaceHandlers';
 import FolderGuideModal from '../modals/FolderGuideModal';
 import { useFolderGuide } from './useFolderGuide';
@@ -542,13 +542,13 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       {(() => {
         const sidebarHandlers = useSidebarHandlers({ selectMapById, selectNode, storageAdapter });
         return (
-      <SidebarSection
+      <PrimarySidebarContainer
         activeView={activeView}
         allMindMaps={allMindMaps}
         currentMapId={currentMapId}
         storageAdapter={storageAdapter || undefined}
         onSelectMap={async (id: MapIdentifier): Promise<void> => {
-          
+
           logger.debug('🖱️ Map clicked:', {
             clickedMapId: id.mapId,
             clickedWorkspaceId: id.workspaceId,
@@ -558,7 +558,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
             isWorkspaceIdSame: data?.mapIdentifier?.workspaceId === id.workspaceId
           });
 
-          
+
           if (currentMapId === id.mapId &&
             data?.mapIdentifier?.workspaceId === id.workspaceId) {
             logger.debug('🔄 Same map already selected, skipping:', id.mapId);
@@ -619,7 +619,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         <div className="workspace-and-panels-container">
           <div className="workspace-with-note-container">
             <div className="workspace-container">
-              <MindMapWorkspacePane
+              <MindMapWorkspace
                 data={data}
                 selectedNodeId={selectedNodeId}
                 editingNodeId={editingNodeId}
@@ -628,9 +628,6 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
                 onSelectNode={wsHandlers.onSelectNode}
                 onStartEdit={wsHandlers.onStartEdit}
                 onFinishEdit={wsHandlers.onFinishEdit}
-                onAddChild={wsHandlers.onAddChild}
-                onAddSibling={wsHandlers.onAddSibling}
-                onDeleteNode={wsHandlers.onDeleteNode}
                 onToggleCollapse={wsHandlers.onToggleCollapse}
                 onShowLinkActionMenu={wsHandlers.onShowLinkActionMenu}
                 onAddLink={wsHandlers.onAddLink}

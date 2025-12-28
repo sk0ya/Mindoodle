@@ -1,6 +1,6 @@
 import React from 'react';
 import MindMapModals from '../modals/MindMapModals';
-import MindMapOverlays from './overlay/MindMapOverlays';
+import KeyboardShortcutHelper from '../KeyboardShortcutHelper';
 import { JumpyLabels } from "../../../vim";
 const CommandPalette = React.lazy(() => import('@shared/components/CommandPalette'));
 const AuthModal = React.lazy(() => import('@shared/components').then(m => ({ default: m.AuthModal })));
@@ -170,9 +170,9 @@ export const MindMapAppModalsContainer: React.FC<MindMapAppModalsContainerProps>
         }}
       />
 
-      <MindMapOverlays
-        showKeyboardHelper={showKeyboardHelper}
-        setShowKeyboardHelper={setShowKeyboardHelper}
+      <KeyboardShortcutHelper
+        isVisible={showKeyboardHelper}
+        onClose={() => setShowKeyboardHelper(false)}
       />
 
       <JumpyLabels vim={vim} />

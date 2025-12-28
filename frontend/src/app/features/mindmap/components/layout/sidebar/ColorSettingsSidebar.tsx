@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Moon, Sun } from 'lucide-react';
-import { useSettings, useUpdateSetting } from '../../../hooks/useStoreSelectors';
+import { useSettingsHandler } from '../../../hooks/useSettingsHandler';
 import { colorSetStyles } from './colorSetStyles';
 import { sharedSidebarStyles } from './sharedSidebarStyles';
 
@@ -9,12 +9,7 @@ interface ColorSettingsSidebarProps {
 }
 
 const ColorSettingsSidebar: React.FC<ColorSettingsSidebarProps> = () => {
-  const settings = useSettings();
-  const updateSetting = useUpdateSetting();
-
-  const handleSettingChange = React.useCallback(<K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSetting(key, value);
-  }, [updateSetting]);
+  const { settings, handleSettingChange } = useSettingsHandler();
 
   return (
     <div className="color-settings-sidebar">

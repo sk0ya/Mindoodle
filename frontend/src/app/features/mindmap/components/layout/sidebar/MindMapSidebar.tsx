@@ -8,12 +8,9 @@ import ContextMenu from '../overlay/ContextMenu';
 import { ExplorerView } from './ExplorerView';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
-import { useSettings, useUpdateSetting } from '@mindmap/hooks/useStoreSelectors';
-import { CloudStorageAdapter } from '@/app/core/storage/adapters';
-import { WorkspaceService } from '@shared/services';
-
-
 import { useSidebar } from '../../../hooks/useSidebar';
+import { useCloudWorkspace } from '../../../hooks/useCloudWorkspace';
+import { flexStyles, flexRow, combineStyles } from '../../shared/commonStyles';
 
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
@@ -52,43 +49,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   explorerTree,
   onCreateFolder
 }) => {
-  const settings = useSettings();
-  const updateSetting = useUpdateSetting();
-  const isCloudConnected = React.useMemo(
-    () => workspaces.some(ws => ws.id === 'cloud'),
-    [workspaces]
-  );
+  const { isCloudConnected, handleToggleCloud } = useCloudWorkspace(workspaces);
 
-  const handleAuthSuccess = React.useCallback((authenticatedAdapter: CloudStorageAdapter) => {
-    if (!authenticatedAdapter?.isAuthenticated) {
-      return;
-    }
-
-    const workspaceService = WorkspaceService.getInstance();
-    workspaceService.addCloudWorkspace(authenticatedAdapter);
-    updateSetting('storageMode', 'local+cloud');
-  }, [updateSetting]);
-
-  const handleToggleCloud = React.useCallback(() => {
-    const workspaceService = WorkspaceService.getInstance();
-
-    if (isCloudConnected) {
-      updateSetting('storageMode', 'local');
-      workspaceService.logoutFromCloud();
-    } else {
-      let adapter = workspaceService.getCloudAdapter();
-      if (!adapter) {
-        adapter = new CloudStorageAdapter(settings.cloudApiEndpoint);
-        workspaceService.setCloudAdapter(adapter);
-      }
-
-      window.dispatchEvent(new CustomEvent('mindoodle:showAuthModal', {
-        detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess }
-      }));
-    }
-  }, [isCloudConnected, settings.cloudApiEndpoint, updateSetting, handleAuthSuccess]);
-
-  
   const sidebar = useSidebar({
     mindMaps,
     currentWorkspaceId,
@@ -176,9 +138,9 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   return (
     <div className="mind-map-sidebar">
       <div className="workspaces-header" style={{ padding: '8px 8px 4px 8px', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={flexStyles.spaceBetween}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>workspaces</div>
-          <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+          <div style={flexRow(4)}>
             <button
               className="maps-action-button"
               onClick={handleToggleCloud}
@@ -192,7 +154,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
             <button className="maps-action-button" onClick={() => onAddWorkspace && onAddWorkspace()} title="Add workspace">＋</button>
           </div>
         </div>
-        <div style={{ marginTop: 6, display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={combineStyles(flexRow(6), { marginTop: 6, flexWrap: 'wrap' })}>
           {workspaces && workspaces.length > 0 ? (
             workspaces.map((ws) => (
               <span key={ws.id}

@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { useSettings, useUpdateSetting } from '@mindmap/hooks/useStoreSelectors';
+import { useSettingsHandler } from '@mindmap/hooks/useSettingsHandler';
 import { embeddingService } from '@core/services/EmbeddingService';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { logger } from '@shared/utils';
@@ -11,15 +11,10 @@ interface SettingsSidebarProps {
 }
 
 const SettingsSidebar: React.FC<SettingsSidebarProps> = () => {
-  const settings = useSettings();
-  const updateSetting = useUpdateSetting();
+  const { settings, handleSettingChange } = useSettingsHandler();
   const [isInitializingEmbedding, setIsInitializingEmbedding] = useState(false);
   const [embeddingProgress, setEmbeddingProgress] = useState<string>('');
   const [embeddingError, setEmbeddingError] = useState<string>('');
-
-  const handleSettingChange = React.useCallback(<K extends keyof typeof settings>(key: K, value: typeof settings[K]) => {
-    updateSetting(key, value);
-  }, [updateSetting]);
 
   // モデルダウンロード進捗リスナー
   const handleProgress = (e: Event) => {

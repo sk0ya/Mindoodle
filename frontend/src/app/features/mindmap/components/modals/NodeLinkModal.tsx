@@ -1,28 +1,20 @@
 import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 
-import { type NodeLink, type MindMapNode, type MindMapData, type MapIdentifier, DEFAULT_WORKSPACE_ID } from '@shared/types';
+import { type NodeLink, type MindMapData, type MapIdentifier, DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
-import { computeAnchorForNode } from '../../../markdown';
 import { useLoadingState } from '@/app/shared/hooks';
 import { combineModalStyles } from '../shared/modalStyles';
+import { flattenRootNodesToOptions } from '../../utils/nodeTraversal';
 
 interface MapOption {
   mapIdentifier: { mapId: string; workspaceId: string };
-  title: string; 
-}
-
-interface NodeOption {
-  id: string;
-  text: string;
-  anchorText: string;
-  displayText: string; 
-  mapId?: string;
+  title: string;
 }
 
 interface NodeLinkModalProps {
   isOpen: boolean;
   onClose: () => void;
-  link?: NodeLink | null; 
+  link?: NodeLink | null;
   onSave: (link: Partial<NodeLink>) => void;
   onDelete?: (linkId: string) => void;
   availableMaps?: MapOption[];
@@ -56,59 +48,29 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   const headingsRef = useRef<HTMLDivElement | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string>('');
   
-  // ノード一覧を生成するヘルパー関数
-  const flattenNodes = useCallback((rootNode: MindMapNode, mapId?: string): NodeOption[] => {
-    const result: NodeOption[] = [];
-    
-    const traverse = (node: MindMapNode) => {
-      const anchor = computeAnchorForNode(rootNode, node.id) || (node.text || '');
-      result.push({
-        id: node.id,
-        text: node.text,
-        anchorText: anchor,
-        displayText: anchor, // 一覧はアンカー表記（重複時に -1 などが付与）
-        mapId
-      });
-      if (node.children) {
-        node.children.forEach(traverse);
-      }
-    };
-    
-    traverse(rootNode);
-    return result;
-  }, []);
-  
   // 選択されたマップのノード一覧
   const availableNodes = useCallback(() => {
     if (!selectedMapId) {
-      // マップが選択されていない場合は空の配列を返す
       return [];
     }
-    
+
     if (selectedMapId === currentMapData?.mapIdentifier.mapId) {
       // 現在のマップが選択された場合
-      const nodes: NodeOption[] = [];
       if (currentMapData?.rootNodes) {
-        currentMapData.rootNodes.forEach(rootNode => {
-          nodes.push(...flattenNodes(rootNode, selectedMapId));
-        });
+        return flattenRootNodesToOptions(currentMapData.rootNodes, selectedMapId);
       }
-      return nodes;
+      return [];
     }
 
     // 他のマップが選択された場合
     if (loadedMapData && loadedMapData.mapIdentifier.mapId === selectedMapId) {
-      const nodes: NodeOption[] = [];
       if (loadedMapData.rootNodes) {
-        loadedMapData.rootNodes.forEach(rootNode => {
-          nodes.push(...flattenNodes(rootNode, selectedMapId));
-        });
+        return flattenRootNodesToOptions(loadedMapData.rootNodes, selectedMapId);
       }
-      return nodes;
     }
-    
+
     return [];
-  }, [selectedMapId, currentMapData, loadedMapData, flattenNodes]);
+  }, [selectedMapId, currentMapData, loadedMapData]);
 
   // フォルダ内のファイルも含むマップ一覧を検索して表示（idベースで見えるようにする）
   // const filteredMaps = useCallback(() => {

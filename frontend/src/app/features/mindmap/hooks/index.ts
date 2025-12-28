@@ -21,3 +21,5 @@ export * from './useNodeSelection';
 export * from './useNodeEditing';
 export * from './useStoreSelectors';
 export * from './useAutoScrollToSelectedNode';
+export * from './useSettingsHandler';
+export * from './useCloudWorkspace';
