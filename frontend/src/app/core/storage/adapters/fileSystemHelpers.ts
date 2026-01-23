@@ -204,3 +204,55 @@ export async function ensureUniqueName(dir: DirHandle, baseName: string, isDirec
 export async function ensureUniqueFolderName(dir: DirHandle, baseName: string): Promise<string> {
   return ensureUniqueName(dir, baseName, true);
 }
+
+/**
+ * Check if File System Access API is supported
+ */
+export function checkFSASupport(): boolean {
+  return typeof (window as Window & { showDirectoryPicker?: unknown })?.showDirectoryPicker === 'function';
+}
+
+/**
+ * Get a file system handle with fallback
+ */
+export async function getHandle<T extends FileHandle | DirHandle>(
+  getter: () => Promise<T> | T,
+  fallbackGetter?: () => Promise<T>
+): Promise<T> {
+  try {
+    return await getter();
+  } catch {
+    if (fallbackGetter) {
+      return await fallbackGetter();
+    }
+    throw new Error('Handle not found');
+  }
+}
+
+/**
+ * Get an existing file handle from a directory (returns null if not found)
+ */
+export async function getExistingFileOrNull(
+  dir: DirHandle,
+  name: string
+): Promise<FileHandle | null> {
+  try {
+    return await getExistingFile(dir, name);
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Get an existing directory handle from a parent directory (returns null if not found)
+ */
+export async function getExistingDirectoryOrNull(
+  dir: DirHandle,
+  name: string
+): Promise<DirHandle | null> {
+  try {
+    return await getExistingDirectory(dir, name);
+  } catch {
+    return null;
+  }
+}
