@@ -48,7 +48,7 @@ export interface CommandContext {
     findParentNode?: (_nodeId: string) => MindMapNode | null;
 
 
-    centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
+    centerNodeInView?: (_nodeId: string, _animate?: boolean, _mode?: 'center' | 'left' | 'top-left') => void;
     navigateToDirection: (direction: Direction, count?: number) => void;
     selectNode: (nodeId: string | null) => void;
     setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;

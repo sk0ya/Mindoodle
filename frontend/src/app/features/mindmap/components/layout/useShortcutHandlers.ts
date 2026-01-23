@@ -60,7 +60,7 @@ interface Args {
   logger: ShortcutLogger;
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
 
-  centerNodeInView: (nodeId: string, animate?: boolean) => void;
+  centerNodeInView: (nodeId: string, animate?: boolean, mode?: 'center' | 'left' | 'top-left') => void;
   ensureSelectedNodeVisible?: (options?: { force?: boolean }) => void;
 
   selectedNodeId: string | null;

@@ -193,18 +193,26 @@ export function useMindMapViewport({
     } catch {}
   });
 
-  
 
-  const centerNodeInView = useStableCallback((nodeId: string, _animate = false, fallbackCoords?: { x: number; y: number } | { mode: string }) => {
+
+  const centerNodeInView = useStableCallback((
+    nodeId: string,
+    _animate = false,
+    mode: 'center' | 'left' | 'top-left' = 'center'
+  ) => {
     if (!data) return;
 
-    const isLeftMode = !!(fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'left');
-    const isTopLeftMode = !!(fallbackCoords && 'mode' in fallbackCoords && fallbackCoords.mode === 'top-left');
+    const isLeftMode = mode === 'left';
+    const isTopLeftMode = mode === 'top-left';
 
     const rootNodes = data.rootNodes || [];
     const targetNode = rootNodes.length > 0 && rootNodes[0].id === nodeId
       ? rootNodes[0]
       : findNodeInRoots(rootNodes, nodeId);
+
+    if (!targetNode) {
+      return;
+    }
 
     // Resolve SVG rect; use it consistently for coordinate transforms
     const containerEl = document.querySelector('.mindmap-canvas-container') as HTMLElement | null;
@@ -232,52 +240,38 @@ export function useMindMapViewport({
       return { x: panX, y: panY };
     };
 
-    if (!targetNode) {
-      if (fallbackCoords && 'x' in fallbackCoords && 'y' in fallbackCoords) {
-        const nodeX = fallbackCoords.x;
-        const nodeY = fallbackCoords.y;
-        let targetX = centerScreenX;
-        let targetY = centerScreenY;
-        if (isLeftMode) {
-          targetX = leftScreenX;
-          targetY = centerScreenY;
-        } else if (isTopLeftMode) {
-          targetX = rect.left + topLeftMargins.left; // will be corrected by computePan
-          targetY = rect.top + topLeftMargins.top;
-        }
-        setPan(computePan(nodeX, nodeY, targetX, targetY));
-      }
-      return;
-    }
-
     const nodeX = targetNode.x || 0;
     const nodeY = targetNode.y || 0;
 
+    // Calculate node size for all modes
+    const st = useMindMapStore.getState();
+    const fontSize = st.settings?.fontSize ?? 14;
+    const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
+    const isEditing = st.editingNodeId === targetNode.id;
+    const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
+    const halfW = ((nodeSize?.width ?? 80) / 2);
+    const halfH = ((nodeSize?.height ?? 24) / 2);
+
     if (isLeftMode) {
       // zt: left + vertical center for all layouts
-      setPan(computePan(nodeX, nodeY, leftScreenX, centerScreenY));
+      // Position node center at left margin + vertical center
+      const targetX = leftScreenX;
+      const targetY = centerScreenY;
+      setPan(computePan(nodeX + halfW, nodeY + halfH, targetX, targetY));
       return;
     }
 
     if (isTopLeftMode) {
       // Align node's top-left to small margins
-      const st = useMindMapStore.getState();
-      const fontSize = st.settings?.fontSize ?? 14;
-      const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
-      const isEditing = st.editingNodeId === targetNode.id;
-      const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
-      const halfW = ((nodeSize?.width ?? 80) / 2);
-      const halfH = ((nodeSize?.height ?? 24) / 2);
-
       const targetX = rect.left + topLeftMargins.left + halfW * scale;
       const targetY = rect.top + topLeftMargins.top + halfH * scale;
       setPan(computePan(nodeX, nodeY, targetX, targetY));
       return;
     }
 
-    // Full center
-    setPan(computePan(nodeX, nodeY, centerScreenX, centerScreenY));
-  });
+    // Full center: position node center at screen center
+    setPan(computePan(nodeX + halfW, nodeY + halfH, centerScreenX, centerScreenY));
+  });;
 
   return {
     ensureSelectedNodeVisible,

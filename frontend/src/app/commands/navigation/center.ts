@@ -14,10 +14,7 @@ const centerNode = (mode: 'center' | 'left', animate = true) =>
       if (!context.handlers.centerNodeInView) return failure('Center function is not available');
 
       try {
-        (context.handlers as typeof context.handlers & {
-          centerNodeInView: (_nodeId: string, _animate: boolean, _options: { mode: string }) => void
-        }).centerNodeInView(nodeId, animateArg, { mode });
-
+        context.handlers.centerNodeInView?.(nodeId, animateArg, mode);
         return success(`Centered node ${nodeId}${mode === 'left' ? ' at left' : ''}`);
       } catch (error) {
         return failure(error instanceof Error ? error.message : `Failed to ${mode === 'center' ? 'center' : 'center-left'} node`);

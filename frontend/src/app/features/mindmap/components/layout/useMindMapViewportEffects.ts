@@ -17,7 +17,7 @@ interface UseMindMapViewportEffectsProps {
     nodeNotePanelHeight?: number;
   };
   ensureSelectedNodeVisible: () => void;
-  centerNodeInView: (nodeId: string, animate?: any, options?: { x: number; y: number } | { mode: string }) => void;
+  centerNodeInView: (nodeId: string, animate?: boolean, mode?: 'center' | 'left' | 'top-left') => void;
   setZoom: (zoom: number) => void;
   setPan: (pan: { x: number; y: number }) => void;
   /**
@@ -103,7 +103,7 @@ export function useMindMapViewportEffects({
       logger.debug('📍 Layout settled (tree); aligning root to top-left');
       centeredAfterOpenRef.current = true;
       // Use top-left mode so initial anchor is at top-left, not zt
-      centerNodeInViewRef.current(roots[0].id, false, { mode: 'top-left' });
+      centerNodeInViewRef.current(roots[0].id, false, 'top-left');
       if (unsubscribeRef) unsubscribeRef();
     };
 

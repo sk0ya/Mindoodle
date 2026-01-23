@@ -45,7 +45,7 @@ interface KeyboardShortcutHandlers {
   findNodeById: (_nodeId: string) => MindMapNode | null;
   closeAttachmentAndLinkLists: () => void;
   onMarkdownNodeType?: (_nodeId: string, _newType: MarkdownNodeType, _options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
-  centerNodeInView?: (_nodeId: string, _animate?: boolean) => void;
+  centerNodeInView?: (_nodeId: string, _animate?: boolean, _mode?: 'center' | 'left' | 'top-left') => void;
   switchToPrevMap?: () => void;
   switchToNextMap?: () => void;
 }
