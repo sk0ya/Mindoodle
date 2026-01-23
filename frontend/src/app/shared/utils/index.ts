@@ -16,6 +16,7 @@ export * from './listHeightUtils';
 export * from './highlightUtils';
 export * from './lodash-utils';
 export * from './lruCache';
+export * from './nodeAnchor';
 
 
 export {

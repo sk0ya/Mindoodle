@@ -1,5 +1,5 @@
 import type { MindMapNode } from '@shared/types';
-import { computeAnchorForNode } from '../../markdown';
+import { computeAnchorForNode } from '@shared/utils/nodeAnchor';
 
 export interface NodeOption {
   id: string;

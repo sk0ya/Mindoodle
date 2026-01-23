@@ -3,7 +3,7 @@
 import { useStableCallback } from '@shared/hooks';
 import { findNodeById, findNodeInRoots } from '@mindmap/utils';
 import { relPathBetweenMapIds, logger } from '@shared/utils';
-import { computeAnchorForNode } from '../../markdown';
+import { computeAnchorForNode } from '@shared/utils/nodeAnchor';
 
 import type { MindMapData, MindMapNode, NodeLink, MapIdentifier } from '@shared/types';
 
