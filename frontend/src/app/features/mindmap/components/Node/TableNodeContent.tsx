@@ -1,6 +1,7 @@
 import React from 'react';
 import type { MindMapNode } from '@shared/types';
 import { parseTableFromString } from './nodeRendererHelpers';
+import { tableContainerStyle, tableBaseStyle, getHeaderCellStyle, getDataCellStyle } from './tableStyles';
 
 interface TableNodeContentProps {
   node: MindMapNode;
@@ -13,24 +14,6 @@ interface TableNodeContentProps {
 }
 
 type TableNode = MindMapNode & { note?: string; tableData?: { headers?: string[]; rows?: string[][] } };
-
-const getCellStyle = (isHeader: boolean, isEven: boolean, isLastRow: boolean, cellIndex: number, rowLength: number) => ({
-  border: 0,
-  borderRight: isHeader && cellIndex < rowLength - 1 ? '1px solid rgba(255,255,255,0.3)' : undefined,
-  padding: '12px 16px',
-  verticalAlign: 'middle' as const,
-  fontWeight: isHeader ? 600 : undefined,
-  background: isHeader ? '#6b7280' : isEven ? 'white' : '#fcfcfd',
-  color: isHeader ? 'white' : 'black',
-  borderBottom: isHeader ? '2px solid #e2e8f0' : undefined,
-  borderTop: !isHeader ? '1px solid #f1f5f9' : undefined,
-  borderTopLeftRadius: isHeader && cellIndex === 0 ? '10px' : undefined,
-  borderTopRightRadius: isHeader && cellIndex === rowLength - 1 ? '10px' : undefined,
-  borderBottomLeftRadius: isLastRow && cellIndex === 0 ? '10px' : undefined,
-  borderBottomRightRadius: isLastRow && cellIndex === rowLength - 1 ? '10px' : undefined,
-  textAlign: 'left' as const,
-  whiteSpace: 'nowrap' as const
-});
 
 export const TableNodeContent: React.FC<TableNodeContentProps> = ({
   node,
@@ -58,29 +41,13 @@ export const TableNodeContent: React.FC<TableNodeContentProps> = ({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="table-wrap" style={{
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        borderRadius: '10px',
-        boxSizing: 'border-box'
-      }}>
-        <table style={{
-          width: 'auto',
-          margin: 0,
-          borderCollapse: 'collapse',
-          overflow: 'hidden',
-          borderRadius: '10px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-          background: 'white',
-          fontSize: `${fontSize * 0.95}px`,
-          lineHeight: 1.5
-        }}>
+      <div className="table-wrap" style={tableContainerStyle}>
+        <table style={tableBaseStyle(fontSize)}>
           {headers && (
             <thead>
               <tr>
                 {headers.map((cell: string, ci: number) => (
-                  <th key={ci} style={getCellStyle(true, false, false, ci, headers.length)}>
+                  <th key={ci} style={getHeaderCellStyle(ci, headers.length)}>
                     {cell}
                   </th>
                 ))}
@@ -98,7 +65,7 @@ export const TableNodeContent: React.FC<TableNodeContentProps> = ({
                   onMouseLeave={(e) => { e.currentTarget.style.background = ri % 2 === 0 ? 'white' : '#fcfcfd'; }}
                 >
                   {row.map((cell: string, ci: number) => (
-                    <td key={ci} style={getCellStyle(false, ri % 2 === 0, isLastRow, ci, row.length)}>
+                    <td key={ci} style={getDataCellStyle(ri % 2 === 0, isLastRow, ci, row.length)}>
                       {cell}
                     </td>
                   ))}

@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import type { FileAttachment } from '@shared/types';
+import { ResizeHandle } from './ResizeHandle';
 
 interface ImageRendererProps {
   imageSrc: string;
@@ -116,26 +117,7 @@ export const ImageRenderer: React.FC<ImageRendererProps> = memo(({
         </div>
       )}
 
-      {/* Resize handle */}
-      {isSelected && (
-        <div
-          onPointerDown={onResizePointerDown}
-          title="サイズ変更"
-          style={{
-            position: 'absolute',
-            right: 2,
-            bottom: 2,
-            width: 12,
-            height: 12,
-            background: 'white',
-            border: '1px solid #bfdbfe',
-            borderRadius: 2,
-            cursor: isResizing ? 'nw-resize' : 'se-resize',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.1)',
-            pointerEvents: 'auto'
-          }}
-        />
-      )}
+      {isSelected && <ResizeHandle isResizing={isResizing} onPointerDown={onResizePointerDown} />}
     </div>
   );
 });

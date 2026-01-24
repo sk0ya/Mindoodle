@@ -1,6 +1,7 @@
 import React, { memo } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { parseTableFromString } from './nodeRendererHelpers';
+import { tableContainerStyle, tableBaseStyle, getHeaderCellStyle, getDataCellStyle } from './tableStyles';
 
 interface TableRendererProps {
   node: MindMapNode;
@@ -55,47 +56,13 @@ export const TableRenderer: React.FC<TableRendererProps> = memo(({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
-      <div className="table-wrap" style={{
-        width: '100%',
-        height: '100%',
-        overflow: 'hidden',
-        borderRadius: '10px',
-        boxSizing: 'border-box',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center'
-      }}>
-        <table style={{
-          width: 'auto',
-          borderCollapse: 'collapse',
-          overflow: 'hidden',
-          borderRadius: '10px',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.05)',
-          background: 'white',
-          fontSize: `${fontSize * 0.95}px`,
-          lineHeight: 1.5
-        }}>
+      <div className="table-wrap" style={{ ...tableContainerStyle, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <table style={tableBaseStyle(fontSize)}>
           {hasHeaders && headers && (
             <thead>
               <tr>
                 {headers.map((cell: string, ci: number) => (
-                  <th
-                    key={ci}
-                    style={{
-                      border: 0,
-                      borderRight: ci < headers.length - 1 ? '1px solid rgba(255,255,255,0.3)' : undefined,
-                      padding: '12px 16px',
-                      verticalAlign: 'middle',
-                      fontWeight: 600,
-                      background: '#6b7280',
-                      color: 'white',
-                      borderBottom: '2px solid #e2e8f0',
-                      textAlign: 'left',
-                      borderTopLeftRadius: ci === 0 ? '10px' : undefined,
-                      borderTopRightRadius: ci === headers.length - 1 ? '10px' : undefined,
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
+                  <th key={ci} style={getHeaderCellStyle(ci, headers.length)}>
                     {cell}
                   </th>
                 ))}
@@ -108,20 +75,7 @@ export const TableRenderer: React.FC<TableRendererProps> = memo(({
               return (
                 <tr key={ri}>
                   {row.map((cell: string, ci: number) => (
-                    <td
-                      key={ci}
-                      style={{
-                        padding: '10px 14px',
-                        textAlign: 'left',
-                        verticalAlign: 'middle',
-                        whiteSpace: 'nowrap',
-                        background: ri % 2 === 0 ? '#ffffff' : '#f9fafb',
-                        borderRight: ci < row.length - 1 ? '1px solid #e2e8f0' : undefined,
-                        borderBottom: !isLastRow ? '1px solid #e2e8f0' : undefined,
-                        borderBottomLeftRadius: isLastRow && ci === 0 ? '10px' : undefined,
-                        borderBottomRightRadius: isLastRow && ci === row.length - 1 ? '10px' : undefined
-                      }}
-                    >
+                    <td key={ci} style={getDataCellStyle(ri % 2 === 0, isLastRow, ci, row.length)}>
                       {cell || ''}
                     </td>
                   ))}
