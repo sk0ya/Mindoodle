@@ -11,8 +11,10 @@ import { structureCommand, failure, success } from '../utils/commandFunctional';
 // === Pure Helper Functions ===
 
 type ToggleValidation = CommandResult | { success: true; node: MindMapNode; nodeId: string };
-const isToggleSuccess = (v: ToggleValidation): v is { success: true; node: MindMapNode; nodeId: string } =>
-  (v as any).success === true && 'node' in (v as any) && 'nodeId' in (v as any);
+const isToggleSuccess = (v: ToggleValidation): v is { success: true; node: MindMapNode; nodeId: string } => {
+  const result = v as Partial<{ success: boolean; node: MindMapNode; nodeId: string }>;
+  return result.success === true && 'node' in result && 'nodeId' in result;
+};
 
 const getNodeWithChildren = (nodeId: string | null, context: CommandContext): ToggleValidation => {
   if (!nodeId) return failure('No node selected and no node ID provided');

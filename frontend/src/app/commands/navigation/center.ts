@@ -17,7 +17,9 @@ const centerNode = (mode: 'center' | 'left', animate = true) =>
         context.handlers.centerNodeInView?.(nodeId, animateArg, mode);
         return success(`Centered node ${nodeId}${mode === 'left' ? ' at left' : ''}`);
       } catch (error) {
-        return failure(error instanceof Error ? error.message : `Failed to ${mode === 'center' ? 'center' : 'center-left'} node`);
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const operation = mode === 'center' ? 'center' : 'center-left';
+        return failure(`Failed to ${operation} node: ${errorMessage}`);
       }
     },
     {

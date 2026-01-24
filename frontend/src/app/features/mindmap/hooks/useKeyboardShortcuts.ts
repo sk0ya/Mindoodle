@@ -109,8 +109,9 @@ const handleStandardShortcut = (
       y: 'redo'
     };
 
-    const action = modActions[key.toLowerCase()];
-    if (action !== undefined) {
+    const lowerKey = key.toLowerCase();
+    if (lowerKey in modActions) {
+      const action = modActions[lowerKey];
       if (action) {
         event.preventDefault();
         commands.execute(action);

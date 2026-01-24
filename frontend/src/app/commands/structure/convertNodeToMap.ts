@@ -17,8 +17,10 @@ const isRootLevelNode = (context: CommandContext, nodeId: string): boolean => {
 };
 
 type Validation = CommandResult | { success: true; node: MindMapNode };
-const isValidWithNode = (v: Validation): v is { success: true; node: MindMapNode } =>
-  (v as any).success === true && 'node' in (v as any);
+const isValidWithNode = (v: Validation): v is { success: true; node: MindMapNode } => {
+  const result = v as Partial<{ success: boolean; node: MindMapNode }>;
+  return result.success === true && 'node' in result;
+};
 
 const validateNodeForConversion = (context: CommandContext, nodeId: string | null): Validation => {
   if (!nodeId) return failure('No node selected');

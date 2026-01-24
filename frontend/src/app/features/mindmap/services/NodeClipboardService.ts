@@ -22,7 +22,10 @@ const removeHeadingMarkers = (text: string): string => {
 
 const getListPrefix = (meta?: MindMapNode['markdownMeta']): string => {
   if (meta?.type === 'unordered-list') {
-    return meta.isCheckbox ? (meta.isChecked ? '- [x] ' : '- [ ] ') : '- ';
+    if (meta.isCheckbox) {
+      return meta.isChecked ? '- [x] ' : '- [ ] ';
+    }
+    return '- ';
   }
   if (meta?.type === 'ordered-list') return '1. ';
   return '';

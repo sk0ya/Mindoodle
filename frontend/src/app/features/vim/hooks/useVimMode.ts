@@ -288,7 +288,8 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
             const mapName = fullPath.includes('/') ? fullPath.split('/').pop() || fullPath : fullPath;
             const actualCategory = fullPath.includes('/') ? fullPath.replace(/\/[^/]*$/, '') : '';
             await globalWindow.mindoodleCreateAndSelectMap(mapName, workspaceId, actualCategory);
-            setCommandOutput(`Created map: ${mapName}${actualCategory ? ` in ${actualCategory}` : ''}`);
+            const categoryInfo = actualCategory ? ` in ${actualCategory}` : '';
+            setCommandOutput(`Created map: ${mapName}${categoryInfo}`);
           } else {
             setCommandOutput('Error: Global createAndSelectMap not available');
           }
@@ -366,7 +367,8 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
   const getCurrentRootNode = useCallback((): MindMapNode | null => {
     const { data, selectedNodeId } = useMindMapStore.getState();
     const roots = data?.rootNodes || [];
-    return roots.length === 0 ? null : (selectedNodeId ? findRootForNode(roots, selectedNodeId) : roots[0]);
+    if (roots.length === 0) return null;
+    return selectedNodeId ? findRootForNode(roots, selectedNodeId) : roots[0];
   }, []);
 
   const startSearch = useCallback(() =>
@@ -413,11 +415,15 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
 
     const { selectedNodeId } = useMindMapStore.getState();
     const currentIndex = selectedNodeId ? results.indexOf(selectedNodeId) : -1;
-    const nextIndex = currentIndex === -1
-      ? (direction === 1 ? 0 : results.length - 1)
-      : direction === 1
-        ? (currentIndex + 1) % results.length
-        : currentIndex <= 0 ? results.length - 1 : currentIndex - 1;
+
+    let nextIndex: number;
+    if (currentIndex === -1) {
+      nextIndex = direction === 1 ? 0 : results.length - 1;
+    } else if (direction === 1) {
+      nextIndex = (currentIndex + 1) % results.length;
+    } else {
+      nextIndex = currentIndex <= 0 ? results.length - 1 : currentIndex - 1;
+    }
 
     setState(prev => ({ ...prev, searchResults: results, currentSearchIndex: nextIndex }));
     useMindMapStore.getState().selectNode(results[nextIndex]);

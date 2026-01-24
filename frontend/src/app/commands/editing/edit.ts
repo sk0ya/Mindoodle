@@ -50,9 +50,14 @@ export const editCommand: Command = editingCommand(
 
     startEditWithCursor(nodeId, cursorPosition as 'start' | 'end', context);
 
-    const action = newText !== undefined ? 'set text and started editing'
-      : keepText ? 'started editing'
-      : 'cleared text and started editing';
+    let action: string;
+    if (newText !== undefined) {
+      action = 'set text and started editing';
+    } else if (keepText) {
+      action = 'started editing';
+    } else {
+      action = 'cleared text and started editing';
+    }
 
     return success(`${action} node "${node.text}"`);
   },

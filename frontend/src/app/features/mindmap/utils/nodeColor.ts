@@ -36,10 +36,15 @@ const hexToHSL = (hex: string) => {
   const d = max - min;
   const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
 
-  const hCalc =
-    max === r ? ((g - b) / d + (g < b ? 6 : 0)) / 6 :
-    max === g ? ((b - r) / d + 2) / 6 :
-    ((r - g) / d + 4) / 6;
+  let hCalc: number;
+  if (max === r) {
+    const offset = g < b ? 6 : 0;
+    hCalc = ((g - b) / d + offset) / 6;
+  } else if (max === g) {
+    hCalc = ((b - r) / d + 2) / 6;
+  } else {
+    hCalc = ((r - g) / d + 4) / 6;
+  }
 
   return { h: Math.round(hCalc * 360), s: Math.round(s * 100), l: Math.round(l * 100) };
 };

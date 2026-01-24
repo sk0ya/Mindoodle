@@ -14,7 +14,7 @@ export const findClosestChild = (parent: MindMapNode): MindMapNode | null => {
     const closestDist = Math.abs(closest.y - parent.y);
     const childDist = Math.abs(child.y - parent.y);
     return childDist < closestDist ? child : closest;
-  });
+  }, children[0]);
 };
 
 /**

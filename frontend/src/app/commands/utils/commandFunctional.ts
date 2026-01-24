@@ -9,6 +9,7 @@ import type { Command, CommandContext, CommandResult, CommandCategory, ArgsMap }
 
 export type CommandExecutor = (context: CommandContext, args: ArgsMap) => CommandResult | Promise<CommandResult>;
 export type CommandGuard = (context: CommandContext, args: ArgsMap) => boolean;
+export type CommandOptions = Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>;
 
 // === Result Helpers ===
 
@@ -141,7 +142,7 @@ export const navigationCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, { ...options, category: categories.NAVIGATION });
 
@@ -152,7 +153,7 @@ export const editingCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, { ...options, category: categories.EDITING });
 
@@ -163,7 +164,7 @@ export const structureCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, { ...options, category: categories.STRUCTURE });
 
@@ -174,7 +175,7 @@ export const uiCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, { ...options, category: categories.UI });
 
@@ -185,7 +186,7 @@ export const applicationCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, { ...options, category: categories.APPLICATION });
 
@@ -196,7 +197,7 @@ export const vimCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, {
     ...options,
@@ -211,7 +212,7 @@ export const utilityCommand = (
   name: string,
   description: string,
   execute: CommandExecutor,
-  options?: Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>
+  options?: CommandOptions
 ): Command =>
   command(name, description, execute, { ...options, category: categories.UTILITY });
 

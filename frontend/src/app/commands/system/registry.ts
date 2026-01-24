@@ -54,7 +54,8 @@ export class CommandRegistryImpl implements CommandRegistry {
       if (score > 0) results.push({ command, score });
     }
 
-    return results.sort((a, b) => b.score - a.score).map(r => r.command);
+    // Create a copy before sorting to avoid mutation
+    return [...results].sort((a, b) => b.score - a.score).map(r => r.command);
   }
 
   canExecute(nameOrAlias: string, context: CommandContext, args: Record<string, string | number | boolean> = {}): boolean {

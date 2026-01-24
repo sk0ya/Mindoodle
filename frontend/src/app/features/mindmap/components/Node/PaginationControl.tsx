@@ -8,12 +8,28 @@ interface PaginationControlProps {
   onNext: () => void;
 }
 
-const getSizeVariant = (width: number) => ({
-  fontSize: width < 100 ? 9 : width < 140 ? 10 : 12,
-  padding: width < 100 ? '0 3px' : width < 140 ? '1px 4px' : '2px 6px',
-  buttonPadding: width < 100 ? '0 3px' : '0 4px',
-  gap: width < 100 ? 2 : 4
-});
+const getSizeVariant = (width: number) => {
+  let fontSize: number;
+  let padding: string;
+
+  if (width < 100) {
+    fontSize = 9;
+    padding = '0 3px';
+  } else if (width < 140) {
+    fontSize = 10;
+    padding = '1px 4px';
+  } else {
+    fontSize = 12;
+    padding = '2px 6px';
+  }
+
+  return {
+    fontSize,
+    padding,
+    buttonPadding: width < 100 ? '0 3px' : '0 4px',
+    gap: width < 100 ? 2 : 4
+  };
+};
 
 export const PaginationControl: React.FC<PaginationControlProps> = ({
   currentIndex,

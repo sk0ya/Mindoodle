@@ -254,11 +254,8 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
  * Tree layout - root at top-left, expanding right and down
  */
 export const treeLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): MindMapNode => {
-  const uiAwareCenterX = calculateDynamicCenterX(options.sidebarCollapsed, options.activeView);
-
+  // Note: centerX and centerY from options are ignored in tree layout mode
   const {
-    centerX = uiAwareCenterX,
-    centerY = COORDINATES.DEFAULT_CENTER_Y,
     nodeSpacing = LAYOUT.VERTICAL_SPACING_MIN,
     globalFontSize,
     wrapConfig: providedWrapConfig
@@ -320,8 +317,7 @@ export const treeLayout = (rootNode: MindMapNode, options: LayoutOptions = {}): 
   };
 
   // Anchor root to top-left with a margin that clears the top-left button; ignore sidebar state
-  void centerY; // satisfy noUnusedParameters
-  void centerX; // satisfy noUnusedParameters
+  // Note: centerX and centerY parameters are ignored in this layout mode
   const rootX = 180; // 180px left margin as requested
   const rootTop = COORDINATES.CANVAS_PADDING;
   positionNodeTop(newRootNode, rootX, rootTop);

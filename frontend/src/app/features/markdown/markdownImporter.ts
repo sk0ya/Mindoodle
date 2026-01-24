@@ -21,22 +21,27 @@ interface StructureElement {
 // Parsing utilities
 const parseHeading = (line: string): { level: number; text: string } | null => {
   if (!line.startsWith('#')) return null;
-  const match = line.match(/^(#{1,6})\s+(.+)$/);
-  return match ? { level: match[1].length, text: match[2] } : null;
+  const regex = /^(#{1,6}) (.*)$/;
+  const match = regex.exec(line);
+  return match ? { level: match[1].length, text: match[2].trim() } : null;
 };
 
 const parseListItem = (line: string) => {
-  const match = line.match(/^(\s*)([-*+]|\d+\.)\s+(.+)$/);
+  const regex = /^(\s*)([-*+]|\d+\.) (.*)$/;
+  const match = regex.exec(line);
   if (!match) return null;
 
-  const [, indent, marker, text] = match;
+  const [, indent, marker, rawText] = match;
+  const text = rawText.trim();
   const indentLevel = indent.length;
   const level = Math.floor(indentLevel / 2) + 1;
   const type = marker.endsWith('.') ? 'ordered-list' : 'unordered-list';
 
-  const checkboxMatch = text.match(/^\[([ xX])\]\s+(.+)$/);
+  const checkboxRegex = /^\[([ xX])\] (.*)$/;
+  const checkboxMatch = checkboxRegex.exec(text);
   if (checkboxMatch) {
-    const [, check, content] = checkboxMatch;
+    const [, check, rawContent] = checkboxMatch;
+    const content = rawContent.trim();
     return { type, level, text: content, marker, indentLevel, isCheckbox: true, isChecked: check.toLowerCase() === 'x' };
   }
 
@@ -322,13 +327,20 @@ export class MarkdownImporter {
       const indent = ' '.repeat(actualIndent);
 
       if (meta.type === 'unordered-list') {
-        const checkbox = meta.isCheckbox ? (meta.isChecked ? '[x] ' : '[ ] ') : '';
+        let checkbox = '';
+        if (meta.isCheckbox) {
+          checkbox = meta.isChecked ? '[x] ' : '[ ] ';
+        }
         return `${indent}- ${checkbox}`;
       }
 
       if (meta.type === 'ordered-list') {
-        const checkbox = meta.isCheckbox ? (meta.isChecked ? '[x] ' : '[ ] ') : '';
-        const number = meta.originalFormat?.match(/^\d+\./) ? meta.originalFormat : '1.';
+        let checkbox = '';
+        if (meta.isCheckbox) {
+          checkbox = meta.isChecked ? '[x] ' : '[ ] ';
+        }
+        const numberRegex = /^\d+\./;
+        const number = meta.originalFormat && numberRegex.exec(meta.originalFormat) ? meta.originalFormat : '1.';
         return `${indent}${number} ${checkbox}`;
       }
 
@@ -484,7 +496,8 @@ export class MarkdownImporter {
 
     return updateNodeInTree(nodes, n => n.id === nodeId, (node, parent) => {
       const currentMeta = node.markdownMeta || { type: 'heading' as const, level: 1, originalFormat: '#', indentLevel: 0, lineNumber: 0 };
-      const cleanText = node.text.replace(/^#+\s*|\s*[-*+]\s*|\s*\d+\.\s*/g, '');
+      // Remove markdown formatting: leading #, list markers (-, *, +), numbered lists
+      const cleanText = node.text.replace(/^#+\s+/, '').replace(/^[-*+]\s+/, '').replace(/^\d+\.\s+/, '');
 
       if (newType === 'heading') {
         const parentLevel = parent?.markdownMeta?.type === 'heading' ? (parent.markdownMeta.level || 1) : 0;

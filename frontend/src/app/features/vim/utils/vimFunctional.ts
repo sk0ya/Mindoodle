@@ -44,23 +44,26 @@ export const transitionMode = (
 // === Command Buffer ===
 
 export const isDigit = (char: string): boolean => /^\d$/.test(char);
-export const isMotion = (char: string): boolean => /^[hjklwbefntT\[\]{}\(\)%\^$0G]$/.test(char);
+export const isMotion = (char: string): boolean => /^[hjklwbefntT[\]{}()%^$0G]$/.test(char);
 export const isOperator = (char: string): boolean => /^[dycx<>]$/.test(char);
 export const isModifier = (char: string): boolean => /^[ai]$/.test(char);
 
 export const parseCount = (buffer: string): number | undefined => {
-  const match = buffer.match(/^(\d+)/);
+  const regex = /^(\d+)/;
+  const match = regex.exec(buffer);
   return match ? parseInt(match[1], 10) : undefined;
 };
 
 export const extractMotion = (buffer: string): string | undefined => {
   const withoutCount = buffer.replace(/^\d+/, '');
-  const match = withoutCount.match(/[hjklwbefntT\[\]{}\(\)%\^$0G]/);
+  const regex = /[hjklwbefntT[\]{}()%^$0G]/;
+  const match = regex.exec(withoutCount);
   return match ? match[0] : undefined;
 };
 
 export const extractOperator = (buffer: string): string | undefined => {
-  const match = buffer.match(/^[dycx<>]/);
+  const regex = /^[dycx<>]/;
+  const match = regex.exec(buffer);
   return match ? match[0] : undefined;
 };
 

@@ -7,6 +7,17 @@ import { navigateToDirection } from './navigationStrategies';
 import { extractNodeMarkdown, copyNodeWithMarkdown, copyNodeTextOnly } from './copyNodeUtils';
 import { switchMap, withNotification } from './shortcutHandlerUtils';
 
+// Helper to get root nodes with fallback
+const getEffectiveRoots = (data: { rootNode: MindMapNode } | MindMapData | null): MindMapNode[] => {
+  const roots = getRootNodes();
+  if (roots.length > 0) return roots;
+  if (data) {
+    if ('rootNodes' in data) return data.rootNodes;
+    if ('rootNode' in data) return [data.rootNode];
+  }
+  return [];
+};
+
 type WindowWithMindoodle = Window & {
   mindoodleOrderedMaps?: Array<{ mapId: string; workspaceId: string }>;
   mindoodleAllMaps?: MindMapData[];
@@ -145,7 +156,7 @@ export function useShortcutHandlers(args: Args) {
       const currentSelectedNodeId = state.selectedNodeId;
       if (!currentSelectedNodeId) return;
 
-      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
+      const roots = getEffectiveRoots(data);
       const currentRoot = roots.find(r => !!findNodeById(r, currentSelectedNodeId)) || roots[0];
       if (!currentRoot) return;
 
@@ -175,7 +186,7 @@ export function useShortcutHandlers(args: Args) {
     showKeyboardHelper: ui.showShortcutHelper,
     setShowKeyboardHelper: (show: boolean) => store.setShowShortcutHelper(show),
     copyNode: async (nodeId: string) => {
-      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
+      const roots = getEffectiveRoots(data);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) return;
 
@@ -190,7 +201,7 @@ export function useShortcutHandlers(args: Args) {
       });
     },
     copyNodeText: async (nodeId: string) => {
-      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
+      const roots = getEffectiveRoots(data);
       const node = findNodeInRoots(roots, nodeId);
       if (!node) {
         logger.error('copyNodeText: node not found', nodeId);
@@ -205,7 +216,7 @@ export function useShortcutHandlers(args: Args) {
     },
     pasteImageFromClipboard,
     findNodeById: (nodeId: string) => {
-      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
+      const roots = getEffectiveRoots(data);
       return findNodeInRoots(roots, nodeId);
     },
     closeAttachmentAndLinkLists: () => store.closeAttachmentAndLinkLists?.(),
@@ -283,7 +294,7 @@ export function useShortcutHandlers(args: Args) {
       );
     },
     findParentNode: (nodeId: string) => {
-      const roots = getRootNodes().length ? getRootNodes() : (data?.rootNode ? [data.rootNode] : []);
+      const roots = getEffectiveRoots(data);
       return selFindParentNode(roots, nodeId);
     },
   }), [
