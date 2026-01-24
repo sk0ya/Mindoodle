@@ -237,11 +237,11 @@ export class MarkdownImporter {
 
       parent.note = tableInfo.before;
       const tableNode = createNode('');
-      (tableNode as unknown as Record<string, unknown>).kind = 'table';
+      tableNode.kind = 'table';
       tableNode.text = tableInfo.tableBlock;
       tableNode.note = tableInfo.after;
       tableNode.lineEnding = lineEnding;
-      delete (tableNode as unknown as Record<string, unknown>).markdownMeta;
+      delete tableNode.markdownMeta;
 
       return [parent, tableNode];
     };

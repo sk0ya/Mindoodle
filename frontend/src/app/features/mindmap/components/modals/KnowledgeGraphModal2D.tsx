@@ -8,6 +8,7 @@ import { nodeToMarkdown } from '@markdown/index';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import { combineModalStyles } from '../shared/modalStyles';
 import { useModalBehavior } from '../shared/useModalBehavior';
+import { logger } from '@shared/utils';
 // storageAdapter no longer passed; use getMapMarkdown when needed
 // Note: Do not rely on global command registry here; directly dispatch events for robustness
 
@@ -124,7 +125,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
             const text = await getMapMarkdown(mapData.mapIdentifier);
             markdown = text || '';
           } catch (e) {
-            console.warn('Failed to fetch markdown for', filePath, e);
+            logger.warn('Failed to fetch markdown for', filePath, e);
           }
         }
 
@@ -133,7 +134,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
             const vector = await embeddingService.embed(filePath, markdown);
             await vectorStore.saveVector(filePath, vector);
           } catch (e) {
-            console.warn('Vectorization failed for', filePath, e);
+            logger.warn('Vectorization failed for', filePath, e);
           }
         }
 
@@ -142,7 +143,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
 
       setVectorizationProgress(null);
     } catch (err) {
-      console.error('Initial vectorization failed:', err);
+      logger.error('Initial vectorization failed:', err);
       setError(err instanceof Error ? err.message : 'Vectorization failed');
       setVectorizationProgress(null);
     }
@@ -198,7 +199,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
           }
         }
       } catch (e) {
-        console.warn('KnowledgeGraph: Failed to filter vectors by workspace (maps list)', e);
+        logger.warn('KnowledgeGraph: Failed to filter vectors by workspace (maps list)', e);
       }
 
       if (vectors.size === 0) {
@@ -304,7 +305,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
 
       setIsLoading(false);
     } catch (err) {
-      console.error('Failed to load and layout:', err);
+      logger.error('Failed to load and layout:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
       setIsLoading(false);
     }
@@ -517,7 +518,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       
       onClose();
     } catch (error) {
-      console.error('Failed to open map:', error);
+      logger.error('Failed to open map:', error);
     }
   }, [onClose, effectiveWorkspaceId, mapIdentifier, parseVectorKey]);
 

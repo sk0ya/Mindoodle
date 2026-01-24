@@ -1,5 +1,6 @@
 import React, { memo } from 'react';
 import type { MindMapNode, NodeLink } from '@shared/types';
+import { isTableNode } from '@shared/types';
 import NodeTextEditor from './NodeTextEditor';
 import NodeTextView from './NodeTextView';
 // Re-export for backward compatibility
@@ -47,8 +48,7 @@ const NodeEditor: React.FC<NodeEditorProps> = ({
   onEditHeightChange
 }) => {
   // Guard: table nodes are rendered elsewhere
-  const isTableNode = 'kind' in node && (node as unknown as Record<string, unknown>).kind === 'table';
-  if (isTableNode) return null;
+  if (isTableNode(node)) return null;
 
   if (!isEditing) {
     return (

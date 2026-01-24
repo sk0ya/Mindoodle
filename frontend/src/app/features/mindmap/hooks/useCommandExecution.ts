@@ -1,4 +1,5 @@
 import { useStableCallback } from '@shared/hooks';
+import { logger } from '@shared/utils';
 
 interface CommandExecutionParams {
   commands: {
@@ -29,7 +30,7 @@ export function useCommandExecution({
         showNotification('error', result.error || 'コマンドの実行に失敗しました');
       }
     } catch (error) {
-      console.error('Command execution failed:', error);
+      logger.error('Command execution failed:', error);
       showNotification('error', 'コマンドの実行中にエラーが発生しました');
     }
   });

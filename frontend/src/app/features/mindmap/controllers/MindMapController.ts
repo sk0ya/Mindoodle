@@ -1,5 +1,6 @@
 
 import type { CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
+import { logger } from '@shared/utils';
 
 interface MindMapMethods {
   createFolder?: (path: string, workspaceId?: string) => Promise<void>;
@@ -36,7 +37,7 @@ export class MindMapController {
         }
       };
     } catch (e) {
-      console.warn('attachExplorerGlobals failed', e);
+      logger.warn('attachExplorerGlobals failed', e);
     }
   }
 
@@ -54,7 +55,7 @@ export class MindMapController {
         handlers.setAuthOnSuccess(() => onSuccess || null);
         handlers.setIsAuthModalOpen(true);
       } catch (e) {
-        console.warn('mindoodle:showAuthModal handler error', e);
+        logger.warn('mindoodle:showAuthModal handler error', e);
       }
     };
     window.addEventListener('mindoodle:showAuthModal', listener as EventListener);

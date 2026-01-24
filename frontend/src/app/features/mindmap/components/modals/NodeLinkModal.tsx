@@ -3,6 +3,7 @@ import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { type NodeLink, type MindMapData, type MapIdentifier, DEFAULT_WORKSPACE_ID } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import { useLoadingState } from '@/app/shared/hooks';
+import { logger } from '@shared/utils';
 import { combineModalStyles } from '../shared/modalStyles';
 import { flattenRootNodesToOptions } from '../../utils/nodeTraversal';
 import { useModalBehavior } from '../shared/useModalBehavior';
@@ -188,7 +189,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
           setLoadedMapData(mapData);
         })
         .catch(error => {
-          console.error('マップデータの読み込みに失敗:', error);
+          logger.error('マップデータの読み込みに失敗:', error);
           setLoadedMapData(null);
         })
         .finally(() => {

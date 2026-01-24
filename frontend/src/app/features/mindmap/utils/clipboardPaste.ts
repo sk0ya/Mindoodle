@@ -1,5 +1,5 @@
 import type { MindMapNode } from '@shared/types';
-import { generateObjectHash } from '@shared/utils';
+import { generateObjectHash, logger } from '@shared/utils';
 import { getLastCopiedHash } from '../services/NodeClipboardService';
 
 function nodeToMarkdown(node: MindMapNode, level = 0): string {
@@ -34,7 +34,7 @@ async function systemClipboardMatchesNode(node: MindMapNode): Promise<boolean> {
       return normalizedClipboard === normalizedExpected;
     }
   } catch (error) {
-    console.warn('Failed to read clipboard, falling back to text comparison', error);
+    logger.warn('Failed to read clipboard, falling back to text comparison', error);
   }
 
   return false;
@@ -117,7 +117,7 @@ export async function pasteFromClipboard(
       }
     }
   } catch (error) {
-    console.warn('Failed to read clipboard or paste content', error);
+    logger.warn('Failed to read clipboard or paste content', error);
     notify('error', 'クリップボードの読み取りに失敗しました');
   }
 

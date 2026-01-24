@@ -27,6 +27,7 @@ export type {
   NodeLink,
   MarkdownMeta,
   MindMapNode,
+  TableNode,
   MindMapSettings,
   MindMapData,
   MindMapHookDependency,
@@ -35,7 +36,8 @@ export type {
 } from './data.types';
 
 export {
-  DEFAULT_WORKSPACE_ID
+  DEFAULT_WORKSPACE_ID,
+  isTableNode
 } from './data.types';
 
 

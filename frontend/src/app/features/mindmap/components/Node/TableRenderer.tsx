@@ -1,5 +1,5 @@
 import React, { memo } from 'react';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, TableNode } from '@shared/types';
 import { parseTableFromString } from './nodeRendererHelpers';
 import { tableContainerStyle, tableBaseStyle, getHeaderCellStyle, getDataCellStyle } from './tableStyles';
 
@@ -24,7 +24,6 @@ export const TableRenderer: React.FC<TableRendererProps> = memo(({
   onMouseEnter,
   onMouseLeave
 }) => {
-  type TableNode = MindMapNode & { note?: string; tableData?: { headers?: string[]; rows?: string[][] } };
   const tableNode = node as TableNode;
 
   // Prefer parsing from node.text (canonical); fallback to note

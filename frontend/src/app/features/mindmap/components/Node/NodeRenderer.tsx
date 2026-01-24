@@ -2,7 +2,7 @@ import React, { memo, useState, useEffect, useCallback, useRef, useMemo } from '
 // Lazy-load MermaidRenderer to avoid pulling mermaid into initial bundle
 const MermaidRenderer = React.lazy(() => import('./MermaidRenderer'));
 import { useMindMapStore } from '@mindmap/store';
-import type { MindMapNode, FileAttachment } from '@shared/types';
+import type { MindMapNode, TableNode, FileAttachment } from '@shared/types';
 import { useHoverState } from '@shared/hooks';
 import {
   getBaseNodeStyles,
@@ -291,7 +291,6 @@ interface NodeRendererProps {
 
   const prevEntryKeyRef = useRef<string>('');
   useEffect(() => {
-    type TableNode = MindMapNode & { tableData?: { headers?: string[]; rows?: string[][] } };
     const key = node.kind === 'table' ? `tbl:${(node as TableNode).tableData?.rows?.length || 0}` : getEntryKey(currentEntry);
     if (key !== prevEntryKeyRef.current) {
       prevEntryKeyRef.current = key;

@@ -76,14 +76,28 @@ export interface MindMapNode {
   customImageHeight?: number;
   // When true, hide visual content (images/tables/mermaid) in this node
   contentHidden?: boolean;
-  
+
   kind?: 'text' | 'table';
   tableData?: {
     headers?: string[];
     rows: string[][];
   };
-  
+
   lineEnding?: string;
+}
+
+// Type guard for table nodes
+export function isTableNode(node: MindMapNode): node is TableNode {
+  return node.kind === 'table';
+}
+
+// Narrowed type for table nodes with guaranteed tableData
+export interface TableNode extends MindMapNode {
+  kind: 'table';
+  tableData: {
+    headers?: string[];
+    rows: string[][];
+  };
 }
 
 

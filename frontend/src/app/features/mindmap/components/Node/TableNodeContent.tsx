@@ -1,5 +1,5 @@
 import React from 'react';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, TableNode } from '@shared/types';
 import { parseTableFromString } from './nodeRendererHelpers';
 import { tableContainerStyle, tableBaseStyle, getHeaderCellStyle, getDataCellStyle } from './tableStyles';
 
@@ -12,8 +12,6 @@ interface TableNodeContentProps {
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
-
-type TableNode = MindMapNode & { note?: string; tableData?: { headers?: string[]; rows?: string[][] } };
 
 export const TableNodeContent: React.FC<TableNodeContentProps> = ({
   node,
