@@ -220,12 +220,8 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     }
   });
 
-  const extractWorkspaceId = (path: string): string | null =>
-    MapOperationsService.extractWorkspaceId(path);
-
   const renameItem = useStableCallback(async (path: string, newName: string): Promise<void> => {
-    const workspaceId = extractWorkspaceId(path);
-    const adapter = getAdapterForWorkspace(persistenceHook, workspaceId);
+    const adapter = getAdapterForWorkspace(persistenceHook, MapOperationsService.extractWorkspaceId(path));
     if (adapter?.renameItem) {
       await adapter.renameItem(path, newName);
       await persistenceHook.refreshMapList();
@@ -233,8 +229,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   });
 
   const deleteItem = useStableCallback(async (path: string): Promise<void> => {
-    const workspaceId = extractWorkspaceId(path);
-    const adapter = getAdapterForWorkspace(persistenceHook, workspaceId);
+    const adapter = getAdapterForWorkspace(persistenceHook, MapOperationsService.extractWorkspaceId(path));
     if (adapter?.deleteItem) {
       await adapter.deleteItem(path);
       await persistenceHook.refreshMapList();
@@ -242,8 +237,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   });
 
   const moveItem = useStableCallback(async (sourcePath: string, targetFolderPath: string, workspaceId?: string | null): Promise<void> => {
-    const ws = workspaceId || extractWorkspaceId(sourcePath);
-    const adapter = getAdapterForWorkspace(persistenceHook, ws ?? null);
+    const adapter = getAdapterForWorkspace(persistenceHook, workspaceId || MapOperationsService.extractWorkspaceId(sourcePath));
     if (adapter?.moveItem) {
       await adapter.moveItem(sourcePath, targetFolderPath);
       await persistenceHook.refreshMapList();

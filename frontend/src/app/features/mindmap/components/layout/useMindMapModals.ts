@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { useModalState } from '@shared/hooks';
 import type { NodeLink } from '@shared/types';
 import { CloudStorageAdapter } from '@core/storage/adapters';
@@ -20,93 +20,68 @@ export function useMindMapModals() {
   const [authCloudAdapter, setAuthCloudAdapter] = useState<CloudStorageAdapter | null>(null);
   const [authOnSuccess, setAuthOnSuccess] = useState<((adapter: CloudStorageAdapter) => void) | null>(null);
 
-  // Link modal handlers
-  const openLinkModal = (nodeId: string, editingLink?: NodeLink | null) => {
-    state.setLinkModalNodeId(nodeId);
-    if (editingLink) state.setEditingLink(editingLink);
-    state.setShowLinkModal(true);
-  };
-
-  const closeLinkModal = () => {
-    state.setShowLinkModal(false);
-    state.setEditingLink(null);
-    state.setLinkModalNodeId(null);
-  };
-
-  const openLinkActionMenu = (link: NodeLink, position: { x: number; y: number }) => {
-    state.setLinkActionMenuData({ link, position });
-    state.setShowLinkActionMenu(true);
-  };
-
-  const closeLinkActionMenu = () => {
-    state.setShowLinkActionMenu(false);
-    state.setLinkActionMenuData(null);
-  };
-
-  // Image modal handlers
-  const handleShowImageModal = useCallback((imageUrl: string, altText?: string) => {
-    setCurrentImageUrl(imageUrl);
-    setCurrentImageAlt(altText || '');
-    setShowImageModal(true);
-  }, []);
-
-  const handleCloseImageModal = useCallback(() => {
-    setShowImageModal(false);
-    setCurrentImageUrl(null);
-    setCurrentImageAlt('');
-  }, []);
-
-  // Table editor handlers
-  const handleEditTable = useCallback((nodeId: string) => {
-    setEditingTableNodeId(nodeId);
-    setShowTableEditor(true);
-  }, []);
-
-  const handleCloseTableEditor = useCallback(() => {
-    setShowTableEditor(false);
-    setEditingTableNodeId(null);
-  }, []);
-
-  // Auth modal handlers
-  const handleAuthModalClose = useCallback(() => {
-    setIsAuthModalOpen(false);
-    setAuthCloudAdapter(null);
-    setAuthOnSuccess(() => null);
-  }, []);
-
-  const handleAuthModalSuccess = useCallback((authenticatedAdapter: CloudStorageAdapter) => {
-    if (authOnSuccess) {
-      authOnSuccess(authenticatedAdapter);
-    }
-    handleAuthModalClose();
-  }, [authOnSuccess, handleAuthModalClose]);
-
   return {
     ...state,
-    // Link modal
-    openLinkModal,
-    closeLinkModal,
-    openLinkActionMenu,
-    closeLinkActionMenu,
+    // Link modal - direct functions from state
+    openLinkModal: (nodeId: string, editingLink?: NodeLink | null) => {
+      state.setLinkModalNodeId(nodeId);
+      if (editingLink) state.setEditingLink(editingLink);
+      state.setShowLinkModal(true);
+    },
+    closeLinkModal: () => {
+      state.setShowLinkModal(false);
+      state.setEditingLink(null);
+      state.setLinkModalNodeId(null);
+    },
+    openLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => {
+      state.setLinkActionMenuData({ link, position });
+      state.setShowLinkActionMenu(true);
+    },
+    closeLinkActionMenu: () => {
+      state.setShowLinkActionMenu(false);
+      state.setLinkActionMenuData(null);
+    },
     // Image modal
     showImageModal,
     currentImageUrl,
     currentImageAlt,
-    handleShowImageModal,
-    handleCloseImageModal,
+    handleShowImageModal: (imageUrl: string, altText?: string) => {
+      setCurrentImageUrl(imageUrl);
+      setCurrentImageAlt(altText || '');
+      setShowImageModal(true);
+    },
+    handleCloseImageModal: () => {
+      setShowImageModal(false);
+      setCurrentImageUrl(null);
+      setCurrentImageAlt('');
+    },
     // Table editor
     showTableEditor,
     editingTableNodeId,
-    handleEditTable,
-    handleCloseTableEditor,
+    handleEditTable: (nodeId: string) => {
+      setEditingTableNodeId(nodeId);
+      setShowTableEditor(true);
+    },
+    handleCloseTableEditor: () => {
+      setShowTableEditor(false);
+      setEditingTableNodeId(null);
+    },
     // Auth modal
     isAuthModalOpen,
     authCloudAdapter,
     setAuthCloudAdapter,
     setAuthOnSuccess,
     setIsAuthModalOpen,
-    handleAuthModalClose,
-    handleAuthModalSuccess,
+    handleAuthModalClose: () => {
+      setIsAuthModalOpen(false);
+      setAuthCloudAdapter(null);
+      setAuthOnSuccess(() => null);
+    },
+    handleAuthModalSuccess: (authenticatedAdapter: CloudStorageAdapter) => {
+      if (authOnSuccess) authOnSuccess(authenticatedAdapter);
+      setIsAuthModalOpen(false);
+      setAuthCloudAdapter(null);
+      setAuthOnSuccess(() => null);
+    },
   };
 }
-
