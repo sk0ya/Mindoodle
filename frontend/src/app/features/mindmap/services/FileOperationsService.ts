@@ -66,7 +66,7 @@ export class FileOperationsService {
 
       return {
         success: true,
-        data: parsedData as unknown as MindMapData
+        data: parsedData as MindMapData
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

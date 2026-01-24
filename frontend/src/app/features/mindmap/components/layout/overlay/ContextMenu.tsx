@@ -157,24 +157,25 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                 {hasSubmenu && <ChevronRight size={14} className="submenu-arrow" />}
               </button>
 
-              {hasSubmenu && openSubmenu === index && (() => {
-                return (
+              {hasSubmenu && openSubmenu === index && (
                 <div className="submenu" style={{display: 'block'}}>
                   {item.submenu!.map((subItem, subIndex) => {
                     if (subItem.separator) {
                       return <div key={subIndex} className="menu-divider" />;
                     }
 
+                    const handleSubmenuClick = () => {
+                      if (!subItem.disabled && subItem.onClick) {
+                        subItem.onClick();
+                        onClose();
+                      }
+                    };
+
                     return (
                       <button
                         key={subIndex}
                         className={`menu-item ${subItem.disabled ? 'disabled' : ''} ${subItem.danger ? 'danger' : ''}`}
-                        onClick={() => {
-                          if (!subItem.disabled && subItem.onClick) {
-                            subItem.onClick();
-                            onClose();
-                          }
-                        }}
+                        onClick={handleSubmenuClick}
                         disabled={subItem.disabled}
                       >
                         {subItem.icon && <span className="menu-icon">{subItem.icon}</span>}
@@ -183,8 +184,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
                     );
                   })}
                 </div>
-                );
-              })()}
+              )}
             </div>
           );
         })}

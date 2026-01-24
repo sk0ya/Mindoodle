@@ -159,7 +159,7 @@ export const useKeyboardShortcuts = (handlers: KeyboardShortcutHandlers, vim?: V
         if (imageFile) {
           evt.preventDefault();
           logger.debug('Pasting image from files array:', imageFile.type);
-          await handlers.pasteImageFromClipboard(handlers.selectedNodeId, imageFile as File);
+          await handlers.pasteImageFromClipboard(handlers.selectedNodeId, imageFile);
           return;
         }
       }

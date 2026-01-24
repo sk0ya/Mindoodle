@@ -72,7 +72,7 @@ export function useMindMapViewport({
       if (!targetNode) return;
 
       // Base container rect and inner SVG border/padding
-      const containerEl = document.querySelector('.mindmap-canvas-container') as HTMLElement | null;
+      const containerEl = document.querySelector('.mindmap-canvas-container');
       const containerRect = containerEl?.getBoundingClientRect();
       const svgEl = containerEl?.querySelector('svg') as SVGSVGElement | null;
       const svgStyles = svgEl ? getComputedStyle(svgEl) : null;
@@ -97,7 +97,7 @@ export function useMindMapViewport({
       // Measure Vim status bar height dynamically (fallback 24)
       let statusBarHeight = 24;
       try {
-        const vimBar = document.querySelector('.vim-status-bar') as HTMLElement | null;
+        const vimBar = document.querySelector('.vim-status-bar');
         const vimH = vimBar ? Math.round(vimBar.getBoundingClientRect().height) : 0;
         if (vimH > 0) statusBarHeight = vimH;
       } catch {}
@@ -121,7 +121,7 @@ export function useMindMapViewport({
       // Prefer DOM-based measurement to avoid math drift (especially on Y)
       const nodeEl = (document.querySelector(
         '.mindmap-canvas-container svg g[data-node-id="' + selId + '"]'
-      ) as SVGGElement | null);
+      ));
 
       // Enforce full visibility: no slack vertically; minimal slack horizontally to reduce jitter
       const slackX = Math.max(20, Math.round(mapAreaRect.width * 0.03));
@@ -215,7 +215,7 @@ export function useMindMapViewport({
     }
 
     // Resolve SVG rect; use it consistently for coordinate transforms
-    const containerEl = document.querySelector('.mindmap-canvas-container') as HTMLElement | null;
+    const containerEl = document.querySelector('.mindmap-canvas-container');
     const svgEl = containerEl?.querySelector('svg') as SVGSVGElement | null;
     const svgRect = svgEl?.getBoundingClientRect();
     const fallbackRect = new DOMRect(0, 0, viewportService.getSize().width, viewportService.getSize().height);

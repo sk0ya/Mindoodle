@@ -149,7 +149,7 @@ export async function countMarkdownFiles(dir: DirHandle): Promise<number> {
     if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.md')) {
       count++;
     } else if (entry.kind === 'directory') {
-      count += await countMarkdownFiles(entry as DirHandle);
+      count += await countMarkdownFiles(entry);
     }
   }
 
@@ -172,10 +172,10 @@ export async function findAllMarkdownFiles(
       files.push({
         name: entry.name,
         path: entryPath,
-        handle: entry as FileSystemFileHandle,
+        handle: entry,
       });
     } else if (entry.kind === 'directory') {
-      const subFiles = await findAllMarkdownFiles(entry as DirHandle, entryPath);
+      const subFiles = await findAllMarkdownFiles(entry, entryPath);
       files.push(...subFiles);
     }
   }

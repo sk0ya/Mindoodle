@@ -11,6 +11,20 @@ type ExtendedMindMapStore = MindMapStore & {
   allMindMaps?: Array<{ mapIdentifier: MapIdentifier }>;
 };
 
+// Helper function to get markdown from store subscription
+const getMarkdownFromStore = async (extendedStore: ExtendedMindMapStore): Promise<string> => {
+  if (!extendedStore.subscribeMarkdownFromNodes) {
+    return '';
+  }
+  return new Promise<string>((resolve) => {
+    const handleMarkdown = (md: string) => {
+      unsub();
+      resolve(md);
+    };
+    const unsub = extendedStore.subscribeMarkdownFromNodes!(handleMarkdown);
+  });
+};
+
 export type VimMode = 'normal' | 'insert' | 'visual' | 'command' | 'search' | 'jumpy';
 
 interface VimState {
@@ -301,14 +315,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       write: async () => {
         const extendedStore = store as ExtendedMindMapStore;
         if (extendedStore.data && extendedStore.saveMapMarkdown) {
-          const markdown = extendedStore.subscribeMarkdownFromNodes
-            ? await new Promise<string>((resolve) => {
-                const unsub = extendedStore.subscribeMarkdownFromNodes!((md: string) => {
-                  unsub();
-                  resolve(md);
-                });
-              })
-            : '';
+          const markdown = await getMarkdownFromStore(extendedStore);
           await extendedStore.saveMapMarkdown(extendedStore.data.mapIdentifier, markdown);
           setCommandOutput('Map saved');
         }

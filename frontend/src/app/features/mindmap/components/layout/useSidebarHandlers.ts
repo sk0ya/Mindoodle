@@ -47,7 +47,7 @@ export const useSidebarHandlers = ({ selectMapById, selectNode, storageAdapter }
       }
     } catch (error) {
       // keep silent to match original behaviour
-      // eslint-disable-next-line no-console
+       
       console.error('Error finding node by line number:', error);
     }
   }, [selectNode, storageAdapter]);
