@@ -1,4 +1,4 @@
-import { create } from 'zustand';
+import { create, type StateCreator } from 'zustand';
 import { devtools, subscribeWithSelector } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 
@@ -11,7 +11,7 @@ import { createNodeSlice } from './slices/nodeSlice';
 import { createSettingsSlice } from './slices/settingsSlice';
 import { mindMapEvents } from '@core/streams';
 
-const storeInitializer = (set: any, get: any, store: any) => ({
+const storeInitializer: StateCreator<MindMapStore> = (set, get, store) => ({
   ...createDataSlice(set, get, store),
   ...createHistorySlice(set, get, store),
   ...createUISlice(set, get, store),

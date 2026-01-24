@@ -6,7 +6,8 @@ import type { StorageAdapter } from '@core/types';
 import {
   searchFilesForContent,
   getMatchPosition,
-  type FileBasedSearchResult
+  type FileBasedSearchResult,
+  logger
 } from '@shared/utils';
 import { useLoadingState } from '@/app/shared/hooks';
 import { useMindMapStore } from '@mindmap/store';
@@ -79,7 +80,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
 
     const timer = setTimeout(async () => {
       if (!storageAdapter) {
-        console.warn('🔍 [SearchSidebar] Storage adapter not available for search');
+        logger.warn('🔍 [SearchSidebar] Storage adapter not available for search');
         return;
       }
 
@@ -88,7 +89,7 @@ const SearchSidebar: React.FC<SearchSidebarProps> = ({
         const fileResults = await searchFilesForContent(searchQuery, storageAdapter, workspaces);
         setFileBasedResults(fileResults);
       } catch (error) {
-        console.error('🔍 [SearchSidebar] File-based search error:', error);
+        logger.error('🔍 [SearchSidebar] File-based search error:', error);
         setFileBasedResults([]);
       } finally {
         stopSearching();

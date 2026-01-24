@@ -3,6 +3,7 @@ import { imagePasteService } from '../services/imagePasteService';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import type { StorageAdapter } from '@core/types';
 import { useStableCallback } from '@shared/hooks';
+import { logger } from '@shared/utils';
 
 export interface ClipboardOperationsParams {
   data: { rootNodes: MindMapNode[]; mapIdentifier?: MapIdentifier } | null;
@@ -84,7 +85,7 @@ export function useMindMapClipboard({
 
       showNotification('success', '画像を貼り付けました');
     } catch (error) {
-      console.error('Failed to paste image:', error);
+      logger.error('Failed to paste image:', error);
       const message = error instanceof Error ? error.message : '画像の貼り付けに失敗しました';
       showNotification('error', message);
     }

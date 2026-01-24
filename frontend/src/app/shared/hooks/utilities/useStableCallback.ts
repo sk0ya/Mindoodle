@@ -2,10 +2,9 @@ import { useCallback, useEffect, useRef } from 'react';
 import { logger } from '@shared/utils';
 
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function useStableCallback<T extends (...args: any[]) => any>(
-  callback: T
-): T {
+export function useStableCallback<TArgs extends unknown[], TReturn>(
+  callback: (...args: TArgs) => TReturn
+): (...args: TArgs) => TReturn {
   const callbackRef = useRef(callback);
 
 
@@ -14,16 +13,14 @@ export function useStableCallback<T extends (...args: any[]) => any>(
   });
 
 
-  return useCallback((
-    ((...args: Parameters<T>) => {
-      if (!callbackRef || typeof callbackRef.current !== 'function') {
-        logger.error('[useStableCallback] callbackRef or callbackRef.current is invalid', {
-          hasRef: !!callbackRef,
-          currentType: typeof callbackRef?.current
-        });
-        return undefined;
-      }
-      return callbackRef.current(...args);
-    }) as T
-  ), []);
+  return useCallback((...args: TArgs): TReturn => {
+    if (!callbackRef || typeof callbackRef.current !== 'function') {
+      logger.error('[useStableCallback] callbackRef or callbackRef.current is invalid', {
+        hasRef: !!callbackRef,
+        currentType: typeof callbackRef?.current
+      });
+      return undefined as TReturn;
+    }
+    return callbackRef.current(...args);
+  }, []);
 }

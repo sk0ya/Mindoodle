@@ -1,12 +1,14 @@
 import { useCallback } from 'react';
 // removed unused imports
 import { statusMessages } from '@shared/utils';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, MapIdentifier } from '@shared/types';
+import type { MindMapStore } from '@mindmap/store';
+import type { useMarkdownSync } from '@markdown/hooks/useMarkdownSync';
 
 interface UseContextMenuHandlersProps {
-  data: any;
-  markdownSync: any;
-  store: any;
+  data: { rootNodes: MindMapNode[]; mapIdentifier?: MapIdentifier } | null;
+  markdownSync: ReturnType<typeof useMarkdownSync>;
+  store: MindMapStore;
   selectNode: (nodeId: string | null) => void;
   handleContextMenuClose: () => void;
 }

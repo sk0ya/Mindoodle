@@ -3,12 +3,13 @@ import { useMindMapStore } from '../../store';
 import { findNodeInRoots } from '@mindmap/utils';
 import { nodeToMarkdown } from '../../../markdown';
 import { pasteFromClipboard } from '../../utils/clipboardPaste';
-import type { MindMapNode } from '@shared/types';
+import type { MindMapNode, MapIdentifier } from '@shared/types';
 import type { NotificationType } from '@shared/hooks';
+import type { UIState } from '@shared/types/ui.types';
 
 interface UseNodeOperationsProps {
-  data: any;
-  ui: any;
+  data: { rootNodes: MindMapNode[]; mapIdentifier?: MapIdentifier } | null;
+  ui: UIState;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   selectNode: (nodeId: string | null) => void;
   deleteNode: (nodeId: string) => void;
