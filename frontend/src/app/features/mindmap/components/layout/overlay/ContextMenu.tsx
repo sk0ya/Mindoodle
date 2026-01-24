@@ -158,7 +158,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
               </button>
 
               {hasSubmenu && openSubmenu === index && (() => {
-                console.log('[ContextMenu] Rendering submenu for index:', index, 'with', item.submenu?.length, 'items');
                 return (
                 <div className="submenu" style={{display: 'block'}}>
                   {item.submenu!.map((subItem, subIndex) => {

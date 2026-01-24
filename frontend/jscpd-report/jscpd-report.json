@@ -1,6 +1,6 @@
 {
   "statistics": {
-    "detectionDate": "2026-01-23T13:11:33.676Z",
+    "detectionDate": "2026-01-24T00:31:45.839Z",
     "formats": {
       "typescript": {
         "sources": {
@@ -188,11 +188,11 @@
             "lines": 152,
             "tokens": 1960,
             "sources": 1,
-            "clones": 7,
-            "duplicatedLines": 108,
-            "duplicatedTokens": 1328,
-            "percentage": 71.05,
-            "percentageTokens": 67.76,
+            "clones": 3,
+            "duplicatedLines": 41,
+            "duplicatedTokens": 465,
+            "percentage": 26.97,
+            "percentageTokens": 23.72,
             "newDuplicatedLines": 0,
             "newClones": 0
           },
@@ -389,8 +389,8 @@
             "newClones": 0
           },
           "src/app/features/mindmap/components/layout/useMindMapModals.ts": {
-            "lines": 110,
-            "tokens": 915,
+            "lines": 86,
+            "tokens": 788,
             "sources": 1,
             "clones": 0,
             "duplicatedLines": 0,
@@ -1156,18 +1156,6 @@
             "newDuplicatedLines": 0,
             "newClones": 0
           },
-          "src/app/features/mindmap/types/store.types.ts": {
-            "lines": 169,
-            "tokens": 1926,
-            "sources": 1,
-            "clones": 4,
-            "duplicatedLines": 67,
-            "duplicatedTokens": 863,
-            "percentage": 39.64,
-            "percentageTokens": 44.81,
-            "newDuplicatedLines": 0,
-            "newClones": 0
-          },
           "src/app/features/mindmap/test-utils/testHelpers.ts": {
             "lines": 102,
             "tokens": 817,
@@ -1518,7 +1506,7 @@
           },
           "src/app/features/mindmap/hooks/useMindMapLinks.ts": {
             "lines": 134,
-            "tokens": 1526,
+            "tokens": 1531,
             "sources": 1,
             "clones": 0,
             "duplicatedLines": 0,
@@ -1589,8 +1577,8 @@
             "newClones": 0
           },
           "src/app/features/mindmap/hooks/useMindMap.ts": {
-            "lines": 491,
-            "tokens": 6088,
+            "lines": 485,
+            "tokens": 6026,
             "sources": 1,
             "clones": 0,
             "duplicatedLines": 0,
@@ -2021,8 +2009,32 @@
             "newClones": 0
           },
           "src/app/core/storage/adapters/fileSystemHelpers.ts": {
-            "lines": 205,
-            "tokens": 1995,
+            "lines": 257,
+            "tokens": 2369,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/core/storage/adapters/WorkspaceIndexedDB.ts": {
+            "lines": 132,
+            "tokens": 1360,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 13,
+            "duplicatedTokens": 163,
+            "percentage": 9.85,
+            "percentageTokens": 11.99,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/core/storage/adapters/PathResolver.ts": {
+            "lines": 143,
+            "tokens": 1227,
             "sources": 1,
             "clones": 0,
             "duplicatedLines": 0,
@@ -2036,11 +2048,35 @@
             "lines": 891,
             "tokens": 12093,
             "sources": 1,
+            "clones": 5,
+            "duplicatedLines": 69,
+            "duplicatedTokens": 868,
+            "percentage": 7.74,
+            "percentageTokens": 7.18,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/core/storage/adapters/MarkdownFileIO.ts": {
+            "lines": 181,
+            "tokens": 1461,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/core/storage/adapters/ExplorerTreeBuilder.ts": {
+            "lines": 183,
+            "tokens": 1738,
+            "sources": 1,
             "clones": 2,
-            "duplicatedLines": 32,
-            "duplicatedTokens": 422,
-            "percentage": 3.59,
-            "percentageTokens": 3.49,
+            "duplicatedLines": 24,
+            "duplicatedTokens": 283,
+            "percentage": 13.11,
+            "percentageTokens": 16.28,
             "newDuplicatedLines": 0,
             "newClones": 0
           },
@@ -2128,6 +2164,18 @@
             "newDuplicatedLines": 0,
             "newClones": 0
           },
+          "src/app/shared/utils/nodeAnchor.ts": {
+            "lines": 38,
+            "tokens": 433,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
           "src/app/shared/utils/mapPath.ts": {
             "lines": 22,
             "tokens": 400,
@@ -2201,8 +2249,8 @@
             "newClones": 0
           },
           "src/app/shared/utils/index.ts": {
-            "lines": 26,
-            "tokens": 193,
+            "lines": 28,
+            "tokens": 211,
             "sources": 1,
             "clones": 0,
             "duplicatedLines": 0,
@@ -2257,6 +2305,18 @@
             "duplicatedTokens": 256,
             "percentage": 19.26,
             "percentageTokens": 19.19,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/utils/fileSize.ts": {
+            "lines": 9,
+            "tokens": 147,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
             "newDuplicatedLines": 0,
             "newClones": 0
           },
@@ -2489,8 +2549,8 @@
             "newClones": 0
           },
           "src/app/features/markdown/markdownLinkUtils.ts": {
-            "lines": 425,
-            "tokens": 4963,
+            "lines": 396,
+            "tokens": 4588,
             "sources": 1,
             "clones": 0,
             "duplicatedLines": 0,
@@ -2572,15 +2632,15 @@
             "newDuplicatedLines": 0,
             "newClones": 0
           },
-          "src/app/core/types/commands.types.ts": {
-            "lines": 181,
-            "tokens": 1981,
+          "src/app/core/types/index.ts": {
+            "lines": 16,
+            "tokens": 86,
             "sources": 1,
-            "clones": 10,
-            "duplicatedLines": 199,
-            "duplicatedTokens": 2177,
-            "percentage": 109.94,
-            "percentageTokens": 109.89,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
             "newDuplicatedLines": 0,
             "newClones": 0
           },
@@ -2781,10 +2841,10 @@
             "tokens": 3804,
             "sources": 1,
             "clones": 3,
-            "duplicatedLines": 66,
-            "duplicatedTokens": 748,
-            "percentage": 16.71,
-            "percentageTokens": 19.66,
+            "duplicatedLines": 46,
+            "duplicatedTokens": 524,
+            "percentage": 11.65,
+            "percentageTokens": 13.77,
             "newDuplicatedLines": 0,
             "newClones": 0
           },
@@ -2792,11 +2852,11 @@
             "lines": 171,
             "tokens": 1729,
             "sources": 1,
-            "clones": 5,
-            "duplicatedLines": 87,
-            "duplicatedTokens": 855,
-            "percentage": 50.88,
-            "percentageTokens": 49.45,
+            "clones": 3,
+            "duplicatedLines": 46,
+            "duplicatedTokens": 524,
+            "percentage": 26.9,
+            "percentageTokens": 30.31,
             "newDuplicatedLines": 0,
             "newClones": 0
           },
@@ -3090,33 +3150,2997 @@
           }
         },
         "total": {
-          "lines": 35553,
-          "tokens": 358217,
-          "sources": 257,
-          "clones": 47,
-          "duplicatedLines": 719,
-          "duplicatedTokens": 7345,
-          "percentage": 2.02,
-          "percentageTokens": 2.05,
+          "lines": 35900,
+          "tokens": 360595,
+          "sources": 262,
+          "clones": 40,
+          "duplicatedLines": 559,
+          "duplicatedTokens": 5562,
+          "percentage": 1.56,
+          "percentageTokens": 1.54,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "css": {
+        "sources": {
+          "src/app/features/mindmap/components/layout/sidebar/VimSidebar.tsx": {
+            "lines": 21,
+            "tokens": 140,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SettingsSidebar.tsx": {
+            "lines": 146,
+            "tokens": 595,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/MindMapSidebar.tsx": {
+            "lines": 8,
+            "tokens": 40,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ColorSettingsSidebar.tsx": {
+            "lines": 9,
+            "tokens": 36,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/TopLeftTitlePanel.tsx": {
+            "lines": 24,
+            "tokens": 95,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/ContextMenu.tsx": {
+            "lines": 66,
+            "tokens": 235,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/StorageModeSwitch.tsx": {
+            "lines": 134,
+            "tokens": 481,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/shared/BaseModal.tsx": {
+            "lines": 22,
+            "tokens": 72,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/VimSettingsPanel.tsx": {
+            "lines": 46,
+            "tokens": 704,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/SelectedNodeNotePanel.tsx": {
+            "lines": 0,
+            "tokens": 5,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodeNotesPanel.tsx": {
+            "lines": 0,
+            "tokens": 5,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/ImageResizePanel.tsx": {
+            "lines": 193,
+            "tokens": 1010,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/NodeLinkModal.tsx": {
+            "lines": 118,
+            "tokens": 904,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/LinkActionMenu.tsx": {
+            "lines": 6,
+            "tokens": 17,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/KnowledgeGraphModal2D.tsx": {
+            "lines": 47,
+            "tokens": 187,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/ImageModal.tsx": {
+            "lines": 218,
+            "tokens": 873,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/FolderGuideModal.tsx": {
+            "lines": 6,
+            "tokens": 130,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/FloatingActionButton.tsx": {
+            "lines": 0,
+            "tokens": 49,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasRenderer.tsx": {
+            "lines": 45,
+            "tokens": 165,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/vim/components/JumpyLabels.tsx": {
+            "lines": 30,
+            "tokens": 134,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/ToolbarStyles.tsx": {
+            "lines": 399,
+            "tokens": 1465,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/SidebarStyles.tsx": {
+            "lines": 611,
+            "tokens": 2772,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/SidebarContainer.tsx": {
+            "lines": 42,
+            "tokens": 209,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/NodeCustomizationStyles.tsx": {
+            "lines": 165,
+            "tokens": 608,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/ContextMenuStyles.tsx": {
+            "lines": 121,
+            "tokens": 420,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/VimStatusBar.tsx": {
+            "lines": 112,
+            "tokens": 559,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/TableEditorModal.tsx": {
+            "lines": 406,
+            "tokens": 1798,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/ErrorBoundary.tsx": {
+            "lines": 157,
+            "tokens": 593,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/AuthModal.tsx": {
+            "lines": 5,
+            "tokens": 39,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 3157,
+          "tokens": 14340,
+          "sources": 29,
+          "clones": 0,
+          "duplicatedLines": 0,
+          "duplicatedTokens": 0,
+          "percentage": 0,
+          "percentageTokens": 0,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "javascript": {
+        "sources": {
+          "src/app/features/mindmap/components/layout/sidebar/VimSidebar.tsx": {
+            "lines": 30,
+            "tokens": 467,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SidebarHeader.tsx": {
+            "lines": 13,
+            "tokens": 90,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SidebarCollapsed.tsx": {
+            "lines": 3,
+            "tokens": 21,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SettingsSidebar.tsx": {
+            "lines": 186,
+            "tokens": 1772,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SearchSidebar.tsx": {
+            "lines": 42,
+            "tokens": 332,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/PrimarySidebarContainer.tsx": {
+            "lines": 18,
+            "tokens": 125,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/PrimarySidebar.tsx": {
+            "lines": 26,
+            "tokens": 213,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/MindMapSidebar.tsx": {
+            "lines": 157,
+            "tokens": 1387,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 28,
+            "duplicatedTokens": 192,
+            "percentage": 17.83,
+            "percentageTokens": 13.84,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ExplorerView.tsx": {
+            "lines": 30,
+            "tokens": 183,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ExplorerNodeView.tsx": {
+            "lines": 92,
+            "tokens": 807,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ColorSettingsSidebar.tsx": {
+            "lines": 53,
+            "tokens": 863,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sections/SelectedNodeNotePanelSection.tsx": {
+            "lines": 11,
+            "tokens": 133,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sections/MarkdownPanelSection.tsx": {
+            "lines": 2,
+            "tokens": 52,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/VimMappingsEditor.tsx": {
+            "lines": 10,
+            "tokens": 92,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/TopLeftTitlePanel.tsx": {
+            "lines": 65,
+            "tokens": 312,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/NodeNotesPanelContainer.tsx": {
+            "lines": 6,
+            "tokens": 42,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/MindMapLinkOverlays.tsx": {
+            "lines": 19,
+            "tokens": 117,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/MindMapContextMenuOverlay.tsx": {
+            "lines": 121,
+            "tokens": 1100,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 267,
+            "duplicatedTokens": 2943,
+            "percentage": 220.66,
+            "percentageTokens": 267.55,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/ContextMenu.tsx": {
+            "lines": 68,
+            "tokens": 730,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/common/ActivityBar.tsx": {
+            "lines": 70,
+            "tokens": 597,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/TitleEditor.tsx": {
+            "lines": 10,
+            "tokens": 69,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/StorageModeSwitch.tsx": {
+            "lines": 42,
+            "tokens": 515,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/ActionButtons.tsx": {
+            "lines": 108,
+            "tokens": 994,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/shared/BaseModal.tsx": {
+            "lines": 86,
+            "tokens": 549,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/VimSettingsPanel.tsx": {
+            "lines": 78,
+            "tokens": 818,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/SelectedNodeNotePanel.tsx": {
+            "lines": 15,
+            "tokens": 170,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodePresetPanel.tsx": {
+            "lines": 48,
+            "tokens": 280,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodeNotesPanel.tsx": {
+            "lines": 25,
+            "tokens": 211,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodeFontPanel.tsx": {
+            "lines": 25,
+            "tokens": 299,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/ImageResizePanel.tsx": {
+            "lines": 41,
+            "tokens": 340,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/NodeLinkModal.tsx": {
+            "lines": 146,
+            "tokens": 1346,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/MindMapModalsContext.tsx": {
+            "lines": 0,
+            "tokens": 3,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/LinkActionMenu.tsx": {
+            "lines": 1,
+            "tokens": 24,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/KnowledgeGraphModal2D.tsx": {
+            "lines": 53,
+            "tokens": 408,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/ImageModal.tsx": {
+            "lines": 27,
+            "tokens": 204,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/FolderGuideModal.tsx": {
+            "lines": 16,
+            "tokens": 191,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapWorkspace.tsx": {
+            "lines": 29,
+            "tokens": 201,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapCanvas.tsx": {
+            "lines": 45,
+            "tokens": 268,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapAppModalsContainer.tsx": {
+            "lines": 112,
+            "tokens": 674,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapAppContent.tsx": {
+            "lines": 205,
+            "tokens": 1572,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapApp.tsx": {
+            "lines": 1,
+            "tokens": 14,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MapControlButtons.tsx": {
+            "lines": 27,
+            "tokens": 159,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/FloatingActionButton.tsx": {
+            "lines": 55,
+            "tokens": 806,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/contextmenu/ColorSubmenu.tsx": {
+            "lines": 6,
+            "tokens": 49,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Shared/WebPreviewModal.tsx": {
+            "lines": 142,
+            "tokens": 918,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 48,
+            "duplicatedTokens": 304,
+            "percentage": 33.8,
+            "percentageTokens": 33.12,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Shared/ShortcutTooltip.tsx": {
+            "lines": 14,
+            "tokens": 131,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Shared/SelectedNodeLinkList.tsx": {
+            "lines": 253,
+            "tokens": 2371,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/TableRenderer.tsx": {
+            "lines": 32,
+            "tokens": 441,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/TableNodeContent.tsx": {
+            "lines": 32,
+            "tokens": 446,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ResizeHandle.tsx": {
+            "lines": 13,
+            "tokens": 72,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/PaginationControl.tsx": {
+            "lines": 29,
+            "tokens": 211,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeTextView.tsx": {
+            "lines": 104,
+            "tokens": 1427,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeTextEditor.tsx": {
+            "lines": 5,
+            "tokens": 39,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeRenderer.tsx": {
+            "lines": 278,
+            "tokens": 2442,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 86,
+            "duplicatedTokens": 598,
+            "percentage": 30.94,
+            "percentageTokens": 24.49,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeEditor.tsx": {
+            "lines": 26,
+            "tokens": 142,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/Node.tsx": {
+            "lines": 69,
+            "tokens": 463,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/MermaidRenderer.tsx": {
+            "lines": 26,
+            "tokens": 149,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 14,
+            "duplicatedTokens": 66,
+            "percentage": 53.85,
+            "percentageTokens": 44.3,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ImageRenderer.tsx": {
+            "lines": 63,
+            "tokens": 542,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ImageNodeContent.tsx": {
+            "lines": 10,
+            "tokens": 49,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ImageDisplayPane.tsx": {
+            "lines": 37,
+            "tokens": 261,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 14,
+            "duplicatedTokens": 66,
+            "percentage": 37.84,
+            "percentageTokens": 25.29,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/CheckboxRenderer.tsx": {
+            "lines": 18,
+            "tokens": 161,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/CheckboxNode.tsx": {
+            "lines": 21,
+            "tokens": 200,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/LayoutSelector.tsx": {
+            "lines": 14,
+            "tokens": 144,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/InMapLinkConnections.tsx": {
+            "lines": 26,
+            "tokens": 336,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasRenderer.tsx": {
+            "lines": 113,
+            "tokens": 817,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasDragGuide.tsx": {
+            "lines": 70,
+            "tokens": 533,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasConnections.tsx": {
+            "lines": 21,
+            "tokens": 224,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/table-editor/TableHeaderCell.tsx": {
+            "lines": 17,
+            "tokens": 146,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/table-editor/TableContextMenu.tsx": {
+            "lines": 54,
+            "tokens": 651,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/table-editor/EditableCell.tsx": {
+            "lines": 3,
+            "tokens": 28,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useStatusBar.tsx": {
+            "lines": 0,
+            "tokens": 9,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useNotification.tsx": {
+            "lines": 0,
+            "tokens": 5,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/system/useErrorHandler.tsx": {
+            "lines": 0,
+            "tokens": 7,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/vim/context/vimContext.tsx": {
+            "lines": 0,
+            "tokens": 3,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/vim/components/JumpyLabels.tsx": {
+            "lines": 7,
+            "tokens": 45,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/hooks/useSidebar.tsx": {
+            "lines": 179,
+            "tokens": 2086,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 267,
+            "duplicatedTokens": 2943,
+            "percentage": 149.16,
+            "percentageTokens": 141.08,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/VimStatusBar.tsx": {
+            "lines": 47,
+            "tokens": 496,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/KeyboardShortcutHelper.tsx": {
+            "lines": 154,
+            "tokens": 1901,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Connection.tsx": {
+            "lines": 34,
+            "tokens": 222,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/TableEditorModal.tsx": {
+            "lines": 134,
+            "tokens": 1329,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/MarkdownEditor.tsx": {
+            "lines": 91,
+            "tokens": 714,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/utils/highlightUtils.tsx": {
+            "lines": 2,
+            "tokens": 33,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/ErrorBoundary.tsx": {
+            "lines": 45,
+            "tokens": 463,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/CommandPalette.tsx": {
+            "lines": 235,
+            "tokens": 1624,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/AuthModal.tsx": {
+            "lines": 294,
+            "tokens": 2153,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 58,
+            "duplicatedTokens": 390,
+            "percentage": 19.73,
+            "percentageTokens": 18.11,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/codemirror/CodeMirrorEditor.tsx": {
+            "lines": 6,
+            "tokens": 31,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/parseInlineMarkdown.tsx": {
+            "lines": 0,
+            "tokens": 3,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/App.tsx": {
+            "lines": 4,
+            "tokens": 32,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 4945,
+          "tokens": 44099,
+          "sources": 88,
+          "clones": 8,
+          "duplicatedLines": 391,
+          "duplicatedTokens": 3751,
+          "percentage": 7.91,
+          "percentageTokens": 8.51,
+          "newDuplicatedLines": 0,
+          "newClones": 0
+        }
+      },
+      "tsx": {
+        "sources": {
+          "src/app/features/mindmap/components/layout/sidebar/VimSidebar.tsx": {
+            "lines": 94,
+            "tokens": 1052,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SidebarHeader.tsx": {
+            "lines": 42,
+            "tokens": 274,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SidebarCollapsed.tsx": {
+            "lines": 24,
+            "tokens": 165,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SettingsSidebar.tsx": {
+            "lines": 415,
+            "tokens": 3238,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/SearchSidebar.tsx": {
+            "lines": 215,
+            "tokens": 1775,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/PrimarySidebarContainer.tsx": {
+            "lines": 84,
+            "tokens": 745,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/PrimarySidebar.tsx": {
+            "lines": 145,
+            "tokens": 1079,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/MindMapSidebar.tsx": {
+            "lines": 307,
+            "tokens": 2812,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ExplorerView.tsx": {
+            "lines": 143,
+            "tokens": 1254,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ExplorerNodeView.tsx": {
+            "lines": 274,
+            "tokens": 2569,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sidebar/ColorSettingsSidebar.tsx": {
+            "lines": 100,
+            "tokens": 1237,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sections/SelectedNodeNotePanelSection.tsx": {
+            "lines": 43,
+            "tokens": 421,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/sections/MarkdownPanelSection.tsx": {
+            "lines": 43,
+            "tokens": 455,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/VimMappingsEditor.tsx": {
+            "lines": 103,
+            "tokens": 1094,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/TopLeftTitlePanel.tsx": {
+            "lines": 149,
+            "tokens": 831,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 131,
+            "percentage": 8.05,
+            "percentageTokens": 15.76,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/panel/NodeNotesPanelContainer.tsx": {
+            "lines": 36,
+            "tokens": 307,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 11,
+            "duplicatedTokens": 141,
+            "percentage": 30.56,
+            "percentageTokens": 45.93,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/MindMapLinkOverlays.tsx": {
+            "lines": 75,
+            "tokens": 592,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/MindMapContextMenuOverlay.tsx": {
+            "lines": 185,
+            "tokens": 1779,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/overlay/ContextMenu.tsx": {
+            "lines": 264,
+            "tokens": 2216,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/common/ActivityBar.tsx": {
+            "lines": 98,
+            "tokens": 864,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/ToolbarLogo.tsx": {
+            "lines": 16,
+            "tokens": 135,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/TitleEditor.tsx": {
+            "lines": 67,
+            "tokens": 596,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/StorageModeSwitch.tsx": {
+            "lines": 198,
+            "tokens": 1197,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/toolbar/ActionButtons.tsx": {
+            "lines": 153,
+            "tokens": 1354,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 131,
+            "percentage": 7.84,
+            "percentageTokens": 9.68,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/shared/BaseModal.tsx": {
+            "lines": 152,
+            "tokens": 950,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/VimSettingsPanel.tsx": {
+            "lines": 211,
+            "tokens": 2412,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/SelectedNodeNotePanel.tsx": {
+            "lines": 278,
+            "tokens": 2272,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodePresetPanel.tsx": {
+            "lines": 88,
+            "tokens": 626,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodeNotesPanel.tsx": {
+            "lines": 389,
+            "tokens": 2208,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 11,
+            "duplicatedTokens": 141,
+            "percentage": 2.83,
+            "percentageTokens": 6.39,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/NodeFontPanel.tsx": {
+            "lines": 60,
+            "tokens": 550,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/panels/ImageResizePanel.tsx": {
+            "lines": 321,
+            "tokens": 2521,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/NodeLinkModal.tsx": {
+            "lines": 578,
+            "tokens": 5452,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/MindMapModalsContext.tsx": {
+            "lines": 101,
+            "tokens": 913,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/LinkActionMenu.tsx": {
+            "lines": 91,
+            "tokens": 839,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/KnowledgeGraphModal2D.tsx": {
+            "lines": 749,
+            "tokens": 8079,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 24,
+            "duplicatedTokens": 326,
+            "percentage": 3.2,
+            "percentageTokens": 4.04,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/ImageModal.tsx": {
+            "lines": 401,
+            "tokens": 2528,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/modals/FolderGuideModal.tsx": {
+            "lines": 44,
+            "tokens": 487,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/managers/ModalManager.tsx": {
+            "lines": 145,
+            "tokens": 1596,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 98,
+            "percentage": 6.9,
+            "percentageTokens": 6.14,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapWorkspace.tsx": {
+            "lines": 116,
+            "tokens": 1005,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 26,
+            "duplicatedTokens": 332,
+            "percentage": 22.41,
+            "percentageTokens": 33.03,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapProviders.tsx": {
+            "lines": 19,
+            "tokens": 126,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapCanvas.tsx": {
+            "lines": 199,
+            "tokens": 1685,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 26,
+            "duplicatedTokens": 332,
+            "percentage": 13.07,
+            "percentageTokens": 19.7,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapAppModalsContainer.tsx": {
+            "lines": 279,
+            "tokens": 2403,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapAppContent.tsx": {
+            "lines": 744,
+            "tokens": 5540,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MindMapApp.tsx": {
+            "lines": 60,
+            "tokens": 511,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/MapControlButtons.tsx": {
+            "lines": 53,
+            "tokens": 365,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/layout/FloatingActionButton.tsx": {
+            "lines": 108,
+            "tokens": 1443,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/contextmenu/ColorSubmenu.tsx": {
+            "lines": 32,
+            "tokens": 230,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Shared/WebPreviewModal.tsx": {
+            "lines": 174,
+            "tokens": 1197,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Shared/ShortcutTooltip.tsx": {
+            "lines": 67,
+            "tokens": 651,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Shared/SelectedNodeLinkList.tsx": {
+            "lines": 503,
+            "tokens": 4946,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/TableRenderer.tsx": {
+            "lines": 91,
+            "tokens": 1078,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 112,
+            "percentage": 13.19,
+            "percentageTokens": 10.39,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/TableNodeContent.tsx": {
+            "lines": 88,
+            "tokens": 1079,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 12,
+            "duplicatedTokens": 112,
+            "percentage": 13.64,
+            "percentageTokens": 10.38,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ResizeHandle.tsx": {
+            "lines": 24,
+            "tokens": 166,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/PaginationControl.tsx": {
+            "lines": 74,
+            "tokens": 611,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeTextView.tsx": {
+            "lines": 300,
+            "tokens": 4060,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 23,
+            "duplicatedTokens": 277,
+            "percentage": 7.67,
+            "percentageTokens": 6.82,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeTextEditor.tsx": {
+            "lines": 203,
+            "tokens": 2446,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 13,
+            "duplicatedTokens": 118,
+            "percentage": 6.4,
+            "percentageTokens": 4.82,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeRenderer.tsx": {
+            "lines": 644,
+            "tokens": 6277,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeEditor.tsx": {
+            "lines": 87,
+            "tokens": 685,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 159,
+            "percentage": 11.49,
+            "percentageTokens": 23.21,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/NodeDragHandler.tsx": {
+            "lines": 92,
+            "tokens": 998,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/Node.tsx": {
+            "lines": 390,
+            "tokens": 3846,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/MermaidRenderer.tsx": {
+            "lines": 177,
+            "tokens": 1670,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ImageRenderer.tsx": {
+            "lines": 124,
+            "tokens": 1162,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ImageNodeContent.tsx": {
+            "lines": 108,
+            "tokens": 914,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/ImageDisplayPane.tsx": {
+            "lines": 81,
+            "tokens": 652,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/CheckboxRenderer.tsx": {
+            "lines": 51,
+            "tokens": 395,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Node/CheckboxNode.tsx": {
+            "lines": 50,
+            "tokens": 411,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/LayoutSelector.tsx": {
+            "lines": 44,
+            "tokens": 391,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/InMapLinkConnections.tsx": {
+            "lines": 255,
+            "tokens": 2893,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 50,
+            "duplicatedTokens": 512,
+            "percentage": 19.61,
+            "percentageTokens": 17.7,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasRenderer.tsx": {
+            "lines": 314,
+            "tokens": 2544,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 11,
+            "duplicatedTokens": 113,
+            "percentage": 3.5,
+            "percentageTokens": 4.44,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasDragHandler.tsx": {
+            "lines": 231,
+            "tokens": 2131,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasDragGuide.tsx": {
+            "lines": 153,
+            "tokens": 1276,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 11,
+            "duplicatedTokens": 113,
+            "percentage": 7.19,
+            "percentageTokens": 8.86,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Canvas/CanvasConnections.tsx": {
+            "lines": 212,
+            "tokens": 2522,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 22,
+            "duplicatedTokens": 224,
+            "percentage": 10.38,
+            "percentageTokens": 8.88,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/table-editor/TableHeaderCell.tsx": {
+            "lines": 62,
+            "tokens": 563,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/table-editor/TableContextMenu.tsx": {
+            "lines": 110,
+            "tokens": 1120,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 52,
+            "duplicatedTokens": 586,
+            "percentage": 47.27,
+            "percentageTokens": 52.32,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/table-editor/EditableCell.tsx": {
+            "lines": 57,
+            "tokens": 489,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useStatusBar.tsx": {
+            "lines": 72,
+            "tokens": 883,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useNotification.tsx": {
+            "lines": 37,
+            "tokens": 391,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useModalState.tsx": {
+            "lines": 73,
+            "tokens": 748,
+            "sources": 1,
+            "clones": 1,
+            "duplicatedLines": 10,
+            "duplicatedTokens": 98,
+            "percentage": 13.7,
+            "percentageTokens": 13.1,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useModal.tsx": {
+            "lines": 30,
+            "tokens": 280,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/ui/useDragAndDrop.tsx": {
+            "lines": 269,
+            "tokens": 2981,
+            "sources": 1,
+            "clones": 2,
+            "duplicatedLines": 22,
+            "duplicatedTokens": 268,
+            "percentage": 8.18,
+            "percentageTokens": 8.99,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/system/useErrorHandler.tsx": {
+            "lines": 169,
+            "tokens": 1674,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/hooks/data/useModelLoader.tsx": {
+            "lines": 58,
+            "tokens": 582,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/vim/context/vimContext.tsx": {
+            "lines": 18,
+            "tokens": 216,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/vim/components/JumpyLabels.tsx": {
+            "lines": 115,
+            "tokens": 844,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/theme/hooks/useTheme.tsx": {
+            "lines": 26,
+            "tokens": 255,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/ToolbarStyles.tsx": {
+            "lines": 405,
+            "tokens": 1517,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/SidebarStyles.tsx": {
+            "lines": 704,
+            "tokens": 3430,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/SidebarContainer.tsx": {
+            "lines": 48,
+            "tokens": 261,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/NodeCustomizationStyles.tsx": {
+            "lines": 175,
+            "tokens": 688,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/styles/ContextMenuStyles.tsx": {
+            "lines": 127,
+            "tokens": 466,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/hooks/useSidebar.tsx": {
+            "lines": 665,
+            "tokens": 7088,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 42,
+            "duplicatedTokens": 432,
+            "percentage": 6.32,
+            "percentageTokens": 6.09,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/VimStatusBar.tsx": {
+            "lines": 314,
+            "tokens": 2288,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/KeyboardShortcutHelper.tsx": {
+            "lines": 233,
+            "tokens": 2670,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/mindmap/components/Connection.tsx": {
+            "lines": 156,
+            "tokens": 1510,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/TableEditorModal.tsx": {
+            "lines": 740,
+            "tokens": 5160,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/components/MarkdownEditor.tsx": {
+            "lines": 457,
+            "tokens": 4948,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/utils/highlightUtils.tsx": {
+            "lines": 24,
+            "tokens": 256,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/ErrorBoundary.tsx": {
+            "lines": 414,
+            "tokens": 2963,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/CommandPalette.tsx": {
+            "lines": 524,
+            "tokens": 4366,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/components/AuthModal.tsx": {
+            "lines": 421,
+            "tokens": 3303,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/shared/codemirror/CodeMirrorEditor.tsx": {
+            "lines": 227,
+            "tokens": 1910,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/features/markdown/parseInlineMarkdown.tsx": {
+            "lines": 274,
+            "tokens": 2937,
+            "sources": 1,
+            "clones": 4,
+            "duplicatedLines": 52,
+            "duplicatedTokens": 686,
+            "percentage": 18.98,
+            "percentageTokens": 23.36,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/app/core/services/EmbeddingIntegration.tsx": {
+            "lines": 36,
+            "tokens": 365,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/main.tsx": {
+            "lines": 9,
+            "tokens": 77,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          },
+          "src/App.tsx": {
+            "lines": 17,
+            "tokens": 120,
+            "sources": 1,
+            "clones": 0,
+            "duplicatedLines": 0,
+            "duplicatedTokens": 0,
+            "percentage": 0,
+            "percentageTokens": 0,
+            "newDuplicatedLines": 0,
+            "newClones": 0
+          }
+        },
+        "total": {
+          "lines": 20094,
+          "tokens": 175132,
+          "sources": 105,
+          "clones": 20,
+          "duplicatedLines": 237,
+          "duplicatedTokens": 2721,
+          "percentage": 1.18,
+          "percentageTokens": 1.55,
           "newDuplicatedLines": 0,
           "newClones": 0
         }
       }
     },
     "total": {
-      "lines": 35553,
-      "tokens": 358217,
-      "sources": 257,
-      "clones": 47,
-      "duplicatedLines": 719,
-      "duplicatedTokens": 7345,
-      "percentage": 2.02,
-      "percentageTokens": 2.05,
+      "lines": 64096,
+      "tokens": 594166,
+      "sources": 484,
+      "clones": 68,
+      "duplicatedLines": 1187,
+      "duplicatedTokens": 12034,
+      "percentage": 1.85,
+      "percentageTokens": 2.03,
       "newDuplicatedLines": 0,
       "newClones": 0
     }
   },
   "duplicates": [
+    {
+      "format": "javascript",
+      "lines": 15,
+      "fragment": ", color: 'var(--text-secondary)' }}>No workspace.</span>\r\n              <button\r\n                className=\"workspace-chip\"\r\n                onClick={() => onAddWorkspace && onAddWorkspace()}\r\n                title=\"Add workspace\"\r\n                style={{\r\n                  display: 'inline-flex',\r\n                  alignItems: 'center',\r\n                  padding: '2px 6px',\r\n                  border: '1px dashed var(--border-color)',\r\n                  borderRadius: 999,\r\n                  fontSize: 12,\r\n                  cursor: 'pointer',\r\n                  backgroundColor: 'transparent',\r\n                  color: 'var(--accent-color)'",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/layout/sidebar/MindMapSidebar.tsx",
+        "start": 209,
+        "end": 223,
+        "startLoc": {
+          "line": 209,
+          "column": 3,
+          "position": 2024
+        },
+        "endLoc": {
+          "line": 223,
+          "column": 22,
+          "position": 2120
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/sidebar/MindMapSidebar.tsx",
+        "start": 185,
+        "end": 201,
+        "startLoc": {
+          "line": 185,
+          "column": 14,
+          "position": 1869
+        },
+        "endLoc": {
+          "line": 201,
+          "column": 24,
+          "position": 1975
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 13,
+      "fragment": "onUndo: () => Promise<void>;\n  onRedo: () => Promise<void>;\n  canUndo: boolean;\n  canRedo: boolean;\n  zoom: number;\n  onZoomReset: () => void;\n  onAutoLayout?: () => void;\n  onToggleNotesPanel?: () => void;\n  showNotesPanel?: boolean;\n  onToggleNodeNotePanel?: () => void;\n  showNodeNotePanel?: boolean;\n  onCenterRootNode?: () => void;\n  layout",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/toolbar/ActionButtons.tsx",
+        "start": 6,
+        "end": 18,
+        "startLoc": {
+          "line": 6,
+          "column": 3,
+          "position": 61
+        },
+        "endLoc": {
+          "line": 18,
+          "column": 7,
+          "position": 192
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/panel/TopLeftTitlePanel.tsx",
+        "start": 10,
+        "end": 22,
+        "startLoc": {
+          "line": 10,
+          "column": 3,
+          "position": 63
+        },
+        "endLoc": {
+          "line": 22,
+          "column": 2,
+          "position": 193
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": "{\n  currentMapIdentifier?: MapIdentifier | null;\n  getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;\n  onMapMarkdownInput?: (markdown: string) => void;\n  subscribeMarkdownFromNodes?: (cb: (text: string) => void) => () => void;\n\n  getNodeIdByMarkdownLine?: (line: number) => string | null;\n  onSelectNode?: (nodeId: string) => void;\n  onClose?: () => void;\n}\n\nconst",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/panels/NodeNotesPanel.tsx",
+        "start": 10,
+        "end": 21,
+        "startLoc": {
+          "line": 10,
+          "column": 2,
+          "position": 129
+        },
+        "endLoc": {
+          "line": 21,
+          "column": 6,
+          "position": 270
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/panel/NodeNotesPanelContainer.tsx",
+        "start": 6,
+        "end": 14,
+        "startLoc": {
+          "line": 6,
+          "column": 2,
+          "position": 41
+        },
+        "endLoc": {
+          "line": 14,
+          "column": 2,
+          "position": 179
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 13,
+      "fragment": "null);\n            if (filterWsId) {\n              const allowedPlain = new Set(\n                mapsList\n                  .filter((m) => m?.mapIdentifier?.workspaceId === filterWsId)\n                  .map((m) => `${m.mapIdentifier.mapId}.md`)\n              );\n              const allowedNamespaced = new Set(\n                mapsList\n                  .filter((m) => m?.mapIdentifier?.workspaceId === filterWsId)\n                  .map((m) => buildVectorKey(m?.mapIdentifier?.workspaceId, m?.mapIdentifier?.mapId))\n              );\n              for (const key of Array.from(refreshed",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/modals/KnowledgeGraphModal2D.tsx",
+        "start": 227,
+        "end": 239,
+        "startLoc": {
+          "line": 227,
+          "column": 2,
+          "position": 3163
+        },
+        "endLoc": {
+          "line": 239,
+          "column": 10,
+          "position": 3326
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/modals/KnowledgeGraphModal2D.tsx",
+        "start": 180,
+        "end": 194,
+        "startLoc": {
+          "line": 180,
+          "column": 2,
+          "position": 2477
+        },
+        "endLoc": {
+          "line": 194,
+          "column": 8,
+          "position": 2642
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": ": MindMapData | null;\n  selectedNodeId: string | null;\n  editingNodeId: string | null;\n  editText: string;\n  setEditText: (text: string) => void;\n  onSelectNode: (nodeId: string | null) => void;\n  onStartEdit: (nodeId: string) => void;\n  onFinishEdit: (nodeId: string, text: string) => void;\n  onToggleCollapse: (nodeId: string) => void;\n  onShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;\n  onAddLink: (nodeId: string) => void;\n  onUpdateNode: (nodeId: string, updates: Partial<",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/layout/MindMapCanvas.tsx",
+        "start": 8,
+        "end": 19,
+        "startLoc": {
+          "line": 8,
+          "column": 2,
+          "position": 100
+        },
+        "endLoc": {
+          "line": 19,
+          "column": 2,
+          "position": 294
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/MindMapWorkspace.tsx",
+        "start": 7,
+        "end": 19,
+        "startLoc": {
+          "line": 7,
+          "column": 5,
+          "position": 74
+        },
+        "endLoc": {
+          "line": 19,
+          "column": 2,
+          "position": 281
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 16,
+      "fragment": ")) => void;\n\n\n  onToggleLinkList?: (nodeId: string) => void;\n  onLoadRelativeImage?: (relativePath: string) => Promise<string | null>;\n  onImageClick?: (imageUrl: string) => void;\n\n  // Floating action button props\n  onUndo?: () => Promise<void>;\n  onRedo?: () => Promise<void>;\n  canUndo?: boolean;\n  canRedo?: boolean;\n  onZoomReset?: () => void;\n}\n\nconst MindMapCanvas",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/layout/MindMapCanvas.tsx",
+        "start": 32,
+        "end": 47,
+        "startLoc": {
+          "line": 32,
+          "column": 2,
+          "position": 513
+        },
+        "endLoc": {
+          "line": 47,
+          "column": 14,
+          "position": 651
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/MindMapWorkspace.tsx",
+        "start": 32,
+        "end": 47,
+        "startLoc": {
+          "line": 32,
+          "column": 9,
+          "position": 437
+        },
+        "endLoc": {
+          "line": 47,
+          "column": 17,
+          "position": 590
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 25,
+      "fragment": "}\r\n            style={{\r\n              display: 'flex',\r\n              alignItems: 'center',\r\n              justifyContent: 'center',\r\n              width: '32px',\r\n              height: '32px',\r\n              backgroundColor: '#ffffff',\r\n              border: '1px solid #d0d7de',\r\n              borderRadius: '6px',\r\n              cursor: 'pointer',\r\n              color: '#656d76',\r\n              transition: 'all 0.15s ease'\r\n            }}\r\n            onMouseEnter={(e) => {\r\n              e.currentTarget.style.backgroundColor = '#f6f8fa';\r\n              e.currentTarget.style.color = '#24292f';\r\n            }}\r\n            onMouseLeave={(e) => {\r\n              e.currentTarget.style.backgroundColor = '#ffffff';\r\n              e.currentTarget.style.color = '#656d76';\r\n            }}\r\n            title=\"閉じる\"\r\n          >\r\n            <X size={16",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Shared/WebPreviewModal.tsx",
+        "start": 127,
+        "end": 151,
+        "startLoc": {
+          "line": 127,
+          "column": 8,
+          "position": 893
+        },
+        "endLoc": {
+          "line": 151,
+          "column": 3,
+          "position": 1045
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Shared/WebPreviewModal.tsx",
+        "start": 99,
+        "end": 121,
+        "startLoc": {
+          "line": 99,
+          "column": 2,
+          "position": 693
+        },
+        "endLoc": {
+          "line": 121,
+          "column": 13,
+          "position": 832
+        }
+      }
+    },
     {
       "format": "typescript",
       "lines": 11,
@@ -3150,6 +6174,510 @@
           "line": 70,
           "column": 18,
           "position": 945
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 13,
+      "fragment": "headers && (\r\n            <thead>\r\n              <tr>\r\n                {headers.map((cell: string, ci: number) => (\r\n                  <th key={ci} style={getHeaderCellStyle(ci, headers.length)}>\r\n                    {cell}\r\n                  </th>\r\n                ))}\r\n              </tr>\r\n            </thead>\r\n          )}\r\n          <tbody>\r\n            {(headers",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Node/TableNodeContent.tsx",
+        "start": 54,
+        "end": 66,
+        "startLoc": {
+          "line": 54,
+          "column": 2,
+          "position": 693
+        },
+        "endLoc": {
+          "line": 66,
+          "column": 8,
+          "position": 805
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Node/TableRenderer.tsx",
+        "start": 61,
+        "end": 73,
+        "startLoc": {
+          "line": 61,
+          "column": 2,
+          "position": 720
+        },
+        "endLoc": {
+          "line": 73,
+          "column": 11,
+          "position": 832
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 14,
+      "fragment": ");\n        if (tagMatch) {\n          const hMatch = /\\sheight=[\"']?(\\d+)(?:px)?[\"']?/i.exec(tagMatch[0]);\n          if (hMatch) {\n            const h = parseInt(hMatch[1], 10);\n            if (Number.isFinite(h) && h > 0) return h;\n          }\n        }\n      }\n      return 105;\n    };\n\n    const actualImageHeight = getActualImageHeight();\n    const editWidth",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeTextEditor.tsx",
+        "start": 107,
+        "end": 120,
+        "startLoc": {
+          "line": 107,
+          "column": 9,
+          "position": 1429
+        },
+        "endLoc": {
+          "line": 120,
+          "column": 10,
+          "position": 1547
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeTextView.tsx",
+        "start": 51,
+        "end": 64,
+        "startLoc": {
+          "line": 51,
+          "column": 8,
+          "position": 669
+        },
+        "endLoc": {
+          "line": 64,
+          "column": 9,
+          "position": 787
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 32,
+      "fragment": "={nodeLeftX}\n        y={node.y - nodeHeight / 2}\n        width={nodeWidth}\n        height={nodeHeight}\n        fill={backgroundFill}\n        stroke=\"transparent\"\n        strokeWidth=\"0\"\n        rx=\"12\"\n        ry=\"12\"\n        role=\"button\"\n        tabIndex={0}\n        aria-label={`Mind map node: ${node.text}`}\n        aria-selected={isSelected}\n        style={nodeStyles}\n        onMouseDown={onMouseDown}\n        onClick={onClick}\n        onDoubleClick={onDoubleClick}\n        onContextMenu={onContextMenu}\n        onDragOver={onDragOver}\n        onDrop={onDrop}\n      />\n      {isCheckboxNode && (\n        <CheckboxNode\n          nodeLeftX={nodeLeftX}\n          nodeY={node.y}\n          isChecked={isChecked}\n          onClick={handleCheckboxClick}\n        />\n      )}\n\n      {}\n      <g key={contentKey",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeRenderer.tsx",
+        "start": 409,
+        "end": 440,
+        "startLoc": {
+          "line": 409,
+          "column": 2,
+          "position": 4185
+        },
+        "endLoc": {
+          "line": 440,
+          "column": 11,
+          "position": 4375
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeRenderer.tsx",
+        "start": 362,
+        "end": 409,
+        "startLoc": {
+          "line": 362,
+          "column": 2,
+          "position": 3815
+        },
+        "endLoc": {
+          "line": 409,
+          "column": 10,
+          "position": 4187
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 13,
+      "fragment": ".width}\n                    onPrevious={() => setSlotIndex((prev) => (prev - 1 + displayEntries.length) % displayEntries.length)}\n                    onNext={() => setSlotIndex((prev) => (prev + 1) % displayEntries.length)}\n                  />\n                )}\n              </div>\n            )}\n          </foreignObject>\n          )}\n\n          {hasAnyVisualEntries && (\n            <g\n              onClick={handleToggleContent",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeRenderer.tsx",
+        "start": 524,
+        "end": 536,
+        "startLoc": {
+          "line": 524,
+          "column": 16,
+          "position": 5199
+        },
+        "endLoc": {
+          "line": 536,
+          "column": 20,
+          "position": 5308
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeRenderer.tsx",
+        "start": 478,
+        "end": 483,
+        "startLoc": {
+          "line": 478,
+          "column": 11,
+          "position": 4705
+        },
+        "endLoc": {
+          "line": 483,
+          "column": 11,
+          "position": 4792
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 11,
+      "fragment": ";\n  isSelected?: boolean;\n  onSelectNode?: (nodeId: string | null) => void;\n  onToggleLinkList?: (nodeId: string) => void;\n  onLinkNavigate?: (link: NodeLink) => void;\n  onStartEdit?: (nodeId: string) => void;\n  onMouseDown?: (e: React.MouseEvent) => void;\n  onDragOver?: (e: React.DragEvent) => void;\n  onDrop?: (e: React.DragEvent) => void;\n  onRightClick?: (e: React.MouseEvent) => void;\n  onEditHeightChange",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeEditor.tsx",
+        "start": 16,
+        "end": 26,
+        "startLoc": {
+          "line": 16,
+          "column": 2,
+          "position": 169
+        },
+        "endLoc": {
+          "line": 26,
+          "column": 19,
+          "position": 328
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Node/NodeTextView.tsx",
+        "start": 11,
+        "end": 21,
+        "startLoc": {
+          "line": 11,
+          "column": 7,
+          "position": 147
+        },
+        "endLoc": {
+          "line": 21,
+          "column": 2,
+          "position": 305
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 15,
+      "fragment": ",\n        overflow: 'hidden',\n        border: 'none',\n        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',\n        backgroundColor: 'transparent',\n        display: 'flex',\n        alignItems: 'center',\n        justifyContent: 'center',\n        transition: 'all 0.3s cubic-bezier(0.4, 0.0, 0.2, 1)',\n        cursor: 'pointer'\n      }}\n    >\n      {currentImage && (\n        <ImageNodeContent\n          image={currentImage",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Node/ImageDisplayPane.tsx",
+        "start": 44,
+        "end": 58,
+        "startLoc": {
+          "line": 44,
+          "column": 6,
+          "position": 390
+        },
+        "endLoc": {
+          "line": 58,
+          "column": 13,
+          "position": 456
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Node/MermaidRenderer.tsx",
+        "start": 151,
+        "end": 162,
+        "startLoc": {
+          "line": 151,
+          "column": 2,
+          "position": 1527
+        },
+        "endLoc": {
+          "line": 162,
+          "column": 8,
+          "position": 1579
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 11,
+      "fragment": "];\n        if (!dst) continue;\n\n        \n        const pairKey = getPairKey(src.id, dst.id);\n        if (processedPairs.has(pairKey)) continue;\n\n        const dstSize = calculateNodeSize(dst, undefined, false, settings.fontSize, wrapConfig);\n\n        \n        const hasMdReverseLink",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Canvas/InMapLinkConnections.tsx",
+        "start": 177,
+        "end": 187,
+        "startLoc": {
+          "line": 177,
+          "column": 7,
+          "position": 2049
+        },
+        "endLoc": {
+          "line": 187,
+          "column": 17,
+          "position": 2135
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Canvas/InMapLinkConnections.tsx",
+        "start": 134,
+        "end": 144,
+        "startLoc": {
+          "line": 134,
+          "column": 13,
+          "position": 1590
+        },
+        "endLoc": {
+          "line": 144,
+          "column": 16,
+          "position": 1677
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 16,
+      "fragment": "hasReverseLink(src.id, dst.id);\n\n        \n        const from = getNodeBoundaryPoint(\n          { x: src.x, y: src.y },\n          srcSize,\n          { x: dst.x, y: dst.y }\n        );\n        const to = getNodeBoundaryPoint(\n          { x: dst.x, y: dst.y },\n          dstSize,\n          { x: src.x, y: src.y }\n        );\n        result.push({\n          d: createSmoothPath(from, to),\n          key: `${src.id}->${dst.id}:md:",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Canvas/InMapLinkConnections.tsx",
+        "start": 189,
+        "end": 204,
+        "startLoc": {
+          "line": 189,
+          "column": 2,
+          "position": 2206
+        },
+        "endLoc": {
+          "line": 204,
+          "column": 5,
+          "position": 2376
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Canvas/InMapLinkConnections.tsx",
+        "start": 144,
+        "end": 160,
+        "startLoc": {
+          "line": 144,
+          "column": 2,
+          "position": 1681
+        },
+        "endLoc": {
+          "line": 160,
+          "column": 2,
+          "position": 1852
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": "} from '@shared/types';\r\n\r\ninterface DragState {\r\n  isDragging: boolean;\r\n  draggedNodeId: string | null;\r\n  dropTargetId: string | null;\r\n  dropPosition: 'child' | 'before' | 'after' | null;\r\n  dropAction: 'move-parent' | 'reorder-sibling' | null;\r\n  dragOffset: { x: number; y: number };\r\n}\r\n\r\ninterface CanvasDragGuideProps",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Canvas/CanvasDragGuide.tsx",
+        "start": 2,
+        "end": 13,
+        "startLoc": {
+          "line": 2,
+          "column": 2,
+          "position": 25
+        },
+        "endLoc": {
+          "line": 13,
+          "column": 21,
+          "position": 138
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Canvas/CanvasRenderer.tsx",
+        "start": 10,
+        "end": 21,
+        "startLoc": {
+          "line": 10,
+          "column": 2,
+          "position": 135
+        },
+        "endLoc": {
+          "line": 21,
+          "column": 20,
+          "position": 248
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": "});\r\n\r\n    connections.push({\r\n      from: { x: toggleX, y: toggleY },\r\n      to: { x: toggleX, y: toggleY },\r\n      hasToggleButton: true,\r\n      nodeId: node.id,\r\n      isCollapsed: false\r\n    });\r\n\r\n    node.children.forEach((child: MindMapNode) => {\r\n      const childColor",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/components/Canvas/CanvasConnections.tsx",
+        "start": 114,
+        "end": 125,
+        "startLoc": {
+          "line": 114,
+          "column": 5,
+          "position": 1396
+        },
+        "endLoc": {
+          "line": 125,
+          "column": 11,
+          "position": 1508
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/Canvas/CanvasConnections.tsx",
+        "start": 75,
+        "end": 86,
+        "startLoc": {
+          "line": 75,
+          "column": 5,
+          "position": 831
+        },
+        "endLoc": {
+          "line": 86,
+          "column": 6,
+          "position": 943
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 17,
+      "fragment": "&& (\r\n        <>\r\n          <button className=\"context-menu-item\" onClick={onCopy}>\r\n            <Copy size={14} />\r\n            <span>コピー</span>\r\n            <span className=\"shortcut\">Ctrl+C</span>\r\n          </button>\r\n          {clipboard && (\r\n            <button className=\"context-menu-item\" onClick={onPaste}>\r\n              <ClipboardPaste size={14} />\r\n              <span>ペースト</span>\r\n              <span className=\"shortcut\">Ctrl+V</span>\r\n            </button>\r\n          )}\r\n          <div className=\"context-menu-divider\" />\r\n          <button className=\"context-menu-item\" onClick={onInsertColumnLeft}>\r\n            <ArrowLeft",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/markdown/components/table-editor/TableContextMenu.tsx",
+        "start": 78,
+        "end": 94,
+        "startLoc": {
+          "line": 78,
+          "column": 2,
+          "position": 753
+        },
+        "endLoc": {
+          "line": 94,
+          "column": 10,
+          "position": 940
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/markdown/components/table-editor/TableContextMenu.tsx",
+        "start": 47,
+        "end": 63,
+        "startLoc": {
+          "line": 47,
+          "column": 2,
+          "position": 388
+        },
+        "endLoc": {
+          "line": 63,
+          "column": 8,
+          "position": 575
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 11,
+      "fragment": "</span>\r\n          </button>\r\n          <div className=\"context-menu-divider\" />\r\n          <button className=\"context-menu-item danger\" onClick={onDelete} disabled={!canDelete}>\r\n            <Trash2 size={14} />\r\n            <span>削除</span>\r\n            <span className=\"shortcut\">Del</span>\r\n          </button>\r\n        </>\r\n      )}\r\n    </",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/markdown/components/table-editor/TableContextMenu.tsx",
+        "start": 99,
+        "end": 109,
+        "startLoc": {
+          "line": 99,
+          "column": 7,
+          "position": 1003
+        },
+        "endLoc": {
+          "line": 109,
+          "column": 3,
+          "position": 1109
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/markdown/components/table-editor/TableContextMenu.tsx",
+        "start": 68,
+        "end": 78,
+        "startLoc": {
+          "line": 68,
+          "column": 7,
+          "position": 638
+        },
+        "endLoc": {
+          "line": 78,
+          "column": 2,
+          "position": 744
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 11,
+      "fragment": ": (show: boolean) => void;\r\n  \r\n  \r\n  \r\n  \r\n  showLinkModal: boolean;\r\n  setShowLinkModal: (show: boolean) => void;\r\n  editingLink: NodeLink | null;\r\n  setEditingLink: (link: NodeLink | null) => void;\r\n  linkModalNodeId: string | null;\r\n  setLinkModalNodeId: (nodeId",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/shared/hooks/ui/useModalState.tsx",
+        "start": 11,
+        "end": 21,
+        "startLoc": {
+          "line": 11,
+          "column": 19,
+          "position": 103
+        },
+        "endLoc": {
+          "line": 21,
+          "column": 7,
+          "position": 201
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/managers/ModalManager.tsx",
+        "start": 12,
+        "end": 18,
+        "startLoc": {
+          "line": 12,
+          "column": 18,
+          "position": 125
+        },
+        "endLoc": {
+          "line": 18,
+          "column": 3,
+          "position": 215
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": "${map.title}\" from \"${map.category}\" to \"${updatedCategory}\"`);\r\n            onChangeCategory({ mapId: map.mapIdentifier.mapId, workspaceId: map.mapIdentifier.workspaceId }, updatedCategory);\r\n          }\r\n        });\r\n      }\r\n\r\n      \r\n      setEmptyFolders(prev => {\r\n        const newSet = new Set<string>();\r\n        Array.from(prev).forEach(folder => {\r\n          if (folder === draggedFolder) {\r\n            newSet.add(draggedFolderName",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/shared/hooks/ui/useDragAndDrop.tsx",
+        "start": 225,
+        "end": 236,
+        "startLoc": {
+          "line": 225,
+          "column": 28,
+          "position": 2594
+        },
+        "endLoc": {
+          "line": 236,
+          "column": 18,
+          "position": 2728
+        }
+      },
+      "secondFile": {
+        "name": "src/app/shared/hooks/ui/useDragAndDrop.tsx",
+        "start": 143,
+        "end": 154,
+        "startLoc": {
+          "line": 143,
+          "column": 16,
+          "position": 1734
+        },
+        "endLoc": {
+          "line": 154,
+          "column": 14,
+          "position": 1868
         }
       }
     },
@@ -3299,150 +6827,6 @@
     },
     {
       "format": "typescript",
-      "lines": 15,
-      "fragment": ": string) => void;\r\n\r\n  \r\n  findNode: (nodeId: string) => MindMapNode | null;\r\n  getChildNodes: (nodeId: string) => MindMapNode[];\r\n\r\n  \r\n  selectNode: (nodeId: string | null) => void;\r\n  startEditing: (nodeId: string) => void;\r\n  startEditingWithCursorAtEnd: (nodeId: string) => void;\r\n  startEditingWithCursorAtStart: (nodeId: string) => void;\r\n  finishEditing: (nodeId: string, text: string) => void;\r\n  cancelEditing: () => void;\r\n  setEditText: (text: string) => void;\r\n}",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/features/mindmap/types/store.types.ts",
-        "start": 39,
-        "end": 53,
-        "startLoc": {
-          "line": 39,
-          "column": 7,
-          "position": 398
-        },
-        "endLoc": {
-          "line": 53,
-          "column": 2,
-          "position": 582
-        }
-      },
-      "secondFile": {
-        "name": "src/app/features/mindmap/store/slices/types.ts",
-        "start": 89,
-        "end": 35,
-        "startLoc": {
-          "line": 89,
-          "column": 7,
-          "position": 1108
-        },
-        "endLoc": {
-          "line": 35,
-          "column": 19,
-          "position": 481
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 15,
-      "fragment": ";\r\n  \r\n  setZoom: (zoom: number) => void;\r\n  setPan: (pan: Position) => void;\r\n  resetZoom: () => void;\r\n  setShowContextMenu: (show: boolean) => void;\r\n  setContextMenuPosition: (position: Position) => void;\r\n  setShowShortcutHelper: (show: boolean) => void;\r\n  setShowMapList: (show: boolean) => void;\r\n  setSidebarCollapsed: (collapsed: boolean) => void;\r\n  setShowLocalStoragePanel: (show: boolean) => void;\r\n  setShowTutorial: (show: boolean) => void;\r\n  setShowNotesPanel: (show: boolean) => void;\r\n  toggleNotesPanel: () => void;\r\n  setFileMenuPosition",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/features/mindmap/types/store.types.ts",
-        "start": 103,
-        "end": 117,
-        "startLoc": {
-          "line": 103,
-          "column": 8,
-          "position": 986
-        },
-        "endLoc": {
-          "line": 117,
-          "column": 20,
-          "position": 1188
-        }
-      },
-      "secondFile": {
-        "name": "src/app/features/mindmap/store/slices/types.ts",
-        "start": 119,
-        "end": 134,
-        "startLoc": {
-          "line": 119,
-          "column": 5,
-          "position": 1483
-        },
-        "endLoc": {
-          "line": 134,
-          "column": 21,
-          "position": 1687
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 13,
-      "fragment": ") => void;\r\n  setFileMenuPosition: (position: Position) => void;\r\n  setShowImageModal: (show: boolean) => void;\r\n  setShowFileActionMenu: (show: boolean) => void;\r\n  setClipboard: (node: MindMapNode | null) => void;\r\n\r\n  \r\n  setShowLinkListForNode: (nodeId: string | null) => void;\r\n  toggleLinkListForNode: (nodeId: string) => void;\r\n\r\n  closeAllPanels: () => void;\r\n  toggleSidebar: () => void;\r\n}",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/features/mindmap/types/store.types.ts",
-        "start": 116,
-        "end": 128,
-        "startLoc": {
-          "line": 116,
-          "column": 2,
-          "position": 1179
-        },
-        "endLoc": {
-          "line": 128,
-          "column": 2,
-          "position": 1329
-        }
-      },
-      "secondFile": {
-        "name": "src/app/features/mindmap/store/slices/types.ts",
-        "start": 141,
-        "end": 153,
-        "startLoc": {
-          "line": 141,
-          "column": 7,
-          "position": 1810
-        },
-        "endLoc": {
-          "line": 153,
-          "column": 2,
-          "position": 1960
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 28,
-      "fragment": ") => void;\r\n\r\n  \r\n  addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) => void;\r\n  updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) => void;\r\n  deleteNodeLink: (nodeId: string, linkId: string) => void;\r\n\r\n  \r\n  findNode: (nodeId: string) => MindMapNode | null;\r\n  getChildNodes: (nodeId: string) => MindMapNode[];\r\n\r\n  \r\n  selectNode: (nodeId: string | null) => void;\r\n  startEditing: (nodeId: string) => void;\r\n  startEditingWithCursorAtEnd: (nodeId: string) => void;\r\n  startEditingWithCursorAtStart: (nodeId: string) => void;\r\n  finishEditing: (nodeId: string, text: string) => void;\r\n  cancelEditing: () => void;\r\n  setEditText: (text: string) => void;\r\n\r\n  \r\n  undo: () => void;\r\n  redo: () => void;\r\n  canUndo: () => boolean;\r\n  canRedo: () => boolean;\r\n\r\n  \r\n  updateNormalizedData",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/features/mindmap/types/store.types.ts",
-        "start": 142,
-        "end": 169,
-        "startLoc": {
-          "line": 142,
-          "column": 7,
-          "position": 1565
-        },
-        "endLoc": {
-          "line": 169,
-          "column": 21,
-          "position": 1892
-        }
-      },
-      "secondFile": {
-        "name": "src/app/features/mindmap/store/slices/types.ts",
-        "start": 84,
-        "end": 109,
-        "startLoc": {
-          "line": 84,
-          "column": 8,
-          "position": 1026
-        },
-        "endLoc": {
-          "line": 109,
-          "column": 15,
-          "position": 1349
-        }
-      }
-    },
-    {
-      "format": "typescript",
       "lines": 12,
       "fragment": ", () => {\r\n      const grandchild = createNode({ id: 'grandchild-1' });\r\n      const child = createNode({\r\n        id: 'child-1',\r\n        children: [grandchild],\r\n      });\r\n      const root = createNode({\r\n        id: 'root-1',\r\n        children: [child],\r\n      });\r\n\r\n      const result = findParent",
       "tokens": 0,
@@ -3586,6 +6970,150 @@
       }
     },
     {
+      "format": "javascript",
+      "lines": 94,
+      "fragment": "={14} />,\r\n          onClick: () => handleCreateMap(targetPath)\r\n        },\r\n        {\r\n          label: 'フォルダを作成',\r\n          icon: <Folder size={14} />,\r\n          onClick: () => handleCreateFolder(targetPath)\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: 'フォルダを展開',\r\n          icon: <FolderOpen size={14} />,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              toggleCategoryCollapse(targetPath);\r\n            }\r\n          }\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: 'フォルダ名を変更',\r\n          icon: <Edit3 size={14} />,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              handleRenameFolder(targetPath);\r\n            }\r\n          }\r\n        },\r\n        {\r\n          label: 'フォルダを削除',\r\n          icon: <Trash2 size={14} />,\r\n          disabled: !canDelete,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              handleDeleteFolder(targetPath);\r\n            }\r\n          }\r\n        }\r\n      ];\r\n    } else if (targetType === 'map' && mapData) {\r\n      const mapCategory = mapData.category || '';\r\n      return [\r\n        {\r\n          label: '同じフォルダにマップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(mapCategory)\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: 'マップを開く',\r\n          icon: <BookOpen size={14} />,\r\n          onClick: () => onSelectMap(mapData.mapIdentifier)\r\n        },\r\n        {\r\n          label: '名前を変更',\r\n          icon: <Edit3 size={14} />,\r\n          onClick: () => handleStartRename(mapData.mapIdentifier, mapData.title)\r\n        },\r\n        {\r\n          label: 'マップを削除',\r\n          icon: <Trash2 size={14} />,\r\n          onClick: () => {\r\n            // eslint-disable-next-line no-alert\r\n            if (window.confirm(`「${mapData.title}」を削除しますか？`)) {\r\n              onDeleteMap(mapData.mapIdentifier);\r\n            }\r\n          }\r\n        }\r\n      ];\r\n    } else if (targetType === 'empty') {\r\n      return [\r\n        {\r\n          label: 'マップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(null)\r\n        },\r\n        {\r\n          label: 'フォルダを作成',\r\n          icon: <Folder size={14} />,\r\n          onClick: () => handleCreateFolder(null)\r\n        }\r\n      ];\r\n    } else if (targetType === 'explorer-folder') {\r\n      const isRoot = targetPath === '';\r\n      const isCollapsed = !!(targetPath && collapsedCategories.has(targetPath));\r\n      const baseItems: ContextMenuItem[] = [\r\n        {\r\n          label: 'マップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(targetPath)\r\n        },\r\n        {\r\n          label: 'フォルダを作成',\r\n          icon: <Folder size={14",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/hooks/useSidebar.tsx",
+        "start": 418,
+        "end": 511,
+        "startLoc": {
+          "line": 418,
+          "column": 5,
+          "position": 4625
+        },
+        "endLoc": {
+          "line": 511,
+          "column": 3,
+          "position": 5531
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/overlay/MindMapContextMenuOverlay.tsx",
+        "start": 61,
+        "end": 179,
+        "startLoc": {
+          "line": 61,
+          "column": 5,
+          "position": 663
+        },
+        "endLoc": {
+          "line": 179,
+          "column": 8,
+          "position": 1744
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 175,
+      "fragment": "={14} />,\r\n          onClick: () => handleCreateFolder(targetPath)\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: 'フォルダを展開',\r\n          icon: <FolderOpen size={14} />,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              toggleCategoryCollapse(targetPath);\r\n            }\r\n          }\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: 'フォルダ名を変更',\r\n          icon: <Edit3 size={14} />,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              handleRenameFolder(targetPath);\r\n            }\r\n          }\r\n        },\r\n        {\r\n          label: 'フォルダを削除',\r\n          icon: <Trash2 size={14} />,\r\n          disabled: !canDelete,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              handleDeleteFolder(targetPath);\r\n            }\r\n          }\r\n        }\r\n      ];\r\n    } else if (targetType === 'map' && mapData) {\r\n      const mapCategory = mapData.category || '';\r\n      return [\r\n        {\r\n          label: '同じフォルダにマップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(mapCategory)\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: 'マップを開く',\r\n          icon: <BookOpen size={14} />,\r\n          onClick: () => onSelectMap(mapData.mapIdentifier)\r\n        },\r\n        {\r\n          label: '名前を変更',\r\n          icon: <Edit3 size={14} />,\r\n          onClick: () => handleStartRename(mapData.mapIdentifier, mapData.title)\r\n        },\r\n        {\r\n          label: 'マップを削除',\r\n          icon: <Trash2 size={14} />,\r\n          onClick: () => {\r\n            // eslint-disable-next-line no-alert\r\n            if (window.confirm(`「${mapData.title}」を削除しますか？`)) {\r\n              onDeleteMap(mapData.mapIdentifier);\r\n            }\r\n          }\r\n        }\r\n      ];\r\n    } else if (targetType === 'empty') {\r\n      return [\r\n        {\r\n          label: 'マップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(null)\r\n        },\r\n        {\r\n          label: 'フォルダを作成',\r\n          icon: <Folder size={14} />,\r\n          onClick: () => handleCreateFolder(null)\r\n        }\r\n      ];\r\n    } else if (targetType === 'explorer-folder') {\r\n      const isRoot = targetPath === '';\r\n      const isCollapsed = !!(targetPath && collapsedCategories.has(targetPath));\r\n      const baseItems: ContextMenuItem[] = [\r\n        {\r\n          label: 'マップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(targetPath)\r\n        },\r\n        {\r\n          label: 'フォルダを作成',\r\n          icon: <Folder size={14} />,\r\n          onClick: () => handleCreateFolder(targetPath)\r\n        }\r\n      ];\r\n      const mutatingItems: ContextMenuItem[] = isRoot ? [] : [\r\n        { separator: true },\r\n        {\r\n          label: '名前を変更',\r\n          icon: <Edit3 size={14} />,\r\n          onClick: () => {\r\n            if (!targetPath) return;\r\n            const currentName = targetPath.split('/').pop() || targetPath;\r\n            const newName = window.prompt('新しいフォルダ名', currentName);\r\n            if (newName && newName.trim()) {\r\n              const parent = targetPath.split('/').slice(0, -1).join('/');\r\n              const newPath = parent ? `${parent}/${newName.trim()}` : newName.trim();\r\n              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim(), newPath } }));\r\n            }\r\n          }\r\n        },\r\n        {\r\n          label: '削除',\r\n          icon: <Trash2 size={14} />,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              const displayPath = extractCategory(targetPath) || targetPath;\r\n              if (window.confirm(`フォルダ「${displayPath}」を削除しますか？（中身も削除されます）`)) {\r\n                window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));\r\n              }\r\n            }\r\n          }\r\n        }\r\n      ];\r\n      const rest: ContextMenuItem[] = [\r\n        { separator: true },\r\n        {\r\n          label: isCollapsed ? '展開' : '折りたたみ',\r\n          icon: isCollapsed ? <FolderOpen size={14} /> : <Folder size={14} />,\r\n          onClick: () => targetPath && toggleCategoryCollapse(targetPath)\r\n        },\r\n        { separator: true },\r\n        {\r\n          label: '再読み込み',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'))\r\n        }\r\n      ];\r\n      return [...baseItems, ...mutatingItems, ...rest];\r\n    } else if (targetType === 'explorer-file') {\r\n      return [\r\n        {\r\n          label: '開く',\r\n          icon: <BookOpen size={14} />,\r\n          onClick: () => {\r\n            if (!targetPath) return;\r\n            if (/\\.md$/i.test(targetPath)) {\r\n              const wsRe = /^\\/((ws_[^/]+|cloud))\\//;\r\n              const wsMatch = wsRe.exec(targetPath);\r\n              const workspaceId = wsMatch ? wsMatch[1] : undefined;\r\n              const mapId = targetPath.replace(/^\\/(ws_[^/]+|cloud)\\//, '').replace(/\\.md$/i, '');\r\n              window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } }));\r\n              return;\r\n            }\r\n            // If image file, preview via global event\r\n            if (/\\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(targetPath)) {\r\n              window.dispatchEvent(new CustomEvent('mindoodle:openImageFile', { detail: { path: targetPath } }));\r\n            }\r\n          }\r\n        },\r\n        {\r\n          label: '名前を変更',\r\n          icon: <Edit3 size={14} />,\r\n          onClick: () => {\r\n            if (!targetPath) return;\r\n            const fileName = targetPath.split('/').pop() || targetPath;\r\n            const baseName = fileName.replace(/\\.md$/i, '');\r\n            const newName = window.prompt('新しいファイル名（拡張子なし）', baseName);\r\n            if (newName && newName.trim()) {\r\n              const parent = targetPath.split('/').slice(0, -1).join('/');\r\n              const newPath = `${parent}/${newName.trim()}.md`;\r\n              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim(), newPath } }));\r\n            }\r\n          }\r\n        },\r\n        {\r\n          label: '削除',\r\n          icon: <Trash2 size={14}",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/hooks/useSidebar.tsx",
+        "start": 423,
+        "end": 597,
+        "startLoc": {
+          "line": 423,
+          "column": 5,
+          "position": 4674
+        },
+        "endLoc": {
+          "line": 597,
+          "column": 2,
+          "position": 6711
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/components/layout/overlay/MindMapContextMenuOverlay.tsx",
+        "start": 61,
+        "end": 511,
+        "startLoc": {
+          "line": 61,
+          "column": 5,
+          "position": 663
+        },
+        "endLoc": {
+          "line": 511,
+          "column": 2,
+          "position": 5532
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": "[\r\n        {\r\n          label: 'マップを作成',\r\n          icon: <Workflow size={14} />,\r\n          onClick: () => handleCreateMap(targetPath)\r\n        },\r\n        {\r\n          label: 'フォルダを作成',\r\n          icon: <Folder size={14} />,\r\n          onClick: () => handleCreateFolder(targetPath)\r\n        }\r\n      ]",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/hooks/useSidebar.tsx",
+        "start": 503,
+        "end": 514,
+        "startLoc": {
+          "line": 503,
+          "column": 2,
+          "position": 5457
+        },
+        "endLoc": {
+          "line": 514,
+          "column": 2,
+          "position": 5558
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/hooks/useSidebar.tsx",
+        "start": 415,
+        "end": 425,
+        "startLoc": {
+          "line": 415,
+          "column": 2,
+          "position": 4602
+        },
+        "endLoc": {
+          "line": 425,
+          "column": 2,
+          "position": 4700
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 11,
+      "fragment": ";\r\n              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim(), newPath } }));\r\n            }\r\n          }\r\n        },\r\n        {\r\n          label: '削除',\r\n          icon: <Trash2 size={14} />,\r\n          onClick: () => {\r\n            if (targetPath) {\r\n              const fileName",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/mindmap/hooks/useSidebar.tsx",
+        "start": 590,
+        "end": 600,
+        "startLoc": {
+          "line": 590,
+          "column": 5,
+          "position": 6627
+        },
+        "endLoc": {
+          "line": 600,
+          "column": 9,
+          "position": 6742
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/mindmap/hooks/useSidebar.tsx",
+        "start": 526,
+        "end": 536,
+        "startLoc": {
+          "line": 526,
+          "column": 2,
+          "position": 5774
+        },
+        "endLoc": {
+          "line": 536,
+          "column": 12,
+          "position": 5889
+        }
+      }
+    },
+    {
       "format": "typescript",
       "lines": 13,
       "fragment": ");\r\n    }\r\n\r\n    mouseDownPosRef.current = null;\r\n    dragStartedRef.current = false;\r\n    setDragState({\r\n      isDragging: false,\r\n      draggedItem: null,\r\n      startPosition: null,\r\n      currentPosition: null,\r\n      dragOffset: { x: 0, y: 0 }\r\n    });\r\n  }, [dragState.draggedItem, onDragCancel",
@@ -3690,6 +7218,114 @@
           "line": 219,
           "column": 3,
           "position": 2783
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 14,
+      "fragment": ").openCursor?.();\n        if (!cursorReq) { resolve([]); return; }\n        cursorReq.onsuccess = (ev: Event) => {\n          const cursor = (ev.target as IDBRequest)?.result;\n          if (cursor) {\n            list.push({ id: String(cursor.key), rec: cursor.value });\n            cursor.continue();\n          } else {\n            resolve(list);\n          }\n        };\n        cursorReq.onerror = () => reject(cursorReq.error);\n      });\n      db",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/core/storage/adapters/MarkdownFolderAdapter.ts",
+        "start": 517,
+        "end": 530,
+        "startLoc": {
+          "line": 517,
+          "column": 13,
+          "position": 6984
+        },
+        "endLoc": {
+          "line": 530,
+          "column": 3,
+          "position": 7147
+        }
+      },
+      "secondFile": {
+        "name": "src/app/core/storage/adapters/WorkspaceIndexedDB.ts",
+        "start": 87,
+        "end": 106,
+        "startLoc": {
+          "line": 87,
+          "column": 17,
+          "position": 910
+        },
+        "endLoc": {
+          "line": 106,
+          "column": 4,
+          "position": 1098
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 12,
+      "fragment": "buildExplorerItems(\r\n  dir: DirHandle,\r\n  basePath: string\r\n): Promise<ExplorerItem[]> {\r\n  const items: ExplorerItem[] = [];\r\n  const valuesFn = (dir as DirHandleWithIterators).values;\r\n\r\n  const processEntries = async (iterator: AsyncIterable<FileSystemHandle>) => {\r\n    for await (const entry of iterator) {\r\n      if (entry.kind === 'directory') {\r\n        const path = basePath ? `${basePath}/${entry.name}` : entry.name;\r\n        const subHandle",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/core/storage/adapters/ExplorerTreeBuilder.ts",
+        "start": 83,
+        "end": 94,
+        "startLoc": {
+          "line": 83,
+          "column": 2,
+          "position": 652
+        },
+        "endLoc": {
+          "line": 94,
+          "column": 10,
+          "position": 814
+        }
+      },
+      "secondFile": {
+        "name": "src/app/core/storage/adapters/MarkdownFolderAdapter.ts",
+        "start": 652,
+        "end": 660,
+        "startLoc": {
+          "line": 652,
+          "column": 2,
+          "position": 8849
+        },
+        "endLoc": {
+          "line": 660,
+          "column": 9,
+          "position": 8996
+        }
+      }
+    },
+    {
+      "format": "typescript",
+      "lines": 14,
+      "fragment": "(\r\n  dir: DirHandle\r\n): AsyncGenerator<FileSystemDirectoryHandle | FileSystemFileHandle, void, unknown> {\r\n  const entriesFn = (dir as DirHandleWithIterators).entries;\r\n  if (typeof entriesFn === 'function') {\r\n    for await (const [, entry] of entriesFn.call(dir)) {\r\n      yield entry as FileSystemDirectoryHandle | FileSystemFileHandle;\r\n    }\r\n  }\r\n}\r\n\r\n/**\r\n * Count markdown files in a directory (recursive)\r\n */",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/core/storage/adapters/ExplorerTreeBuilder.ts",
+        "start": 131,
+        "end": 144,
+        "startLoc": {
+          "line": 131,
+          "column": 24,
+          "position": 1157
+        },
+        "endLoc": {
+          "line": 144,
+          "column": 4,
+          "position": 1278
+        }
+      },
+      "secondFile": {
+        "name": "src/app/core/storage/adapters/MarkdownFolderAdapter.ts",
+        "start": 611,
+        "end": 620,
+        "startLoc": {
+          "line": 611,
+          "column": 15,
+          "position": 8263
+        },
+        "endLoc": {
+          "line": 620,
+          "column": 6,
+          "position": 8372
         }
       }
     },
@@ -3870,6 +7506,114 @@
           "line": 151,
           "column": 15,
           "position": 1935
+        }
+      }
+    },
+    {
+      "format": "javascript",
+      "lines": 30,
+      "fragment": "}\r\n              style={{\r\n                width: '100%',\r\n                padding: '12px 16px',\r\n                border: '1px solid #d1d5db',\r\n                borderRadius: '8px',\r\n                backgroundColor: 'white',\r\n                color: '#1f2937',\r\n                fontSize: '16px',\r\n                outline: 'none',\r\n                transition: 'all 0.2s ease',\r\n                opacity: isLoading ? 0.5 : 1,\r\n                cursor: isLoading ? 'not-allowed' : 'text'\r\n              }}\r\n              placeholder=\"8文字以上\"\r\n              onFocus={(e) => {\r\n                e.target.style.borderColor = '#3b82f6';\r\n                e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';\r\n              }}\r\n              onBlur={(e) => {\r\n                e.target.style.borderColor = '#d1d5db';\r\n                e.target.style.boxShadow = 'none';\r\n              }}\r\n            />\r\n          </div>\r\n\r\n          {!isLogin && (\r\n            <div>\r\n              <label htmlFor=\"confirmPassword\" style={{\r\n                display",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/shared/components/AuthModal.tsx",
+        "start": 217,
+        "end": 246,
+        "startLoc": {
+          "line": 217,
+          "column": 2,
+          "position": 1703
+        },
+        "endLoc": {
+          "line": 246,
+          "column": 24,
+          "position": 1898
+        }
+      },
+      "secondFile": {
+        "name": "src/app/shared/components/AuthModal.tsx",
+        "start": 174,
+        "end": 202,
+        "startLoc": {
+          "line": 174,
+          "column": 10,
+          "position": 1425
+        },
+        "endLoc": {
+          "line": 202,
+          "column": 22,
+          "position": 1610
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 12,
+      "fragment": ";\r\n      \r\n      let coreText = text;\r\n      layers.forEach(layer => {\r\n        const markers = { bold: '**', italic: '*', strikethrough: '~~' };\r\n        const marker = markers[layer];\r\n        if (coreText.startsWith(marker) && coreText.endsWith(marker)) {\r\n          coreText = coreText.slice(marker.length, -marker.length);\r\n        }\r\n      });\r\n      const newText = rebuildWithLayers(coreText, newLayers);\r\n      return { newText, newCursorPos: newText",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/markdown/parseInlineMarkdown.tsx",
+        "start": 209,
+        "end": 220,
+        "startLoc": {
+          "line": 209,
+          "column": 2,
+          "position": 2159
+        },
+        "endLoc": {
+          "line": 220,
+          "column": 8,
+          "position": 2315
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/markdown/parseInlineMarkdown.tsx",
+        "start": 195,
+        "end": 206,
+        "startLoc": {
+          "line": 195,
+          "column": 2,
+          "position": 1973
+        },
+        "endLoc": {
+          "line": 206,
+          "column": 2,
+          "position": 2129
+        }
+      }
+    },
+    {
+      "format": "tsx",
+      "lines": 16,
+      "fragment": ";\r\n    let coreText = selected;\r\n    layers.forEach(layer => {\r\n      const markers = { bold: '**', italic: '*', strikethrough: '~~' };\r\n      const marker = markers[layer];\r\n      if (coreText.startsWith(marker) && coreText.endsWith(marker)) {\r\n        coreText = coreText.slice(marker.length, -marker.length);\r\n      }\r\n    });\r\n    const formatted = rebuildWithLayers(coreText, newLayers);\r\n    return {\r\n      newText: before + formatted + after,\r\n      newCursorPos: selectionStart + formatted.length\r\n    };\r\n  }\r\n}",
+      "tokens": 0,
+      "firstFile": {
+        "name": "src/app/features/markdown/parseInlineMarkdown.tsx",
+        "start": 250,
+        "end": 265,
+        "startLoc": {
+          "line": 250,
+          "column": 2,
+          "position": 2663
+        },
+        "endLoc": {
+          "line": 265,
+          "column": 2,
+          "position": 2850
+        }
+      },
+      "secondFile": {
+        "name": "src/app/features/markdown/parseInlineMarkdown.tsx",
+        "start": 234,
+        "end": 248,
+        "startLoc": {
+          "line": 234,
+          "column": 2,
+          "position": 2456
+        },
+        "endLoc": {
+          "line": 248,
+          "column": 5,
+          "position": 2642
         }
       }
     },
@@ -4271,78 +8015,6 @@
     },
     {
       "format": "typescript",
-      "lines": 12,
-      "fragment": "{\r\n  \r\n  updateNode: (id: string, updates: Partial<MindMapNode>) => void;\r\n  deleteNode: (id: string) => void;\r\n  findNodeById: (nodeId: string) => MindMapNode | null;\r\n\r\n  \r\n  centerNodeInView?: (nodeId: string, animate?: boolean) => void;\r\n  navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;\r\n\r\n  \r\n  startEdit",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 139,
-        "end": 150,
-        "startLoc": {
-          "line": 139,
-          "column": 2,
-          "position": 1452
-        },
-        "endLoc": {
-          "line": 150,
-          "column": 10,
-          "position": 1584
-        }
-      },
-      "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 33,
-        "end": 42,
-        "startLoc": {
-          "line": 33,
-          "column": 2,
-          "position": 294
-        },
-        "endLoc": {
-          "line": 42,
-          "column": 11,
-          "position": 422
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 28,
-      "fragment": ";\r\n\r\n  \r\n  copyNode: (nodeId: string) => void;\r\n  pasteNode: (parentId: string) => Promise<void>;\r\n  pasteImageFromClipboard: (nodeId: string, file?: File) => Promise<void>;\r\n\r\n  \r\n  undo: () => void;\r\n  redo: () => void;\r\n  canUndo: boolean;\r\n  canRedo: boolean;\r\n\r\n  \r\n  showKeyboardHelper: boolean;\r\n  setShowKeyboardHelper: (show: boolean) => void;\r\n  showMapList: boolean;\r\n  setShowMapList: (show: boolean) => void;\r\n  showLocalStorage: boolean;\r\n  setShowLocalStorage: (show: boolean) => void;\r\n  showTutorial: boolean;\r\n  setShowTutorial: (show: boolean) => void;\r\n\r\n  \r\n  closeAttachmentAndLinkLists: () => void;\r\n\r\n  \r\n  onMarkdownNodeType?: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list')",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 156,
-        "end": 183,
-        "startLoc": {
-          "line": 156,
-          "column": 2,
-          "position": 1711
-        },
-        "endLoc": {
-          "line": 183,
-          "column": 2,
-          "position": 1977
-        }
-      },
-      "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 53,
-        "end": 80,
-        "startLoc": {
-          "line": 53,
-          "column": 5,
-          "position": 684
-        },
-        "endLoc": {
-          "line": 80,
-          "column": 2,
-          "position": 950
-        }
-      }
-    },
-    {
-      "format": "typescript",
       "lines": 11,
       "fragment": "): { success: true; data: NormalizedData } | { success: false; reason: string } {\n  if (normalizedData.rootNodeIds.includes(nodeId)) {\n    return { success: false, reason: 'ルートノードは移動できません' };\n  }\n\n  const oldParentId = normalizedData.parentMap[nodeId];\n  if (!oldParentId) {\n    return { success: false, reason: `ノードの親が見つかりません: ${nodeId}` };\n  }\n\n  if (!normalizedData.nodes[targetNodeId",
       "tokens": 0,
@@ -4487,78 +8159,6 @@
     },
     {
       "format": "typescript",
-      "lines": 30,
-      "fragment": "{\n  selectedNodeId: string | null;\n  editingNodeId: string | null;\n  vim?: VimModeHook;\n  handlers: {\n    \n    updateNode: (id: string, updates: Partial<MindMapNode>) => void;\n    deleteNode: (id: string) => void;\n    findNodeById: (nodeId: string) => MindMapNode | null;\n\n    \n    centerNodeInView?: (nodeId: string, animate?: boolean) => void;\n    navigateToDirection: (direction: 'up' | 'down' | 'left' | 'right') => void;\n    selectNode: (nodeId: string | null) => void;\n    setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;\n\n    \n    startEdit: (nodeId: string) => void;\n    startEditWithCursorAtStart: (nodeId: string) => void;\n    startEditWithCursorAtEnd: (nodeId: string) => void;\n\n    \n    addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;\n    addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;\n    changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;\n\n    \n    copyNode: (nodeId: string) => void;\n    pasteNode: (parentId: string) => Promise<void>;\n    pasteImageFromClipboard: (nodeId: string)",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/commands/system/useCommands.ts",
-        "start": 18,
-        "end": 47,
-        "startLoc": {
-          "line": 18,
-          "column": 2,
-          "position": 155
-        },
-        "endLoc": {
-          "line": 47,
-          "column": 2,
-          "position": 614
-        }
-      },
-      "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 28,
-        "end": 58,
-        "startLoc": {
-          "line": 28,
-          "column": 2,
-          "position": 252
-        },
-        "endLoc": {
-          "line": 58,
-          "column": 2,
-          "position": 737
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 23,
-      "fragment": ") => Promise<void>;\n\n    \n    undo: () => void;\n    redo: () => void;\n    canUndo: boolean;\n    canRedo: boolean;\n\n    \n    showKeyboardHelper: boolean;\n    setShowKeyboardHelper: (show: boolean) => void;\n    showMapList: boolean;\n    setShowMapList: (show: boolean) => void;\n    showLocalStorage: boolean;\n    setShowLocalStorage: (show: boolean) => void;\n    showTutorial: boolean;\n    setShowTutorial: (show: boolean) => void;\n\n    \n    closeAttachmentAndLinkLists: () => void;\n\n\n    onMarkdownNodeType?: (nodeId: string, newType: MarkdownNodeType",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/commands/system/useCommands.ts",
-        "start": 47,
-        "end": 69,
-        "startLoc": {
-          "line": 47,
-          "column": 7,
-          "position": 614
-        },
-        "endLoc": {
-          "line": 69,
-          "column": 17,
-          "position": 792
-        }
-      },
-      "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 58,
-        "end": 80,
-        "startLoc": {
-          "line": 58,
-          "column": 5,
-          "position": 744
-        },
-        "endLoc": {
-          "line": 80,
-          "column": 10,
-          "position": 941
-        }
-      }
-    },
-    {
-      "format": "typescript",
       "lines": 14,
       "fragment": ") => void;\n    selectNode: (nodeId: string | null) => void;\n    setPan?: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;\n\n    \n    startEdit: (nodeId: string) => void;\n    startEditWithCursorAtStart: (nodeId: string) => void;\n    startEditWithCursorAtEnd: (nodeId: string) => void;\n\n    \n    addChildNode: (parentId: string, text?: string, startEditing?: boolean) => Promise<string | null>;\n    addSiblingNode: (nodeId: string, text?: string, startEditing?: boolean, insertAfter?: boolean) => Promise<string | null>;\n    changeSiblingOrder?: (draggedNodeId: string, targetNodeId: string, insertBefore?: boolean) => void;\n    moveNode",
       "tokens": 0,
@@ -4578,34 +8178,34 @@
         }
       },
       "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 41,
-        "end": 56,
+        "name": "src/app/commands/system/useCommands.ts",
+        "start": 30,
+        "end": 45,
         "startLoc": {
-          "line": 41,
+          "line": 30,
           "column": 8,
-          "position": 413
+          "position": 304
         },
         "endLoc": {
-          "line": 56,
+          "line": 45,
           "column": 9,
-          "position": 692
+          "position": 571
         }
       }
     },
     {
       "format": "typescript",
-      "lines": 21,
-      "fragment": ";\n    pasteNode: (parentId: string) => Promise<void>;\n    pasteImageFromClipboard: (nodeId: string, file?: File) => Promise<void>;\n\n    \n    undo: () => void;\n    redo: () => void;\n    canUndo: boolean;\n    canRedo: boolean;\n\n    \n    showKeyboardHelper: boolean;\n    setShowKeyboardHelper: (show: boolean) => void;\n    showMapList: boolean;\n    setShowMapList: (show: boolean) => void;\n    showLocalStorage: boolean;\n    setShowLocalStorage: (show: boolean) => void;\n    showTutorial: boolean;\n    setShowTutorial: (show: boolean) => void;\n    \n    showNotesPanel",
+      "lines": 19,
+      "fragment": ") => Promise<void>;\n\n    \n    undo: () => void;\n    redo: () => void;\n    canUndo: boolean;\n    canRedo: boolean;\n\n    \n    showKeyboardHelper: boolean;\n    setShowKeyboardHelper: (show: boolean) => void;\n    showMapList: boolean;\n    setShowMapList: (show: boolean) => void;\n    showLocalStorage: boolean;\n    setShowLocalStorage: (show: boolean) => void;\n    showTutorial: boolean;\n    setShowTutorial: (show: boolean) => void;\n    \n    showNotesPanel",
       "tokens": 0,
       "firstFile": {
         "name": "src/app/commands/system/types.ts",
-        "start": 70,
+        "start": 72,
         "end": 90,
         "startLoc": {
-          "line": 70,
-          "column": 2,
-          "position": 845
+          "line": 72,
+          "column": 5,
+          "position": 882
         },
         "endLoc": {
           "line": 90,
@@ -4614,18 +8214,18 @@
         }
       },
       "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 56,
-        "end": 77,
+        "name": "src/app/commands/system/useCommands.ts",
+        "start": 47,
+        "end": 66,
         "startLoc": {
-          "line": 56,
-          "column": 5,
-          "position": 705
+          "line": 47,
+          "column": 7,
+          "position": 614
         },
         "endLoc": {
-          "line": 77,
+          "line": 66,
           "column": 28,
-          "position": 910
+          "position": 764
         }
       }
     },
@@ -4662,78 +8262,6 @@
           "line": 77,
           "column": 18,
           "position": 861
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 14,
-      "fragment": ", options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;\n\n    \n    switchToNextMap?: () => void;\n    switchToPrevMap?: () => void;\n  };\n}\n\n\nexport interface CommandResult {\n  success: boolean;\n  message?: string;\n  error?: string;\n  data",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/commands/system/types.ts",
-        "start": 109,
-        "end": 122,
-        "startLoc": {
-          "line": 109,
-          "column": 17,
-          "position": 1199
-        },
-        "endLoc": {
-          "line": 122,
-          "column": 5,
-          "position": 1297
-        }
-      },
-      "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 80,
-        "end": 93,
-        "startLoc": {
-          "line": 80,
-          "column": 15,
-          "position": 950
-        },
-        "endLoc": {
-          "line": 93,
-          "column": 2,
-          "position": 1059
-        }
-      }
-    },
-    {
-      "format": "typescript",
-      "lines": 27,
-      "fragment": ";  \n}\n\n\nexport interface ParsedCommand {\n  name: string;\n  args: ArgsMap;\n  rawInput: string;\n}\n\n\nexport interface ParseResult {\n  success: boolean;\n  command?: ParsedCommand;\n  error?: string;\n  suggestions?: string[];\n}\n\n\nexport interface CommandRegistry {\n  register: (command: Command) => void;\n  unregister: (name: string) => void;\n  get: (name: string) => Command | undefined;\n  getAll: () => Command[];\n  getByCategory: (category: string) => Command[];\n  search: (query: string) => Command[];\n  execute",
-      "tokens": 0,
-      "firstFile": {
-        "name": "src/app/commands/system/types.ts",
-        "start": 138,
-        "end": 164,
-        "startLoc": {
-          "line": 138,
-          "column": 8,
-          "position": 1438
-        },
-        "endLoc": {
-          "line": 164,
-          "column": 8,
-          "position": 1634
-        }
-      },
-      "secondFile": {
-        "name": "src/app/core/types/commands.types.ts",
-        "start": 103,
-        "end": 129,
-        "startLoc": {
-          "line": 103,
-          "column": 14,
-          "position": 1176
-        },
-        "endLoc": {
-          "line": 129,
-          "column": 2,
-          "position": 1396
         }
       }
     },

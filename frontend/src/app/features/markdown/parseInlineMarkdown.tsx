@@ -179,89 +179,56 @@ function rebuildWithLayers(coreText: string, layers: Array<InlineFormat>): strin
 }
 
 
+function extractCoreText(text: string, layers: InlineFormat[]): string {
+  let coreText = text;
+  layers.forEach(layer => {
+    const markers = { bold: '**', italic: '*', strikethrough: '~~' };
+    const marker = markers[layer];
+    if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
+      coreText = coreText.slice(marker.length, -marker.length);
+    }
+  });
+  return coreText;
+}
+
+function applyFormattingToggle(
+  text: string,
+  layers: InlineFormat[],
+  format: InlineFormat,
+  hasFormat: boolean
+): string {
+  const newLayers = hasFormat ? layers.filter(l => l !== format) : [format, ...layers];
+  const coreText = extractCoreText(text, layers);
+  return rebuildWithLayers(coreText, newLayers);
+}
+
 export function toggleInlineMarkdown(
   text: string,
   format: InlineFormat,
   selectionStart?: number,
   selectionEnd?: number
 ): { newText: string; newCursorPos?: number } {
-  
+
   if (selectionStart === undefined || selectionEnd === undefined || selectionStart === selectionEnd) {
     const layers = detectFormattingLayers(text);
     const hasFormat = layers.includes(format);
-
-    if (hasFormat) {
-      
-      const newLayers = layers.filter(l => l !== format);
-      
-      let coreText = text;
-      layers.forEach(layer => {
-        const markers = { bold: '**', italic: '*', strikethrough: '~~' };
-        const marker = markers[layer];
-        if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
-          coreText = coreText.slice(marker.length, -marker.length);
-        }
-      });
-      const newText = rebuildWithLayers(coreText, newLayers);
-      return { newText, newCursorPos: 0 };
-    } else {
-      
-      const newLayers = [format, ...layers];
-      
-      let coreText = text;
-      layers.forEach(layer => {
-        const markers = { bold: '**', italic: '*', strikethrough: '~~' };
-        const marker = markers[layer];
-        if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
-          coreText = coreText.slice(marker.length, -marker.length);
-        }
-      });
-      const newText = rebuildWithLayers(coreText, newLayers);
-      return { newText, newCursorPos: newText.length };
-    }
+    const newText = applyFormattingToggle(text, layers, format, hasFormat);
+    return { newText, newCursorPos: hasFormat ? 0 : newText.length };
   }
 
-  
+
   const before = text.slice(0, selectionStart);
   const selected = text.slice(selectionStart, selectionEnd);
   const after = text.slice(selectionEnd);
 
   const layers = detectFormattingLayers(selected);
   const hasFormat = layers.includes(format);
+  const formatted = applyFormattingToggle(selected, layers, format, hasFormat);
 
-  if (hasFormat) {
-    
-    const newLayers = layers.filter(l => l !== format);
-    let coreText = selected;
-    layers.forEach(layer => {
-      const markers = { bold: '**', italic: '*', strikethrough: '~~' };
-      const marker = markers[layer];
-      if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
-        coreText = coreText.slice(marker.length, -marker.length);
-      }
-    });
-    const formatted = rebuildWithLayers(coreText, newLayers);
-    return {
-      newText: before + formatted + after,
-      newCursorPos: selectionStart + formatted.length
-    };
-  } else {
-    
-    const newLayers = [format, ...layers];
-    let coreText = selected;
-    layers.forEach(layer => {
-      const markers = { bold: '**', italic: '*', strikethrough: '~~' };
-      const marker = markers[layer];
-      if (coreText.startsWith(marker) && coreText.endsWith(marker)) {
-        coreText = coreText.slice(marker.length, -marker.length);
-      }
-    });
-    const formatted = rebuildWithLayers(coreText, newLayers);
-    return {
-      newText: before + formatted + after,
-      newCursorPos: selectionStart + formatted.length
-    };
-  }
+  return {
+    newText: before + formatted + after,
+    newCursorPos: selectionStart + formatted.length
+  };
 }
 
 

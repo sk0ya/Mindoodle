@@ -381,11 +381,11 @@ function validateNodeMovementWithPosition(
   return { isValid: true };
 }
 
-export function moveNormalizedNode(
+function validateNodeMoveability(
   normalizedData: NormalizedData,
   nodeId: string,
-  newParentId: string
-): { success: true; data: NormalizedData } | { success: false; reason: string } {
+  targetNodeId?: string
+): { success: true; oldParentId: string } | { success: false; reason: string } {
   if (normalizedData.rootNodeIds.includes(nodeId)) {
     return { success: false, reason: 'ルートノードは移動できません' };
   }
@@ -395,9 +395,23 @@ export function moveNormalizedNode(
     return { success: false, reason: `ノードの親が見つかりません: ${nodeId}` };
   }
 
-  if (!normalizedData.nodes[newParentId]) {
-    return { success: false, reason: `移動先のノードが見つかりません: ${newParentId}` };
+  if (targetNodeId && !normalizedData.nodes[targetNodeId]) {
+    return { success: false, reason: `ターゲットノードが見つかりません: ${targetNodeId}` };
   }
+
+  return { success: true, oldParentId };
+}
+
+export function moveNormalizedNode(
+  normalizedData: NormalizedData,
+  nodeId: string,
+  newParentId: string
+): { success: true; data: NormalizedData } | { success: false; reason: string } {
+  const moveabilityCheck = validateNodeMoveability(normalizedData, nodeId, newParentId);
+  if (!moveabilityCheck.success) {
+    return moveabilityCheck;
+  }
+  const oldParentId = moveabilityCheck.oldParentId;
 
   
   const targetParent = normalizedData.nodes[newParentId];
@@ -457,18 +471,11 @@ export function moveNodeWithPositionNormalized(
   targetNodeId: string,
   position: 'before' | 'after' | 'child'
 ): { success: true; data: NormalizedData } | { success: false; reason: string } {
-  if (normalizedData.rootNodeIds.includes(nodeId)) {
-    return { success: false, reason: 'ルートノードは移動できません' };
+  const moveabilityCheck = validateNodeMoveability(normalizedData, nodeId, targetNodeId);
+  if (!moveabilityCheck.success) {
+    return moveabilityCheck;
   }
-
-  const oldParentId = normalizedData.parentMap[nodeId];
-  if (!oldParentId) {
-    return { success: false, reason: `ノードの親が見つかりません: ${nodeId}` };
-  }
-
-  if (!normalizedData.nodes[targetNodeId]) {
-    return { success: false, reason: `ターゲットノードが見つかりません: ${targetNodeId}` };
-  }
+  const oldParentId = moveabilityCheck.oldParentId;
 
   
   if (position === 'child') {

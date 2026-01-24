@@ -89,10 +89,6 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
   if (isMarkdownNode && onMarkdownNodeType) {
     const submenuItems: ContextMenuItem[] = [];
 
-    console.log('[ContextMenu] Markdown node detected:', {
-      type: markdownMeta?.type,
-      isCheckbox: markdownMeta?.isCheckbox
-    });
 
     // 見出しに変更
     if (markdownMeta?.type !== 'heading') {
@@ -131,15 +127,12 @@ const MindMapContextMenuOverlay: React.FC<Props> = ({
     }
 
     if (submenuItems.length > 0) {
-      console.log('[ContextMenu] Adding submenu with items:', submenuItems.length);
       items.push({ separator: true });
       items.push({
         icon: <FileType size={14} />,
         label: 'ノードの種類を変更',
         submenu: submenuItems,
       });
-    } else {
-      console.log('[ContextMenu] No submenu items to add');
     }
   }
 
