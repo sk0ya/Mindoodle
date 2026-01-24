@@ -8,6 +8,7 @@ import type { Command } from '../../commands/system/types';
 import type { MindMapData } from '@shared/types';
 import { getFolderName } from '../utils/folderUtils';
 import { logger } from '@shared/utils';
+import { useModalBehavior } from '../../features/mindmap/components/shared/useModalBehavior';
 
 interface StorageAdapter {
   loadAllMaps?: () => Promise<MindMapData[]>;
@@ -58,7 +59,9 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
   const searchInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  
+  const { handleBackdropClick } = useModalBehavior(isOpen, onClose);
+
+
   useEffect(() => {
     if (isOpen && !mapsLoading && loadedMaps.length === 0) {
       setMapsLoading(true);
@@ -272,13 +275,6 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
     }
   }, [selectedIndex]);
 
-  
-  const handleOverlayClick = useCallback((e: React.MouseEvent) => {
-    if (e.target === e.currentTarget) {
-      onClose();
-    }
-  }, [onClose]);
-
   if (!isOpen) return null;
 
   return (
@@ -296,7 +292,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
         zIndex: 1000,
         paddingTop: '20vh',
       }}
-      onClick={handleOverlayClick}
+      onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >

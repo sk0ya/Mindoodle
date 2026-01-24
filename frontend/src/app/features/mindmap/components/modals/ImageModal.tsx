@@ -3,6 +3,7 @@ import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FileAttachment } from '@shared/types';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
 import { useModalBehavior } from '../shared/useModalBehavior';
+import { formatFileSize } from '@shared/utils/fileSize';
 
 interface ImageModalProps {
   isOpen: boolean;
@@ -83,18 +84,6 @@ const ImageModal: React.FC<ImageModalProps> = ({
   const currentFileSize = getCurrentFileSize();
   const hasMultipleImages = files.length > 1;
 
-  // ファイルサイズのフォーマット関数（元の実装から）
-  const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 Bytes';
-
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-  };
-
-  
   useEffect(() => {
     if (currentImageUrl) {
       setLoading(true);

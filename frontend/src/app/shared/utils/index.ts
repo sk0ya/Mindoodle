@@ -1,6 +1,7 @@
 export * from './clipboard';
 export * from './env';
 export * from './eventUtils';
+export * from './fileSize';
 export * from './folderUtils';
 export * from './idGenerator';
 export * from './logger';

@@ -32,6 +32,16 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   const { settings, updateSetting } = useMindMapStore();
   const bottomOffset = showNodeNotePanel ? nodeNotePanelHeight + 24 : 24;
 
+  const handleBtnEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.currentTarget.style.transform = 'scale(1.05)';
+    e.currentTarget.style.backgroundColor = 'var(--hover-color)';
+  };
+
+  const handleBtnLeave = (e: React.MouseEvent<HTMLButtonElement>, defaultBg = 'var(--bg-secondary)') => {
+    e.currentTarget.style.transform = 'scale(1)';
+    e.currentTarget.style.backgroundColor = defaultBg;
+  };
+
   return (
     <div
       style={{ position: 'absolute', bottom: bottomOffset, left: 24, zIndex: 1000,
@@ -48,8 +58,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
                 <button
                   onClick={() => updateSetting('layoutType', type as 'mindmap' | 'tree')}
                   style={{ ...btnBase, backgroundColor: settings.layoutType === type ? 'var(--hover-color)' : 'var(--bg-secondary)', cursor: 'pointer' }}
-                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.backgroundColor = 'var(--hover-color)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; if (settings.layoutType !== type) e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; }}
+                  onMouseEnter={handleBtnEnter}
+                  onMouseLeave={e => handleBtnLeave(e, settings.layoutType === type ? 'var(--hover-color)' : 'var(--bg-secondary)')}
                 >
                   {type === 'mindmap' ? <Network size={18} /> : <GitBranch size={18} />}
                 </button>
@@ -65,8 +75,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
                 onClick={action}
                 disabled={!enabled}
                 style={{ ...btnBase, backgroundColor: 'var(--bg-secondary)', cursor: enabled ? 'pointer' : 'not-allowed', opacity: enabled ? 1 : 0.5 }}
-                onMouseEnter={e => enabled && (e.currentTarget.style.transform = 'scale(1.05)', e.currentTarget.style.backgroundColor = 'var(--hover-color)')}
-                onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)', e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')}
+                onMouseEnter={enabled ? handleBtnEnter : undefined}
+                onMouseLeave={e => handleBtnLeave(e)}
               >
                 <Icon size={18} />
               </button>
@@ -76,8 +86,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
             <button
               onClick={onZoomReset}
               style={{ ...btnBase, backgroundColor: 'var(--bg-secondary)', cursor: 'pointer', fontSize: 11, fontWeight: 600 }}
-              onMouseEnter={e => (e.currentTarget.style.transform = 'scale(1.05)', e.currentTarget.style.backgroundColor = 'var(--hover-color)')}
-              onMouseLeave={e => (e.currentTarget.style.transform = 'scale(1)', e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')}
+              onMouseEnter={handleBtnEnter}
+              onMouseLeave={e => handleBtnLeave(e)}
             >
               {Math.round(zoom * 100)}%
             </button>
@@ -86,8 +96,8 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
       )}
       <button
         style={{ ...btnBase, width: 56, height: 56, backgroundColor: 'var(--bg-secondary)', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)' }}
-        onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.05)'; e.currentTarget.style.backgroundColor = 'var(--hover-color)'; e.currentTarget.style.boxShadow = '0 6px 16px rgba(0, 0, 0, 0.25)'; }}
-        onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.backgroundColor = 'var(--bg-secondary)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.2)'; }}
+        onMouseEnter={handleBtnEnter}
+        onMouseLeave={e => handleBtnLeave(e)}
       >
         {isExpanded ? <X size={24} /> : <Menu size={24} />}
       </button>

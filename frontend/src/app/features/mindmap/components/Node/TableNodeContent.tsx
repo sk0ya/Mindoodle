@@ -32,6 +32,14 @@ export const TableNodeContent: React.FC<TableNodeContentProps> = ({
   const dataRows = parsed?.rows || [];
   const rows = headers || dataRows.length > 0 ? [headers, ...dataRows].filter(Boolean) : [['', ''], ['', '']];
 
+  const handleRowEnter = (e: React.MouseEvent<HTMLTableRowElement>) => {
+    e.currentTarget.style.background = '#f9fafb';
+  };
+
+  const handleRowLeave = (e: React.MouseEvent<HTMLTableRowElement>, isEven: boolean) => {
+    e.currentTarget.style.background = isEven ? 'white' : '#fcfcfd';
+  };
+
   return (
     <div
       style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}
@@ -57,15 +65,16 @@ export const TableNodeContent: React.FC<TableNodeContentProps> = ({
           <tbody>
             {(headers ? dataRows : rows).filter((row): row is string[] => !!row).map((row: string[], ri: number) => {
               const isLastRow = ri === (headers ? dataRows : rows).length - 1;
+              const isEven = ri % 2 === 0;
               return (
                 <tr
                   key={ri}
                   style={{ transition: 'background 0.15s ease' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.background = '#f9fafb'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.background = ri % 2 === 0 ? 'white' : '#fcfcfd'; }}
+                  onMouseEnter={handleRowEnter}
+                  onMouseLeave={e => handleRowLeave(e, isEven)}
                 >
                   {row.map((cell: string, ci: number) => (
-                    <td key={ci} style={getDataCellStyle(ri % 2 === 0, isLastRow, ci, row.length)}>
+                    <td key={ci} style={getDataCellStyle(isEven, isLastRow, ci, row.length)}>
                       {cell}
                     </td>
                   ))}

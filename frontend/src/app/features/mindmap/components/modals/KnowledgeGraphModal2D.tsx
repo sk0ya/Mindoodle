@@ -7,6 +7,7 @@ import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import { combineModalStyles } from '../shared/modalStyles';
+import { useModalBehavior } from '../shared/useModalBehavior';
 // storageAdapter no longer passed; use getMapMarkdown when needed
 // Note: Do not rely on global command registry here; directly dispatch events for robustness
 
@@ -43,7 +44,8 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   const hasRunInitialVectorization = useRef(false);
   const [effectiveWorkspaceId, setEffectiveWorkspaceId] = useState<string | null>(null);
 
-  
+  const { handleBackdropClick } = useModalBehavior(isOpen, onClose);
+
   const CANVAS_WIDTH = 800;
   const CANVAS_HEIGHT = 600;
 
@@ -638,11 +640,7 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="modal-overlay" onClick={(e) => {
-      if (e.target === e.currentTarget) {
-        onClose();
-      }
-    }}>
+    <div className="modal-overlay" onClick={handleBackdropClick}>
       <div className="modal-content knowledge-graph-modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Knowledge Graph</h2>

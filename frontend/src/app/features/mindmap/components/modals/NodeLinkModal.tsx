@@ -5,6 +5,7 @@ import type { ExplorerItem } from '@core/types';
 import { useLoadingState } from '@/app/shared/hooks';
 import { combineModalStyles } from '../shared/modalStyles';
 import { flattenRootNodesToOptions } from '../../utils/nodeTraversal';
+import { useModalBehavior } from '../shared/useModalBehavior';
 
 interface MapOption {
   mapIdentifier: { mapId: string; workspaceId: string };
@@ -47,7 +48,9 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   const explorerRef = useRef<HTMLDivElement | null>(null);
   const headingsRef = useRef<HTMLDivElement | null>(null);
   const [selectedFilePath, setSelectedFilePath] = useState<string>('');
-  
+
+  const { handleBackdropClick } = useModalBehavior(isOpen, onClose);
+
   // 選択されたマップのノード一覧
   const availableNodes = useCallback(() => {
     if (!selectedMapId) {
@@ -351,11 +354,7 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
   return (
     <div
       className="modal-overlay"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) {
-          onClose();
-        }
-      }}
+      onClick={handleBackdropClick}
       onKeyDown={handleKeyDown}
       tabIndex={-1}
     >
