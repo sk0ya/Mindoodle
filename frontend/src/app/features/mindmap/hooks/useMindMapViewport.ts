@@ -123,11 +123,13 @@ export function useMindMapViewport({
         '.mindmap-canvas-container svg g[data-node-id="' + selId + '"]'
       ));
 
-      // Enforce full visibility: no slack vertically; minimal slack horizontally to reduce jitter
-      const slackX = Math.max(20, Math.round(mapAreaRect.width * 0.03));
-      const slackY = 0;
+      // Enforce full visibility with sufficient margins for node borders, shadows, and visual elements
+      // Horizontal slack: enough to accommodate selection borders and any visual effects
+      const slackX = Math.max(40, Math.round(mapAreaRect.width * 0.04));
+      // Vertical slack: account for node shadows and selection indicators
+      const slackY = 16;
       // Nudge a bit more upward so text never peeks under the status bar
-      const bottomSafeGap = Math.max(12, Math.round(statusBarHeight * 0.35));
+      const bottomSafeGap = Math.max(20, Math.round(statusBarHeight * 0.5));
       const leftBound = mapAreaRect.left + slackX;
       const rightBound = mapAreaRect.left + mapAreaRect.width - slackX;
       const topBound = mapAreaRect.top + slackY;
@@ -155,39 +157,59 @@ export function useMindMapViewport({
         const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
         const isEditing = st.editingNodeId === selId;
         const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
-        const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
-        const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
+        // Keep node size in SVG coordinates (don't apply zoom yet)
+        const baseHalfW = (nodeSize?.width ?? 80) / 2;
+        const baseHalfH = (nodeSize?.height ?? 24) / 2;
 
-        const screenX = containerLeft + currentZoom * (targetNode.x + currentPan.x);
-        const screenY = containerTop + currentZoom * (targetNode.y + currentPan.y);
+        // Add safety margin to account for borders, shadows, and visual effects
+        // that aren't included in calculateNodeSize
+        const VISUAL_MARGIN = 12; // px margin for border, shadow, selection indicators
+        const halfW = baseHalfW + VISUAL_MARGIN / 2;
+        const halfH = baseHalfH + VISUAL_MARGIN / 2;
 
-        const isOutsideLeft = (screenX - halfW) < leftBound;
-        const isOutsideRight = (screenX + halfW) > rightBound;
-        const isOutsideTop = (screenY - halfH) < topBound;
-        const isOutsideBottom = (screenY + halfH) > bottomBound;
+        // Transform: screen = containerOffset + (nodeSvg + pan) * zoom
+        // Node center in SVG coordinates (based on actual node position, not adjusted size)
+        const nodeCenterX = targetNode.x + baseHalfW;
+        const nodeCenterY = targetNode.y + baseHalfH;
+
+        // Node center in screen coordinates
+        const screenCenterX = containerLeft + (nodeCenterX + currentPan.x) * currentZoom;
+        const screenCenterY = containerTop + (nodeCenterY + currentPan.y) * currentZoom;
+
+        // Node bounds in screen coordinates
+        const screenHalfW = halfW * currentZoom;
+        const screenHalfH = halfH * currentZoom;
+        const screenLeft = screenCenterX - screenHalfW;
+        const screenRight = screenCenterX + screenHalfW;
+        const screenTop = screenCenterY - screenHalfH;
+        const screenBottom = screenCenterY + screenHalfH;
+
+        const isOutsideLeft = screenLeft < leftBound;
+        const isOutsideRight = screenRight > rightBound;
+        const isOutsideTop = screenTop < topBound;
+        const isOutsideBottom = screenBottom > bottomBound;
 
         if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
-          let newPanX = currentPan.x;
-          let newPanY = currentPan.y;
+          let deltaX = 0;
+          let deltaY = 0;
 
           if (isOutsideLeft) {
-            const target = leftBound + halfW;
-            newPanX = ((target - containerLeft) / currentZoom) - targetNode.x;
+            deltaX = leftBound - screenLeft;
           } else if (isOutsideRight) {
-            const target = rightBound - halfW;
-            newPanX = ((target - containerLeft) / currentZoom) - targetNode.x;
+            deltaX = rightBound - screenRight;
           }
 
           if (isOutsideTop) {
-            const target = topBound + halfH;
-            newPanY = ((target - containerTop) / currentZoom) - targetNode.y;
+            deltaY = topBound - screenTop;
           } else if (isOutsideBottom) {
-            const target = bottomBound - halfH;
-            newPanY = ((target - containerTop) / currentZoom) - targetNode.y;
+            deltaY = bottomBound - screenBottom;
           }
 
           const setPanLocal = (st.setPan || setPan);
-          setPanLocal({ x: newPanX, y: newPanY });
+          setPanLocal({
+            x: currentPan.x + (deltaX / currentZoom),
+            y: currentPan.y + (deltaY / currentZoom)
+          });
         }
       }
     } catch {}
@@ -263,9 +285,11 @@ export function useMindMapViewport({
 
     if (isTopLeftMode) {
       // Align node's top-left to small margins
+      // targetX/Y should point to where we want the node center to be
       const targetX = rect.left + topLeftMargins.left + halfW * scale;
       const targetY = rect.top + topLeftMargins.top + halfH * scale;
-      setPan(computePan(nodeX, nodeY, targetX, targetY));
+      // Pass node center coordinates (not top-left)
+      setPan(computePan(nodeX + halfW, nodeY + halfH, targetX, targetY));
       return;
     }
 

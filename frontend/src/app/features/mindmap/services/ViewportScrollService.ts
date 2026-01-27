@@ -66,38 +66,60 @@ function calculateNewPan(
   node: MindMapNode,
   currentPan: { x: number; y: number },
   currentZoom: number,
+  baseHalfW: number,
+  baseHalfH: number,
   halfW: number,
   halfH: number,
   viewport: ViewportDimensions
 ): { x: number; y: number } {
-  const screenX = currentZoom * (node.x + currentPan.x) - viewport.offsetX;
-  const screenY = currentZoom * (node.y + currentPan.y) - viewport.offsetY;
+  // Transform: screen = (nodeSvg + pan) * zoom + offset
+  // Node center in SVG coordinates (based on actual node position, not adjusted size)
+  const nodeCenterX = node.x + baseHalfW;
+  const nodeCenterY = node.y + baseHalfH;
 
-  const isOutsideLeft = (screenX - halfW) < 0;
-  const isOutsideRight = (screenX + halfW) > viewport.effectiveWidth;
-  const isOutsideTop = (screenY - halfH) < 0;
-  const isOutsideBottom = (screenY + halfH) > viewport.effectiveHeight;
+  // Node center in screen coordinates (relative to viewport)
+  const screenCenterX = (nodeCenterX + currentPan.x) * currentZoom;
+  const screenCenterY = (nodeCenterY + currentPan.y) * currentZoom;
+
+  // Node bounds in screen coordinates (apply zoom to half-sizes)
+  const screenHalfW = halfW * currentZoom;
+  const screenHalfH = halfH * currentZoom;
+  const screenLeft = screenCenterX - screenHalfW;
+  const screenRight = screenCenterX + screenHalfW;
+  const screenTop = screenCenterY - screenHalfH;
+  const screenBottom = screenCenterY + screenHalfH;
+
+  // Check if node is outside visible area
+  const isOutsideLeft = screenLeft < 0;
+  const isOutsideRight = screenRight > viewport.effectiveWidth;
+  const isOutsideTop = screenTop < 0;
+  const isOutsideBottom = screenBottom > viewport.effectiveHeight;
 
   if (!isOutsideLeft && !isOutsideRight && !isOutsideTop && !isOutsideBottom) {
     return currentPan;
   }
 
-  let newPanX = currentPan.x;
-  let newPanY = currentPan.y;
+  // Calculate delta in screen space
+  let deltaX = 0;
+  let deltaY = 0;
 
   if (isOutsideLeft) {
-    newPanX = ((viewport.offsetX + halfW) / currentZoom) - node.x;
+    deltaX = 0 - screenLeft;
   } else if (isOutsideRight) {
-    newPanX = ((viewport.effectiveWidth + viewport.offsetX - halfW) / currentZoom) - node.x;
+    deltaX = viewport.effectiveWidth - screenRight;
   }
 
   if (isOutsideTop) {
-    newPanY = ((viewport.offsetY + halfH) / currentZoom) - node.y;
+    deltaY = 0 - screenTop;
   } else if (isOutsideBottom) {
-    newPanY = ((viewport.effectiveHeight + viewport.offsetY - halfH) / currentZoom) - node.y;
+    deltaY = viewport.effectiveHeight - screenBottom;
   }
 
-  return { x: newPanX, y: newPanY };
+  // Convert delta to SVG space and apply to pan
+  return {
+    x: currentPan.x + (deltaX / currentZoom),
+    y: currentPan.y + (deltaY / currentZoom)
+  };
 }
 
 export function ensureVisible(nodeId: string, ui: EnsureVisibleUI, setPan: (pan: { x: number; y: number }) => void, roots?: MindMapNode[]): void {
@@ -114,10 +136,16 @@ export function ensureVisible(nodeId: string, ui: EnsureVisibleUI, setPan: (pan:
   const fontSize = storeState?.settings?.fontSize ?? 14;
   const wrapConfig = resolveNodeTextWrapConfig(storeState?.settings as { nodeTextWrapEnabled?: boolean; nodeTextWrapWidth?: number } | undefined, fontSize);
   const nodeSize = calculateNodeSize(node, undefined, false, fontSize, wrapConfig);
-  const halfW = ((nodeSize?.width ?? 80) / 2) * currentZoom;
-  const halfH = ((nodeSize?.height ?? 24) / 2) * currentZoom;
+  // Keep node size in SVG coordinates (don't apply zoom here)
+  const baseHalfW = (nodeSize?.width ?? 80) / 2;
+  const baseHalfH = (nodeSize?.height ?? 24) / 2;
 
-  const newPan = calculateNewPan(node, currentPan, currentZoom, halfW, halfH, viewport);
+  // Add safety margin to account for borders, shadows, and visual effects
+  const VISUAL_MARGIN = 12; // px margin for border, shadow, selection indicators
+  const halfW = baseHalfW + VISUAL_MARGIN / 2;
+  const halfH = baseHalfH + VISUAL_MARGIN / 2;
+
+  const newPan = calculateNewPan(node, currentPan, currentZoom, baseHalfW, baseHalfH, halfW, halfH, viewport);
 
   if (newPan.x !== currentPan.x || newPan.y !== currentPan.y) {
     setPan(newPan);
