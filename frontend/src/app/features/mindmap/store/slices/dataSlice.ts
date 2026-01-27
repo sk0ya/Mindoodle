@@ -12,7 +12,7 @@ import type { MindMapStore } from './types';
 
 
 let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
-const AUTOLAYOUT_DEBOUNCE_MS = 50;
+const AUTOLAYOUT_DEBOUNCE_MS = 100;
 
 
 const nodeSizeCache = new LRUCache<string, { width: number; height: number }>(500, 300000);
@@ -298,7 +298,25 @@ export const createDataSlice: StateCreator<
           const complexityFactor = Math.min(Math.max(previousNodeCount, currentNodeCount) * 0.5, 16);
           const adaptiveSpacing = baseSpacing + complexityFactor;
 
+          // Calculate bounds ONCE before offset to determine current position
+          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
+          const currentSubtreeTop = currentSubtreeBounds.minY;
+          const currentSubtreeHeight = currentSubtreeBounds.maxY - currentSubtreeBounds.minY;
 
+          // Calculate offset needed to position after previous subtree
+          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
+          const offsetY = targetTopY - currentSubtreeTop;
+
+          // Apply offset to entire tree
+          const applyOffsetToTree = (node: MindMapNode) => {
+            node.y = (node.y || 0) + offsetY;
+            if (node.children) {
+              for (const child of node.children) applyOffsetToTree(child);
+            }
+          };
+          applyOffsetToTree(layoutedNode);
+
+          // Invalidate caches ONCE after Y positions change
           const invalidateAllNodeCaches = (node: MindMapNode) => {
             const nodeWithKind = node as MindMapNode & { kind?: string; tableData?: unknown };
             const nodeKind = nodeWithKind.kind || 'text';
@@ -316,42 +334,15 @@ export const createDataSlice: StateCreator<
             nodeCountCache.delete(countKeyCollapsed);
             nodeCountCache.delete(countKeyExpanded);
 
-            // Note: boundsCache depends on Y position which changes after layout
-            // We clear it once per layout cycle rather than per-node to avoid repeated clears
-            // Bounds will be recalculated with new Y positions after applyOffsetToTree
-
-
             if (node.children && !node.collapsed) {
               for (const child of node.children) invalidateAllNodeCaches(child);
             }
           };
 
-
           invalidateAllNodeCaches(layoutedNode);
 
-
-          const currentSubtreeBounds = getSubtreeBounds(layoutedNode);
-          const currentSubtreeTop = currentSubtreeBounds.minY;
-
-
-          const targetTopY = previousSubtreeBottom + adaptiveSpacing;
-          const offsetY = targetTopY - currentSubtreeTop;
-
-
-          const applyOffsetToTree = (node: MindMapNode) => {
-            node.y = (node.y || 0) + offsetY;
-            if (node.children) {
-              for (const child of node.children) applyOffsetToTree(child);
-            }
-          };
-          applyOffsetToTree(layoutedNode);
-
-
-          invalidateAllNodeCaches(layoutedNode);
-
-
-          const finalBounds = getSubtreeBounds(layoutedNode);
-          previousSubtreeBottom = finalBounds.maxY;
+          // Calculate new bottom position mathematically (no second traversal needed)
+          previousSubtreeBottom = targetTopY + currentSubtreeHeight;
         } else {
 
           const bounds = getSubtreeBounds(layoutedNode);

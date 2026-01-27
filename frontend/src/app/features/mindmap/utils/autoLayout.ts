@@ -134,118 +134,65 @@ export const simpleHierarchicalLayout = (rootNode: MindMapNode, options: LayoutO
   };
 
 
-  const positionNode = (node: MindMapNode, parent: MindMapNode | null, depth: number, yOffset: number): void => {
-    if (depth === 0) return; 
-
-    
-    if (parent) {
-      node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize, wrapConfig);
-    } else {
-      
-      node.x = centerX + (depth * levelSpacing);
-    }
-    node.y = centerY + yOffset;
-
-    
-    if (node.collapsed) {
+  // Helper to position children of a node and adjust parent Y to center
+  const positionChildrenAndCenterParent = (
+    parentNode: MindMapNode,
+    depth: number,
+    parentYOffset: number
+  ): void => {
+    if (!parentNode.children || parentNode.children.length === 0 || parentNode.collapsed) {
       return;
     }
 
-    if (node.children && node.children.length > 0) {
-      
-      const childrenWithHeights = node.children.map(child => ({
-        node: child,
-        actualHeight: calculateSubtreeActualHeight(child),
-        nodeCount: calculateSubtreeNodeCount(child)
-      }));
-      
-      
-      const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
-        let spacing = 0;
-        if (index > 0) {
-          
-          spacing = Math.max(nodeSpacing, 2); 
-        }
-        return sum + child.actualHeight + spacing;
-      }, 0);
-      
-      
-      let currentOffset = -totalActualHeight / 2;
-      
-      childrenWithHeights.forEach((childInfo, index) => {
-        
-        const childCenterOffset = currentOffset + childInfo.actualHeight / 2;
-        
-        positionNode(childInfo.node, node, depth + 1, yOffset + childCenterOffset);
-        
-        
-        currentOffset += childInfo.actualHeight;
-        if (index < childrenWithHeights.length - 1) {
-          
-          const spacing = Math.max(nodeSpacing, 2); 
-          currentOffset += spacing;
-        }
-      });
-
-
-      if (childrenWithHeights.length > 0) {
-        const bounds = { minY: Infinity, maxY: -Infinity };
-        node.children.forEach(child => calculateNodeBounds(child, bounds));
-
-
-        const childrenCenterY = (bounds.minY + bounds.maxY) / 2;
-        node.y = childrenCenterY;
-      }
-    }
-  };
-
-  if (!newRootNode.collapsed && newRootNode.children && newRootNode.children.length > 0) {
-    
-    const childrenWithHeights = newRootNode.children.map(child => ({
+    const childrenWithHeights = parentNode.children.map(child => ({
       node: child,
       actualHeight: calculateSubtreeActualHeight(child),
       nodeCount: calculateSubtreeNodeCount(child)
     }));
-    
-    
+
     const totalActualHeight = childrenWithHeights.reduce((sum, child, index) => {
-      let spacing = 0;
-      if (index > 0) {
-        
-        spacing = Math.max(nodeSpacing, 2); 
-      }
+      const spacing = index > 0 ? Math.max(nodeSpacing, 2) : 0;
       return sum + child.actualHeight + spacing;
     }, 0);
-    
-    
+
     let currentOffset = -totalActualHeight / 2;
-    
+
     childrenWithHeights.forEach((childInfo, index) => {
-      
       const childCenterOffset = currentOffset + childInfo.actualHeight / 2;
-      
-      positionNode(childInfo.node, newRootNode, 1, childCenterOffset);
-      
-      
+      positionNode(childInfo.node, parentNode, depth + 1, parentYOffset + childCenterOffset);
+
       currentOffset += childInfo.actualHeight;
       if (index < childrenWithHeights.length - 1) {
-        
-        const spacing = Math.max(nodeSpacing, 2); 
-        currentOffset += spacing;
+        currentOffset += Math.max(nodeSpacing, 2);
       }
     });
 
+    // Adjust parent Y to center of children bounds
+    const bounds = { minY: Infinity, maxY: -Infinity };
+    parentNode.children.forEach(child => calculateNodeBounds(child, bounds));
+    const childrenCenterY = (bounds.minY + bounds.maxY) / 2;
+    parentNode.y = childrenCenterY;
+  };
 
-    if (childrenWithHeights.length > 0) {
-      const bounds = { minY: Infinity, maxY: -Infinity };
-      newRootNode.children.forEach(child => calculateNodeBounds(child, bounds));
+  const positionNode = (node: MindMapNode, parent: MindMapNode | null, depth: number, yOffset: number): void => {
+    if (depth === 0) return;
 
+    if (parent) {
+      node.x = getChildNodeXFromParentEdge(parent, node, globalFontSize, wrapConfig);
+    } else {
+      node.x = centerX + (depth * levelSpacing);
+    }
+    node.y = centerY + yOffset;
 
-      const childrenCenterY = (bounds.minY + bounds.maxY) / 2;
-      newRootNode.y = childrenCenterY;
+    if (node.collapsed) {
+      return;
     }
 
-  }
+    positionChildrenAndCenterParent(node, depth, yOffset);
+  };
+
+  // Position root node's children using the same logic
+  positionChildrenAndCenterParent(newRootNode, 0, 0);
 
   return newRootNode;
 };

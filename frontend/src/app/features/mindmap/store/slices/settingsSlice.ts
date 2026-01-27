@@ -46,7 +46,8 @@ const LAYOUT_AFFECTING_SETTINGS: (keyof AppSettings)[] = [
 ];
 
 const applyLayoutAfterDelay = (get: () => MindMapStore) => {
-  setTimeout(() => get().applyAutoLayout?.(), 50);
+  // applyAutoLayout already has its own debouncing, no need for additional delay
+  get().applyAutoLayout?.();
 };
 
 const saveSettingsAfterDelay = (get: () => MindMapStore) => {
