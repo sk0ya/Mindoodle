@@ -236,29 +236,41 @@ export function useMindMapViewport({
       return;
     }
 
-    // Resolve SVG rect; use it consistently for coordinate transforms
+    // Resolve SVG rect and account for borders (like ensureSelectedNodeVisible)
     const containerEl = document.querySelector('.mindmap-canvas-container');
+    const containerRect = containerEl?.getBoundingClientRect();
     const svgEl = containerEl?.querySelector('svg') as SVGSVGElement | null;
+    const svgStyles = svgEl ? getComputedStyle(svgEl) : null;
+    const svgBorderLeft = svgStyles ? parseFloat(svgStyles.borderLeftWidth || '0') || 0 : 0;
+    const svgBorderTop = svgStyles ? parseFloat(svgStyles.borderTopWidth || '0') || 0 : 0;
+    const svgBorderRight = svgStyles ? parseFloat(svgStyles.borderRightWidth || '0') || 0 : 0;
+    const svgBorderBottom = svgStyles ? parseFloat(svgStyles.borderBottomWidth || '0') || 0 : 0;
+
+    // Compute the actual SVG content box (inside borders)
     const svgRect = svgEl?.getBoundingClientRect();
-    const fallbackRect = new DOMRect(0, 0, viewportService.getSize().width, viewportService.getSize().height);
-    const rect = svgRect ?? fallbackRect;
+    const containerLeft = ((svgRect?.left ?? containerRect?.left ?? 0) + svgBorderLeft);
+    const containerTop = ((svgRect?.top ?? containerRect?.top ?? 0) + svgBorderTop);
+    const rawContainerWidth = (svgRect?.width ?? containerRect?.width ?? viewportService.getSize().width);
+    const rawContainerHeight = (svgRect?.height ?? containerRect?.height ?? viewportService.getSize().height);
+    const containerWidth = Math.max(0, rawContainerWidth - svgBorderLeft - svgBorderRight);
+    const containerHeight = Math.max(0, rawContainerHeight - svgBorderTop - svgBorderBottom);
 
     // Desired screen-space target points and effective scale
     // Match the renderer's effective scale (zoom * 1.5)
     const scale = uiStore.zoom * 1.5;
-    const centerScreenX = rect.left + rect.width / 2;
-    const centerScreenY = rect.top + rect.height / 2;
+    const centerScreenX = containerLeft + containerWidth / 2;
+    const centerScreenY = containerTop + containerHeight / 2;
     const leftMargin = 150; // zt margin
     const topLeftMargins = { left: 12, top: 8 }; // tree-initial anchor margins
-    const leftScreenX = rect.left + leftMargin;
+    const leftScreenX = containerLeft + leftMargin;
 
     // Helper to compute pan from a desired screen target and node svg coords
     // CanvasRenderer applies transforms as translate then scale:
     // <g transform={`translate(pan.x, pan.y) scale(scale)`}>
-    // So: screen = rect.left/top + (node + pan) * scale
+    // So: screen = containerLeft/Top + (node + pan) * scale
     const computePan = (nodeSvgX: number, nodeSvgY: number, targetScreenX: number, targetScreenY: number) => {
-      const panX = (targetScreenX - rect.left) / scale - nodeSvgX;
-      const panY = (targetScreenY - rect.top) / scale - nodeSvgY;
+      const panX = (targetScreenX - containerLeft) / scale - nodeSvgX;
+      const panY = (targetScreenY - containerTop) / scale - nodeSvgY;
       return { x: panX, y: panY };
     };
 
@@ -286,8 +298,8 @@ export function useMindMapViewport({
     if (isTopLeftMode) {
       // Align node's top-left to small margins
       // targetX/Y should point to where we want the node center to be
-      const targetX = rect.left + topLeftMargins.left + halfW * scale;
-      const targetY = rect.top + topLeftMargins.top + halfH * scale;
+      const targetX = containerLeft + topLeftMargins.left + halfW * scale;
+      const targetY = containerTop + topLeftMargins.top + halfH * scale;
       // Pass node center coordinates (not top-left)
       setPan(computePan(nodeX + halfW, nodeY + halfH, targetX, targetY));
       return;
