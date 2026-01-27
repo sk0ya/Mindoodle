@@ -20,7 +20,7 @@ export const useMindMapActions = () => {
       if (mapData.settings?.autoLayout) {
         logger.debug('🎯 Applying auto layout on map open (once only)');
         if (typeof applyAutoLayout === 'function') {
-          applyAutoLayout();
+          applyAutoLayout(true);
         } else {
           logger.error('❌ applyAutoLayout function not found');
         }
