@@ -64,6 +64,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
 
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     if (onContextMenu) {
       onContextMenu(e, item.path, isFile ? 'explorer-file' : 'explorer-folder');
     }

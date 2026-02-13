@@ -239,7 +239,19 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         const hasTree = !!enhancedExplorerTree && ((enhancedExplorerTree.children?.length ?? 0) > 0);
         if (hasTree) {
           return (
-            <div className="maps-content-wrapper">
+            <div
+              className="maps-content-wrapper"
+              onContextMenu={(e) => {
+                e.preventDefault();
+                setContextMenu({
+                  isVisible: true,
+                  position: { x: e.clientX, y: e.clientY },
+                  targetPath: null,
+                  targetType: 'empty',
+                  mapData: null
+                });
+              }}
+            >
               <ExplorerView
                 tree={enhancedExplorerTree}
                 searchTerm={searchTerm}
