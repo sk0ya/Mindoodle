@@ -37,13 +37,9 @@ export function useMindMapViewport({
   
   // Suppress auto-pan immediately after layout application to avoid unexpected jumps
   const suppressAutoPanUntilRef = useRef<number>(0);
-  // Suppress auto-pan right after selection changes (e.g., insert selects new node)
-  const suppressAfterSelectionUntilRef = useRef<number>(0);
-  const lastSelectedIdRef = useRef<string | null>(null);
   useEffect(() => {
     const unsubscribe = mindMapEvents.subscribe((event) => {
       if (event.type === 'layout.applied') {
-        // Suppress for a short window; debounced layouts will extend suppression
         suppressAutoPanUntilRef.current = performance.now() + 800; // ms
       }
     });
@@ -56,15 +52,6 @@ export function useMindMapViewport({
     try {
       const st = useMindMapStore.getState();
       const selId: string | null = st.selectedNodeId || null;
-      // If selection just changed, suppress briefly to avoid jumpiness (e.g., after insert)
-      if (!options?.force && selId !== lastSelectedIdRef.current) {
-        lastSelectedIdRef.current = selId;
-        suppressAfterSelectionUntilRef.current = performance.now() + 600; // ms
-        return;
-      }
-      if (!options?.force && performance.now() < suppressAfterSelectionUntilRef.current) {
-        return;
-      }
       const mapData = st.data || null;
       if (!selId || !mapData) return;
       const roots = mapData.rootNodes || [];
