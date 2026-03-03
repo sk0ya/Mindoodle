@@ -257,6 +257,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           canRedo={canRedo ?? false}
           zoom={zoom}
           onZoomReset={onZoomReset}
+          showNotesPanel={ui.showNotesPanel}
           showNodeNotePanel={ui.showNodeNotePanel}
           nodeNotePanelHeight={ui.nodeNotePanelHeight}
         />

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { RotateCcw, RotateCw, Menu, X, Network, GitBranch } from 'lucide-react';
+import { RotateCcw, RotateCw, Menu, X, Network, GitBranch, StickyNote, FileText } from 'lucide-react';
 import { ShortcutTooltip } from '../KeyboardShortcutHelper';
 import { useMindMapStore } from '../../store';
 
@@ -26,11 +26,19 @@ const btnBase = {
 
 const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   onUndo, onRedo, canUndo, canRedo, zoom, onZoomReset,
+  showNotesPanel = false,
   showNodeNotePanel = false, nodeNotePanelHeight = 0,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
-  const { settings, updateSetting } = useMindMapStore();
+  const {
+    settings,
+    updateSetting,
+    setShowNotesPanel,
+    setShowNodeNotePanel,
+    selectedNodeId,
+  } = useMindMapStore();
   const bottomOffset = showNodeNotePanel ? nodeNotePanelHeight + 24 : 24;
+  const canToggleNodeNotePanel = showNodeNotePanel || !!selectedNodeId;
 
   const handleBtnEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.currentTarget.style.transform = 'scale(1.05)';
@@ -65,6 +73,38 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
                 </button>
               </ShortcutTooltip>
             ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <ShortcutTooltip description="マップのMarkdownを表示/非表示">
+              <button
+                onClick={() => setShowNotesPanel(!showNotesPanel)}
+                style={{
+                  ...btnBase,
+                  backgroundColor: showNotesPanel ? 'var(--hover-color)' : 'var(--bg-secondary)',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={handleBtnEnter}
+                onMouseLeave={e => handleBtnLeave(e, showNotesPanel ? 'var(--hover-color)' : 'var(--bg-secondary)')}
+              >
+                <FileText size={18} />
+              </button>
+            </ShortcutTooltip>
+            <ShortcutTooltip description="選択ノードのノートを表示/非表示">
+              <button
+                onClick={() => setShowNodeNotePanel?.(!showNodeNotePanel)}
+                disabled={!canToggleNodeNotePanel}
+                style={{
+                  ...btnBase,
+                  backgroundColor: showNodeNotePanel ? 'var(--hover-color)' : 'var(--bg-secondary)',
+                  cursor: canToggleNodeNotePanel ? 'pointer' : 'not-allowed',
+                  opacity: canToggleNodeNotePanel ? 1 : 0.5
+                }}
+                onMouseEnter={canToggleNodeNotePanel ? handleBtnEnter : undefined}
+                onMouseLeave={e => handleBtnLeave(e, showNodeNotePanel ? 'var(--hover-color)' : 'var(--bg-secondary)')}
+              >
+                <StickyNote size={18} />
+              </button>
+            </ShortcutTooltip>
           </div>
           {[
             { label: 'Ctrl+Z', desc: '元に戻す', action: onUndo, enabled: canUndo, Icon: RotateCcw },
