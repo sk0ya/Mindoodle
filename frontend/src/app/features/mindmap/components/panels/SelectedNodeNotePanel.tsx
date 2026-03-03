@@ -135,6 +135,14 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
     }
   }, [note, editorFocused]);
 
+  // When no node is selected, force note text reset and clear queued updates.
+  useEffect(() => {
+    if (!nodeId) {
+      pendingNoteTextRef.current = null;
+      setNoteText(note || '');
+    }
+  }, [nodeId, note]);
+
   // Handle note changes from editor
   // Use nodeIdRef to always get the current nodeId, preventing stale closure bugs
   const handleNoteChange = useCallback((value: string) => {
@@ -202,12 +210,12 @@ const SelectedNodeNotePanel: React.FC<Props> = ({ nodeId, note, updateNode, onCl
           onClose={onClose}
           className="node-note-editor"
           autoFocus={false}
-          readOnly={false}
+          readOnly={!nodeId}
           onResize={() => {}}
           onCursorLineChange={() => {}}
           onFocusChange={(f) => (f ? setEditorFocusedTrue() : setEditorFocusedFalse())}
           mapIdentifier={currentMapIdentifier}
-          title="ノート"
+          title={nodeId ? 'ノート' : 'ノート（ノード未選択・編集不可）'}
         />
       </div>
 

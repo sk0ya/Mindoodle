@@ -259,7 +259,6 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           onZoomReset={onZoomReset}
           showNotesPanel={ui.showNotesPanel}
           showNodeNotePanel={ui.showNodeNotePanel}
-          nodeNotePanelHeight={ui.nodeNotePanelHeight}
         />
       )}
 

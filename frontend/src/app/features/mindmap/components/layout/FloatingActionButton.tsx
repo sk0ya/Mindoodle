@@ -12,8 +12,6 @@ interface FloatingActionButtonProps {
   onZoomReset: () => void;
   showNotesPanel?: boolean;
   showNodeNotePanel?: boolean;
-  markdownPanelWidth?: number;
-  nodeNotePanelHeight?: number;
 }
 
 const btnBase = {
@@ -27,7 +25,7 @@ const btnBase = {
 const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
   onUndo, onRedo, canUndo, canRedo, zoom, onZoomReset,
   showNotesPanel = false,
-  showNodeNotePanel = false, nodeNotePanelHeight = 0,
+  showNodeNotePanel = false,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const {
@@ -37,7 +35,6 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
     setShowNodeNotePanel,
     selectedNodeId,
   } = useMindMapStore();
-  const bottomOffset = showNodeNotePanel ? nodeNotePanelHeight + 24 : 24;
   const canToggleNodeNotePanel = showNodeNotePanel || !!selectedNodeId;
 
   const handleBtnEnter = (e: React.MouseEvent<HTMLButtonElement>) => {
@@ -52,9 +49,9 @@ const FloatingActionButton: React.FC<FloatingActionButtonProps> = ({
 
   return (
     <div
-      style={{ position: 'absolute', bottom: bottomOffset, left: 24, zIndex: 1000,
+      style={{ position: 'absolute', bottom: 24, left: 24, zIndex: 1000,
         display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8,
-        transition: 'bottom 0.3s ease, left 0.3s ease' }}
+        transition: 'left 0.3s ease' }}
       onMouseEnter={() => setIsExpanded(true)}
       onMouseLeave={() => setIsExpanded(false)}
     >

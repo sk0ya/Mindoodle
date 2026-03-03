@@ -650,7 +650,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
               />
             </div>
 
-            {uiStore.showNodeNotePanel && selectedNodeId && (
+            {uiStore.showNodeNotePanel && (
               <SelectedNodeNotePanelSection
                 selectedNodeId={selectedNodeId}
                 data={data}

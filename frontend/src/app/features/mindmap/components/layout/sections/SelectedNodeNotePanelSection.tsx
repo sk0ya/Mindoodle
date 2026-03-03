@@ -21,8 +21,7 @@ const SelectedNodeNotePanelSection: React.FC<Props> = ({
 }) => {
   // Pass updateNode directly to SelectedNodeNotePanel
   // It will use nodeId internally to prevent stale closure bugs
-  if (!selectedNodeId) return null;
-  const node = findNodeInRoots(data?.rootNodes || [], selectedNodeId);
+  const node = selectedNodeId ? findNodeInRoots(data?.rootNodes || [], selectedNodeId) : null;
   return (
     <React.Suspense fallback={
       <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -35,7 +34,7 @@ const SelectedNodeNotePanelSection: React.FC<Props> = ({
         note={node?.note || ''}
         updateNode={updateNode}
         onClose={onClose}
-        subscribeNoteChanges={(cb) => subscribeNoteChanges(selectedNodeId, cb)}
+        subscribeNoteChanges={selectedNodeId ? (cb) => subscribeNoteChanges(selectedNodeId, cb) : undefined}
       />
     </React.Suspense>
   );
