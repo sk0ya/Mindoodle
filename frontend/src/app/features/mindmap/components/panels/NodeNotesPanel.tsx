@@ -40,16 +40,17 @@ const MarkdownPanel: React.FC<MarkdownPanelProps> = ({
   const pendingNodesTextRef = useRef<string | null>(null);
 
   // Load map markdown when component mounts or map changes
-  const lastLoadedMapIdRef = useRef<string | null>(null);
+  const lastLoadedMapKeyRef = useRef<string | null>(null);
   useEffect(() => {
     if (!currentMapIdentifier || !getMapMarkdown) return;
-    if (lastLoadedMapIdRef.current === currentMapIdentifier.mapId) return;
+    const currentMapKey = `${currentMapIdentifier.workspaceId || ''}::${currentMapIdentifier.mapId}`;
+    if (lastLoadedMapKeyRef.current === currentMapKey) return;
 
     startLoading();
     getMapMarkdown(currentMapIdentifier)
       .then(text => {
         setMapMarkdown(text || '');
-        lastLoadedMapIdRef.current = currentMapIdentifier.mapId;
+        lastLoadedMapKeyRef.current = currentMapKey;
       })
       .catch(error => {
         console.error('Failed to load map markdown:', error);

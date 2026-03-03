@@ -245,8 +245,28 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   });
 
   const readImageAsDataURL = useStableCallback(createAdapterOp<string | null>('readImageAsDataURL', null));
-  const getMapMarkdown = useStableCallback(createAdapterOp<string | null>('getMapMarkdown', null));
-  const getMapLastModified = useStableCallback(createAdapterOp<number | null>('getMapLastModified', null));
+  const getMapMarkdown = useStableCallback(async (id: MapIdentifier): Promise<string | null> => {
+    const adapter = getAdapterForWorkspace(persistenceHook, id.workspaceId);
+    if (adapter?.getMapMarkdown) {
+      try {
+        return await adapter.getMapMarkdown(id);
+      } catch (e) {
+        logger.error('getMapMarkdown failed:', e);
+      }
+    }
+    return null;
+  });
+  const getMapLastModified = useStableCallback(async (id: MapIdentifier): Promise<number | null> => {
+    const adapter = getAdapterForWorkspace(persistenceHook, id.workspaceId);
+    if (adapter?.getMapLastModified) {
+      try {
+        return await adapter.getMapLastModified(id);
+      } catch (e) {
+        logger.error('getMapLastModified failed:', e);
+      }
+    }
+    return null;
+  });
 
   const saveMapMarkdown = useStableCallback(async (id: MapIdentifier, markdown: string): Promise<void> => {
     const adapter = getAdapterForWorkspace(persistenceHook, id.workspaceId);
