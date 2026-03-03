@@ -174,24 +174,6 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     return () => { try { unsub(); } catch (e) { logger.warn('unsubscribe failed', e as Error); } };
   }, [subscribeMdRef, dataRef, updateNodeRef, applyAutoLayoutRef, dataHook, settings.defaultCollapseDepth]);
 
-  const createAdapterOp = <T,>(
-    method: keyof StorageAdapter,
-    fallback: T,
-    workspaceId?: string | null
-  ) => async (...args: unknown[]): Promise<T> => {
-    const adapter = getAdapterForWorkspace(persistenceHook, workspaceId ?? null);
-    const fn = adapter?.[method];
-    if (typeof fn === 'function') {
-      try {
-        return await (fn as (...args: unknown[]) => Promise<T>).apply(adapter, args);
-      } catch (e) {
-        logger.error(`${String(method)} failed:`, e);
-        return fallback;
-      }
-    }
-    return fallback;
-  };
-
   const selectRootFolder = useStableCallback(async (): Promise<boolean> => {
     const adapter = getAdapterForWorkspace(persistenceHook);
     if (adapter?.addWorkspace) {
@@ -244,7 +226,18 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     }
   });
 
-  const readImageAsDataURL = useStableCallback(createAdapterOp<string | null>('readImageAsDataURL', null));
+  const readImageAsDataURL = useStableCallback(async (path: string, workspaceId?: string): Promise<string | null> => {
+    const adapter = getAdapterForWorkspace(persistenceHook, workspaceId ?? null);
+    if (adapter?.readImageAsDataURL) {
+      try {
+        const ws = workspaceId ?? '';
+        return await adapter.readImageAsDataURL(path, ws);
+      } catch (e) {
+        logger.error('readImageAsDataURL failed:', e);
+      }
+    }
+    return null;
+  });
   const getMapMarkdown = useStableCallback(async (id: MapIdentifier): Promise<string | null> => {
     const adapter = getAdapterForWorkspace(persistenceHook, id.workspaceId);
     if (adapter?.getMapMarkdown) {
