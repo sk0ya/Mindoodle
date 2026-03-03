@@ -49,14 +49,16 @@ export function useAutoScrollToSelectedNode({
     previousNodeIdRef.current = selectedNodeId;
 
     // Ensure node is visible (only scrolls if off-screen)
-    // Use requestAnimationFrame to ensure DOM has updated
-    // Do NOT use force: true here — after node insertion, the layout's
-    // pan-compensation already stabilises the viewport and layout.applied
-    // sets a suppression window.  Using force would bypass that suppression
-    // and cause a conflicting scroll.  Keyboard navigation handles its own
-    // forced scroll via the navigateToDirection handler.
+    // Use requestAnimationFrame to ensure DOM has updated.
+    // After insertion, layout.applied may temporarily suppress auto-pan.
+    // Retry once with force on the next frame so newly inserted off-screen
+    // nodes are still brought into view.
     requestAnimationFrame(() => {
       ensureSelectedNodeVisible();
+      requestAnimationFrame(() => {
+        if (previousNodeIdRef.current !== selectedNodeId) return;
+        ensureSelectedNodeVisible({ force: true });
+      });
     });
   }, [selectedNodeId, ensureSelectedNodeVisible, disabled]);
 }
