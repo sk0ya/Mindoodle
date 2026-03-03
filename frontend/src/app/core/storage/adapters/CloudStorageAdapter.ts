@@ -458,8 +458,38 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    // Extract mapId from path: remove /cloud/ prefix and .md extension
     const rel = this.cleanPath(path, 'cloud/');
+
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i.test(rel)) {
+      const parts = rel.split('/').filter(Boolean);
+      const currentFileName = parts[parts.length - 1] || rel;
+      const parentDir = parts.slice(0, -1).join('/');
+      const extMatch = /(\.[^./\\]+)$/.exec(currentFileName);
+      const currentExt = extMatch ? extMatch[1] : '';
+      let nextFileName = (newName || '').trim();
+
+      if (!nextFileName) {
+        throw new Error('Invalid file name');
+      }
+      if (currentExt && !/\.[^./\\]+$/.test(nextFileName)) {
+        nextFileName = `${nextFileName}${currentExt}`;
+      }
+
+      const nextRelPath = parentDir ? `${parentDir}/${nextFileName}` : nextFileName;
+      if (nextRelPath === rel) return;
+
+      const file = await this.readImageFile?.(rel, 'cloud');
+      if (!file) {
+        throw new Error('Image not found');
+      }
+
+      await this.saveImageFile?.(nextRelPath, file, 'cloud');
+      await this.deleteImageFile?.(rel, 'cloud');
+      logger.info(`CloudStorageAdapter: Renamed image ${rel} to ${nextRelPath}`);
+      return;
+    }
+
+    // Extract mapId from path: remove /cloud/ prefix and .md extension
     const oldMapId = this.removeMdExtension(rel);
 
     try {
@@ -500,8 +530,17 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    // Extract mapId from path: remove /cloud/ prefix and .md extension
+    // Normalize /cloud/* path to workspace-relative path.
     const rel = this.cleanPath(path, 'cloud/');
+
+    // Explorer uses deleteItem for both markdown maps and image files.
+    // Route image deletions to the image endpoint.
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i.test(rel)) {
+      await this.deleteImageFile?.(rel, 'cloud');
+      return;
+    }
+
+    // Extract mapId from path: remove .md extension
     const mapId = this.removeMdExtension(rel);
 
     try {
@@ -521,9 +560,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    // Extract source mapId from path: remove /cloud/ prefix and .md extension
+    // Normalize source path from either "/cloud/..." or relative input
     const rel = this.cleanPath(sourcePath, 'cloud/');
-    const oldMapId = this.removeMdExtension(rel);
 
     // Extract target folder from targetFolderPath
     let targetFolder = this.cleanPath(targetFolderPath, 'cloud/');
@@ -531,6 +569,25 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     while (targetFolder.endsWith('/')) {
       targetFolder = targetFolder.slice(0, -1);
     }
+
+    if (/\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i.test(rel)) {
+      const filename = rel.split('/').filter(Boolean).pop() || rel;
+      const nextRelPath = targetFolder ? `${targetFolder}/${filename}` : filename;
+      if (nextRelPath === rel) return;
+
+      const file = await this.readImageFile?.(rel, 'cloud');
+      if (!file) {
+        throw new Error('Image not found');
+      }
+
+      await this.saveImageFile?.(nextRelPath, file, 'cloud');
+      await this.deleteImageFile?.(rel, 'cloud');
+      logger.info(`CloudStorageAdapter: Moved image ${rel} to ${nextRelPath}`);
+      return;
+    }
+
+    // Extract source mapId from path: remove .md extension
+    const oldMapId = this.removeMdExtension(rel);
 
     try {
       // Get existing map content

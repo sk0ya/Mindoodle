@@ -583,12 +583,27 @@ export const useSidebar = ({
           onClick: () => {
             if (!targetPath) return;
             const fileName = targetPath.split('/').pop() || targetPath;
-            const baseName = fileName.replace(/\.md$/i, '');
-            const newName = window.prompt('新しいファイル名（拡張子なし）', baseName);
-            if (newName && newName.trim()) {
+            const isMarkdownFile = /\.md$/i.test(fileName);
+            const extMatch = /(\.[^./\\]+)$/.exec(fileName);
+            const originalExt = extMatch ? extMatch[1] : '';
+            let baseName = fileName;
+            if (isMarkdownFile) {
+              baseName = fileName.replace(/\.md$/i, '');
+            } else if (originalExt) {
+              baseName = fileName.slice(0, -originalExt.length);
+            }
+            const promptLabel = isMarkdownFile ? '新しいファイル名（拡張子なし）' : '新しいファイル名';
+            const newNameInput = window.prompt(promptLabel, baseName);
+            if (newNameInput && newNameInput.trim()) {
+              let normalizedName = newNameInput.trim();
+              if (isMarkdownFile) {
+                normalizedName = normalizedName.replace(/\.md$/i, '');
+              } else if (originalExt && !/\.[^./\\]+$/.test(normalizedName)) {
+                normalizedName = `${normalizedName}${originalExt}`;
+              }
               const parent = targetPath.split('/').slice(0, -1).join('/');
-              const newPath = `${parent}/${newName.trim()}.md`;
-              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim(), newPath } }));
+              const newPath = `${parent}/${normalizedName}`;
+              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: normalizedName, newPath } }));
             }
           }
         },
