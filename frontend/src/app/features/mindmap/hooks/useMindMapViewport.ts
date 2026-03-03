@@ -155,9 +155,9 @@ export function useMindMapViewport({
         const halfH = baseHalfH + VISUAL_MARGIN / 2;
 
         // Transform: screen = containerOffset + (nodeSvg + pan) * zoom
-        // Node center in SVG coordinates (based on actual node position, not adjusted size)
-        const nodeCenterX = targetNode.x + baseHalfW;
-        const nodeCenterY = targetNode.y + baseHalfH;
+        // node.x/y are already center coordinates in this codebase.
+        const nodeCenterX = targetNode.x;
+        const nodeCenterY = targetNode.y;
 
         // Node center in screen coordinates
         const screenCenterX = containerLeft + (nodeCenterX + currentPan.x) * currentZoom;
@@ -261,40 +261,80 @@ export function useMindMapViewport({
       return { x: panX, y: panY };
     };
 
-    const nodeX = targetNode.x || 0;
-    const nodeY = targetNode.y || 0;
-
-    // Calculate node size for all modes
-    const st = useMindMapStore.getState();
-    const fontSize = st.settings?.fontSize ?? 14;
-    const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
-    const isEditing = st.editingNodeId === targetNode.id;
-    const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
-    const halfW = ((nodeSize?.width ?? 80) / 2);
-    const halfH = ((nodeSize?.height ?? 24) / 2);
+    const nodeCenterX = targetNode.x || 0;
+    const nodeCenterY = targetNode.y || 0;
 
     if (isLeftMode) {
       // zt: left + vertical center for all layouts
       // Position node center at left margin + vertical center
       const targetX = leftScreenX;
       const targetY = centerScreenY;
-      setPan(computePan(nodeX + halfW, nodeY + halfH, targetX, targetY));
+      setPan(computePan(nodeCenterX, nodeCenterY, targetX, targetY));
       return;
     }
 
     if (isTopLeftMode) {
+      const st = useMindMapStore.getState();
+      const fontSize = st.settings?.fontSize ?? 14;
+      const wrapConfig = resolveNodeTextWrapConfig(st.settings, fontSize);
+      const isEditing = st.editingNodeId === targetNode.id;
+      const nodeSize = calculateNodeSize(targetNode, undefined, isEditing, fontSize, wrapConfig);
+      const halfW = ((nodeSize?.width ?? 80) / 2);
+      const halfH = ((nodeSize?.height ?? 24) / 2);
+
       // Align node's top-left to small margins
       // targetX/Y should point to where we want the node center to be
       const targetX = containerLeft + topLeftMargins.left + halfW * scale;
       const targetY = containerTop + topLeftMargins.top + halfH * scale;
-      // Pass node center coordinates (not top-left)
-      setPan(computePan(nodeX + halfW, nodeY + halfH, targetX, targetY));
+      setPan(computePan(nodeCenterX, nodeCenterY, targetX, targetY));
       return;
     }
 
-    // Full center: position node center at screen center
-    setPan(computePan(nodeX + halfW, nodeY + halfH, centerScreenX, centerScreenY));
-  });;
+    // Full center (zz): prefer visual bounds center from DOM so decorative
+    // elements (toggle button, selection outline, rich content) are centered too.
+    const nodeEl = containerEl?.querySelector(
+      `svg g[data-node-id="${nodeId}"]`
+    ) as SVGGElement | null;
+
+    if (nodeEl) {
+      // Apply small iterative corrections so a single zz converges to visual center
+      // even when transform math and visual bounds don't perfectly match.
+      const applyVisualCenterCorrection = (remaining: number) => {
+        const currentNodeEl = containerEl?.querySelector(
+          `svg g[data-node-id="${nodeId}"]`
+        ) as SVGGElement | null;
+        if (!currentNodeEl) return;
+
+        const nodeRect = currentNodeEl.getBoundingClientRect();
+        const visualCenterX = nodeRect.left + nodeRect.width / 2;
+        const visualCenterY = nodeRect.top + nodeRect.height / 2;
+        const deltaX = centerScreenX - visualCenterX;
+        const deltaY = centerScreenY - visualCenterY;
+
+        if (Math.abs(deltaX) <= 0.5 && Math.abs(deltaY) <= 0.5) return;
+
+        // Use latest pan from store to avoid stale closure updates.
+        const st = useMindMapStore.getState();
+        const currentPan = st.ui?.pan ?? { x: 0, y: 0 };
+        st.setPan({
+          x: currentPan.x + (deltaX / scale),
+          y: currentPan.y + (deltaY / scale)
+        });
+
+        if (remaining > 0) {
+          requestAnimationFrame(() => applyVisualCenterCorrection(remaining - 1));
+        }
+      };
+
+      // 1回のzzで視覚中心に到達させるため、複数フレームで収束させる。
+      // (連打不要)
+      applyVisualCenterCorrection(8);
+      return;
+    }
+
+    // Fallback: center by logical node center if DOM measurement is unavailable.
+    setPan(computePan(nodeCenterX, nodeCenterY, centerScreenX, centerScreenY));
+  });
 
   return {
     ensureSelectedNodeVisible,
