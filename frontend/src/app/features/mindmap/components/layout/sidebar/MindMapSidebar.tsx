@@ -3,6 +3,7 @@ import React, { memo } from 'react';
 import { Workflow, Cloud, CloudOff } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
+import { collectMissingExplorerCollapsedPaths } from './explorerCollapseState';
 import SidebarStyles from '../../../styles/SidebarStyles';
 import ContextMenu from '../overlay/ContextMenu';
 import { ExplorerView } from './ExplorerView';
@@ -115,27 +116,13 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       return;
     }
 
-    const isWorkspaceRoot = (p: string): boolean => /^\/?(?:ws_[^/]+|cloud)\/?$/.test(p || '');
-    const visit = (item: ExplorerItem, acc: Record<string, boolean>) => {
-      if (!item) return;
-      if (item.type === 'folder') {
-        const path = item.path || '';
-        const defaultCollapsed = isWorkspaceRoot(path) ? false : true;
-        if (!(path in acc)) acc[path] = defaultCollapsed;
-        if (Array.isArray(item.children)) {
-          item.children.forEach((ch) => visit(ch, acc));
-        }
-      }
-    };
-
-    const newPaths: Record<string, boolean> = {};
-    visit(tree, newPaths);
-
     // Only update if there are actually new paths
     setExplorerCollapsed((prev) => {
-      const hasChanges = Object.keys(newPaths).some(path => !(path in prev));
-      if (!hasChanges) return prev;
-      return { ...prev, ...newPaths };
+      const missingPaths = collectMissingExplorerCollapsedPaths(tree, prev);
+      if (Object.keys(missingPaths).length === 0) {
+        return prev;
+      }
+      return { ...prev, ...missingPaths };
     });
 
     // Mark this tree as processed
