@@ -2,8 +2,8 @@ import React, { useRef, useCallback } from 'react';
 import { Link } from 'lucide-react';
 import type { NodeLink } from '@shared/types';
 import { viewportService } from '@/app/core/services';
-import { menuStyles, menuContainerStyles } from '../shared/menuStyles';
-import { useClickOutside } from '../shared/useModalBehavior';
+import { menuStyles, menuContainerStyles } from '../Shared/menuStyles';
+import { useClickOutside } from '../Shared/useModalBehavior';
 
 interface LinkActionMenuProps {
   isOpen: boolean;

@@ -4,9 +4,9 @@ import { type NodeLink, type MindMapData, type MapIdentifier, DEFAULT_WORKSPACE_
 import type { ExplorerItem } from '@core/types';
 import { useLoadingState } from '@/app/shared/hooks';
 import { logger } from '@shared/utils';
-import { combineModalStyles } from '../shared/modalStyles';
+import { combineModalStyles } from '../Shared/modalStyles';
 import { flattenRootNodesToOptions } from '../../utils/nodeTraversal';
-import { useModalBehavior } from '../shared/useModalBehavior';
+import { useModalBehavior } from '../Shared/useModalBehavior';
 
 interface MapOption {
   mapIdentifier: { mapId: string; workspaceId: string };

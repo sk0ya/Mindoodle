@@ -8,7 +8,7 @@ import type { Command } from '../../commands/system/types';
 import type { MindMapData } from '@shared/types';
 import { getFolderName } from '../utils/folderUtils';
 import { logger } from '@shared/utils';
-import { useModalBehavior } from '../../features/mindmap/components/shared/useModalBehavior';
+import { useModalBehavior } from '../../features/mindmap/components/Shared/useModalBehavior';
 
 interface StorageAdapter {
   loadAllMaps?: () => Promise<MindMapData[]>;

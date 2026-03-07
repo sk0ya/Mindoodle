@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ChevronRight } from 'lucide-react';
 import { viewportService } from '@/app/core/services';
-import { menuStyles, menuContainerStyles } from '../../shared/menuStyles';
+import { menuStyles, menuContainerStyles } from '../../Shared/menuStyles';
 
 export interface ContextMenuItem {
   label?: string;

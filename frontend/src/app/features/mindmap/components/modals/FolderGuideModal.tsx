@@ -1,6 +1,6 @@
 import React from 'react';
 import { FolderOpen } from 'lucide-react';
-import { BaseModal } from '../shared/BaseModal';
+import { BaseModal } from '../Shared/BaseModal';
 
 interface FolderGuideModalProps {
   isOpen: boolean;

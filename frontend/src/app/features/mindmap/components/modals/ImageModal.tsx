@@ -2,7 +2,7 @@ import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import type { FileAttachment } from '@shared/types';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
-import { useModalBehavior } from '../shared/useModalBehavior';
+import { useModalBehavior } from '../Shared/useModalBehavior';
 import { formatFileSize } from '@shared/utils/fileSize';
 
 interface ImageModalProps {

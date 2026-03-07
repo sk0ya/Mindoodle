@@ -6,8 +6,8 @@ import { ForceDirectedLayout, type Node2D } from '../../utils/forceDirectedLayou
 import { embeddingService } from '@core/services/EmbeddingService';
 import { nodeToMarkdown } from '@markdown/index';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
-import { combineModalStyles } from '../shared/modalStyles';
-import { useModalBehavior } from '../shared/useModalBehavior';
+import { combineModalStyles } from '../Shared/modalStyles';
+import { useModalBehavior } from '../Shared/useModalBehavior';
 import { logger } from '@shared/utils';
 // storageAdapter no longer passed; use getMapMarkdown when needed
 // Note: Do not rely on global command registry here; directly dispatch events for robustness
