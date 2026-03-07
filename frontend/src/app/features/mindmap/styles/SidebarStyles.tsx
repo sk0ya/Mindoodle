@@ -141,10 +141,17 @@ const SidebarStyles: React.FC = () => (
       align-items: center;
     }
 
+    .sidebar-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 4px 0;
+    }
+
     .header-top {
       display: flex;
       align-items: center;
-      gap: 4px;
+      justify-content: flex-start;
       width: 100%;
     }
 
@@ -157,6 +164,7 @@ const SidebarStyles: React.FC = () => (
       width: 100%;
       margin: 0;
       overflow: visible !important;
+      flex-shrink: 0;
     }
 
     /* Toggle Buttons */
@@ -176,6 +184,36 @@ const SidebarStyles: React.FC = () => (
       ${themed('background', colors.light.buttonHoverBg, colors.dark.buttonHoverBg)}
       ${themed('color', colors.light.buttonHoverColor, colors.dark.buttonHoverColor)}
       ${hoverEffect(true)}
+    }
+
+    .sidebar-create-map-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      height: 32px;
+      margin: 0;
+      padding: 0 12px;
+      border-radius: 9px;
+      border: 1px solid color-mix(in srgb, var(--accent-color) 30%, transparent);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent-color) 16%, transparent), transparent 72%), var(--bg-secondary);
+      color: var(--text-primary);
+      cursor: pointer;
+      transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+      font-size: 12px;
+      font-weight: 700;
+    }
+
+    .sidebar-create-map-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: color-mix(in srgb, var(--accent-color) 46%, transparent);
+      box-shadow: 0 8px 18px color-mix(in srgb, var(--accent-color) 16%, transparent);
+      background: linear-gradient(135deg, color-mix(in srgb, var(--accent-color) 24%, transparent), transparent 72%), var(--bg-secondary);
+    }
+
+    .sidebar-create-map-button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      box-shadow: none;
     }
 
     /* Search */

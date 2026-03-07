@@ -14,6 +14,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
   collapsed = {},
   onTogglePath,
   onContextMenu,
+  onPathFocus,
   currentMapId = null,
   currentWorkspaceId = null,
   editingMapId = null,
@@ -113,6 +114,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
             collapsed={collapsed}
             onTogglePath={toggle}
             onContextMenu={onContextMenu}
+            onPathFocus={onPathFocus}
             currentMapId={currentMapId}
             currentWorkspaceId={currentWorkspaceId}
             dragOverPath={dragOverPath}
@@ -130,6 +132,7 @@ export const ExplorerView: React.FC<ExplorerViewProps> = ({
           collapsed={collapsed}
           onTogglePath={toggle}
           onContextMenu={onContextMenu}
+          onPathFocus={onPathFocus}
           currentMapId={currentMapId}
           currentWorkspaceId={currentWorkspaceId}
           dragOverPath={dragOverPath}

@@ -15,6 +15,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   collapsed = {},
   onTogglePath,
   onContextMenu,
+  onPathFocus,
   currentMapId = null,
   currentWorkspaceId = null,
   dragOverPath = null,
@@ -34,6 +35,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   );
 
   const handleClick = () => {
+    onPathFocus?.(item.path, 'explorer-file');
     if (isMarkdown && mapId) {
       // 同じマップが既に選択されている場合は早期リターン
       if (currentMapId === mapId &&
@@ -47,6 +49,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   };
 
   const handleDoubleClick = () => {
+    onPathFocus?.(item.path, 'explorer-file');
     // Open markdown maps on double click (same as single click)
     if (isMarkdown && mapId) {
       window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', {
@@ -65,6 +68,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   const handleContextMenu = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+    onPathFocus?.(item.path, isFile ? 'explorer-file' : 'explorer-folder');
     if (onContextMenu) {
       onContextMenu(e, item.path, isFile ? 'explorer-file' : 'explorer-folder');
     }
@@ -132,6 +136,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
 
   const handleToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
+    onPathFocus?.(item.path, 'explorer-folder');
     if (onTogglePath) {
       onTogglePath(item.path);
     }
@@ -150,6 +155,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
               collapsed={collapsed}
               onTogglePath={onTogglePath}
               onContextMenu={onContextMenu}
+              onPathFocus={onPathFocus}
               currentMapId={currentMapId}
               currentWorkspaceId={currentWorkspaceId}
             />
@@ -200,6 +206,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
                 collapsed={collapsed}
                 onTogglePath={onTogglePath}
                 onContextMenu={onContextMenu}
+                onPathFocus={onPathFocus}
                 currentMapId={currentMapId}
                 currentWorkspaceId={currentWorkspaceId}
                 dragOverPath={dragOverPath}

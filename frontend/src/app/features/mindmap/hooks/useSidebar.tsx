@@ -1,25 +1,29 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useStableCallback } from '@shared/hooks';
+import { useNotification, useStableCallback } from '@shared/hooks';
 import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen } from 'lucide-react';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import type { ContextMenuItem } from '../components/layout/overlay/ContextMenu';
 import { logger, getLastPathSegment, splitPath } from '@shared/utils';
+import { generateUniqueFileName } from '../utils/fileNameUtils';
 import {
   parseWorkspacePath,
   buildChildPath,
   buildWorkspacePath,
   extractParentPaths,
+  normalizePathSeparators,
   resolveWorkspaceId
 } from '@shared/utils/pathOperations';
 
-
+const DEFAULT_MAP_NAME = '新しいマップ';
 
 interface UseSidebarOptions {
   mindMaps: MindMapData[];
+  currentMapId: string | null;
   currentWorkspaceId: string | null;
+  workspaces?: Array<{ id: string; name: string }>;
   onSelectMap: (id: MapIdentifier) => void;
-  onCreateMap: (title: string, workspaceId: string, category?: string) => void;
+  onCreateMap: (title: string, workspaceId: string, category?: string) => Promise<unknown> | void;
   onDeleteMap: (id: MapIdentifier) => void;
   onChangeCategory: (id: MapIdentifier, category: string) => void;
   onCreateFolder?: (path: string) => Promise<void> | void;
@@ -34,9 +38,23 @@ interface ContextMenuState {
   mapData?: MindMapData | null;
 }
 
+interface FocusedExplorerState {
+  path: string;
+  type: 'explorer-folder' | 'explorer-file';
+}
+
+interface CreateMapDialogState {
+  isOpen: boolean;
+  workspaceId: string | null;
+  initialPath: string;
+  initialName: string;
+}
+
 export const useSidebar = ({
   mindMaps,
+  currentMapId,
   currentWorkspaceId,
+  workspaces = [],
   onSelectMap,
   onCreateMap,
   onDeleteMap,
@@ -44,22 +62,93 @@ export const useSidebar = ({
   onCreateFolder,
   explorerTree
 }: UseSidebarOptions) => {
-  
-  
-  
+  const { showNotification } = useNotification();
   const [emptyFolders, setEmptyFolders] = useState<Set<string>>(new Set());
   const [collapsedCategories, setCollapsedCategories] = useState(new Set<string>());
+  const [focusedExplorer, setFocusedExplorer] = useState<FocusedExplorerState | null>(null);
+  const [createMapDialog, setCreateMapDialog] = useState<CreateMapDialogState>({
+    isOpen: false,
+    workspaceId: null,
+    initialPath: '',
+    initialName: DEFAULT_MAP_NAME
+  });
 
-  
   useEffect(() => {
     setEmptyFolders(new Set());
   }, [currentWorkspaceId]);
 
-  
   const extractCategory = useStableCallback((fullPath: string | null): string | undefined => {
     if (!fullPath) return undefined;
-    const { relativePath } = parseWorkspacePath(fullPath);
-    return relativePath || undefined;
+    const { workspaceId, relativePath } = parseWorkspacePath(fullPath);
+    if (workspaceId) {
+      return relativePath || undefined;
+    }
+    return normalizePathSeparators(fullPath) || undefined;
+  });
+
+  const toRelativePath = useStableCallback((path: string | null): string => {
+    if (!path) return '';
+    const { workspaceId, relativePath } = parseWorkspacePath(path);
+    if (workspaceId) {
+      return normalizePathSeparators(relativePath || '');
+    }
+    return normalizePathSeparators(path);
+  });
+
+  const getParentPath = useStableCallback((path: string): string => {
+    const normalizedPath = normalizePathSeparators(path);
+    if (!normalizedPath) return '';
+    const parts = normalizedPath.split('/').filter(Boolean);
+    if (parts.length <= 1) return '';
+    return parts.slice(0, -1).join('/');
+  });
+
+  const getCurrentMapBasePath = useStableCallback((): string => {
+    if (!currentMapId) return '';
+    return getParentPath(currentMapId);
+  });
+
+  const resolveCreateMapDefaults = useStableCallback((
+    sourcePath: string | null,
+    sourceType: ContextMenuState['targetType'] | 'button' = 'button'
+  ): { workspaceId: string | null; path: string } => {
+    const fallbackWorkspaceId = currentWorkspaceId
+      || workspaces[0]?.id
+      || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : null);
+
+    let effectivePath = sourcePath;
+    let effectiveType = sourceType;
+
+    if (!effectivePath && focusedExplorer) {
+      effectivePath = focusedExplorer.path;
+      effectiveType = focusedExplorer.type;
+    }
+
+    const workspaceId = effectivePath
+      ? resolveWorkspaceId(effectivePath, fallbackWorkspaceId, '')
+      : fallbackWorkspaceId;
+
+    if (!effectivePath) {
+      return {
+        workspaceId,
+        path: getCurrentMapBasePath()
+      };
+    }
+
+    const relativePath = toRelativePath(effectivePath);
+    return {
+      workspaceId,
+      path: effectiveType === 'explorer-file' ? getParentPath(relativePath) : relativePath
+    };
+  });
+
+  const closeCreateMapDialog = useStableCallback(() => {
+    setCreateMapDialog({
+      isOpen: false,
+      workspaceId: null,
+      initialPath: '',
+      initialName: DEFAULT_MAP_NAME
+    });
   });
 
   const toggleCategoryCollapse = useStableCallback((category: string) => {
@@ -68,13 +157,13 @@ export const useSidebar = ({
         if (prev.size === 1) {
           return new Set<string>();
         }
-        const s = new Set(prev);
-        s.delete(category);
-        return s;
+        const next = new Set(prev);
+        next.delete(category);
+        return next;
       }
-      const s = new Set(prev);
-      s.add(category);
-      return s;
+      const next = new Set(prev);
+      next.add(category);
+      return next;
     });
   });
 
@@ -93,9 +182,9 @@ export const useSidebar = ({
         Promise.resolve(onCreateFolder(fullPath)).then(() => {
           setEmptyFolders(prev => new Set([...prev, newFolderPath]));
           setCollapsedCategories(prev => {
-            const newSet = new Set(prev);
-            newSet.delete(newFolderPath);
-            return newSet;
+            const next = new Set(prev);
+            next.delete(newFolderPath);
+            return next;
           });
         }).catch((err) => {
           logger.error('useSidebar: onCreateFolder failed:', err);
@@ -103,9 +192,9 @@ export const useSidebar = ({
       } else {
         setEmptyFolders(prev => new Set([...prev, newFolderPath]));
         setCollapsedCategories(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(newFolderPath);
-          return newSet;
+          const next = new Set(prev);
+          next.delete(newFolderPath);
+          return next;
         });
       }
     }
@@ -119,28 +208,25 @@ export const useSidebar = ({
     const totalMaps = mapsInFolder.length + mapsInSubfolders.length;
 
     if (totalMaps > 0) {
-      
       alert(`「${folderPath}」またはその子フォルダにマップが含まれているため削除できません。先にマップを移動または削除してください。`);
       return;
     }
 
-    
     if (window.confirm(`空のフォルダ「${folderPath}」を削除しますか？`)) {
       setEmptyFolders(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(folderPath);
+        const next = new Set(prev);
         Array.from(prev).forEach(folder => {
-          if (folder.startsWith(folderPath + '/')) {
-            newSet.delete(folder);
+          if (folder === folderPath || folder.startsWith(folderPath + '/')) {
+            next.delete(folder);
           }
         });
-        return newSet;
+        return next;
       });
 
       setCollapsedCategories(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(folderPath);
-        return newSet;
+        const next = new Set(prev);
+        next.delete(folderPath);
+        return next;
       });
 
       logger.info(`空のフォルダ「${folderPath}」を削除しました`);
@@ -149,8 +235,7 @@ export const useSidebar = ({
 
   const handleRenameFolder = useStableCallback((oldPath: string) => {
     const currentName = getLastPathSegment(oldPath) || oldPath;
-    
-    const newName = window.prompt(`フォルダ名を変更:`, currentName);
+    const newName = window.prompt('フォルダ名を変更:', currentName);
 
     if (newName && newName.trim() && newName.trim() !== currentName) {
       const pathParts = splitPath(oldPath);
@@ -169,40 +254,37 @@ export const useSidebar = ({
       });
 
       setEmptyFolders(prev => {
-        const newSet = new Set<string>();
+        const next = new Set<string>();
         Array.from(prev).forEach(folder => {
           if (folder === oldPath) {
-            newSet.add(newPath);
+            next.add(newPath);
           } else if (folder.startsWith(oldPath + '/')) {
-            newSet.add(folder.replace(oldPath, newPath));
+            next.add(folder.replace(oldPath, newPath));
           } else {
-            newSet.add(folder);
+            next.add(folder);
           }
         });
-        return newSet;
+        return next;
       });
 
       setCollapsedCategories(prev => {
-        const newSet = new Set<string>();
+        const next = new Set<string>();
         Array.from(prev).forEach(category => {
           if (category === oldPath) {
-            newSet.add(newPath);
+            next.add(newPath);
           } else if (category.startsWith(oldPath + '/')) {
-            newSet.add(category.replace(oldPath, newPath));
+            next.add(category.replace(oldPath, newPath));
           } else {
-            newSet.add(category);
+            next.add(category);
           }
         });
-        return newSet;
+        return next;
       });
 
       logger.info(`フォルダ名を「${oldPath}」から「${newPath}」に変更しました`);
     }
   });
 
-  
-  
-  
   const [editingMapId, setEditingMapId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState('');
 
@@ -216,32 +298,66 @@ export const useSidebar = ({
     setEditingTitle('');
   });
 
-  const handleCreateMap = useStableCallback((parentPath: string | null) => {
-    const category = extractCategory(parentPath);
-    const displayPath = category || 'ルート';
-    const parentInfo = category ? ` (${displayPath} 内)` : '';
+  const handleFocusExplorerPath = useStableCallback((path: string, type: 'explorer-folder' | 'explorer-file') => {
+    setFocusedExplorer({ path, type });
+  });
 
-    // eslint-disable-next-line no-alert
-    const mapName = window.prompt(`新しいマインドマップの名前を入力してください${parentInfo}:`, '新しいマインドマップ');
-    if (mapName && mapName.trim()) {
-      const fallbackWorkspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : null);
-      const workspaceId = resolveWorkspaceId(parentPath, fallbackWorkspaceId, 'local');
+  const handleCreateMap = useStableCallback((
+    parentPath: string | null,
+    sourceType: ContextMenuState['targetType'] | 'button' = 'button'
+  ) => {
+    const { workspaceId, path } = resolveCreateMapDefaults(parentPath, sourceType);
+    if (!workspaceId && workspaces.length === 0) {
+      showNotification('warning', 'マップを作成するワークスペースを選択してください');
+      return;
+    }
 
-      onCreateMap(mapName.trim(), workspaceId, category);
+    const initialWorkspaceId = workspaceId || null;
 
-      if (parentPath) {
+    const siblingNames = new Set(
+      mindMaps
+        .filter(map =>
+          map.mapIdentifier.workspaceId === initialWorkspaceId &&
+          (map.category || '') === path
+        )
+        .map(map => map.mapIdentifier.mapId.split('/').pop() || map.title)
+    );
+
+    setCreateMapDialog({
+      isOpen: true,
+      workspaceId: initialWorkspaceId,
+      initialPath: path,
+      initialName: generateUniqueFileName(DEFAULT_MAP_NAME, siblingNames)
+    });
+  });
+
+  const handleSubmitCreateMap = useStableCallback(async ({
+    name,
+    path,
+    workspaceId
+  }: {
+    name: string;
+    path: string;
+    workspaceId: string;
+  }) => {
+    try {
+      await Promise.resolve(onCreateMap(name.trim(), workspaceId, path || undefined));
+
+      if (path) {
         setEmptyFolders(prev => {
-          const newSet = new Set(prev);
-          newSet.delete(parentPath);
-          return newSet;
+          const next = new Set(prev);
+          next.delete(path);
+          return next;
         });
       }
+
+      closeCreateMapDialog();
+    } catch (error) {
+      logger.error('useSidebar: failed to create map', error);
+      throw error;
     }
   });
 
-  
-  
-  
   const [searchTerm, setSearchTerm] = useState('');
 
   const { filteredMaps, groupedMaps, visibleFolders } = useMemo(() => {
@@ -273,12 +389,10 @@ export const useSidebar = ({
     }, {});
 
     Object.keys(grouped).forEach(category => {
-      grouped[category].sort((a, b) => {
-        return a.title.localeCompare(b.title, 'ja', {
-          numeric: true,
-          sensitivity: 'base'
-        });
-      });
+      grouped[category].sort((a, b) => a.title.localeCompare(b.title, 'ja', {
+        numeric: true,
+        sensitivity: 'base'
+      }));
     });
 
     let foldersToShow = new Set<string>();
@@ -311,8 +425,8 @@ export const useSidebar = ({
       const partsB = b.split('/');
 
       const minLength = Math.min(partsA.length, partsB.length);
-      for (let i = 0; i < minLength; i++) {
-        const comparison = partsA[i].localeCompare(partsB[i], 'ja', {
+      for (let index = 0; index < minLength; index++) {
+        const comparison = partsA[index].localeCompare(partsB[index], 'ja', {
           numeric: true,
           sensitivity: 'base'
         });
@@ -329,9 +443,6 @@ export const useSidebar = ({
     };
   }, [mindMaps, searchTerm, emptyFolders, currentWorkspaceId, extractCategory]);
 
-  
-  
-  
   const [explorerCollapsed, setExplorerCollapsed] = useState<Record<string, boolean>>({});
 
   const enhancedExplorerTree = useMemo(() => {
@@ -353,12 +464,15 @@ export const useSidebar = ({
       const parts = folderPath.split('/').filter(p => p.trim());
       let current = workspaceNode;
 
-      parts.forEach((part) => {
+      parts.forEach(part => {
         if (!current.children) current.children = [];
 
-        let folder: ExplorerItem | undefined = undefined;
+        let folder: ExplorerItem | undefined;
         for (const child of current.children) {
-          if (child.type === 'folder' && child.name === part) { folder = child; break; }
+          if (child.type === 'folder' && child.name === part) {
+            folder = child;
+            break;
+          }
         }
 
         if (!folder) {
@@ -379,9 +493,6 @@ export const useSidebar = ({
     return clonedTree;
   }, [explorerTree, emptyFolders, currentWorkspaceId]);
 
-  
-  
-  
   const [contextMenu, setContextMenu] = useState<ContextMenuState>({
     isVisible: false,
     position: { x: 0, y: 0 },
@@ -416,7 +527,7 @@ export const useSidebar = ({
         {
           label: 'マップを作成',
           icon: <Workflow size={14} />,
-          onClick: () => handleCreateMap(targetPath)
+          onClick: () => handleCreateMap(targetPath, 'folder')
         },
         {
           label: 'フォルダを作成',
@@ -454,13 +565,15 @@ export const useSidebar = ({
           }
         }
       ];
-    } else if (targetType === 'map' && mapData) {
+    }
+
+    if (targetType === 'map' && mapData) {
       const mapCategory = mapData.category || '';
       return [
         {
           label: '同じフォルダにマップを作成',
           icon: <Workflow size={14} />,
-          onClick: () => handleCreateMap(mapCategory)
+          onClick: () => handleCreateMap(mapCategory, 'map')
         },
         { separator: true },
         {
@@ -477,19 +590,20 @@ export const useSidebar = ({
           label: 'マップを削除',
           icon: <Trash2 size={14} />,
           onClick: () => {
-            // eslint-disable-next-line no-alert
             if (window.confirm(`「${mapData.title}」を削除しますか？`)) {
               onDeleteMap(mapData.mapIdentifier);
             }
           }
         }
       ];
-    } else if (targetType === 'empty') {
+    }
+
+    if (targetType === 'empty') {
       return [
         {
           label: 'マップを作成',
           icon: <Workflow size={14} />,
-          onClick: () => handleCreateMap(null)
+          onClick: () => handleCreateMap(null, 'empty')
         },
         {
           label: 'フォルダを作成',
@@ -497,14 +611,16 @@ export const useSidebar = ({
           onClick: () => handleCreateFolder(null)
         }
       ];
-    } else if (targetType === 'explorer-folder') {
+    }
+
+    if (targetType === 'explorer-folder') {
       const isRoot = targetPath === '';
       const isCollapsed = !!(targetPath && collapsedCategories.has(targetPath));
       const baseItems: ContextMenuItem[] = [
         {
           label: 'マップを作成',
           icon: <Workflow size={14} />,
-          onClick: () => handleCreateMap(targetPath)
+          onClick: () => handleCreateMap(targetPath, 'explorer-folder')
         },
         {
           label: 'フォルダを作成',
@@ -512,6 +628,7 @@ export const useSidebar = ({
           onClick: () => handleCreateFolder(targetPath)
         }
       ];
+
       const mutatingItems: ContextMenuItem[] = isRoot ? [] : [
         { separator: true },
         {
@@ -524,7 +641,9 @@ export const useSidebar = ({
             if (newName && newName.trim()) {
               const parent = targetPath.split('/').slice(0, -1).join('/');
               const newPath = parent ? `${parent}/${newName.trim()}` : newName.trim();
-              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: newName.trim(), newPath } }));
+              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', {
+                detail: { oldPath: targetPath, newName: newName.trim(), newPath }
+              }));
             }
           }
         },
@@ -541,6 +660,7 @@ export const useSidebar = ({
           }
         }
       ];
+
       const rest: ContextMenuItem[] = [
         { separator: true },
         {
@@ -555,9 +675,18 @@ export const useSidebar = ({
           onClick: () => window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'))
         }
       ];
+
       return [...baseItems, ...mutatingItems, ...rest];
-    } else if (targetType === 'explorer-file') {
+    }
+
+    if (targetType === 'explorer-file') {
       return [
+        {
+          label: '同じフォルダにマップを作成',
+          icon: <Workflow size={14} />,
+          onClick: () => handleCreateMap(targetPath, 'explorer-file')
+        },
+        { separator: true },
         {
           label: '開く',
           icon: <BookOpen size={14} />,
@@ -571,7 +700,6 @@ export const useSidebar = ({
               window.dispatchEvent(new CustomEvent('mindoodle:selectMapById', { detail: { mapId, workspaceId } }));
               return;
             }
-            // If image file, preview via global event
             if (/\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(targetPath)) {
               window.dispatchEvent(new CustomEvent('mindoodle:openImageFile', { detail: { path: targetPath } }));
             }
@@ -603,7 +731,9 @@ export const useSidebar = ({
               }
               const parent = targetPath.split('/').slice(0, -1).join('/');
               const newPath = `${parent}/${normalizedName}`;
-              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', { detail: { oldPath: targetPath, newName: normalizedName, newPath } }));
+              window.dispatchEvent(new CustomEvent('mindoodle:renameItem', {
+                detail: { oldPath: targetPath, newName: normalizedName, newPath }
+              }));
             }
           }
         },
@@ -638,11 +768,79 @@ export const useSidebar = ({
     extractCategory
   ]);
 
-  
-  
-  
+  const createMapExistingMapIdsByWorkspace = mindMaps.reduce<Record<string, string[]>>((acc, map) => {
+    const workspaceId = map.mapIdentifier.workspaceId;
+    if (!acc[workspaceId]) {
+      acc[workspaceId] = [];
+    }
+    acc[workspaceId].push(map.mapIdentifier.mapId);
+    return acc;
+  }, {});
+  const createMapFolderSuggestionsByWorkspace = useMemo(() => {
+    const suggestions = new Map<string, Set<string>>();
+
+    const addSuggestion = (workspaceId: string | null, folderPath: string | null | undefined) => {
+      if (!workspaceId || !folderPath) {
+        return;
+      }
+
+      const normalizedPath = normalizePathSeparators(folderPath);
+      if (!normalizedPath) {
+        return;
+      }
+
+      let bucket = suggestions.get(workspaceId);
+      if (!bucket) {
+        bucket = new Set<string>();
+        suggestions.set(workspaceId, bucket);
+      }
+
+      bucket.add(normalizedPath);
+      extractParentPaths(normalizedPath).forEach(parentPath => {
+        const normalizedParentPath = normalizePathSeparators(parentPath);
+        if (normalizedParentPath) {
+          bucket?.add(normalizedParentPath);
+        }
+      });
+    };
+
+    mindMaps.forEach(map => {
+      addSuggestion(map.mapIdentifier.workspaceId, map.category);
+    });
+
+    const tree = enhancedExplorerTree || explorerTree;
+    const visit = (item: ExplorerItem) => {
+      if (item.type !== 'folder') {
+        return;
+      }
+
+      const { workspaceId, relativePath } = parseWorkspacePath(item.path);
+      addSuggestion(workspaceId, relativePath);
+
+      if (Array.isArray(item.children)) {
+        item.children.forEach(visit);
+      }
+    };
+
+    visit(tree);
+
+    return Array.from(suggestions.entries()).reduce<Record<string, string[]>>((acc, [workspaceId, paths]) => {
+      acc[workspaceId] = Array.from(paths).sort((a, b) => {
+        const depthDiff = a.split('/').length - b.split('/').length;
+        if (depthDiff !== 0) {
+          return depthDiff;
+        }
+        return a.localeCompare(b, 'ja', {
+          numeric: true,
+          sensitivity: 'base'
+        });
+      });
+      return acc;
+    }, {});
+  }, [mindMaps, enhancedExplorerTree, explorerTree]);
+  const currentCreateMapDefaults = resolveCreateMapDefaults(null, 'button');
+
   return {
-    
     emptyFolders,
     setEmptyFolders,
     collapsedCategories,
@@ -652,27 +850,30 @@ export const useSidebar = ({
     handleDeleteFolder,
     handleRenameFolder,
 
-    
     editingMapId,
     editingTitle,
     setEditingTitle,
     handleStartRename,
     handleCancelRename,
     handleCreateMap,
+    handleSubmitCreateMap,
+    closeCreateMapDialog,
+    createMapDialog,
+    createMapExistingMapIdsByWorkspace,
+    createMapFolderSuggestionsByWorkspace,
+    handleFocusExplorerPath,
+    canCreateMap: !!currentCreateMapDefaults.workspaceId || workspaces.length > 0,
 
-    
     searchTerm,
     setSearchTerm,
     filteredMaps,
     groupedMaps,
     visibleFolders,
 
-    
     enhancedExplorerTree,
     explorerCollapsed,
     setExplorerCollapsed,
 
-    
     contextMenu,
     contextMenuItems,
     setContextMenu,

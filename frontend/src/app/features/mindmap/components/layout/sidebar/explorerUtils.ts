@@ -13,6 +13,7 @@ export interface ExplorerCommonProps {
   collapsed?: Record<string, boolean>;
   onTogglePath?: (path: string) => void;
   onContextMenu?: (e: React.MouseEvent, path: string, type: 'explorer-folder' | 'explorer-file') => void;
+  onPathFocus?: (path: string, type: 'explorer-folder' | 'explorer-file') => void;
   currentMapId?: string | null;
   currentWorkspaceId?: string | null;
   editingMapId?: string | null;

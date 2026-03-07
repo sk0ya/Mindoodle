@@ -6,11 +6,12 @@ import SidebarCollapsed from './SidebarCollapsed';
 import SidebarStyles from '../../../styles/SidebarStyles';
 import ContextMenu from '../overlay/ContextMenu';
 import { ExplorerView } from './ExplorerView';
+import CreateMapModal from './CreateMapModal';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import { useSidebar } from '../../../hooks/useSidebar';
 import { useCloudWorkspace } from '../../../hooks/useCloudWorkspace';
-import { flexStyles, flexRow, combineStyles } from '../../shared/commonStyles';
+import { flexStyles, flexRow, combineStyles } from '../../Shared/commonStyles';
 
 interface MindMapSidebarProps {
   mindMaps: MindMapData[];
@@ -53,7 +54,9 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
 
   const sidebar = useSidebar({
     mindMaps,
+    currentMapId,
     currentWorkspaceId,
+    workspaces,
     onSelectMap,
     onCreateMap,
     onDeleteMap,
@@ -69,6 +72,14 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
     editingTitle,
     setEditingTitle,
     handleCancelRename,
+    handleCreateMap,
+    handleSubmitCreateMap,
+    closeCreateMapDialog,
+    createMapDialog,
+    createMapExistingMapIdsByWorkspace,
+    createMapFolderSuggestionsByWorkspace,
+    handleFocusExplorerPath,
+    canCreateMap,
     
     searchTerm,
     setSearchTerm,
@@ -233,6 +244,8 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       <SidebarHeader
         searchTerm={searchTerm}
         onSearchChange={setSearchTerm}
+        onCreateMap={() => handleCreateMap(null, 'button')}
+        canCreateMap={canCreateMap}
         onToggleCollapse={onToggleCollapse}
       />
       {(() => {
@@ -263,6 +276,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
                 editingTitle={editingTitle}
                 onCancelRename={handleCancelRename}
                 onEditingTitleChange={setEditingTitle}
+                onPathFocus={handleFocusExplorerPath}
                 onContextMenu={(e, path, type) => {
                   e.preventDefault();
                   setContextMenu({
@@ -302,6 +316,18 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
         position={contextMenu.position}
         items={contextMenuItems}
         onClose={closeContextMenu}
+      />
+
+      <CreateMapModal
+        isOpen={createMapDialog.isOpen}
+        workspaceId={createMapDialog.workspaceId}
+        workspaces={workspaces}
+        existingMapIdsByWorkspace={createMapExistingMapIdsByWorkspace}
+        folderSuggestionsByWorkspace={createMapFolderSuggestionsByWorkspace}
+        initialPath={createMapDialog.initialPath}
+        initialName={createMapDialog.initialName}
+        onClose={closeCreateMapDialog}
+        onCreate={handleSubmitCreateMap}
       />
 
       <SidebarStyles />
