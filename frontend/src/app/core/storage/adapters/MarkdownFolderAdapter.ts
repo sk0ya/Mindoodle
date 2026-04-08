@@ -1,6 +1,6 @@
 import type { MindMapData } from '@shared/types';
 import type { ExplorerItem } from '../../types/storage.types';
-import { logger, statusMessages, generateWorkspaceId } from '@shared/utils';
+import { logger, statusMessages, generateWorkspaceId, parseWorkspacePath } from '@shared/utils';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import {
   ensurePermission,
@@ -576,6 +576,26 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
     return { dir, name };
   }
 
+  private getWorkspaceHandle(workspaceId?: string | null): DirHandle | null {
+    if (workspaceId) {
+      return this.workspaces.find(ws => ws.id === workspaceId)?.handle || null;
+    }
+    return this.workspaces[0]?.handle || this.rootHandle;
+  }
+
+  private async resolveTargetDirectory(path: string, fallbackWorkspaceId?: string | null): Promise<DirHandle | null> {
+    const { workspaceId, relativePath } = parseWorkspacePath(path);
+    const baseHandle = this.getWorkspaceHandle(workspaceId ?? fallbackWorkspaceId);
+    if (!baseHandle) return null;
+
+    let dir = baseHandle;
+    for (const part of this.parsePathParts(relativePath || '')) {
+      dir = await getOrCreateDirectory(dir, part);
+    }
+
+    return dir;
+  }
+
   async deleteItem(path: string): Promise<void> {
     const resolved = await this.resolveParentDirAndName(path);
     if (!resolved) throw new Error('Path not found');
@@ -847,15 +867,13 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
   }
 
   async moveItem(sourcePath: string, targetFolderPath: string): Promise<void> {
-    if (!this.rootHandle) throw new Error('No root folder selected');
+    if (!this.rootHandle && this.workspaces.length === 0) throw new Error('No root folder selected');
     const resolved = await this.resolveParentDirAndName(sourcePath);
     if (!resolved) throw new Error('Source path not found');
     const { dir: srcParent, name } = resolved;
-
-    let dstDir: DirHandle = this.rootHandle;
-    for (const part of this.parsePathParts(targetFolderPath)) {
-      dstDir = await getOrCreateDirectory(dstDir, part);
-    }
+    const { workspaceId: sourceWorkspaceId } = parseWorkspacePath(sourcePath);
+    const dstDir = await this.resolveTargetDirectory(targetFolderPath, sourceWorkspaceId);
+    if (!dstDir) throw new Error('Target path not found');
 
     if (srcParent === dstDir) return;
 

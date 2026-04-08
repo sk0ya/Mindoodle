@@ -39,6 +39,7 @@ export interface StorageAdapter {
   getMapMarkdown?(id: MapIdentifier): Promise<string | null>;
   getMapLastModified?(id: MapIdentifier): Promise<number | null>;
   saveMapMarkdown?(id: MapIdentifier, markdown: string): Promise<void>;
+  saveImageFile?(relativePath: string, file: File | Blob, workspaceId?: string): Promise<void>;
 
   // Optional helpers for local adapters
   selectRootFolder?(): Promise<void>;

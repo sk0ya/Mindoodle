@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Folder, FolderOpen, ChevronRight, ChevronDown, FileText } from 'lucide-react';
-import { highlightSearchTerm } from '@shared/utils';
+import { highlightSearchTerm, parseWorkspacePath } from '@shared/utils';
 import {
   type ExplorerNodeViewProps,
   parseWorkspaceAndMapId,
@@ -28,6 +28,9 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   const isFile = item.type === 'file';
   const isMarkdown = isFile && item.isMarkdown;
   const isCollapsed = collapsed[item.path] || false;
+  const pathInfo = parseWorkspacePath(item.path);
+  const itemWorkspaceId = pathInfo.workspaceId;
+  const isWorkspaceRoot = item.type === 'folder' && !!itemWorkspaceId && !pathInfo.relativePath;
 
   const { workspaceId, mapId } = isMarkdown ? parseWorkspaceAndMapId(item.path) : { workspaceId: null, mapId: null };
   const isActive = isMarkdown && mapId && currentMapId === mapId && (
@@ -75,12 +78,19 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
   };
 
   const handleDragStart = (e: React.DragEvent) => {
+    if (isWorkspaceRoot) {
+      e.preventDefault();
+      return;
+    }
+
     const relativePath = extractRelativePath(item.path);
 
-    // Set the relative path for file system operations (without workspaceId prefix)
+    // Keep the legacy relative path for node-link drops, and add a full path for explorer moves.
     e.dataTransfer.setData('mindoodle/path', relativePath);
+    e.dataTransfer.setData('mindoodle/fullPath', item.path);
+    e.dataTransfer.setData('mindoodle/relativePath', relativePath);
     e.dataTransfer.setData('mindoodle/type', item.type);
-    e.dataTransfer.setData('mindoodle/workspaceId', workspaceId || '');
+    e.dataTransfer.setData('mindoodle/workspaceId', itemWorkspaceId || workspaceId || '');
 
     // For markdown files only: set additional data for dragging to mindmap nodes
     if (isMarkdown && mapId) {
@@ -111,17 +121,23 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
     if (item.type === 'folder') {
       try {
         e.preventDefault();
-        const sourcePath = e.dataTransfer.getData('mindoodle/path');
-        const sourceWorkspaceId = e.dataTransfer.getData('mindoodle/workspaceId');
+        const sourcePath =
+          e.dataTransfer.getData('mindoodle/fullPath') ||
+          e.dataTransfer.getData('mindoodle/path') ||
+          e.dataTransfer.getData('mindoodle/relativePath');
+        const sourceWorkspaceId = e.dataTransfer.getData('mindoodle/workspaceId') || parseWorkspacePath(sourcePath).workspaceId || '';
+        const targetPath = item.path;
 
-        const targetRelativePath = extractRelativePath(item.path);
-
-        if (sourcePath && sourcePath !== targetRelativePath) {
+        if (
+          sourcePath &&
+          sourcePath !== targetPath &&
+          !targetPath.startsWith(`${sourcePath}/`)
+        ) {
 
           window.dispatchEvent(new CustomEvent('mindoodle:moveItem', {
             detail: {
               sourcePath,
-              targetFolderPath: targetRelativePath,
+              targetFolderPath: targetPath,
               workspaceId: sourceWorkspaceId || workspaceId
             }
           }));
@@ -177,7 +193,7 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          draggable={true}
+          draggable={!isWorkspaceRoot}
           style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
         >
           <span className="category-expand-icon">

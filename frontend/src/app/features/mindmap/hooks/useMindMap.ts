@@ -16,6 +16,7 @@ import { useSettings } from './useStoreSelectors';
 import { MarkdownConversionService } from '@mindmap/services/MarkdownConversionService';
 import { PathResolutionService } from '@mindmap/services/PathResolutionService';
 import { MapOperationsService } from '@mindmap/services/MapOperationsService';
+import { ExplorerMoveService } from '@mindmap/services/ExplorerMoveService';
 
 export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) => {
   const dataHook = useMindMapData();
@@ -219,9 +220,30 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   });
 
   const moveItem = useStableCallback(async (sourcePath: string, targetFolderPath: string, workspaceId?: string | null): Promise<void> => {
-    const adapter = getAdapterForWorkspace(persistenceHook, workspaceId || MapOperationsService.extractWorkspaceId(sourcePath));
-    if (adapter?.moveItem) {
-      await adapter.moveItem(sourcePath, targetFolderPath);
+    const moveResolution = ExplorerMoveService.resolveMove(sourcePath, targetFolderPath, workspaceId);
+    const sourceAdapter = getAdapterForWorkspace(persistenceHook, moveResolution.sourceWorkspaceId);
+    const targetAdapter = getAdapterForWorkspace(persistenceHook, moveResolution.targetWorkspaceId);
+
+    if (
+      sourceAdapter &&
+      targetAdapter &&
+      moveResolution.sourceWorkspaceId &&
+      moveResolution.targetWorkspaceId &&
+      moveResolution.sourceWorkspaceId !== moveResolution.targetWorkspaceId &&
+      sourceAdapter !== targetAdapter
+    ) {
+      await ExplorerMoveService.moveAcrossAdapters({
+        sourcePath,
+        targetFolderPath,
+        explorerTree: (persistenceHook as { explorerTree?: import('@core/types').ExplorerItem | null }).explorerTree ?? null,
+        getAdapterForWorkspace: (ws) => getAdapterForWorkspace(persistenceHook, ws)
+      });
+      await persistenceHook.refreshMapList();
+      return;
+    }
+
+    if (sourceAdapter?.moveItem) {
+      await sourceAdapter.moveItem(sourcePath, targetFolderPath);
       await persistenceHook.refreshMapList();
     }
   });

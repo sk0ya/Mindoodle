@@ -1,6 +1,6 @@
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '../../types/storage.types';
-import { logger, getLocalStorage, setLocalStorage, removeLocalStorage, STORAGE_KEYS } from '@shared/utils';
+import { logger, getLocalStorage, setLocalStorage, removeLocalStorage, STORAGE_KEYS, parseWorkspacePath } from '@shared/utils';
 import { WorkspaceService } from '@shared/services';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
@@ -560,14 +560,20 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    // Normalize source path from either "/cloud/..." or relative input
-    const rel = this.cleanPath(sourcePath, 'cloud/');
-
-    // Extract target folder from targetFolderPath
-    let targetFolder = this.cleanPath(targetFolderPath, 'cloud/');
-    // Remove trailing slashes
+    const sourceInfo = parseWorkspacePath(sourcePath);
+    const targetInfo = parseWorkspacePath(targetFolderPath);
+    const rel = sourceInfo.workspaceId === 'cloud'
+      ? (sourceInfo.relativePath || '')
+      : this.cleanPath(sourcePath, 'cloud/');
+    let targetFolder = targetInfo.workspaceId === 'cloud'
+      ? (targetInfo.relativePath || '')
+      : this.cleanPath(targetFolderPath, 'cloud/');
     while (targetFolder.endsWith('/')) {
       targetFolder = targetFolder.slice(0, -1);
+    }
+
+    if (!rel) {
+      throw new Error('Cloud workspace root cannot be moved');
     }
 
     if (/\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i.test(rel)) {

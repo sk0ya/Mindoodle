@@ -4,6 +4,7 @@
  */
 
 import type { ExplorerItem } from '@core/types';
+import { cleanWorkspacePath, parseWorkspacePath } from '@shared/utils';
 
 /**
  * Common props shared between ExplorerView and ExplorerNodeView
@@ -49,28 +50,21 @@ export function extractCategoryFromPath(path: string): string {
  * @returns {workspaceId, mapId} or {null, null} if not a markdown file
  */
 export function parseWorkspaceAndMapId(path: string): { workspaceId: string | null; mapId: string | null } {
-  const re = /^\/(ws_[^/]+|cloud)\/(.+)$/;
-  const pathMatch = re.exec(path);
-
-  if (pathMatch) {
-    const workspaceId = pathMatch[1];
-    const mapId = pathMatch[2].replace(/\.md$/i, '');
-    return { workspaceId, mapId };
+  const { workspaceId, relativePath } = parseWorkspacePath(path);
+  if (workspaceId && relativePath && /\.md$/i.test(relativePath)) {
+    return {
+      workspaceId,
+      mapId: relativePath.replace(/\.md$/i, '')
+    };
   }
-
-  // Fallback for other patterns
-  const workspaceId = path.startsWith('/ws_') ? path.split('/')[1] : null;
-  const mapId = path.replace(/^\/ws_[^/]+\//, '').replace(/\.md$/i, '');
-  return { workspaceId, mapId };
+  return { workspaceId: null, mapId: null };
 }
 
 /**
  * Extracts relative path from a full path (removes workspace prefix)
  */
 export function extractRelativePath(path: string): string {
-  return path.startsWith('/ws_')
-    ? path.replace(/^\/ws_[^/]+\//, '')
-    : path.replace(/^\/cloud\//, '');
+  return cleanWorkspacePath(path);
 }
 
 /**
