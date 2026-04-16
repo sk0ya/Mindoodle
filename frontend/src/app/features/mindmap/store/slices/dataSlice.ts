@@ -9,6 +9,7 @@ import { findNodeInRoots } from '../../utils/nodeOperations';
 import { calculateNodeSize, getNodeTopY, getNodeBottomY, resolveNodeTextWrapConfig } from '../../utils/nodeUtils';
 import { mermaidSVGCache } from '../../utils/mermaidCache';
 import type { MindMapStore } from './types';
+import { calculateStableNodePan } from './viewportPanCompensation';
 
 
 let autoLayoutTimeoutId: NodeJS.Timeout | null = null;
@@ -372,14 +373,8 @@ export const createDataSlice: StateCreator<
         const after = findNodeInRoots(layoutedRootNodes, lastBeforeInsert);
 
         if (before && after) {
-          const dx = (after.x || 0) - (before.x || 0);
-          const dy = (after.y || 0) - (before.y || 0);
-
           // Compensate viewport pan to keep parent at same screen position
-          compensatedPan = {
-            x: currentPan.x + dx,
-            y: currentPan.y + dy
-          };
+          compensatedPan = calculateStableNodePan(currentPan, before, after);
         }
       }
 
