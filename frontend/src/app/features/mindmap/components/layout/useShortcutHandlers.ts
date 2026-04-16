@@ -6,6 +6,8 @@ import type { MindMapNode, MindMapData } from '@shared/types';
 import { navigateToDirection } from './navigationStrategies';
 import { extractNodeMarkdown, copyNodeWithMarkdown, copyNodeTextOnly } from './copyNodeUtils';
 import { switchMap, withNotification } from './shortcutHandlerUtils';
+import { scheduleNewNodeVisibilityCheck } from './newNodeVisibility';
+import type { EnsureSelectedNodeVisibleResult } from '../../hooks/viewportAutoPanTiming';
 
 // Helper to get root nodes with fallback
 const getEffectiveRoots = (data: { rootNode: MindMapNode } | MindMapData | null): MindMapNode[] => {
@@ -72,7 +74,7 @@ interface Args {
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
 
   centerNodeInView: (nodeId: string, animate?: boolean, mode?: 'center' | 'left' | 'top-left') => void;
-  ensureSelectedNodeVisible?: (options?: { force?: boolean }) => void;
+  ensureSelectedNodeVisible?: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
 
   selectedNodeId: string | null;
   editingNodeId: string | null;
@@ -127,6 +129,14 @@ export function useShortcutHandlers(args: Args) {
     addChildNode: async (parentId: string, text?: string, autoEdit?: boolean) => {
       try {
         const newNodeId = store.addChildNode(parentId, text);
+        if (newNodeId) {
+          scheduleNewNodeVisibilityCheck({
+            nodeId: newNodeId,
+            ensureSelectedNodeVisible,
+            getSelectedNodeId: () => getStoreState().selectedNodeId,
+            getRootNodes,
+          });
+        }
         if (autoEdit && newNodeId) setTimeout(() => startEditing(newNodeId), 50);
         return newNodeId || null;
       } catch (error) {
@@ -137,6 +147,14 @@ export function useShortcutHandlers(args: Args) {
     addSiblingNode: async (nodeId: string, text?: string, autoEdit?: boolean, insertAfter?: boolean) => {
       try {
         const newNodeId = store.addSiblingNode(nodeId, text, insertAfter);
+        if (newNodeId) {
+          scheduleNewNodeVisibilityCheck({
+            nodeId: newNodeId,
+            ensureSelectedNodeVisible,
+            getSelectedNodeId: () => getStoreState().selectedNodeId,
+            getRootNodes,
+          });
+        }
         if (autoEdit && newNodeId) setTimeout(() => startEditing(newNodeId), 50);
         return newNodeId || null;
       } catch (error) {
@@ -299,11 +317,12 @@ export function useShortcutHandlers(args: Args) {
     },
   }), [
     data, ui, store, logger, showNotification,
-    centerNodeInView,
+    centerNodeInView, ensureSelectedNodeVisible,
     selectedNodeId, editingNodeId, editText, setEditText,
     startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart,
     finishEditing, updateNode, deleteNode,
     undo, redo, canUndo, canRedo, selectNode, setPan,
     pasteImageFromClipboard, pasteNodeFromClipboard, changeNodeType, changeSiblingOrder,
+    getCurrentMarkdownContent,
   ]);
 }
