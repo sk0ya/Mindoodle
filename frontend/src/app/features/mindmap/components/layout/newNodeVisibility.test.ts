@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { MindMapNode } from '@shared/types';
 import { scheduleNewNodeVisibilityCheck } from './newNodeVisibility';
 import {
-  LAYOUT_AUTO_PAN_MAX_RETRIES,
-  LAYOUT_AUTO_PAN_RETRY_MS,
+  NEW_NODE_VISIBILITY_MAX_RETRIES,
+  NEW_NODE_VISIBILITY_RETRY_MS,
   type EnsureSelectedNodeVisibleResult,
 } from '../../hooks/viewportAutoPanTiming';
 
@@ -20,13 +20,17 @@ const createNode = (id: string, children: MindMapNode[] = []): MindMapNode => ({
 describe('scheduleNewNodeVisibilityCheck', () => {
   beforeEach(() => {
     vi.useFakeTimers();
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      return window.setTimeout(() => callback(performance.now()), 0);
+    });
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
-  it('checks only the newly created node after the layout suppression window', () => {
+  it('checks the newly created empty node on the next animation frame', () => {
     const ensureSelectedNodeVisible = vi.fn();
 
     scheduleNewNodeVisibilityCheck({
@@ -36,15 +40,15 @@ describe('scheduleNewNodeVisibilityCheck', () => {
       getRootNodes: () => [createNode('root', [createNode('new-node')])],
     });
 
-    vi.advanceTimersByTime(LAYOUT_AUTO_PAN_RETRY_MS - 1);
     expect(ensureSelectedNodeVisible).not.toHaveBeenCalled();
 
-    vi.advanceTimersByTime(1);
+    vi.advanceTimersByTime(0);
+
     expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(1);
-    expect(ensureSelectedNodeVisible).toHaveBeenCalledWith();
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledWith({ force: true });
   });
 
-  it('does nothing if the user has selected another node before the delayed check', () => {
+  it('does nothing if the user has selected another node before the creation frame', () => {
     const ensureSelectedNodeVisible = vi.fn();
 
     scheduleNewNodeVisibilityCheck({
@@ -54,13 +58,13 @@ describe('scheduleNewNodeVisibilityCheck', () => {
       getRootNodes: () => [createNode('root', [createNode('new-node')])],
     });
 
-    vi.advanceTimersByTime(LAYOUT_AUTO_PAN_RETRY_MS);
+    vi.advanceTimersByTime(0);
 
     expect(ensureSelectedNodeVisible).not.toHaveBeenCalled();
   });
 
   it('retries while creation visibility is still suppressed', () => {
-    const ensureSelectedNodeVisible = vi.fn<() => EnsureSelectedNodeVisibleResult>()
+    const ensureSelectedNodeVisible = vi.fn<(options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult>()
       .mockReturnValue('suppressed');
 
     scheduleNewNodeVisibilityCheck({
@@ -70,11 +74,11 @@ describe('scheduleNewNodeVisibilityCheck', () => {
       getRootNodes: () => [createNode('root', [createNode('new-node')])],
     });
 
-    for (let i = 0; i < LAYOUT_AUTO_PAN_MAX_RETRIES; i += 1) {
-      vi.advanceTimersByTime(LAYOUT_AUTO_PAN_RETRY_MS);
+    for (let i = 0; i < NEW_NODE_VISIBILITY_MAX_RETRIES; i += 1) {
+      vi.advanceTimersByTime(i === 0 ? 0 : NEW_NODE_VISIBILITY_RETRY_MS);
     }
 
-    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(LAYOUT_AUTO_PAN_MAX_RETRIES);
-    expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(NEW_NODE_VISIBILITY_MAX_RETRIES);
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledWith({ force: true });
   });
 });

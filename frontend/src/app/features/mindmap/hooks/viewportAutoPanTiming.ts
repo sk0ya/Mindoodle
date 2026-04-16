@@ -1,5 +1,5 @@
 export const LAYOUT_AUTO_PAN_SUPPRESSION_MS = 800;
-export const LAYOUT_AUTO_PAN_RETRY_MS = LAYOUT_AUTO_PAN_SUPPRESSION_MS + 50;
-export const LAYOUT_AUTO_PAN_MAX_RETRIES = 3;
+export const NEW_NODE_VISIBILITY_RETRY_MS = 32;
+export const NEW_NODE_VISIBILITY_MAX_RETRIES = 2;
 
 export type EnsureSelectedNodeVisibleResult = 'suppressed' | void;

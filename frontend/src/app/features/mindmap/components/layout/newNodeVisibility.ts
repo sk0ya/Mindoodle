@@ -1,14 +1,14 @@
 import type { MindMapNode } from '@shared/types';
 import { findNodeInRoots } from '@mindmap/utils';
 import {
-  LAYOUT_AUTO_PAN_MAX_RETRIES,
-  LAYOUT_AUTO_PAN_RETRY_MS,
+  NEW_NODE_VISIBILITY_MAX_RETRIES,
+  NEW_NODE_VISIBILITY_RETRY_MS,
   type EnsureSelectedNodeVisibleResult,
 } from '../../hooks/viewportAutoPanTiming';
 
 interface ScheduleNewNodeVisibilityCheckParams {
   nodeId: string;
-  ensureSelectedNodeVisible?: () => EnsureSelectedNodeVisibleResult;
+  ensureSelectedNodeVisible?: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
   getSelectedNodeId: () => string | null;
   getRootNodes: () => MindMapNode[];
 }
@@ -21,16 +21,22 @@ export const scheduleNewNodeVisibilityCheck = ({
 }: ScheduleNewNodeVisibilityCheckParams): void => {
   if (!ensureSelectedNodeVisible) return;
 
-  const schedule = (attempt: number) => {
-    window.setTimeout(() => {
-      if (getSelectedNodeId() !== nodeId) return;
-      if (!findNodeInRoots(getRootNodes(), nodeId)) return;
+  const isStillTargetNode = () => (
+    getSelectedNodeId() === nodeId &&
+    Boolean(findNodeInRoots(getRootNodes(), nodeId))
+  );
 
-      const result = ensureSelectedNodeVisible();
-      if (result === 'suppressed' && attempt < LAYOUT_AUTO_PAN_MAX_RETRIES) {
-        schedule(attempt + 1);
-      }
-    }, LAYOUT_AUTO_PAN_RETRY_MS);
+  const runCheck = (attempt: number) => {
+    if (!isStillTargetNode()) return;
+
+    const result = ensureSelectedNodeVisible({ force: true });
+    if (result === 'suppressed' && attempt < NEW_NODE_VISIBILITY_MAX_RETRIES) {
+      window.setTimeout(() => runCheck(attempt + 1), NEW_NODE_VISIBILITY_RETRY_MS);
+    }
+  };
+
+  const schedule = (attempt: number) => {
+    window.requestAnimationFrame(() => runCheck(attempt));
   };
 
   schedule(1);
