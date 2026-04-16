@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { LAYOUT_AUTO_PAN_RETRY_MS, type EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
+import {
+  LAYOUT_AUTO_PAN_MAX_RETRIES,
+  LAYOUT_AUTO_PAN_RETRY_MS,
+  type EnsureSelectedNodeVisibleResult,
+} from './viewportAutoPanTiming';
 
 /**
  * Automatically ensures the selected node is visible in the viewport
@@ -56,18 +60,23 @@ export function useAutoScrollToSelectedNode({
     // Update ref
     previousNodeIdRef.current = selectedNodeId;
 
+    const scheduleRetry = (attempt: number) => {
+      clearRetryTimeout();
+      retryTimeoutIdRef.current = window.setTimeout(() => {
+        retryTimeoutIdRef.current = null;
+        if (previousNodeIdRef.current !== selectedNodeId) return;
+        const result = ensureSelectedNodeVisible();
+        if (result === 'suppressed' && attempt < LAYOUT_AUTO_PAN_MAX_RETRIES) {
+          scheduleRetry(attempt + 1);
+        }
+      }, LAYOUT_AUTO_PAN_RETRY_MS);
+    };
+
     // Ensure node is visible after the DOM has updated.
     const frameId = requestAnimationFrame(() => {
       if (previousNodeIdRef.current !== selectedNodeId) return;
-      const result = ensureSelectedNodeVisible();
-      if (result === 'suppressed') {
-        clearRetryTimeout();
-        retryTimeoutIdRef.current = window.setTimeout(() => {
-          retryTimeoutIdRef.current = null;
-          if (previousNodeIdRef.current !== selectedNodeId) return;
-          ensureSelectedNodeVisible();
-        }, LAYOUT_AUTO_PAN_RETRY_MS);
-      }
+      ensureSelectedNodeVisible();
+      scheduleRetry(1);
     });
 
     return () => {

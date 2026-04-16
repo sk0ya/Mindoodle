@@ -56,8 +56,9 @@ describe('useAutoScrollToSelectedNode', () => {
     advanceTimersBy(0);
     advanceTimersBy(LAYOUT_AUTO_PAN_RETRY_MS);
 
-    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(1);
-    expect(ensureSelectedNodeVisible).toHaveBeenCalledWith();
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(2);
+    expect(ensureSelectedNodeVisible).toHaveBeenNthCalledWith(1);
+    expect(ensureSelectedNodeVisible).toHaveBeenNthCalledWith(2);
     expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
   });
 
@@ -82,6 +83,49 @@ describe('useAutoScrollToSelectedNode', () => {
     expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(2);
     expect(ensureSelectedNodeVisible).toHaveBeenNthCalledWith(1);
     expect(ensureSelectedNodeVisible).toHaveBeenNthCalledWith(2);
+    expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
+  });
+
+  it('rechecks visibility even when the first pass runs before final layout settles', () => {
+    const ensureSelectedNodeVisible = vi.fn();
+
+    render(
+      <Harness
+        selectedNodeId="node-1"
+        ensureSelectedNodeVisible={ensureSelectedNodeVisible}
+      />
+    );
+
+    advanceTimersBy(0);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(1);
+
+    advanceTimersBy(LAYOUT_AUTO_PAN_RETRY_MS);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(2);
+    expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
+  });
+
+  it('retries again when the delayed visibility check is still suppressed', () => {
+    const ensureSelectedNodeVisible = vi.fn<(options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult>()
+      .mockReturnValueOnce(undefined)
+      .mockReturnValueOnce('suppressed');
+
+    render(
+      <Harness
+        selectedNodeId="node-1"
+        ensureSelectedNodeVisible={ensureSelectedNodeVisible}
+      />
+    );
+
+    advanceTimersBy(0);
+    advanceTimersBy(LAYOUT_AUTO_PAN_RETRY_MS);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(2);
+
+    advanceTimersBy(LAYOUT_AUTO_PAN_RETRY_MS);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(3);
     expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
   });
 });
