@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { isNodeElement } from '@mindmap/utils';
+import { isNodeElement, screenDeltaToCanvasPanDelta } from '@mindmap/utils';
 // no logging for viewport interactions to avoid console noise
 
 interface ViewportState {
@@ -85,8 +85,8 @@ export const useCanvasViewportHandler = ({
 
       // Update pan immediately for smooth response
       setPan(prev => ({
-        x: prev.x + deltaX / zoom,
-        y: prev.y + deltaY / zoom
+        x: prev.x + screenDeltaToCanvasPanDelta(deltaX, zoom),
+        y: prev.y + screenDeltaToCanvasPanDelta(deltaY, zoom)
       }));
 
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };

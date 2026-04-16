@@ -36,6 +36,7 @@ vi.mock('@mindmap/utils', () => ({
     return find(roots);
   }),
   calculateNodeSize: vi.fn(() => ({ width: 100, height: 40 })),
+  getCanvasScale: vi.fn((zoom: number) => zoom * 1.5),
   resolveNodeTextWrapConfig: vi.fn(() => ({ enabled: false, width: 200 })),
 }));
 

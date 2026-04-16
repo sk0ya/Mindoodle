@@ -1,7 +1,7 @@
 import type { MindMapNode } from '@shared/types';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '@mindmap/store';
-import { findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { findNodeInRoots, calculateNodeSize, getCanvasScale, resolveNodeTextWrapConfig } from '@mindmap/utils';
 
 export interface EnsureVisibleUI {
   zoom: number;
@@ -129,7 +129,7 @@ export function ensureVisible(nodeId: string, ui: EnsureVisibleUI, setPan: (pan:
 
   const viewport = calculateViewportDimensions();
 
-  const currentZoom = (ui.zoom ?? 1) * 1.5;
+  const currentZoom = getCanvasScale(ui.zoom ?? 1);
   const currentPan = ui.pan ?? { x: 0, y: 0 };
 
   const storeState = (useMindMapStore as unknown as { getState?: () => { settings?: { fontSize?: number; nodeTextWrapEnabled?: boolean; nodeTextWrapWidth?: number } } }).getState?.();

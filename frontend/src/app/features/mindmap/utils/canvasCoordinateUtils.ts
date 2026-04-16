@@ -12,6 +12,17 @@ export interface ViewportTransform {
   pan: { x: number; y: number };
 }
 
+export const CANVAS_SCALE_MULTIPLIER = 1.5;
+
+export const getCanvasScale = (zoom: number): number => zoom * CANVAS_SCALE_MULTIPLIER;
+
+export const getCanvasTransform = (
+  zoom: number,
+  pan: { x?: number; y?: number }
+): string => `scale(${getCanvasScale(zoom)}) translate(${pan.x ?? 0}, ${pan.y ?? 0})`;
+
+export const screenDeltaToCanvasPanDelta = (delta: number, zoom: number): number =>
+  delta / getCanvasScale(zoom);
 
 export const convertScreenToSVG = (
   screenX: number,
@@ -23,8 +34,9 @@ export const convertScreenToSVG = (
   if (!svgRef.current) return null;
 
   const svgRect = svgRef.current.getBoundingClientRect();
-  const svgX = (screenX - svgRect.left) / (zoom * 1.5) - pan.x;
-  const svgY = (screenY - svgRect.top) / (zoom * 1.5) - pan.y;
+  const scale = getCanvasScale(zoom);
+  const svgX = (screenX - svgRect.left) / scale - pan.x;
+  const svgY = (screenY - svgRect.top) / scale - pan.y;
 
   return { svgX, svgY };
 };
@@ -40,8 +52,9 @@ export const convertSVGToScreen = (
   if (!svgRef.current) return null;
 
   const svgRect = svgRef.current.getBoundingClientRect();
-  const screenX = (svgX + pan.x) * (zoom * 1.5) + svgRect.left;
-  const screenY = (svgY + pan.y) * (zoom * 1.5) + svgRect.top;
+  const scale = getCanvasScale(zoom);
+  const screenX = (svgX + pan.x) * scale + svgRect.left;
+  const screenY = (svgY + pan.y) * scale + svgRect.top;
 
   return { screenX, screenY };
 };

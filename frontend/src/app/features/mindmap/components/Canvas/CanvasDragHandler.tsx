@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import type { MindMapNode } from '@shared/types';
 import { logger } from '@shared/utils';
 import { dispatchCanvasEvent } from '@mindmap/events/dispatcher';
+import { getCanvasScale } from '@mindmap/utils';
 
 // Local aliases to avoid inline union types
 type DropPosition = 'child' | 'before' | 'after';
@@ -50,8 +51,9 @@ export const useCanvasDragHandler = ({
     if (!svgRect) return { node: null, position: null, action: null };
 
     
-    const svgX = (x - svgRect.left) / (zoom * 1.5) - pan.x;
-    const svgY = (y - svgRect.top) / (zoom * 1.5) - pan.y;
+    const scale = getCanvasScale(zoom);
+    const svgX = (x - svgRect.left) / scale - pan.x;
+    const svgY = (y - svgRect.top) / scale - pan.y;
 
 
     

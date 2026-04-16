@@ -5,7 +5,7 @@ import InMapLinkConnections from './InMapLinkConnections';
 import { Node } from '../Node';
 import SelectedNodeLinkList from '../Shared/SelectedNodeLinkList';
 import FloatingActionButton from '../layout/FloatingActionButton';
-import { calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { calculateNodeSize, getCanvasTransform, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { useSettings, useUI, getStoreState } from '@mindmap/hooks/useStoreSelectors';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 
@@ -162,7 +162,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           transition: 'border-color 0.2s ease'
         }}
       >
-        <g transform={`translate(${pan?.x || 0}, ${pan?.y || 0}) scale(${zoom * 1.5})`}>
+        <g transform={getCanvasTransform(zoom, pan)}>
           {}
           <CanvasDragGuide
             dragState={dragState}

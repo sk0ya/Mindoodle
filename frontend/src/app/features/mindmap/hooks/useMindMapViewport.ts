@@ -1,4 +1,4 @@
-import { findNodeInRoots, calculateNodeSize, resolveNodeTextWrapConfig } from '@mindmap/utils';
+import { findNodeInRoots, calculateNodeSize, getCanvasScale, resolveNodeTextWrapConfig } from '@mindmap/utils';
 import { viewportService } from '@/app/core/services';
 import { useMindMapStore } from '../store';
 import type { MindMapNode } from '@shared/types';
@@ -101,8 +101,8 @@ export function useMindMapViewport({
         Math.max(0, visibleBottom - containerTop)
       );
 
-      // Match the renderer's effective scale (zoom * 1.5)
-      const currentZoom = (st.ui?.zoom || 1) * 1.5;
+      // Match the renderer's effective scale.
+      const currentZoom = getCanvasScale(st.ui?.zoom || 1);
       const currentPan = st.ui?.pan || { x: 0, y: 0 };
 
       // Prefer DOM-based measurement to avoid math drift (especially on Y)
@@ -243,8 +243,8 @@ export function useMindMapViewport({
     const containerHeight = Math.max(0, rawContainerHeight - svgBorderTop - svgBorderBottom);
 
     // Desired screen-space target points and effective scale
-    // Match the renderer's effective scale (zoom * 1.5)
-    const scale = uiStore.zoom * 1.5;
+    // Match the renderer's effective scale.
+    const scale = getCanvasScale(uiStore.zoom);
     const centerScreenX = containerLeft + containerWidth / 2;
     const centerScreenY = containerTop + containerHeight / 2;
     const leftMargin = 150; // zt margin
@@ -252,8 +252,8 @@ export function useMindMapViewport({
     const leftScreenX = containerLeft + leftMargin;
 
     // Helper to compute pan from a desired screen target and node svg coords
-    // CanvasRenderer applies transforms as translate then scale:
-    // <g transform={`translate(pan.x, pan.y) scale(scale)`}>
+    // CanvasRenderer applies transforms as scale then translate:
+    // <g transform={`scale(scale) translate(pan.x, pan.y)`}>
     // So: screen = containerLeft/Top + (node + pan) * scale
     const computePan = (nodeSvgX: number, nodeSvgY: number, targetScreenX: number, targetScreenY: number) => {
       const panX = (targetScreenX - containerLeft) / scale - nodeSvgX;
