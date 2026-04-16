@@ -1,10 +1,11 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAutoScrollToSelectedNode } from './useAutoScrollToSelectedNode';
+import { LAYOUT_AUTO_PAN_RETRY_MS, type EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
 
 interface HarnessProps {
   selectedNodeId: string | null;
-  ensureSelectedNodeVisible: (options?: { force?: boolean }) => void;
+  ensureSelectedNodeVisible: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
   disabled?: boolean;
 }
 
@@ -14,26 +15,25 @@ const Harness = (props: HarnessProps) => {
 };
 
 describe('useAutoScrollToSelectedNode', () => {
-  let animationFrames: FrameRequestCallback[];
-
-  const flushAnimationFrame = () => {
-    const callbacks = animationFrames.splice(0);
+  const advanceTimersBy = (ms: number) => {
     act(() => {
-      callbacks.forEach(callback => callback(0));
+      vi.advanceTimersByTime(ms);
     });
   };
 
   beforeEach(() => {
-    animationFrames = [];
+    vi.useFakeTimers();
     vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
-      animationFrames.push(callback);
-      return animationFrames.length;
+      return window.setTimeout(() => callback(performance.now()), 0);
     });
-    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined);
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation((id) => {
+      window.clearTimeout(id);
+    });
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   it('does not bypass layout auto-pan suppression on selection changes', () => {
@@ -53,11 +53,35 @@ describe('useAutoScrollToSelectedNode', () => {
       />
     );
 
-    flushAnimationFrame();
-    flushAnimationFrame();
+    advanceTimersBy(0);
+    advanceTimersBy(LAYOUT_AUTO_PAN_RETRY_MS);
 
     expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(1);
     expect(ensureSelectedNodeVisible).toHaveBeenCalledWith();
+    expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
+  });
+
+  it('rechecks visibility after layout auto-pan suppression ends', () => {
+    const ensureSelectedNodeVisible = vi.fn<(options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult>()
+      .mockReturnValueOnce('suppressed');
+
+    render(
+      <Harness
+        selectedNodeId="node-1"
+        ensureSelectedNodeVisible={ensureSelectedNodeVisible}
+      />
+    );
+
+    advanceTimersBy(0);
+    advanceTimersBy(LAYOUT_AUTO_PAN_RETRY_MS - 1);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(1);
+
+    advanceTimersBy(1);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(2);
+    expect(ensureSelectedNodeVisible).toHaveBeenNthCalledWith(1);
+    expect(ensureSelectedNodeVisible).toHaveBeenNthCalledWith(2);
     expect(ensureSelectedNodeVisible).not.toHaveBeenCalledWith({ force: true });
   });
 });

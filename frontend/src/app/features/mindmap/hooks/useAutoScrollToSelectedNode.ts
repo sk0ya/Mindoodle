@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { LAYOUT_AUTO_PAN_RETRY_MS, type EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
 
 /**
  * Automatically ensures the selected node is visible in the viewport
@@ -15,7 +16,7 @@ import { useEffect, useRef } from 'react';
  */
 interface UseAutoScrollToSelectedNodeProps {
   selectedNodeId: string | null;
-  ensureSelectedNodeVisible: (options?: { force?: boolean }) => void;
+  ensureSelectedNodeVisible: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
   /**
    * When true, disables auto-scroll (for cases where selection changes
    * but we don't want to move the viewport, e.g., during bulk operations)
@@ -29,6 +30,13 @@ export function useAutoScrollToSelectedNode({
   disabled = false,
 }: UseAutoScrollToSelectedNodeProps) {
   const previousNodeIdRef = useRef<string | null>(null);
+  const retryTimeoutIdRef = useRef<number | null>(null);
+
+  const clearRetryTimeout = useCallback(() => {
+    if (retryTimeoutIdRef.current === null) return;
+    clearTimeout(retryTimeoutIdRef.current);
+    retryTimeoutIdRef.current = null;
+  }, []);
 
   useEffect(() => {
     // Skip if disabled
@@ -51,9 +59,20 @@ export function useAutoScrollToSelectedNode({
     // Ensure node is visible after the DOM has updated.
     const frameId = requestAnimationFrame(() => {
       if (previousNodeIdRef.current !== selectedNodeId) return;
-      ensureSelectedNodeVisible();
+      const result = ensureSelectedNodeVisible();
+      if (result === 'suppressed') {
+        clearRetryTimeout();
+        retryTimeoutIdRef.current = window.setTimeout(() => {
+          retryTimeoutIdRef.current = null;
+          if (previousNodeIdRef.current !== selectedNodeId) return;
+          ensureSelectedNodeVisible();
+        }, LAYOUT_AUTO_PAN_RETRY_MS);
+      }
     });
 
-    return () => cancelAnimationFrame(frameId);
-  }, [selectedNodeId, ensureSelectedNodeVisible, disabled]);
+    return () => {
+      cancelAnimationFrame(frameId);
+      clearRetryTimeout();
+    };
+  }, [selectedNodeId, ensureSelectedNodeVisible, disabled, clearRetryTimeout]);
 }

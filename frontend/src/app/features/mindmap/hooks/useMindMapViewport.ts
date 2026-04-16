@@ -5,6 +5,7 @@ import type { MindMapNode } from '@shared/types';
 import { useStableCallback } from '@shared/hooks';
 import { useEffect, useRef } from 'react';
 import { mindMapEvents } from '@core/streams';
+import { LAYOUT_AUTO_PAN_SUPPRESSION_MS, type EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
 
 export interface ViewportOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
@@ -40,15 +41,15 @@ export function useMindMapViewport({
   useEffect(() => {
     const unsubscribe = mindMapEvents.subscribe((event) => {
       if (event.type === 'layout.applied') {
-        suppressAutoPanUntilRef.current = performance.now() + 800; // ms
+        suppressAutoPanUntilRef.current = performance.now() + LAYOUT_AUTO_PAN_SUPPRESSION_MS;
       }
     });
     return () => unsubscribe();
   }, []);
 
-  const ensureSelectedNodeVisible = useStableCallback((options?: { force?: boolean }) => {
+  const ensureSelectedNodeVisible = useStableCallback((options?: { force?: boolean }): EnsureSelectedNodeVisibleResult => {
     // Skip adjustments during suppression window unless forced (keyboard nav)
-    if (!options?.force && performance.now() < suppressAutoPanUntilRef.current) return;
+    if (!options?.force && performance.now() < suppressAutoPanUntilRef.current) return 'suppressed';
     try {
       const st = useMindMapStore.getState();
       const selId: string | null = st.selectedNodeId || null;
