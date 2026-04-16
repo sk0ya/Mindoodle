@@ -1,11 +1,14 @@
 import { act, render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAutoScrollToSelectedNode } from './useAutoScrollToSelectedNode';
-import type { EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
+import type {
+  EnsureSelectedNodeVisibleOptions,
+  EnsureSelectedNodeVisibleResult
+} from './viewportAutoPanTiming';
 
 interface HarnessProps {
   selectedNodeId: string | null;
-  ensureSelectedNodeVisible: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
+  ensureSelectedNodeVisible: (options?: EnsureSelectedNodeVisibleOptions) => EnsureSelectedNodeVisibleResult;
   disabled?: boolean;
 }
 

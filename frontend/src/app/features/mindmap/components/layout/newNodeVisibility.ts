@@ -3,12 +3,14 @@ import { findNodeInRoots } from '@mindmap/utils';
 import {
   NEW_NODE_VISIBILITY_MAX_RETRIES,
   NEW_NODE_VISIBILITY_RETRY_MS,
+  type EnsureSelectedNodeVisibleOptions,
   type EnsureSelectedNodeVisibleResult,
 } from '../../hooks/viewportAutoPanTiming';
 
 interface ScheduleNewNodeVisibilityCheckParams {
   nodeId: string;
-  ensureSelectedNodeVisible?: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
+  ensureSelectedNodeVisible?: (options?: EnsureSelectedNodeVisibleOptions) => EnsureSelectedNodeVisibleResult;
+  preventDownwardPan?: boolean;
   getSelectedNodeId: () => string | null;
   getRootNodes: () => MindMapNode[];
 }
@@ -16,6 +18,7 @@ interface ScheduleNewNodeVisibilityCheckParams {
 export const scheduleNewNodeVisibilityCheck = ({
   nodeId,
   ensureSelectedNodeVisible,
+  preventDownwardPan = false,
   getSelectedNodeId,
   getRootNodes,
 }: ScheduleNewNodeVisibilityCheckParams): void => {
@@ -29,7 +32,9 @@ export const scheduleNewNodeVisibilityCheck = ({
   const runCheck = (attempt: number) => {
     if (!isStillTargetNode()) return;
 
-    const result = ensureSelectedNodeVisible({ force: true });
+    const result = ensureSelectedNodeVisible(
+      preventDownwardPan ? { force: true, preventDownwardPan } : { force: true }
+    );
     if (result === 'suppressed' && attempt < NEW_NODE_VISIBILITY_MAX_RETRIES) {
       window.setTimeout(() => runCheck(attempt + 1), NEW_NODE_VISIBILITY_RETRY_MS);
     }

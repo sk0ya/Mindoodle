@@ -7,7 +7,10 @@ import { navigateToDirection } from './navigationStrategies';
 import { extractNodeMarkdown, copyNodeWithMarkdown, copyNodeTextOnly } from './copyNodeUtils';
 import { switchMap, withNotification } from './shortcutHandlerUtils';
 import { scheduleNewNodeVisibilityCheck } from './newNodeVisibility';
-import type { EnsureSelectedNodeVisibleResult } from '../../hooks/viewportAutoPanTiming';
+import type {
+  EnsureSelectedNodeVisibleOptions,
+  EnsureSelectedNodeVisibleResult
+} from '../../hooks/viewportAutoPanTiming';
 
 // Helper to get root nodes with fallback
 const getEffectiveRoots = (data: { rootNode: MindMapNode } | MindMapData | null): MindMapNode[] => {
@@ -74,7 +77,7 @@ interface Args {
   showNotification: (type: 'success'|'error'|'info'|'warning', message: string) => void;
 
   centerNodeInView: (nodeId: string, animate?: boolean, mode?: 'center' | 'left' | 'top-left') => void;
-  ensureSelectedNodeVisible?: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
+  ensureSelectedNodeVisible?: (options?: EnsureSelectedNodeVisibleOptions) => EnsureSelectedNodeVisibleResult;
 
   selectedNodeId: string | null;
   editingNodeId: string | null;
@@ -133,6 +136,7 @@ export function useShortcutHandlers(args: Args) {
           scheduleNewNodeVisibilityCheck({
             nodeId: newNodeId,
             ensureSelectedNodeVisible,
+            preventDownwardPan: true,
             getSelectedNodeId: () => getStoreState().selectedNodeId,
             getRootNodes,
           });

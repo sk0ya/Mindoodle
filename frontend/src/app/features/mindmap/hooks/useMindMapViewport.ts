@@ -5,7 +5,11 @@ import type { MindMapNode } from '@shared/types';
 import { useStableCallback } from '@shared/hooks';
 import { useEffect, useRef } from 'react';
 import { mindMapEvents } from '@core/streams';
-import { LAYOUT_AUTO_PAN_SUPPRESSION_MS, type EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
+import {
+  LAYOUT_AUTO_PAN_SUPPRESSION_MS,
+  type EnsureSelectedNodeVisibleOptions,
+  type EnsureSelectedNodeVisibleResult
+} from './viewportAutoPanTiming';
 
 export interface ViewportOperationsParams {
   data: { rootNodes: MindMapNode[] } | null;
@@ -25,7 +29,45 @@ export interface ViewportOperationsParams {
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
 }
 
- 
+type ScreenBounds = {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+};
+
+export const calculateVisibilityPanDelta = (
+  rect: ScreenBounds,
+  visibleBounds: ScreenBounds,
+  targetBounds: ScreenBounds,
+  options?: Pick<EnsureSelectedNodeVisibleOptions, 'preventDownwardPan'>
+): { x: number; y: number } => {
+  let deltaX = 0;
+  let deltaY = 0;
+
+  if (rect.left < visibleBounds.left) {
+    deltaX = targetBounds.left - rect.left;
+  } else if (rect.right > visibleBounds.right) {
+    deltaX = targetBounds.right - rect.right;
+  }
+
+  if (rect.top < visibleBounds.top) {
+    deltaY = targetBounds.top - rect.top;
+  } else if (rect.bottom > visibleBounds.bottom) {
+    deltaY = targetBounds.bottom - rect.bottom;
+  }
+
+  if (options?.preventDownwardPan && deltaY > 0) {
+    deltaY = 0;
+  }
+
+  return { x: deltaX, y: deltaY };
+};
+
+const getVisibleNodeElement = (nodeGroup: Element): Element => (
+  nodeGroup.querySelector('rect[role="button"]') ?? nodeGroup
+);
+
 
 
 export function useMindMapViewport({
@@ -47,7 +89,7 @@ export function useMindMapViewport({
     return () => unsubscribe();
   }, []);
 
-  const ensureSelectedNodeVisible = useStableCallback((options?: { force?: boolean }): EnsureSelectedNodeVisibleResult => {
+  const ensureSelectedNodeVisible = useStableCallback((options?: EnsureSelectedNodeVisibleOptions): EnsureSelectedNodeVisibleResult => {
     // Skip adjustments during suppression window unless forced (keyboard nav)
     if (!options?.force && performance.now() < suppressAutoPanUntilRef.current) return 'suppressed';
     try {
@@ -122,15 +164,27 @@ export function useMindMapViewport({
       const rightBound = mapAreaRect.left + mapAreaRect.width - slackX;
       const topBound = mapAreaRect.top + slackY;
       const bottomBound = mapAreaRect.top + mapAreaRect.height - bottomSafeGap;
+      const visibleBounds: ScreenBounds = {
+        left: mapAreaRect.left,
+        right: mapAreaRect.left + mapAreaRect.width,
+        top: mapAreaRect.top,
+        bottom: mapAreaRect.top + mapAreaRect.height
+      };
+      const targetBounds: ScreenBounds = {
+        left: leftBound,
+        right: rightBound,
+        top: topBound,
+        bottom: bottomBound
+      };
 
       if (nodeEl) {
-        const nodeRect = nodeEl.getBoundingClientRect();
-        let deltaX = 0;
-        let deltaY = 0;
-        if (nodeRect.left < leftBound) deltaX = leftBound - nodeRect.left;
-        if (nodeRect.right > rightBound) deltaX = rightBound - nodeRect.right;
-        if (nodeRect.top < topBound) deltaY = topBound - nodeRect.top;
-        if (nodeRect.bottom > bottomBound) deltaY = bottomBound - nodeRect.bottom;
+        const nodeRect = getVisibleNodeElement(nodeEl).getBoundingClientRect();
+        const { x: deltaX, y: deltaY } = calculateVisibilityPanDelta(
+          nodeRect,
+          visibleBounds,
+          targetBounds,
+          options
+        );
 
         if (deltaX !== 0 || deltaY !== 0) {
           const setPanLocal = (st.setPan || setPan);
@@ -171,32 +225,39 @@ export function useMindMapViewport({
         const screenRight = screenCenterX + screenHalfW;
         const screenTop = screenCenterY - screenHalfH;
         const screenBottom = screenCenterY + screenHalfH;
+        const baseScreenHalfW = baseHalfW * currentZoom;
+        const baseScreenHalfH = baseHalfH * currentZoom;
+        const visibleRect = {
+          left: screenCenterX - baseScreenHalfW,
+          right: screenCenterX + baseScreenHalfW,
+          top: screenCenterY - baseScreenHalfH,
+          bottom: screenCenterY + baseScreenHalfH
+        };
+        const targetRect = {
+          left: screenLeft,
+          right: screenRight,
+          top: screenTop,
+          bottom: screenBottom
+        };
+        const { x: deltaX, y: deltaY } = calculateVisibilityPanDelta(
+          visibleRect,
+          visibleBounds,
+          targetBounds,
+          options
+        );
 
-        const isOutsideLeft = screenLeft < leftBound;
-        const isOutsideRight = screenRight > rightBound;
-        const isOutsideTop = screenTop < topBound;
-        const isOutsideBottom = screenBottom > bottomBound;
-
-        if (isOutsideLeft || isOutsideRight || isOutsideTop || isOutsideBottom) {
-          let deltaX = 0;
-          let deltaY = 0;
-
-          if (isOutsideLeft) {
-            deltaX = leftBound - screenLeft;
-          } else if (isOutsideRight) {
-            deltaX = rightBound - screenRight;
-          }
-
-          if (isOutsideTop) {
-            deltaY = topBound - screenTop;
-          } else if (isOutsideBottom) {
-            deltaY = bottomBound - screenBottom;
-          }
+        if (deltaX !== 0 || deltaY !== 0) {
+          const adjustedDeltaX = deltaX === 0
+            ? 0
+            : calculateVisibilityPanDelta(targetRect, visibleBounds, targetBounds).x;
+          const adjustedDeltaY = deltaY === 0
+            ? 0
+            : calculateVisibilityPanDelta(targetRect, visibleBounds, targetBounds, options).y;
 
           const setPanLocal = (st.setPan || setPan);
           setPanLocal({
-            x: currentPan.x + (deltaX / currentZoom),
-            y: currentPan.y + (deltaY / currentZoom)
+            x: currentPan.x + (adjustedDeltaX / currentZoom),
+            y: currentPan.y + (adjustedDeltaY / currentZoom)
           });
         }
       }

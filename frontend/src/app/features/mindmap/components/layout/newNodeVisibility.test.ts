@@ -4,6 +4,7 @@ import { scheduleNewNodeVisibilityCheck } from './newNodeVisibility';
 import {
   NEW_NODE_VISIBILITY_MAX_RETRIES,
   NEW_NODE_VISIBILITY_RETRY_MS,
+  type EnsureSelectedNodeVisibleOptions,
   type EnsureSelectedNodeVisibleResult,
 } from '../../hooks/viewportAutoPanTiming';
 
@@ -64,7 +65,7 @@ describe('scheduleNewNodeVisibilityCheck', () => {
   });
 
   it('retries while creation visibility is still suppressed', () => {
-    const ensureSelectedNodeVisible = vi.fn<(options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult>()
+    const ensureSelectedNodeVisible = vi.fn<(options?: EnsureSelectedNodeVisibleOptions) => EnsureSelectedNodeVisibleResult>()
       .mockReturnValue('suppressed');
 
     scheduleNewNodeVisibilityCheck({
@@ -80,5 +81,24 @@ describe('scheduleNewNodeVisibilityCheck', () => {
 
     expect(ensureSelectedNodeVisible).toHaveBeenCalledTimes(NEW_NODE_VISIBILITY_MAX_RETRIES);
     expect(ensureSelectedNodeVisible).toHaveBeenCalledWith({ force: true });
+  });
+
+  it('can prevent downward pan for rightward child insertion checks', () => {
+    const ensureSelectedNodeVisible = vi.fn();
+
+    scheduleNewNodeVisibilityCheck({
+      nodeId: 'new-node',
+      ensureSelectedNodeVisible,
+      preventDownwardPan: true,
+      getSelectedNodeId: () => 'new-node',
+      getRootNodes: () => [createNode('root', [createNode('new-node')])],
+    });
+
+    vi.advanceTimersByTime(0);
+
+    expect(ensureSelectedNodeVisible).toHaveBeenCalledWith({
+      force: true,
+      preventDownwardPan: true,
+    });
   });
 });

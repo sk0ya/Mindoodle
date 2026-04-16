@@ -1,5 +1,8 @@
 import { useEffect, useRef } from 'react';
-import type { EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
+import type {
+  EnsureSelectedNodeVisibleOptions,
+  EnsureSelectedNodeVisibleResult
+} from './viewportAutoPanTiming';
 
 /**
  * Automatically ensures the selected node is visible in the viewport
@@ -16,7 +19,7 @@ import type { EnsureSelectedNodeVisibleResult } from './viewportAutoPanTiming';
  */
 interface UseAutoScrollToSelectedNodeProps {
   selectedNodeId: string | null;
-  ensureSelectedNodeVisible: (options?: { force?: boolean }) => EnsureSelectedNodeVisibleResult;
+  ensureSelectedNodeVisible: (options?: EnsureSelectedNodeVisibleOptions) => EnsureSelectedNodeVisibleResult;
   /**
    * When true, disables auto-scroll (for cases where selection changes
    * but we don't want to move the viewport, e.g., during bulk operations)
