@@ -10,7 +10,7 @@ export const useExplorerFolderOps = (mindMap: MindMapLike) => {
     const trimmed = String(path || '').replace(/^\/+/, '');
     const parts = trimmed.split('/');
     const first = parts[0];
-    if (first && (first.startsWith('ws_') || first === 'cloud')) {
+    if (first && (first.startsWith('ws_') || first === 'cloud' || first === 'group')) {
       const workspaceId = first;
       const relativePath = parts.slice(1).join('/');
       await mindMap.createFolder(relativePath, workspaceId);

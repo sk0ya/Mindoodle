@@ -20,7 +20,7 @@ export class MindMapController {
       (window as WindowWithMindoodle).mindoodleCreateFolder = async (path: string) => {
         if (typeof mindMap.createFolder === 'function') {
           const p = path.startsWith('/') ? path.slice(1) : path;
-          if (p.startsWith('ws_') || p.startsWith('cloud')) {
+          if (p.startsWith('ws_') || p.startsWith('cloud') || p.startsWith('group')) {
             const slash = p.indexOf('/');
             const workspaceId = slash >= 0 ? p.slice(0, slash) : p;
             const relativePath = slash >= 0 ? p.slice(slash + 1) : '';

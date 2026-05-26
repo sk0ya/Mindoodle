@@ -38,7 +38,7 @@ export interface ExplorerNodeViewProps extends ExplorerCommonProps {
 export function extractCategoryFromPath(path: string): string {
   if (!path) return '';
   const p = path.startsWith('/') ? path.slice(1) : path;
-  if (p.startsWith('ws_') || p.startsWith('cloud')) {
+  if (p.startsWith('ws_') || p.startsWith('cloud') || p.startsWith('group')) {
     const slash = p.indexOf('/');
     return slash >= 0 ? p.slice(slash + 1) : '';
   }

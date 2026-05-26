@@ -62,6 +62,14 @@ async function authenticateRequest(request: Request, authService: AuthService): 
   return await authService.validateSession(token);
 }
 
+function getStorageScope(session: UserSession): string {
+  return session.userId;
+}
+
+function getGroupStorageScope(session: UserSession): string | null {
+  return session.groupId ? `group:${session.groupId}` : null;
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // Handle CORS preflight
@@ -78,7 +86,7 @@ export default {
     try {
       // Authentication endpoints
       if (path === '/api/auth/register' && request.method === 'POST') {
-        const { email, password }: AuthRequest = await request.json();
+        const { email, password, groupCode }: AuthRequest = await request.json();
 
         if (!email || !password) {
           return jsonResponse({ success: false, error: 'Email and password are required' }, 400, request);
@@ -88,18 +96,18 @@ export default {
           return jsonResponse({ success: false, error: 'Password must be at least 8 characters long' }, 400, request);
         }
 
-        const result = await authService.register(email, password);
+        const result = await authService.register(email, password, groupCode);
         return jsonResponse(result, result.success ? 200 : 400, request);
       }
 
       if (path === '/api/auth/login' && request.method === 'POST') {
-        const { email, password }: AuthRequest = await request.json();
+        const { email, password, groupCode }: AuthRequest = await request.json();
 
         if (!email || !password) {
           return jsonResponse({ success: false, error: 'Email and password are required' }, 400, request);
         }
 
-        const result = await authService.login(email, password);
+        const result = await authService.login(email, password, groupCode);
         return jsonResponse(result, result.success ? 200 : 401, request);
       }
 
@@ -121,9 +129,114 @@ export default {
           success: true,
           user: {
             id: session.userId,
-            email: session.email
+            email: session.email,
+            ...(session.groupId ? { groupId: session.groupId } : {})
           }
         }, 200, request);
+      }
+
+      // Group map endpoints (require authentication and group membership)
+      if (path === '/api/group/maps' && request.method === 'GET') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const result = await mapStorageService.listMaps(groupScope);
+        return jsonResponse(result, 200, request);
+      }
+
+      if (path === '/api/group/maps' && request.method === 'POST') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const body = await request.json() as { id?: string; title?: string; content?: string; expectedUpdatedAt?: string };
+        const { id, title, content, expectedUpdatedAt } = body;
+        if (!title || !content) {
+          return jsonResponse({ success: false, error: 'Title and content are required' }, 400, request);
+        }
+
+        const initialId = id && id.trim() ? id.trim() : null;
+        const result = await mapStorageService.saveMap(groupScope, initialId, title, content, expectedUpdatedAt);
+        return jsonResponse(result, result.conflict ? 409 : 200, request);
+      }
+
+      if (path.startsWith('/api/group/maps/') && request.method === 'GET') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const mapId = decodeURIComponent(path.substring('/api/group/maps/'.length));
+        if (!mapId) {
+          return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
+        }
+
+        const result = await mapStorageService.getMap(groupScope, mapId);
+        return jsonResponse(result, result.success ? 200 : 404, request);
+      }
+
+      if (path.startsWith('/api/group/maps/') && request.method === 'PUT') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const mapId = decodeURIComponent(path.substring('/api/group/maps/'.length));
+        if (!mapId) {
+          return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
+        }
+
+        const body = await request.json() as { title?: string; content?: string; expectedUpdatedAt?: string };
+        const { title, content, expectedUpdatedAt } = body;
+        if (!title || !content) {
+          return jsonResponse({ success: false, error: 'Title and content are required' }, 400, request);
+        }
+
+        const result = await mapStorageService.saveMap(groupScope, mapId, title, content, expectedUpdatedAt);
+        return jsonResponse(result, result.conflict ? 409 : 200, request);
+      }
+
+      if (path.startsWith('/api/group/maps/') && request.method === 'DELETE') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const mapId = decodeURIComponent(path.substring('/api/group/maps/'.length));
+        if (!mapId) {
+          return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
+        }
+
+        const result = await mapStorageService.deleteMap(groupScope, mapId);
+        return jsonResponse(result, result.success ? 200 : 404, request);
       }
 
       // Map endpoints (require authentication)
@@ -133,7 +246,7 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const result = await mapStorageService.listMaps(session.userId);
+        const result = await mapStorageService.listMaps(getStorageScope(session));
         return jsonResponse(result, 200, request);
       }
 
@@ -151,7 +264,7 @@ export default {
 
         // If client specifies an id (relative path like `Folder/name`), honor it; otherwise generate an id
         const initialId = id && id.trim() ? id.trim() : null;
-        const result = await mapStorageService.saveMap(session.userId, initialId, title, content);
+        const result = await mapStorageService.saveMap(getStorageScope(session), initialId, title, content);
         return jsonResponse(result, 200, request);
       }
 
@@ -167,7 +280,7 @@ export default {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
 
-        const result = await mapStorageService.getMap(session.userId, mapId);
+        const result = await mapStorageService.getMap(getStorageScope(session), mapId);
         return jsonResponse(result, result.success ? 200 : 404, request);
       }
 
@@ -188,7 +301,7 @@ export default {
           return jsonResponse({ success: false, error: 'Title and content are required' }, 400, request);
         }
 
-        const result = await mapStorageService.saveMap(session.userId, mapId, title, content);
+        const result = await mapStorageService.saveMap(getStorageScope(session), mapId, title, content);
         return jsonResponse(result, 200, request);
       }
 
@@ -203,8 +316,157 @@ export default {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
 
-        const result = await mapStorageService.deleteMap(session.userId, mapId);
+        const result = await mapStorageService.deleteMap(getStorageScope(session), mapId);
         return jsonResponse(result, result.success ? 200 : 404, request);
+      }
+
+      // Group image endpoints (require authentication and group membership)
+      if (path === '/api/group/images/upload' && request.method === 'POST') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const requestContentType = request.headers.get('Content-Type') || '';
+        try {
+          if (requestContentType.includes('multipart/form-data')) {
+            const form = await (request as any).formData();
+            const imagePath = (form.get('path') as string) || '';
+            const file = form.get('file') as File | null;
+            if (!imagePath || !file) {
+              return jsonResponse({ success: false, error: 'path and file are required' }, 400, request);
+            }
+
+            const r2Key = `maps/${groupScope}/${imagePath}`;
+            const arrayBuffer = await file.arrayBuffer();
+            await env.MAPS_BUCKET.put(r2Key, arrayBuffer, {
+              httpMetadata: { contentType: (file as any).type || 'application/octet-stream' }
+            });
+            return jsonResponse({ success: true, path: imagePath }, 200, request);
+          }
+
+          const body = await request.json() as { path?: string; data?: string; contentType?: string };
+          const { path: imagePath, data, contentType: bodyContentType } = body;
+
+          if (!imagePath || !data || !bodyContentType) {
+            return jsonResponse({ success: false, error: 'Path, data, and contentType are required' }, 400, request);
+          }
+
+          const binaryString = atob(data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
+
+          const r2Key = `maps/${groupScope}/${imagePath}`;
+          await env.MAPS_BUCKET.put(r2Key, bytes, { httpMetadata: { contentType: bodyContentType } });
+          return jsonResponse({ success: true, path: imagePath }, 200, request);
+        } catch (error) {
+          console.error('Group image upload error:', error);
+          return jsonResponse({ success: false, error: 'Failed to upload image' }, 500, request);
+        }
+      }
+
+      if (path.startsWith('/api/group/images/') && !path.includes('/list') && request.method === 'GET') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const imagePath = decodeURIComponent(path.substring('/api/group/images/'.length));
+        if (!imagePath) {
+          return jsonResponse({ success: false, error: 'Image path is required' }, 400, request);
+        }
+
+        try {
+          const r2Key = `maps/${groupScope}/${imagePath}`;
+          const object = await env.MAPS_BUCKET.get(r2Key);
+
+          if (!object) {
+            return jsonResponse({ success: false, error: 'Image not found' }, 404, request);
+          }
+
+          const arrayBuffer = await object.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          let binaryString = '';
+          for (let i = 0; i < bytes.length; i++) {
+            binaryString += String.fromCharCode(bytes[i]);
+          }
+          const base64Data = btoa(binaryString);
+
+          return jsonResponse({
+            success: true,
+            data: base64Data,
+            contentType: object.httpMetadata?.contentType || 'image/png'
+          }, 200, request);
+        } catch (error) {
+          console.error('Group image download error:', error);
+          return jsonResponse({ success: false, error: 'Failed to download image' }, 500, request);
+        }
+      }
+
+      if (path.startsWith('/api/group/images/') && request.method === 'DELETE') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const imagePath = decodeURIComponent(path.substring('/api/group/images/'.length));
+        if (!imagePath) {
+          return jsonResponse({ success: false, error: 'Image path is required' }, 400, request);
+        }
+
+        try {
+          const r2Key = `maps/${groupScope}/${imagePath}`;
+          await env.MAPS_BUCKET.delete(r2Key);
+
+          return jsonResponse({ success: true }, 200, request);
+        } catch (error) {
+          console.error('Group image delete error:', error);
+          return jsonResponse({ success: false, error: 'Failed to delete image' }, 500, request);
+        }
+      }
+
+      if (path === '/api/group/images/list' && request.method === 'GET') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        const directoryPath = url.searchParams.get('path') || '';
+
+        try {
+          const prefix = `maps/${groupScope}/${directoryPath}`;
+          const listed = await env.MAPS_BUCKET.list({ prefix });
+
+          const files = listed.objects.map(obj => {
+            const removePrefix = `maps/${groupScope}/`;
+            return obj.key.startsWith(removePrefix) ? obj.key.substring(removePrefix.length) : obj.key;
+          });
+
+          return jsonResponse({ success: true, files }, 200, request);
+        } catch (error) {
+          console.error('Group image list error:', error);
+          return jsonResponse({ success: false, error: 'Failed to list images' }, 500, request);
+        }
       }
 
       // Image endpoints (require authentication)
@@ -225,7 +487,7 @@ export default {
               return jsonResponse({ success: false, error: 'path and file are required' }, 400, request);
             }
 
-            const r2Key = `maps/${session.userId}/${imagePath}`;
+            const r2Key = `maps/${getStorageScope(session)}/${imagePath}`;
             const arrayBuffer = await file.arrayBuffer();
             await env.MAPS_BUCKET.put(r2Key, arrayBuffer, {
               httpMetadata: { contentType: (file as any).type || 'application/octet-stream' }
@@ -244,7 +506,7 @@ export default {
             const bytes = new Uint8Array(binaryString.length);
             for (let i = 0; i < binaryString.length; i++) bytes[i] = binaryString.charCodeAt(i);
 
-            const r2Key = `maps/${session.userId}/${imagePath}`;
+            const r2Key = `maps/${getStorageScope(session)}/${imagePath}`;
             await env.MAPS_BUCKET.put(r2Key, bytes, { httpMetadata: { contentType } });
             return jsonResponse({ success: true, path: imagePath }, 200, request);
           }
@@ -266,7 +528,7 @@ export default {
         }
 
         try {
-          const r2Key = `maps/${session.userId}/${imagePath}`;
+          const r2Key = `maps/${getStorageScope(session)}/${imagePath}`;
           const object = await env.MAPS_BUCKET.get(r2Key);
 
           if (!object) {
@@ -305,7 +567,7 @@ export default {
         }
 
         try {
-          const r2Key = `maps/${session.userId}/${imagePath}`;
+          const r2Key = `maps/${getStorageScope(session)}/${imagePath}`;
           await env.MAPS_BUCKET.delete(r2Key);
 
           return jsonResponse({ success: true }, 200, request);
@@ -324,12 +586,13 @@ export default {
         const directoryPath = url.searchParams.get('path') || '';
 
         try {
-          const prefix = `maps/${session.userId}/${directoryPath}`;
+          const storageScope = getStorageScope(session);
+          const prefix = `maps/${storageScope}/${directoryPath}`;
           const listed = await env.MAPS_BUCKET.list({ prefix });
 
           const files = listed.objects.map(obj => {
-            // Remove maps/{userId} prefix from the key
-            const removePrefix = `maps/${session.userId}/`;
+            // Remove maps/{storageScope} prefix from the key
+            const removePrefix = `maps/${storageScope}/`;
             return obj.key.startsWith(removePrefix) ? obj.key.substring(removePrefix.length) : obj.key;
           });
 

@@ -80,7 +80,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
       
       const localWorkspaces = availableWorkspaces.filter(ws => ws.type === 'local');
-      const cloudWorkspaces = availableWorkspaces.filter(ws => ws.type === 'cloud');
+      const cloudWorkspaces = availableWorkspaces.filter(ws => ws.type === 'cloud' || ws.type === 'group');
 
       let rootChildren: ExplorerItem[] = [];
 
@@ -115,7 +115,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
             rootChildren.push(wrappedCloudTree);
           } catch (error) {
-            logger.warn(`Failed to load cloud workspace tree:`, error);
+            logger.warn(`Failed to load remote workspace tree:`, error);
           }
         }
       }
@@ -233,6 +233,11 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
           adapterManager.setCloudAdapter(cloudAdapter);
           logger.info('Updated cloud adapter in AdapterManager from WorkspaceService');
         }
+        const groupAdapter = workspaceService.getGroupAdapter();
+        if (groupAdapter) {
+          adapterManager.setGroupAdapter(groupAdapter);
+          logger.info('Updated group adapter in AdapterManager from WorkspaceService');
+        }
         await loadWorkspaces();
         
         await refreshMapList();
@@ -316,6 +321,16 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         adapterManager.removeCloudAdapter();
         if (currentWorkspaceId === 'cloud') {
           await switchWorkspace(null); 
+        }
+      }
+    } else if (id === 'group') {
+      const workspaceService = WorkspaceService.getInstance();
+      workspaceService.removeGroupWorkspace();
+
+      if (adapterManager) {
+        adapterManager.removeGroupAdapter();
+        if (currentWorkspaceId === 'group') {
+          await switchWorkspace(null);
         }
       }
     } else {

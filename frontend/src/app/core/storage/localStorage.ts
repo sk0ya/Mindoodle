@@ -31,6 +31,8 @@ export const STORAGE_KEYS = {
   
   AUTH_TOKEN: 'mindoodle-auth-token',
   AUTH_USER: 'mindoodle-auth-user',
+  GROUP_AUTH_TOKEN: 'mindoodle-group-auth-token',
+  GROUP_AUTH_USER: 'mindoodle-group-auth-user',
 
   
   WORKSPACES: 'mindoodle-workspaces',

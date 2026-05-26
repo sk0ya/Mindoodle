@@ -9,6 +9,7 @@ import { BaseStorageAdapter } from './BaseStorageAdapter';
 interface CloudUser {
   id: string;
   email: string;
+  groupId?: string;
 }
 
 interface AuthResponse {
@@ -33,6 +34,9 @@ interface MapDetailResponse {
   success: boolean;
   map?: { id: string; title?: string; content?: string; createdAt: string; updatedAt: string };
   error?: string;
+  conflict?: {
+    currentUpdatedAt: string;
+  };
 }
 
 interface ImagesListResponse {
@@ -46,40 +50,81 @@ interface ImageGetResponse {
   contentType?: string;
 }
 
+interface CloudStorageAdapterOptions {
+  baseUrl?: string;
+  workspaceId?: string;
+  workspaceName?: string;
+  mapsEndpoint?: string;
+  imagesEndpoint?: string;
+  authTokenKey?: typeof STORAGE_KEYS.AUTH_TOKEN | typeof STORAGE_KEYS.GROUP_AUTH_TOKEN;
+  authUserKey?: typeof STORAGE_KEYS.AUTH_USER | typeof STORAGE_KEYS.GROUP_AUTH_USER;
+}
+
 export class CloudStorageAdapter extends BaseStorageAdapter {
   private baseUrl: string;
+  private workspaceId: string;
+  private workspaceName: string;
+  private mapsEndpoint: string;
+  private imagesEndpoint: string;
+  private authTokenKey: typeof STORAGE_KEYS.AUTH_TOKEN | typeof STORAGE_KEYS.GROUP_AUTH_TOKEN;
+  private authUserKey: typeof STORAGE_KEYS.AUTH_USER | typeof STORAGE_KEYS.GROUP_AUTH_USER;
   private authToken: string | null = null;
   private user: CloudUser | null = null;
   private virtualFolders: Set<string> = new Set();
+  private knownUpdatedAtByMapId: Map<string, string> = new Map();
 
-  constructor(baseUrl = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
+  constructor(config: string | CloudStorageAdapterOptions = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
     super();
-    this.baseUrl = baseUrl;
+    const options = typeof config === 'string' ? { baseUrl: config } : config;
+    this.baseUrl = options.baseUrl || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
+    this.workspaceId = options.workspaceId || 'cloud';
+    this.workspaceName = options.workspaceName || 'Cloud';
+    this.mapsEndpoint = options.mapsEndpoint || '/api/maps';
+    this.imagesEndpoint = options.imagesEndpoint || '/api/images';
+    this.authTokenKey = options.authTokenKey || STORAGE_KEYS.AUTH_TOKEN;
+    this.authUserKey = options.authUserKey || STORAGE_KEYS.AUTH_USER;
   }
 
   get isAuthenticated(): boolean {
     return !!this.authToken && !!this.user;
   }
 
+  private emitConflict(mapId: string, currentUpdatedAt?: string): void {
+    if (this.workspaceId !== 'group' || typeof window === 'undefined') {
+      return;
+    }
+
+    window.dispatchEvent(new CustomEvent('mindoodle:groupMapConflict', {
+      detail: {
+        mapIdentifier: { mapId, workspaceId: this.workspaceId },
+        currentUpdatedAt
+      }
+    }));
+  }
+
   override async initialize(): Promise<void> {
-    
+
     try {
-      const tokenRes = getLocalStorage<string>(STORAGE_KEYS.AUTH_TOKEN);
-      const userRes = getLocalStorage<CloudUser>(STORAGE_KEYS.AUTH_USER);
+      const tokenRes = getLocalStorage<string>(this.authTokenKey);
+      const userRes = getLocalStorage<CloudUser>(this.authUserKey);
 
       if (tokenRes.success && tokenRes.data && userRes.success && userRes.data) {
         this.authToken = tokenRes.data;
         this.user = userRes.data;
 
-        
+
         const isValid = await this.verifyAuth();
 
         if (!isValid) {
           this.clearAuth();
         } else {
-          
+
           const workspaceService = WorkspaceService.getInstance();
-          workspaceService.restoreCloudWorkspace(this);
+          if (this.workspaceId === 'group') {
+            workspaceService.restoreGroupWorkspace(this);
+          } else {
+            workspaceService.restoreCloudWorkspace(this);
+          }
         }
       }
     } catch (error) {
@@ -97,7 +142,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     const headers: Record<string, string> = {
       ...((options.headers as Record<string, string>) || {})
     };
-    
+
     if (!isFormData && !('Content-Type' in headers)) {
       headers['Content-Type'] = 'application/json';
     }
@@ -112,24 +157,29 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     });
 
     if (!response.ok) {
-      
+
       let errMsg = response.statusText || 'Network error';
+      let currentUpdatedAt: string | undefined;
       try {
         const errorData = await response.json();
         errMsg = errorData.error || errMsg;
+        currentUpdatedAt = errorData.conflict?.currentUpdatedAt;
       } catch {}
-      throw new Error(errMsg || `HTTP ${response.status}`);
+      const error = new Error(errMsg || `HTTP ${response.status}`) as Error & { status?: number; currentUpdatedAt?: string };
+      error.status = response.status;
+      error.currentUpdatedAt = currentUpdatedAt;
+      throw error;
     }
 
-    
+
     return await response.json() as T;
   }
 
-  async register(email: string, password: string): Promise<AuthResponse> {
+  async register(email: string, password: string, groupCode?: string): Promise<AuthResponse> {
     try {
       const response = await this.makeRequest<AuthResponse>('/api/auth/register', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, groupCode: groupCode?.trim() || undefined })
       });
 
       if (response.success && response.token && response.user) {
@@ -148,11 +198,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
   }
 
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(email: string, password: string, groupCode?: string): Promise<AuthResponse> {
     try {
       const response = await this.makeRequest<AuthResponse>('/api/auth/login', {
         method: 'POST',
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email, password, groupCode: groupCode?.trim() || undefined })
       });
 
       if (response.success && response.token && response.user) {
@@ -197,16 +247,16 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
   private saveAuth(): void {
     if (this.authToken && this.user) {
-      setLocalStorage(STORAGE_KEYS.AUTH_TOKEN, this.authToken);
-      setLocalStorage(STORAGE_KEYS.AUTH_USER, this.user);
+      setLocalStorage(this.authTokenKey, this.authToken);
+      setLocalStorage(this.authUserKey, this.user);
     }
   }
 
   private clearAuth(): void {
     this.authToken = null;
     this.user = null;
-    removeLocalStorage(STORAGE_KEYS.AUTH_TOKEN);
-    removeLocalStorage(STORAGE_KEYS.AUTH_USER);
+    removeLocalStorage(this.authTokenKey);
+    removeLocalStorage(this.authUserKey);
   }
 
   async loadAllMaps(): Promise<MindMapData[]> {
@@ -218,8 +268,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-      logger.info('CloudStorageAdapter: Making request to /api/maps');
-      const response = await this.makeRequest<MapsListResponse>('/api/maps');
+      logger.info(`CloudStorageAdapter: Making request to ${this.mapsEndpoint}`);
+      const response = await this.makeRequest<MapsListResponse>(this.mapsEndpoint);
       logger.info('CloudStorageAdapter: Maps list response:', response);
 
       if (!response.success || !response.maps) {
@@ -231,10 +281,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       const maps: MindMapData[] = [];
       for (const cloudMap of response.maps as Array<{ id: string }>) {
         try {
-          
+
           logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
-          const fullMapResponse = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(cloudMap.id)}`);
+          const fullMapResponse = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(cloudMap.id)}`);
           if (fullMapResponse.success && fullMapResponse.map) {
+            this.knownUpdatedAtByMapId.set(fullMapResponse.map.id, fullMapResponse.map.updatedAt);
             const markdown = fullMapResponse.map.content || '';
             const parseResult = MarkdownImporter.parseMarkdownToNodes(markdown);
 
@@ -251,7 +302,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
               },
               mapIdentifier: {
                 mapId: fullMapResponse.map.id,
-                workspaceId: 'cloud'
+                workspaceId: this.workspaceId
               }
             };
 
@@ -277,9 +328,9 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       return [];
     }
     try {
-      const response = await this.makeRequest<MapsListResponse>('/api/maps');
+      const response = await this.makeRequest<MapsListResponse>(this.mapsEndpoint);
       if (!response.success || !Array.isArray(response.maps)) return [];
-      return (response.maps as Array<{ id: string }>).map((m) => ({ mapId: m.id, workspaceId: 'cloud' }));
+      return (response.maps as Array<{ id: string }>).map((m) => ({ mapId: m.id, workspaceId: this.workspaceId }));
     } catch {
       return [];
     }
@@ -291,7 +342,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-      
+
       let markdown = `# ${map.title}\n`;
       map.rootNodes.forEach(node => {
         markdown += nodeToMarkdown(node, 0);
@@ -301,14 +352,25 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       if (!mapPath || mapPath === 'new') {
         throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
-      
-      await this.makeRequest(`/api/maps/${encodeURIComponent(mapPath)}` , {
+
+      const expectedUpdatedAt = this.workspaceId === 'group'
+        ? this.knownUpdatedAtByMapId.get(mapPath)
+        : undefined;
+
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(mapPath)}` , {
         method: 'PUT',
-        body: JSON.stringify({ title: map.title, content: markdown })
+        body: JSON.stringify({ title: map.title, content: markdown, expectedUpdatedAt })
       });
+
+      if (response.success && response.map?.updatedAt) {
+        this.knownUpdatedAtByMapId.set(mapPath, response.map.updatedAt);
+      }
 
       logger.info(`CloudStorageAdapter: Saved map ${map.title} to cloud`);
     } catch (error) {
+      if ((error as { status?: number }).status === 409) {
+        this.emitConflict(map.mapIdentifier.mapId, (error as { currentUpdatedAt?: string }).currentUpdatedAt);
+      }
       logger.error('CloudStorageAdapter: Failed to save map', error);
       throw error;
     }
@@ -320,7 +382,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-      await this.makeRequest(`/api/maps/${encodeURIComponent(id.mapId)}` , {
+      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(id.mapId)}` , {
         method: 'DELETE'
       });
 
@@ -337,25 +399,25 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
   }
 
   async listWorkspaces(): Promise<Array<{ id: string; name: string }>> {
-    
+
     return [
       {
-        id: 'cloud',
-        name: '🌐 Cloud'
+        id: this.workspaceId,
+        name: this.workspaceName
       }
     ];
   }
 
   cleanup(): void {
-    
+
   }
 
 
-  
+
   async createFolder?(relativePath: string, workspaceId?: string): Promise<void> {
-    
-    
-    
+
+
+
     if (relativePath) {
       this.virtualFolders.add(relativePath);
       logger.info('CloudStorageAdapter: Virtual folder added', { relativePath, workspaceId });
@@ -364,15 +426,15 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
   async getExplorerTree?(): Promise<ExplorerItem> {
     if (!this.isAuthenticated) {
-      return { type: 'folder', name: 'Cloud', path: '/cloud', children: [] };
+      return { type: 'folder', name: this.workspaceName, path: `/${this.workspaceId}`, children: [] };
     }
 
     try {
-      
-      const listResp = await this.makeRequest<ImagesListResponse>(`/api/images/list?path=${encodeURIComponent('')}`);
+
+      const listResp = await this.makeRequest<ImagesListResponse>(`${this.imagesEndpoint}/list?path=${encodeURIComponent('')}`);
       const keys: string[] = Array.isArray(listResp?.files) ? (listResp.files) : [];
 
-      
+
       type Node = { name: string; children?: Map<string, Node>; isFile?: boolean; path?: string; isMarkdown?: boolean };
       const root: Node = { name: 'cloud', children: new Map() };
 
@@ -391,13 +453,13 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         dir.children.set(fileName, {
           name: fileName,
           isFile: true,
-          path: `/cloud/${fullPath}`,
+          path: `/${this.workspaceId}/${fullPath}`,
           isMarkdown: /\.md$/i.test(fileName)
         });
       };
 
       for (const key of keys) {
-        
+
         // Remove leading/trailing slashes without regex backtracking
         const raw = String(key || '');
         let start = 0;
@@ -431,10 +493,10 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         }
       }
 
-      
+
       const toExplorer = (node: Node, currentPath: string): ExplorerItem => {
         if (node.isFile) {
-          const filePath = node.path || `/cloud/${currentPath}`;
+          const filePath = node.path || `/${this.workspaceId}/${currentPath}`;
           return { type: 'file', name: node.name, path: filePath, isMarkdown: node.isMarkdown } as ExplorerItem;
         }
         const children: ExplorerItem[] = [];
@@ -443,13 +505,13 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         }
 
         this.sortExplorerItems(children);
-        return { type: 'folder', name: currentPath ? node.name : 'Cloud', path: currentPath ? `/cloud/${currentPath}` : '/cloud', children } as ExplorerItem;
+        return { type: 'folder', name: currentPath ? node.name : this.workspaceName, path: currentPath ? `/${this.workspaceId}/${currentPath}` : `/${this.workspaceId}`, children } as ExplorerItem;
       };
 
       return toExplorer(root, '');
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to build explorer tree', error);
-      return { type: 'folder', name: 'Cloud', path: '/cloud', children: [] };
+      return { type: 'folder', name: this.workspaceName, path: `/${this.workspaceId}`, children: [] };
     }
   }
 
@@ -458,7 +520,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
-    const rel = this.cleanPath(path, 'cloud/');
+    const rel = this.cleanPath(path, `${this.workspaceId}/`);
 
     if (/\.(png|jpe?g|gif|webp|bmp|svg|avif|ico)$/i.test(rel)) {
       const parts = rel.split('/').filter(Boolean);
@@ -494,7 +556,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     try {
       // Get existing map content
-      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(oldMapId)}`);
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`);
       if (!response.success || !response.map) {
         throw new Error('Map not found');
       }
@@ -505,7 +567,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       const newMapId = parts.join('/');
 
       // Save with new mapId
-      await this.makeRequest(`/api/maps/${encodeURIComponent(newMapId)}`, {
+      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
         method: 'PUT',
         body: JSON.stringify({
           title: newName.replace(/\.md$/i, ''),
@@ -514,7 +576,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       });
 
       // Delete old map
-      await this.makeRequest(`/api/maps/${encodeURIComponent(oldMapId)}`, {
+      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`, {
         method: 'DELETE'
       });
 
@@ -531,7 +593,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     // Normalize /cloud/* path to workspace-relative path.
-    const rel = this.cleanPath(path, 'cloud/');
+    const rel = this.cleanPath(path, `${this.workspaceId}/`);
 
     // Explorer uses deleteItem for both markdown maps and image files.
     // Route image deletions to the image endpoint.
@@ -544,7 +606,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     const mapId = this.removeMdExtension(rel);
 
     try {
-      await this.makeRequest(`/api/maps/${encodeURIComponent(mapId)}`, {
+      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(mapId)}`, {
         method: 'DELETE'
       });
 
@@ -562,12 +624,12 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     const sourceInfo = parseWorkspacePath(sourcePath);
     const targetInfo = parseWorkspacePath(targetFolderPath);
-    const rel = sourceInfo.workspaceId === 'cloud'
+    const rel = sourceInfo.workspaceId === this.workspaceId
       ? (sourceInfo.relativePath || '')
-      : this.cleanPath(sourcePath, 'cloud/');
-    let targetFolder = targetInfo.workspaceId === 'cloud'
+      : this.cleanPath(sourcePath, `${this.workspaceId}/`);
+    let targetFolder = targetInfo.workspaceId === this.workspaceId
       ? (targetInfo.relativePath || '')
-      : this.cleanPath(targetFolderPath, 'cloud/');
+      : this.cleanPath(targetFolderPath, `${this.workspaceId}/`);
     while (targetFolder.endsWith('/')) {
       targetFolder = targetFolder.slice(0, -1);
     }
@@ -597,7 +659,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     try {
       // Get existing map content
-      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(oldMapId)}`);
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`);
       if (!response.success || !response.map) {
         throw new Error('Map not found');
       }
@@ -608,7 +670,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       const newMapId = targetFolder ? `${targetFolder}/${filename}` : filename;
 
       // Save with new mapId
-      await this.makeRequest(`/api/maps/${encodeURIComponent(newMapId)}`, {
+      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
         method: 'PUT',
         body: JSON.stringify({
           title: response.map.title || filename,
@@ -617,7 +679,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       });
 
       // Delete old map
-      await this.makeRequest(`/api/maps/${encodeURIComponent(oldMapId)}`, {
+      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`, {
         method: 'DELETE'
       });
 
@@ -632,8 +694,9 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(id.mapId)}`);
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(id.mapId)}`);
       if (response.success && response.map) {
+        this.knownUpdatedAtByMapId.set(id.mapId, response.map.updatedAt);
         return response.map.content || null;
       }
     } catch (error) {
@@ -647,8 +710,9 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest<MapDetailResponse>(`/api/maps/${encodeURIComponent(id.mapId)}`);
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(id.mapId)}`);
       if (response.success && response.map) {
+        this.knownUpdatedAtByMapId.set(id.mapId, response.map.updatedAt);
         return new Date(response.map.updatedAt).getTime();
       }
     } catch (error) {
@@ -675,19 +739,30 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
       const idPath = (id.mapId || '').trim();
       if (!idPath || idPath === 'new') {
-        
+
         throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
 
-      
-      
-      await this.makeRequest(`/api/maps/${encodeURIComponent(idPath)}` , {
+
+
+      const expectedUpdatedAt = this.workspaceId === 'group'
+        ? this.knownUpdatedAtByMapId.get(idPath)
+        : undefined;
+
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(idPath)}` , {
         method: 'PUT',
-        body: JSON.stringify({ title, content: markdown })
+        body: JSON.stringify({ title, content: markdown, expectedUpdatedAt })
       });
+
+      if (response.success && response.map?.updatedAt) {
+        this.knownUpdatedAtByMapId.set(idPath, response.map.updatedAt);
+      }
 
       logger.info(`CloudStorageAdapter: Saved markdown for map ${id.mapId}`);
     } catch (error) {
+      if ((error as { status?: number }).status === 409) {
+        this.emitConflict(id.mapId, (error as { currentUpdatedAt?: string }).currentUpdatedAt);
+      }
       logger.error('CloudStorageAdapter: Failed to save markdown', error);
       throw error;
     }
@@ -702,20 +777,20 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     throw new Error('Cloud storage does not support removing workspaces');
   }
 
-  
+
   async saveImageFile?(relativePath: string, file: File, _workspaceId?: string): Promise<void> {
     if (!this.isAuthenticated) {
       throw new Error('Not authenticated');
     }
 
     try {
-      
+
       const tryMultipart = async (): Promise<void> => {
         const form = new FormData();
         form.append('path', relativePath);
         form.append('file', file, (file && file.name) ? file.name : 'image');
 
-        const res = await fetch(`${this.baseUrl}/api/images/upload`, {
+        const res = await fetch(`${this.baseUrl}${this.imagesEndpoint}/upload`, {
           method: 'POST',
           headers: this.authToken ? { Authorization: `Bearer ${this.authToken}` } as Record<string, string> : undefined,
           body: form,
@@ -735,12 +810,12 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
             throw new Error(j.error || 'Upload failed');
           }
         } catch {
-          
+
         }
         logger.info(`CloudStorageAdapter: Uploaded image via multipart: ${relativePath}`);
       };
 
-      
+
       const tryJsonBase64 = async (): Promise<void> => {
         const reader = new FileReader();
         const base64Data: string = await new Promise((resolve, reject) => {
@@ -755,7 +830,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
           reader.readAsDataURL(file);
         });
 
-        await this.makeRequest('/api/images/upload', {
+        await this.makeRequest(`${this.imagesEndpoint}/upload`, {
           method: 'POST',
           body: JSON.stringify({ path: relativePath, data: base64Data, contentType: file.type || 'image/png' })
         });
@@ -766,7 +841,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       try {
         await tryMultipart();
       } catch (e) {
-        
+
         logger.warn('CloudStorageAdapter: Multipart upload failed, falling back to JSON', e);
         await tryJsonBase64();
       }
@@ -783,11 +858,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-      
-      const response = await this.makeRequest<ImageGetResponse>(`/api/images/${encodeURIComponent(relativePath)}`);
+
+      const response = await this.makeRequest<ImageGetResponse>(`${this.imagesEndpoint}/${encodeURIComponent(relativePath)}`);
 
       if (response.success && response.data) {
-        
+
         const byteCharacters = atob(response.data);
         const byteNumbers = new Array(byteCharacters.length);
         for (let i = 0; i < byteCharacters.length; i++) {
@@ -796,7 +871,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         const byteArray = new Uint8Array(byteNumbers);
         const blob = new Blob([byteArray], { type: response.contentType || 'image/png' });
 
-        
+
         const filename = relativePath.split('/').pop() || 'image.png';
         return new File([blob], filename, { type: response.contentType || 'image/png' });
       }
@@ -808,14 +883,14 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
   }
 
-  
+
   async readImageAsDataURL?(relativePath: string, _workspaceId?: string): Promise<string | null> {
     if (!this.isAuthenticated) {
       return null;
     }
 
     try {
-      const response = await this.makeRequest<ImageGetResponse>(`/api/images/${encodeURIComponent(relativePath)}`);
+      const response = await this.makeRequest<ImageGetResponse>(`${this.imagesEndpoint}/${encodeURIComponent(relativePath)}`);
       if (response?.success && response?.data) {
         const ct = response.contentType || 'image/png';
         return `data:${ct};base64,${response.data}`;
@@ -833,7 +908,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-      await this.makeRequest(`/api/images/${encodeURIComponent(relativePath)}`, {
+      await this.makeRequest(`${this.imagesEndpoint}/${encodeURIComponent(relativePath)}`, {
         method: 'DELETE'
       });
 
@@ -850,7 +925,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-      const response = await this.makeRequest<ImagesListResponse>(`/api/images/list?path=${encodeURIComponent(directoryPath)}`);
+      const response = await this.makeRequest<ImagesListResponse>(`${this.imagesEndpoint}/list?path=${encodeURIComponent(directoryPath)}`);
 
       if (response.success && response.files) {
         return response.files;
@@ -863,12 +938,26 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
   }
 
-  
+
   getCurrentUser(): CloudUser | null {
     return this.user;
   }
 
   getAuthToken(): string | null {
     return this.authToken;
+  }
+}
+
+export class GroupCloudStorageAdapter extends CloudStorageAdapter {
+  constructor(baseUrl = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
+    super({
+      baseUrl,
+      workspaceId: 'group',
+      workspaceName: 'Group',
+      mapsEndpoint: '/api/group/maps',
+      imagesEndpoint: '/api/group/images',
+      authTokenKey: STORAGE_KEYS.GROUP_AUTH_TOKEN,
+      authUserKey: STORAGE_KEYS.GROUP_AUTH_USER,
+    });
   }
 }

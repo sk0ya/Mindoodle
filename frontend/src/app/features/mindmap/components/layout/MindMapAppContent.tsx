@@ -21,6 +21,8 @@ import { useMindMapModals } from './useMindMapModals';
 // wrapper-only providers are imported in MindMapApp.tsx
 import { MindMapController } from '@mindmap/controllers/MindMapController';
 import { logger } from '@shared/utils';
+import { MarkdownImporter } from '../../../markdown/markdownImporter';
+import { MapOperationsService } from '../../services/MapOperationsService';
 import { useVim } from "../../../vim/context/vimContext";
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
@@ -250,6 +252,112 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   useMindMapEvents({ mindMap, selectMapById });
 
   useEventListener('mindoodle:openImageFile', handleOpenImageFile, { target: window });
+
+  const groupRemoteUpdatedAtRef = React.useRef<string | null>(null);
+  const groupConflictNotifiedRef = React.useRef<string | null>(null);
+
+  React.useEffect(() => {
+    const id = data?.mapIdentifier;
+    if (!id || id.workspaceId !== 'group') {
+      groupRemoteUpdatedAtRef.current = null;
+      groupConflictNotifiedRef.current = null;
+      return;
+    }
+
+    groupRemoteUpdatedAtRef.current = data.updatedAt || null;
+    groupConflictNotifiedRef.current = null;
+  }, [data?.mapIdentifier?.workspaceId, data?.mapIdentifier?.mapId]);
+
+  React.useEffect(() => {
+    const id = data?.mapIdentifier;
+    if (!id || id.workspaceId !== 'group') return;
+
+    let cancelled = false;
+
+    const poll = async () => {
+      try {
+        const latestModified = await mindMap.getMapLastModified?.(id);
+        if (!latestModified || cancelled) return;
+
+        const remoteUpdatedAt = new Date(latestModified).toISOString();
+        const knownRemoteUpdatedAt = groupRemoteUpdatedAtRef.current || data.updatedAt || null;
+        if (knownRemoteUpdatedAt && remoteUpdatedAt <= knownRemoteUpdatedAt) return;
+
+        const remoteMarkdown = await mindMap.getMapMarkdown?.(id);
+        if (typeof remoteMarkdown !== 'string' || cancelled) return;
+
+        const localMarkdown = data?.rootNodes
+          ? MarkdownImporter.convertNodesToMarkdown(data.rootNodes)
+          : '';
+
+        const localHasUnsyncedChanges = !!knownRemoteUpdatedAt && data.updatedAt !== knownRemoteUpdatedAt;
+        if (localHasUnsyncedChanges && localMarkdown !== remoteMarkdown) {
+          const conflictKey = `${id.workspaceId}:${id.mapId}:${remoteUpdatedAt}`;
+          if (groupConflictNotifiedRef.current !== conflictKey) {
+            groupConflictNotifiedRef.current = conflictKey;
+            showNotification('warning', 'グループマップが他のユーザーにより更新されました。ローカル編集中のため自動反映していません。');
+          }
+          return;
+        }
+
+        const parseResult = MarkdownImporter.parseMarkdownToNodes(remoteMarkdown, {
+          defaultCollapseDepth: store.settings.defaultCollapseDepth
+        });
+        const nextData = MapOperationsService.createMapData(
+          id.mapId,
+          id.workspaceId,
+          parseResult.rootNodes,
+          remoteUpdatedAt,
+          data.title
+        );
+        store.setData(nextData);
+        groupRemoteUpdatedAtRef.current = remoteUpdatedAt;
+        groupConflictNotifiedRef.current = null;
+        await refreshMapList();
+        showNotification('info', 'グループマップの最新内容を反映しました');
+      } catch (error) {
+        logger.warn('Group map polling failed', error);
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void poll();
+    }, 5000);
+
+    void poll();
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [
+    data?.mapIdentifier?.workspaceId,
+    data?.mapIdentifier?.mapId,
+    data?.updatedAt,
+    data?.rootNodes,
+    data?.title,
+    mindMap,
+    refreshMapList,
+    showNotification,
+    store
+  ]);
+
+  React.useEffect(() => {
+    const handleGroupConflict = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { mapIdentifier?: MapIdentifier; currentUpdatedAt?: string } | undefined;
+      const currentId = data?.mapIdentifier;
+      if (!currentId || currentId.workspaceId !== 'group') return;
+      if (detail?.mapIdentifier?.mapId !== currentId.mapId) return;
+
+      if (detail.currentUpdatedAt) {
+        groupConflictNotifiedRef.current = `${currentId.workspaceId}:${currentId.mapId}:${detail.currentUpdatedAt}`;
+      }
+      showNotification('warning', '保存できませんでした。他のユーザーの更新があります。最新内容を確認してください。');
+    };
+
+    window.addEventListener('mindoodle:groupMapConflict', handleGroupConflict);
+    return () => window.removeEventListener('mindoodle:groupMapConflict', handleGroupConflict);
+  }, [data?.mapIdentifier, showNotification]);
 
   const countNodes = (node: MindMapNode): number => {
     let count = 1; 

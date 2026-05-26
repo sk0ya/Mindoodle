@@ -19,6 +19,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [groupCode, setGroupCode] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -39,8 +40,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({
       }
 
       const result = isLogin
-        ? await cloudAdapter.login(email, password)
-        : await cloudAdapter.register(email, password);
+        ? await cloudAdapter.login(email, password, groupCode)
+        : await cloudAdapter.register(email, password, groupCode);
 
       if (result.success) {
         onSuccess(cloudAdapter);
@@ -48,6 +49,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
         setEmail('');
         setPassword('');
         setConfirmPassword('');
+        setGroupCode('');
       } else {
         setError(result.error || 'Authentication failed');
       }
@@ -62,6 +64,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setGroupCode('');
     setError('');
   };
 
@@ -240,25 +243,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             />
           </div>
 
-          {!isLogin && (
+          {isLogin && (
             <div>
-              <label htmlFor="confirmPassword" style={{
+              <label htmlFor="groupCodeLogin" style={{
                 display: 'block',
                 fontSize: '14px',
                 fontWeight: '600',
                 color: '#374151',
                 marginBottom: '8px'
               }}>
-                パスワード確認
+                グループ認証コード
               </label>
               <input
                 type="password"
-                id="confirmPassword"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                required
+                id="groupCodeLogin"
+                value={groupCode}
+                onChange={(e) => setGroupCode(e.target.value)}
                 disabled={isLoading}
-                minLength={8}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -272,7 +273,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   opacity: isLoading ? 0.5 : 1,
                   cursor: isLoading ? 'not-allowed' : 'text'
                 }}
-                placeholder="パスワードを再入力"
+                placeholder="グループ利用時のみ入力"
                 onFocus={(e) => {
                   e.target.style.borderColor = '#3b82f6';
                   e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
@@ -283,6 +284,94 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 }}
               />
             </div>
+          )}
+
+          {!isLogin && (
+            <>
+              <div>
+                <label htmlFor="confirmPassword" style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  パスワード確認
+                </label>
+                <input
+                  type="password"
+                  id="confirmPassword"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  disabled={isLoading}
+                  minLength={8}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    color: '#1f2937',
+                    fontSize: '16px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                    opacity: isLoading ? 0.5 : 1,
+                    cursor: isLoading ? 'not-allowed' : 'text'
+                  }}
+                  placeholder="パスワードを再入力"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+
+              <div>
+                <label htmlFor="groupCode" style={{
+                  display: 'block',
+                  fontSize: '14px',
+                  fontWeight: '600',
+                  color: '#374151',
+                  marginBottom: '8px'
+                }}>
+                  グループ認証コード
+                </label>
+                <input
+                  type="password"
+                  id="groupCode"
+                  value={groupCode}
+                  onChange={(e) => setGroupCode(e.target.value)}
+                  disabled={isLoading}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '8px',
+                    backgroundColor: 'white',
+                    color: '#1f2937',
+                    fontSize: '16px',
+                    outline: 'none',
+                    transition: 'all 0.2s ease',
+                    opacity: isLoading ? 0.5 : 1,
+                    cursor: isLoading ? 'not-allowed' : 'text'
+                  }}
+                  placeholder="許可されたコード"
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#3b82f6';
+                    e.target.style.boxShadow = '0 0 0 3px rgba(59, 130, 246, 0.1)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#d1d5db';
+                    e.target.style.boxShadow = 'none';
+                  }}
+                />
+              </div>
+            </>
           )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginTop: '32px' }}>
@@ -351,7 +440,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                 <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               <p style={{ fontSize: '14px', color: '#92400e', margin: 0 }}>
-                <strong>注意:</strong> 現在、ユーザー登録は許可されたメールアドレスのみ利用可能です。
+                <strong>注意:</strong> ユーザー登録には許可されたメールアドレス、またはグループ認証コードが必要です。
               </p>
             </div>
           </div>

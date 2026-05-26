@@ -19,7 +19,7 @@ export function useCloudImageResolver({
     const resolveCloudImages = async () => {
       try {
         if (!previewPaneRef.current) return;
-        if (!mapIdentifier || mapIdentifier.workspaceId !== 'cloud') return;
+        if (!mapIdentifier || (mapIdentifier.workspaceId !== 'cloud' && mapIdentifier.workspaceId !== 'group')) return;
 
         const container = previewPaneRef.current.querySelector('.markdown-preview');
         if (!container) return;
@@ -29,7 +29,10 @@ export function useCloudImageResolver({
 
         const token = (() => {
           try {
-            const res = getLocalStorage<string>(STORAGE_KEYS.AUTH_TOKEN);
+            const key = mapIdentifier.workspaceId === 'group'
+              ? STORAGE_KEYS.GROUP_AUTH_TOKEN
+              : STORAGE_KEYS.AUTH_TOKEN;
+            const res = getLocalStorage<string>(key);
             return res.success ? (res.data ?? null) : null;
           } catch {
             return null;
@@ -53,7 +56,8 @@ export function useCloudImageResolver({
             const rel = src.replace(/^\.\/*/, '');
             const cloudPath = `${mapDir}${rel}`.replace(/\/+/, '/');
 
-            const url = `${cloudApiEndpoint}/api/images/${encodeURIComponent(cloudPath)}`;
+            const imageEndpoint = mapIdentifier.workspaceId === 'group' ? '/api/group/images' : '/api/images';
+            const url = `${cloudApiEndpoint}${imageEndpoint}/${encodeURIComponent(cloudPath)}`;
             const res = await fetch(url, {
               headers: token ? { Authorization: `Bearer ${token}` } : undefined,
             });

@@ -1,18 +1,19 @@
 import type { StorageAdapter, StorageConfig } from '../types/storage.types';
-import { MarkdownFolderAdapter, CloudStorageAdapter } from './adapters';
+import { MarkdownFolderAdapter, CloudStorageAdapter, GroupCloudStorageAdapter } from './adapters';
 import { WorkspaceService } from '@shared/services/WorkspaceService';
 import { logger } from '@shared/utils';
 
 export interface WorkspaceInfo {
   id: string;
   name: string;
-  type: 'local' | 'cloud';
+  type: 'local' | 'cloud' | 'group';
   adapter: StorageAdapter;
 }
 
 export class AdapterManager {
   private localAdapter: MarkdownFolderAdapter | null = null;
   private cloudAdapter: CloudStorageAdapter | null = null;
+  private groupAdapter: CloudStorageAdapter | null = null;
   private currentWorkspaceId: string | null = null;
   private config: StorageConfig;
 
@@ -30,6 +31,7 @@ export class AdapterManager {
     if (this.config.mode === 'local+cloud') {
       const workspaceService = WorkspaceService.getInstance();
       const existingCloudAdapter = workspaceService.getCloudAdapter();
+      const existingGroupAdapter = workspaceService.getGroupAdapter();
 
       if (existingCloudAdapter) {
         this.cloudAdapter = existingCloudAdapter;
@@ -50,6 +52,25 @@ export class AdapterManager {
           workspaceService.addCloudWorkspace(this.cloudAdapter);
         }
         logger.info('AdapterManager: Created and initialized shared cloud adapter');
+      }
+
+      if (existingGroupAdapter) {
+        this.groupAdapter = existingGroupAdapter;
+        if (!this.groupAdapter.isInitialized && typeof this.groupAdapter.initialize === 'function') {
+          await this.groupAdapter.initialize();
+        }
+        logger.info(`AdapterManager: Using existing group adapter (authenticated=${this.groupAdapter.isAuthenticated})`);
+      } else {
+        const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
+        this.groupAdapter = new GroupCloudStorageAdapter(apiEndpoint);
+        workspaceService.setGroupAdapter(this.groupAdapter);
+        await this.groupAdapter.initialize();
+
+        const user = this.groupAdapter.getCurrentUser();
+        if (this.groupAdapter.isAuthenticated && user?.groupId) {
+          workspaceService.addGroupWorkspace(this.groupAdapter);
+        }
+        logger.info('AdapterManager: Created and initialized shared group adapter');
       }
     }
 
@@ -94,6 +115,20 @@ export class AdapterManager {
       }
     }
 
+    if (workspaceService.isGroupAuthenticated()) {
+      const groupAdapter = workspaceService.getGroupAdapter();
+      if (groupAdapter) {
+        workspaces.push({
+          id: 'group',
+          name: 'Group',
+          type: 'group',
+          adapter: groupAdapter
+        });
+
+        this.groupAdapter = groupAdapter;
+      }
+    }
+
     return workspaces;
   }
 
@@ -118,6 +153,16 @@ export class AdapterManager {
         return cloudAdapter;
       }
       return this.cloudAdapter; 
+    }
+
+    if (workspaceId === 'group') {
+      const workspaceService = WorkspaceService.getInstance();
+      const groupAdapter = workspaceService.getGroupAdapter();
+      if (groupAdapter) {
+        this.groupAdapter = groupAdapter;
+        return groupAdapter;
+      }
+      return this.groupAdapter;
     }
 
     
@@ -149,6 +194,19 @@ export class AdapterManager {
     logger.info('AdapterManager: Cloud adapter removed');
   }
 
+  setGroupAdapter(groupAdapter: CloudStorageAdapter): void {
+    this.groupAdapter = groupAdapter;
+    logger.info('AdapterManager: Group adapter set');
+  }
+
+  removeGroupAdapter(): void {
+    this.groupAdapter = null;
+    if (this.currentWorkspaceId === 'group') {
+      this.currentWorkspaceId = null;
+    }
+    logger.info('AdapterManager: Group adapter removed');
+  }
+
   
   hasCloudAdapter(): boolean {
     return !!(this.cloudAdapter && this.cloudAdapter.isAuthenticated);
@@ -158,5 +216,6 @@ export class AdapterManager {
   cleanup(): void {
     this.localAdapter?.cleanup();
     this.cloudAdapter?.cleanup();
+    this.groupAdapter?.cleanup();
   }
 }

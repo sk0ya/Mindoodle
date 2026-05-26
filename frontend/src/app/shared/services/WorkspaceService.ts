@@ -5,7 +5,7 @@ import { setLocalStorage, getLocalStorage, STORAGE_KEYS } from '@shared/utils';
 export interface Workspace {
   id: string;
   name: string;
-  type: 'local' | 'cloud';
+  type: 'local' | 'cloud' | 'group';
   isRemovable: boolean;
   cloudAdapter?: CloudStorageAdapter;
 }
@@ -14,6 +14,7 @@ export class WorkspaceService {
   private static instance: WorkspaceService | null = null;
   private workspaces: Map<string, Workspace> = new Map();
   private cloudAdapter: CloudStorageAdapter | null = null;
+  private groupAdapter: CloudStorageAdapter | null = null;
   private listeners: Set<() => void> = new Set();
 
   private constructor() {
@@ -47,6 +48,8 @@ export class WorkspaceService {
       
       if (a.type === 'cloud' && b.type !== 'cloud') return -1;
       if (a.type !== 'cloud' && b.type === 'cloud') return 1;
+      if (a.type === 'group' && b.type !== 'group') return -1;
+      if (a.type !== 'group' && b.type === 'group') return 1;
       return a.name.localeCompare(b.name);
     });
   }
@@ -95,6 +98,29 @@ export class WorkspaceService {
     logger.info(`Added cloud workspace for user: ${user.email}`);
   }
 
+  addGroupWorkspace(groupAdapter: CloudStorageAdapter): void {
+    const user = groupAdapter.getCurrentUser();
+    if (!user?.groupId) {
+      logger.warn('Cannot add group workspace: user is not a group member');
+      return;
+    }
+
+    this.groupAdapter = groupAdapter;
+
+    const workspace: Workspace = {
+      id: 'group',
+      name: 'Group',
+      type: 'group',
+      isRemovable: false,
+      cloudAdapter: groupAdapter
+    };
+
+    this.workspaces.set('group', workspace);
+    this.persistWorkspaces();
+    this.notifyListeners();
+    logger.info(`Added group workspace for user: ${user.email}`);
+  }
+
   
   removeWorkspace(id: string): boolean {
     const workspace = this.workspaces.get(id);
@@ -136,9 +162,21 @@ export class WorkspaceService {
     }
   }
 
+  removeGroupWorkspace(): void {
+    this.workspaces.delete('group');
+    this.groupAdapter = null;
+    this.persistWorkspaces();
+    this.notifyListeners();
+    logger.info('Removed group workspace');
+  }
+
   
   getCloudAdapter(): CloudStorageAdapter | null {
     return this.cloudAdapter;
+  }
+
+  getGroupAdapter(): CloudStorageAdapter | null {
+    return this.groupAdapter;
   }
 
   
@@ -150,10 +188,22 @@ export class WorkspaceService {
     logger.info('WorkspaceService: Cloud adapter reference set');
   }
 
+  setGroupAdapter(groupAdapter: CloudStorageAdapter): void {
+    this.groupAdapter = groupAdapter;
+    this.notifyListeners();
+    logger.info('WorkspaceService: Group adapter reference set');
+  }
+
   
   isCloudAuthenticated(): boolean {
     const cloudWorkspace = this.workspaces.get('cloud');
     return !!(cloudWorkspace?.cloudAdapter?.isAuthenticated);
+  }
+
+  isGroupAuthenticated(): boolean {
+    const groupWorkspace = this.workspaces.get('group');
+    const user = groupWorkspace?.cloudAdapter?.getCurrentUser();
+    return !!(groupWorkspace?.cloudAdapter?.isAuthenticated && user?.groupId);
   }
 
   
@@ -169,7 +219,8 @@ export class WorkspaceService {
         localWorkspaces: Array.from(this.workspaces.values())
           .filter(ws => ws.type === 'local')
           .map(ws => ({ id: ws.id, name: ws.name })),
-        hasCloudWorkspace: this.workspaces.has('cloud')
+        hasCloudWorkspace: this.workspaces.has('cloud'),
+        hasGroupWorkspace: this.workspaces.has('group')
       };
 
       setLocalStorage(STORAGE_KEYS.WORKSPACES, persistentData);
@@ -201,6 +252,13 @@ export class WorkspaceService {
   restoreCloudWorkspace(cloudAdapter: CloudStorageAdapter): void {
     if (cloudAdapter.isAuthenticated) {
       this.addCloudWorkspace(cloudAdapter);
+    }
+  }
+
+  restoreGroupWorkspace(groupAdapter: CloudStorageAdapter): void {
+    const user = groupAdapter.getCurrentUser();
+    if (groupAdapter.isAuthenticated && user?.groupId) {
+      this.addGroupWorkspace(groupAdapter);
     }
   }
 

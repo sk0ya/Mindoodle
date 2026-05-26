@@ -24,6 +24,7 @@ npm install
 
 3. Set environment variables in `wrangler.toml`:
    - `ALLOWED_EMAIL`: The only email address allowed to register (currently: shigekazukoya@gmail.com)
+   - `ALLOWED_GROUP`: Optional group registration code. Users can register when they know this code. Their personal cloud remains private, and they can also access the separate group cloud area.
 
 ## Development
 
@@ -61,6 +62,7 @@ All map endpoints require authentication via `Authorization: Bearer <token>` hea
 
 - Passwords are hashed using SHA-256
 - Sessions expire after 30 days
-- Only the configured email address can register
-- All map operations are scoped to the authenticated user
+- Only the configured email address or users with the configured group code can register
+- Personal map and image operations are scoped to the authenticated user
+- Group map and image operations use separate `/api/group/*` endpoints and are scoped to the shared group area for users registered with `ALLOWED_GROUP`
 - CORS is configured to allow frontend access

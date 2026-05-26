@@ -180,8 +180,9 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
       );
     }
 
-    // cloudワークスペースの場合は🌐アイコンを使用
+    // cloud/groupワークスペースの場合は専用アイコンを使用
     const isCloudWorkspace = item.path === '/cloud' || item.path === 'cloud';
+    const isGroupWorkspace = item.path === '/group' || item.path === 'group';
 
     return (
       <div className={`explorer-folder ${dragOverPath === item.path ? 'drag-over' : ''}`}>
@@ -203,6 +204,8 @@ export const ExplorerNodeView: React.FC<ExplorerNodeViewProps> = ({
             let folderIcon: React.ReactNode;
             if (isCloudWorkspace) {
               folderIcon = '🌐';
+            } else if (isGroupWorkspace) {
+              folderIcon = '👥';
             } else {
               folderIcon = isCollapsed ? <Folder size={16} /> : <FolderOpen size={16} />;
             }

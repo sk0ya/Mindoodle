@@ -28,15 +28,24 @@ export class AuthService {
     return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
   }
 
-  async isEmailAllowed(email: string): Promise<boolean> {
-    return email === this.env.ALLOWED_EMAIL;
+  private getAllowedGroupId(groupCode?: string): string | undefined {
+    const allowedGroup = this.env.ALLOWED_GROUP;
+    return allowedGroup && groupCode === allowedGroup ? 'allowed-group' : undefined;
   }
 
-  async register(email: string, password: string): Promise<AuthResponse> {
-    if (!await this.isEmailAllowed(email)) {
+  async isEmailAllowed(email: string, groupCode?: string): Promise<boolean> {
+    if (email === this.env.ALLOWED_EMAIL) {
+      return true;
+    }
+
+    return !!this.getAllowedGroupId(groupCode);
+  }
+
+  async register(email: string, password: string, groupCode?: string): Promise<AuthResponse> {
+    if (!await this.isEmailAllowed(email, groupCode)) {
       return {
         success: false,
-        error: 'Registration is restricted to authorized users only'
+        error: 'Registration requires an authorized email or group code'
       };
     }
 
@@ -51,12 +60,14 @@ export class AuthService {
 
     const userId = this.generateUserId();
     const passwordHash = await this.hashPassword(password);
+    const groupId = this.getAllowedGroupId(groupCode);
     const now = new Date().toISOString();
 
     const user: User = {
       id: userId,
       email,
       passwordHash,
+      ...(groupId ? { groupId } : {}),
       createdAt: now,
       lastLoginAt: now
     };
@@ -68,6 +79,7 @@ export class AuthService {
     const session: UserSession = {
       userId,
       email,
+      ...(groupId ? { groupId } : {}),
       createdAt: now,
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
     };
@@ -79,12 +91,13 @@ export class AuthService {
       token,
       user: {
         id: userId,
-        email
+        email,
+        ...(groupId ? { groupId } : {})
       }
     };
   }
 
-  async login(email: string, password: string): Promise<AuthResponse> {
+  async login(email: string, password: string, groupCode?: string): Promise<AuthResponse> {
     const userStr = await this.env.USERS.get(`user:${email}`);
     if (!userStr) {
       return {
@@ -103,6 +116,19 @@ export class AuthService {
       };
     }
 
+    const nextGroupId = this.getAllowedGroupId(groupCode);
+
+    if (groupCode && !nextGroupId) {
+      return {
+        success: false,
+        error: 'Invalid group code'
+      };
+    }
+
+    if (nextGroupId && user.groupId !== nextGroupId) {
+      user.groupId = nextGroupId;
+    }
+
     // Update last login
     user.lastLoginAt = new Date().toISOString();
     await this.env.USERS.put(`user:${email}`, JSON.stringify(user));
@@ -112,6 +138,7 @@ export class AuthService {
     const session: UserSession = {
       userId: user.id,
       email: user.email,
+      ...(user.groupId ? { groupId: user.groupId } : {}),
       createdAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30 days
     };
@@ -123,7 +150,8 @@ export class AuthService {
       token,
       user: {
         id: user.id,
-        email: user.email
+        email: user.email,
+        ...(user.groupId ? { groupId: user.groupId } : {})
       }
     };
   }

@@ -11,6 +11,7 @@ export function extractWorkspaceId(path: string | null): string | null {
   if (!path) return null;
   const p = path.startsWith('/') ? path.slice(1) : path;
   if (p.startsWith('cloud')) return 'cloud';
+  if (p.startsWith('group')) return 'group';
   if (p.startsWith('ws_')) {
     const slash = p.indexOf('/');
     return slash >= 0 ? p.slice(0, slash) : p;
@@ -27,6 +28,10 @@ export function parseWorkspacePath(path: string | null): WorkspacePathInfo {
   if (p.startsWith('cloud')) {
     const rest = p.length > 'cloud'.length ? p.slice('cloud'.length + 1) : '';
     return { workspaceId: 'cloud', relativePath: rest || null };
+  }
+  if (p.startsWith('group')) {
+    const rest = p.length > 'group'.length ? p.slice('group'.length + 1) : '';
+    return { workspaceId: 'group', relativePath: rest || null };
   }
   if (p.startsWith('ws_')) {
     const slash = p.indexOf('/');

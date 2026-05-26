@@ -15,10 +15,22 @@ export class MapStorageService {
     return `${timestamp}_${randomPart}`;
   }
 
-  async saveMap(userId: string, mapId: string | null, title: string, content: string): Promise<MapResponse> {
+  async saveMap(userId: string, mapId: string | null, title: string, content: string, expectedUpdatedAt?: string): Promise<MapResponse> {
     try {
       const id = mapId || this.generateMapId();
       const key = this.getMapKey(userId, id);
+
+      if (expectedUpdatedAt) {
+        const currentObject = await this.env.MAPS_BUCKET.get(key);
+        const currentUpdatedAt = currentObject?.uploaded.toISOString() || null;
+        if (currentUpdatedAt && currentUpdatedAt !== expectedUpdatedAt) {
+          return {
+            success: false,
+            error: 'Map has been modified by another user',
+            conflict: { currentUpdatedAt }
+          };
+        }
+      }
 
       // Save markdown file
       await this.env.MAPS_BUCKET.put(key, content, {

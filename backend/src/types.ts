@@ -2,6 +2,7 @@ export interface User {
   id: string;
   email: string;
   passwordHash: string;
+  groupId?: string;
   createdAt: string;
   lastLoginAt: string;
 }
@@ -9,6 +10,7 @@ export interface User {
 export interface UserSession {
   userId: string;
   email: string;
+  groupId?: string;
   createdAt: string;
   expiresAt: string;
 }
@@ -26,6 +28,7 @@ export interface MapData {
 export interface AuthRequest {
   email: string;
   password: string;
+  groupCode?: string;
 }
 
 export interface AuthResponse {
@@ -34,6 +37,7 @@ export interface AuthResponse {
   user?: {
     id: string;
     email: string;
+    groupId?: string;
   };
   error?: string;
 }
@@ -53,10 +57,14 @@ export interface MapResponse {
   success: boolean;
   map?: MapData;
   error?: string;
+  conflict?: {
+    currentUpdatedAt: string;
+  };
 }
 
 export interface Env {
   USERS: KVNamespace;
   MAPS_BUCKET: R2Bucket;
   ALLOWED_EMAIL: string;
+  ALLOWED_GROUP?: string;
 }

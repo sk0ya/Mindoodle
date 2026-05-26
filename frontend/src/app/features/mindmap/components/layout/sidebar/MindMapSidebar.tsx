@@ -1,6 +1,6 @@
 
 import React, { memo } from 'react';
-import { Workflow, Cloud, CloudOff } from 'lucide-react';
+import { Workflow, Cloud, CloudOff, Users } from 'lucide-react';
 import SidebarHeader from './SidebarHeader';
 import SidebarCollapsed from './SidebarCollapsed';
 import { collectMissingExplorerCollapsedPaths } from './explorerCollapseState';
@@ -11,7 +11,7 @@ import CreateMapModal from './CreateMapModal';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import { useSidebar } from '../../../hooks/useSidebar';
-import { useCloudWorkspace } from '../../../hooks/useCloudWorkspace';
+import { useCloudWorkspace, useGroupWorkspace } from '../../../hooks/useCloudWorkspace';
 import { flexStyles, flexRow, combineStyles } from '../../Shared/commonStyles';
 
 interface MindMapSidebarProps {
@@ -52,6 +52,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onCreateFolder
 }) => {
   const { isCloudConnected, handleToggleCloud } = useCloudWorkspace(workspaces);
+  const { isGroupConnected, handleToggleGroup } = useGroupWorkspace(workspaces);
 
   const sidebar = useSidebar({
     mindMaps,
@@ -138,24 +139,44 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
       <div className="workspaces-header" style={{ padding: '8px 8px 4px 8px', borderBottom: '1px solid var(--border-color)' }}>
         <div style={flexStyles.spaceBetween}>
           <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>workspaces</div>
-          <button
-            onClick={handleToggleCloud}
-            title={isCloudConnected ? "Disconnect from cloud" : "Connect to cloud"}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              padding: '4px 8px',
-              border: '1px solid var(--border-color)',
-              borderRadius: 4,
-              fontSize: 12,
-              cursor: 'pointer',
-              backgroundColor: 'transparent',
-              color: isCloudConnected ? 'var(--accent-color)' : 'var(--text-secondary)',
-              transition: 'all 0.2s ease'
-            }}
-          >
-            {isCloudConnected ? <Cloud size={14} /> : <CloudOff size={14} />}
-          </button>
+          <div style={flexRow(4)}>
+            <button
+              onClick={handleToggleCloud}
+              title={isCloudConnected ? "Disconnect from personal cloud" : "Connect to personal cloud"}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 8px',
+                border: '1px solid var(--border-color)',
+                borderRadius: 4,
+                fontSize: 12,
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: isCloudConnected ? 'var(--accent-color)' : 'var(--text-secondary)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              {isCloudConnected ? <Cloud size={14} /> : <CloudOff size={14} />}
+            </button>
+            <button
+              onClick={handleToggleGroup}
+              title={isGroupConnected ? "Disconnect from group cloud" : "Connect to group cloud"}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                padding: '4px 8px',
+                border: '1px solid var(--border-color)',
+                borderRadius: 4,
+                fontSize: 12,
+                cursor: 'pointer',
+                backgroundColor: 'transparent',
+                color: isGroupConnected ? 'var(--accent-color)' : 'var(--text-secondary)',
+                transition: 'all 0.2s ease'
+              }}
+            >
+              <Users size={14} />
+            </button>
+          </div>
         </div>
         <div style={combineStyles(flexRow(6), { marginTop: 6, flexWrap: 'wrap' })}>
           {workspaces && workspaces.length > 0 ? (
@@ -177,7 +198,7 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
                   }}>
                   <span>{ws.name}</span>
                   {}
-                  {onRemoveWorkspace && ws.id !== 'cloud' && <button onClick={(e) => {
+                  {onRemoveWorkspace && ws.id !== 'cloud' && ws.id !== 'group' && <button onClick={(e) => {
                     e.stopPropagation();
                     onRemoveWorkspace(ws.id);
                   }} style={{ cursor: 'pointer', border: 'none', background: 'transparent', color: 'var(--text-secondary)' }}>×</button>}

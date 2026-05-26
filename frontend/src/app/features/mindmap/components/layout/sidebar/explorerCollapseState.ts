@@ -1,6 +1,6 @@
 import type { ExplorerItem } from '@core/types';
 
-const isWorkspaceRoot = (path: string): boolean => /^\/?(?:ws_[^/]+|cloud)\/?$/.test(path || '');
+const isWorkspaceRoot = (path: string): boolean => /^\/?(?:ws_[^/]+|cloud|group)\/?$/.test(path || '');
 
 export function collectMissingExplorerCollapsedPaths(
   tree: ExplorerItem,
