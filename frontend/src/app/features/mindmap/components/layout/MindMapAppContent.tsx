@@ -254,17 +254,22 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   useEventListener('mindoodle:openImageFile', handleOpenImageFile, { target: window });
 
   const groupRemoteUpdatedAtRef = React.useRef<string | null>(null);
+  const groupSyncedMarkdownRef = React.useRef<string | null>(null);
   const groupConflictNotifiedRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
     const id = data?.mapIdentifier;
     if (!id || id.workspaceId !== 'group') {
       groupRemoteUpdatedAtRef.current = null;
+      groupSyncedMarkdownRef.current = null;
       groupConflictNotifiedRef.current = null;
       return;
     }
 
     groupRemoteUpdatedAtRef.current = data.updatedAt || null;
+    groupSyncedMarkdownRef.current = Array.isArray(data.rootNodes)
+      ? MarkdownImporter.convertNodesToMarkdown(data.rootNodes)
+      : null;
     groupConflictNotifiedRef.current = null;
   }, [data?.mapIdentifier?.workspaceId, data?.mapIdentifier?.mapId]);
 
@@ -290,7 +295,15 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
           ? MarkdownImporter.convertNodesToMarkdown(data.rootNodes)
           : '';
 
-        const localHasUnsyncedChanges = !!knownRemoteUpdatedAt && data.updatedAt !== knownRemoteUpdatedAt;
+        if (localMarkdown === remoteMarkdown) {
+          groupRemoteUpdatedAtRef.current = remoteUpdatedAt;
+          groupSyncedMarkdownRef.current = remoteMarkdown;
+          groupConflictNotifiedRef.current = null;
+          return;
+        }
+
+        const syncedMarkdown = groupSyncedMarkdownRef.current;
+        const localHasUnsyncedChanges = syncedMarkdown !== null && localMarkdown !== syncedMarkdown;
         if (localHasUnsyncedChanges && localMarkdown !== remoteMarkdown) {
           const conflictKey = `${id.workspaceId}:${id.mapId}:${remoteUpdatedAt}`;
           if (groupConflictNotifiedRef.current !== conflictKey) {
@@ -312,6 +325,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         );
         store.setData(nextData);
         groupRemoteUpdatedAtRef.current = remoteUpdatedAt;
+        groupSyncedMarkdownRef.current = remoteMarkdown;
         groupConflictNotifiedRef.current = null;
         await refreshMapList();
         showNotification('info', 'グループマップの最新内容を反映しました');
