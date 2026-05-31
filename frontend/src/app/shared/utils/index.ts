@@ -13,6 +13,7 @@ export * from './safeJson';
 export * from './hashUtils';
 export * from './stringUtils';
 export * from './mapPath';
+export * from './mapUrl';
 export * from './listHeightUtils';
 export * from './highlightUtils';
 export * from './lodash-utils';

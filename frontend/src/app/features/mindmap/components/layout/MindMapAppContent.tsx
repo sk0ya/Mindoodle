@@ -20,7 +20,7 @@ import { useTheme } from '../../../theme/hooks/useTheme';
 import { useMindMapModals } from './useMindMapModals';
 // wrapper-only providers are imported in MindMapApp.tsx
 import { MindMapController } from '@mindmap/controllers/MindMapController';
-import { logger } from '@shared/utils';
+import { buildMapUrl, getMapTargetFromUrl, logger } from '@shared/utils';
 import { MarkdownImporter } from '../../../markdown/markdownImporter';
 import { MapOperationsService } from '../../services/MapOperationsService';
 import { useVim } from "../../../vim/context/vimContext";
@@ -133,6 +133,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     canRedo,
     allMindMaps,
     currentMapId,
+    isReady,
 
     // 統合されたハンドラー
     addNode,
@@ -170,6 +171,80 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     refreshMapList,
     flushMarkdownStream
   } = mindMap;
+
+  const lastSyncedUrlRef = React.useRef<string | null>(null);
+
+  const resolveUrlMapIdentifier = React.useCallback((target: { mapId: string; workspaceId?: string }): MapIdentifier | null => {
+    if (target.workspaceId) {
+      return { mapId: target.mapId, workspaceId: target.workspaceId };
+    }
+
+    const matches = allMindMaps
+      .map((map) => map.mapIdentifier)
+      .filter((identifier) => identifier.mapId === target.mapId);
+
+    if (matches.length === 1) return matches[0];
+
+    const currentIdentifier = data?.mapIdentifier;
+    if (currentIdentifier?.mapId === target.mapId) return currentIdentifier;
+
+    return null;
+  }, [allMindMaps, data?.mapIdentifier]);
+
+  const openMapFromCurrentUrl = React.useCallback(async () => {
+    if (!isReady) return;
+
+    const target = getMapTargetFromUrl(window.location);
+    if (!target) return;
+
+    const identifier = resolveUrlMapIdentifier(target);
+    if (!identifier) return;
+
+    const currentIdentifier = data?.mapIdentifier;
+    if (
+      currentIdentifier?.mapId === identifier.mapId &&
+      currentIdentifier.workspaceId === identifier.workspaceId
+    ) {
+      return;
+    }
+
+    const opened = await selectMapById(identifier);
+    if (!opened) {
+      showNotification('warning', `URLのマップ「${target.mapId}」を開けませんでした`);
+    }
+  }, [data?.mapIdentifier, isReady, resolveUrlMapIdentifier, selectMapById, showNotification]);
+
+  React.useEffect(() => {
+    void openMapFromCurrentUrl();
+  }, [openMapFromCurrentUrl]);
+
+  React.useEffect(() => {
+    const onPopState = () => {
+      void openMapFromCurrentUrl();
+    };
+
+    window.addEventListener('popstate', onPopState);
+    window.addEventListener('hashchange', onPopState);
+    return () => {
+      window.removeEventListener('popstate', onPopState);
+      window.removeEventListener('hashchange', onPopState);
+    };
+  }, [openMapFromCurrentUrl]);
+
+  React.useEffect(() => {
+    const identifier = data?.mapIdentifier;
+    if (!identifier?.mapId) return;
+
+    const nextUrl = buildMapUrl(window.location, identifier);
+    if (lastSyncedUrlRef.current === nextUrl) return;
+    if (`${window.location.pathname}${window.location.search}${window.location.hash}` === nextUrl) {
+      lastSyncedUrlRef.current = nextUrl;
+      return;
+    }
+
+    window.history.replaceState(window.history.state, '', nextUrl);
+    lastSyncedUrlRef.current = nextUrl;
+  }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId]);
 
   const uiStore = useMindMapStore().ui;
   const activeView = uiStore.activeView;
