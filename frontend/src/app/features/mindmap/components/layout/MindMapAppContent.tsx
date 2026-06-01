@@ -173,23 +173,34 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   } = mindMap;
 
   const lastSyncedUrlRef = React.useRef<string | null>(null);
+  const latestDataRef = React.useRef(data);
+  const latestAllMindMapsRef = React.useRef(allMindMaps);
+  const initialUrlOpenHandledRef = React.useRef(false);
+
+  React.useEffect(() => {
+    latestDataRef.current = data;
+  }, [data]);
+
+  React.useEffect(() => {
+    latestAllMindMapsRef.current = allMindMaps;
+  }, [allMindMaps]);
 
   const resolveUrlMapIdentifier = React.useCallback((target: { mapId: string; workspaceId?: string }): MapIdentifier | null => {
     if (target.workspaceId) {
       return { mapId: target.mapId, workspaceId: target.workspaceId };
     }
 
-    const matches = allMindMaps
+    const matches = latestAllMindMapsRef.current
       .map((map) => map.mapIdentifier)
       .filter((identifier) => identifier.mapId === target.mapId);
 
     if (matches.length === 1) return matches[0];
 
-    const currentIdentifier = data?.mapIdentifier;
+    const currentIdentifier = latestDataRef.current?.mapIdentifier;
     if (currentIdentifier?.mapId === target.mapId) return currentIdentifier;
 
     return null;
-  }, [allMindMaps, data?.mapIdentifier]);
+  }, []);
 
   const openMapFromCurrentUrl = React.useCallback(async () => {
     if (!isReady) return;
@@ -200,7 +211,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     const identifier = resolveUrlMapIdentifier(target);
     if (!identifier) return;
 
-    const currentIdentifier = data?.mapIdentifier;
+    const currentIdentifier = latestDataRef.current?.mapIdentifier;
     if (
       currentIdentifier?.mapId === identifier.mapId &&
       currentIdentifier.workspaceId === identifier.workspaceId
@@ -212,11 +223,23 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     if (!opened) {
       showNotification('warning', `URLのマップ「${target.mapId}」を開けませんでした`);
     }
-  }, [data?.mapIdentifier, isReady, resolveUrlMapIdentifier, selectMapById, showNotification]);
+  }, [isReady, resolveUrlMapIdentifier, selectMapById, showNotification]);
 
   React.useEffect(() => {
+    if (initialUrlOpenHandledRef.current || !isReady) return;
+
+    const target = getMapTargetFromUrl(window.location);
+    if (!target) {
+      initialUrlOpenHandledRef.current = true;
+      return;
+    }
+
+    const hasResolvableTarget = !!resolveUrlMapIdentifier(target);
+    if (!hasResolvableTarget) return;
+
+    initialUrlOpenHandledRef.current = true;
     void openMapFromCurrentUrl();
-  }, [openMapFromCurrentUrl]);
+  }, [allMindMaps, isReady, openMapFromCurrentUrl, resolveUrlMapIdentifier]);
 
   React.useEffect(() => {
     const onPopState = () => {
