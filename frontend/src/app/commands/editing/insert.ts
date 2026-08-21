@@ -3,15 +3,10 @@
  * Reduced from 162 lines to 143 lines (12% reduction)
  */
 
-import type { Command, CommandContext } from '../system/types';
+import type { Command } from '../system/types';
 import type { MindMapNode } from '@shared/types';
 import { editingCommand, failure, success } from '../utils/commandFunctional';
-
-// === Helpers ===
-
-const setVimInsertMode = (context: CommandContext) => {
-  if (context.vim?.isEnabled) context.vim.setMode('insert');
-};
+import { setVimInsertMode, startEditWithCursor } from '../utils/editHelpers';
 
 const createEditCommand = (name: string, aliases: string[], description: string, position: 'start' | 'end'): Command =>
   editingCommand(
@@ -22,10 +17,7 @@ const createEditCommand = (name: string, aliases: string[], description: string,
       if (!nodeId) return failure('No node selected');
 
       setVimInsertMode(context);
-      setTimeout(() => {
-        if (position === 'end') context.handlers.startEditWithCursorAtEnd(nodeId);
-        else context.handlers.startEditWithCursorAtStart(nodeId);
-      }, 10);
+      startEditWithCursor(nodeId, position, context);
 
       return success('Started editing');
     },

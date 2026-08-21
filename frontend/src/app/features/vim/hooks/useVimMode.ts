@@ -4,6 +4,8 @@ import type { MindMapNode, MapIdentifier } from '@shared/types';
 import { JUMP_CHARS } from '../constants';
 import { VimCountBuffer } from '../services/VimCountBuffer';
 import { VimRepeatRegistry } from '../services/VimRepeatRegistry';
+import { flattenNodes } from '@shared/utils/treeUtils';
+import { findNodesMatching, generateLabels, searchInNode } from '../utils/vimFunctional';
 
 type ExtendedMindMapStore = MindMapStore & {
   saveMapMarkdown?: (identifier: MapIdentifier, markdown: string) => Promise<void>;
@@ -94,15 +96,9 @@ const rebuildMappingsSource = () => {
   } catch {}
 };
 
-const flattenNodes = (nodes: MindMapNode[]): MindMapNode[] => {
-  const collect = (node: MindMapNode): MindMapNode[] => [node, ...(node.children?.flatMap(collect) || [])];
-  return nodes.flatMap(collect);
-};
-
-const searchNodes = (query: string, nodes: MindMapNode[]): string[] =>
+const searchNodeIds = (query: string, nodes: MindMapNode[]): string[] =>
   query.trim()
-    ? flattenNodes(nodes)
-        .filter(node => node.text?.toLowerCase().includes(query.toLowerCase()))
+    ? findNodesMatching(nodes, searchInNode(query))
         .map(node => node.id)
     : [];
 
@@ -116,30 +112,6 @@ const findRootForNode = (roots: MindMapNode[], targetId: string): MindMapNode | 
     }
   }
   return roots[0] || null;
-};
-
-const generateLabels = (count: number, chars: string): string[] => {
-  const maxSingle = chars.length;
-  const maxDouble = chars.length ** 2;
-
-  if (count <= maxSingle) return Array.from({ length: count }, (_, i) => chars[i]);
-
-  const generate = (depth: number): string[] => {
-    const labels: string[] = [];
-    const iterate = (prefix: string, remaining: number): void => {
-      if (remaining === 0) {
-        labels.push(prefix);
-        return;
-      }
-      for (let i = 0; i < chars.length && labels.length < count; i++) {
-        iterate(prefix + chars[i], remaining - 1);
-      }
-    };
-    iterate('', depth);
-    return labels;
-  };
-
-  return count <= maxDouble ? generate(2) : generate(3);
 };
 
 export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
@@ -391,7 +363,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
     setUISearchQuery(query);
 
     if (query.trim()) {
-      const results = searchNodes(query, useMindMapStore.getState().data?.rootNodes || []);
+      const results = searchNodeIds(query, useMindMapStore.getState().data?.rootNodes || []);
       setState(prev => ({ ...prev, searchResults: results, currentSearchIndex: results.length > 0 ? 0 : -1 }));
     } else {
       setState(prev => ({ ...prev, searchResults: [], currentSearchIndex: -1 }));
@@ -405,7 +377,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       return;
     }
 
-    const results = searchNodes(searchQuery, useMindMapStore.getState().data?.rootNodes || []);
+    const results = searchNodeIds(searchQuery, useMindMapStore.getState().data?.rootNodes || []);
     setState(prev => ({ ...prev, searchResults: results, currentSearchIndex: results.length > 0 ? 0 : -1 }));
 
     if (results.length > 0) {
@@ -417,7 +389,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
     const { searchQuery } = state;
     if (!searchQuery.trim()) return;
 
-    const results = searchNodes(searchQuery, useMindMapStore.getState().data?.rootNodes || []);
+    const results = searchNodeIds(searchQuery, useMindMapStore.getState().data?.rootNodes || []);
     if (results.length === 0) return;
 
     const { selectedNodeId } = useMindMapStore.getState();

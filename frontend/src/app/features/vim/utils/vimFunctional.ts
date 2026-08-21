@@ -5,6 +5,7 @@
 
 import type { VimMode } from '../hooks/useVimMode';
 import type { MindMapNode } from '@shared/types';
+import { JUMP_LABEL_CHARS } from '../constants';
 // removed unused pipe import
 
 // === Mode Predicates ===
@@ -187,19 +188,44 @@ export const searchNodes = (query: string, caseSensitive = false) =>
 
 // === Jump Labels ===
 
-export const JUMP_CHARS = 'abcdefghijklmnopqrstuvwxyz';
+export const generateLabels = (count: number, chars: string): string[] => {
+  const maxSingle = chars.length;
+  const maxDouble = chars.length ** 2;
+
+  if (count <= maxSingle) return Array.from({ length: count }, (_, i) => chars[i]);
+
+  const generate = (depth: number): string[] => {
+    const labels: string[] = [];
+    const iterate = (prefix: string, remaining: number): void => {
+      if (remaining === 0) {
+        labels.push(prefix);
+        return;
+      }
+      for (let i = 0; i < chars.length && labels.length < count; i++) {
+        iterate(prefix + chars[i], remaining - 1);
+      }
+    };
+    iterate('', depth);
+    return labels;
+  };
+
+  return count <= maxDouble ? generate(2) : generate(3);
+};
+
+// Kept for callers that use the original alphabet-based label helpers.
+export const JUMP_CHARS = JUMP_LABEL_CHARS;
 
 export const generateJumpLabel = (index: number): string => {
-  if (index < JUMP_CHARS.length) {
-    return JUMP_CHARS[index];
+  if (index < JUMP_LABEL_CHARS.length) {
+    return JUMP_LABEL_CHARS[index];
   }
-  const firstIndex = Math.floor(index / JUMP_CHARS.length) - 1;
-  const secondIndex = index % JUMP_CHARS.length;
-  return JUMP_CHARS[firstIndex] + JUMP_CHARS[secondIndex];
+  const firstIndex = Math.floor(index / JUMP_LABEL_CHARS.length) - 1;
+  const secondIndex = index % JUMP_LABEL_CHARS.length;
+  return JUMP_LABEL_CHARS[firstIndex] + JUMP_LABEL_CHARS[secondIndex];
 };
 
 export const generateJumpLabels = (count: number): string[] =>
-  Array.from({ length: count }, (_, i) => generateJumpLabel(i));
+  Array.from({ length: count }, (_, index) => generateJumpLabel(index));
 
 export const createJumpMapping = (nodeIds: string[]): Array<{ nodeId: string; label: string }> =>
   nodeIds.map((nodeId, index) => ({

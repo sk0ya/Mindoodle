@@ -4,6 +4,8 @@
  */
 
 import type { Command, CommandContext, CommandResult, CommandCategory, ArgsMap } from '../system/types';
+export { failure, success } from './commandResults';
+import { failure } from './commandResults';
 
 // === Type Aliases ===
 
@@ -12,18 +14,6 @@ export type CommandGuard = (context: CommandContext, args: ArgsMap) => boolean;
 export type CommandOptions = Partial<Omit<Command, 'name' | 'description' | 'execute' | 'category'>>;
 
 // === Result Helpers ===
-
-export const success = (message?: string, data?: unknown): CommandResult => ({
-  success: true,
-  message,
-  data
-});
-
-export const failure = (error: string, data?: unknown): CommandResult => ({
-  success: false,
-  error,
-  data
-});
 
 // === Command Builders ===
 

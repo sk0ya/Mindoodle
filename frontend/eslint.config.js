@@ -9,6 +9,11 @@ import sonarjs from 'eslint-plugin-sonarjs';
 const sonarjsRecommended = sonarjs.configs.recommended;
 
 export default [
+  // Flat Config の先頭で指定した ignore は、全設定に適用されます。
+  // 型宣言ファイルは ESLint の対象外です。
+  {
+    ignores: ['**/*.d.ts', 'node_modules/**', 'dist/**', '.vite/**', 'build/**']
+  },
   js.configs.recommended,
   {
     files: ['src/**/*.{ts,tsx}'],

@@ -4,17 +4,8 @@
  */
 
 import type { Command, CommandContext, CommandResult } from '../system/types';
-
-// Result builders (pure functions)
-export const success = (message?: string): CommandResult => ({
-  success: true,
-  ...(message && { message })
-});
-
-export const failure = (error: string): CommandResult => ({
-  success: false,
-  error
-});
+export { failure, success } from './commandResults';
+import { failure, success } from './commandResults';
 
 // Error handling wrapper (higher-order function)
 export const withErrorHandling = <T extends unknown[]>(

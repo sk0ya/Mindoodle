@@ -479,8 +479,7 @@ export const CreateMapModal: React.FC<CreateMapModalProps> = ({
   };
 
   const handleNameKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    const nativeEvent = event.nativeEvent as KeyboardEvent;
-    if (event.key !== 'Enter' || nativeEvent.isComposing || nativeEvent.keyCode === 229) {
+    if (event.key !== 'Enter' || event.nativeEvent.isComposing) {
       return;
     }
 

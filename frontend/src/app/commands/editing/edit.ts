@@ -6,22 +6,7 @@
 import type { Command, CommandContext, CommandResult } from '../system/types';
 import { useMindMapStore } from '@mindmap/store';
 import { editingCommand, failure, success, withCount } from '../utils/commandFunctional';
-
-// === Helpers ===
-
-const setVimInsertMode = (context: CommandContext) => {
-  if (context.vim?.isEnabled) context.vim.setMode('insert');
-};
-
-const startEditWithCursor = (nodeId: string, position: 'start' | 'end', context: CommandContext) => {
-  setTimeout(() => {
-    if (position === 'end') {
-      context.handlers.startEditWithCursorAtEnd(nodeId);
-    } else {
-      context.handlers.startEditWithCursorAtStart(nodeId);
-    }
-  }, 10);
-};
+import { setVimInsertMode, startEditWithCursor } from '../utils/editHelpers';
 
 // === Complex Edit Command ===
 
