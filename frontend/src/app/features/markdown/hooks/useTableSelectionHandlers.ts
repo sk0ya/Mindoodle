@@ -1,11 +1,11 @@
 import { useCallback } from 'react';
-import type { Selection, EditingCell } from '../utils/table-editor/types';
+import type { Selection, EditingCell, ContextMenu } from '../utils/table-editor/types';
 
 interface UseTableSelectionHandlersProps {
   selection: Selection;
   setSelection: (selection: Selection) => void;
   setEditingCell: (cell: EditingCell | null) => void;
-  setContextMenu: (menu: any) => void;
+  setContextMenu: (menu: ContextMenu | null) => void;
 }
 
 export const useTableSelectionHandlers = ({

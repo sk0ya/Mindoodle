@@ -7,10 +7,10 @@ import { logger } from '@shared/utils';
 import {
   moveNormalizedNode,
   moveNodeWithPositionNormalized,
-  changeSiblingOrderNormalized
+  changeSiblingOrderNormalized,
+  type NormalizedData
 } from '@core/data/normalizedStore';
 import type { MindMapStore } from '../types';
-import type { NormalizedData } from '@core/data/normalizedStore';
 import { applyAutoLayoutIfEnabled } from './layoutHelpers';
 
 // === Helpers ===
@@ -62,7 +62,9 @@ export function createMoveOperations(
       executeMoveOperation(
         set,
         get,
-        (state) => moveNormalizedNode(state.normalizedData!, nodeId, newParentId),
+        (state) => state.normalizedData
+          ? moveNormalizedNode(state.normalizedData, nodeId, newParentId)
+          : { success: false, reason: 'normalizedData is unavailable' },
         'moveNode'
       ),
 
@@ -77,7 +79,9 @@ export function createMoveOperations(
       executeMoveOperation(
         set,
         get,
-        (state) => moveNodeWithPositionNormalized(state.normalizedData!, nodeId, targetNodeId, position),
+        (state) => state.normalizedData
+          ? moveNodeWithPositionNormalized(state.normalizedData, nodeId, targetNodeId, position)
+          : { success: false, reason: 'normalizedData is unavailable' },
         'moveNodeWithPosition'
       ),
 

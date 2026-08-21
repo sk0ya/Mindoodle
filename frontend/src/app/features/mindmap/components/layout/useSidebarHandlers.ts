@@ -17,7 +17,7 @@ export const useSidebarHandlers = ({ selectMapById, selectNode, storageAdapter }
     ) {
       return;
     }
-    await selectMapById(targetMapIdentifier as any);
+    await selectMapById(targetMapIdentifier);
   }, [selectMapById]);
 
   const onNodeSelectByLine = React.useCallback(async (lineNumber: number) => {

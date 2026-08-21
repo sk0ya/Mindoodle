@@ -30,17 +30,38 @@ const patterns = [
   { name: 'unchecked JSON.parse', expression: /JSON\.parse\s*\(/g }
 ];
 
+const stripComments = (source) => {
+  let inBlockComment = false;
+  return source.split(/\r?\n/).map((line) => {
+    let code = line;
+    if (inBlockComment) {
+      const end = code.indexOf('*/');
+      if (end === -1) return '';
+      code = code.slice(end + 2);
+      inBlockComment = false;
+    }
+    code = code.replace(/\/\*.*?\*\//g, '');
+    if (code.includes('/*')) {
+      code = code.slice(0, code.indexOf('/*'));
+      inBlockComment = true;
+    }
+    return code.replace(/\/\/.*$/, '');
+  });
+};
+
 const findings = [];
 const files = await collectSourceFiles(sourceRoot);
 
 for (const filePath of files.sort()) {
   const source = await readFile(filePath, 'utf8');
-  const lines = source.split(/\r?\n/);
+  const relativeFile = path.relative(projectRoot, filePath);
+  const lines = stripComments(source);
 
   for (const [lineIndex, line] of lines.entries()) {
     for (const pattern of patterns) {
+      if (pattern.name === 'unchecked JSON.parse' && relativeFile.endsWith('src\\app\\shared\\utils\\safeJson.ts')) continue;
       if (pattern.expression.test(line)) {
-        findings.push(`${path.relative(projectRoot, filePath)}:${lineIndex + 1} ${pattern.name}`);
+        findings.push(`${relativeFile}:${lineIndex + 1} ${pattern.name}`);
         pattern.expression.lastIndex = 0;
       }
     }

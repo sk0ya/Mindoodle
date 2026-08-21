@@ -267,7 +267,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
     window.history.replaceState(window.history.state, '', nextUrl);
     lastSyncedUrlRef.current = nextUrl;
-  }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId]);
+  }, [data?.mapIdentifier, data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId]);
 
   const uiStore = useMindMapStore().ui;
   const activeView = uiStore.activeView;
@@ -369,7 +369,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       ? MarkdownImporter.convertNodesToMarkdown(data.rootNodes)
       : null;
     groupConflictNotifiedRef.current = null;
-  }, [data?.mapIdentifier?.workspaceId, data?.mapIdentifier?.mapId]);
+  }, [data?.mapIdentifier, data?.mapIdentifier?.workspaceId, data?.mapIdentifier?.mapId, data?.rootNodes, data?.updatedAt]);
 
   React.useEffect(() => {
     const id = data?.mapIdentifier;
@@ -445,6 +445,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   }, [
     data?.mapIdentifier?.workspaceId,
     data?.mapIdentifier?.mapId,
+    data?.mapIdentifier,
     data?.updatedAt,
     data?.rootNodes,
     data?.title,
@@ -746,6 +747,9 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
     handleLinkNavigate2,
   });
 
+  const sidebarHandlers = useSidebarHandlers({ selectMapById, selectNode, storageAdapter });
+  const explorerFolderOps = useExplorerFolderOps(mindMap);
+
   return (
     <div
       className="mindmap-app"
@@ -758,9 +762,6 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onShowKeyboardHelper={() => setShowKeyboardHelper(!showKeyboardHelper)}
       />
 
-      {(() => {
-        const sidebarHandlers = useSidebarHandlers({ selectMapById, selectNode, storageAdapter });
-        return (
       <PrimarySidebarContainer
         activeView={activeView}
         allMindMaps={allMindMaps}
@@ -797,13 +798,11 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
         onRemoveWorkspace={removeWorkspace}
         onSwitchWorkspace={switchWorkspace}
         explorerTree={(mindMap).explorerTree || { type: 'folder', name: '', path: '', children: [] }}
-        onCreateFolder={useExplorerFolderOps(mindMap).handleCreateFolder}
+        onCreateFolder={explorerFolderOps.handleCreateFolder}
         currentMapData={data}
         onMapSwitch={sidebarHandlers.onMapSwitch}
         onNodeSelectByLine={sidebarHandlers.onNodeSelectByLine}
       />
-        );
-      })()}
 
       <div className={`mindmap-main-content ${activeView ? 'with-sidebar' : ''}`}>
         <FolderGuideModal

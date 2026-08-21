@@ -61,6 +61,19 @@ export const CodeMirrorEditor = forwardRef<CodeMirrorEditorRef, CodeMirrorEditor
       onCursorLineChange,
       onFocusChange,
     });
+    const initialConfigRef = useRef({
+      value,
+      onChange,
+      readOnly,
+      theme,
+      vimMode,
+      language,
+      fontSize,
+      fontFamily,
+      onCursorLineChange,
+      onFocusChange,
+      autoFocus,
+    });
 
     // Expose editor instance and methods via ref
     useImperativeHandle(ref, () => ({
@@ -88,23 +101,24 @@ export const CodeMirrorEditor = forwardRef<CodeMirrorEditorRef, CodeMirrorEditor
     useEffect(() => {
       if (!containerRef.current) return;
 
+      const initialConfig = initialConfigRef.current;
       const config: EditorConfig = {
-        value,
-        onChange,
-        readOnly,
-        theme,
-        vimMode,
-        language,
-        fontSize,
-        fontFamily,
-        onCursorLineChange,
-        onFocusChange,
+        value: initialConfig.value,
+        onChange: initialConfig.onChange,
+        readOnly: initialConfig.readOnly,
+        theme: initialConfig.theme,
+        vimMode: initialConfig.vimMode,
+        language: initialConfig.language,
+        fontSize: initialConfig.fontSize,
+        fontFamily: initialConfig.fontFamily,
+        onCursorLineChange: initialConfig.onCursorLineChange,
+        onFocusChange: initialConfig.onFocusChange,
       };
 
       configRef.current = config;
       editorViewRef.current = createEditor(containerRef.current, config);
 
-      if (autoFocus) {
+      if (initialConfig.autoFocus) {
         focusEditor(editorViewRef.current);
       }
 

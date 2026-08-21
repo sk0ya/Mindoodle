@@ -128,5 +128,5 @@ export function useMindMapViewportEffects({
       if (settleTimer) window.clearTimeout(settleTimer);
       window.clearTimeout(timer);
     };
-  }, [data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId, selectedNodeId, data?.rootNodes]);
+  }, [data?.mapIdentifier, data?.mapIdentifier?.mapId, data?.mapIdentifier?.workspaceId, selectedNodeId, data?.rootNodes]);
 }

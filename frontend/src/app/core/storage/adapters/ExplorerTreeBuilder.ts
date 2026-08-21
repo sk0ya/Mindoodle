@@ -99,15 +99,13 @@ export async function buildExplorerItems(
           path,
           children,
         });
-      } else if (entry.kind === 'file') {
-        if (entry.name.toLowerCase().endsWith('.md')) {
-          const path = basePath ? `${basePath}/${entry.name}` : entry.name;
-          items.push({
-            type: 'file',
-            name: entry.name,
-            path,
-          });
-        }
+      } else if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.md')) {
+        const path = basePath ? `${basePath}/${entry.name}` : entry.name;
+        items.push({
+          type: 'file',
+          name: entry.name,
+          path,
+        });
       }
     }
   };

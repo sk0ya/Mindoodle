@@ -12,9 +12,15 @@ const TableEditorModal = React.lazy(() => import('../../../markdown/components/T
 const KnowledgeGraphModal2D = React.lazy(() => import('../modals/KnowledgeGraphModal2D').then(m => ({ default: m.KnowledgeGraphModal2D })));
 const EmbeddingIntegration = React.lazy(() => import('@core/services/EmbeddingIntegration').then(m => ({ default: m.EmbeddingIntegration })));
 import { useMindMapStore } from '../../store';
-import type { MindMapNode, NodeLink, MapIdentifier, MindMapData } from '@shared/types';
+import type { MindMapNode, NodeLink, MapIdentifier, MindMapData, UIState } from '@shared/types';
 import type { VimContextType } from '../../../vim/context/vimContext';
 import type { CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
+import type { ExplorerItem, StorageAdapter } from '@core/types';
+import type { UseCommandsReturn } from '../../../../commands/system/useCommands';
+import type { useMindMap } from '../../hooks/useMindMap';
+
+type MindMapController = ReturnType<typeof useMindMap>;
+type LinkActionMenuData = { link: NodeLink; position: { x: number; y: number } } | null;
 
 interface MindMapAppModalsContainerProps {
   // Modals state
@@ -24,14 +30,14 @@ interface MindMapAppModalsContainerProps {
   linkModalNodeId: string | null;
   editingLink: NodeLink | null;
   showLinkActionMenu: boolean;
-  linkActionMenuData: any;
+  linkActionMenuData: LinkActionMenuData;
   showImageModal: boolean;
   currentImageUrl: string | null;
   currentImageAlt: string;
   showTableEditor: boolean;
   editingTableNodeId: string | null;
   isAuthModalOpen: boolean;
-  authCloudAdapter: any;
+  authCloudAdapter: CloudStorageAdapter | null;
   showKnowledgeGraph: boolean;
 
   // Command palette
@@ -39,20 +45,20 @@ interface MindMapAppModalsContainerProps {
   commandPaletteClose: () => void;
 
   // Data
-  data: any;
+  data: MindMapData | null;
   allMindMaps: MindMapData[];
-  ui: any;
+  ui: UIState;
   selectedNodeId: string | null;
-  explorerTree: any;
+  explorerTree: ExplorerItem | null;
   vim: VimContextType;
-  commands: any;
+  commands: UseCommandsReturn;
 
   // Handlers
   onCloseKeyboardHelper: () => void;
   onCloseLinkModal: () => void;
   onSaveLink: (linkData: Partial<NodeLink>) => Promise<void>;
   onDeleteLink: (linkId: string) => Promise<void>;
-  onLoadMapData: any;
+  onLoadMapData: (mapIdentifier: MapIdentifier) => Promise<MindMapData | null>;
   onCloseLinkActionMenu: () => void;
   onNavigate: (link: NodeLink) => Promise<void>;
   onCloseContextMenu: () => void;
@@ -64,7 +70,7 @@ interface MindMapAppModalsContainerProps {
   onConvertToMap: (nodeId: string) => Promise<void>;
   onMarkdownNodeType: (nodeId: string, newType: 'heading' | 'unordered-list' | 'ordered-list', options?: { isCheckbox?: boolean; isChecked?: boolean }) => void;
   onCloseImageModal: () => void;
-  onShowImageModal: (file: any) => void;
+  onShowImageModal: (imageUrl: string, altText?: string) => void;
   onExecuteCommand: (command: string) => Promise<void>;
   onSelectMap: (mapId: MapIdentifier) => Promise<unknown>;
   onCloseTableEditor: () => void;
@@ -84,8 +90,8 @@ interface MindMapAppModalsContainerProps {
   };
 
   // Storage & Mind Map
-  storageAdapter: any;
-  mindMap: any;
+  storageAdapter?: StorageAdapter;
+  mindMap: MindMapController;
 }
 
 export const MindMapAppModalsContainer: React.FC<MindMapAppModalsContainerProps> = ({

@@ -116,7 +116,7 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     } catch (e) {
       logger.error('❌ Nodes->Markdown conversion error:', e);
     }
-  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, setFromNodes]);
+  }, [dataHook.data?.updatedAt, dataHook.data?.mapIdentifier.mapId, dataHook.data?.rootNodes, setFromNodes]);
 
   useEffect(() => {
     const unsub = subscribeMdRef.current(async (markdown: string, source: string) => {

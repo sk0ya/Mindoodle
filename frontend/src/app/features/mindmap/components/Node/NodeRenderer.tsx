@@ -200,7 +200,7 @@ interface NodeRendererProps {
   const noteSize = currentEntry ? parseImageDimensions(currentEntry, slotIndex) : null;
   const imageDimensions = useMemo(
     () => calculateImageDimensions(node, noteSize, nodeWidth, imageHeight),
-    [node.customImageWidth, node.customImageHeight, node.kind, noteSize, nodeWidth, imageHeight, node.id]
+    [node, noteSize, nodeWidth, imageHeight]
   );
 
   // Use the image resize hook - MUST be defined before using isResizing
@@ -298,7 +298,7 @@ interface NodeRendererProps {
         onUpdateNode(node.id, { customImageWidth: undefined as unknown as number, customImageHeight: undefined as unknown as number });
       }
     }
-  }, [currentEntry, node.id, node.kind, onUpdateNode]);
+  }, [currentEntry, node, onUpdateNode]);
 
   // 表示中の画像に合わせてノードの画像サイズを更新
   const handleImageLoadDimensions = useCallback((w: number, h: number) => {

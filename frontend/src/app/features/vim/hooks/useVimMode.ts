@@ -15,7 +15,8 @@ type ExtendedMindMapStore = MindMapStore & {
 
 // Helper function to get markdown from store subscription
 const getMarkdownFromStore = async (extendedStore: ExtendedMindMapStore): Promise<string> => {
-  if (!extendedStore.subscribeMarkdownFromNodes) {
+  const subscribeMarkdownFromNodes = extendedStore.subscribeMarkdownFromNodes;
+  if (!subscribeMarkdownFromNodes) {
     return '';
   }
   return new Promise<string>((resolve) => {
@@ -23,7 +24,7 @@ const getMarkdownFromStore = async (extendedStore: ExtendedMindMapStore): Promis
       unsub();
       resolve(md);
     };
-    const unsub = extendedStore.subscribeMarkdownFromNodes!(handleMarkdown);
+    const unsub = subscribeMarkdownFromNodes(handleMarkdown);
   });
 };
 
@@ -106,7 +107,8 @@ const findRootForNode = (roots: MindMapNode[], targetId: string): MindMapNode | 
   for (const root of roots) {
     const stack = [root];
     while (stack.length) {
-      const node = stack.pop()!;
+      const node = stack.pop();
+      if (!node) continue;
       if (node.id === targetId) return root;
       if (node.children?.length) stack.push(...node.children);
     }

@@ -14,18 +14,51 @@ import type { MindMapStore } from '../types';
 
 // === Helpers ===
 
-type LinkTreeOperation = (...args: any[]) => MindMapNode;
-type NormalizedOperation = (...args: any[]) => MindMapNode;
+type LinkTreeOperation = (node: MindMapNode, nodeId: string, ...args: unknown[]) => MindMapNode;
+type NormalizedOperation = (node: MindMapNode, ...args: unknown[]) => MindMapNode;
 
-const executeLinkOperation = (
-  set: (fn: (state: MindMapStore) => void) => void,
-  get: () => MindMapStore,
-  nodeId: string,
-  treeOperation: LinkTreeOperation,
-  normalizedOperation: NormalizedOperation | null,
-  operationName: string,
-  ...args: unknown[]
-) => {
+const toLinkData = (value: unknown): Partial<NodeLink> =>
+  typeof value === 'object' && value !== null ? value as Partial<NodeLink> : {};
+
+const toLinkId = (value: unknown): string =>
+  typeof value === 'string' ? value : '';
+
+const addLinkTree = (node: MindMapNode, nodeId: string, ...args: unknown[]): MindMapNode =>
+  addLinkToNodeInTree(node, nodeId, toLinkData(args[0]));
+
+const updateLinkTree = (node: MindMapNode, nodeId: string, ...args: unknown[]): MindMapNode =>
+  updateLinkInNodeTree(node, nodeId, toLinkId(args[0]), toLinkData(args[1]));
+
+const removeLinkTree = (node: MindMapNode, nodeId: string, ...args: unknown[]): MindMapNode =>
+  removeLinkFromNodeTree(node, nodeId, toLinkId(args[0]));
+
+const addLinkToNormalizedNode = (node: MindMapNode, ...args: unknown[]): MindMapNode =>
+  addLinkNormalized(node, toLinkData(args[0]));
+
+const updateNormalizedLink = (node: MindMapNode, ...args: unknown[]): MindMapNode =>
+  updateLinkNormalized(node, toLinkId(args[0]), toLinkData(args[1]));
+
+const removeNormalizedLink = (node: MindMapNode, ...args: unknown[]): MindMapNode =>
+  deleteLinkNormalized(node, toLinkId(args[0]));
+interface LinkOperationConfig {
+  set: (fn: (state: MindMapStore) => void) => void;
+  get: () => MindMapStore;
+  nodeId: string;
+  treeOperation: LinkTreeOperation;
+  normalizedOperation: NormalizedOperation | null;
+  operationName: string;
+  args: unknown[];
+}
+
+const executeLinkOperation = ({
+  set,
+  get,
+  nodeId,
+  treeOperation,
+  normalizedOperation,
+  operationName,
+  args
+}: LinkOperationConfig) => {
   set((state) => {
     if (!state.data) return;
 
@@ -96,43 +129,18 @@ export function createLinkOperations(
      * Add a new link to a node
      */
     addNodeLink: (nodeId: string, linkData: Partial<NodeLink>) =>
-      executeLinkOperation(
-        set,
-        get,
-        nodeId,
-        addLinkToNodeInTree,
-        addLinkNormalized,
-        'Link added to node',
-        linkData
-      ),
+      executeLinkOperation({ set, get, nodeId, treeOperation: addLinkTree, normalizedOperation: addLinkToNormalizedNode, operationName: 'Link added to node', args: [linkData] }),
 
     /**
      * Update an existing link on a node
      */
     updateNodeLink: (nodeId: string, linkId: string, updates: Partial<NodeLink>) =>
-      executeLinkOperation(
-        set,
-        get,
-        nodeId,
-        updateLinkInNodeTree,
-        updateLinkNormalized,
-        'Link updated',
-        linkId,
-        updates
-      ),
+      executeLinkOperation({ set, get, nodeId, treeOperation: updateLinkTree, normalizedOperation: updateNormalizedLink, operationName: 'Link updated', args: [linkId, updates] }),
 
     /**
      * Delete a link from a node
      */
     deleteNodeLink: (nodeId: string, linkId: string) =>
-      executeLinkOperation(
-        set,
-        get,
-        nodeId,
-        removeLinkFromNodeTree,
-        deleteLinkNormalized,
-        'Link deleted from node',
-        linkId
-      )
+      executeLinkOperation({ set, get, nodeId, treeOperation: removeLinkTree, normalizedOperation: removeNormalizedLink, operationName: 'Link deleted from node', args: [linkId] })
   };
 }

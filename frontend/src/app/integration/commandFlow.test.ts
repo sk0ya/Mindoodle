@@ -318,7 +318,8 @@ describe('Command Execution Flow Integration', () => {
       registry.register({
         name: 'edit-node',
         execute: async (ctx) => {
-          ctx.handlers.startEdit(ctx.selectedNodeId!);
+          if (!ctx.selectedNodeId) throw new Error('Expected a selected node');
+          ctx.handlers.startEdit(ctx.selectedNodeId);
           return { success: true };
         },
         guard: (ctx) => ctx.selectedNodeId !== null,
@@ -328,7 +329,8 @@ describe('Command Execution Flow Integration', () => {
       registry.register({
         name: 'update-node',
         execute: async (ctx) => {
-          ctx.handlers.updateNode(ctx.editingNodeId!, { text: 'Updated' });
+          if (!ctx.editingNodeId) throw new Error('Expected an editing node');
+          ctx.handlers.updateNode(ctx.editingNodeId, { text: 'Updated' });
           return { success: true };
         },
         guard: (ctx) => ctx.editingNodeId !== null,

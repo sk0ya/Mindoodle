@@ -8,13 +8,21 @@ import { nodeToMarkdown } from '@markdown/index';
 import type { MindMapNode, MapIdentifier } from '@shared/types';
 import { combineModalStyles } from '../Shared/modalStyles';
 import { useModalBehavior } from '../Shared/useModalBehavior';
-import { logger } from '@shared/utils';
+import { logger, safeJsonParse } from '@shared/utils';
 // storageAdapter no longer passed; use getMapMarkdown when needed
 // Note: Do not rely on global command registry here; directly dispatch events for robustness
 
 type MapListItem = {
   mapIdentifier: MapIdentifier;
   rootNodes?: MindMapNode[];
+};
+
+type LayoutCache = { positions: Record<string, { x: number; y: number }>; ts: number };
+
+const isLayoutCache = (value: unknown): value is LayoutCache => {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { positions?: unknown; ts?: unknown };
+  return typeof candidate.ts === 'number' && !!candidate.positions && typeof candidate.positions === 'object';
 };
 
 interface KnowledgeGraphModal2DProps {
@@ -270,8 +278,9 @@ export const KnowledgeGraphModal2D: React.FC<KnowledgeGraphModal2DProps> = ({
       try {
         const cached = localStorage.getItem(cacheKey);
         if (cached) {
-          const parsed = JSON.parse(cached) as { positions: Record<string, { x: number; y: number }>; ts: number };
-          if (parsed && parsed.positions) {
+          const parsedResult = safeJsonParse(cached);
+          if (parsedResult.success && isLayoutCache(parsedResult.data)) {
+            const parsed = parsedResult.data;
             const nodesFromCache: Node2D[] = nodeData.map(d => {
               const pos = parsed.positions[d.id];
               return {

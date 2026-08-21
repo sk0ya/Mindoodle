@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
-import type { MindMapNode, NodeLink } from '@shared/types';
-import { isTableNode } from '@shared/types';
+import { isTableNode, type MindMapNode, type NodeLink } from '@shared/types';
 import NodeTextEditor from './NodeTextEditor';
 import NodeTextView from './NodeTextView';
 // Re-export for backward compatibility

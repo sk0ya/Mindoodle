@@ -5,6 +5,33 @@ export interface ParsedMappings {
   warnings: string[];
 }
 
+const parseLeaderDirective = (parts: string[], lineNumber: number): { leader?: string; error?: string } | null => {
+  if (parts[0] !== 'set' || parts[1] !== 'leader') return null;
+  const rawValue = parts.slice(2).join(' ').trim();
+  const leader = /^<\s*space\s*>$/i.test(rawValue) ? ' ' : rawValue;
+  return leader.length === 1
+    ? { leader }
+    : { error: `Line ${lineNumber}: leader must be a single character or <Space>` };
+};
+
+const parseMappingDirective = (parts: string[], lineNumber: number, mappings: Record<string, string>): { handled: boolean; error?: string } => {
+  const command = parts[0];
+  if (!['map', 'nmap', 'noremap', 'nnoremap'].includes(command)) return { handled: false };
+  if (parts.length < 3) {
+    return { handled: true, error: `Line ${lineNumber}: Usage: ${command} <lhs> <rhs>` };
+  }
+  mappings[parts[1]] = parts.slice(2).join(' ');
+  return { handled: true };
+};
+
+const parseUnmappingDirective = (parts: string[], lineNumber: number, mappings: Record<string, string>): { handled: boolean; error?: string } => {
+  const command = parts[0];
+  if (!['unmap', 'nunmap', 'unmap!'].includes(command)) return { handled: false };
+  if (!parts[1]) return { handled: true, error: `Line ${lineNumber}: Usage: ${command} <lhs>` };
+  delete mappings[parts[1]];
+  return { handled: true };
+};
+
 export function parseVimMappingsText(src: string): ParsedMappings {
   const lines = (src || '').split(/\r?\n/);
   let leader = ',';
@@ -23,39 +50,20 @@ export function parseVimMappingsText(src: string): ParsedMappings {
     const parts = line.split(/\s+/);
     const cmd = parts[0];
 
-    // set leader X
-    if (cmd === 'set' && parts[1] === 'leader') {
-      const val = parts.slice(2).join(' ');
-      let v = trim(val);
-      if (/^<\s*space\s*>$/i.test(v)) v = ' ';
-      if (v.length !== 1) {
-        errors.push(`Line ${i + 1}: leader must be a single character or <Space>`);
-        continue;
-      }
-      leader = v;
+    const leaderResult = parseLeaderDirective(parts, i + 1);
+    if (leaderResult) {
+      if (leaderResult.error) errors.push(leaderResult.error);
+      else leader = leaderResult.leader ?? leader;
       continue;
     }
 
-    
-    if (['map', 'nmap', 'noremap', 'nnoremap'].includes(cmd)) {
-      if (parts.length < 3) {
-        errors.push(`Line ${i + 1}: Usage: ${cmd} <lhs> <rhs>`);
-        continue;
-      }
-      const lhs = parts[1];
-      const rhs = parts.slice(2).join(' ');
-      mappings[lhs] = rhs;
+    const mappingResult = parseMappingDirective(parts, i + 1, mappings);
+    const unmappingResult = mappingResult.handled ? { handled: true } : parseUnmappingDirective(parts, i + 1, mappings);
+    if (mappingResult.error || unmappingResult.error) {
+      errors.push(mappingResult.error ?? unmappingResult.error ?? 'Unknown mapping error');
       continue;
     }
-
-    
-    if (['unmap', 'nunmap', 'unmap!'].includes(cmd)) {
-      const lhs = parts[1];
-      if (!lhs) {
-        errors.push(`Line ${i + 1}: Usage: ${cmd} <lhs>`);
-        continue;
-      }
-      if (lhs in mappings) delete mappings[lhs];
+    if (mappingResult.handled || unmappingResult.handled) {
       continue;
     }
 

@@ -120,7 +120,7 @@ export const useMouseEvents = (
       if (onMouseUp) document.removeEventListener('mouseup', onMouseUp);
       if (onKeyDown) document.removeEventListener('keydown', onKeyDown);
     };
-  }, [isActive, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
+  }, [isActive, handlers, handlers.onMouseMove, handlers.onMouseUp, handlers.onKeyDown]);
 };
 
 // === Drag ===

@@ -9,24 +9,26 @@ import { executePasteSibling } from '../utils/pasteHelpers';
 
 // === Helpers ===
 
-const createSimpleCommand = (
-  name: string,
-  aliases: string[],
-  description: string,
-  canExecute: (ctx: CommandContext) => boolean | undefined,
-  execute: (ctx: CommandContext) => void,
-  nothingMsg: string,
-  successMsg: string
-): Command =>
+interface SimpleCommandConfig {
+  name: string;
+  aliases: string[];
+  description: string;
+  canExecute: (ctx: CommandContext) => boolean | undefined;
+  execute: (ctx: CommandContext) => void;
+  nothingMsg: string;
+  successMsg: string;
+}
+
+const createSimpleCommand = (config: SimpleCommandConfig): Command =>
   utilityCommand(
-    name,
-    description,
+    config.name,
+    config.description,
     (context) => {
-      if (!canExecute(context)) return failure(nothingMsg);
-      execute(context);
-      return success(successMsg);
+      if (!config.canExecute(context)) return failure(config.nothingMsg);
+      config.execute(context);
+      return success(config.successMsg);
     },
-    { aliases, examples: [name, ...aliases] }
+    { aliases: config.aliases, examples: [config.name, ...config.aliases] }
   );
 
 const createNodeCommand = (
@@ -52,8 +54,8 @@ const createNodeCommand = (
 
 // === History Commands ===
 
-export const undoCommand = createSimpleCommand('undo', ['u'], 'Undo the last operation', (ctx) => ctx.handlers.canUndo, (ctx) => ctx.handlers.undo(), 'Nothing to undo', 'Undid last operation');
-export const redoCommand = createSimpleCommand('redo', ['r'], 'Redo the last undone operation', (ctx) => ctx.handlers.canRedo, (ctx) => ctx.handlers.redo(), 'Nothing to redo', 'Redid last operation');
+export const undoCommand = createSimpleCommand({ name: 'undo', aliases: ['u'], description: 'Undo the last operation', canExecute: (ctx) => ctx.handlers.canUndo, execute: (ctx) => ctx.handlers.undo(), nothingMsg: 'Nothing to undo', successMsg: 'Undid last operation' });
+export const redoCommand = createSimpleCommand({ name: 'redo', aliases: ['r'], description: 'Redo the last undone operation', canExecute: (ctx) => ctx.handlers.canRedo, execute: (ctx) => ctx.handlers.redo(), nothingMsg: 'Nothing to redo', successMsg: 'Redid last operation' });
 
 // === Clipboard Commands ===
 

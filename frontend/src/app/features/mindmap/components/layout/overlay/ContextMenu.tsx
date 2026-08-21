@@ -159,7 +159,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
 
               {hasSubmenu && openSubmenu === index && (
                 <div className="submenu" style={{display: 'block'}}>
-                  {item.submenu!.map((subItem, subIndex) => {
+                  {item.submenu?.map((subItem, subIndex) => {
                     if (subItem.separator) {
                       return <div key={subIndex} className="menu-divider" />;
                     }

@@ -56,7 +56,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       initManager();
       prevConfigRef.current = config;
     }
-  }, [config]);
+  }, [adapterManager, config]);
 
   
   useEffect(() => {

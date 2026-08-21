@@ -104,7 +104,10 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
 
     const targets = this.workspaces.length > 0
       ? this.workspaces.map(w => ({ handle: w.handle, id: w.id, name: w.name }))
-      : [{ handle: this.rootHandle!, id: '__default__', name: this.rootHandle?.name || '' }];
+      : [];
+    if (targets.length === 0 && this.rootHandle) {
+      targets.push({ handle: this.rootHandle, id: '__default__', name: this.rootHandle.name });
+    }
 
     const maps: MindMapData[] = [];
     for (const t of targets) {
@@ -184,7 +187,8 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
       const parts = this.parsePathParts(id.mapId);
       if (parts.length === 0) return null;
 
-      const base = parts.pop()!;
+      const base = parts.pop();
+      if (!base) return null;
       const ws = this.workspaces.find(w => w.id === id.workspaceId);
       if (!ws) return null;
 
@@ -224,7 +228,8 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
       const parts = this.parsePathParts(id.mapId);
       if (parts.length === 0) return null;
 
-      const base = parts.pop()!;
+      const base = parts.pop();
+      if (!base) return null;
       const ws = this.workspaces.find(w => w.id === id.workspaceId);
       if (!ws) return null;
 
@@ -287,7 +292,8 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
     const parts = this.parsePathParts(id.mapId);
     if (parts.length === 0) throw new Error('Invalid mapId');
 
-    const base = parts.pop()!;
+    const base = parts.pop();
+    if (!base) throw new Error('Invalid mapId');
     const ws = this.workspaces.find(w => w.id === id.workspaceId);
     if (!ws) throw new Error('Workspace not found for save');
 
@@ -449,7 +455,8 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
     if (parts.length === 0) throw new Error('Invalid image path');
 
     let currentDir: DirHandle = wsHandle;
-    const fileName = parts.pop()!;
+    const fileName = parts.pop();
+    if (!fileName) throw new Error('Invalid image path');
 
     for (const part of parts) {
       currentDir = await getOrCreateDirectory(currentDir, part);
@@ -563,7 +570,8 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
     baseHandle = baseHandle || this.workspaces[0]?.handle || this.rootHandle;
     if (!baseHandle || pathParts.length === 0) return null;
 
-    const name = pathParts.pop()!;
+    const name = pathParts.pop();
+    if (!name) return null;
     let dir: DirHandle = baseHandle;
 
     for (const part of pathParts) {
@@ -835,7 +843,8 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
       if (parts.length === 0) return null;
 
       let currentDir: DirHandle = wsHandle;
-      const fileName = parts.pop()!;
+      const fileName = parts.pop();
+      if (!fileName) return null;
 
       for (const part of parts) {
         if (part === '..') {

@@ -116,6 +116,19 @@ const findBranchRoot = (
   return null;
 };
 
+const getDirectChildBranchColor = (
+  nodeId: string,
+  branchRootId: string,
+  branchColors: string[],
+  normalizedData: NormalizedData
+): string | null => {
+  const parentId = normalizedData.parentMap[nodeId];
+  if (parentId !== branchRootId) return null;
+  const siblings = normalizedData.childrenMap[parentId] || [];
+  const siblingIndex = siblings.indexOf(nodeId);
+  return siblingIndex >= 0 ? branchColors[siblingIndex % branchColors.length] : '#666';
+};
+
 export const getBranchColor = (
   nodeId: string,
   normalizedData: NormalizedData,
@@ -144,14 +157,11 @@ export const getBranchColor = (
   if (nodeId === branchRootId) return branchColors[0];
 
   // Direct children of branch root get sibling-indexed colors
+  const directChildColor = getDirectChildBranchColor(nodeId, branchRootId, branchColors, normalizedData);
+  if (directChildColor !== null) return directChildColor;
+
   const parentId = normalizedData.parentMap[nodeId];
   if (!parentId) return '#666';
-
-  if (parentId === branchRootId) {
-    const siblings = normalizedData.childrenMap[parentId] || [];
-    const siblingIndex = siblings.indexOf(nodeId);
-    return siblingIndex >= 0 ? branchColors[siblingIndex % branchColors.length] : '#666';
-  }
 
   // Recursively get color from parent
   return getBranchColor(parentId, normalizedData, colorSetName);

@@ -25,7 +25,7 @@ export interface VimState {
  * Creates all vim state setters using functional patterns
  * Reduces 24 individual useCallback definitions to a single call
  */
-export function createVimStateSetters(setState: Dispatch<SetStateAction<Omit<VimState, 'isEnabled'>>>) {
+export function useVimStateSetters(setState: Dispatch<SetStateAction<Omit<VimState, 'isEnabled'>>>) {
   // Simple property setters (5 lines each → 1 line)
   const setMode = useCallback(
     (mode: VimMode) => setState((prev) => ({ ...prev, mode })),
@@ -211,6 +211,6 @@ export function createVimStateSetters(setState: Dispatch<SetStateAction<Omit<Vim
 }
 
 /**
- * Type for the return value of createVimStateSetters
+ * Type for the return value of useVimStateSetters
  */
-export type VimStateSetters = ReturnType<typeof createVimStateSetters>;
+export type VimStateSetters = ReturnType<typeof useVimStateSetters>;

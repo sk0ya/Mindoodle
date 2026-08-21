@@ -3,7 +3,7 @@
  */
 
 import { useState, useCallback } from 'react';
-import { TableData, TableCell, Selection, ClipboardData } from '../utils/table-editor/types';
+import { TableData, TableCell, Selection, ClipboardData, ContextMenu } from '../utils/table-editor/types';
 import { sanitizeInput } from '../utils/table-editor/tableSerializer';
 
 interface UseTableEditorProps {
@@ -11,7 +11,7 @@ interface UseTableEditorProps {
   setTableData: (data: TableData) => void;
   selection: Selection;
   setSelection: (selection: Selection) => void;
-  setContextMenu: (menu: any) => void;
+  setContextMenu: (menu: ContextMenu | null) => void;
 }
 
 export function useTableEditor({

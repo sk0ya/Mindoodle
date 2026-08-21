@@ -64,15 +64,16 @@ const createSimpleEditCommand = (
   name: string,
   aliases: string[],
   description: string,
-  action: (context: CommandContext) => void
+  action: (context: CommandContext, nodeId: string) => void
 ): Command =>
   editingCommand(
     name,
     description,
     (context) => {
-      if (!context.selectedNodeId) return failure('No node selected');
+      const nodeId = context.selectedNodeId;
+      if (!nodeId) return failure('No node selected');
       setVimInsertMode(context);
-      action(context);
+      action(context, nodeId);
       return success(`Started editing`);
     },
     { aliases, examples: [name, ...aliases] }
@@ -82,28 +83,28 @@ export const insertCommand = createSimpleEditCommand(
   'insert',
   ['i'],
   'Start editing the selected node',
-  (ctx) => ctx.handlers.startEdit(ctx.selectedNodeId!)
+  (ctx, nodeId) => ctx.handlers.startEdit(nodeId)
 );
 
 export const appendCommand = createSimpleEditCommand(
   'append',
   ['a'],
   'Create a child node and start editing',
-  (ctx) => ctx.handlers.addChildNode(ctx.selectedNodeId!, '', true)
+  (ctx, nodeId) => ctx.handlers.addChildNode(nodeId, '', true)
 );
 
 export const appendEndCommand = createSimpleEditCommand(
   'append-end',
   ['A'],
   'Start editing at the end of the node text',
-  (ctx) => startEditWithCursor(ctx.selectedNodeId!, 'end', ctx)
+  (ctx, nodeId) => startEditWithCursor(nodeId, 'end', ctx)
 );
 
 export const insertBeginningCommand = createSimpleEditCommand(
   'insert-beginning',
   ['I'],
   'Start editing at the beginning of the node text',
-  (ctx) => startEditWithCursor(ctx.selectedNodeId!, 'start', ctx)
+  (ctx, nodeId) => startEditWithCursor(nodeId, 'start', ctx)
 );
 
 // === Cut Command ===

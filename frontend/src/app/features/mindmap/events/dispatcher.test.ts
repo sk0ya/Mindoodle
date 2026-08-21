@@ -3,6 +3,17 @@ import { dispatchCanvasEvent } from './dispatcher';
 import { useMindMapStore } from '@mindmap/store';
 import type { CanvasEvent } from './EventStrategy';
 
+type MockStore = {
+  ui: { mode: string | undefined; openPanels: Record<string, boolean> };
+  selectNode: ReturnType<typeof vi.fn>;
+  setShowContextMenu: ReturnType<typeof vi.fn>;
+  setContextMenuPosition: ReturnType<typeof vi.fn>;
+  openPanel: ReturnType<typeof vi.fn>;
+  startEditing: ReturnType<typeof vi.fn>;
+  moveNodeWithPosition: ReturnType<typeof vi.fn>;
+  normalizedData: { nodes: Record<string, { id: string; text: string; kind: 'text' | 'table' }> };
+};
+
 // Mock the store
 vi.mock('@mindmap/store', () => ({
   useMindMapStore: {
@@ -11,7 +22,7 @@ vi.mock('@mindmap/store', () => ({
 }));
 
 describe('dispatchCanvasEvent', () => {
-  let mockStore: any;
+  let mockStore: MockStore;
 
   beforeEach(() => {
     mockStore = {
@@ -30,7 +41,10 @@ describe('dispatchCanvasEvent', () => {
       },
     };
 
-    (useMindMapStore.getState as any).mockReturnValue(mockStore);
+    const getStateMock = useMindMapStore.getState as unknown as {
+      mockReturnValue: (value: MockStore) => void;
+    };
+    getStateMock.mockReturnValue(mockStore);
   });
 
   afterEach(() => {

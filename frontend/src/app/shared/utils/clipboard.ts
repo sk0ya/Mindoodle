@@ -1,3 +1,20 @@
+const findClipboardImage = async (items: ClipboardItem[]): Promise<{ blob: Blob; type: string } | null> => {
+  for (const item of items) {
+    const types: string[] = Array.from((item as unknown as { types?: Iterable<string> }).types || []);
+    const imageType = types.find(type => type.startsWith('image/'));
+    if (imageType) return { blob: await item.getType(imageType), type: imageType };
+  }
+  return null;
+};
+
+const normalizeClipboardError = (error: unknown): Error => {
+  if (error instanceof Error && error.message === 'クリップボードに画像がありません') return error;
+  if (error instanceof DOMException && error.name === 'NotAllowedError') {
+    return new Error('クリップボードへのアクセスが拒否されました。ブラウザの権限設定を確認してください。');
+  }
+  return new Error(`クリップボードの読み取りに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+};
+
 export async function readClipboardImageAsFile(filenamePrefix = 'pasted-image'): Promise<File> {
   // Check if clipboard API is available
   if (!navigator.clipboard || !('read' in navigator.clipboard)) {
@@ -14,30 +31,11 @@ export async function readClipboardImageAsFile(filenamePrefix = 'pasted-image'):
   try {
     const items = await readFn();
 
-    for (const item of items) {
-      const types: string[] = Array.from((item as unknown as { types?: Iterable<string> }).types || []);
-
-      for (const type of types) {
-        if (typeof type === 'string' && type.startsWith('image/')) {
-          const blob: Blob = await item.getType(type);
-          const ext = type.split('/')[1] || 'png';
-          const file = new File([blob], `${filenamePrefix}-${Date.now()}.${ext}`, { type });
-          return file;
-        }
-      }
-    }
-
-    throw new Error('クリップボードに画像がありません');
+    const image = await findClipboardImage(items);
+    if (!image) throw new Error('クリップボードに画像がありません');
+    const ext = image.type.split('/')[1] || 'png';
+    return new File([image.blob], `${filenamePrefix}-${Date.now()}.${ext}`, { type: image.type });
   } catch (error) {
-    if (error instanceof Error && error.message === 'クリップボードに画像がありません') {
-      throw error;
-    }
-
-    // Permission denied or other clipboard API error
-    if (error instanceof DOMException && error.name === 'NotAllowedError') {
-      throw new Error('クリップボードへのアクセスが拒否されました。ブラウザの権限設定を確認してください。');
-    }
-
-    throw new Error(`クリップボードの読み取りに失敗しました: ${error instanceof Error ? error.message : String(error)}`);
+    throw normalizeClipboardError(error);
   }
 }

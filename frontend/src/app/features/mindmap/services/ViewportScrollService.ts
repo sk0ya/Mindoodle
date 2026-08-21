@@ -62,16 +62,27 @@ function calculateViewportDimensions(): ViewportDimensions {
   return { effectiveWidth, effectiveHeight, offsetX, offsetY };
 }
 
-function calculateNewPan(
-  node: MindMapNode,
-  currentPan: { x: number; y: number },
-  currentZoom: number,
-  baseHalfW: number,
-  baseHalfH: number,
-  halfW: number,
-  halfH: number,
-  viewport: ViewportDimensions
-): { x: number; y: number } {
+interface PanCalculationInput {
+  node: MindMapNode;
+  currentPan: { x: number; y: number };
+  currentZoom: number;
+  baseHalfW: number;
+  baseHalfH: number;
+  halfW: number;
+  halfH: number;
+  viewport: ViewportDimensions;
+}
+
+function calculateNewPan({
+  node,
+  currentPan,
+  currentZoom,
+  baseHalfW,
+  baseHalfH,
+  halfW,
+  halfH,
+  viewport
+}: PanCalculationInput): { x: number; y: number } {
   // Transform: screen = (nodeSvg + pan) * zoom + offset
   // Node center in SVG coordinates (based on actual node position, not adjusted size)
   const nodeCenterX = node.x + baseHalfW;
@@ -145,7 +156,7 @@ export function ensureVisible(nodeId: string, ui: EnsureVisibleUI, setPan: (pan:
   const halfW = baseHalfW + VISUAL_MARGIN / 2;
   const halfH = baseHalfH + VISUAL_MARGIN / 2;
 
-  const newPan = calculateNewPan(node, currentPan, currentZoom, baseHalfW, baseHalfH, halfW, halfH, viewport);
+  const newPan = calculateNewPan({ node, currentPan, currentZoom, baseHalfW, baseHalfH, halfW, halfH, viewport });
 
   if (newPan.x !== currentPan.x || newPan.y !== currentPan.y) {
     setPan(newPan);

@@ -67,10 +67,8 @@ const NodeLinkModal: React.FC<NodeLinkModalProps> = ({
     }
 
     // 他のマップが選択された場合
-    if (loadedMapData && loadedMapData.mapIdentifier.mapId === selectedMapId) {
-      if (loadedMapData.rootNodes) {
-        return flattenRootNodesToOptions(loadedMapData.rootNodes, selectedMapId);
-      }
+    if (loadedMapData?.mapIdentifier.mapId === selectedMapId && loadedMapData.rootNodes) {
+      return flattenRootNodesToOptions(loadedMapData.rootNodes, selectedMapId);
     }
 
     return [];

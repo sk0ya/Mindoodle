@@ -34,7 +34,7 @@ global.IntersectionObserver = class IntersectionObserver {
     return [];
   }
   unobserve() {}
-} as any;
+} as unknown as typeof IntersectionObserver;
 
 // Mock ResizeObserver
 global.ResizeObserver = class ResizeObserver {
@@ -42,7 +42,7 @@ global.ResizeObserver = class ResizeObserver {
   disconnect() {}
   observe() {}
   unobserve() {}
-} as any;
+} as unknown as typeof ResizeObserver;
 
 // Mock Canvas API for nodeUtils tests
 HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
@@ -56,4 +56,4 @@ HTMLCanvasElement.prototype.getContext = vi.fn(() => ({
     width: 300,
     height: 150,
   },
-})) as any;
+})) as unknown as HTMLCanvasElement['getContext'];

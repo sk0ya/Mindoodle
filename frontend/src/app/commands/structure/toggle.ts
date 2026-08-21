@@ -64,12 +64,12 @@ export const toggleCommand: Command = structureCommand(
       const newCollapsed = !forceState;
       setNodeCollapsed(node.id, newCollapsed, context);
       const action = newCollapsed ? 'collapsed' : 'expanded';
-      return success(`${action} node "${node.text}" (${node.children!.length} children)`);
+      return success(`${action} node "${node.text}" (${node.children.length} children)`);
     }
 
     toggleNodeCollapse(node.id, context);
     const action = !node.collapsed ? 'collapsed' : 'expanded';
-    return success(`${action} node "${node.text}" (${node.children!.length} children)`);
+    return success(`${action} node "${node.text}" (${node.children.length} children)`);
   },
   {
     aliases: ['za', 'toggle-collapse', 'fold'],
@@ -95,7 +95,7 @@ const createCollapseCommand = (collapsed: boolean, actionName: string): Command 
       if (node.collapsed === collapsed) return success(`Node "${node.text}" is already ${actionName}`);
 
       setNodeCollapsed(node.id, collapsed, context);
-      return success(`${actionName} node "${node.text}" (${node.children!.length} children)`);
+      return success(`${actionName} node "${node.text}" (${node.children.length} children)`);
     },
     {
       aliases: collapsed ? ['zc', 'close-fold'] : ['zo', 'open-fold'],

@@ -225,8 +225,7 @@ describe('normalizedStore', () => {
     });
 
     it('should not allow adding child to table node', () => {
-      const tableNode = createNode({ id: 'table-1' });
-      (tableNode as any).kind = 'table';
+      const tableNode = createNode({ id: 'table-1', kind: 'table' });
       const normalized = normalizeTreeData([tableNode]);
 
       const newNode = createNode({ id: 'child-1' });
@@ -279,8 +278,7 @@ describe('normalizedStore', () => {
     it('should not allow moving to table node', () => {
       const child = createNode({ id: 'child-1' });
       const parent = createNode({ id: 'parent-1', children: [child] });
-      const tableNode = createNode({ id: 'table-1' });
-      (tableNode as any).kind = 'table';
+      const tableNode = createNode({ id: 'table-1', kind: 'table' });
       const normalized = normalizeTreeData([parent, tableNode]);
 
       const result = moveNormalizedNode(normalized, 'child-1', 'table-1');

@@ -10,8 +10,8 @@ const createTestStore = () => {
   return create<UISlice>()(
     immer((set, get, api) => {
       // Cast all parameters to match what createUISlice expects
-      const mockSet = set as any;
-      const mockGet = get as any;
+      const mockSet = set as unknown as Parameters<typeof createUISlice>[0];
+      const mockGet = get as unknown as Parameters<typeof createUISlice>[1];
       const mockApi = api as unknown as StoreApi<MindMapStore>;
       return createUISlice(mockSet, mockGet, mockApi);
     })

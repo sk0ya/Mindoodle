@@ -4,7 +4,7 @@ import { Workflow, Folder, FolderOpen, Edit3, Trash2, BookOpen } from 'lucide-re
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import type { ExplorerItem } from '@core/types';
 import type { ContextMenuItem } from '../components/layout/overlay/ContextMenu';
-import { logger, getLastPathSegment, splitPath } from '@shared/utils';
+import { logger, getLastPathSegment, splitPath, showBrowserAlert, confirmBrowserAction, promptBrowserText } from '@shared/utils';
 import { generateUniqueFileName } from '../utils/fileNameUtils';
 import {
   parseWorkspacePath,
@@ -169,8 +169,7 @@ export const useSidebar = ({
 
   const handleCreateFolder = useStableCallback((parentPath: string | null) => {
     const parentInfo = parentPath ? ` (${parentPath} の下)` : '';
-    // eslint-disable-next-line no-alert
-    const newFolderName = window.prompt(`新しいフォルダ名を入力してください${parentInfo}:`, '');
+    const newFolderName = promptBrowserText(`新しいフォルダ名を入力してください${parentInfo}:`);
     if (newFolderName && newFolderName.trim()) {
       const { workspaceId: extractedWorkspaceId, relativePath: cleanParentPath } = parseWorkspacePath(parentPath);
       const fallbackWorkspaceId = currentWorkspaceId || (mindMaps.length > 0 ? mindMaps[0].mapIdentifier.workspaceId : null);
@@ -208,11 +207,11 @@ export const useSidebar = ({
     const totalMaps = mapsInFolder.length + mapsInSubfolders.length;
 
     if (totalMaps > 0) {
-      alert(`「${folderPath}」またはその子フォルダにマップが含まれているため削除できません。先にマップを移動または削除してください。`);
+      showBrowserAlert(`「${folderPath}」またはその子フォルダにマップが含まれているため削除できません。先にマップを移動または削除してください。`);
       return;
     }
 
-    if (window.confirm(`空のフォルダ「${folderPath}」を削除しますか？`)) {
+    if (confirmBrowserAction(`空のフォルダ「${folderPath}」を削除しますか？`)) {
       setEmptyFolders(prev => {
         const next = new Set(prev);
         Array.from(prev).forEach(folder => {
@@ -235,7 +234,7 @@ export const useSidebar = ({
 
   const handleRenameFolder = useStableCallback((oldPath: string) => {
     const currentName = getLastPathSegment(oldPath) || oldPath;
-    const newName = window.prompt('フォルダ名を変更:', currentName);
+    const newName = promptBrowserText('フォルダ名を変更:', currentName);
 
     if (newName && newName.trim() && newName.trim() !== currentName) {
       const pathParts = splitPath(oldPath);
@@ -449,7 +448,7 @@ export const useSidebar = ({
     if (!explorerTree) return null;
     if (emptyFolders.size === 0 || !currentWorkspaceId) return explorerTree;
 
-    const clonedTree: ExplorerItem = JSON.parse(JSON.stringify(explorerTree));
+    const clonedTree: ExplorerItem = structuredClone(explorerTree);
 
     const workspaceNode = clonedTree.children?.find(
       child => child.path === `/${currentWorkspaceId}` || child.path === currentWorkspaceId
@@ -590,7 +589,7 @@ export const useSidebar = ({
           label: 'マップを削除',
           icon: <Trash2 size={14} />,
           onClick: () => {
-            if (window.confirm(`「${mapData.title}」を削除しますか？`)) {
+            if (confirmBrowserAction(`「${mapData.title}」を削除しますか？`)) {
               onDeleteMap(mapData.mapIdentifier);
             }
           }
@@ -637,7 +636,7 @@ export const useSidebar = ({
           onClick: () => {
             if (!targetPath) return;
             const currentName = targetPath.split('/').pop() || targetPath;
-            const newName = window.prompt('新しいフォルダ名', currentName);
+            const newName = promptBrowserText('新しいフォルダ名', currentName);
             if (newName && newName.trim()) {
               const parent = targetPath.split('/').slice(0, -1).join('/');
               const newPath = parent ? `${parent}/${newName.trim()}` : newName.trim();
@@ -653,7 +652,7 @@ export const useSidebar = ({
           onClick: () => {
             if (targetPath) {
               const displayPath = extractCategory(targetPath) || targetPath;
-              if (window.confirm(`フォルダ「${displayPath}」を削除しますか？（中身も削除されます）`)) {
+              if (confirmBrowserAction(`フォルダ「${displayPath}」を削除しますか？（中身も削除されます）`)) {
                 window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
               }
             }
@@ -721,7 +720,7 @@ export const useSidebar = ({
               baseName = fileName.slice(0, -originalExt.length);
             }
             const promptLabel = isMarkdownFile ? '新しいファイル名（拡張子なし）' : '新しいファイル名';
-            const newNameInput = window.prompt(promptLabel, baseName);
+            const newNameInput = promptBrowserText(promptLabel, baseName);
             if (newNameInput && newNameInput.trim()) {
               let normalizedName = newNameInput.trim();
               if (isMarkdownFile) {
@@ -743,7 +742,7 @@ export const useSidebar = ({
           onClick: () => {
             if (targetPath) {
               const fileName = targetPath.split('/').pop() || targetPath;
-              if (window.confirm(`ファイル「${fileName}」を削除しますか？`)) {
+              if (confirmBrowserAction(`ファイル「${fileName}」を削除しますか？`)) {
                 window.dispatchEvent(new CustomEvent('mindoodle:deleteItem', { detail: { path: targetPath } }));
               }
             }

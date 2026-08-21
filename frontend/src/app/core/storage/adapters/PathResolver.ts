@@ -65,7 +65,8 @@ export async function resolveParentDirAndName(
   baseHandle = baseHandle || workspaces[0]?.handle || rootHandle;
   if (!baseHandle || pathParts.length === 0) return null;
 
-  const name = pathParts.pop()!;
+  const name = pathParts.pop();
+  if (!name) return null;
   let dir: DirHandle = baseHandle;
 
   // Navigate through directory structure

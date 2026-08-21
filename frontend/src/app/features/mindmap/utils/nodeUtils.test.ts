@@ -19,6 +19,7 @@ import {
   getBranchColor,
 } from './nodeUtils';
 import { createTestNode as createNode } from '../test-utils/testHelpers';
+import type { MarkdownMeta } from '@shared/types';
 
 describe('nodeUtils', () => {
 
@@ -281,7 +282,7 @@ describe('nodeUtils', () => {
 
     it('should return empty array for unknown type', () => {
       const node = createNode({
-        markdownMeta: { type: 'paragraph', lineNumber: 1 } as any,
+        markdownMeta: { type: 'paragraph', lineNumber: 1 } as unknown as MarkdownMeta,
       });
 
       const tokens = getMarkerPrefixTokens(node);

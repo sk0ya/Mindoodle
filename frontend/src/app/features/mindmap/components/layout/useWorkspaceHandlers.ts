@@ -9,7 +9,7 @@ interface Options {
   addSiblingNode: (nodeId: string) => void;
   deleteNode: (nodeId: string) => void;
   toggleNodeCollapse: (nodeId: string) => void;
-  handleShowLinkActionMenu: (...args: any[]) => void;
+  handleShowLinkActionMenu: (link: NodeLink, position: { x: number; y: number }) => void;
   handleAddLink: (nodeId: string) => void;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;
   applyAutoLayout: () => void;
@@ -64,9 +64,12 @@ export const useWorkspaceHandlers = (opts: Options) => {
     toggleNodeCollapse(nodeId);
   }, [toggleNodeCollapse]);
 
-  const onShowLinkActionMenu = React.useCallback((...args: any[]) => {
-    handleShowLinkActionMenu(...args);
-  }, [handleShowLinkActionMenu]);
+  const onShowLinkActionMenu = React.useCallback(
+    (link: NodeLink, position: { x: number; y: number }) => {
+      handleShowLinkActionMenu(link, position);
+    },
+    [handleShowLinkActionMenu]
+  );
 
   const onAddLink = React.useCallback((nodeId: string) => {
     handleAddLink(nodeId);

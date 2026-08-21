@@ -28,3 +28,4 @@ export {
   removeLocalStorage,
   removeLocalStorageItems,
 } from '../../core/storage/localStorage';
+export { showBrowserAlert, confirmBrowserAction, promptBrowserText } from './browserDialogs';
