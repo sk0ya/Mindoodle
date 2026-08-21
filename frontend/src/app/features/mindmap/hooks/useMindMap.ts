@@ -356,6 +356,33 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           return false;
         }
 
+        // The map list contains parsed data, but it may be stale after an edit
+        // or an external file change. Verify the source timestamp before using
+        // the cached tree.
+        const cachedMap = persistenceHook.allMindMaps.find(map =>
+          map.mapIdentifier.mapId === mapId &&
+          map.mapIdentifier.workspaceId === workspaceId
+        );
+
+        let verifiedLastModified: number | null = null;
+        if (cachedMap && typeof adapter.getMapLastModified === 'function') {
+          verifiedLastModified = await adapter.getMapLastModified(target).catch(() => null);
+          const cachedLastModified = Date.parse(cachedMap.updatedAt);
+          if (
+            verifiedLastModified !== null &&
+            Number.isFinite(cachedLastModified) &&
+            cachedLastModified === verifiedLastModified
+          ) {
+            actionsHook.selectMap(cachedMap);
+            delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
+            return true;
+          }
+        }
+
+        if (cachedMap && verifiedLastModified !== null) {
+          logger.debug('Cached map changed on disk; reloading:', mapId);
+        }
+
         const text = await adapter.getMapMarkdown?.(target);
         // Treat null/undefined as missing; empty string is a valid (empty) file
         if (text == null) {
@@ -368,11 +395,15 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           defaultCollapseDepth: settings.defaultCollapseDepth
         });
 
-        const fileLastModified = await adapter.getMapLastModified?.(target)
-          .then(ts => ts ? new Date(ts).toISOString() : new Date().toISOString())
-          .catch(() => new Date().toISOString());
+        if (verifiedLastModified === null && typeof adapter.getMapLastModified === 'function') {
+          verifiedLastModified = await adapter.getMapLastModified(target).catch(() => null);
+        }
 
-        const parsed = MapOperationsService.createMapData(mapId || '', workspaceId || '', parseResult.rootNodes, String(fileLastModified));
+        const fileLastModified = verifiedLastModified !== null
+          ? new Date(verifiedLastModified).toISOString()
+          : new Date().toISOString();
+
+        const parsed = MapOperationsService.createMapData(mapId || '', workspaceId || '', parseResult.rootNodes, fileLastModified);
         actionsHook.selectMap(parsed);
 
         try {

@@ -5,7 +5,6 @@ import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import {
   ensurePermission,
   getOrCreateDirectory,
-  iterateMarkdownFiles,
   copyDirectoryRecursive
 } from './fileSystemHelpers';
 import { BaseStorageAdapter } from './BaseStorageAdapter';
@@ -129,31 +128,12 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
   }
 
   private async loadMapsFromWorkspace(target: { handle: DirHandle; id: string; name: string }, maps: MindMapData[]): Promise<void> {
-    const addMapIfUnique = (data: MindMapData) => {
-      const isDuplicate = maps.some(m =>
-        m.mapIdentifier.mapId === data.mapIdentifier.mapId &&
-        m.mapIdentifier.workspaceId === data.mapIdentifier.workspaceId
-      );
-      if (!isDuplicate) maps.push(data);
-      else logger.warn('⚠️ Duplicate map found, skipping:', data.mapIdentifier.mapId);
-    };
-
-    // Load from root
-    await this.safeAsync(async () => {
-      for await (const { handle: fileHandle } of iterateMarkdownFiles(target.handle)) {
-        const data = await this.safeAsync(() => this.loadMapFromFile(fileHandle, target.handle, '', target.id), null);
-        if (data) addMapIfUnique(data);
-      }
-    }, undefined);
-
-    // Load from subdirectories
-    await this.safeAsync(async () => {
-      for await (const entry of (target.handle as DirHandleWithIterators).values?.() ?? this.iterateEntries(target.handle)) {
-        if (entry.kind === 'directory') {
-          await this.collectMapsForWorkspace({ id: target.id, name: target.name, handle: target.handle }, entry as DirHandle, entry.name ?? '', maps);
-        }
-      }
-    }, undefined);
+    // collectMapsForWorkspace handles the root and all descendants. Keeping a
+    // single traversal avoids parsing files in subdirectories twice.
+    await this.safeAsync(
+      () => this.collectMapsForWorkspace(target, target.handle, '', maps),
+      undefined
+    );
   }
 
   async addMapToList(newMap: MindMapData): Promise<void> {
@@ -342,19 +322,38 @@ export class MarkdownFolderAdapter extends BaseStorageAdapter {
       else logger.warn('⚠️ Duplicate map found in collectMapsForWorkspace, skipping:', data.mapIdentifier.mapId);
     };
 
-    // Load files
-    for await (const { handle: fh } of iterateMarkdownFiles(dir)) {
-      const data = await this.safeAsync(() => this.loadMapFromFile(fh, dir, categoryPath, ws.id), null);
-      if (data) addMapIfUnique(data);
-    }
+    const files: FileHandle[] = [];
+    const directories: Array<{ handle: DirHandle; name: string }> = [];
 
-    // Recurse into subdirectories
+    // Only inspect the current directory here. Recursing while also using the
+    // recursive iterateMarkdownFiles helper caused nested files to be loaded twice.
     for await (const entry of (dir as DirHandleWithIterators).values?.() ?? this.iterateEntries(dir)) {
-      if (entry.kind === 'directory') {
-        const sub = categoryPath ? `${categoryPath}/${entry.name}` : entry.name;
-        await this.collectMapsForWorkspace(ws, entry as DirHandle, sub, out);
+      if (entry.kind === 'file' && /\.md$/i.test(entry.name ?? '')) {
+        files.push(entry as FileHandle);
+      } else if (entry.kind === 'directory') {
+        directories.push({ handle: entry as DirHandle, name: entry.name ?? '' });
       }
     }
+
+    // File reads and Markdown parsing are independent, so process files in the
+    // same directory concurrently instead of waiting for each one serially.
+    const loadedFiles = await Promise.all(
+      files.map(fileHandle => this.safeAsync(
+        () => this.loadMapFromFile(fileHandle, dir, categoryPath, ws.id),
+        null
+      ))
+    );
+    loadedFiles.forEach(data => {
+      if (data) addMapIfUnique(data);
+    });
+
+    await Promise.all(directories.map(({ handle, name }) => {
+      const sub = categoryPath ? `${categoryPath}/${name}` : name;
+      return this.safeAsync(
+        () => this.collectMapsForWorkspace(ws, handle, sub, out),
+        undefined
+      );
+    }));
   }
 
   private async loadMapFromFile(fileHandle: FileHandle, dirForSave: DirHandle, categoryPath: string, workspaceId: string): Promise<MindMapData | null> {

@@ -69,14 +69,14 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   }, [adapterManager]);
 
   
-  const loadExplorerTree = useStableCallback(async (): Promise<void> => {
+  const loadExplorerTree = useStableCallback(async (knownWorkspaces?: WorkspaceInfo[]): Promise<void> => {
     if (!isInitialized || !adapterManager) {
       setExplorerTree(null);
       return;
     }
 
     try {
-      const availableWorkspaces = await adapterManager.getAvailableWorkspaces();
+      const availableWorkspaces = knownWorkspaces ?? await adapterManager.getAvailableWorkspaces();
 
       
       const localWorkspaces = availableWorkspaces.filter(ws => ws.type === 'local');
@@ -165,8 +165,9 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
 
     if (currentAdapter) {
       try {
-        await loadExplorerTree();
-        await loadWorkspaces();
+        const availableWorkspaces = await adapterManager.getAvailableWorkspaces();
+        await loadExplorerTree(availableWorkspaces);
+        setWorkspaces(availableWorkspaces);
 
         
         logger.info(`Loading maps from adapter: ${currentAdapter.constructor.name}`);
@@ -214,7 +215,6 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   useEffect(() => {
     if (isInitialized && adapterManager) {
       const initializeData = async () => {
-        await loadWorkspaces();
         await refreshMapList();
       };
       initializeData();
