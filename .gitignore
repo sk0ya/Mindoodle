@@ -16,7 +16,11 @@ yarn-error.log*
 
 # Builds
 frontend/dist/
+mcp-server/dist/
 coverage/
+
+# Local MCP configuration
+.mcp.json
 
 # Env
 .env
