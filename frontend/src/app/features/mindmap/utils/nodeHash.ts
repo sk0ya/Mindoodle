@@ -8,7 +8,9 @@ import type { MindMapNode } from '@shared/types';
 // === Helpers ===
 
 const extractNodeMetadata = (node: MindMapNode): string => {
-  const noteHash = (node.note || '').length;
+  // Include the note content itself. Using only its length leaves the cache
+  // stale when a note is edited to another string with the same length.
+  const noteContent = node.note || '';
   const kind = (node as MindMapNode & { kind?: string }).kind || 'text';
   const mm = (node as MindMapNode & { markdownMeta?: unknown }).markdownMeta as {
     type?: string;
@@ -22,7 +24,7 @@ const extractNodeMetadata = (node: MindMapNode): string => {
   return [
     node.id,
     node.text,
-    noteHash,
+    noteContent,
     kind,
     mm.type || '',
     typeof mm.level === 'number' ? mm.level : -1,

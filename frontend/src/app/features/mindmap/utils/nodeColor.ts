@@ -136,6 +136,10 @@ export const getBranchColor = (
 ): string => {
   if (!normalizedData || !nodeId) return '#666';
 
+  // An unknown id must not be mistaken for a root merely because it has no
+  // parent entry.
+  if (!normalizedData.nodes[nodeId]) return '#666';
+
   const isRootNode = !normalizedData.parentMap[nodeId];
   if (isRootNode) return '#333';
 

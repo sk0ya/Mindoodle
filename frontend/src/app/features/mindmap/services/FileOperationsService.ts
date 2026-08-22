@@ -5,8 +5,43 @@
  * Extracted from useMindMapActions.ts to centralize file handling logic.
  */
 
-import type { MindMapData } from '@shared/types';
+import { DEFAULT_WORKSPACE_ID, type MindMapData, type MindMapNode } from '@shared/types';
 import { logger, safeJsonParse } from '@shared/utils';
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const isMindMapNode = (value: unknown): value is MindMapNode => {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.text === 'string' &&
+    Array.isArray(value.children)
+  );
+};
+
+const isCurrentMapData = (value: unknown): value is MindMapData => {
+  if (!isRecord(value) || !Array.isArray(value.rootNodes)) return false;
+  if (!value.rootNodes.every(isMindMapNode)) return false;
+
+  const identifier = value.mapIdentifier;
+  return (
+    isRecord(identifier) &&
+    typeof identifier.mapId === 'string' &&
+    typeof identifier.workspaceId === 'string'
+  );
+};
+
+const isLegacyMapData = (
+  value: unknown
+): value is { id: string; title: string; rootNode: MindMapNode } => {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.title === 'string' &&
+    isMindMapNode(value.rootNode)
+  );
+};
 
 export class FileOperationsService {
   /**
@@ -21,26 +56,7 @@ export class FileOperationsService {
    * Validate imported map data structure
    */
   static validateImportData(parsedData: unknown): boolean {
-    if (!parsedData || typeof parsedData !== 'object') {
-      return false;
-    }
-
-    // Legacy format validation
-    if (!('id' in parsedData) || !('title' in parsedData) || !('rootNode' in parsedData)) {
-      return false;
-    }
-
-    const { id, title, rootNode } = parsedData as {
-      id?: unknown;
-      title?: unknown;
-      rootNode?: unknown;
-    };
-
-    if (typeof id !== 'string' || typeof title !== 'string' || !rootNode) {
-      return false;
-    }
-
-    return true;
+    return isCurrentMapData(parsedData) || isLegacyMapData(parsedData);
   }
 
   /**
@@ -64,9 +80,38 @@ export class FileOperationsService {
         return { success: false, error: 'Invalid map data structure' };
       }
 
+      if (isCurrentMapData(parsedData)) {
+        return { success: true, data: parsedData };
+      }
+
+      if (!isLegacyMapData(parsedData)) {
+        return { success: false, error: 'Invalid map data structure' };
+      }
+
+      // Normalize the legacy single-root format so callers can always consume
+      // the current MindMapData shape.
+      const now = new Date().toISOString();
+      const legacyData: MindMapData = {
+        title: parsedData.title,
+        category: '',
+        createdAt: now,
+        updatedAt: now,
+        mapIdentifier: {
+          mapId: parsedData.id,
+          workspaceId: DEFAULT_WORKSPACE_ID,
+        },
+        rootNodes: [parsedData.rootNode],
+        settings: {
+          autoSave: true,
+          autoLayout: true,
+          showGrid: false,
+          animationEnabled: true,
+        },
+      };
+
       return {
         success: true,
-        data: parsedData as MindMapData
+        data: legacyData
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);

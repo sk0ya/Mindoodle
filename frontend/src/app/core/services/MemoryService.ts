@@ -39,7 +39,7 @@ class MemoryService {
   private snapshots: MemorySnapshot[] = [];
   private maxSnapshots = 100;
   private isMonitoring = false;
-  private monitoringInterval?: NodeJS.Timeout;
+  private monitoringInterval: NodeJS.Timeout | undefined;
 
   
   createManagedInterval(
@@ -132,6 +132,11 @@ class MemoryService {
       }
     });
     this.cleanupCallbacks.clear();
+
+    // cleanup() can be called from beforeunload/HMR while monitoring is active.
+    // Reset the state as well as the timer so monitoring can be started again.
+    this.isMonitoring = false;
+    this.monitoringInterval = undefined;
   }
 
   
