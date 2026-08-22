@@ -1,5 +1,5 @@
 import { useRef, useCallback, useEffect } from 'react';
-import { isNodeElement, screenDeltaToCanvasPanDelta } from '@mindmap/utils';
+import { getCanvasTransform, isNodeElement, screenDeltaToCanvasPanDelta } from '@mindmap/utils';
 // no logging for viewport interactions to avoid console noise
 
 interface ViewportState {
@@ -9,32 +9,76 @@ interface ViewportState {
 
 interface CanvasViewportHandlerProps {
   zoom: number;
+  pan: { x: number; y: number };
   setZoom: (zoom: number) => void;
   setPan: (pan: { x: number; y: number } | ((prev: { x: number; y: number }) => { x: number; y: number })) => void;
   svgRef: React.RefObject<SVGSVGElement>;
+  canvasGroupRef: React.RefObject<SVGGElement>;
   isDragging?: boolean;
 }
 
 export const useCanvasViewportHandler = ({
   zoom,
+  pan,
   setZoom,
   setPan,
   svgRef,
+  canvasGroupRef,
   isDragging = false
 }: CanvasViewportHandlerProps) => {
   const isPanningRef = useRef(false);
   const isPanReadyRef = useRef(false);
   const lastPanPointRef = useRef({ x: 0, y: 0 });
+  const previewPanRef = useRef(pan);
+  const panFrameRef = useRef<number | null>(null);
+
+  const setCanvasCursor = useCallback((cursor: 'grab' | 'grabbing') => {
+    if (svgRef.current) {
+      svgRef.current.style.cursor = cursor;
+    }
+  }, [svgRef]);
+
+  // Keep transient pan movement out of React's render loop. The SVG group is
+  // updated directly while dragging, and the final value is committed on end.
+  const applyPanPreview = useCallback((nextPan: { x: number; y: number }) => {
+    const group = canvasGroupRef.current;
+    if (group) {
+      group.setAttribute('transform', getCanvasTransform(zoom, nextPan));
+    }
+  }, [canvasGroupRef, zoom]);
+
+  const schedulePanPreview = useCallback(() => {
+    if (panFrameRef.current !== null) return;
+
+    panFrameRef.current = window.requestAnimationFrame(() => {
+      panFrameRef.current = null;
+      applyPanPreview(previewPanRef.current);
+    });
+  }, [applyPanPreview]);
+
+  const commitPanPreview = useCallback(() => {
+    if (!isPanningRef.current) return;
+
+    if (panFrameRef.current !== null) {
+      window.cancelAnimationFrame(panFrameRef.current);
+      panFrameRef.current = null;
+    }
+    applyPanPreview(previewPanRef.current);
+    setPan(previewPanRef.current);
+  }, [applyPanPreview, setPan]);
 
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
+
+    // Do not let a wheel update overwrite a pan that is still only in the DOM.
+    commitPanPreview();
 
     if (svgRef.current) {
       const delta = e.deltaY > 0 ? 0.9 : 1.1;
       const newZoom = Math.min(Math.max(zoom * delta, 0.3), 5);
       setZoom(newZoom);
     }
-  }, [zoom, setZoom, svgRef]);
+  }, [commitPanPreview, zoom, setZoom, svgRef]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Only left-click initiates panning, and not while dragging nodes
@@ -49,18 +93,21 @@ export const useCanvasViewportHandler = ({
     if (!isNode) {
       isPanReadyRef.current = true;
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };
+      previewPanRef.current = pan;
       e.preventDefault();
     } else {
       // click on node: do not start panning
     }
-  }, [isDragging]);
+  }, [isDragging, pan]);
 
   const handleMouseUp = useCallback(() => {
-    if (!isDragging) {
-      isPanningRef.current = false;
-      isPanReadyRef.current = false;
-    }
-  }, [isDragging]);
+    if (isDragging) return;
+
+    commitPanPreview();
+    isPanningRef.current = false;
+    isPanReadyRef.current = false;
+    setCanvasCursor('grab');
+  }, [commitPanPreview, isDragging, setCanvasCursor]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     // If no mouse button is pressed (e.g., released outside window), cancel panning
@@ -82,16 +129,19 @@ export const useCanvasViewportHandler = ({
       if (!isPanningRef.current) {
         isPanningRef.current = true;
       }
+      setCanvasCursor('grabbing');
 
-      // Update pan immediately for smooth response
-      setPan(prev => ({
-        x: prev.x + screenDeltaToCanvasPanDelta(deltaX, zoom),
-        y: prev.y + screenDeltaToCanvasPanDelta(deltaY, zoom)
-      }));
+      const nextPan = {
+        x: previewPanRef.current.x + screenDeltaToCanvasPanDelta(deltaX, zoom),
+        y: previewPanRef.current.y + screenDeltaToCanvasPanDelta(deltaY, zoom)
+      };
+
+      previewPanRef.current = nextPan;
+      schedulePanPreview();
 
       lastPanPointRef.current = { x: e.clientX, y: e.clientY };
     }
-  }, [isDragging, zoom, setPan, handleMouseUp]);
+  }, [handleMouseUp, isDragging, schedulePanPreview, setCanvasCursor, zoom]);
 
   useEffect(() => {
     const onDocMouseMove = handleMouseMove;
@@ -126,6 +176,14 @@ export const useCanvasViewportHandler = ({
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, [handleMouseMove, handleMouseUp]);
+
+  useEffect(() => {
+    return () => {
+      if (panFrameRef.current !== null) {
+        window.cancelAnimationFrame(panFrameRef.current);
+      }
+    };
+  }, []);
 
   const getCursor = useCallback(() => {
     if (isPanningRef.current) return 'grabbing';

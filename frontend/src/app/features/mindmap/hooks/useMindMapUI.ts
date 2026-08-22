@@ -1,4 +1,4 @@
-import { useUI, useViewport, useUIOperations } from './useStoreSelectors';
+import { getStoreState, useUI, useViewport, useUIOperations } from './useStoreSelectors';
 import type { Position } from '@shared/types';
 import { useStableCallback } from '@shared/hooks';
 
@@ -26,7 +26,7 @@ export const useMindMapUI = () => {
 
     setPan: useStableCallback((pan: Position | ((prev: Position) => Position)) => {
       if (typeof pan === 'function') {
-        storeSetPan(pan(ui.pan));
+        storeSetPan(pan(getStoreState().ui.pan));
       } else {
         storeSetPan(pan);
       }

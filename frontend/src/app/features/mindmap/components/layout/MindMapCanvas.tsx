@@ -1,4 +1,4 @@
-import React, { useRef, memo, useCallback, useState } from 'react';
+import React, { useRef, memo, useCallback, useMemo, useState } from 'react';
 import { CanvasRenderer, useCanvasDragHandler, useCanvasViewportHandler, useCanvasEventHandler } from '../Canvas';
 import type { MindMapData, MindMapNode, NodeLink } from '@shared/types';
 import { flattenVisibleNodes } from '@mindmap/selectors/mindMapSelectors';
@@ -77,13 +77,17 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   } = props;
 
   const svgRef = useRef<SVGSVGElement>(null);
+  const canvasGroupRef = useRef<SVGGElement>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   
-  const rootNodes = data?.rootNodes || [];
+  const rootNodes = useMemo(() => data?.rootNodes ?? [], [data?.rootNodes]);
 
   
-  const allNodes = rootNodes.flatMap(rootNode => flattenVisibleNodes(rootNode));
+  const allNodes = useMemo(
+    () => rootNodes.flatMap(rootNode => flattenVisibleNodes(rootNode)),
+    [rootNodes]
+  );
   
   
   const { dragState, handleDragStart, handleDragMove, handleDragEnd } = useCanvasDragHandler({
@@ -97,9 +101,11 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
   
   const { handleWheel, handleMouseDown, handleMouseUp: handleViewportMouseUp, getCursor, getIsPanning } = useCanvasViewportHandler({
     zoom,
+    pan,
     setZoom,
     setPan,
     svgRef,
+    canvasGroupRef,
     isDragging: dragState.isDragging
   });
 
@@ -146,6 +152,7 @@ const MindMapCanvas: React.FC<MindMapCanvasProps> = (props) => {
     <>
       <CanvasRenderer
         svgRef={svgRef}
+        canvasGroupRef={canvasGroupRef}
         data={data}
         allNodes={allNodes}
         selectedNodeId={selectedNodeId}

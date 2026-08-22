@@ -20,6 +20,7 @@ interface DragState {
 
 interface CanvasRendererProps {
   svgRef: React.RefObject<SVGSVGElement>;
+  canvasGroupRef: React.RefObject<SVGGElement>;
   data?: MindMapData | null;
   allNodes: MindMapNode[];
   selectedNodeId: string | null;
@@ -72,6 +73,7 @@ interface CanvasRendererProps {
 
 const CanvasRenderer: React.FC<CanvasRendererProps> = ({
   svgRef,
+  canvasGroupRef,
   data,
   allNodes,
   selectedNodeId,
@@ -162,7 +164,7 @@ const CanvasRenderer: React.FC<CanvasRendererProps> = ({
           transition: 'border-color 0.2s ease'
         }}
       >
-        <g transform={getCanvasTransform(zoom, pan)}>
+        <g ref={canvasGroupRef} transform={getCanvasTransform(zoom, pan)}>
           {}
           <CanvasDragGuide
             dragState={dragState}
