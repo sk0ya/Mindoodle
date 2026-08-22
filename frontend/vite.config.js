@@ -4,6 +4,17 @@ import path from 'path'
 
 const PORT = parseInt(process.env.PORT || '5174', 10);
 
+/**
+ * onnxruntime-web 1.14 bundles a Node.js-only module lookup helper into its
+ * browser build. The helper uses eval, which Rollup reports during builds,
+ * even though it cannot be used in the browser bundle.
+ */
+const isOnnxRuntimeEvalWarning = (warning) => {
+  const warningId = warning.id?.replaceAll('\\', '/');
+  return warning.code === 'EVAL'
+    && warningId?.endsWith('/node_modules/onnxruntime-web/dist/ort-web.min.js');
+};
+
 export default defineConfig(({ command }) => ({
   plugins: [react()],
   resolve: {
@@ -40,9 +51,13 @@ export default defineConfig(({ command }) => ({
           'mermaid': ['mermaid'],
           'vendor': ['react', 'react-dom', 'zustand', 'immer'],
           'utils': ['marked', 'jszip', 'lucide-react']
-        }
       }
     },
+    onwarn(warning, warn) {
+      if (isOnnxRuntimeEvalWarning(warning)) return;
+      warn(warning);
+    }
+  },
     // チャンクサイズ警告の閾値を上げる（大きな依存があるため）
     chunkSizeWarningLimit: 1000
   },
