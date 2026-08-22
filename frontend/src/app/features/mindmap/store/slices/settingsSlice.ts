@@ -99,7 +99,7 @@ export const createSettingsSlice: StateCreator<
         const loaded: AppSettings = { ...DEFAULT_SETTINGS, ...result.data };
 
         if (loaded.cloudApiEndpoint === 'https://mindoodle-backend.your-subdomain.workers.dev') {
-          loaded.cloudApiEndpoint = DEFAULT_SETTINGS.cloudApiEndpoint;
+          loaded.cloudApiEndpoint = DEFAULT_SETTINGS.cloudApiEndpoint ?? '';
         }
 
         state.settings = loaded;

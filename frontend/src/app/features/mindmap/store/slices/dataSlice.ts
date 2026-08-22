@@ -54,7 +54,7 @@ if (typeof window !== 'undefined') {
     logger.debug('🧹 Cache cleanup completed', { before, after, cleaned });
 
 
-    if (process.env.NODE_ENV === 'development') {
+    if (process.env['NODE_ENV'] === 'development') {
       const windowWithGc = window as Window & { gc?: () => void };
       if (windowWithGc.gc) {
         windowWithGc.gc();
@@ -290,6 +290,7 @@ export const createDataSlice: StateCreator<
 
       for (let index = 0; index < rootNodes.length; index++) {
         const rootNode = rootNodes[index];
+        if (!rootNode) continue;
         const settingsWithSpacing = state.settings as typeof state.settings & { nodeSpacing?: number };
 
         // Select layout function based on settings
@@ -309,6 +310,7 @@ export const createDataSlice: StateCreator<
         if (index > 0) {
 
           const previousRoot = layoutedRootNodes[index - 1];
+          if (!previousRoot) continue;
           const previousNodeCount = getNodeCount(previousRoot);
           const currentNodeCount = getNodeCount(layoutedNode);
 

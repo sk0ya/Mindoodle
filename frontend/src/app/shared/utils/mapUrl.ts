@@ -28,10 +28,8 @@ export function getMapTargetFromUrl(location: MapUrlLocation): MapUrlTarget | nu
   const mapFromQuery = normalizeMapId(params.get(MAP_PARAM) || params.get(LEGACY_MAP_PARAM));
 
   if (mapFromQuery) {
-    return {
-      mapId: mapFromQuery,
-      workspaceId: normalizeWorkspaceId(params.get(WORKSPACE_PARAM) || params.get(LEGACY_WORKSPACE_PARAM)),
-    };
+    const workspaceId = normalizeWorkspaceId(params.get(WORKSPACE_PARAM) || params.get(LEGACY_WORKSPACE_PARAM));
+    return workspaceId === undefined ? { mapId: mapFromQuery } : { mapId: mapFromQuery, workspaceId };
   }
 
   const hashMatch = HASH_MAP_PATTERN.exec(location.hash);
@@ -47,10 +45,8 @@ export function getMapTargetFromUrl(location: MapUrlLocation): MapUrlTarget | nu
   if (!mapId) return null;
 
   const hashParams = new URLSearchParams(hashMatch[2] || '');
-  return {
-    mapId,
-    workspaceId: normalizeWorkspaceId(hashParams.get(WORKSPACE_PARAM) || hashParams.get(LEGACY_WORKSPACE_PARAM)),
-  };
+  const workspaceId = normalizeWorkspaceId(hashParams.get(WORKSPACE_PARAM) || hashParams.get(LEGACY_WORKSPACE_PARAM));
+  return workspaceId === undefined ? { mapId } : { mapId, workspaceId };
 }
 
 export function buildMapUrl(location: MapUrlLocation, identifier: MapIdentifier): string {

@@ -13,16 +13,19 @@ import type { NormalizedDataLike } from './types';
 const isNonTableNode = (node: MindMapNode | undefined): boolean =>
   !!(node && node.kind !== 'table' && node.markdownMeta);
 
-const getMetadataWithResetCheckbox = (meta: MindMapNode['markdownMeta']): Partial<MindMapNode['markdownMeta']> =>
+const getMetadataWithResetCheckbox = (meta: MindMapNode['markdownMeta']): Partial<NonNullable<MindMapNode['markdownMeta']>> =>
   meta?.isCheckbox ? { ...meta, isChecked: false } : meta || {};
 
 const checkSiblingAt = (
   nd: NormalizedDataLike,
   siblings: string[],
   index: number
-): Partial<MindMapNode['markdownMeta']> | undefined => {
+): Partial<NonNullable<MindMapNode['markdownMeta']>> | undefined => {
   if (index < 0 || index >= siblings.length) return undefined;
-  const sib = nd.nodes[siblings[index]];
+  const siblingId = siblings[index];
+  if (siblingId === undefined) return undefined;
+  const sib = nd.nodes[siblingId];
+  if (!sib) return undefined;
   return isNonTableNode(sib) ? getMetadataWithResetCheckbox(sib.markdownMeta) : undefined;
 };
 
@@ -32,7 +35,7 @@ export const nearestNonTableSiblingMeta = (
   nd: NormalizedDataLike,
   siblings: string[],
   currentIdx: number
-): Partial<MindMapNode['markdownMeta']> | undefined => {
+): Partial<NonNullable<MindMapNode['markdownMeta']>> | undefined => {
   for (let offset = 1; offset < siblings.length; offset++) {
     const leftMeta = checkSiblingAt(nd, siblings, currentIdx - offset);
     if (leftMeta) return leftMeta;

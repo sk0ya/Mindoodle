@@ -91,10 +91,7 @@ export function calculateIconLayout(node: MindMapNode, nodeWidth: number): IconL
     linkIcon = { x: startX, y: -ICON_HEIGHT / 2 };
   }
 
-  return {
-    totalWidth,
-    linkIcon
-  };
+  return linkIcon === undefined ? { totalWidth } : { totalWidth, linkIcon };
 }
 
 // ========================================
@@ -107,6 +104,7 @@ function parseTableFromString(src?: string): { headers?: string[]; rows: string[
   for (let i = 0; i < lines.length - 1; i++) {
     const header = lines[i];
     const sep = lines[i + 1];
+    if (header === undefined || sep === undefined) continue;
     const isHeader = /^\|.*\|$/.test(header) || header.includes('|');
     const parts = sep.replace(/^\|/, '').replace(/\|$/, '').split('|').map(s => s.trim());
     const isSep = parts.length > 0 && parts.every(cell => /^:?-{3,}:?$/.test(cell));
@@ -116,8 +114,10 @@ function parseTableFromString(src?: string): { headers?: string[]; rows: string[
       const headers = toCells(header);
       outRows.push(headers);
       let j = i + 2;
-      while (j < lines.length && lines[j].includes('|')) {
-        outRows.push(toCells(lines[j]));
+      while (j < lines.length) {
+        const row = lines[j];
+        if (row === undefined || !row.includes('|')) break;
+        outRows.push(toCells(row));
         j++;
       }
       return { headers, rows: outRows.slice(1) };
@@ -203,7 +203,9 @@ export function calculateNodeSize(
     if (!parsed) {
       const td = node.tableData;
       if (td && Array.isArray(td.rows)) {
-        parsed = { headers: td.headers, rows: td.rows };
+        parsed = td.headers === undefined
+          ? { rows: td.rows }
+          : { headers: td.headers, rows: td.rows };
       }
     }
 
@@ -247,8 +249,8 @@ export function calculateNodeSize(
           const wMatch = wRe.exec(tag);
           const hMatch = hRe.exec(tag);
           if (wMatch && hMatch) {
-            const w = parseInt(wMatch[1], 10);
-            const h = parseInt(hMatch[1], 10);
+            const w = parseInt(wMatch[1] ?? '', 10);
+            const h = parseInt(hMatch[1] ?? '', 10);
             if (Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0) {
               noteW = w;
               noteH = h;
@@ -275,7 +277,7 @@ export function calculateNodeSize(
   const getDisplayTextFromMarkdownLink = (text: string): string => {
     const re = /^\[([^\]]*)\]\(([^)]+)\)$/;
     const m = re.exec(text);
-    return m ? m[1] : text;
+    return m?.[1] ?? text;
   };
 
   const resolvedEditText = editText ?? node.text;

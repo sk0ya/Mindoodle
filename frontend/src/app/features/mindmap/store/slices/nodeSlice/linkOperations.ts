@@ -68,7 +68,9 @@ const executeLinkOperation = ({
       let updatedRootNodes = rootNodes;
 
       for (let i = 0; i < rootNodes.length; i++) {
-        const updatedRootNode = treeOperation(rootNodes[i], nodeId, ...args);
+        const rootNode = rootNodes[i];
+        if (!rootNode) continue;
+        const updatedRootNode = treeOperation(rootNode, nodeId, ...args);
         if (updatedRootNode !== rootNodes[i]) {
           updatedRootNodes = [...rootNodes];
           updatedRootNodes[i] = updatedRootNode;

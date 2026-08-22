@@ -173,7 +173,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
         if (!opt) return setCommandOutput('Usage: set leader <key>');
         if (opt !== 'leader') return setCommandOutput('Unknown option. Supported: leader');
 
-        let leader = rawVal.trim() || ((args[0] || '').includes('=') ? (args[0] || '').split('=')[1]?.trim() : '');
+        let leader = rawVal.trim() || ((args[0] || '').includes('=') ? (args[0] || '').split('=')[1]?.trim() ?? '' : '');
         if (/^<\s*space\s*>$/i.test(leader)) leader = ' ';
         if (leader.length !== 1) return setCommandOutput('Error: leader must be a single character or <Space>');
 
@@ -185,6 +185,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       map: () => {
         if (args.length < 2) return setCommandOutput('Usage: map <lhs> <command>');
         const [lhs, ...rhs] = args;
+        if (!lhs) return setCommandOutput('Usage: map <lhs> <command>');
         const current: Record<string, string> = { ...(store.settings?.vimCustomKeybindings || {}) };
         current[lhs] = rhs.join(' ');
         store.updateSetting('vimCustomKeybindings', current);
@@ -195,6 +196,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       unmap: () => {
         if (args.length < 1) return setCommandOutput('Usage: unmap <lhs>');
         const lhs = args[0];
+        if (!lhs) return setCommandOutput('Usage: unmap <lhs>');
         const current: Record<string, string> = { ...(store.settings?.vimCustomKeybindings || {}) };
         if (lhs in current) {
           delete current[lhs];
@@ -221,6 +223,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       mapshow: () => {
         if (args.length < 1) return setCommandOutput('Usage: mapshow <lhs>');
         const lhs = args[0];
+        if (!lhs) return setCommandOutput('Usage: mapshow <lhs>');
         const m: Record<string, string> = store.settings?.vimCustomKeybindings || {};
         setCommandOutput(m[lhs] ? `${lhs} -> ${m[lhs]}` : `No mapping for ${lhs}`);
       },
@@ -246,6 +249,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       mkdir: async () => {
         if (args.length === 0) return setCommandOutput('Usage: mkdir <folder-path>');
         const folderPath = args[0];
+        if (!folderPath) return setCommandOutput('Usage: mkdir <folder-path>');
         const currentWorkspace = store.data?.mapIdentifier?.workspaceId;
         const fullPath = folderPath.startsWith('/') ? folderPath : `/${currentWorkspace}/${folderPath}`;
 
@@ -265,6 +269,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
       newmap: async () => {
         if (args.length === 0) return setCommandOutput('Usage: newmap <map-name> [folder-path]');
         const fullPath = args[0];
+        if (!fullPath) return setCommandOutput('Usage: newmap <map-name> [folder-path]');
         const workspaceId = store.data?.mapIdentifier?.workspaceId;
         if (!workspaceId) return setCommandOutput('Error: No workspace available');
 
@@ -331,7 +336,8 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
     };
 
     try {
-      const handler = handlers[aliases[cmd] || cmd];
+      const commandName = aliases[cmd ?? ''] ?? cmd;
+      const handler = commandName ? handlers[commandName] : undefined;
       if (handler) {
         await handler();
       } else {
@@ -349,7 +355,7 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
     const { data, selectedNodeId } = useMindMapStore.getState();
     const roots = data?.rootNodes || [];
     if (roots.length === 0) return null;
-    return selectedNodeId ? findRootForNode(roots, selectedNodeId) : roots[0];
+    return selectedNodeId ? findRootForNode(roots, selectedNodeId) : roots[0] ?? null;
   }, []);
 
   const startSearch = useCallback(() =>
@@ -383,7 +389,8 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
     setState(prev => ({ ...prev, searchResults: results, currentSearchIndex: results.length > 0 ? 0 : -1 }));
 
     if (results.length > 0) {
-      useMindMapStore.getState().selectNode(results[0]);
+      const result = results[0];
+      if (result) useMindMapStore.getState().selectNode(result);
     }
   }, [state]);
 
@@ -407,7 +414,8 @@ export const useVimMode = (_mindMapInstance?: unknown): VimModeHook => {
     }
 
     setState(prev => ({ ...prev, searchResults: results, currentSearchIndex: nextIndex }));
-    useMindMapStore.getState().selectNode(results[nextIndex]);
+    const result = results[nextIndex];
+    if (result) useMindMapStore.getState().selectNode(result);
   }, [state]);
 
   const nextSearchResult = useCallback(() => navigateSearch(1), [navigateSearch]);

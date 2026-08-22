@@ -420,6 +420,9 @@ export function moveNormalizedNode(
 
   
   const targetParent = normalizedData.nodes[newParentId];
+  if (!targetParent) {
+    return { success: false, reason: `親ノードが見つかりません: ${newParentId}` };
+  }
   if ('kind' in targetParent && targetParent.kind === 'table') {
     return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
   }
@@ -462,7 +465,7 @@ export function moveNormalizedNode(
     },
     childrenMap: {
       ...normalizedData.childrenMap,
-      [oldParentId]: normalizedData.childrenMap[oldParentId].filter(id => id !== nodeId),
+      [oldParentId]: (normalizedData.childrenMap[oldParentId] || []).filter(id => id !== nodeId),
       [newParentId]: [...(normalizedData.childrenMap[newParentId] || []), nodeId]
     }
   };
@@ -489,6 +492,9 @@ export function moveNodeWithPositionNormalized(
   
   if (position === 'child') {
     const targetNode = normalizedData.nodes[targetNodeId];
+    if (!targetNode) {
+      return { success: false, reason: `ターゲットノードが見つかりません: ${targetNodeId}` };
+    }
     if ('kind' in targetNode && targetNode.kind === 'table') {
       return { success: false, reason: 'テーブルノードには子ノードを追加できません' };
     }
@@ -509,10 +515,11 @@ export function moveNodeWithPositionNormalized(
     insertionIndex = (normalizedData.childrenMap[newParentId] || []).length;
   } else {
     
-    newParentId = normalizedData.parentMap[targetNodeId];
-    if (!newParentId) {
+    const parentId = normalizedData.parentMap[targetNodeId];
+    if (!parentId) {
       return { success: false, reason: `ターゲットノードに親がありません: ${targetNodeId}` };
     }
+    newParentId = parentId;
 
     const siblings = normalizedData.childrenMap[newParentId] || [];
     const targetIndex = siblings.indexOf(targetNodeId);

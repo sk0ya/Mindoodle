@@ -85,9 +85,9 @@ export function extractNodeLinksFromMarkdown(note: string | undefined, currentMa
       if (!seen.has(key)) {
         seen.add(key);
         links.push({
-          id: key, 
-          targetMapId,
-          targetNodeId,
+          id: key,
+          ...(targetMapId !== undefined ? { targetMapId } : {}),
+          ...(targetNodeId !== undefined ? { targetNodeId } : {}),
         });
       }
     }
@@ -253,6 +253,7 @@ export function extractAllMarkdownLinksDetailed(note: string | undefined): Parse
       let j = idx + (lower.startsWith('https://', idx) ? 8 : 7);
       while (j < note.length) {
         const ch = note[j];
+        if (ch === undefined) break;
         if (/\s/.test(ch) || '<>"{}|\\^`[]'.includes(ch)) break;
         j++;
       }
@@ -299,7 +300,9 @@ export function resolveHrefToMapTarget(
 
     // If no path (e.g. just "#anchor"), target current map
     if (!pathPart || pathPart === '' || pathPart === '#') {
-      return { mapId: currentMapId, anchorText };
+      return anchorText === undefined
+        ? { mapId: currentMapId }
+        : { mapId: currentMapId, anchorText };
     }
 
     // Normalize path
@@ -335,6 +338,7 @@ export function resolveHrefToMapTarget(
     const segs = raw.split('/');
     if (segs.length > 0) {
       const last = segs[segs.length - 1];
+      if (last === undefined) return null;
       const lastLower = last.toLowerCase();
       segs[segs.length - 1] = lastLower.endsWith('.md') ? last.slice(0, last.length - 3) : last;
     }
@@ -350,7 +354,9 @@ export function resolveHrefToMapTarget(
       `${candidate}/map`
     ];
     const found = tryIds.find(id => availableMapIds.includes(id));
-    if (found) return { mapId: found, anchorText };
+    if (found) {
+      return anchorText === undefined ? { mapId: found } : { mapId: found, anchorText };
+    }
   } catch {
     // ignore
   }
@@ -391,7 +397,12 @@ export function extractInternalMarkdownLinksDetailed(note: string | undefined, r
     const key = `int|${label}|${anchor}|${resolvedId || ''}`;
     if (seen.has(key)) continue;
     seen.add(key);
-    results.push({ id: key, label, anchorText: anchor, nodeId: resolvedId });
+    results.push({
+      id: key,
+      label,
+      anchorText: anchor,
+      ...(resolvedId !== undefined ? { nodeId: resolvedId } : {}),
+    });
   }
   return results;
 }

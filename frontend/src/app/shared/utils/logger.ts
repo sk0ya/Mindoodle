@@ -16,10 +16,10 @@ class Logger {
   };
 
   constructor() {
-    const isDevelopment = import.meta.env.DEV;
+    const isDevelopment = import.meta.env['DEV'];
     
     
-    const configuredLevel = (import.meta.env.VITE_LOG_LEVEL || 'warn') as LogLevel;
+    const configuredLevel = (import.meta.env['VITE_LOG_LEVEL'] || 'warn') as LogLevel;
     
     this.config = {
       level: configuredLevel,

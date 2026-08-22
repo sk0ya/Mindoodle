@@ -90,7 +90,7 @@ export const createHistorySlice: StateCreator<
       const previousData = state.history[newIndex];
       set((draft) => {
         draft.historyIndex = newIndex;
-        applyHistoryState(draft, previousData);
+        if (previousData) applyHistoryState(draft, previousData);
       });
     }
   },
@@ -103,7 +103,7 @@ export const createHistorySlice: StateCreator<
       const nextData = state.history[newIndex];
       set((draft) => {
         draft.historyIndex = newIndex;
-        applyHistoryState(draft, nextData);
+        if (nextData) applyHistoryState(draft, nextData);
       });
     }
   },

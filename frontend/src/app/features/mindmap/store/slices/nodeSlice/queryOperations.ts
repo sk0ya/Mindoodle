@@ -23,7 +23,9 @@ export function createQueryOperations(get: () => MindMapStore) {
       const { normalizedData } = get();
       if (!normalizedData || !nodeId) return [];
       const childIds = normalizedData.childrenMap[nodeId] || [];
-      return childIds.map((childId: string) => normalizedData.nodes[childId]).filter(Boolean);
+      return childIds
+        .map((childId: string) => normalizedData.nodes[childId])
+        .filter((node): node is MindMapNode => node !== undefined);
     },
   };
 }

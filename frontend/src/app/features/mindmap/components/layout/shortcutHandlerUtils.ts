@@ -8,13 +8,15 @@ import type { MindMapNode, MindMapData } from '@shared/types';
 export const findClosestChild = (parent: MindMapNode): MindMapNode | null => {
   const children = parent.children || [];
   if (children.length === 0) return null;
-  if (children.length === 1) return children[0];
+  const firstChild = children[0];
+  if (!firstChild) return null;
+  if (children.length === 1) return firstChild;
 
   return children.reduce((closest, child) => {
     const closestDist = Math.abs(closest.y - parent.y);
     const childDist = Math.abs(child.y - parent.y);
     return childDist < closestDist ? child : closest;
-  }, children[0]);
+  }, firstChild);
 };
 
 /**
@@ -89,7 +91,8 @@ export const isMapEmpty = (map: MindMapData): boolean => {
   try {
     const roots = map?.rootNodes || [];
     if (!Array.isArray(roots) || roots.length === 0) return true;
-    return roots.length === 1 && (!roots[0].children || roots[0].children.length === 0);
+    const root = roots[0];
+    return roots.length === 1 && (!root || !root.children || root.children.length === 0);
   } catch {
     return false;
   }
@@ -118,6 +121,7 @@ export const switchMap = (
   for (let step = 0; step < order.length; step++) {
     idx = advance(idx);
     const candidate = order[idx];
+    if (!candidate) continue;
     const mapData = maps.find((m) => m?.mapIdentifier?.mapId === candidate.mapId);
 
     if (!mapData || !isMapEmpty(mapData)) {

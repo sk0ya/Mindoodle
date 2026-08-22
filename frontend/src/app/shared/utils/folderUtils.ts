@@ -71,8 +71,9 @@ export function buildFolderTree(categoryPaths: string[], expandedFolders: Set<st
 
   // Build parent-child relationships
   Object.values(tree).forEach(node => {
-    if (node.parent && tree[node.parent]) {
-      tree[node.parent].children.push(node.path);
+    const parentNode = node.parent ? tree[node.parent] : undefined;
+    if (parentNode) {
+      parentNode.children.push(node.path);
     }
   });
 

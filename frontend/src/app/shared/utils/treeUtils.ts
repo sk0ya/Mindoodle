@@ -189,7 +189,8 @@ export function flattenVisibleNodes(root: MindMapNode): MindMapNode[] {
     result.push(node);
     if (!node.collapsed && node.children?.length) {
       for (let i = node.children.length - 1; i >= 0; i--) {
-        stack.push(node.children[i]);
+        const child = node.children[i];
+        if (child) stack.push(child);
       }
     }
   }
@@ -239,7 +240,7 @@ export function isRootNode(roots: MindMapNode[], nodeId: string): boolean {
  */
 export function getFirstVisibleChild(node: MindMapNode): MindMapNode | null {
   return (node.children && node.children.length > 0 && !node.collapsed)
-    ? node.children[0]
+    ? node.children[0] ?? null
     : null;
 }
 

@@ -8,7 +8,7 @@ export const isDevelopment = (): boolean => {
   
   
   if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV === 'development';
+    return process.env['NODE_ENV'] === 'development';
   }
   
   
@@ -23,7 +23,7 @@ export const isProduction = (): boolean => {
   
   
   if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV === 'production';
+    return process.env['NODE_ENV'] === 'production';
   }
   
   
@@ -38,7 +38,7 @@ export const getMode = (): string => {
   
   
   if (typeof process !== 'undefined' && process.env) {
-    return process.env.NODE_ENV || 'production';
+    return process.env['NODE_ENV'] || 'production';
   }
   
   return 'production';

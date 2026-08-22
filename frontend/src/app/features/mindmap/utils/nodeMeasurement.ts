@@ -198,9 +198,9 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
       if (!piece) return [];
       if (piece === '\n') return [{ text: '\n' }];
       return smartSplitText(piece, {
-        bold: segment.bold,
-        italic: segment.italic,
-        strikethrough: segment.strikethrough
+        ...(segment.bold !== undefined ? { bold: segment.bold } : {}),
+        ...(segment.italic !== undefined ? { italic: segment.italic } : {}),
+        ...(segment.strikethrough !== undefined ? { strikethrough: segment.strikethrough } : {}),
       });
     });
   });
@@ -216,8 +216,10 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
   const trimTrailingSpace = (tokens: WrappedToken[], width: number): { tokens: WrappedToken[]; width: number } => {
     const result = [...tokens];
     let w = width;
-    while (result.length > 0 && /^\s+$/.test(result[result.length - 1].text) && !result[result.length - 1].isMarker) {
-      w -= result[result.length - 1].width;
+    while (result.length > 0) {
+      const last = result[result.length - 1];
+      if (!last || !/^\s+$/.test(last.text) || last.isMarker) break;
+      w -= last.width;
       result.pop();
     }
     return { tokens: result, width: w };
@@ -234,7 +236,7 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
   };
 
   const splitLongToken = (state: WrapState, token: RawTextToken, width: number): WrapState => {
-    if (isBreakBefore(token.text[0])) {
+    if (isBreakBefore(token.text[0] ?? '')) {
       const pushed = pushLine(state);
       const wrapped: WrappedToken = { ...token, width };
       return { ...pushed, currentTokens: [wrapped], currentWidth: width };
@@ -253,7 +255,7 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
       if (tentativeWidth > effectiveMaxWidth && acc.buffer) {
         let breakPoint = acc.buffer.length;
         for (let k = acc.buffer.length - 1; k >= Math.max(0, acc.buffer.length - 10); k--) {
-          const c = acc.buffer[k];
+          const c = acc.buffer[k] ?? '';
           if (isPrimaryBreak(c)) {
             breakPoint = k + 1;
             break;
@@ -300,7 +302,7 @@ export function wrapNodeText(text: string, options: WrapNodeTextOptions): WrapNo
     if (state.currentTokens.length === 0 && isWhitespace && !token.isMarker) return state;
 
     const nextToken = index + 1 < allTokens.length ? allTokens[index + 1] : null;
-    if (isWhitespace && nextToken && nextToken.text.length > 0 && isBreakBefore(nextToken.text[0])) {
+    if (isWhitespace && nextToken && nextToken.text.length > 0 && isBreakBefore(nextToken.text[0] ?? '')) {
       return state.currentTokens.length > 0 ? pushLine(state) : state;
     }
 

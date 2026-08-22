@@ -21,7 +21,7 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     const boldRe = /^(\*\*|__)(.+?)\1/;
     const boldMatch = boldRe.exec(remaining);
     if (boldMatch) {
-      const innerText = boldMatch[2];
+      const innerText = boldMatch[2] ?? '';
       // Recursively parse inner content for nested formatting
       const innerSegments = parseInlineMarkdown(innerText);
       innerSegments.forEach(seg => {
@@ -35,7 +35,7 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     const strikeRe = /^~~(.+?)~~/;
     const strikeMatch = strikeRe.exec(remaining);
     if (strikeMatch) {
-      const innerText = strikeMatch[1];
+      const innerText = strikeMatch[1] ?? '';
       // Recursively parse inner content for nested formatting
       const innerSegments = parseInlineMarkdown(innerText);
       innerSegments.forEach(seg => {
@@ -49,7 +49,7 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     const italicRe = /^([*_])(.+?)\1/;
     const italicMatch = italicRe.exec(remaining);
     if (italicMatch) {
-      const innerText = italicMatch[2];
+      const innerText = italicMatch[2] ?? '';
       // Recursively parse inner content for nested formatting
       const innerSegments = parseInlineMarkdown(innerText);
       innerSegments.forEach(seg => {
@@ -69,7 +69,7 @@ export function parseInlineMarkdown(text: string): InlineSegment[] {
     }
 
     // Single character that didn't match (probably a stray markdown character)
-    segments.push({ text: remaining[0] });
+    segments.push({ text: remaining[0] ?? '' });
     remaining = remaining.slice(1);
   }
 
@@ -172,7 +172,9 @@ function rebuildWithLayers(coreText: string, layers: Array<InlineFormat>): strin
   let result = coreText;
   
   for (let i = layers.length - 1; i >= 0; i--) {
-    const marker = markers[layers[i]];
+    const layer = layers[i];
+    if (layer === undefined) continue;
+    const marker = markers[layer];
     result = `${marker}${result}${marker}`;
   }
   return result;

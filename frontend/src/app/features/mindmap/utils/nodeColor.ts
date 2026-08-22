@@ -19,13 +19,13 @@ const COLOR_SETS: Record<string, string[]> = {
 };
 
 export const getColorSetColors = (colorSetName: string = 'vibrant'): string[] =>
-  COLOR_SETS[colorSetName] || COLOR_SETS.vibrant;
+  COLOR_SETS[colorSetName] ?? COLOR_SETS['vibrant'] ?? [];
 
 // === Color Conversion ===
 
 const hexToHSL = (hex: string) => {
   const cleanHex = hex.replace('#', '');
-  const [r, g, b] = [0, 2, 4].map(i => parseInt(cleanHex.substring(i, i + 2), 16) / 255);
+  const [r = 0, g = 0, b = 0] = [0, 2, 4].map(i => parseInt(cleanHex.substring(i, i + 2), 16) / 255);
 
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
@@ -126,7 +126,7 @@ const getDirectChildBranchColor = (
   if (parentId !== branchRootId) return null;
   const siblings = normalizedData.childrenMap[parentId] || [];
   const siblingIndex = siblings.indexOf(nodeId);
-  return siblingIndex >= 0 ? branchColors[siblingIndex % branchColors.length] : '#666';
+  return siblingIndex >= 0 ? branchColors[siblingIndex % branchColors.length] ?? '#666' : '#666';
 };
 
 export const getBranchColor = (
@@ -154,11 +154,11 @@ export const getBranchColor = (
   if (branchIndex < 0) return '#666';
 
   const colorSet = getColorSetColors(colorSetName);
-  const baseColor = colorSet[branchIndex % colorSet.length];
+  const baseColor = colorSet[branchIndex % colorSet.length] ?? '#666';
   const branchColors = generateBranchColors(baseColor);
 
   // Branch root node gets base color
-  if (nodeId === branchRootId) return branchColors[0];
+  if (nodeId === branchRootId) return branchColors[0] ?? '#666';
 
   // Direct children of branch root get sibling-indexed colors
   const directChildColor = getDirectChildBranchColor(nodeId, branchRootId, branchColors, normalizedData);

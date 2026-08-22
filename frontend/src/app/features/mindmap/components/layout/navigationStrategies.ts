@@ -59,7 +59,7 @@ export const navigateRight: NavigationStrategy = ({
       updateNode(currentNodeId, { collapsed: false });
     }
     const closest = findClosestChild(currentNode);
-    return closest?.id || currentNode.children[0].id;
+    return closest?.id || currentNode.children[0]?.id || null;
   }
 
   return null;
@@ -83,7 +83,7 @@ export const navigateVertical: NavigationStrategy = (
       : Math.max(0, currentIndex - absCount);
 
     if (targetIndex !== currentIndex) {
-      return siblings[targetIndex].id;
+      return siblings[targetIndex]?.id ?? null;
     }
   }
 
@@ -91,10 +91,10 @@ export const navigateVertical: NavigationStrategy = (
   const rootIndex = roots.findIndex(r => r.id === currentRoot.id);
   if (rootIndex !== -1) {
     if (direction === 'down' && rootIndex < roots.length - 1) {
-      return roots[rootIndex + 1].id;
+      return roots[rootIndex + 1]?.id ?? null;
     }
     if (direction === 'up' && rootIndex > 0) {
-      return roots[rootIndex - 1].id;
+      return roots[rootIndex - 1]?.id ?? null;
     }
   }
 

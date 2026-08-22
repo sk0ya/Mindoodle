@@ -9,6 +9,7 @@
     "noUncheckedSideEffectImports": true
   },
   "include": [
+    "src/vite-env.d.ts",
     "src/app/core/commands/**/*",
     "src/app/core/hooks/useKeyboardShortcuts.ts",
     "src/app/core/hooks/useVimMode.ts",

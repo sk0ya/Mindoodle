@@ -11,9 +11,9 @@ export function pasteNodeTree(
   updateNode(newId, {
     fontSize: source.fontSize,
     fontWeight: source.fontWeight,
-    color: source.color,
     collapsed: false,
-    note: source.note,
+    ...(source.color !== undefined ? { color: source.color } : {}),
+    ...(source.note !== undefined ? { note: source.note } : {}),
   });
   source.children?.forEach((child) => pasteNodeTree(child, newId, addChild, updateNode));
   return newId;

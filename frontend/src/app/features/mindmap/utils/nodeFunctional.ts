@@ -260,7 +260,7 @@ export const getPath = (root: MindMapNode, targetId: string): MindMapNode[] => {
  */
 export const getParent = (root: MindMapNode, targetId: string): MindMapNode | null => {
   const path = getPath(root, targetId);
-  return path.length > 1 ? path[path.length - 2] : null;
+  return path.length > 1 ? path[path.length - 2] ?? null : null;
 };
 
 /**
@@ -389,7 +389,10 @@ export const treesEqual = (a: MindMapNode, b: MindMapNode): boolean => {
 
   if (aChildren.length !== bChildren.length) return false;
 
-  return aChildren.every((child, i) => treesEqual(child, bChildren[i]));
+  return aChildren.every((child, i) => {
+    const otherChild = bChildren[i];
+    return otherChild !== undefined && treesEqual(child, otherChild);
+  });
 };
 
 // === Sorting ===

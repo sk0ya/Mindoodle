@@ -83,16 +83,17 @@ export class LocalStorageManager {
 
       if (item === null) {
         logger.debug(`📋 LocalStorage: キー未発見 - デフォルト値使用`, { key });
-        return {
-          success: true,
-          data: defaultValue
-        };
+        return defaultValue === undefined
+          ? { success: true }
+          : { success: true, data: defaultValue };
       }
 
       const parseResult = safeJsonParse<T>(item);
       if (!parseResult.success) {
         logger.error(`❌ LocalStorage: JSON解析失敗`, { key, error: parseResult.error });
-        return { success: false, error: parseResult.error || 'Parse failed', data: defaultValue };
+        return defaultValue === undefined
+          ? { success: false, error: parseResult.error || 'Parse failed' }
+          : { success: false, error: parseResult.error || 'Parse failed', data: defaultValue };
       }
       const parsed = parseResult.data as T;
       logger.debug(`📋 LocalStorage: 取得成功`, { key, type: typeof parsed });
@@ -100,7 +101,9 @@ export class LocalStorageManager {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error(`❌ LocalStorage: 取得失敗`, { key, error: errorMessage });
-      return { success: false, error: errorMessage, data: defaultValue };
+      return defaultValue === undefined
+        ? { success: false, error: errorMessage }
+        : { success: false, error: errorMessage, data: defaultValue };
     }
   }
   

@@ -38,7 +38,9 @@ const executeMoveOperation = (
       state.normalizedData = result.data as NormalizedData;
       moveResult = { success: true };
     } else {
-      moveResult = { success: false, reason: result.reason };
+      moveResult = result.reason === undefined
+        ? { success: false }
+        : { success: false, reason: result.reason };
       logger.warn(`${operationName} constraint violation:`, result.reason);
     }
   });

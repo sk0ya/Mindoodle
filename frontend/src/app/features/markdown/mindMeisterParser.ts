@@ -20,19 +20,19 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
   }
 
   // 最初の行からタイトルを抽出（# [タイトル](URL) 形式）
-  const firstLine = lines[0].trim();
+  const firstLine = (lines[0] ?? '').trim();
   let rootText = '';
   
   // MindMeisterのリンク形式を解析
   const linkRe = /^#\s*\[(.*?)\]/;
   const linkMatch = linkRe.exec(firstLine);
   if (linkMatch) {
-    rootText = linkMatch[1];
+    rootText = linkMatch[1] ?? '';
   } else {
     // 通常のマークダウンヘッダー形式
     const headerRe = /^#+\s*(.+)/;
     const headerMatch = headerRe.exec(firstLine);
-    rootText = headerMatch ? headerMatch[1] : firstLine;
+    rootText = headerMatch?.[1] ?? firstLine;
   }
 
   // まず全行からインデントレベルを抽出して階層構造を判定
@@ -42,7 +42,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       const indentRe = /^(\s*)-\s*(.+)/;
       const indentMatch = indentRe.exec(line);
       if (indentMatch) {
-        levels.push(indentMatch[1].length);
+        levels.push(indentMatch[1]?.length ?? 0);
       }
     }
     return [...new Set(levels)].sort((a, b) => a - b); // 重複削除してソート
@@ -57,6 +57,7 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
 
     while (i < lines.length) {
       const line = lines[i];
+      if (line === undefined) break;
       
       // インデントレベルを計算（trimしない）
       const indentRe = /^(\s*)-\s*(.+)/;
@@ -67,16 +68,16 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       }
 
       // インデントスペース数から実際のレベルを算出
-      const indentSpaces = indentMatch[1].length;
+      const indentSpaces = indentMatch[1]?.length ?? 0;
       const indentLevel = indentLevels.indexOf(indentSpaces);
-      let nodeText = indentMatch[2];
+      let nodeText = indentMatch[2] ?? '';
 
       // チェックボックスパターンを検出（安全な手続き的解析）
       let isCheckbox = false;
       let isChecked = false;
       if (nodeText.startsWith('[') && nodeText.length >= 3 && nodeText[2] === ']') {
         const mark = nodeText[1];
-        if (mark === ' ' || mark.toLowerCase() === 'x') {
+        if (mark !== undefined && (mark === ' ' || mark.toLowerCase() === 'x')) {
           isCheckbox = true;
           isChecked = mark.toLowerCase() === 'x';
           nodeText = nodeText.slice(3).trimStart();
@@ -97,15 +98,16 @@ export function parseMindMeisterMarkdown(markdown: string): MindMapNode | null {
       
       while (j < lines.length) {
         const nextLine = lines[j];
+        if (nextLine === undefined) break;
         const nextIndentRe = /^(\s*)-\s*(.+)/;
         const nextIndentMatch = nextIndentRe.exec(nextLine);
         
         if (nextIndentMatch) {
-          const nextIndentSpaces = nextIndentMatch[1].length;
+          const nextIndentSpaces = nextIndentMatch[1]?.length ?? 0;
           const nextIndentLevel = indentLevels.indexOf(nextIndentSpaces);
           
           if (nextIndentLevel > indentLevel) {
-            childLines.push(lines[j]);
+            childLines.push(nextLine);
             j++;
           } else {
             break;
@@ -183,7 +185,7 @@ export function isMindMeisterFormat(text: string): boolean {
   if (lines.length === 0) return false;
   
   
-  const firstLine = lines[0].trim();
+  const firstLine = (lines[0] ?? '').trim();
   const mmLinkRe = /^#\s*\[.*?\]\(https?:\/\/.*mindmeister\.com.*\)/;
   if (mmLinkRe.exec(firstLine)) return true;
   
@@ -191,7 +193,7 @@ export function isMindMeisterFormat(text: string): boolean {
   const listRe = /^\s*-\s+.+/;
   const headerRe2 = /^#+\s+.+/;
   const hasListItems = lines.some(line => listRe.exec(line.trim()));
-  const hasHeader = Boolean(headerRe2.exec(lines[0]));
+  const hasHeader = Boolean(headerRe2.exec(firstLine));
   
   return hasHeader && hasListItems;
 }

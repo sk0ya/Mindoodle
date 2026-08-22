@@ -86,6 +86,7 @@ export const getClientCoordinates = (
     return { clientX: e.clientX, clientY: e.clientY };
   } else {
     const touch = e.touches[0] || e.changedTouches[0];
+    if (!touch) return { clientX: 0, clientY: 0 };
     return { clientX: touch.clientX, clientY: touch.clientY };
   }
 };

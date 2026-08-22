@@ -26,7 +26,7 @@ export const flattenNodesToOptions = (
       text: node.text,
       anchorText: anchor,
       displayText: anchor,
-      mapId,
+      ...(mapId !== undefined ? { mapId } : {}),
     });
     if (node.children) {
       node.children.forEach(traverse);

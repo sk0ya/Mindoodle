@@ -177,7 +177,7 @@ class MemoryService {
 
     let eventListeners = 0;
     try {
-      const eventManager = (window as unknown as Record<string, unknown>).eventManager;
+      const eventManager = (window as unknown as Record<string, unknown>)['eventManager'];
       if (eventManager && typeof eventManager === 'object' && 'getStatus' in eventManager) {
         const getStatus = (eventManager as { getStatus: () => { activeListeners: number } }).getStatus;
         eventListeners = getStatus().activeListeners;
@@ -238,12 +238,13 @@ class MemoryService {
       const recent = this.snapshots.slice(-5);
       const isIncreasing = recent.every((snap, i): boolean => {
         if (i === 0) return true;
-        const prevHeap = recent[i - 1].jsHeapUsed;
+        const prevHeap = recent[i - 1]?.jsHeapUsed;
         return Boolean(snap.jsHeapUsed && prevHeap && snap.jsHeapUsed > prevHeap);
       });
 
       if (isIncreasing && latest.jsHeapUsed) {
         const first = recent[0];
+        if (!first) return;
         const increase = latest.jsHeapUsed - (first.jsHeapUsed || 0);
         const increasePercent = (increase / (first.jsHeapUsed || 1)) * 100;
 
@@ -305,8 +306,10 @@ class MemoryService {
 
     if (values.length < 3) return 'stable';
 
-    const isIncreasing = values[2] > values[1] && values[1] > values[0];
-    const isDecreasing = values[2] < values[1] && values[1] < values[0];
+    const [first, second, third] = values;
+    if (first === undefined || second === undefined || third === undefined) return 'stable';
+    const isIncreasing = third > second && second > first;
+    const isDecreasing = third < second && second < first;
 
     if (isIncreasing) return 'increasing';
     if (isDecreasing) return 'decreasing';
@@ -422,6 +425,6 @@ if (isDevelopment()) {
 
 
 if (isDevelopment() && typeof window !== 'undefined') {
-  (window as unknown as Record<string, unknown>).memoryService = memoryService;
+  (window as unknown as Record<string, unknown>)['memoryService'] = memoryService;
   console.log('🔧 開発ツール: window.memoryService で手動メモリ管理が可能');
 }

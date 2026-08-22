@@ -52,7 +52,7 @@ export const isModifier = (char: string): boolean => /^[ai]$/.test(char);
 export const parseCount = (buffer: string): number | undefined => {
   const regex = /^(\d+)/;
   const match = regex.exec(buffer);
-  return match ? parseInt(match[1], 10) : undefined;
+  return match?.[1] === undefined ? undefined : parseInt(match[1], 10);
 };
 
 export const extractMotion = (buffer: string): string | undefined => {
@@ -84,9 +84,9 @@ export const parseVimCommand = (buffer: string): VimCommand => {
   const motion = extractMotion(buffer);
 
   return {
-    count,
-    operator,
-    motion
+    ...(count !== undefined ? { count } : {}),
+    ...(operator !== undefined ? { operator } : {}),
+    ...(motion !== undefined ? { motion } : {}),
   };
 };
 
@@ -196,7 +196,11 @@ export const searchNodes = (query: string, caseSensitive = false) =>
 export const generateLabels = (count: number, chars: string): string[] => {
   if (count <= 0 || chars.length === 0) return [];
   const maxSingle = chars.length;
-  if (count <= maxSingle) return Array.from({ length: count }, (_, i) => chars[i]);
+  if (count <= maxSingle) {
+    return Array.from({ length: count }, (_, i) => chars[i]).filter(
+      (char): char is string => char !== undefined
+    );
+  }
 
   // Keep labels as short as possible: a,b,aa,ab,... This avoids skipping
   // usable labels when the alphabet is small (and naturally scales beyond
@@ -217,7 +221,12 @@ export const generateLabels = (count: number, chars: string): string[] => {
     depth += 1;
   }
 
-  return [...Array.from({ length: maxSingle }, (_, i) => chars[i]), ...labels].slice(0, count);
+  return [
+    ...Array.from({ length: maxSingle }, (_, i) => chars[i]).filter(
+      (char): char is string => char !== undefined
+    ),
+    ...labels,
+  ].slice(0, count);
 };
 
 // Kept for callers that use the original alphabet-based label helpers.
@@ -225,11 +234,11 @@ export const JUMP_CHARS = JUMP_LABEL_CHARS;
 
 export const generateJumpLabel = (index: number): string => {
   if (index < JUMP_LABEL_CHARS.length) {
-    return JUMP_LABEL_CHARS[index];
+    return JUMP_LABEL_CHARS[index] ?? '';
   }
   const firstIndex = Math.floor(index / JUMP_LABEL_CHARS.length) - 1;
   const secondIndex = index % JUMP_LABEL_CHARS.length;
-  return JUMP_LABEL_CHARS[firstIndex] + JUMP_LABEL_CHARS[secondIndex];
+  return (JUMP_LABEL_CHARS[firstIndex] ?? '') + (JUMP_LABEL_CHARS[secondIndex] ?? '');
 };
 
 export const generateJumpLabels = (count: number): string[] =>
@@ -335,7 +344,7 @@ export const createKeyMapping = (
   key,
   mode,
   action,
-  description
+  ...(description !== undefined ? { description } : {}),
 });
 
 export const findKeyMapping = (

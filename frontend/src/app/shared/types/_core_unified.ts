@@ -207,11 +207,11 @@ export const isValidMindMapNode = (obj: unknown): obj is MindMapNode => {
   if (!obj || typeof obj !== 'object') return false;
   const node = obj as Record<string, unknown>;
   return (
-    typeof node.id === 'string' &&
-    typeof node.text === 'string' &&
-    typeof node.x === 'number' &&
-    typeof node.y === 'number' &&
-    Array.isArray(node.children)
+    typeof node['id'] === 'string' &&
+    typeof node['text'] === 'string' &&
+    typeof node['x'] === 'number' &&
+    typeof node['y'] === 'number' &&
+    Array.isArray(node['children'])
   );
 };
 
@@ -219,14 +219,14 @@ export const isValidMindMapData = (obj: unknown): obj is MindMapData => {
   if (!obj || typeof obj !== 'object') return false;
   const data = obj as Record<string, unknown>;
   return (
-    typeof data.title === 'string' &&
-    Array.isArray(data.rootNodes) &&
-    data.rootNodes.every(isValidMindMapNode) &&
-    typeof data.createdAt === 'string' &&
-    typeof data.updatedAt === 'string' &&
-    data.settings !== null &&
-    typeof data.settings === 'object' &&
-    typeof (data.settings as Record<string, unknown>).autoSave === 'boolean' &&
-    typeof (data.settings as Record<string, unknown>).autoLayout === 'boolean'
+    typeof data['title'] === 'string' &&
+    Array.isArray(data['rootNodes']) &&
+    data['rootNodes'].every(isValidMindMapNode) &&
+    typeof data['createdAt'] === 'string' &&
+    typeof data['updatedAt'] === 'string' &&
+    data['settings'] !== null &&
+    typeof data['settings'] === 'object' &&
+    typeof (data['settings'] as Record<string, unknown>)['autoSave'] === 'boolean' &&
+    typeof (data['settings'] as Record<string, unknown>)['autoLayout'] === 'boolean'
   );
 };

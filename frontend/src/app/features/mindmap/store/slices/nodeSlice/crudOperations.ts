@@ -75,16 +75,16 @@ const assignBranchColor = (
 ) => {
   const isRootNode = !parentId || !(parentId in normalizedData.parentMap);
   const color = isRootNode
-    ? COLORS.NODE_COLORS[(childCount ?? 0) % COLORS.NODE_COLORS.length]
+    ? COLORS.NODE_COLORS[(childCount ?? 0) % COLORS.NODE_COLORS.length] ?? '#333333'
     : getBranchColor(node.id, normalizedData);
-  node.color = color;
+  if (color !== undefined) node.color = color;
   normalizedData.nodes[node.id] = { ...node };
 };
 
 const deriveChildMetadata = (
   parentNode: MindMapNode,
   siblings: MindMapNode[]
-): Partial<MindMapNode['markdownMeta']> | undefined => {
+): Partial<NonNullable<MindMapNode['markdownMeta']>> | undefined => {
   // Inherit from non-table siblings
   const nonTableSiblings = siblings.filter((s) => s && 'kind' in s && s.kind !== 'table');
   if (nonTableSiblings.length > 0) {
@@ -103,20 +103,24 @@ const deriveChildMetadata = (
 
   // Derive from parent
   if (parentNode.markdownMeta) {
-    if (parentNode.markdownMeta.type === 'heading') {
-      const childLevel = (parentNode.markdownMeta.level || 1) + 1;
+    const parentMeta = parentNode.markdownMeta;
+    if (!parentMeta.type) return undefined;
+    if (parentMeta.type === 'heading') {
+      const childLevel = (parentMeta.level || 1) + 1;
       // Convert to list if level exceeds 6
       return childLevel >= 7
         ? { type: 'unordered-list', level: 1, originalFormat: '-', indentLevel: 0, lineNumber: -1 }
         : { type: 'heading', level: childLevel, originalFormat: '#'.repeat(childLevel), indentLevel: 0, lineNumber: -1 };
-    } else {
+    } else if (parentMeta.type === 'unordered-list' || parentMeta.type === 'ordered-list') {
       return {
-        type: parentNode.markdownMeta.type,
-        level: (parentNode.markdownMeta.level || 1) + 1,
-        originalFormat: parentNode.markdownMeta.originalFormat,
-        indentLevel: (parentNode.markdownMeta.indentLevel || 0) + 2,
+        type: parentMeta.type,
+        level: (parentMeta.level || 1) + 1,
+        ...(parentMeta.originalFormat !== undefined
+          ? { originalFormat: parentMeta.originalFormat }
+          : {}),
+        indentLevel: (parentMeta.indentLevel || 0) + 2,
         lineNumber: -1,
-        ...(parentNode.markdownMeta.isCheckbox && {
+        ...(parentMeta.isCheckbox && {
           isCheckbox: true,
           isChecked: false
         })
@@ -131,7 +135,7 @@ const deriveSiblingMetadata = (
   currentNode: MindMapNode,
   parentId: string | undefined,
   normalizedData: NonNullable<MindMapStore['normalizedData']>
-): Partial<MindMapNode['markdownMeta']> | undefined => {
+): Partial<NonNullable<MindMapNode['markdownMeta']>> | undefined => {
   const isTable = 'kind' in currentNode && (currentNode as MindMapNode & { kind?: string }).kind === 'table';
 
   if (!isTable) {
@@ -164,7 +168,7 @@ const deriveSiblingMetadata = (
         return {
           type: pMeta.type,
           level: (pMeta.level || 1) + 1,
-          originalFormat: pMeta.originalFormat,
+          ...(pMeta.originalFormat !== undefined ? { originalFormat: pMeta.originalFormat } : {}),
           indentLevel: (pMeta.indentLevel || 0) + 2,
           lineNumber: -1,
           ...(pMeta.isCheckbox && { isCheckbox: true, isChecked: false })
@@ -259,7 +263,7 @@ export function createCRUDOperations(
 
           // Inherit metadata
           const metadata = deriveChildMetadata(parentNode, childNodes);
-          if (metadata) newNode.markdownMeta = metadata as MindMapNode['markdownMeta'];
+          if (metadata) newNode.markdownMeta = metadata as NonNullable<MindMapNode['markdownMeta']>;
 
           // Add to normalized data
           state.normalizedData = addNormalizedNode(state.normalizedData, parentId, newNode);
@@ -305,7 +309,7 @@ export function createCRUDOperations(
             newNode.x = currentNode.x;
             newNode.y = currentNode.y;
 
-            if (derivedMeta) newNode.markdownMeta = { ...derivedMeta, lineNumber: -1 } as MindMapNode['markdownMeta'];
+            if (derivedMeta) newNode.markdownMeta = { ...derivedMeta, lineNumber: -1 } as NonNullable<MindMapNode['markdownMeta']>;
 
             state.normalizedData = addRootSiblingNode(state.normalizedData, nodeId, newNode, true);
             assignBranchColor(newNode, state.normalizedData);
@@ -320,7 +324,7 @@ export function createCRUDOperations(
             // Calculate position
             calculateNodePosition(newNode, parentNode, state.settings, { x: currentNode.x, y: currentNode.y });
 
-            if (derivedMeta) newNode.markdownMeta = { ...derivedMeta, lineNumber: -1 } as MindMapNode['markdownMeta'];
+            if (derivedMeta) newNode.markdownMeta = { ...derivedMeta, lineNumber: -1 } as NonNullable<MindMapNode['markdownMeta']>;
 
             state.normalizedData = addSiblingNormalizedNode(state.normalizedData, nodeId, newNode, insertAfter);
             assignBranchColor(newNode, state.normalizedData);
@@ -357,9 +361,9 @@ export function createCRUDOperations(
             if (currentIndex !== -1) {
               // Select next sibling, previous sibling, or parent
               if (currentIndex < siblings.length - 1) {
-                nextNodeToSelect = siblings[currentIndex + 1];
+                nextNodeToSelect = siblings[currentIndex + 1] ?? null;
               } else if (currentIndex > 0) {
-                nextNodeToSelect = siblings[currentIndex - 1];
+                nextNodeToSelect = siblings[currentIndex - 1] ?? null;
               } else if (parentId !== ROOT_NODE_KEY) {
                 nextNodeToSelect = parentId;
               }
@@ -372,7 +376,7 @@ export function createCRUDOperations(
           if (state.selectedNodeId === nodeId || !state.selectedNodeId) {
             if (!nextNodeToSelect) {
               const roots = state.normalizedData.childrenMap[ROOT_NODE_KEY] || [];
-              nextNodeToSelect = roots.length > 0 ? roots[0] : null;
+              nextNodeToSelect = roots.length > 0 ? roots[0] ?? null : null;
             }
             state.selectedNodeId = nextNodeToSelect;
           }

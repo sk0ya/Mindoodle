@@ -135,7 +135,7 @@ export function useShortcutHandlers(args: Args) {
         if (newNodeId) {
           scheduleNewNodeVisibilityCheck({
             nodeId: newNodeId,
-            ensureSelectedNodeVisible,
+            ...(ensureSelectedNodeVisible ? { ensureSelectedNodeVisible } : {}),
             preventDownwardPan: true,
             getSelectedNodeId: () => getStoreState().selectedNodeId,
             getRootNodes,
@@ -154,7 +154,7 @@ export function useShortcutHandlers(args: Args) {
         if (newNodeId) {
           scheduleNewNodeVisibilityCheck({
             nodeId: newNodeId,
-            ensureSelectedNodeVisible,
+            ...(ensureSelectedNodeVisible ? { ensureSelectedNodeVisible } : {}),
             getSelectedNodeId: () => getStoreState().selectedNodeId,
             getRootNodes,
           });

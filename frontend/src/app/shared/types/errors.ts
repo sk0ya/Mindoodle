@@ -57,7 +57,9 @@ export class MindFlowBaseError extends Error implements MindFlowError {
     super(message);
     this.name = 'MindFlowError';
     this.code = code;
-    this.details = details;
+    if (details !== undefined) {
+      this.details = details;
+    }
     this.timestamp = new Date().toISOString();
     
     

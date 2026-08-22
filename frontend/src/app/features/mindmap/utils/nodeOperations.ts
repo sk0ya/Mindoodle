@@ -74,11 +74,11 @@ export interface NodeValidationResult {
 }
 
 const validators: Array<(obj: Record<string, unknown>) => string | null> = [
-  (obj) => (!obj.id || typeof obj.id !== 'string') ? 'Missing or invalid node id' : null,
-  (obj) => (typeof obj.text !== 'string') ? 'Missing or invalid node text' : null,
-  (obj) => (typeof obj.x !== 'number' || !Number.isFinite(obj.x)) ? 'Missing or invalid node x coordinate' : null,
-  (obj) => (typeof obj.y !== 'number' || !Number.isFinite(obj.y)) ? 'Missing or invalid node y coordinate' : null,
-  (obj) => !Array.isArray(obj.children) ? 'Node children must be an array' : null
+  (obj) => (!obj['id'] || typeof obj['id'] !== 'string') ? 'Missing or invalid node id' : null,
+  (obj) => (typeof obj['text'] !== 'string') ? 'Missing or invalid node text' : null,
+  (obj) => (typeof obj['x'] !== 'number' || !Number.isFinite(obj['x'])) ? 'Missing or invalid node x coordinate' : null,
+  (obj) => (typeof obj['y'] !== 'number' || !Number.isFinite(obj['y'])) ? 'Missing or invalid node y coordinate' : null,
+  (obj) => !Array.isArray(obj['children']) ? 'Node children must be an array' : null
 ];
 
 export const validateMindMapNode = (node: unknown): NodeValidationResult => {
@@ -90,8 +90,8 @@ export const validateMindMapNode = (node: unknown): NodeValidationResult => {
   const errors = validators.map(v => v(obj)).filter((e): e is string => e !== null);
 
   // Validate children recursively
-  if (Array.isArray(obj.children)) {
-    obj.children.forEach((child, index) => {
+  if (Array.isArray(obj['children'])) {
+    obj['children'].forEach((child, index) => {
       const childValidation = validateMindMapNode(child);
       if (!childValidation.isValid) {
         errors.push(`Invalid child node at index ${index}: ${childValidation.errors.join(', ')}`);
@@ -106,11 +106,11 @@ export const isMindMapNode = (node: unknown): node is MindMapNode => {
   if (!node || typeof node !== 'object') return false;
   const obj = node as Record<string, unknown>;
   return (
-    typeof obj.id === 'string' &&
-    typeof obj.text === 'string' &&
-    typeof obj.x === 'number' && Number.isFinite(obj.x) &&
-    typeof obj.y === 'number' && Number.isFinite(obj.y) &&
-    Array.isArray(obj.children) &&
-    obj.children.every((child: unknown) => isMindMapNode(child))
+    typeof obj['id'] === 'string' &&
+    typeof obj['text'] === 'string' &&
+    typeof obj['x'] === 'number' && Number.isFinite(obj['x']) &&
+    typeof obj['y'] === 'number' && Number.isFinite(obj['y']) &&
+    Array.isArray(obj['children']) &&
+    obj['children'].every((child: unknown) => isMindMapNode(child))
   );
 };
