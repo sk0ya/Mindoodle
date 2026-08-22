@@ -19,7 +19,7 @@ type Props = {
   currentWorkspaceId?: string | null;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
-  onSwitchWorkspace?: (workspaceId: string | null) => void;
+  onSwitchWorkspace?: (workspaceId: string | null) => void | Promise<void>;
   explorerTree: ExplorerItem;
   onCreateFolder: (path: string) => Promise<void>;
   currentMapData: MindMapData | null;

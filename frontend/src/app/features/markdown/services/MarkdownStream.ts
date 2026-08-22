@@ -20,6 +20,7 @@ export class MarkdownStream {
   private debounceMs: number;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private flushLock: Promise<void> = Promise.resolve();
+  private flushGeneration = 0;
 
   constructor(opts: MarkdownStreamOptions = {}) {
     this.debounceMs = typeof opts.debounceMs === 'number' ? opts.debounceMs : 200;
@@ -46,6 +47,15 @@ export class MarkdownStream {
 
   replaceSinks(next: MarkdownSink[]): void {
     this.sinks = Array.isArray(next) ? next.slice() : [];
+  }
+
+  cancelPendingFlush(): void {
+    this.flushGeneration += 1;
+    if (this.timer) {
+      clearTimeout(this.timer);
+      this.timer = null;
+    }
+    this.sinks = [];
   }
 
   addSink(sink: MarkdownSink): void {
@@ -81,14 +91,17 @@ export class MarkdownStream {
   }
 
   async flush(): Promise<void> {
+    const generation = this.flushGeneration;
     const snapshot = this.content;
     if (snapshot === this.lastFlushed) return; 
     const run = async () => {
+      if (generation !== this.flushGeneration) return;
       
       const now = this.content;
       if (now === this.lastFlushed) return;
       
-      for (const sink of this.sinks) {
+      for (const sink of this.sinks.slice()) {
+        if (generation !== this.flushGeneration) return;
         try {
           await sink.flush(now);
         } catch (err) {

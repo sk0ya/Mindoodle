@@ -26,7 +26,7 @@ interface PrimarySidebarProps {
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
-  onSwitchWorkspace?: (workspaceId: string | null) => void;
+  onSwitchWorkspace?: (workspaceId: string | null) => void | Promise<void>;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
 

@@ -57,7 +57,10 @@ export const useCloudWorkspace = (workspaces: Array<{ id: string; name: string }
   };
 };
 
-export const useGroupWorkspace = (workspaces: Array<{ id: string; name: string }>) => {
+export const useGroupWorkspace = (
+  workspaces: Array<{ id: string; name: string }>,
+  onDisconnect?: () => void | Promise<void>
+) => {
   const settings = useSettings();
   const updateSetting = useUpdateSetting();
 
@@ -80,11 +83,12 @@ export const useGroupWorkspace = (workspaces: Array<{ id: string; name: string }
     [updateSetting]
   );
 
-  const handleToggleGroup = useCallback(() => {
+  const handleToggleGroup = useCallback(async () => {
     const workspaceService = WorkspaceService.getInstance();
 
     if (isGroupConnected) {
-      workspaceService.removeGroupWorkspace();
+      await onDisconnect?.();
+      workspaceService.logoutFromGroup();
       return;
     }
 
@@ -106,7 +110,7 @@ export const useGroupWorkspace = (workspaces: Array<{ id: string; name: string }
         detail: { cloudAdapter: adapter, onSuccess: handleAuthSuccess },
       })
     );
-  }, [isGroupConnected, settings.cloudApiEndpoint, updateSetting, handleAuthSuccess]);
+  }, [isGroupConnected, settings.cloudApiEndpoint, updateSetting, handleAuthSuccess, onDisconnect]);
 
   return {
     isGroupConnected,

@@ -11,7 +11,7 @@ export const useMindMapData = () => {
   const { selectedNodeId } = useNodeSelection();
   const { editingNodeId, editText, editingMode, startEditing, startEditingWithCursorAtEnd, startEditingWithCursorAtStart, finishEditing, cancelEditing, setEditText } = useNodeEditing();
   const nodeOps = useNodeOperations();
-  const { setData, setRootNodes, applyAutoLayout } = useMapOperations();
+  const { setData, clearData, setRootNodes, applyAutoLayout } = useMapOperations();
 
   const dataOperations = {
 
@@ -56,6 +56,7 @@ export const useMindMapData = () => {
 
 
     setData,
+    clearData,
     setRootNodes,
 
 

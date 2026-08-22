@@ -71,6 +71,7 @@ export interface MindMapStore extends HistoryState, SettingsSlice, UISlice {
   
   
   setData: (data: MindMapData) => void;
+  clearData: () => void;
   setRootNodes: (rootNodes: MindMapNode[], options?: { emit?: boolean; source?: string; reason?: string }) => void;
   updateMapMetadata?: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => void;
   updateNode: (nodeId: string, updates: Partial<MindMapNode>) => void;

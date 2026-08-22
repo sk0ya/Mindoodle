@@ -156,11 +156,12 @@ export const useNodeOperations = () => {
 // Map operations selectors
 export const useMapOperations = () => {
   const setData = useMindMapStore(s => s.setData);
+  const clearData = useMindMapStore(s => s.clearData);
   const setRootNodes = useMindMapStore(s => s.setRootNodes);
   const updateMapMetadata = useMindMapStore(s => s.updateMapMetadata);
   const applyAutoLayout = useMindMapStore(s => s.applyAutoLayout);
 
-  return { setData, setRootNodes, updateMapMetadata, applyAutoLayout };
+  return { setData, clearData, setRootNodes, updateMapMetadata, applyAutoLayout };
 };
 
 // UI operations selectors

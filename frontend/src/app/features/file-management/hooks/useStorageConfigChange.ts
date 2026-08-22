@@ -1,14 +1,10 @@
 import { useEffect, useRef } from 'react';
 import { logger } from '@shared/utils';
 import type { StorageConfig } from '@core/types';
-import type { MindMapData } from '@shared/types';
 
 interface StorageConfigChangeDependencies {
-  setData: (_data: MindMapData) => void;
-  isInitialized: boolean;
-  refreshMapList: () => Promise<void>;
-  applyAutoLayout?: () => void;
-  currentWorkspaceId?: string | null;
+  clearData: () => void;
+  cancelPendingWrites?: () => void;
 }
 
 
@@ -17,21 +13,22 @@ export const useStorageConfigChange = (
   dependencies: StorageConfigChangeDependencies
 ) => {
   const prevStorageConfigRef = useRef<StorageConfig | null>(storageConfig || null);
+  const { clearData, cancelPendingWrites } = dependencies;
 
   useEffect(() => {
     const currentConfig = storageConfig;
-    const prevConfig = prevStorageConfigRef.current;
+    const currentMode = currentConfig?.mode;
+    const previousMode = prevStorageConfigRef.current?.mode;
 
-    const modeChanged = currentConfig?.mode !== prevConfig?.mode;
-
-
-    if (modeChanged) {
-      logger.info('Storage config changed, reloading data', {
-        prevMode: prevConfig?.mode,
-        newMode: currentConfig?.mode
+    if (currentMode !== previousMode) {
+      logger.info('Storage config changed, clearing the active map before reload', {
+        prevMode: previousMode,
+        newMode: currentMode
       });
+      cancelPendingWrites?.();
+      clearData();
     }
 
     prevStorageConfigRef.current = currentConfig || null;
-  }, [storageConfig, dependencies]);
+  }, [cancelPendingWrites, clearData, storageConfig]);
 };

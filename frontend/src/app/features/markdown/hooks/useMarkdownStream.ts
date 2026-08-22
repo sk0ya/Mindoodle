@@ -33,6 +33,12 @@ export const useMarkdownStream = (
     stream.replaceSinks([localSink]);
   }, [adapter, id, stream]);
 
+  useEffect(() => {
+    return () => {
+      stream.cancelPendingFlush();
+    };
+  }, [stream]);
+
   
   useEffect(() => {
     let cancelled = false;

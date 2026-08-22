@@ -170,6 +170,28 @@ export class WorkspaceService {
     logger.info('Removed group workspace');
   }
 
+  logoutFromGroup(): void {
+    const groupWorkspace = this.workspaces.get('group');
+    const adapter = groupWorkspace?.cloudAdapter || this.groupAdapter;
+
+    this.workspaces.delete('group');
+    this.groupAdapter = null;
+    this.persistWorkspaces();
+    this.notifyListeners();
+    logger.info('Removed group workspace');
+
+    // Group authentication uses a separate token. Clearing only the
+    // workspace would leave that token valid and reconnect it on the next
+    // initialization.
+    if (adapter) {
+      adapter.logout().then(() => {
+        logger.info('Successfully logged out from group');
+      }).catch((error) => {
+        logger.error('Error during group logout:', error);
+      });
+    }
+  }
+
   
   getCloudAdapter(): CloudStorageAdapter | null {
     return this.cloudAdapter;

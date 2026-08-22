@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { MapIdentifier, MindMapData, MindMapNode } from '@shared/types';
 import { useMindMapData } from './useMindMapData';
 import { MarkdownImporter } from '@markdown/markdownImporter';
@@ -34,14 +34,6 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
     currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId,
   });
 
-  useStorageConfigChange(storageConfig, {
-    setData: dataHook.setData,
-    isInitialized: persistenceHook.isInitialized,
-    refreshMapList: persistenceHook.refreshMapList,
-    applyAutoLayout: dataHook.applyAutoLayout,
-    currentWorkspaceId: dataHook.data?.mapIdentifier.workspaceId
-  });
-
   const [, setAutoSaveEnabled] = useState(true);
   const setAutoSaveEnabledStable = useStableCallback((enabled: boolean) => setAutoSaveEnabled(enabled));
 
@@ -55,6 +47,15 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   }, [dataHook.data?.mapIdentifier?.workspaceId, dataHook.data?.mapIdentifier?.mapId]);
 
   const markdownStreamHook = useMarkdownStream(stableAdapter, currentId, { debounceMs: 200 });
+
+  const cancelPendingMarkdownWrites = useCallback(() => {
+    markdownStreamHook.stream.cancelPendingFlush();
+  }, [markdownStreamHook.stream]);
+
+  useStorageConfigChange(storageConfig, {
+    clearData: dataHook.clearData,
+    cancelPendingWrites: cancelPendingMarkdownWrites
+  });
 
   const stableMarkdownFunctions = useMemo(() => ({
     setFromEditor: markdownStreamHook.setFromEditor,
@@ -350,6 +351,13 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
       windowWithProgress.__selectMapFallbackInProgress[fallbackKey] = true;
 
       try {
+        // Keep the persistence manager's active workspace aligned with the
+        // map being opened. Otherwise a later refresh can replace the
+        // authenticated workspace's list with the default local list.
+        if (persistenceHook.currentWorkspaceId !== workspaceId) {
+          await persistenceHook.switchWorkspace(workspaceId);
+        }
+
         const adapter = getAdapterForWorkspace(persistenceHook, workspaceId);
         if (!adapter) {
           delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];

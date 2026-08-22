@@ -14,6 +14,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   const [explorerTree, setExplorerTree] = useState<ExplorerItem | null>(null);
   const [workspaces, setWorkspaces] = useState<WorkspaceInfo[]>([]);
   const [currentWorkspaceId, setCurrentWorkspaceId] = useState<string | null>(null);
+  const refreshRequestRef = useRef(0);
 
   const prevConfigRef = useRef<StorageConfig | null>(null);
 
@@ -159,6 +160,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       return;
     }
 
+    const requestId = ++refreshRequestRef.current;
     const currentAdapter = adapterManager.getCurrentAdapter();
     const currentWsId = adapterManager.getCurrentWorkspaceId();
     logger.info(`refreshMapList: Current workspace: ${currentWsId}, adapter type: ${currentAdapter?.constructor.name}`);
@@ -172,6 +174,19 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
         
         logger.info(`Loading maps from adapter: ${currentAdapter.constructor.name}`);
         const maps = await currentAdapter.loadAllMaps();
+
+        // Authentication and workspace changes can start overlapping loads.
+        // Never let an older response overwrite the list for the newly active
+        // workspace or user.
+        if (
+          requestId !== refreshRequestRef.current ||
+          adapterManager.getCurrentWorkspaceId() !== currentWsId ||
+          adapterManager.getCurrentAdapter() !== currentAdapter
+        ) {
+          logger.debug('Ignoring stale map refresh result');
+          return;
+        }
+
         setAllMindMaps(maps);
         logger.info(`Loaded ${maps.length} maps from current adapter (${currentAdapter.constructor.name})`);
 
@@ -325,7 +340,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
       }
     } else if (id === 'group') {
       const workspaceService = WorkspaceService.getInstance();
-      workspaceService.removeGroupWorkspace();
+      workspaceService.logoutFromGroup();
 
       if (adapterManager) {
         adapterManager.removeGroupAdapter();

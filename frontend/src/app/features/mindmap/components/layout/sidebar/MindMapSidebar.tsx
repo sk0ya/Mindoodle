@@ -29,7 +29,7 @@ interface MindMapSidebarProps {
   workspaces?: Array<{ id: string; name: string }>;
   onAddWorkspace?: () => void;
   onRemoveWorkspace?: (id: string) => void;
-  onSwitchWorkspace?: (workspaceId: string | null) => void;
+  onSwitchWorkspace?: (workspaceId: string | null) => void | Promise<void>;
   explorerTree: ExplorerItem;
   onCreateFolder?: (path: string) => Promise<void> | void;
 }
@@ -52,7 +52,10 @@ const MindMapSidebar: React.FC<MindMapSidebarProps> = ({
   onCreateFolder
 }) => {
   const { isCloudConnected, handleToggleCloud } = useCloudWorkspace(workspaces);
-  const { isGroupConnected, handleToggleGroup } = useGroupWorkspace(workspaces);
+  const { isGroupConnected, handleToggleGroup } = useGroupWorkspace(
+    workspaces,
+    currentWorkspaceId === 'group' ? () => onSwitchWorkspace?.(null) : undefined
+  );
 
   const sidebar = useSidebar({
     mindMaps,

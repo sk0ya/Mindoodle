@@ -74,6 +74,7 @@ export interface DataSlice {
   lastSelectionBeforeInsert?: string | null;
 
   setData: (data: MindMapData) => void;
+  clearData: () => void;
   setRootNodes: (rootNodes: MindMapNode[], options?: { emit?: boolean; source?: string; reason?: string }) => void;
   updateMapMetadata?: (updates: Partial<Pick<MindMapData, 'title' | 'category'>>) => void;
   updateNormalizedData: () => void;
@@ -108,6 +109,23 @@ export const createDataSlice: StateCreator<
     });
 
     // Clear Mermaid caches when loading a new map to prevent stale diagram rendering
+    get().clearMermaidRelatedCaches();
+  },
+
+  clearData: () => {
+    set((state) => {
+      state.data = null;
+      state.normalizedData = null;
+      state.selectedNodeId = null;
+      state.editingNodeId = null;
+      state.editText = '';
+      state.editingMode = null;
+      state.history = [];
+      state.historyIndex = -1;
+    });
+
+    // Do not let caches from the previous authenticated workspace render
+    // while the next workspace is being loaded.
     get().clearMermaidRelatedCaches();
   },
 
