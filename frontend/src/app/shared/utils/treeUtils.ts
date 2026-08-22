@@ -222,6 +222,7 @@ export function isAncestor(
   ancestorId: string,
   descendantId: string
 ): boolean {
+  if (ancestorId === descendantId) return false;
   const ancestor = findNodeById(roots, ancestorId);
   return ancestor ? findNodeByIdInRoot(ancestor, descendantId) !== null : false;
 }

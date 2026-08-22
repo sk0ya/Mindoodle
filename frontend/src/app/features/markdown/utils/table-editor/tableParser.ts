@@ -11,11 +11,17 @@ export function parseMarkdownTable(markdown: string): TableData | null {
   const lines = markdown.trim().split('\n').filter(line => line.trim());
   if (lines.length < 2) return null;
 
+  const parseCells = (line: string): string[] => {
+    const trimmed = line.trim();
+    const withoutLeadingPipe = trimmed.startsWith('|') ? trimmed.slice(1) : trimmed;
+    const withoutOuterPipes = withoutLeadingPipe.endsWith('|')
+      ? withoutLeadingPipe.slice(0, -1)
+      : withoutLeadingPipe;
+    return withoutOuterPipes.split('|').map(cell => cell.trim());
+  };
+
   // Parse header line
-  const headerLine = lines[0].trim();
-  const headers = headerLine
-    .split('|')
-    .map(cell => cell.trim())
+  const headers = parseCells(lines[0])
     .filter(cell => cell.length > 0)
     .map(value => ({ value }));
 
@@ -24,11 +30,8 @@ export function parseMarkdownTable(markdown: string): TableData | null {
   // Skip separator line (index 1), parse data rows
   const rows: TableCell[][] = [];
   for (let i = 2; i < lines.length; i++) {
-    const line = lines[i].trim();
-    const cells = line
-      .split('|')
-      .map(cell => cell.trim())
-      .filter((_, idx) => idx > 0 && idx <= headers.length)
+    const cells = parseCells(lines[i])
+      .slice(0, headers.length)
       .map(value => ({ value }));
 
     while (cells.length < headers.length) {

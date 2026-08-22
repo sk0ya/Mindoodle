@@ -108,13 +108,13 @@ function slugify(text: string): string {
 
 function findNodeByText(root: MindMapNode, target: string): MindMapNode | null {
   const targetSlug = slugify(target);
-  const stack: MindMapNode[] = [root];
-  while (stack.length) {
-    const node = stack.pop();
+  const queue: MindMapNode[] = [root];
+  while (queue.length) {
+    const node = queue.shift();
     if (!node) continue;
     if (node.text === target) return node;
     if (slugify(node.text) === targetSlug) return node;
-    if (node.children && node.children.length) stack.push(...node.children);
+    if (node.children && node.children.length) queue.push(...node.children);
   }
   return null;
 }

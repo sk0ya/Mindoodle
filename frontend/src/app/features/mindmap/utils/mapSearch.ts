@@ -24,16 +24,22 @@ const buildAncestorChain = (
   ancestors: string[] = []
 ): string[] => {
   const parentId = parentMap[nodeId];
-  if (!parentId || parentId === 'root') return ancestors;
+  if (!parentId) return ancestors;
   return buildAncestorChain(parentId, parentMap, [...ancestors, parentId]);
 };
 
 const collectDescendants = (
   nodeId: string,
-  childrenMap: Record<string, string[]>
+  childrenMap: Record<string, string[]>,
+  visited: Set<string> = new Set()
 ): string[] => {
+  if (visited.has(nodeId)) return [];
+  visited.add(nodeId);
   const children = childrenMap[nodeId] || [];
-  return children.flatMap(childId => [childId, ...collectDescendants(childId, childrenMap)]);
+  return children.flatMap(childId => {
+    if (visited.has(childId)) return [];
+    return [childId, ...collectDescendants(childId, childrenMap, visited)];
+  });
 };
 
 const expandWithRelatives = (

@@ -5,6 +5,8 @@ export type MapUrlTarget = {
   workspaceId?: string;
 };
 
+type MapUrlLocation = Pick<Location, 'origin' | 'pathname' | 'search' | 'hash'>;
+
 const MAP_PARAM = 'map';
 const LEGACY_MAP_PARAM = 'mapId';
 const WORKSPACE_PARAM = 'workspace';
@@ -21,7 +23,7 @@ const normalizeWorkspaceId = (value: string | null): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export function getMapTargetFromUrl(location: Location): MapUrlTarget | null {
+export function getMapTargetFromUrl(location: MapUrlLocation): MapUrlTarget | null {
   const params = new URLSearchParams(location.search);
   const mapFromQuery = normalizeMapId(params.get(MAP_PARAM) || params.get(LEGACY_MAP_PARAM));
 
@@ -46,7 +48,7 @@ export function getMapTargetFromUrl(location: Location): MapUrlTarget | null {
   };
 }
 
-export function buildMapUrl(location: Location, identifier: MapIdentifier): string {
+export function buildMapUrl(location: MapUrlLocation, identifier: MapIdentifier): string {
   const url = new URL(`${location.pathname}${location.search}${location.hash}`, location.origin);
   url.searchParams.set(MAP_PARAM, identifier.mapId);
   url.searchParams.delete(LEGACY_MAP_PARAM);
