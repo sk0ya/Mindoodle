@@ -37,7 +37,12 @@ export function getMapTargetFromUrl(location: MapUrlLocation): MapUrlTarget | nu
   const hashMatch = HASH_MAP_PATTERN.exec(location.hash);
   if (!hashMatch) return null;
 
-  const rawMapId = hashMatch[1] ? decodeURIComponent(hashMatch[1]) : '';
+  let rawMapId = '';
+  try {
+    rawMapId = hashMatch[1] ? decodeURIComponent(hashMatch[1]) : '';
+  } catch {
+    return null;
+  }
   const mapId = normalizeMapId(rawMapId);
   if (!mapId) return null;
 

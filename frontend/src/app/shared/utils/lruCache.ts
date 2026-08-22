@@ -15,7 +15,7 @@ export class LRUCache<K, V> {
     const timestamp = this.timestamps.get(key);
 
     
-    if (timestamp && (now - timestamp) > this.ttl) {
+    if (timestamp !== undefined && (now - timestamp) > this.ttl) {
       this.cache.delete(key);
       this.timestamps.delete(key);
       return undefined;

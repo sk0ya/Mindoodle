@@ -31,6 +31,7 @@ describe('markdown table editor utilities', () => {
     expect(parseMarkdownTable('')).toBeNull();
     expect(parseMarkdownTable('| A |')).toBeNull();
     expect(parseMarkdownTable('| |\n|---|')).toBeNull();
+    expect(parseMarkdownTable('| A | B |\n| not a separator | nope |\n| 1 | 2 |')).toBeNull();
   });
 
   it('serializes a rectangular table and sanitizes markdown delimiters', () => {

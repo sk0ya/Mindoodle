@@ -27,6 +27,14 @@ export function parseMarkdownTable(markdown: string): TableData | null {
 
   if (headers.length === 0) return null;
 
+  const separatorCells = parseCells(lines[1]);
+  if (
+    separatorCells.length !== headers.length ||
+    separatorCells.some(cell => !/^:?-{3,}:?$/.test(cell))
+  ) {
+    return null;
+  }
+
   // Skip separator line (index 1), parse data rows
   const rows: TableCell[][] = [];
   for (let i = 2; i < lines.length; i++) {

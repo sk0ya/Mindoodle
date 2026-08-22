@@ -76,8 +76,8 @@ export interface NodeValidationResult {
 const validators: Array<(obj: Record<string, unknown>) => string | null> = [
   (obj) => (!obj.id || typeof obj.id !== 'string') ? 'Missing or invalid node id' : null,
   (obj) => (typeof obj.text !== 'string') ? 'Missing or invalid node text' : null,
-  (obj) => (typeof obj.x !== 'number' || isNaN(obj.x)) ? 'Missing or invalid node x coordinate' : null,
-  (obj) => (typeof obj.y !== 'number' || isNaN(obj.y)) ? 'Missing or invalid node y coordinate' : null,
+  (obj) => (typeof obj.x !== 'number' || !Number.isFinite(obj.x)) ? 'Missing or invalid node x coordinate' : null,
+  (obj) => (typeof obj.y !== 'number' || !Number.isFinite(obj.y)) ? 'Missing or invalid node y coordinate' : null,
   (obj) => !Array.isArray(obj.children) ? 'Node children must be an array' : null
 ];
 
@@ -108,8 +108,8 @@ export const isMindMapNode = (node: unknown): node is MindMapNode => {
   return (
     typeof obj.id === 'string' &&
     typeof obj.text === 'string' &&
-    typeof obj.x === 'number' &&
-    typeof obj.y === 'number' &&
+    typeof obj.x === 'number' && Number.isFinite(obj.x) &&
+    typeof obj.y === 'number' && Number.isFinite(obj.y) &&
     Array.isArray(obj.children) &&
     obj.children.every((child: unknown) => isMindMapNode(child))
   );

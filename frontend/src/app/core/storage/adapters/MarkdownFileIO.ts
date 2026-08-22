@@ -69,7 +69,12 @@ export async function parseMarkdownToMapData(
       createdAt: now,
       updatedAt: now,
       mapIdentifier: { mapId, workspaceId },
-      settings: {} as MindMapData['settings'],
+      settings: {
+        autoSave: true,
+        autoLayout: true,
+        showGrid: false,
+        animationEnabled: true,
+      },
     };
 
     return data;
@@ -135,7 +140,12 @@ export async function loadMarkdownAsMapData(
 
     return data;
   } catch (error) {
-    const fileName = await getFileName(fileHandle);
+    let fileName = fileHandle.name || 'unknown file';
+    try {
+      fileName = await getFileName(fileHandle);
+    } catch {
+      // Keep error handling best-effort when the handle itself is unreadable.
+    }
     const errorName = (error as Error & { name?: string })?.name;
 
     // Only warn once per file for permission issues

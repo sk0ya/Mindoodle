@@ -67,8 +67,9 @@ export function getDirectoryPath(filePath: string): string {
  */
 export function normalizePath(path: string, separator: string = '/'): string {
   if (!path) return '';
-  return path.replace(new RegExp(`${separator}+`, 'g'), separator)
-             .replace(new RegExp(`^${separator}|${separator}$`, 'g'), '');
+  const escapedSeparator = separator.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  return path.replace(new RegExp(`${escapedSeparator}+`, 'g'), separator)
+             .replace(new RegExp(`^${escapedSeparator}|${escapedSeparator}$`, 'g'), '');
 }
 
 /**

@@ -268,7 +268,8 @@ export const getParent = (root: MindMapNode, targetId: string): MindMapNode | nu
  */
 export const getSiblings = (root: MindMapNode, targetId: string): MindMapNode[] => {
   const parent = getParent(root, targetId);
-  return parent?.children ?? [];
+  if (parent) return parent.children;
+  return root.id === targetId ? [root] : [];
 };
 
 /**
