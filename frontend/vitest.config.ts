@@ -55,6 +55,13 @@ export default defineConfig({
         'src/app/commands/utils/commandFunctional.ts',
         'src/app/commands/utils/commandFactories.ts',
         'src/app/commands/utils/commandResults.ts',
+        'src/app/features/vim/utils/vimFunctional.ts',
+        'src/app/shared/utils/globalSearch.ts',
+        'src/app/core/storage/adapters/fileSystemHelpers.ts',
+        'src/app/core/storage/adapters/ExplorerTreeBuilder.ts',
+        'src/app/core/storage/adapters/PathResolver.ts',
+        'src/app/features/mindmap/utils/linkNavigation.ts',
+        'src/app/shared/components/AuthModal.tsx',
       ],
       exclude: [
         'node_modules/',

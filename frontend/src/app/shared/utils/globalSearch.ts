@@ -72,7 +72,7 @@ export async function searchFilesForContent(
   if (!query.trim() || !storageAdapter) return [];
 
   const results: FileBasedSearchResult[] = [];
-  const searchTerm = query.toLowerCase();
+    const searchTerm = query.trim().toLowerCase();
 
   try {
     const maps = await storageAdapter.loadAllMaps();

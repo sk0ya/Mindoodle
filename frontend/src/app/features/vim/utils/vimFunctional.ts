@@ -63,8 +63,10 @@ export const extractMotion = (buffer: string): string | undefined => {
 };
 
 export const extractOperator = (buffer: string): string | undefined => {
+  // Counts precede operators in Vim commands (`2dw`).
+  const withoutCount = buffer.replace(/^\d+/, '');
   const regex = /^[dycx<>]/;
-  const match = regex.exec(buffer);
+  const match = regex.exec(withoutCount);
   return match ? match[0] : undefined;
 };
 
@@ -104,7 +106,10 @@ export const isBufferEmpty = (buffer: string): boolean => buffer.length === 0;
 
 export const isBufferComplete = (buffer: string): boolean => {
   const cmd = parseVimCommand(buffer);
-  return !!(cmd.motion || (cmd.operator && cmd.count));
+  // A count/operator pair such as `2d` is still waiting for its motion.
+  // Treating it as complete makes the command executor run a destructive
+  // operation before the user has finished typing the command.
+  return !!cmd.motion;
 };
 
 // === Node Predicates ===
@@ -189,27 +194,30 @@ export const searchNodes = (query: string, caseSensitive = false) =>
 // === Jump Labels ===
 
 export const generateLabels = (count: number, chars: string): string[] => {
+  if (count <= 0 || chars.length === 0) return [];
   const maxSingle = chars.length;
-  const maxDouble = chars.length ** 2;
-
   if (count <= maxSingle) return Array.from({ length: count }, (_, i) => chars[i]);
 
-  const generate = (depth: number): string[] => {
-    const labels: string[] = [];
-    const iterate = (prefix: string, remaining: number): void => {
+  // Keep labels as short as possible: a,b,aa,ab,... This avoids skipping
+  // usable labels when the alphabet is small (and naturally scales beyond
+  // three characters of depth).
+  const labels: string[] = [];
+  let depth = 2;
+  while (labels.length < count) {
+    const generate = (prefix: string, remaining: number): void => {
       if (remaining === 0) {
         labels.push(prefix);
         return;
       }
       for (let i = 0; i < chars.length && labels.length < count; i++) {
-        iterate(prefix + chars[i], remaining - 1);
+        generate(prefix + chars[i], remaining - 1);
       }
     };
-    iterate('', depth);
-    return labels;
-  };
+    generate('', depth);
+    depth += 1;
+  }
 
-  return count <= maxDouble ? generate(2) : generate(3);
+  return [...Array.from({ length: maxSingle }, (_, i) => chars[i]), ...labels].slice(0, count);
 };
 
 // Kept for callers that use the original alphabet-based label helpers.
