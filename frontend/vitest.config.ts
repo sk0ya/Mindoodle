@@ -32,6 +32,7 @@ export default defineConfig({
         'src/app/features/mindmap/utils/mapSearch.ts',
         'src/app/features/mindmap/utils/nodeTraversal.ts',
         'src/app/features/mindmap/utils/pasteTree.ts',
+        'src/app/features/mindmap/utils/linkUtils.ts',
         'src/app/features/vim/services/VimCountBuffer.ts',
         'src/app/features/vim/services/VimRepeatRegistry.ts',
         'src/app/shared/utils/fileSize.ts',

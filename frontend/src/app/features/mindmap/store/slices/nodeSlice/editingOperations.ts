@@ -4,7 +4,7 @@
  */
 
 import { logger } from '@shared/utils';
-import { updateNormalizedNode, denormalizeTreeData } from '@core/data/normalizedStore';
+import { updateNormalizedNode, denormalizeTreeData, ROOT_NODE_KEY } from '@core/data/normalizedStore';
 import type { MindMapStore } from '../types';
 import { applyAutoLayoutIfEnabled } from './layoutHelpers';
 
@@ -43,10 +43,10 @@ const computeFallbackSelection = (
 
   if (fallbackRef && normalizedData?.nodes[fallbackRef]) {
     state.selectedNodeId = fallbackRef;
-  } else if (parentId && parentId !== 'root') {
+  } else if (parentId && parentId !== ROOT_NODE_KEY) {
     state.selectedNodeId = parentId;
-  } else if (parentId === 'root') {
-    state.selectedNodeId = 'root';
+  } else if (parentId === ROOT_NODE_KEY) {
+    state.selectedNodeId = ROOT_NODE_KEY;
   }
 
   state.lastSelectionBeforeInsert = null;

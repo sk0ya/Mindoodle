@@ -11,6 +11,7 @@ import {
   addSiblingNormalizedNode,
   addRootSiblingNode,
   changeSiblingOrderNormalized,
+  ROOT_NODE_KEY,
 } from './normalizedStore';
 import { createTestNode as createNode } from '@mindmap/test-helpers/testNodeFactory';
 
@@ -23,7 +24,7 @@ describe('normalizedStore', () => {
       expect(normalized.rootNodeIds).toEqual(['root-1']);
       expect(normalized.nodes['root-1']).toBeDefined();
       expect(normalized.nodes['root-1'].text).toBe('Root');
-      expect(normalized.childrenMap['root']).toEqual(['root-1']);
+      expect(normalized.childrenMap[ROOT_NODE_KEY]).toEqual(['root-1']);
     });
 
     it('should normalize tree with children', () => {
@@ -47,7 +48,7 @@ describe('normalizedStore', () => {
       const normalized = normalizeTreeData([root1, root2]);
 
       expect(normalized.rootNodeIds).toEqual(['root-1', 'root-2']);
-      expect(normalized.childrenMap['root']).toEqual(['root-1', 'root-2']);
+      expect(normalized.childrenMap[ROOT_NODE_KEY]).toEqual(['root-1', 'root-2']);
     });
 
     it('should handle empty tree', () => {
@@ -288,6 +289,21 @@ describe('normalizedStore', () => {
         expect(result.reason).toContain('テーブルノード');
       }
     });
+
+    it('should reject moving a node under itself', () => {
+      const child = createNode({ id: 'child-1' });
+      const parent = createNode({ id: 'parent-1', children: [child] });
+      const normalized = normalizeTreeData([parent]);
+
+      const result = moveNormalizedNode(normalized, 'child-1', 'child-1');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.reason).toContain('自分自身');
+      }
+      expect(normalized.parentMap['child-1']).toBe('parent-1');
+      expect(normalized.childrenMap['child-1']).toEqual([]);
+    });
   });
 
   describe('moveNodeWithPositionNormalized', () => {
@@ -345,6 +361,19 @@ describe('normalizedStore', () => {
       expect(result.success).toBe(true);
       if (result.success) {
         expect(result.data.parentMap['c2']).toBe('c1');
+      }
+    });
+
+    it('should reject moving a node as a child of itself', () => {
+      const child = createNode({ id: 'c1' });
+      const parent = createNode({ id: 'p', children: [child] });
+      const normalized = normalizeTreeData([parent]);
+
+      const result = moveNodeWithPositionNormalized(normalized, 'c1', 'c1', 'child');
+
+      expect(result.success).toBe(false);
+      if (!result.success) {
+        expect(result.reason).toContain('自分自身');
       }
     });
   });

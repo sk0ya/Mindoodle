@@ -9,6 +9,9 @@ export interface NormalizedData {
   childrenMap: Record<string, string[]>;
 }
 
+// This key stores the roots' order and must not collide with a user node id.
+export const ROOT_NODE_KEY = '__mindoodle_root__';
+
 // Helper: check whether `childId` is a descendant of `parentId` in normalized structure
 function isDescendantNode(data: NormalizedData, parentId: string, childId: string): boolean {
   const children = data.childrenMap[parentId] || [];
@@ -61,9 +64,7 @@ export function normalizeTreeData(rootNodes: MindMapNode[] | undefined): Normali
     parentMap,
     childrenMap: {
       ...childrenMap,
-      
-      
-      ['root']: rootNodes.map(node => node.id)
+      [ROOT_NODE_KEY]: rootNodes.map(node => node.id)
     }
   };
 }
@@ -143,7 +144,7 @@ export function deleteNormalizedNode(
     if (normalizedData.rootNodeIds.length <= 1) {
       throw new Error('Cannot delete the last root node');
     }
-    parentId = 'root';
+    parentId = ROOT_NODE_KEY;
   } else if (!parentId) {
     throw new Error(`Parent not found for node: ${nodeId}`);
   }
@@ -411,6 +412,10 @@ export function moveNormalizedNode(
   if (!moveabilityCheck.success) {
     return moveabilityCheck;
   }
+
+  if (nodeId === newParentId) {
+    return { success: false, reason: 'ノードを自分自身の子に移動することはできません' };
+  }
   const oldParentId = moveabilityCheck.oldParentId;
 
   
@@ -474,6 +479,10 @@ export function moveNodeWithPositionNormalized(
   const moveabilityCheck = validateNodeMoveability(normalizedData, nodeId, targetNodeId);
   if (!moveabilityCheck.success) {
     return moveabilityCheck;
+  }
+
+  if (nodeId === targetNodeId && position === 'child') {
+    return { success: false, reason: 'ノードを自分自身の子に移動することはできません' };
   }
   const oldParentId = moveabilityCheck.oldParentId;
 

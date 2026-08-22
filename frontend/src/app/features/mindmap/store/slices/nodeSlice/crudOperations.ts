@@ -18,6 +18,7 @@ import {
   addNormalizedNode,
   addSiblingNormalizedNode,
   addRootSiblingNode,
+  ROOT_NODE_KEY,
 } from '@core/data/normalizedStore';
 import { COLORS } from '@shared/constants';
 import type { MindMapStore } from '../types';
@@ -359,7 +360,7 @@ export function createCRUDOperations(
                 nextNodeToSelect = siblings[currentIndex + 1];
               } else if (currentIndex > 0) {
                 nextNodeToSelect = siblings[currentIndex - 1];
-              } else if (parentId !== 'root') {
+              } else if (parentId !== ROOT_NODE_KEY) {
                 nextNodeToSelect = parentId;
               }
             }
@@ -370,7 +371,7 @@ export function createCRUDOperations(
           // Update selection
           if (state.selectedNodeId === nodeId || !state.selectedNodeId) {
             if (!nextNodeToSelect) {
-              const roots = state.normalizedData.childrenMap['root'] || [];
+              const roots = state.normalizedData.childrenMap[ROOT_NODE_KEY] || [];
               nextNodeToSelect = roots.length > 0 ? roots[0] : null;
             }
             state.selectedNodeId = nextNodeToSelect;

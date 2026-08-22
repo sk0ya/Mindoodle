@@ -8,10 +8,8 @@ export const addLinkToNode = (
   linkData: Partial<NodeLink>
 ): MindMapNode => {
   const newLink: NodeLink = {
+    ...linkData,
     id: linkData.id || generateLinkId(),
-    targetMapId: linkData.targetMapId,
-    targetNodeId: linkData.targetNodeId,
-    targetAnchor: linkData.targetAnchor
   };
 
   return {

@@ -98,12 +98,6 @@ export const createSettingsSlice: StateCreator<
       set((state) => {
         const loaded: AppSettings = { ...DEFAULT_SETTINGS, ...result.data };
 
-        const legacyData = result.data as AppSettings & { vimMode?: boolean };
-        if (typeof legacyData.vimMode === 'boolean') {
-          if (typeof loaded.vimMindMap !== 'boolean') loaded.vimMindMap = legacyData.vimMode;
-          if (typeof loaded.vimEditor !== 'boolean') loaded.vimEditor = legacyData.vimMode;
-        }
-
         if (loaded.cloudApiEndpoint === 'https://mindoodle-backend.your-subdomain.workers.dev') {
           loaded.cloudApiEndpoint = DEFAULT_SETTINGS.cloudApiEndpoint;
         }
