@@ -5,6 +5,7 @@ import { WorkspaceService } from '@shared/services';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
 import { BaseStorageAdapter } from './BaseStorageAdapter';
+import { CloudMapCache, DEFAULT_MAP_FRESHNESS_MS, type CloudMapDetail } from './CloudMapCache';
 
 interface CloudUser {
   id: string;
@@ -72,6 +73,18 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
   private user: CloudUser | null = null;
   private virtualFolders: Set<string> = new Set();
   private knownUpdatedAtByMapId: Map<string, string> = new Map();
+  private mapCache = new CloudMapCache();
+  private mapsListRequest: { generation: number; promise: Promise<MapsListResponse> } | null = null;
+  private explorerListRequest: { generation: number; promise: Promise<ImagesListResponse> } | null = null;
+  /**
+   * Incremented by every write. A listing started before a mutation describes a
+   * state the caller has already moved past, so post-mutation callers must not
+   * join it.
+   */
+  private mutationGeneration = 0;
+
+  /** Parallelism used when the list endpoint reports maps we have not cached yet. */
+  private static readonly MAP_FETCH_CONCURRENCY = 6;
 
   constructor(config: string | CloudStorageAdapterOptions = 'https://mindoodle-backend-production.shigekazukoya.workers.dev') {
     super();
@@ -255,66 +268,170 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
   private clearAuth(): void {
     this.authToken = null;
     this.user = null;
+    this.mapCache.clear();
+    this.knownUpdatedAtByMapId.clear();
+    this.invalidateListings();
     removeLocalStorage(this.authTokenKey);
     removeLocalStorage(this.authUserKey);
   }
 
-  async loadAllMaps(): Promise<MindMapData[]> {
-    logger.info(`CloudStorageAdapter: loadAllMaps called - authenticated: ${this.isAuthenticated}, token: ${!!this.authToken}, user: ${!!this.user}`);
+  /**
+   * De-duplicate concurrent list requests. `refreshMapList` triggers a list and
+   * an explorer-tree load at the same time, and several UI paths refresh on the
+   * same user action.
+   */
+  private async fetchMapsList(): Promise<MapsListResponse> {
+    const generation = this.mutationGeneration;
+    const pending = this.mapsListRequest;
+    if (pending && pending.generation === generation) return pending.promise;
 
+    const entry = { generation, promise: this.makeRequest<MapsListResponse>(this.mapsEndpoint) };
+    this.mapsListRequest = entry;
+    try {
+      return await entry.promise;
+    } finally {
+      if (this.mapsListRequest === entry) this.mapsListRequest = null;
+    }
+  }
+
+  /**
+   * Mark every cached listing as belonging to a superseded state. Called after
+   * any write, and on sign-out so another account cannot join a request that
+   * still carries the previous bearer token.
+   */
+  private invalidateListings(): void {
+    this.mutationGeneration++;
+    this.mapsListRequest = null;
+    this.explorerListRequest = null;
+  }
+
+  /**
+   * Read a single map document, reusing a recent response when possible.
+   *
+   * @param maxAgeMs 0 revalidates against the server (concurrent callers still
+   *                 share a single request).
+   */
+  private async fetchMapDetail(mapId: string, maxAgeMs: number = DEFAULT_MAP_FRESHNESS_MS): Promise<CloudMapDetail | null> {
+    return this.mapCache.load(mapId, async () => {
+      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(mapId)}`);
+      if (!response.success || !response.map) return null;
+
+      const detail: CloudMapDetail = {
+        id: mapId,
+        title: response.map.title || 'Untitled',
+        content: response.map.content || '',
+        createdAt: response.map.createdAt,
+        updatedAt: response.map.updatedAt
+      };
+      this.knownUpdatedAtByMapId.set(mapId, detail.updatedAt);
+      return detail;
+    }, maxAgeMs);
+  }
+
+  /**
+   * Record the result of a write we performed ourselves. The response carries
+   * the new `updatedAt`, so the document we just uploaded becomes the cached
+   * one and the follow-up refresh does not re-download it.
+   */
+  private acceptWriteResult(mapId: string, title: string, content: string, response: MapDetailResponse): void {
+    this.invalidateListings();
+
+    const updatedAt = response.success ? response.map?.updatedAt : undefined;
+    if (!updatedAt) {
+      // Unknown server version: drop the entry rather than cache a guess.
+      this.mapCache.invalidate(mapId);
+      return;
+    }
+
+    this.knownUpdatedAtByMapId.set(mapId, updatedAt);
+    this.mapCache.set({
+      id: mapId,
+      title,
+      content,
+      createdAt: response.map?.createdAt || updatedAt,
+      updatedAt
+    });
+  }
+
+  /** Forget everything we know about a map that no longer exists under this id. */
+  private forgetMap(mapId: string): void {
+    this.mapCache.invalidate(mapId);
+    this.knownUpdatedAtByMapId.delete(mapId);
+    this.invalidateListings();
+  }
+
+  /** Run `fn` over `items` with a bounded number of in-flight requests. */
+  private async mapWithConcurrency<T, R>(items: T[], limit: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+    const results = new Array<R>(items.length);
+    let cursor = 0;
+
+    const worker = async (): Promise<void> => {
+      while (cursor < items.length) {
+        const index = cursor++;
+        results[index] = await fn(items[index]);
+      }
+    };
+
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+    return results;
+  }
+
+  private toMindMapData(detail: CloudMapDetail): MindMapData {
+    const parseResult = MarkdownImporter.parseMarkdownToNodes(detail.content);
+
+    return {
+      title: detail.title,
+      rootNodes: parseResult.rootNodes,
+      createdAt: detail.createdAt,
+      updatedAt: detail.updatedAt,
+      settings: {
+        autoSave: true,
+        autoLayout: true,
+        showGrid: false,
+        animationEnabled: true
+      },
+      mapIdentifier: {
+        mapId: detail.id,
+        workspaceId: this.workspaceId
+      }
+    };
+  }
+
+  async loadAllMaps(): Promise<MindMapData[]> {
     if (!this.isAuthenticated) {
       logger.warn('CloudStorageAdapter: Not authenticated, returning empty map list');
       return [];
     }
 
     try {
-      logger.info(`CloudStorageAdapter: Making request to ${this.mapsEndpoint}`);
-      const response = await this.makeRequest<MapsListResponse>(this.mapsEndpoint);
-      logger.info('CloudStorageAdapter: Maps list response:', response);
+      const response = await this.fetchMapsList();
 
       if (!response.success || !response.maps) {
         logger.warn('CloudStorageAdapter: Failed to load maps', response.error);
         return [];
       }
 
-      logger.info(`CloudStorageAdapter: Found ${response.maps.length} maps in cloud`);
-      const maps: MindMapData[] = [];
-      for (const cloudMap of response.maps as Array<{ id: string }>) {
-        try {
+      const summaries = response.maps;
+      const details = await this.mapWithConcurrency(
+        summaries,
+        CloudStorageAdapter.MAP_FETCH_CONCURRENCY,
+        async (summary) => {
+          // The list endpoint reports the authoritative updatedAt for every
+          // map, so an unchanged document never needs a second round trip.
+          const cached = this.mapCache.getByUpdatedAt(summary.id, summary.updatedAt);
+          if (cached) return cached;
 
-          logger.info(`CloudStorageAdapter: Loading full data for map ${cloudMap.id}`);
-          const fullMapResponse = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(cloudMap.id)}`);
-          if (fullMapResponse.success && fullMapResponse.map) {
-            this.knownUpdatedAtByMapId.set(fullMapResponse.map.id, fullMapResponse.map.updatedAt);
-            const markdown = fullMapResponse.map.content || '';
-            const parseResult = MarkdownImporter.parseMarkdownToNodes(markdown);
-
-            const mindMapData: MindMapData = {
-              title: fullMapResponse.map.title || 'Untitled',
-              rootNodes: parseResult.rootNodes,
-              createdAt: fullMapResponse.map.createdAt,
-              updatedAt: fullMapResponse.map.updatedAt,
-              settings: {
-                autoSave: true,
-                autoLayout: true,
-                showGrid: false,
-                animationEnabled: true
-              },
-              mapIdentifier: {
-                mapId: fullMapResponse.map.id,
-                workspaceId: this.workspaceId
-              }
-            };
-
-            maps.push(mindMapData);
-            logger.info(`CloudStorageAdapter: Successfully loaded map: ${mindMapData.title}`);
+          try {
+            return await this.fetchMapDetail(summary.id, 0);
+          } catch (error) {
+            logger.warn(`CloudStorageAdapter: Failed to load map ${summary.id}`, error);
+            return null;
           }
-        } catch (error) {
-          logger.warn(`CloudStorageAdapter: Failed to load map ${cloudMap.id}`, error);
         }
-      }
+      );
 
-      logger.info(`CloudStorageAdapter: Successfully loaded ${maps.length} maps from cloud`);
+      const maps = details.filter((detail): detail is CloudMapDetail => detail !== null).map(detail => this.toMindMapData(detail));
+      logger.info(`CloudStorageAdapter: Loaded ${maps.length}/${summaries.length} maps from cloud`);
       return maps;
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to load maps', error);
@@ -328,9 +445,9 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       return [];
     }
     try {
-      const response = await this.makeRequest<MapsListResponse>(this.mapsEndpoint);
+      const response = await this.fetchMapsList();
       if (!response.success || !Array.isArray(response.maps)) return [];
-      return (response.maps as Array<{ id: string }>).map((m) => ({ mapId: m.id, workspaceId: this.workspaceId }));
+      return response.maps.map((m) => ({ mapId: m.id, workspaceId: this.workspaceId }));
     } catch {
       return [];
     }
@@ -341,17 +458,17 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
+    const mapPath = (map.mapIdentifier.mapId || '').trim();
+    if (!mapPath || mapPath === 'new') {
+      throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
+    }
+
     try {
 
       let markdown = `# ${map.title}\n`;
       map.rootNodes.forEach(node => {
         markdown += nodeToMarkdown(node, 0);
       });
-
-      const mapPath = (map.mapIdentifier.mapId || '').trim();
-      if (!mapPath || mapPath === 'new') {
-        throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
-      }
 
       const expectedUpdatedAt = this.workspaceId === 'group'
         ? this.knownUpdatedAtByMapId.get(mapPath)
@@ -362,12 +479,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         body: JSON.stringify({ title: map.title, content: markdown, expectedUpdatedAt })
       });
 
-      if (response.success && response.map?.updatedAt) {
-        this.knownUpdatedAtByMapId.set(mapPath, response.map.updatedAt);
-      }
+      this.acceptWriteResult(mapPath, map.title, markdown, response);
 
       logger.info(`CloudStorageAdapter: Saved map ${map.title} to cloud`);
     } catch (error) {
+      this.mapCache.invalidate(mapPath);
       if ((error as { status?: number }).status === 409) {
         this.emitConflict(map.mapIdentifier.mapId, (error as { currentUpdatedAt?: string }).currentUpdatedAt);
       }
@@ -386,6 +502,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         method: 'DELETE'
       });
 
+      this.forgetMap(id.mapId);
       logger.info(`CloudStorageAdapter: Deleted map ${id.mapId} from cloud`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to delete map', error);
@@ -420,7 +537,29 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     if (relativePath) {
       this.virtualFolders.add(relativePath);
+      this.invalidateListings();
       logger.info('CloudStorageAdapter: Virtual folder added', { relativePath, workspaceId });
+    }
+  }
+
+  /**
+   * De-duplicate concurrent object listings. `refreshMapList` rebuilds the
+   * explorer tree for every workspace on the same tick as the map list.
+   */
+  private async fetchExplorerListing(): Promise<ImagesListResponse> {
+    const generation = this.mutationGeneration;
+    const pending = this.explorerListRequest;
+    if (pending && pending.generation === generation) return pending.promise;
+
+    const entry = {
+      generation,
+      promise: this.makeRequest<ImagesListResponse>(`${this.imagesEndpoint}/list?path=${encodeURIComponent('')}`)
+    };
+    this.explorerListRequest = entry;
+    try {
+      return await entry.promise;
+    } finally {
+      if (this.explorerListRequest === entry) this.explorerListRequest = null;
     }
   }
 
@@ -431,7 +570,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     try {
 
-      const listResp = await this.makeRequest<ImagesListResponse>(`${this.imagesEndpoint}/list?path=${encodeURIComponent('')}`);
+      const listResp = await this.fetchExplorerListing();
       const keys: string[] = Array.isArray(listResp?.files) ? (listResp.files) : [];
 
 
@@ -556,22 +695,23 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     try {
       // Get existing map content
-      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`);
-      if (!response.success || !response.map) {
+      const detail = await this.fetchMapDetail(oldMapId);
+      if (!detail) {
         throw new Error('Map not found');
       }
 
       // Build new mapId by replacing the last segment with newName
       const parts = oldMapId.split('/').filter(Boolean);
-      parts[parts.length - 1] = newName.replace(/\.md$/i, ''); // Remove .md if present
+      const newTitle = newName.replace(/\.md$/i, ''); // Remove .md if present
+      parts[parts.length - 1] = newTitle;
       const newMapId = parts.join('/');
 
       // Save with new mapId
-      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
+      const saved = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
         method: 'PUT',
         body: JSON.stringify({
-          title: newName.replace(/\.md$/i, ''),
-          content: response.map.content || ''
+          title: newTitle,
+          content: detail.content
         })
       });
 
@@ -580,6 +720,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         method: 'DELETE'
       });
 
+      this.forgetMap(oldMapId);
+      this.acceptWriteResult(newMapId, newTitle, detail.content, saved);
       logger.info(`CloudStorageAdapter: Renamed map ${oldMapId} to ${newMapId}`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to rename map', error);
@@ -610,6 +752,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         method: 'DELETE'
       });
 
+      this.forgetMap(mapId);
       logger.info(`CloudStorageAdapter: Deleted map ${mapId} from cloud`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to delete map', error);
@@ -659,8 +802,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     try {
       // Get existing map content
-      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`);
-      if (!response.success || !response.map) {
+      const detail = await this.fetchMapDetail(oldMapId);
+      if (!detail) {
         throw new Error('Map not found');
       }
 
@@ -668,13 +811,14 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       const parts = oldMapId.split('/').filter(Boolean);
       const filename = parts[parts.length - 1];
       const newMapId = targetFolder ? `${targetFolder}/${filename}` : filename;
+      const newTitle = detail.title || filename;
 
       // Save with new mapId
-      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
+      const saved = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
         method: 'PUT',
         body: JSON.stringify({
-          title: response.map.title || filename,
-          content: response.map.content || ''
+          title: newTitle,
+          content: detail.content
         })
       });
 
@@ -683,6 +827,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         method: 'DELETE'
       });
 
+      this.forgetMap(oldMapId);
+      this.acceptWriteResult(newMapId, newTitle, detail.content, saved);
       logger.info(`CloudStorageAdapter: Moved map ${oldMapId} to ${newMapId}`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to move map', error);
@@ -694,11 +840,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(id.mapId)}`);
-      if (response.success && response.map) {
-        this.knownUpdatedAtByMapId.set(id.mapId, response.map.updatedAt);
-        return response.map.content || null;
-      }
+      // Opening a map fans out to several consumers (canvas, markdown panel,
+      // notes panel, markdown stream). They all land inside the freshness
+      // window, so the document is downloaded once.
+      const detail = await this.fetchMapDetail(id.mapId);
+      if (detail) return detail.content || null;
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to get map markdown', error);
     }
@@ -710,11 +856,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(id.mapId)}`);
-      if (response.success && response.map) {
-        this.knownUpdatedAtByMapId.set(id.mapId, response.map.updatedAt);
-        return new Date(response.map.updatedAt).getTime();
-      }
+      // A freshness probe, so it always revalidates. The backend has no
+      // metadata-only endpoint and returns the document as well, so the body is
+      // cached for the getMapMarkdown call that normally follows.
+      const detail = await this.fetchMapDetail(id.mapId, 0);
+      if (detail) return new Date(detail.updatedAt).getTime();
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to get map last modified', error);
     }
@@ -727,6 +873,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       throw new Error('Not authenticated');
     }
 
+    const idPath = (id.mapId || '').trim();
+
     try {
       // Guard: Do not overwrite files with empty content
       if (!this.validateMarkdown(markdown)) {
@@ -734,15 +882,12 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         return;
       }
 
-      // Extract first level-1 heading as title
-      const title = this.extractTitleFromMarkdown(markdown);
-
-      const idPath = (id.mapId || '').trim();
       if (!idPath || idPath === 'new') {
-
         throw new Error('Cloud save requires explicit mapId path (e.g., "Folder/Title")');
       }
 
+      // Extract first level-1 heading as title
+      const title = this.extractTitleFromMarkdown(markdown);
 
 
       const expectedUpdatedAt = this.workspaceId === 'group'
@@ -754,12 +899,11 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         body: JSON.stringify({ title, content: markdown, expectedUpdatedAt })
       });
 
-      if (response.success && response.map?.updatedAt) {
-        this.knownUpdatedAtByMapId.set(idPath, response.map.updatedAt);
-      }
+      this.acceptWriteResult(idPath, title, markdown, response);
 
       logger.info(`CloudStorageAdapter: Saved markdown for map ${id.mapId}`);
     } catch (error) {
+      this.mapCache.invalidate(idPath);
       if ((error as { status?: number }).status === 409) {
         this.emitConflict(id.mapId, (error as { currentUpdatedAt?: string }).currentUpdatedAt);
       }
@@ -845,6 +989,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         logger.warn('CloudStorageAdapter: Multipart upload failed, falling back to JSON', e);
         await tryJsonBase64();
       }
+      this.invalidateListings();
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to upload image', error);
       const msg = error instanceof Error ? error.message : 'Internal server error during upload';
@@ -912,6 +1057,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         method: 'DELETE'
       });
 
+      this.invalidateListings();
       logger.info(`CloudStorageAdapter: Deleted image from R2: ${relativePath}`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to delete image', error);

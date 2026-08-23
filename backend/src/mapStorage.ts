@@ -1,5 +1,11 @@
 import type { Env, MapData, MapListResponse, MapResponse } from './types';
 
+/**
+ * Cap for the percent-encoded title stored as R2 custom metadata. R2 allows
+ * roughly 2 KB across all custom metadata, so one field stays well under it.
+ */
+const MAX_TITLE_METADATA_LENGTH = 512;
+
 export class MapStorageService {
   constructor(private env: Env) {}
 
@@ -7,6 +13,39 @@ export class MapStorageService {
     // Allow nested paths in mapId; ensure no leading slash and append .md
     const clean = (mapId || '').replace(/^\/+/, '').replace(/\.+$/, '');
     return `maps/${userId}/${clean}.md`;
+  }
+
+  /**
+   * The title shown in listings has always been the document's first level-1
+   * heading. Deriving it here (rather than trusting the client's `title` field)
+   * keeps the value stored as metadata identical to what listMaps used to
+   * compute by reading the body back.
+   */
+  private extractTitle(content: string): string {
+    const titleMatch = content.match(/^#\s+(.+)$/m);
+    return titleMatch ? titleMatch[1] : 'Untitled';
+  }
+
+  /**
+   * R2 custom metadata travels as HTTP header values, which must be US-ASCII
+   * and are size-bounded. Mindoodle titles are routinely Japanese, so the value
+   * is percent-encoded and truncated; listMaps decodes it again.
+   */
+  private encodeTitleMetadata(title: string): string {
+    const encoded = encodeURIComponent(title);
+    return encoded.length > MAX_TITLE_METADATA_LENGTH
+      ? encoded.slice(0, MAX_TITLE_METADATA_LENGTH)
+      : encoded;
+  }
+
+  private decodeTitleMetadata(value: string): string | null {
+    try {
+      const decoded = decodeURIComponent(value);
+      return decoded.trim() ? decoded : null;
+    } catch {
+      // A truncated value can end mid-escape; fall back to the body read.
+      return null;
+    }
   }
 
   private generateMapId(): string {
@@ -21,7 +60,8 @@ export class MapStorageService {
       const key = this.getMapKey(userId, id);
 
       if (expectedUpdatedAt) {
-        const currentObject = await this.env.MAPS_BUCKET.get(key);
+        // head() answers the version question without transferring the body.
+        const currentObject = await this.env.MAPS_BUCKET.head(key);
         const currentUpdatedAt = currentObject?.uploaded.toISOString() || null;
         if (currentUpdatedAt && currentUpdatedAt !== expectedUpdatedAt) {
           return {
@@ -32,16 +72,18 @@ export class MapStorageService {
         }
       }
 
-      // Save markdown file
-      await this.env.MAPS_BUCKET.put(key, content, {
+      // Save markdown file. The title is stored alongside it so that listMaps
+      // does not have to download every document just to read its heading.
+      const written = await this.env.MAPS_BUCKET.put(key, content, {
         httpMetadata: {
           contentType: 'text/markdown',
+        },
+        customMetadata: {
+          title: this.encodeTitleMetadata(this.extractTitle(content))
         }
       });
 
-      // Get uploaded timestamp
-      const object = await this.env.MAPS_BUCKET.get(key);
-      const timestamp = object?.uploaded.toISOString() || new Date().toISOString();
+      const timestamp = written?.uploaded.toISOString() || new Date().toISOString();
 
       const mapData: MapData = {
         id,
@@ -109,39 +151,54 @@ export class MapStorageService {
   async listMaps(userId: string): Promise<MapListResponse> {
     try {
       const prefix = `maps/${userId}/`;
-      const listed = await this.env.MAPS_BUCKET.list({ prefix });
-
       const maps = [] as Array<{ id: string; title: string; createdAt: string; updatedAt: string }>;
-      for (const object of listed.objects) {
-        // Only process .md files
-        if (!object.key.endsWith('.md')) {
-          continue;
-        }
+      const pendingTitleReads = [] as Array<{ key: string; mapId: string; timestamp: string }>;
 
-        try {
-          const fullObject = await this.env.MAPS_BUCKET.get(object.key);
-          if (fullObject) {
-            const content = await fullObject.text();
-            const timestamp = fullObject.uploaded.toISOString();
+      // The listing carries the key, the upload timestamp and the stored title,
+      // so a workspace of N maps costs one listing rather than N object reads.
+      let cursor: string | undefined;
+      do {
+        const listed = await this.env.MAPS_BUCKET.list({
+          prefix,
+          cursor,
+          include: ['customMetadata']
+        });
 
-            // Extract title from markdown
-            const titleMatch = content.match(/^#\s+(.+)$/m);
-            const title = titleMatch ? titleMatch[1] : 'Untitled';
-
-            // Map id is the full path relative to maps/{userId}/, without .md
-            const prefix = `maps/${userId}/`;
-            const rel = object.key.startsWith(prefix) ? object.key.substring(prefix.length) : object.key;
-            const mapId = rel.replace(/\.md$/i, '');
-            maps.push({
-              id: mapId,
-              title,
-              createdAt: timestamp,
-              updatedAt: timestamp
-            });
+        for (const object of listed.objects) {
+          // Only process .md files
+          if (!object.key.endsWith('.md')) {
+            continue;
           }
-        } catch (error) {
-          console.error('Error processing map:', object.key, error);
+
+          // Map id is the full path relative to maps/{userId}/, without .md
+          const rel = object.key.startsWith(prefix) ? object.key.substring(prefix.length) : object.key;
+          const mapId = rel.replace(/\.md$/i, '');
+          const timestamp = object.uploaded.toISOString();
+
+          const encodedTitle = object.customMetadata?.title;
+          const title = encodedTitle ? this.decodeTitleMetadata(encodedTitle) : null;
+
+          if (title) {
+            maps.push({ id: mapId, title, createdAt: timestamp, updatedAt: timestamp });
+          } else {
+            // Written before titles were stored as metadata: read the body, as
+            // before. These resolve to the fast path on their next save.
+            pendingTitleReads.push({ key: object.key, mapId, timestamp });
+          }
         }
+
+        cursor = listed.truncated ? listed.cursor : undefined;
+      } while (cursor);
+
+      for (const pending of pendingTitleReads) {
+        let title = pending.mapId.split('/').pop() || pending.mapId;
+        try {
+          const object = await this.env.MAPS_BUCKET.get(pending.key);
+          if (object) title = this.extractTitle(await object.text());
+        } catch (error) {
+          console.error('Error reading legacy map title:', pending.key, error);
+        }
+        maps.push({ id: pending.mapId, title, createdAt: pending.timestamp, updatedAt: pending.timestamp });
       }
 
       // Sort by updated date (newest first)
@@ -164,8 +221,8 @@ export class MapStorageService {
     try {
       const key = this.getMapKey(userId, mapId);
 
-      // Check if map exists
-      const object = await this.env.MAPS_BUCKET.get(key);
+      // Check if map exists (head(), so the body is never transferred)
+      const object = await this.env.MAPS_BUCKET.head(key);
       if (!object) {
         return {
           success: false,

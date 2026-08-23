@@ -354,43 +354,81 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
   const groupRemoteUpdatedAtRef = React.useRef<string | null>(null);
   const groupSyncedMarkdownRef = React.useRef<string | null>(null);
   const groupConflictNotifiedRef = React.useRef<string | null>(null);
+  // Identity of the open group map. Everything below keys off this instead of
+  // the map data itself: `data` (and the zustand `store` object) changes on
+  // every keystroke, and depending on those restarted the poll timer — and
+  // fired an immediate request — for each edit.
+  const groupMapId = data?.mapIdentifier?.workspaceId === 'group'
+    ? data.mapIdentifier.mapId
+    : null;
 
+  // The identifier object is replaced only when a document is loaded into the
+  // store (opening a map, or re-reading one whose timestamp moved); local edits
+  // spread the existing data and keep this reference. It is therefore the
+  // signal for "the content came from storage", which `mapId` alone cannot give
+  // — re-opening the same map keeps the id but replaces the content.
+  const groupMapIdentifier = data?.mapIdentifier?.workspaceId === 'group'
+    ? data.mapIdentifier
+    : null;
+
+  const groupPollContextRef = React.useRef({ data, mindMap, refreshMapList, showNotification });
   React.useEffect(() => {
-    const id = data?.mapIdentifier;
-    if (!id || id.workspaceId !== 'group') {
+    groupPollContextRef.current = { data, mindMap, refreshMapList, showNotification };
+  }, [data, mindMap, refreshMapList, showNotification]);
+
+  // Baseline used to tell "the user edited locally" from "we are in sync".
+  // It may only move when we actually agree with the server (on open, or after
+  // a successful sync) — refreshing it on every local edit made every edit look
+  // already-synced, so remote content silently overwrote local work.
+  React.useEffect(() => {
+    if (!groupMapIdentifier) {
       groupRemoteUpdatedAtRef.current = null;
       groupSyncedMarkdownRef.current = null;
       groupConflictNotifiedRef.current = null;
       return;
     }
 
-    groupRemoteUpdatedAtRef.current = data.updatedAt || null;
-    groupSyncedMarkdownRef.current = Array.isArray(data.rootNodes)
-      ? MarkdownImporter.convertNodesToMarkdown(data.rootNodes)
+    const current = groupPollContextRef.current.data;
+    groupRemoteUpdatedAtRef.current = current?.updatedAt || null;
+    groupSyncedMarkdownRef.current = Array.isArray(current?.rootNodes)
+      ? MarkdownImporter.convertNodesToMarkdown(current.rootNodes)
       : null;
     groupConflictNotifiedRef.current = null;
-  }, [data?.mapIdentifier, data?.mapIdentifier?.workspaceId, data?.mapIdentifier?.mapId, data?.rootNodes, data?.updatedAt]);
+  }, [groupMapIdentifier]);
 
   React.useEffect(() => {
-    const id = data?.mapIdentifier;
-    if (!id || id.workspaceId !== 'group') return;
+    if (!groupMapId) return;
 
     let cancelled = false;
+    let inFlight = false;
 
     const poll = async () => {
+      // A hidden tab cannot show the update, and overlapping probes only
+      // multiply requests without making the result any fresher.
+      if (cancelled || inFlight || document.hidden) return;
+
+      const { data: current, mindMap: currentMindMap, refreshMapList: refresh, showNotification: notify } = groupPollContextRef.current;
+      const id = current?.mapIdentifier;
+      if (!id || id.workspaceId !== 'group' || id.mapId !== groupMapId) return;
+
+      inFlight = true;
       try {
-        const latestModified = await mindMap.getMapLastModified?.(id);
+        const latestModified = await currentMindMap.getMapLastModified?.(id);
         if (!latestModified || cancelled) return;
 
         const remoteUpdatedAt = new Date(latestModified).toISOString();
-        const knownRemoteUpdatedAt = groupRemoteUpdatedAtRef.current || data.updatedAt || null;
+        const knownRemoteUpdatedAt = groupRemoteUpdatedAtRef.current || current.updatedAt || null;
         if (knownRemoteUpdatedAt && remoteUpdatedAt <= knownRemoteUpdatedAt) return;
 
-        const remoteMarkdown = await mindMap.getMapMarkdown?.(id);
+        const remoteMarkdown = await currentMindMap.getMapMarkdown?.(id);
         if (typeof remoteMarkdown !== 'string' || cancelled) return;
 
-        const localMarkdown = data?.rootNodes
-          ? MarkdownImporter.convertNodesToMarkdown(data.rootNodes)
+        // Re-read: the user may have typed while the request was in flight.
+        const latest = groupPollContextRef.current.data;
+        if (latest?.mapIdentifier?.mapId !== groupMapId) return;
+
+        const localMarkdown = latest?.rootNodes
+          ? MarkdownImporter.convertNodesToMarkdown(latest.rootNodes)
           : '';
 
         if (localMarkdown === remoteMarkdown) {
@@ -402,33 +440,35 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
 
         const syncedMarkdown = groupSyncedMarkdownRef.current;
         const localHasUnsyncedChanges = syncedMarkdown !== null && localMarkdown !== syncedMarkdown;
-        if (localHasUnsyncedChanges && localMarkdown !== remoteMarkdown) {
+        if (localHasUnsyncedChanges) {
           const conflictKey = `${id.workspaceId}:${id.mapId}:${remoteUpdatedAt}`;
           if (groupConflictNotifiedRef.current !== conflictKey) {
             groupConflictNotifiedRef.current = conflictKey;
-            showNotification('warning', 'グループマップが他のユーザーにより更新されました。ローカル編集中のため自動反映していません。');
+            notify('warning', 'グループマップが他のユーザーにより更新されました。ローカル編集中のため自動反映していません。');
           }
           return;
         }
 
         const parseResult = MarkdownImporter.parseMarkdownToNodes(remoteMarkdown, {
-          defaultCollapseDepth: store.settings.defaultCollapseDepth
+          defaultCollapseDepth: getStoreState().settings.defaultCollapseDepth
         });
         const nextData = MapOperationsService.createMapData(
           id.mapId,
           id.workspaceId,
           parseResult.rootNodes,
           remoteUpdatedAt,
-          data.title
+          latest.title
         );
-        store.setData(nextData);
+        getStoreState().setData(nextData);
         groupRemoteUpdatedAtRef.current = remoteUpdatedAt;
         groupSyncedMarkdownRef.current = remoteMarkdown;
         groupConflictNotifiedRef.current = null;
-        await refreshMapList();
-        showNotification('info', 'グループマップの最新内容を反映しました');
+        await refresh();
+        notify('info', 'グループマップの最新内容を反映しました');
       } catch (error) {
         logger.warn('Group map polling failed', error);
+      } finally {
+        inFlight = false;
       }
     };
 
@@ -436,25 +476,20 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       void poll();
     }, 5000);
 
+    // Catch up immediately when the tab comes back instead of waiting a tick.
+    const handleVisibility = () => {
+      if (!document.hidden) void poll();
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+
     void poll();
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
+      document.removeEventListener('visibilitychange', handleVisibility);
     };
-  }, [
-    data?.mapIdentifier?.workspaceId,
-    data?.mapIdentifier?.mapId,
-    data?.mapIdentifier,
-    data?.updatedAt,
-    data?.rootNodes,
-    data?.title,
-    mindMap,
-    refreshMapList,
-    showNotification,
-    store
-  ]);
-
+  }, [groupMapId]);
   React.useEffect(() => {
     const handleGroupConflict = (event: Event) => {
       const detail = (event as CustomEvent).detail as { mapIdentifier?: MapIdentifier; currentUpdatedAt?: string } | undefined;
