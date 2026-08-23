@@ -4,7 +4,9 @@ import {
   BASE_URL,
   createCloudBackend,
   countGets,
+  mapBodyGets,
   mapDetailGets,
+  mapMetaGets,
   type CloudBackend,
 } from '../../../../test/cloudBackendMock';
 
@@ -69,7 +71,7 @@ describe('CloudStorageAdapter request behaviour', () => {
     expect(maps.find((m) => m.mapIdentifier.mapId === 'Notes/Beta')?.title).toBe('Beta edited');
   });
 
-  it('reuses the freshness probe response for the markdown read that follows', async () => {
+  it('reads the whole document when probing a map it has no copy of', async () => {
     backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
     const adapter = await createAuthenticatedAdapter(backend);
     const id = { mapId: 'Alpha', workspaceId: 'cloud' };
@@ -106,10 +108,15 @@ describe('CloudStorageAdapter request behaviour', () => {
     backend.seed('Alpha', '# Alpha remote\n', '2026-04-04T00:00:00.000Z');
     const second = await adapter.getMapLastModified?.(id);
 
-    expect(mapDetailGets(backend)).toBe(2);
+    // The first probe had nothing cached and read the document; the second
+    // had a copy to compare against and only asked for the timestamp.
+    expect(mapBodyGets(backend)).toBe(1);
+    expect(mapMetaGets(backend)).toBe(1);
     expect(second).toBe(Date.parse('2026-04-04T00:00:00.000Z'));
+
+    // The probe saw a newer version, so the stale body must not be served.
     expect(await adapter.getMapMarkdown?.(id)).toBe('# Alpha remote\n');
-    expect(mapDetailGets(backend)).toBe(2);
+    expect(mapBodyGets(backend)).toBe(2);
   });
 
   it('serves the content it just saved without reading it back', async () => {
@@ -339,5 +346,82 @@ describe('CloudStorageAdapter session restore', () => {
     const adapter = await restoreAdapter();
 
     expect(adapter.isAuthenticated).toBe(false);
+  });
+});
+
+describe('CloudStorageAdapter freshness probes', () => {
+  let backend: CloudBackend;
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks only for metadata, never the document body', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.loadAllMaps();
+    backend.requests.length = 0;
+
+    // What the poll loop does while a map is open.
+    for (let i = 0; i < 10; i++) {
+      await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+    }
+
+    expect(mapMetaGets(backend)).toBe(10);
+    expect(mapBodyGets(backend)).toBe(0);
+  });
+
+  it('reports the same timestamp the full read reports', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.loadAllMaps();
+
+    const probed = await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+
+    expect(probed).toBe(Date.parse('2026-01-01T00:00:00.000Z'));
+  });
+
+  it('does not re-download a map the probe confirms is unchanged', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.loadAllMaps();
+    backend.requests.length = 0;
+
+    await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+    const markdown = await adapter.getMapMarkdown?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+
+    expect(markdown).toBe('# Alpha\n');
+    expect(mapBodyGets(backend)).toBe(0);
+  });
+
+  it('serves the new content after the probe reports a change', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.loadAllMaps();
+
+    // Someone else edits the map.
+    backend.seed('Alpha', '# Alpha edited elsewhere\n', '2026-02-02T00:00:00.000Z');
+    backend.requests.length = 0;
+
+    await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+    const markdown = await adapter.getMapMarkdown?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+
+    // The stale cached body must not survive the probe.
+    expect(markdown).toBe('# Alpha edited elsewhere\n');
+    expect(mapBodyGets(backend)).toBe(1);
+  });
+
+  it('returns null for a map that no longer exists', async () => {
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    const probed = await adapter.getMapLastModified?.({ mapId: 'Gone', workspaceId: 'cloud' });
+
+    expect(probed).toBeNull();
   });
 });

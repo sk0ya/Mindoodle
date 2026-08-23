@@ -136,11 +136,20 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
     }
 
     if (path.startsWith(`${mapsPath}/`)) {
-      const mapId = decodeURIComponent(path.slice(`${mapsPath}/`.length));
+      const [idPart, queryPart] = path.slice(`${mapsPath}/`.length).split('?');
+      const mapId = decodeURIComponent(idPart ?? '');
+      const metadataOnly = new URLSearchParams(queryPart ?? '').get('meta') === '1';
 
       if (method === 'GET') {
         const stored = maps.get(mapId);
         if (!stored) return jsonResponse({ success: false, error: 'Map not found' }, 404);
+        if (metadataOnly) {
+          // Mirrors the real endpoint: timestamps only, never the body.
+          return jsonResponse({
+            success: true,
+            map: { id: mapId, createdAt: stored.createdAt, updatedAt: stored.updatedAt },
+          });
+        }
         return jsonResponse({ success: true, map: { id: mapId, ...stored } });
       }
 
@@ -175,6 +184,18 @@ export const countGets = (requests: RequestLogEntry[], prefix: string): number =
 /** Number of single-document GETs (i.e. excluding the collection listing). */
 export const mapDetailGets = (backend: CloudBackend): number =>
   countGets(backend.requests, `${backend.mapsPath}/`);
+
+/** Single-document GETs that actually transferred a body (excluding `?meta=1`). */
+export const mapBodyGets = (backend: CloudBackend): number =>
+  backend.requests.filter(
+    (r) => r.method === 'GET' && r.path.startsWith(`${backend.mapsPath}/`) && !r.path.includes('meta=1')
+  ).length;
+
+/** Metadata-only probes. */
+export const mapMetaGets = (backend: CloudBackend): number =>
+  backend.requests.filter(
+    (r) => r.method === 'GET' && r.path.startsWith(`${backend.mapsPath}/`) && r.path.includes('meta=1')
+  ).length;
 
 export const writesTo = (backend: CloudBackend, mapId: string): RequestLogEntry[] =>
   backend.requests.filter((r) => r.method === 'PUT' && r.path === `${backend.mapsPath}/${encodeURIComponent(mapId)}`);

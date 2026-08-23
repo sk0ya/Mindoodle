@@ -1,18 +1,18 @@
 /**
  * Cache for map documents fetched from the cloud backend.
  *
- * The cloud API has no metadata-only endpoint: `GET /api/maps/{id}` always
- * returns the full document. Callers therefore pay a full round trip for
- * questions as cheap as "when was this last modified?". Without a cache the
- * app issues the same GET several times for a single user action (open a map,
- * refresh the list, poll for remote edits), which is what makes cloud
+ * `GET /api/maps/{id}` returns the whole document, and without a cache the app
+ * issues that request several times for a single user action (open a map,
+ * refresh the list, poll for remote edits), which is what made cloud
  * workspaces feel slow.
  *
- * This cache solves two distinct problems:
+ * This cache solves three distinct problems:
  * - `load()` de-duplicates concurrent and closely spaced reads of the same map.
- * - `getByUpdatedAt()` lets the list endpoint (which reports `updatedAt` for
- *   every map in one request) confirm that a cached document is still current,
- *   so unchanged maps are never re-downloaded.
+ * - `getByUpdatedAt()` lets a caller that already knows the authoritative
+ *   `updatedAt` — the list endpoint, or a `?meta=1` probe — confirm that a
+ *   cached document is still current, so it is never re-downloaded.
+ * - `has()` tells a freshness probe whether there is a cached copy worth
+ *   comparing against at all.
  */
 
 export interface CloudMapDetail {
@@ -120,6 +120,14 @@ export class CloudMapCache {
     this.entries.delete(detail.id);
     this.evictIfFull();
     this.entries.set(detail.id, { detail, verifiedAt: this.now() });
+  }
+
+  /**
+   * Whether a copy of this document is held at all, fresh or not. A freshness
+   * probe is only worth making when there is something to compare against.
+   */
+  has(mapId: string): boolean {
+    return this.entries.has(mapId);
   }
 
   invalidate(mapId: string): void {

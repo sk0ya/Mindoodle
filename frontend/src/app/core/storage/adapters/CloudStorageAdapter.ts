@@ -869,11 +869,37 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
-      // A freshness probe, so it always revalidates. The backend has no
-      // metadata-only endpoint and returns the document as well, so the body is
-      // cached for the getMapMarkdown call that normally follows.
-      const detail = await this.fetchMapDetail(id.mapId, 0);
-      if (detail) return new Date(detail.updatedAt).getTime();
+      // With no cached copy there is nothing to compare a timestamp against,
+      // and the caller is about to want the body anyway: one full read costs
+      // the same round trip and leaves the document cached.
+      if (!this.mapCache.has(id.mapId)) {
+        const detail = await this.fetchMapDetail(id.mapId, 0);
+        return detail ? new Date(detail.updatedAt).getTime() : null;
+      }
+
+      // Otherwise ask for timestamps only. The group workspace probes every few
+      // seconds, and downloading the whole document to read one timestamp is
+      // the single most wasteful request the app makes.
+      //
+      // The reply carries no content, so it must never reach the document
+      // cache — an entry built from it would hand back an empty map.
+      const response = await this.makeRequest<MapDetailResponse>(
+        `${this.mapsEndpoint}/${encodeURIComponent(id.mapId)}?meta=1`
+      );
+      if (!response.success || !response.map) return null;
+
+      const updatedAt = response.map.updatedAt;
+      this.knownUpdatedAtByMapId.set(id.mapId, updatedAt);
+
+      // Reconcile the cached document with what the server just reported.
+      // getByUpdatedAt renews the entry when the versions agree, so the common
+      // case — nothing changed — still serves the following getMapMarkdown from
+      // cache. When they disagree the cached body is stale and has to go.
+      if (!this.mapCache.getByUpdatedAt(id.mapId, updatedAt)) {
+        this.mapCache.invalidate(id.mapId);
+      }
+
+      return new Date(updatedAt).getTime();
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to get map last modified', error);
     }

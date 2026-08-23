@@ -5,7 +5,9 @@ import {
   BASE_URL,
   createCloudBackend,
   countGets,
+  mapBodyGets,
   mapDetailGets,
+  mapMetaGets,
   writesTo,
   type CloudBackend,
 } from '../../../../test/cloudBackendMock';
@@ -55,11 +57,13 @@ describe('GroupCloudStorageAdapter', () => {
     await adapter.loadAllMaps();
     expect(mapDetailGets(backend)).toBe(0);
 
-    // Opening a map: the freshness probe response is reused by the read.
+    // Opening a map: the listing already cached it, so the probe only asks for
+    // the timestamp and the read is served from cache.
     backend.requests.length = 0;
     await adapter.getMapLastModified?.(ID);
     await adapter.getMapMarkdown?.(ID);
-    expect(mapDetailGets(backend)).toBe(1);
+    expect(mapMetaGets(backend)).toBe(1);
+    expect(mapBodyGets(backend)).toBe(0);
   });
 
   it('polls for remote edits without downloading the document twice', async () => {
@@ -74,7 +78,10 @@ describe('GroupCloudStorageAdapter', () => {
     const probed = await adapter.getMapLastModified?.(ID);
     expect(probed).toBe(Date.parse('2026-06-06T00:00:00.000Z'));
     expect(await adapter.getMapMarkdown?.(ID)).toBe('# Plan v2\n');
-    expect(mapDetailGets(backend)).toBe(1);
+
+    // One cheap probe to notice the edit, then one read for the new content.
+    expect(mapMetaGets(backend)).toBe(1);
+    expect(mapBodyGets(backend)).toBe(1);
   });
 
   it('sends the version it last saw as the optimistic lock', async () => {

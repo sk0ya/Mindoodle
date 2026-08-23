@@ -181,3 +181,47 @@ describe('CloudMapCache invalidation races', () => {
     expect(cache.getFresh('b')).toBeNull();
   });
 });
+
+describe('CloudMapCache.has', () => {
+  const ID = 'Notes/Alpha';
+
+  it('is false for a map it has never held', () => {
+    const { cache } = createCache();
+
+    expect(cache.has(ID)).toBe(false);
+  });
+
+  it('is true once a document is stored', () => {
+    const { cache } = createCache();
+    cache.set(detail());
+
+    expect(cache.has(ID)).toBe(true);
+  });
+
+  it('stays true for a stale entry, which is still worth revalidating', () => {
+    const { cache, clock } = createCache();
+    cache.set(detail());
+
+    clock.value += DEFAULT_MAP_FRESHNESS_MS * 10;
+
+    // Too old to serve, but a copy the probe can compare a timestamp against.
+    expect(cache.getFresh(ID)).toBeNull();
+    expect(cache.has(ID)).toBe(true);
+  });
+
+  it('is false again after the entry is invalidated', () => {
+    const { cache } = createCache();
+    cache.set(detail());
+    cache.invalidate(ID);
+
+    expect(cache.has(ID)).toBe(false);
+  });
+
+  it('is false again after the cache is cleared', () => {
+    const { cache } = createCache();
+    cache.set(detail());
+    cache.clear();
+
+    expect(cache.has(ID)).toBe(false);
+  });
+});
