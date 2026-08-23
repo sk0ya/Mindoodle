@@ -65,6 +65,15 @@ function getAuthToken(request: Request): string | null {
   return null;
 }
 
+/**
+ * `?meta=1` asks for the document's timestamps only. Map ids contain slashes
+ * (`Folder/Title`), so a path suffix like `/meta` would be ambiguous with a
+ * real nested id — the flag has to be a query parameter.
+ */
+function wantsMetadataOnly(url: URL): boolean {
+  return url.searchParams.get('meta') === '1';
+}
+
 // Helper function to authenticate request
 async function authenticateRequest(request: Request, authService: AuthService): Promise<UserSession | null> {
   const token = getAuthToken(request);
@@ -199,7 +208,9 @@ export default {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
 
-        const result = await mapStorageService.getMap(groupScope, mapId);
+        const result = wantsMetadataOnly(url)
+          ? await mapStorageService.getMapMetadata(groupScope, mapId)
+          : await mapStorageService.getMap(groupScope, mapId);
         return jsonResponse(result, result.success ? 200 : 404, request);
       }
 
@@ -290,7 +301,9 @@ export default {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
 
-        const result = await mapStorageService.getMap(getStorageScope(session), mapId);
+        const result = wantsMetadataOnly(url)
+          ? await mapStorageService.getMapMetadata(getStorageScope(session), mapId)
+          : await mapStorageService.getMap(getStorageScope(session), mapId);
         return jsonResponse(result, result.success ? 200 : 404, request);
       }
 

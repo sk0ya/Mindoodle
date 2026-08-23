@@ -62,6 +62,22 @@ export interface MapResponse {
   };
 }
 
+/**
+ * Reply to a metadata-only read. It deliberately carries no `content`: the
+ * point of the endpoint is to answer "has this changed?" without transferring
+ * the document, and an empty string here would be indistinguishable from an
+ * empty map to a client that used it by mistake.
+ */
+export interface MapMetadataResponse {
+  success: boolean;
+  map?: {
+    id: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  error?: string;
+}
+
 export interface Env {
   USERS: KVNamespace;
   MAPS_BUCKET: R2Bucket;

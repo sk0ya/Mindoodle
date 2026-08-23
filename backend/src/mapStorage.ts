@@ -1,4 +1,4 @@
-import type { Env, MapData, MapListResponse, MapResponse } from './types';
+import type { Env, MapData, MapListResponse, MapMetadataResponse, MapResponse } from './types';
 
 /**
  * Cap for the percent-encoded title stored as R2 custom metadata. R2 allows
@@ -148,6 +148,43 @@ export class MapStorageService {
     }
   }
 
+  /**
+   * Answers "when did this map last change?" without transferring the body.
+   *
+   * The group workspace polls this every few seconds to detect remote edits.
+   * Routing that through getMap() downloaded the whole document each time just
+   * to read one timestamp; head() returns the same `uploaded` value and no body.
+   */
+  async getMapMetadata(userId: string, mapId: string): Promise<MapMetadataResponse> {
+    try {
+      const key = this.getMapKey(userId, mapId);
+      const object = await this.env.MAPS_BUCKET.head(key);
+
+      if (!object) {
+        return {
+          success: false,
+          error: 'Map not found'
+        };
+      }
+
+      const timestamp = object.uploaded.toISOString();
+
+      return {
+        success: true,
+        map: {
+          id: mapId,
+          createdAt: timestamp,
+          updatedAt: timestamp
+        }
+      };
+    } catch (error) {
+      console.error('Error getting map metadata:', error);
+      return {
+        success: false,
+        error: 'Failed to retrieve map metadata'
+      };
+    }
+  }
   async listMaps(userId: string): Promise<MapListResponse> {
     try {
       const prefix = `maps/${userId}/`;
