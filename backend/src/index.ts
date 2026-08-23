@@ -46,6 +46,16 @@ function handleCors(request: Request): Response {
   });
 }
 
+/**
+ * Cloudflare surfaces an exhausted daily KV allowance as a thrown Error from
+ * `get()`/`put()`. It reaches the client as a bare 500 on every authenticated
+ * route, which is indistinguishable from "your login is broken" — so name it.
+ */
+function isStorageLimitError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /limit exceeded/i.test(message);
+}
+
 // Helper function to extract auth token
 function getAuthToken(request: Request): string | null {
   const authHeader = request.headers.get('Authorization');
@@ -613,6 +623,13 @@ export default {
 
     } catch (error) {
       console.error('Unhandled error:', error);
+      if (isStorageLimitError(error)) {
+        return jsonResponse(
+          { success: false, error: 'Storage quota exceeded; the service is temporarily unavailable' },
+          503,
+          request
+        );
+      }
       return jsonResponse({ success: false, error: 'Internal Server Error' }, 500, request);
     }
   },

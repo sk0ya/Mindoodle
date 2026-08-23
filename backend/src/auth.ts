@@ -1,4 +1,12 @@
 import type { Env, User, UserSession, AuthRequest, AuthResponse } from './types';
+import { SessionCache } from './sessionCache';
+
+/**
+ * Shared by every request this isolate handles, which is the point: it is what
+ * keeps a polling client from spending one KV read per request. See
+ * sessionCache.ts for why that matters.
+ */
+const sessionCache = new SessionCache();
 
 export class AuthService {
   constructor(private env: Env) {}
@@ -85,6 +93,7 @@ export class AuthService {
     };
 
     await this.env.USERS.put(`session:${token}`, JSON.stringify(session));
+    sessionCache.set(token, session);
 
     return {
       success: true,
@@ -144,6 +153,7 @@ export class AuthService {
     };
 
     await this.env.USERS.put(`session:${token}`, JSON.stringify(session));
+    sessionCache.set(token, session);
 
     return {
       success: true,
@@ -159,22 +169,42 @@ export class AuthService {
   async validateSession(token: string): Promise<UserSession | null> {
     if (!token) return null;
 
-    const sessionStr = await this.env.USERS.get(`session:${token}`);
-    if (!sessionStr) return null;
+    const cached = sessionCache.get(token);
+    if (cached !== undefined) return cached;
 
-    const session: UserSession = JSON.parse(sessionStr);
+    const sessionStr = await this.env.USERS.get(`session:${token}`);
+    if (!sessionStr) {
+      sessionCache.setMissing(token);
+      return null;
+    }
+
+    let session: UserSession;
+    try {
+      session = JSON.parse(sessionStr) as UserSession;
+    } catch (error) {
+      // A corrupt record is not a session; treating it as one would throw on
+      // every request that presents this token.
+      console.error('Discarding unparseable session record:', error);
+      sessionCache.setMissing(token);
+      return null;
+    }
 
     // Check if session is expired
     if (new Date() > new Date(session.expiresAt)) {
+      sessionCache.setMissing(token);
       await this.env.USERS.delete(`session:${token}`);
       return null;
     }
 
+    sessionCache.set(token, session);
     return session;
   }
 
   async logout(token: string): Promise<void> {
     if (token) {
+      // Drop the cached verdict first: the KV delete may fail, but a token the
+      // user asked to revoke must not keep being served from this isolate.
+      sessionCache.delete(token);
       await this.env.USERS.delete(`session:${token}`);
     }
   }
