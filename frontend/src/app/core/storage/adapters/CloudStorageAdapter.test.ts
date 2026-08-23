@@ -273,3 +273,71 @@ describe('CloudStorageAdapter listing freshness', () => {
     expect(maps.map((m) => m.mapIdentifier.mapId)).toEqual(['OtherUserMap']);
   });
 });
+
+describe('CloudStorageAdapter session restore', () => {
+  let backend: CloudBackend;
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Sign in once so a token and user are persisted, then start a fresh adapter. */
+  const restoreAdapter = async (): Promise<CloudStorageAdapter> => {
+    const first = new CloudStorageAdapter(BASE_URL);
+    await first.login('a@b.c', 'pw');
+
+    const restored = new CloudStorageAdapter(BASE_URL);
+    await restored.initialize();
+    return restored;
+  };
+
+  it('restores the stored session when the server confirms it', async () => {
+    const adapter = await restoreAdapter();
+    expect(adapter.isAuthenticated).toBe(true);
+  });
+
+  it('keeps the session when the backend is unreachable rather than signing out', async () => {
+    backend.failAuthMe({ status: 503, body: { success: false, error: 'Storage quota exceeded' } });
+
+    const adapter = await restoreAdapter();
+
+    // A 5xx says nothing about these credentials; discarding them would force a
+    // fresh login once the backend recovers.
+    expect(adapter.isAuthenticated).toBe(true);
+  });
+
+  it('recovers without a re-login once the backend comes back', async () => {
+    backend.failAuthMe({ status: 503 });
+    await restoreAdapter();
+    backend.failAuthMe(null);
+
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = new CloudStorageAdapter(BASE_URL);
+    await adapter.initialize();
+
+    expect(adapter.isAuthenticated).toBe(true);
+    expect((await adapter.loadAllMaps()).map((m) => m.mapIdentifier.mapId)).toEqual(['Alpha']);
+  });
+
+  it('signs out when the server rejects the stored token', async () => {
+    backend.failAuthMe({ status: 401, body: { success: false, error: 'Unauthorized' } });
+
+    const adapter = await restoreAdapter();
+
+    expect(adapter.isAuthenticated).toBe(false);
+  });
+
+  it('signs out when the server answers that the session is not valid', async () => {
+    backend.failAuthMe({ status: 200, body: { success: false } });
+
+    const adapter = await restoreAdapter();
+
+    expect(adapter.isAuthenticated).toBe(false);
+  });
+});

@@ -126,11 +126,18 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         this.user = userRes.data;
 
 
-        const isValid = await this.verifyAuth();
+        const verdict = await this.verifyAuth();
 
-        if (!isValid) {
+        // Only a verdict from the server discards the stored credentials. A
+        // backend that is merely unreachable (network failure, 5xx) must not:
+        // signing the user out on a transient outage loses their session and
+        // forces a fresh login once the backend recovers.
+        if (verdict === 'rejected') {
           this.clearAuth();
         } else {
+          if (verdict === 'unavailable') {
+            logger.warn('CloudStorageAdapter: Could not verify auth; keeping the stored session');
+          }
 
           const workspaceService = WorkspaceService.getInstance();
           if (this.workspaceId === 'group') {
@@ -248,13 +255,19 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
   }
 
-  private async verifyAuth(): Promise<boolean> {
+  /**
+   * Three outcomes, because two of them are not interchangeable: 'rejected'
+   * means the server refused these credentials, 'unavailable' means it never
+   * got to say. Only the former justifies throwing the session away.
+   */
+  private async verifyAuth(): Promise<'valid' | 'rejected' | 'unavailable'> {
     try {
       const response = await this.makeRequest<MeResponse>('/api/auth/me');
-      return !!response.success;
+      return response.success ? 'valid' : 'rejected';
     } catch (error) {
       logger.warn('CloudStorageAdapter: verifyAuth failed', error);
-      return false;
+      const status = (error as { status?: number }).status;
+      return status === 401 || status === 403 ? 'rejected' : 'unavailable';
     }
   }
 

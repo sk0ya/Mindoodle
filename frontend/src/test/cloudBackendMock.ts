@@ -46,6 +46,8 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
   const maps = new Map<string, StoredMap>();
   const images: string[] = [];
   const requests: RequestLogEntry[] = [];
+  /** Overrides the /api/auth/me reply, so tests can simulate a backend outage. */
+  let authMeFailure: { status: number; body: unknown } | null = null;
   let clock = Date.parse('2026-01-01T00:00:00.000Z');
 
   /** Distinct, increasing timestamps so version comparisons are unambiguous. */
@@ -102,6 +104,7 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
     }
 
     if (path === '/api/auth/me') {
+      if (authMeFailure) return jsonResponse(authMeFailure.body, authMeFailure.status);
       return jsonResponse({ success: true, user: { id: 'u1', email: 'a@b.c', groupId: 'g1' } });
     }
 
@@ -154,7 +157,14 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
     return jsonResponse({ success: false, error: `unhandled ${method} ${path}` }, 500);
   });
 
-  return { maps, images, requests, fetchMock, seed, nextTimestamp, mapsPath, imagesPath };
+  /** Make /api/auth/me fail until cleared with `failAuthMe(null)`. */
+  const failAuthMe = (failure: { status: number; body?: unknown } | null): void => {
+    authMeFailure = failure
+      ? { status: failure.status, body: failure.body ?? { success: false, error: 'unavailable' } }
+      : null;
+  };
+
+  return { maps, images, requests, fetchMock, seed, nextTimestamp, failAuthMe, mapsPath, imagesPath };
 };
 
 export type CloudBackend = ReturnType<typeof createCloudBackend>;
