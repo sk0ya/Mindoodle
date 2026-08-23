@@ -425,7 +425,9 @@ export const useSidebar = ({
 
       const minLength = Math.min(partsA.length, partsB.length);
       for (let index = 0; index < minLength; index++) {
-        const comparison = partsA[index].localeCompare(partsB[index], 'ja', {
+        const partA = partsA[index] ?? '';
+        const partB = partsB[index] ?? '';
+        const comparison = partA.localeCompare(partB, 'ja', {
           numeric: true,
           sensitivity: 'base'
         });

@@ -77,7 +77,7 @@ const assignBranchColor = (
   const color = isRootNode
     ? COLORS.NODE_COLORS[(childCount ?? 0) % COLORS.NODE_COLORS.length] ?? '#333333'
     : getBranchColor(node.id, normalizedData);
-  if (color !== undefined) node.color = color;
+  node.color = color;
   normalizedData.nodes[node.id] = { ...node };
 };
 

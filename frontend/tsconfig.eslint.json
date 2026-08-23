@@ -1,0 +1,11 @@
+{
+  /* ESLint の型情報用プロジェクト。
+     src/ は tsconfig.strict.json と同じ noUncheckedIndexedAccess 前提で
+     防御的に書かれているため、Lint も同じ前提で型を解決する。
+     これを外すと添字アクセスのガードが「常に false」と誤検出される。 */
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["src"]
+}
