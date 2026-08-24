@@ -1,5 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { CloudStorageAdapter } from './CloudStorageAdapter';
+import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
+import { MapOperationsService } from '../../../features/mindmap/services/MapOperationsService';
 import {
   BASE_URL,
   createCloudBackend,
@@ -423,5 +425,85 @@ describe('CloudStorageAdapter freshness probes', () => {
     const probed = await adapter.getMapLastModified?.({ mapId: 'Gone', workspaceId: 'cloud' });
 
     expect(probed).toBeNull();
+  });
+});
+
+describe('CloudStorageAdapter document round-trip', () => {
+  let backend: CloudBackend;
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const NESTED_ID = 'プロジェクト/設計メモ';
+
+  /** What opening a map produces: parse the stored document into a MindMapData. */
+  const openedMap = (mapId: string, markdown: string) =>
+    MapOperationsService.createMapData(
+      mapId,
+      'cloud',
+      MarkdownImporter.parseMarkdownToNodes(markdown).rootNodes,
+      '2026-01-01T00:00:00.000Z'
+    );
+
+  const written = (mapId: string): string | undefined =>
+    backend.maps.get(mapId)?.content;
+
+  it('never writes the map path into the document as a heading', async () => {
+    const source = '# 設計メモ\n- 項目A\n';
+    backend.seed(NESTED_ID, source, '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    // MindMapData.title falls back to the mapId, so a nested map carries its
+    // own path as the title. That must not reach the document.
+    const map = openedMap(NESTED_ID, source);
+    expect(map.title).toBe(NESTED_ID);
+
+    await adapter.addMapToList(map);
+
+    expect(written(NESTED_ID)).not.toContain(NESTED_ID);
+    expect(written(NESTED_ID)).toBe(source);
+  });
+
+  it('leaves the document unchanged when the same map is stored repeatedly', async () => {
+    const source = '# 設計メモ\n- 項目A\n';
+    backend.seed(NESTED_ID, source, '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    // The corruption used to compound: one extra heading line per round trip.
+    for (let i = 0; i < 3; i++) {
+      const current = await adapter.getMapMarkdown?.({ mapId: NESTED_ID, workspaceId: 'cloud' });
+      await adapter.addMapToList(openedMap(NESTED_ID, current || ''));
+    }
+
+    expect(written(NESTED_ID)).toBe(source);
+  });
+
+  it('titles the map by its heading, not by its path', async () => {
+    const source = '# 設計メモ\n- 項目A\n';
+    backend.seed(NESTED_ID, source, '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    await adapter.addMapToList(openedMap(NESTED_ID, source));
+
+    expect(backend.maps.get(NESTED_ID)?.title).toBe('設計メモ');
+    const listed = await adapter.loadAllMaps();
+    expect(listed.find((m) => m.mapIdentifier.mapId === NESTED_ID)?.title).toBe('設計メモ');
+  });
+
+  it('preserves a document that has no heading of its own', async () => {
+    const source = '- 項目A\n- 項目B\n';
+    backend.seed(NESTED_ID, source, '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    await adapter.addMapToList(openedMap(NESTED_ID, source));
+
+    expect(written(NESTED_ID)).toBe(source);
   });
 });

@@ -414,14 +414,12 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
         const parsed = MapOperationsService.createMapData(mapId || '', workspaceId || '', parseResult.rootNodes, fileLastModified);
         actionsHook.selectMap(parsed);
 
-        try {
-          const stillNotExists = !persistenceHook.allMindMaps.find(m =>
-            m.mapIdentifier.mapId === mapId && m.mapIdentifier.workspaceId === workspaceId
-          );
-          if (stillNotExists) await persistenceHook.addMapToList(parsed);
-        } catch (e) {
-          logger.error('Failed to add map to list:', e);
-        }
+        // The map came from storage, so it only needs to appear in the list.
+        // Persisting it here would write the document back on every open.
+        const stillNotExists = !persistenceHook.allMindMaps.find(m =>
+          m.mapIdentifier.mapId === mapId && m.mapIdentifier.workspaceId === workspaceId
+        );
+        if (stillNotExists) persistenceHook.registerMapInList(parsed);
 
         delete windowWithProgress.__selectMapFallbackInProgress?.[fallbackKey];
         return true;

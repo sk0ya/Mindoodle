@@ -266,6 +266,23 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
   }, [adapterManager, config.mode, loadWorkspaces, refreshMapList]);
 
   
+  /**
+   * Record a map in the in-memory list only.
+   *
+   * Distinct from addMapToList, which asks the adapter to persist the map. A
+   * map that was just read from storage is already there; asking the cloud
+   * adapter to write it back re-serialises it, which is how the map's own path
+   * ended up in the document as an extra heading on every open.
+   */
+  const registerMapInList = useStableCallback((map: MindMapData): void => {
+    setAllMindMaps(prev => (
+      prev.some(m =>
+        m.mapIdentifier.mapId === map.mapIdentifier.mapId &&
+        m.mapIdentifier.workspaceId === map.mapIdentifier.workspaceId
+      ) ? prev : [...prev, map]
+    ));
+  });
+
   const addMapToList = useStableCallback(async (newMap: MindMapData): Promise<void> => {
     if (!isInitialized || !adapterManager) return;
 
@@ -384,6 +401,7 @@ export const useMindMapPersistence = (config: StorageConfig = { mode: 'local' })
     
     refreshMapList,
     addMapToList,
+    registerMapInList,
     removeMapFromList,
     switchWorkspace,
     addWorkspace,

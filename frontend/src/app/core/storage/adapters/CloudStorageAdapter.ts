@@ -477,11 +477,18 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
-
-      let markdown = `# ${map.title}\n`;
+      // The document is exactly the nodes' markdown. It must not be prefixed
+      // with `# ${map.title}`: the root nodes already carry the map's heading,
+      // and MindMapData.title falls back to the mapId, so that prefix wrote the
+      // map's own path into the file as an extra heading — once per open.
+      let markdown = '';
       map.rootNodes.forEach(node => {
         markdown += nodeToMarkdown(node, 0);
       });
+
+      // Derive the title from the content, the way saveMapMarkdown and the
+      // backend both do, so the cached title matches what a listing reports.
+      const title = this.extractTitleFromMarkdown(markdown);
 
       const expectedUpdatedAt = this.workspaceId === 'group'
         ? this.knownUpdatedAtByMapId.get(mapPath)
@@ -489,12 +496,12 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
       const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(mapPath)}` , {
         method: 'PUT',
-        body: JSON.stringify({ title: map.title, content: markdown, expectedUpdatedAt })
+        body: JSON.stringify({ title, content: markdown, expectedUpdatedAt })
       });
 
-      this.acceptWriteResult(mapPath, map.title, markdown, response);
+      this.acceptWriteResult(mapPath, title, markdown, response);
 
-      logger.info(`CloudStorageAdapter: Saved map ${map.title} to cloud`);
+      logger.info(`CloudStorageAdapter: Saved map ${mapPath} to cloud`);
     } catch (error) {
       this.mapCache.invalidate(mapPath);
       if ((error as { status?: number }).status === 409) {
