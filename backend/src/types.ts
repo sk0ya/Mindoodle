@@ -12,6 +12,11 @@ export interface UserSession {
   email: string;
   groupId?: string;
   createdAt: string;
+  /**
+   * When `expiresAt` was last pushed forward. Absent on sessions issued before
+   * sliding renewal, which fall back to `createdAt`.
+   */
+  renewedAt?: string;
   expiresAt: string;
 }
 

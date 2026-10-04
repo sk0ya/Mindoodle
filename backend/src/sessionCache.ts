@@ -9,9 +9,9 @@ import type { UserSession } from './types';
  * of the daily KV read allowance — at which point KV throws and *every*
  * authenticated request fails, which the UI reports as an authentication error.
  *
- * A session is immutable for its whole 30-day lifetime, so re-reading it on
- * every request buys nothing. Caching it briefly turns a poll loop into roughly
- * one KV read per token per isolate per TTL.
+ * A session changes at most once a day (its sliding expiry being renewed), so
+ * re-reading it on every request buys nothing. Caching it briefly turns a poll
+ * loop into roughly one KV read per token per isolate per TTL.
  *
  * The cache lives in the isolate, so it is not authoritative: a token revoked
  * elsewhere can stay accepted by another isolate until its entry expires. The
