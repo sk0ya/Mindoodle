@@ -1,6 +1,11 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
-import type { CloudStorageAdapter } from '../../core/storage/adapters/CloudStorageAdapter';
+import type { CloudStorageAdapter, CloudSessionEndReason } from '../../core/storage/adapters/CloudStorageAdapter';
+
+const SESSION_END_NOTICES: Record<CloudSessionEndReason, string> = {
+  expired: 'セッションの有効期限が切れました。再度ログインしてください。',
+  noGroupAccess: 'このアカウントはグループに参加していません。グループ認証コードを入力して再度ログインしてください。'
+};
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -75,6 +80,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
 
   const submitLabel: React.ReactNode = isLogin ? 'ログイン' : 'アカウントを作成';
 
+  // Opened because the session ended rather than by the user: say why.
+  const sessionEndReason = cloudAdapter.getSessionEndReason();
+  const sessionEndNotice = sessionEndReason ? SESSION_END_NOTICES[sessionEndReason] : null;
+
   const modalContent = (
     <div
       style={{
@@ -138,6 +147,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             ×
           </button>
         </div>
+
+        {!error && sessionEndNotice && (
+          <div role="status" style={{
+            marginBottom: '24px',
+            padding: '16px',
+            backgroundColor: '#fffbeb',
+            border: '1px solid #fde68a',
+            color: '#92400e',
+            borderRadius: '8px'
+          }}>
+            {sessionEndNotice}
+          </div>
+        )}
 
         {error && (
           <div style={{

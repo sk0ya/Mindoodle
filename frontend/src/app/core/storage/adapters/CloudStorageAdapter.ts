@@ -51,6 +51,27 @@ interface ImageGetResponse {
   contentType?: string;
 }
 
+type AuthVerdict = 'valid' | 'rejected' | 'unavailable';
+
+/**
+ * Why a cloud session ended without the user signing out:
+ * - 'expired': the server refused the token (expired, revoked, logged out elsewhere).
+ * - 'noGroupAccess': the token is valid but the account is no longer a group member,
+ *   which leaves the group workspace with nothing it can show.
+ */
+export type CloudSessionEndReason = 'expired' | 'noGroupAccess';
+
+export interface CloudAuthExpiredDetail {
+  workspaceId: string;
+  reason: CloudSessionEndReason;
+}
+
+/** Dispatched on `window` when a stored cloud/group session stops being usable. */
+export const CLOUD_AUTH_EXPIRED_EVENT = 'mindoodle:cloudAuthExpired';
+
+/** Shown when a group sign-in succeeds for an account that has no group. */
+export const GROUP_MEMBERSHIP_REQUIRED_MESSAGE = 'このアカウントはグループに参加していません。グループ認証コードを入力してログインしてください。';
+
 interface CloudStorageAdapterOptions {
   baseUrl?: string;
   workspaceId?: string;
@@ -71,6 +92,10 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
   private authUserKey: typeof STORAGE_KEYS.AUTH_USER | typeof STORAGE_KEYS.GROUP_AUTH_USER;
   private authToken: string | null = null;
   private user: CloudUser | null = null;
+  /** Background check of a session restored from localStorage ('none' when nothing was restored). */
+  private authVerification: Promise<AuthVerdict | 'none'> = Promise.resolve('none');
+  /** Set when the session ended on the server's say-so; cleared by the next sign-in. */
+  private sessionEndReason: CloudSessionEndReason | null = null;
   private virtualFolders: Set<string> = new Set();
   private knownUpdatedAtByMapId: Map<string, string> = new Map();
   private mapCache = new CloudMapCache();
@@ -115,6 +140,15 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }));
   }
 
+  /**
+   * Restores a stored session without waiting for the server.
+   *
+   * The workspace is shown straight from localStorage so a cold backend does
+   * not hold up the first render; `/api/auth/me` runs in the background (see
+   * `waitForAuthVerification`). If the server then refuses the token, the
+   * session ends through `handleAuthRejected` exactly as it would for a 401
+   * mid-session.
+   */
   override async initialize(): Promise<void> {
 
     try {
@@ -125,27 +159,14 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         this.authToken = tokenRes.data;
         this.user = userRes.data;
 
-
-        const verdict = await this.verifyAuth();
-
-        // Only a verdict from the server discards the stored credentials. A
-        // backend that is merely unreachable (network failure, 5xx) must not:
-        // signing the user out on a transient outage loses their session and
-        // forces a fresh login once the backend recovers.
-        if (verdict === 'rejected') {
-          this.clearAuth();
+        const workspaceService = WorkspaceService.getInstance();
+        if (this.workspaceId === 'group') {
+          workspaceService.restoreGroupWorkspace(this);
         } else {
-          if (verdict === 'unavailable') {
-            logger.warn('CloudStorageAdapter: Could not verify auth; keeping the stored session');
-          }
-
-          const workspaceService = WorkspaceService.getInstance();
-          if (this.workspaceId === 'group') {
-            workspaceService.restoreGroupWorkspace(this);
-          } else {
-            workspaceService.restoreCloudWorkspace(this);
-          }
+          workspaceService.restoreCloudWorkspace(this);
         }
+
+        this.authVerification = this.verifyRestoredSession(tokenRes.data);
       }
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to restore auth from localStorage', error);
@@ -154,6 +175,80 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     this._isInitialized = true;
     logger.info(`CloudStorageAdapter: Initialized, authenticated: ${this.isAuthenticated}`);
+  }
+
+  /** Resolves once the background check started by `initialize` has been applied. */
+  waitForAuthVerification(): Promise<AuthVerdict | 'none'> {
+    return this.authVerification;
+  }
+
+  /** Why the last session ended without a sign-out, or null. Cleared by a successful sign-in. */
+  getSessionEndReason(): CloudSessionEndReason | null {
+    return this.sessionEndReason;
+  }
+
+  private async verifyRestoredSession(token: string): Promise<AuthVerdict> {
+    const verdict = await this.verifyAuth();
+
+    // Only a verdict from the server discards the stored credentials. A
+    // backend that is merely unreachable (network failure, 5xx) must not:
+    // signing the user out on a transient outage loses their session and
+    // forces a fresh login once the backend recovers.
+    if (verdict === 'rejected') {
+      this.handleAuthRejected(token);
+    } else if (verdict === 'unavailable') {
+      logger.warn('CloudStorageAdapter: Could not verify auth; keeping the stored session');
+    } else if (this.workspaceId === 'group' && this.authToken === token && !this.user?.groupId) {
+      // The token is fine but the account left the group: nothing in the group
+      // workspace is reachable with it any more.
+      await this.revokeToken(token);
+      this.handleAuthRejected(token, 'noGroupAccess');
+    } else if (this.workspaceId === 'group' && this.isAuthenticated) {
+      // The cached copy may have predated joining the group.
+      const workspaceService = WorkspaceService.getInstance();
+      if (!workspaceService.getWorkspace('group')) workspaceService.restoreGroupWorkspace(this);
+    }
+    return verdict;
+  }
+
+  /**
+   * The single place a server refusal of our credentials is handled.
+   *
+   * Clears the stored token (only this adapter's keys, so the personal and the
+   * group session stay independent), removes the workspace from the app and
+   * announces it with `CLOUD_AUTH_EXPIRED_EVENT` so the UI can offer a fresh
+   * login.
+   *
+   * @param sentToken the token the refused request carried. When it no longer
+   *                  matches, a newer sign-in has replaced it and the refusal is
+   *                  stale. Omit when the caller did not track it.
+   */
+  private handleAuthRejected(sentToken?: string | null, reason: CloudSessionEndReason = 'expired'): void {
+    if (!this.authToken) return; // already signed out; report once
+    if (sentToken !== undefined && sentToken !== this.authToken) return;
+
+    logger.warn(`CloudStorageAdapter(${this.workspaceId}): session ended (${reason})`);
+    this.clearAuth();
+    this.sessionEndReason = reason;
+
+    WorkspaceService.getInstance().handleSessionEnded(this.workspaceId, this, reason);
+
+    if (typeof window !== 'undefined') {
+      const detail: CloudAuthExpiredDetail = { workspaceId: this.workspaceId, reason };
+      window.dispatchEvent(new CustomEvent<CloudAuthExpiredDetail>(CLOUD_AUTH_EXPIRED_EVENT, { detail }));
+    }
+  }
+
+  /** Best-effort server-side logout of a token this adapter is not keeping. */
+  private async revokeToken(token: string): Promise<void> {
+    try {
+      await this.makeRequest('/api/auth/logout', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+    } catch (error) {
+      logger.warn('CloudStorageAdapter: Failed to revoke token', error);
+    }
   }
 
   private async makeRequest<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
@@ -167,14 +262,22 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       headers['Content-Type'] = 'application/json';
     }
 
-    if (this.authToken) {
+    if (this.authToken && !('Authorization' in headers)) {
       headers.Authorization = `Bearer ${this.authToken}`;
     }
+    const sentToken = this.authToken;
 
     const response = await fetch(url, {
       ...options,
       headers
     });
+
+    // Auth endpoints answer 401 for a wrong password and are judged by their
+    // callers (verifyAuth decides for /me). Anywhere else a 401 means the
+    // session is gone. A 403 is not: on group routes it means "no group access".
+    if (response.status === 401 && sentToken && !endpoint.startsWith('/api/auth/')) {
+      this.handleAuthRejected(sentToken);
+    }
 
     if (!response.ok) {
 
@@ -202,13 +305,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         body: JSON.stringify({ email, password, groupCode: groupCode?.trim() || undefined })
       });
 
-      if (response.success && response.token && response.user) {
-        this.authToken = response.token;
-        this.user = response.user;
-        this.saveAuth();
-      }
-
-      return response;
+      return await this.acceptAuthResponse(response);
     } catch (error) {
       logger.error('CloudStorageAdapter: Registration failed', error);
       return {
@@ -225,13 +322,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         body: JSON.stringify({ email, password, groupCode: groupCode?.trim() || undefined })
       });
 
-      if (response.success && response.token && response.user) {
-        this.authToken = response.token;
-        this.user = response.user;
-        this.saveAuth();
-      }
-
-      return response;
+      return await this.acceptAuthResponse(response);
     } catch (error) {
       logger.error('CloudStorageAdapter: Login failed', error);
       return {
@@ -239,6 +330,31 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         error: error instanceof Error ? error.message : 'Login failed'
       };
     }
+  }
+
+  /**
+   * Keep the session from a login/register reply, or turn the reply into an
+   * error when the session would be unusable. Reporting success for such a
+   * session closes the modal with nothing to show, and persisting it makes
+   * every later startup restore the same empty state.
+   */
+  private async acceptAuthResponse(response: AuthResponse): Promise<AuthResponse> {
+    if (!response.success) return response;
+
+    if (!response.token || !response.user) {
+      return { success: false, error: response.error || 'Authentication failed' };
+    }
+
+    if (this.workspaceId === 'group' && !response.user.groupId) {
+      await this.revokeToken(response.token);
+      return { success: false, error: GROUP_MEMBERSHIP_REQUIRED_MESSAGE };
+    }
+
+    this.authToken = response.token;
+    this.user = response.user;
+    this.sessionEndReason = null;
+    this.saveAuth();
+    return response;
   }
 
   async logout(): Promise<void> {
@@ -252,6 +368,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       logger.warn('CloudStorageAdapter: Logout request failed', error);
     } finally {
       this.clearAuth();
+      this.sessionEndReason = null;
     }
   }
 
@@ -260,13 +377,30 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
    * means the server refused these credentials, 'unavailable' means it never
    * got to say. Only the former justifies throwing the session away.
    */
-  private async verifyAuth(): Promise<'valid' | 'rejected' | 'unavailable'> {
+  private async verifyAuth(): Promise<AuthVerdict> {
+    const token = this.authToken;
     try {
       const response = await this.makeRequest<MeResponse>('/api/auth/me');
-      return response.success ? 'valid' : 'rejected';
+      if (!response.success) return 'rejected';
+
+      // The server's view of the account wins over the copy cached at login:
+      // group membership in particular can change between sessions.
+      if (response.user && token && this.authToken === token) {
+        const previousGroupId = this.user?.groupId;
+        this.user = response.user;
+        if (previousGroupId !== response.user.groupId) {
+          this.mapCache.clear();
+          this.knownUpdatedAtByMapId.clear();
+          this.invalidateListings();
+        }
+        this.saveAuth();
+      }
+      return 'valid';
     } catch (error) {
       logger.warn('CloudStorageAdapter: verifyAuth failed', error);
       const status = (error as { status?: number }).status;
+      // /me involves no group check, so a 403 there is a refusal of the
+      // credentials themselves, like a 401.
       return status === 401 || status === 403 ? 'rejected' : 'unavailable';
     }
   }
@@ -980,11 +1114,16 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         form.append('path', relativePath);
         form.append('file', file, (file && file.name) ? file.name : 'image');
 
+        const sentToken = this.authToken;
         const res = await fetch(`${this.baseUrl}${this.imagesEndpoint}/upload`, {
           method: 'POST',
-          headers: this.authToken ? { Authorization: `Bearer ${this.authToken}` } as Record<string, string> : undefined,
+          headers: sentToken ? { Authorization: `Bearer ${sentToken}` } : undefined,
           body: form,
         });
+
+        if (res.status === 401 && sentToken) {
+          this.handleAuthRejected(sentToken);
+        }
 
         if (!res.ok) {
           let errMsg = res.statusText || `HTTP ${res.status}`;
@@ -1031,6 +1170,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       try {
         await tryMultipart();
       } catch (e) {
+        // The session is gone; the JSON route would only be refused too.
+        if (e instanceof Error && 'status' in e && e.status === 401) throw e;
 
         logger.warn('CloudStorageAdapter: Multipart upload failed, falling back to JSON', e);
         await tryJsonBase64();

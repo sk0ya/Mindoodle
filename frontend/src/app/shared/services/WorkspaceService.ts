@@ -1,4 +1,4 @@
-import type { CloudStorageAdapter } from '../../core/storage/adapters/CloudStorageAdapter';
+import type { CloudStorageAdapter, CloudSessionEndReason } from '../../core/storage/adapters/CloudStorageAdapter';
 import { logger } from '../utils';
 import { setLocalStorage, getLocalStorage, STORAGE_KEYS } from '@shared/utils';
 
@@ -10,12 +10,19 @@ export interface Workspace {
   cloudAdapter?: CloudStorageAdapter;
 }
 
+export interface EndedSession {
+  workspaceId: string;
+  adapter: CloudStorageAdapter;
+  reason: CloudSessionEndReason;
+}
+
 export class WorkspaceService {
   private static instance: WorkspaceService | null = null;
   private workspaces: Map<string, Workspace> = new Map();
   private cloudAdapter: CloudStorageAdapter | null = null;
   private groupAdapter: CloudStorageAdapter | null = null;
   private listeners: Set<() => void> = new Set();
+  private endedSessions: EndedSession[] = [];
 
   private constructor() {
     
@@ -93,6 +100,7 @@ export class WorkspaceService {
     };
 
     this.workspaces.set('cloud', workspace);
+    this.endedSessions = this.endedSessions.filter((s) => s.workspaceId !== 'cloud');
     this.persistWorkspaces();
     this.notifyListeners();
     logger.info(`Added cloud workspace for user: ${user.email}`);
@@ -116,6 +124,7 @@ export class WorkspaceService {
     };
 
     this.workspaces.set('group', workspace);
+    this.endedSessions = this.endedSessions.filter((s) => s.workspaceId !== 'group');
     this.persistWorkspaces();
     this.notifyListeners();
     logger.info(`Added group workspace for user: ${user.email}`);
@@ -160,6 +169,35 @@ export class WorkspaceService {
         logger.error('Error during cloud logout:', error);
       });
     }
+  }
+
+  /**
+   * A cloud/group session ended without the user signing out (token refused,
+   * or group membership gone). Drops that workspace only: the personal and the
+   * group workspace use separate sessions, so one ending leaves the other.
+   *
+   * The adapter reference is kept so signing in again reuses it, and the event
+   * is queued for `takeEndedSessions` so a UI that mounts after the background
+   * startup check still learns about it.
+   */
+  handleSessionEnded(workspaceId: string, adapter: CloudStorageAdapter, reason: EndedSession['reason']): void {
+    const workspace = this.workspaces.get(workspaceId);
+    if (workspace && workspace.cloudAdapter === adapter) {
+      this.workspaces.delete(workspaceId);
+      this.persistWorkspaces();
+      logger.info(`Removed ${workspaceId} workspace: session ended (${reason})`);
+    }
+
+    this.endedSessions = this.endedSessions.filter((s) => s.workspaceId !== workspaceId);
+    this.endedSessions.push({ workspaceId, adapter, reason });
+    this.notifyListeners();
+  }
+
+  /** Sessions that ended since the last call, oldest first. */
+  takeEndedSessions(): EndedSession[] {
+    const ended = this.endedSessions;
+    this.endedSessions = [];
+    return ended;
   }
 
   removeGroupWorkspace(): void {

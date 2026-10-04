@@ -28,53 +28,67 @@ export class AdapterManager {
     logger.info('AdapterManager: Local adapter initialized');
 
     
+    // The cloud adapters restore their sessions from localStorage and verify
+    // them in the background (CloudStorageAdapter.initialize), so nothing here
+    // waits on the backend. A session the server later refuses is removed
+    // through WorkspaceService.handleSessionEnded. The two sessions are
+    // independent, so neither waits for the other.
     if (this.config.mode === 'local+cloud') {
-      const workspaceService = WorkspaceService.getInstance();
-      const existingCloudAdapter = workspaceService.getCloudAdapter();
-      const existingGroupAdapter = workspaceService.getGroupAdapter();
-
-      if (existingCloudAdapter) {
-        this.cloudAdapter = existingCloudAdapter;
-        
-        if (!this.cloudAdapter.isInitialized && typeof this.cloudAdapter.initialize === 'function') {
-          await this.cloudAdapter.initialize();
-        }
-        logger.info(`AdapterManager: Using existing cloud adapter (authenticated=${this.cloudAdapter.isAuthenticated})`);
-      } else {
-        
-        const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
-        this.cloudAdapter = new CloudStorageAdapter(apiEndpoint);
-        workspaceService.setCloudAdapter(this.cloudAdapter);
-        await this.cloudAdapter.initialize();
-
-        
-        if (this.cloudAdapter.isAuthenticated) {
-          workspaceService.addCloudWorkspace(this.cloudAdapter);
-        }
-        logger.info('AdapterManager: Created and initialized shared cloud adapter');
-      }
-
-      if (existingGroupAdapter) {
-        this.groupAdapter = existingGroupAdapter;
-        if (!this.groupAdapter.isInitialized && typeof this.groupAdapter.initialize === 'function') {
-          await this.groupAdapter.initialize();
-        }
-        logger.info(`AdapterManager: Using existing group adapter (authenticated=${this.groupAdapter.isAuthenticated})`);
-      } else {
-        const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
-        this.groupAdapter = new GroupCloudStorageAdapter(apiEndpoint);
-        workspaceService.setGroupAdapter(this.groupAdapter);
-        await this.groupAdapter.initialize();
-
-        const user = this.groupAdapter.getCurrentUser();
-        if (this.groupAdapter.isAuthenticated && user?.groupId) {
-          workspaceService.addGroupWorkspace(this.groupAdapter);
-        }
-        logger.info('AdapterManager: Created and initialized shared group adapter');
-      }
+      await Promise.all([this.initializeCloudAdapter(), this.initializeGroupAdapter()]);
     }
 
     logger.info('AdapterManager: Initialization complete');
+  }
+
+  private async initializeCloudAdapter(): Promise<void> {
+    const workspaceService = WorkspaceService.getInstance();
+    const existingCloudAdapter = workspaceService.getCloudAdapter();
+
+    if (existingCloudAdapter) {
+      this.cloudAdapter = existingCloudAdapter;
+      if (!existingCloudAdapter.isInitialized) {
+        await existingCloudAdapter.initialize();
+      }
+      logger.info(`AdapterManager: Using existing cloud adapter (authenticated=${existingCloudAdapter.isAuthenticated})`);
+      return;
+    }
+
+    const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
+    const cloudAdapter = new CloudStorageAdapter(apiEndpoint);
+    this.cloudAdapter = cloudAdapter;
+    workspaceService.setCloudAdapter(cloudAdapter);
+    await cloudAdapter.initialize();
+
+    if (cloudAdapter.isAuthenticated) {
+      workspaceService.addCloudWorkspace(cloudAdapter);
+    }
+    logger.info('AdapterManager: Created and initialized shared cloud adapter');
+  }
+
+  private async initializeGroupAdapter(): Promise<void> {
+    const workspaceService = WorkspaceService.getInstance();
+    const existingGroupAdapter = workspaceService.getGroupAdapter();
+
+    if (existingGroupAdapter) {
+      this.groupAdapter = existingGroupAdapter;
+      if (!existingGroupAdapter.isInitialized) {
+        await existingGroupAdapter.initialize();
+      }
+      logger.info(`AdapterManager: Using existing group adapter (authenticated=${existingGroupAdapter.isAuthenticated})`);
+      return;
+    }
+
+    const apiEndpoint = this.config.cloudApiEndpoint || 'https://mindoodle-backend-production.shigekazukoya.workers.dev';
+    const groupAdapter = new GroupCloudStorageAdapter(apiEndpoint);
+    this.groupAdapter = groupAdapter;
+    workspaceService.setGroupAdapter(groupAdapter);
+    await groupAdapter.initialize();
+
+    const user = groupAdapter.getCurrentUser();
+    if (groupAdapter.isAuthenticated && user?.groupId) {
+      workspaceService.addGroupWorkspace(groupAdapter);
+    }
+    logger.info('AdapterManager: Created and initialized shared group adapter');
   }
 
   

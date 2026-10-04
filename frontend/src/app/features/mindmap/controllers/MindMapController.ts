@@ -1,5 +1,6 @@
 
-import type { CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
+import { CLOUD_AUTH_EXPIRED_EVENT, type CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
+import { WorkspaceService } from '@shared/services';
 import { logger } from '@shared/utils';
 
 interface MindMapMethods {
@@ -59,6 +60,40 @@ export class MindMapController {
       }
     };
     window.addEventListener('mindoodle:showAuthModal', listener as EventListener);
-    return () => window.removeEventListener('mindoodle:showAuthModal', listener as EventListener);
+
+    // A cloud/group session ended on the server's say-so: its workspace is
+    // already gone (WorkspaceService.handleSessionEnded), so offer the login
+    // straight away. The modal tells the user why (AuthModal reads the
+    // adapter's session-end reason). Sessions that ended before this bridge
+    // was attached — the startup check runs in the background — are queued in
+    // WorkspaceService and picked up here too.
+    const openReLogin = () => {
+      try {
+        const [ended] = WorkspaceService.getInstance().takeEndedSessions();
+        if (!ended) return;
+        const { adapter, workspaceId } = ended;
+        const onSuccess = (signedIn: CloudStorageAdapter) => {
+          const workspaceService = WorkspaceService.getInstance();
+          if (workspaceId === 'group') {
+            workspaceService.addGroupWorkspace(signedIn);
+          } else {
+            workspaceService.addCloudWorkspace(signedIn);
+          }
+        };
+        handlers.setAuthCloudAdapter(adapter);
+        // A state setter: wrap so React stores the callback instead of calling it.
+        handlers.setAuthOnSuccess(() => onSuccess);
+        handlers.setIsAuthModalOpen(true);
+      } catch (e) {
+        logger.warn(`${CLOUD_AUTH_EXPIRED_EVENT} handler error`, e);
+      }
+    };
+    openReLogin();
+    window.addEventListener(CLOUD_AUTH_EXPIRED_EVENT, openReLogin);
+
+    return () => {
+      window.removeEventListener('mindoodle:showAuthModal', listener as EventListener);
+      window.removeEventListener(CLOUD_AUTH_EXPIRED_EVENT, openReLogin);
+    };
   }
 }

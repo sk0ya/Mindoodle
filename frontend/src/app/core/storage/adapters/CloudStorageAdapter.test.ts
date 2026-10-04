@@ -296,13 +296,17 @@ describe('CloudStorageAdapter session restore', () => {
     vi.unstubAllGlobals();
   });
 
-  /** Sign in once so a token and user are persisted, then start a fresh adapter. */
+  /**
+   * Sign in once so a token and user are persisted, then start a fresh adapter
+   * and wait for its background check of the stored session to be applied.
+   */
   const restoreAdapter = async (): Promise<CloudStorageAdapter> => {
     const first = new CloudStorageAdapter(BASE_URL);
     await first.login('a@b.c', 'pw');
 
     const restored = new CloudStorageAdapter(BASE_URL);
     await restored.initialize();
+    await restored.waitForAuthVerification();
     return restored;
   };
 

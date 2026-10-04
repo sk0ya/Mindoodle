@@ -1,9 +1,12 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { AuthModal } from './AuthModal';
+import { GroupCloudStorageAdapter, GROUP_MEMBERSHIP_REQUIRED_MESSAGE, type CloudSessionEndReason } from '../../core/storage/adapters/CloudStorageAdapter';
+import { STORAGE_KEYS } from '@shared/utils';
+import { BASE_URL, createCloudBackend } from '../../../test/cloudBackendMock';
 
 const adapter = () => ({
-  login: vi.fn(), register: vi.fn()
+  login: vi.fn(), register: vi.fn(), getSessionEndReason: vi.fn((): CloudSessionEndReason | null => null)
 });
 
 describe('AuthModal', () => {
@@ -74,5 +77,48 @@ describe('AuthModal', () => {
     fireEvent.click(screen.getByRole('button', { name: 'ログインに戻る' }));
     expect(screen.getByRole('heading', { name: 'ログイン' })).not.toBeNull();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('says why when it was opened because the session ended', () => {
+    const cloud = adapter();
+    cloud.getSessionEndReason.mockReturnValue('expired');
+    render(<AuthModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} cloudAdapter={cloud as never} />);
+
+    expect(screen.getByRole('status').textContent).toBe('セッションの有効期限が切れました。再度ログインしてください。');
+  });
+
+  it('shows no session notice for an ordinary login', () => {
+    render(<AuthModal isOpen onClose={vi.fn()} onSuccess={vi.fn()} cloudAdapter={adapter() as never} />);
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+});
+
+describe('AuthModal with the group adapter', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('keeps the modal open with an error when the account has no group, and stores no token', async () => {
+    localStorage.clear();
+    const backend = createCloudBackend({ mapsPath: '/api/group/maps', imagesPath: '/api/group/images' });
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => (
+      String(input).endsWith('/api/auth/login')
+        ? ({ ok: true, status: 200, statusText: 'OK', json: async () => ({ success: true, token: 't', user: { id: 'u1', email: 'a@b.c' } }) } as unknown as Response)
+        : backend.fetchMock(input, init)
+    )));
+    const group = new GroupCloudStorageAdapter(BASE_URL);
+    const onClose = vi.fn();
+    const onSuccess = vi.fn();
+    render(<AuthModal isOpen onClose={onClose} onSuccess={onSuccess} cloudAdapter={group} />);
+
+    fireEvent.change(screen.getByLabelText('メールアドレス'), { target: { value: 'a@b.c' } });
+    fireEvent.change(screen.getByLabelText('パスワード'), { target: { value: 'password123' } });
+    fireEvent.click(screen.getByRole('button', { name: 'ログイン' }));
+
+    expect(await screen.findByText(GROUP_MEMBERSHIP_REQUIRED_MESSAGE)).not.toBeNull();
+    expect(onSuccess).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(localStorage.getItem(STORAGE_KEYS.GROUP_AUTH_TOKEN)).toBeNull();
+    expect(group.isAuthenticated).toBe(false);
   });
 });
