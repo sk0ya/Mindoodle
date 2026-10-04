@@ -23,6 +23,7 @@ import { MindMapController } from '@mindmap/controllers/MindMapController';
 import { buildMapUrl, getMapTargetFromUrl, logger } from '@shared/utils';
 import { MarkdownImporter } from '../../../markdown/markdownImporter';
 import { MapOperationsService } from '../../services/MapOperationsService';
+import { MAP_CONFLICT_EVENT } from '@core/types';
 import { useVim } from "../../../vim/context/vimContext";
 import { useCommandPalette } from '@shared/hooks/ui/useCommandPalette';
 import { useCommands } from '../../../../commands/system/useCommands';
@@ -302,6 +303,7 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       },
       refreshMapList: mindMap.refreshMapList,
       selectRootFolder: mindMap.selectRootFolder,
+      getMapMarkdown: mindMap.getMapMarkdown,
     },
     showNotification,
   });
@@ -490,21 +492,37 @@ export const MindMapAppContent: React.FC<MindMapAppContentProps> = ({
       document.removeEventListener('visibilitychange', handleVisibility);
     };
   }, [groupMapId]);
+  // A save refused because the map changed elsewhere: another group member,
+  // or (personal cloud) another tab or device. Every autosave retries and is
+  // refused again, so report each remote version once.
+  const saveConflictNotifiedRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const handleGroupConflict = (event: Event) => {
-      const detail = (event as CustomEvent).detail as { mapIdentifier?: MapIdentifier; currentUpdatedAt?: string } | undefined;
-      const currentId = data?.mapIdentifier;
-      if (!currentId || currentId.workspaceId !== 'group') return;
-      if (detail?.mapIdentifier?.mapId !== currentId.mapId) return;
+    const handleMapConflict = (event: Event) => {
+      const detail: unknown = event instanceof CustomEvent ? event.detail : undefined;
+      if (!detail || typeof detail !== 'object' || !('mapIdentifier' in detail)) return;
+      const conflicted = detail.mapIdentifier;
+      if (!conflicted || typeof conflicted !== 'object' || !('mapId' in conflicted) || !('workspaceId' in conflicted)) return;
+      const currentUpdatedAt = 'currentUpdatedAt' in detail && typeof detail.currentUpdatedAt === 'string'
+        ? detail.currentUpdatedAt
+        : undefined;
 
-      if (detail.currentUpdatedAt) {
-        groupConflictNotifiedRef.current = `${currentId.workspaceId}:${currentId.mapId}:${detail.currentUpdatedAt}`;
+      const currentId = data?.mapIdentifier;
+      if (!currentId || conflicted.workspaceId !== currentId.workspaceId || conflicted.mapId !== currentId.mapId) return;
+
+      const conflictKey = `${currentId.workspaceId}:${currentId.mapId}:${currentUpdatedAt ?? ''}`;
+      if (currentId.workspaceId === 'group' && currentUpdatedAt) {
+        groupConflictNotifiedRef.current = conflictKey;
       }
-      showNotification('warning', '保存できませんでした。他のユーザーの更新があります。最新内容を確認してください。');
+      if (saveConflictNotifiedRef.current === conflictKey) return;
+      saveConflictNotifiedRef.current = conflictKey;
+
+      showNotification('warning', currentId.workspaceId === 'group'
+        ? '保存できませんでした。他のユーザーの更新があります。最新内容を確認してください。'
+        : '保存できませんでした。別のタブまたは端末でこのマップが更新されています。マップを開き直して最新内容を確認してください。');
     };
 
-    window.addEventListener('mindoodle:groupMapConflict', handleGroupConflict);
-    return () => window.removeEventListener('mindoodle:groupMapConflict', handleGroupConflict);
+    window.addEventListener(MAP_CONFLICT_EVENT, handleMapConflict);
+    return () => window.removeEventListener(MAP_CONFLICT_EVENT, handleMapConflict);
   }, [data?.mapIdentifier, showNotification]);
 
   const countNodes = (node: MindMapNode): number => {
