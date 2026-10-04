@@ -143,7 +143,8 @@ describe('Cloud session rejected mid-session', () => {
     expect(token).toBeTruthy();
     if (token) auth.revoke(token);
 
-    await adapter.loadAllMaps();
+    // A refused listing is a failure, not an empty workspace.
+    await expect(adapter.loadAllMaps()).rejects.toMatchObject({ status: 401 });
 
     expect(localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN)).toBeNull();
     expect(localStorage.getItem(STORAGE_KEYS.AUTH_USER)).toBeNull();
@@ -182,7 +183,7 @@ describe('Cloud session rejected mid-session', () => {
     const cloudToken = cloud.getAuthToken();
     if (cloudToken) auth.revoke(cloudToken);
 
-    await cloud.loadAllMaps();
+    await expect(cloud.loadAllMaps()).rejects.toMatchObject({ status: 401 });
 
     const workspaceService = WorkspaceService.getInstance();
     expect(workspaceService.getWorkspace('cloud')).toBeUndefined();
@@ -202,7 +203,7 @@ describe('Cloud session rejected mid-session', () => {
     const groupToken = group.getAuthToken();
     if (groupToken) auth.revoke(groupToken);
 
-    await group.loadAllMaps();
+    await expect(group.loadAllMaps()).rejects.toMatchObject({ status: 401 });
 
     const workspaceService = WorkspaceService.getInstance();
     expect(workspaceService.getWorkspace('group')).toBeUndefined();
@@ -220,7 +221,7 @@ describe('Cloud session rejected mid-session', () => {
     const token = group.getAuthToken();
     if (token) auth.forbid(token);
 
-    await group.loadAllMaps();
+    await expect(group.loadAllMaps()).rejects.toMatchObject({ status: 403 });
 
     expect(group.isAuthenticated).toBe(true);
     expect(localStorage.getItem(STORAGE_KEYS.GROUP_AUTH_TOKEN)).toBeTruthy();
@@ -256,7 +257,7 @@ describe('Cloud session rejected mid-session', () => {
     await adapter.login('a@b.c', 'password1');
     const newToken = adapter.getAuthToken();
     release();
-    await staleLoad;
+    await expect(staleLoad).rejects.toMatchObject({ status: 401 });
 
     expect(adapter.isAuthenticated).toBe(true);
     expect(adapter.getAuthToken()).toBe(newToken);

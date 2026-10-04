@@ -846,6 +846,15 @@ describe('CloudStorageAdapter images', () => {
     expect(backend.requests.map((r) => r.path)).toEqual([`/api/images/${encodeURIComponent('assets/logo.png')}?raw=1`]);
   });
 
+  it('ends the session when a raw image request is refused with 401', async () => {
+    backend.seedImage('assets/logo.png', PNG);
+    const adapter = await createAuthenticatedAdapter(backend);
+    backend.setOutage(401);
+
+    expect(await adapter.readImageAsDataURL?.('assets/logo.png', 'cloud')).toBeNull();
+    expect(adapter.isAuthenticated).toBe(false);
+  });
+
   it('reads an image as a File with its bytes and type', async () => {
     backend.seedImage('assets/photo.jpg', PNG, 'image/jpeg');
     const adapter = await createAuthenticatedAdapter(backend);

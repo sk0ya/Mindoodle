@@ -350,11 +350,17 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
    */
   private async makeRawRequest(endpoint: string, options: RawRequestOptions = {}): Promise<Response> {
     const headers: Record<string, string> = { ...(options.headers ?? {}) };
-    if (this.authToken) {
-      headers.Authorization = `Bearer ${this.authToken}`;
+    const sentToken = this.authToken;
+    if (sentToken) {
+      headers.Authorization = `Bearer ${sentToken}`;
     }
 
     const response = await fetch(`${this.baseUrl}${endpoint}`, { ...options, headers });
+
+    // Same rule as makeRequest: outside /api/auth a 401 means the session is gone.
+    if (response.status === 401 && sentToken) {
+      this.handleAuthRejected(sentToken);
+    }
 
     if (!response.ok) {
       let errMsg = response.statusText || 'Network error';
