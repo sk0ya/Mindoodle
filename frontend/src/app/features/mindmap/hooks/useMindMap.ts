@@ -19,6 +19,7 @@ import { MapOperationsService } from '@mindmap/services/MapOperationsService';
 import { ExplorerMoveService } from '@mindmap/services/ExplorerMoveService';
 import { hasLoadedTree } from '@mindmap/services/MapListService';
 import { CLOUD_AUTH_EXPIRED_EVENT } from '@core/storage/adapters/CloudStorageAdapter';
+import { WorkspaceService } from '@shared/services';
 
 export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) => {
   const dataHook = useMindMapData();
@@ -76,21 +77,36 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   const updateNodeRef = useLatestRef(dataHook.updateNode);
   const applyAutoLayoutRef = useLatestRef(dataHook.applyAutoLayout);
 
-  // A refused session can no longer read or save its maps. Close a map that
-  // belongs to it instead of leaving an editor whose saves can only fail;
-  // the login dialog that reopens explains why.
-  const closeMapOfEndedSession = useStableCallback((event: Event) => {
+  // A refused session can no longer save its maps, but the open map may hold
+  // edits that never reached the server. Closing it would discard them, so it
+  // stays open (its failed saves stay pending in the stream) and is written
+  // again as soon as the login dialog restores that workspace.
+  const resaveAfterSignInRef = useRef<string | null>(null);
+
+  const rememberMapOfEndedSession = useStableCallback((event: Event) => {
     const detail: unknown = event instanceof CustomEvent ? event.detail : undefined;
-    if (!detail || typeof detail !== 'object' || !('workspaceId' in detail)) return;
+    if (!detail || typeof detail !== 'object' || !('workspaceId' in detail) || typeof detail.workspaceId !== 'string') return;
     if (dataRef.current?.mapIdentifier.workspaceId !== detail.workspaceId) return;
-    cancelPendingMarkdownWrites();
-    dataHook.clearData();
+    resaveAfterSignInRef.current = detail.workspaceId;
+  });
+
+  const resaveAfterSignIn = useStableCallback(() => {
+    const workspaceId = resaveAfterSignInRef.current;
+    if (!workspaceId || !WorkspaceService.getInstance().getWorkspace(workspaceId)) return;
+    resaveAfterSignInRef.current = null;
+    if (dataRef.current?.mapIdentifier.workspaceId !== workspaceId) return;
+    void markdownStreamHook.stream.flush();
   });
 
   useEffect(() => {
-    window.addEventListener(CLOUD_AUTH_EXPIRED_EVENT, closeMapOfEndedSession);
-    return () => window.removeEventListener(CLOUD_AUTH_EXPIRED_EVENT, closeMapOfEndedSession);
-  }, [closeMapOfEndedSession]);
+    const workspaceService = WorkspaceService.getInstance();
+    window.addEventListener(CLOUD_AUTH_EXPIRED_EVENT, rememberMapOfEndedSession);
+    workspaceService.addListener(resaveAfterSignIn);
+    return () => {
+      window.removeEventListener(CLOUD_AUTH_EXPIRED_EVENT, rememberMapOfEndedSession);
+      workspaceService.removeListener(resaveAfterSignIn);
+    };
+  }, [rememberMapOfEndedSession, resaveAfterSignIn]);
 
   const skipNodeToMarkdownSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 

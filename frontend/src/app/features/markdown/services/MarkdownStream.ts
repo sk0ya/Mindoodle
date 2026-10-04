@@ -100,15 +100,20 @@ export class MarkdownStream {
       const now = this.content;
       if (now === this.lastFlushed) return;
       
+      let allSaved = true;
       for (const sink of this.sinks.slice()) {
         if (generation !== this.flushGeneration) return;
         try {
           await sink.flush(now);
         } catch (err) {
+          allSaved = false;
           logger.warn('MarkdownStream sink flush error', { id: sink.id, error: err });
         }
       }
-      this.lastFlushed = now;
+      // A failed save must stay pending: marking it flushed made the next
+      // flush() a no-op, so content that missed its save (expired session,
+      // outage) was only written again if the user happened to edit once more.
+      if (allSaved) this.lastFlushed = now;
     };
     this.flushLock = this.flushLock
       .then(run)

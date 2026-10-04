@@ -5,6 +5,7 @@ import type { ExplorerItem, StorageAdapter } from '@core/types';
 import { NotificationProvider, StatusBarProvider } from '@shared/hooks';
 import { CloudStorageAdapter } from '@core/storage/adapters/CloudStorageAdapter';
 import { BASE_URL, createCloudBackend, mapBodyGets, mapDetailGets, type CloudBackend } from '../../../../test/cloudBackendMock';
+import { WorkspaceService } from '@shared/services';
 import { useMindMap } from './useMindMap';
 
 /** Stand-in AdapterManager: a local adapter and a real CloudStorageAdapter on the in-memory backend. */
@@ -140,5 +141,36 @@ describe('useMindMap opening a cloud map', () => {
     const root = hook.result.current.data?.rootNodes[0];
     expect(root?.text).toBe('Map 5');
     expect(root?.children?.[0]?.text).toBe('child 5');
+  });
+  it('keeps an edit made after the session ended and saves it once the user signs in again', async () => {
+    const hook = await renderMindMap();
+    await act(async () => {
+      await hook.result.current.selectMapById({ mapId: 'Map3', workspaceId: 'cloud' });
+    });
+    const rootId = hook.result.current.data?.rootNodes[0]?.id;
+    expect(rootId).toBeDefined();
+    const cloud = managerState.cloud as CloudStorageAdapter;
+    WorkspaceService.getInstance().addCloudWorkspace(cloud);
+
+    // The token is refused from now on; the edit's save hits the 401.
+    backend.setOutage(401);
+    await act(async () => {
+      hook.result.current.updateNode(rootId ?? '', { text: 'Edited offline' });
+    });
+    await waitFor(() => expect(cloud.isAuthenticated).toBe(false));
+    // Let the debounced save run and fail (the session is already gone).
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 500)); });
+
+    // The map with its unsaved edit is still open behind the login dialog.
+    expect(hook.result.current.data?.rootNodes[0]?.text).toBe('Edited offline');
+    expect(backend.maps.get('Map3')?.content).not.toContain('Edited offline');
+
+    // Signing in again (what the dialog's onSuccess does) writes the edit.
+    backend.setOutage(null);
+    await act(async () => {
+      await cloud.login('a@b.c', 'pw');
+      WorkspaceService.getInstance().addCloudWorkspace(cloud);
+    });
+    await waitFor(() => expect(backend.maps.get('Map3')?.content).toContain('Edited offline'));
   });
 });
