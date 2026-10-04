@@ -1,6 +1,7 @@
 import type { Env, AuthRequest, UserSession } from './types';
 import { AuthService } from './auth';
 import { MapStorageService } from './mapStorage';
+import { getImageKey, listImagePaths, readImage, type ImageReadOptions } from './images';
 
 // Allowed origins for CORS
 const allowedOrigins = [
@@ -20,13 +21,16 @@ function getCorsHeaders(request: Request): Record<string, string> {
   return {
     'Access-Control-Allow-Origin': allowedOrigin,
     'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    // If-None-Match: raw image reads are revalidated with the ETag they returned.
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization, If-None-Match',
+    // A cross-origin script only sees safelisted response headers unless named here.
+    'Access-Control-Expose-Headers': 'ETag, Content-Type',
     'Access-Control-Max-Age': '86400',
   };
 }
 
 // Helper function to create JSON response with CORS
-function jsonResponse(data: any, status = 200, request?: Request): Response {
+function jsonResponse(data: unknown, status = 200, request?: Request): Response {
   const corsHeaders = request ? getCorsHeaders(request) : { 'Access-Control-Allow-Origin': allowedOrigins[0] };
 
   return new Response(JSON.stringify(data), {
@@ -72,6 +76,14 @@ function getAuthToken(request: Request): string | null {
  */
 function wantsMetadataOnly(url: URL): boolean {
   return url.searchParams.get('meta') === '1';
+}
+
+/**
+ * `?raw=1` opts into the binary image response. It is opt-in rather than the
+ * new default because frontends already deployed parse the JSON form.
+ */
+function imageReadOptions(url: URL, request: Request): ImageReadOptions {
+  return { raw: url.searchParams.get('raw') === '1', corsHeaders: getCorsHeaders(request) };
 }
 
 // Helper function to authenticate request
@@ -410,26 +422,7 @@ export default {
         }
 
         try {
-          const r2Key = `maps/${groupScope}/${imagePath}`;
-          const object = await env.MAPS_BUCKET.get(r2Key);
-
-          if (!object) {
-            return jsonResponse({ success: false, error: 'Image not found' }, 404, request);
-          }
-
-          const arrayBuffer = await object.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binaryString = '';
-          for (let i = 0; i < bytes.length; i++) {
-            binaryString += String.fromCharCode(bytes[i]);
-          }
-          const base64Data = btoa(binaryString);
-
-          return jsonResponse({
-            success: true,
-            data: base64Data,
-            contentType: object.httpMetadata?.contentType || 'image/png'
-          }, 200, request);
+          return await readImage(env.MAPS_BUCKET, getImageKey(groupScope, imagePath), request, imageReadOptions(url, request));
         } catch (error) {
           console.error('Group image download error:', error);
           return jsonResponse({ success: false, error: 'Failed to download image' }, 500, request);
@@ -477,14 +470,7 @@ export default {
         const directoryPath = url.searchParams.get('path') || '';
 
         try {
-          const prefix = `maps/${groupScope}/${directoryPath}`;
-          const listed = await env.MAPS_BUCKET.list({ prefix });
-
-          const files = listed.objects.map(obj => {
-            const removePrefix = `maps/${groupScope}/`;
-            return obj.key.startsWith(removePrefix) ? obj.key.substring(removePrefix.length) : obj.key;
-          });
-
+          const files = await listImagePaths(env.MAPS_BUCKET, groupScope, directoryPath);
           return jsonResponse({ success: true, files }, 200, request);
         } catch (error) {
           console.error('Group image list error:', error);
@@ -551,27 +537,7 @@ export default {
         }
 
         try {
-          const r2Key = `maps/${getStorageScope(session)}/${imagePath}`;
-          const object = await env.MAPS_BUCKET.get(r2Key);
-
-          if (!object) {
-            return jsonResponse({ success: false, error: 'Image not found' }, 404, request);
-          }
-
-          // Convert to base64 for JSON response
-          const arrayBuffer = await object.arrayBuffer();
-          const bytes = new Uint8Array(arrayBuffer);
-          let binaryString = '';
-          for (let i = 0; i < bytes.length; i++) {
-            binaryString += String.fromCharCode(bytes[i]);
-          }
-          const base64Data = btoa(binaryString);
-
-          return jsonResponse({
-            success: true,
-            data: base64Data,
-            contentType: object.httpMetadata?.contentType || 'image/png'
-          }, 200, request);
+          return await readImage(env.MAPS_BUCKET, getImageKey(getStorageScope(session), imagePath), request, imageReadOptions(url, request));
         } catch (error) {
           console.error('Image download error:', error);
           return jsonResponse({ success: false, error: 'Failed to download image' }, 500, request);
@@ -609,16 +575,7 @@ export default {
         const directoryPath = url.searchParams.get('path') || '';
 
         try {
-          const storageScope = getStorageScope(session);
-          const prefix = `maps/${storageScope}/${directoryPath}`;
-          const listed = await env.MAPS_BUCKET.list({ prefix });
-
-          const files = listed.objects.map(obj => {
-            // Remove maps/{storageScope} prefix from the key
-            const removePrefix = `maps/${storageScope}/`;
-            return obj.key.startsWith(removePrefix) ? obj.key.substring(removePrefix.length) : obj.key;
-          });
-
+          const files = await listImagePaths(env.MAPS_BUCKET, getStorageScope(session), directoryPath);
           return jsonResponse({ success: true, files }, 200, request);
         } catch (error) {
           console.error('Image list error:', error);
