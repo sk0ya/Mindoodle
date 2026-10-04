@@ -101,6 +101,35 @@ function getGroupStorageScope(session: UserSession): string | null {
   return session.groupId ? `group:${session.groupId}` : null;
 }
 
+function nonEmptyString(value: unknown): string | null {
+  return typeof value === 'string' && value.trim() ? value.trim() : null;
+}
+
+/** Shared by the personal and group move routes; only the scope differs. */
+async function handleMoveMap(request: Request, mapStorageService: MapStorageService, scope: string): Promise<Response> {
+  let body: { fromId?: unknown; toId?: unknown; expectedUpdatedAt?: unknown };
+  try {
+    body = await request.json() as typeof body;
+  } catch {
+    return jsonResponse({ success: false, error: 'Invalid JSON body' }, 400, request);
+  }
+
+  const fromId = nonEmptyString(body?.fromId);
+  const toId = nonEmptyString(body?.toId);
+  if (!fromId || !toId) {
+    return jsonResponse({ success: false, error: 'fromId and toId are required' }, 400, request);
+  }
+  const expectedUpdatedAt = nonEmptyString(body.expectedUpdatedAt) ?? undefined;
+
+  const result = await mapStorageService.moveMap(scope, fromId, toId, expectedUpdatedAt);
+  const status = result.success
+    ? 200
+    : result.conflict
+      ? 409
+      : result.error === 'Map not found' ? 404 : 500;
+  return jsonResponse(result, status, request);
+}
+
 export default {
   async fetch(request: Request, env: Env): Promise<Response> {
     // Handle CORS preflight
@@ -204,6 +233,21 @@ export default {
         return jsonResponse(result, result.conflict ? 409 : 200, request);
       }
 
+      // Before the generic `/api/group/maps/` handlers, which treat the suffix as a map id.
+      if (path === '/api/group/maps/move' && request.method === 'POST') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        const groupScope = getGroupStorageScope(session);
+        if (!groupScope) {
+          return jsonResponse({ success: false, error: 'Group access required' }, 403, request);
+        }
+
+        return await handleMoveMap(request, mapStorageService, groupScope);
+      }
+
       if (path.startsWith('/api/group/maps/') && request.method === 'GET') {
         const session = await authenticateRequest(request, authService);
         if (!session) {
@@ -289,16 +333,27 @@ export default {
           return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
         }
 
-        const body = await request.json() as { id?: string; title?: string; content?: string };
-        const { id, title, content } = body;
+        const body = await request.json() as { id?: string; title?: string; content?: string; expectedUpdatedAt?: string };
+        const { id, title, content, expectedUpdatedAt } = body;
         if (!title || !content) {
           return jsonResponse({ success: false, error: 'Title and content are required' }, 400, request);
         }
 
         // If client specifies an id (relative path like `Folder/name`), honor it; otherwise generate an id
         const initialId = id && id.trim() ? id.trim() : null;
-        const result = await mapStorageService.saveMap(getStorageScope(session), initialId, title, content);
-        return jsonResponse(result, 200, request);
+        // One user's devices race each other just like group members do, so the
+        // personal routes honor the same optimistic-concurrency check.
+        const result = await mapStorageService.saveMap(getStorageScope(session), initialId, title, content, expectedUpdatedAt);
+        return jsonResponse(result, result.conflict ? 409 : 200, request);
+      }
+
+      if (path === '/api/maps/move' && request.method === 'POST') {
+        const session = await authenticateRequest(request, authService);
+        if (!session) {
+          return jsonResponse({ success: false, error: 'Unauthorized' }, 401, request);
+        }
+
+        return await handleMoveMap(request, mapStorageService, getStorageScope(session));
       }
 
       if (path.startsWith('/api/maps/') && request.method === 'GET') {
@@ -330,14 +385,14 @@ export default {
           return jsonResponse({ success: false, error: 'Map ID is required' }, 400, request);
         }
 
-        const body = await request.json() as { title?: string; content?: string };
-        const { title, content } = body;
+        const body = await request.json() as { title?: string; content?: string; expectedUpdatedAt?: string };
+        const { title, content, expectedUpdatedAt } = body;
         if (!title || !content) {
           return jsonResponse({ success: false, error: 'Title and content are required' }, 400, request);
         }
 
-        const result = await mapStorageService.saveMap(getStorageScope(session), mapId, title, content);
-        return jsonResponse(result, 200, request);
+        const result = await mapStorageService.saveMap(getStorageScope(session), mapId, title, content, expectedUpdatedAt);
+        return jsonResponse(result, result.conflict ? 409 : 200, request);
       }
 
       if (path.startsWith('/api/maps/') && request.method === 'DELETE') {

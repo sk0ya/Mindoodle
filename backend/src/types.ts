@@ -78,6 +78,25 @@ export interface MapMetadataResponse {
   error?: string;
 }
 
+/**
+ * Reply to a server-side move. Like the metadata reply it carries no
+ * `content`: the client already has the document it just renamed.
+ *
+ * `conflict` is either a stale `expectedUpdatedAt` (the same shape saveMap
+ * uses) or `reason: 'destination_exists'`, since a move never overwrites.
+ */
+export interface MapMoveResponse {
+  success: boolean;
+  map?: {
+    id: string;
+    title: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+  error?: string;
+  conflict?: { currentUpdatedAt: string } | { reason: 'destination_exists' };
+}
+
 export interface Env {
   USERS: KVNamespace;
   MAPS_BUCKET: R2Bucket;

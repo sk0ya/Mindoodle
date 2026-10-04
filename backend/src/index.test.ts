@@ -193,3 +193,164 @@ describe('image routes', () => {
     expect(await response.json()).toEqual({ success: true, files: ['a.png', 'b.png'] });
   });
 });
+
+function markdown(text: string, uploaded = new Date('2026-03-04T05:06:07.000Z'), title?: string): StoredObject {
+  return {
+    bytes: new TextEncoder().encode(text),
+    uploaded,
+    etag: 'm1',
+    httpMetadata: { contentType: 'text/markdown' },
+    customMetadata: title ? { title } : undefined,
+  };
+}
+
+describe('personal map conflict detection', () => {
+  const uploaded = new Date('2026-03-04T05:06:07.000Z');
+
+  it('rejects a PUT based on a stale version with 409', async () => {
+    const { env, store } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n', uploaded) });
+
+    const response = await call(env, 'PUT', '/api/maps/a', {
+      body: { title: 'A', content: '# A2\n', expectedUpdatedAt: '2026-01-01T00:00:00.000Z' }
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toEqual({
+      success: false,
+      error: 'Map has been modified by another user',
+      conflict: { currentUpdatedAt: uploaded.toISOString() }
+    });
+    expect(new TextDecoder().decode(store.get('maps/user-1/a.md')?.bytes)).toBe('# A\n');
+  });
+
+  it('rejects a POST based on a stale version with 409', async () => {
+    const { env } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n', uploaded) });
+
+    const response = await call(env, 'POST', '/api/maps', {
+      body: { id: 'a', title: 'A', content: '# A2\n', expectedUpdatedAt: '2026-01-01T00:00:00.000Z' }
+    });
+
+    expect(response.status).toBe(409);
+  });
+
+  it('accepts a PUT whose expected version is current', async () => {
+    const { env } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n', uploaded) });
+
+    const response = await call(env, 'PUT', '/api/maps/a', {
+      body: { title: 'A', content: '# A2\n', expectedUpdatedAt: uploaded.toISOString() }
+    });
+
+    expect(response.status).toBe(200);
+  });
+
+  it('still accepts a PUT without an expected version, as old clients send', async () => {
+    const { env } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n', uploaded) });
+
+    const response = await call(env, 'PUT', '/api/maps/a', { body: { title: 'A', content: '# A2\n' } });
+
+    expect(response.status).toBe(200);
+  });
+});
+
+describe('map move routes', () => {
+  for (const [label, path, scope] of [
+    ['personal', '/api/maps/move', 'user-1'],
+    ['group', '/api/group/maps/move', 'group:allowed-group'],
+  ] as const) {
+    it(`moves a map on the ${label} route`, async () => {
+      const { env, store } = makeEnv({ [`maps/${scope}/Old.md`]: markdown('# Old\n', undefined, 'Old') });
+
+      const response = await call(env, 'POST', path, { body: { fromId: 'Old', toId: 'Folder/New' } });
+
+      expect(response.status).toBe(200);
+      const body = await response.json() as { success: boolean; map: Record<string, string> };
+      expect(body.success).toBe(true);
+      expect(Object.keys(body.map).sort()).toEqual(['createdAt', 'id', 'title', 'updatedAt']);
+      expect(body.map.id).toBe('Folder/New');
+      expect(body.map.title).toBe('Old');
+      expect(store.has(`maps/${scope}/Old.md`)).toBe(false);
+      expect(store.has(`maps/${scope}/Folder/New.md`)).toBe(true);
+    });
+
+    it(`refuses to overwrite a destination on the ${label} route`, async () => {
+      const { env, store } = makeEnv({
+        [`maps/${scope}/a.md`]: markdown('# A\n'),
+        [`maps/${scope}/b.md`]: markdown('# B\n'),
+      });
+
+      const response = await call(env, 'POST', path, { body: { fromId: 'a', toId: 'b' } });
+
+      expect(response.status).toBe(409);
+      expect(await response.json()).toEqual({
+        success: false,
+        error: 'Destination already exists',
+        conflict: { reason: 'destination_exists' }
+      });
+      expect(new TextDecoder().decode(store.get(`maps/${scope}/b.md`)?.bytes)).toBe('# B\n');
+    });
+  }
+
+  it('answers a missing source with 404', async () => {
+    const { env } = makeEnv();
+
+    const response = await call(env, 'POST', '/api/maps/move', { body: { fromId: 'a', toId: 'b' } });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ success: false, error: 'Map not found' });
+  });
+
+  it('answers a stale expectedUpdatedAt with 409 and the current version', async () => {
+    const uploaded = new Date('2026-03-04T05:06:07.000Z');
+    const { env } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n', uploaded) });
+
+    const response = await call(env, 'POST', '/api/maps/move', {
+      body: { fromId: 'a', toId: 'b', expectedUpdatedAt: '2026-01-01T00:00:00.000Z' }
+    });
+
+    expect(response.status).toBe(409);
+    expect(await response.json()).toMatchObject({ success: false, conflict: { currentUpdatedAt: uploaded.toISOString() } });
+  });
+
+  for (const body of [{}, { fromId: 'a' }, { fromId: '', toId: 'b' }, { fromId: 'a', toId: '  ' }, { fromId: 1, toId: 'b' }]) {
+    it(`rejects ${JSON.stringify(body)} with 400`, async () => {
+      const { env, bucket } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n') });
+
+      const response = await call(env, 'POST', '/api/maps/move', { body });
+
+      expect(response.status).toBe(400);
+      expect(bucket.put).not.toHaveBeenCalled();
+    });
+  }
+
+  it('rejects a body that is not JSON with 400', async () => {
+    const { env } = makeEnv();
+
+    const response = await worker.fetch(new Request('https://api.example/api/maps/move', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${TOKEN}`, 'Content-Type': 'application/json' },
+      body: '{not json',
+    }), env);
+
+    expect(response.status).toBe(400);
+  });
+
+  it('requires authentication', async () => {
+    const { env } = makeEnv({ 'maps/user-1/a.md': markdown('# A\n') });
+
+    const response = await call(env, 'POST', '/api/maps/move', {
+      body: { fromId: 'a', toId: 'b' },
+      headers: { Authorization: 'Bearer wrong' }
+    });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('still treats GET /api/maps/move as reading a map whose id is "move"', async () => {
+    const { env } = makeEnv({ 'maps/user-1/move.md': markdown('# Move\n') });
+
+    const response = await call(env, 'GET', '/api/maps/move');
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ success: true, map: { id: 'move', content: '# Move\n' } });
+  });
+});

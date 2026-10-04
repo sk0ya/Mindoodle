@@ -1,4 +1,4 @@
-import type { Env, MapData, MapListResponse, MapMetadataResponse, MapResponse } from './types';
+import type { Env, MapData, MapListResponse, MapMetadataResponse, MapMoveResponse, MapResponse } from './types';
 
 /**
  * Cap for the percent-encoded title stored as R2 custom metadata. R2 allows
@@ -252,6 +252,95 @@ export class MapStorageService {
         error: 'Failed to list maps'
       };
     }
+  }
+
+  /**
+   * Renames a map server-side. The client used to do this as "save under the
+   * new id, delete the old one", which uploaded the whole document again and,
+   * with no destination check, could overwrite an unrelated map.
+   *
+   * Every check runs against head() first, so a refused move never transfers
+   * the body. The existence check and the copy are not atomic (R2 has no
+   * put-if-absent), which leaves a narrow window two concurrent movers share.
+   */
+  async moveMap(userId: string, fromId: string, toId: string, expectedUpdatedAt?: string): Promise<MapMoveResponse> {
+    try {
+      const fromKey = this.getMapKey(userId, fromId);
+      const toKey = this.getMapKey(userId, toId);
+
+      const source = await this.env.MAPS_BUCKET.head(fromKey);
+      if (!source) {
+        return { success: false, error: 'Map not found' };
+      }
+
+      const currentUpdatedAt = source.uploaded.toISOString();
+      if (expectedUpdatedAt && currentUpdatedAt !== expectedUpdatedAt) {
+        return {
+          success: false,
+          error: 'Map has been modified by another user',
+          conflict: { currentUpdatedAt }
+        };
+      }
+
+      if (fromKey === toKey) {
+        // Nothing to move; answer with what is there so the client can carry on.
+        const storedTitle = source.customMetadata?.title;
+        const title = (storedTitle && this.decodeTitleMetadata(storedTitle)) || await this.readTitle(fromKey, toId);
+        return {
+          success: true,
+          map: { id: toId, title, createdAt: currentUpdatedAt, updatedAt: currentUpdatedAt }
+        };
+      }
+
+      if (await this.env.MAPS_BUCKET.head(toKey)) {
+        return {
+          success: false,
+          error: 'Destination already exists',
+          conflict: { reason: 'destination_exists' }
+        };
+      }
+
+      const object = await this.env.MAPS_BUCKET.get(fromKey);
+      if (!object) {
+        // Deleted between the head() and now.
+        return { success: false, error: 'Map not found' };
+      }
+
+      const body = await object.arrayBuffer();
+      const storedTitle = object.customMetadata?.title;
+      const decodedTitle = storedTitle ? this.decodeTitleMetadata(storedTitle) : null;
+      const title = decodedTitle || this.extractTitle(new TextDecoder().decode(body));
+
+      const written = await this.env.MAPS_BUCKET.put(toKey, body, {
+        httpMetadata: object.httpMetadata,
+        customMetadata: {
+          ...object.customMetadata,
+          // A map written before titles were stored gets one now: the body is
+          // already in hand, and listMaps no longer has to read it back.
+          ...(decodedTitle ? {} : { title: this.encodeTitleMetadata(title) })
+        }
+      });
+
+      // Only after the copy is durable, so a failure never loses the map.
+      await this.env.MAPS_BUCKET.delete(fromKey);
+
+      const timestamp = written?.uploaded.toISOString() || new Date().toISOString();
+      return {
+        success: true,
+        map: { id: toId, title, createdAt: timestamp, updatedAt: timestamp }
+      };
+    } catch (error) {
+      console.error('Error moving map:', error);
+      return {
+        success: false,
+        error: 'Failed to move map'
+      };
+    }
+  }
+
+  private async readTitle(key: string, mapId: string): Promise<string> {
+    const object = await this.env.MAPS_BUCKET.get(key);
+    return object ? this.extractTitle(await object.text()) : (mapId.split('/').pop() || mapId);
   }
 
   async deleteMap(userId: string, mapId: string): Promise<{ success: boolean; error?: string }> {
