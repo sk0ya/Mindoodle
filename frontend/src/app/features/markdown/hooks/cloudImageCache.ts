@@ -103,3 +103,74 @@ export function clearCloudImageCache(): void {
   entries.clear();
   inflight.clear();
 }
+
+/** Query suffix that asks the images endpoint for the raw bytes instead of base64 JSON. */
+export const RAW_IMAGE_QUERY = '?raw=1';
+
+const DEFAULT_IMAGE_TYPE = 'image/png';
+
+interface LegacyImagePayload {
+  data: string;
+  contentType: string;
+}
+
+function isJsonResponse(res: Response): boolean {
+  return (res.headers.get('Content-Type') || '').toLowerCase().includes('application/json');
+}
+
+/**
+ * A backend that predates `?raw=1` ignores the query and still answers with
+ * `{ data: base64, contentType }`. Accepting that keeps images working while
+ * the two are deployed independently.
+ */
+async function readLegacyPayload(res: Response): Promise<LegacyImagePayload | null> {
+  const json: unknown = await res.json().catch(() => null);
+  if (!json || typeof json !== 'object') return null;
+  const data = 'data' in json ? json.data : undefined;
+  const contentType = 'contentType' in json ? json.contentType : undefined;
+  if (typeof data !== 'string' || !data) return null;
+  return { data, contentType: typeof contentType === 'string' && contentType ? contentType : DEFAULT_IMAGE_TYPE };
+}
+
+function bytesToBase64(bytes: Uint8Array): string {
+  // Chunked so a large image neither overflows the argument limit nor pays a
+  // string concatenation per byte.
+  const CHUNK = 0x8000;
+  const parts: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += CHUNK) {
+    parts.push(String.fromCharCode(...bytes.subarray(offset, offset + CHUNK)));
+  }
+  return btoa(parts.join(''));
+}
+
+function imageTypeOf(res: Response): string {
+  const header = (res.headers.get('Content-Type') || '').split(';')[0].trim();
+  return header || DEFAULT_IMAGE_TYPE;
+}
+
+/** Turn a successful image response (raw bytes, or legacy JSON) into a `data:` URL. */
+export async function imageResponseToDataUrl(res: Response): Promise<string | null> {
+  if (isJsonResponse(res)) {
+    const legacy = await readLegacyPayload(res);
+    return legacy ? `data:${legacy.contentType};base64,${legacy.data}` : null;
+  }
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length === 0) return null;
+  return `data:${imageTypeOf(res)};base64,${bytesToBase64(bytes)}`;
+}
+
+/** Turn a successful image response (raw bytes, or legacy JSON) into a Blob. */
+export async function imageResponseToBlob(res: Response): Promise<Blob | null> {
+  if (isJsonResponse(res)) {
+    const legacy = await readLegacyPayload(res);
+    if (!legacy) return null;
+    const binary = atob(legacy.data);
+    const bytes = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+    return new Blob([bytes], { type: legacy.contentType });
+  }
+
+  const bytes = new Uint8Array(await res.arrayBuffer());
+  if (bytes.length === 0) return null;
+  return new Blob([bytes], { type: imageTypeOf(res) });
+}

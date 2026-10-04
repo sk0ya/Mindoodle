@@ -36,8 +36,14 @@ const jsonResponse = (body: unknown, status = 200): Response => ({
   ok: status >= 200 && status < 300,
   status,
   statusText: 'OK',
+  headers: new Headers({ 'Content-Type': 'application/json' }),
   json: async () => body,
 }) as unknown as Response;
+
+export interface StoredImage {
+  bytes: Uint8Array;
+  contentType: string;
+}
 
 export const createCloudBackend = (options: CloudBackendOptions = {}) => {
   const mapsPath = options.mapsPath || '/api/maps';
@@ -48,6 +54,10 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
   const requests: RequestLogEntry[] = [];
   /** Overrides the /api/auth/me reply, so tests can simulate a backend outage. */
   let authMeFailure: { status: number; body: unknown } | null = null;
+  /** When set, every non-auth request fails with this status (a backend outage). */
+  let outage: number | null = null;
+  /** Bytes served by `GET {imagesPath}/{path}?raw=1`. */
+  const imageData = new Map<string, StoredImage>();
   let clock = Date.parse('2026-01-01T00:00:00.000Z');
 
   /** Distinct, increasing timestamps so version comparisons are unambiguous. */
@@ -108,6 +118,10 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
       return jsonResponse({ success: true, user: { id: 'u1', email: 'a@b.c', groupId: 'g1' } });
     }
 
+    if (outage !== null) {
+      return jsonResponse({ success: false, error: 'Service unavailable' }, outage);
+    }
+
     if (path === `${imagesPath}/list?path=`) {
       return jsonResponse({ success: true, files: images });
     }
@@ -121,6 +135,47 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
       const index = images.indexOf(imagePath);
       if (index >= 0) images.splice(index, 1);
       return jsonResponse({ success: true });
+    }
+
+    if (path.startsWith(`${imagesPath}/`) && method === 'GET') {
+      const [imagePart, queryPart] = path.slice(`${imagesPath}/`.length).split('?');
+      const image = imageData.get(decodeURIComponent(imagePart ?? ''));
+      if (!image) return jsonResponse({ success: false, error: 'Image not found' }, 404);
+      if (new URLSearchParams(queryPart ?? '').get('raw') === '1') {
+        return new Response(image.bytes, {
+          status: 200,
+          headers: { 'Content-Type': image.contentType, ETag: `"${image.bytes.length}"` },
+        });
+      }
+      return jsonResponse({ success: true, data: btoa(String.fromCharCode(...image.bytes)), contentType: image.contentType });
+    }
+
+    if (path === `${mapsPath}/move` && method === 'POST') {
+      const body = safeJsonParseWithDefault<{ fromId?: string; toId?: string; expectedUpdatedAt?: string }>(rawBody ?? '{}', {});
+      const source = body.fromId ? maps.get(body.fromId) : undefined;
+      if (!source || !body.fromId || !body.toId) return jsonResponse({ success: false, error: 'Map not found' }, 404);
+      if (body.expectedUpdatedAt && source.updatedAt !== body.expectedUpdatedAt) {
+        return jsonResponse({
+          success: false,
+          error: 'Map has been modified by another user',
+          conflict: { currentUpdatedAt: source.updatedAt },
+        }, 409);
+      }
+      if (maps.has(body.toId)) {
+        return jsonResponse({
+          success: false,
+          error: 'Destination already exists',
+          conflict: { reason: 'destination_exists' },
+        }, 409);
+      }
+      const updatedAt = nextTimestamp();
+      const moved: StoredMap = { ...source, updatedAt };
+      maps.delete(body.fromId);
+      maps.set(body.toId, moved);
+      return jsonResponse({
+        success: true,
+        map: { id: body.toId, title: moved.title, createdAt: moved.createdAt, updatedAt },
+      });
     }
 
     if (path === mapsPath) {
@@ -173,7 +228,19 @@ export const createCloudBackend = (options: CloudBackendOptions = {}) => {
       : null;
   };
 
-  return { maps, images, requests, fetchMock, seed, nextTimestamp, failAuthMe, mapsPath, imagesPath };
+  /** Fail every non-auth request with `status` until cleared with `setOutage(null)`. */
+  const setOutage = (status: number | null): void => {
+    outage = status;
+  };
+
+  const seedImage = (imagePath: string, bytes: Uint8Array, contentType = 'image/png'): void => {
+    imageData.set(imagePath, { bytes, contentType });
+    if (!images.includes(imagePath)) images.push(imagePath);
+  };
+
+  return {
+    maps, images, imageData, requests, fetchMock, seed, seedImage, nextTimestamp, failAuthMe, setOutage, mapsPath, imagesPath,
+  };
 };
 
 export type CloudBackend = ReturnType<typeof createCloudBackend>;

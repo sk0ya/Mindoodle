@@ -1,5 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CloudStorageAdapter } from './CloudStorageAdapter';
+import { CloudStorageAdapter, CloudMapDestinationExistsError } from './CloudStorageAdapter';
+import { DEFAULT_MAP_FRESHNESS_MS } from './CloudMapCache';
+import { MAP_CONFLICT_EVENT, type MapConflictDetail } from '../../types/storage.types';
+import { clearCloudImageCache } from '../../../features/markdown/hooks/cloudImageCache';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { MapOperationsService } from '../../../features/mindmap/services/MapOperationsService';
 import {
@@ -9,6 +12,7 @@ import {
   mapBodyGets,
   mapDetailGets,
   mapMetaGets,
+  writesTo,
   type CloudBackend,
 } from '../../../../test/cloudBackendMock';
 
@@ -19,6 +23,14 @@ const createAuthenticatedAdapter = async (backend: CloudBackend): Promise<CloudS
   return adapter;
 };
 
+/** Let the document cache's freshness window lapse, as the seconds between two polls do. */
+const advancePastFreshness = (): void => {
+  vi.setSystemTime(Date.now() + DEFAULT_MAP_FRESHNESS_MS + 1);
+};
+
+const mapListGets = (backend: CloudBackend): number =>
+  backend.requests.filter((r) => r.method === 'GET' && r.path === backend.mapsPath).length;
+
 describe('CloudStorageAdapter request behaviour', () => {
   let backend: CloudBackend;
 
@@ -26,9 +38,13 @@ describe('CloudStorageAdapter request behaviour', () => {
     backend = createCloudBackend();
     vi.stubGlobal('fetch', backend.fetchMock);
     localStorage.clear();
+    // Freeze the clock: the document cache's freshness window then only lapses
+    // where a test says so, the way seconds pass between two polls.
+    vi.useFakeTimers({ toFake: ['Date'] });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -108,6 +124,7 @@ describe('CloudStorageAdapter request behaviour', () => {
 
     await adapter.getMapLastModified?.(id);
     backend.seed('Alpha', '# Alpha remote\n', '2026-04-04T00:00:00.000Z');
+    advancePastFreshness();
     const second = await adapter.getMapLastModified?.(id);
 
     // The first probe had nothing cached and read the document; the second
@@ -234,9 +251,13 @@ describe('CloudStorageAdapter listing freshness', () => {
     backend = createCloudBackend();
     vi.stubGlobal('fetch', backend.fetchMock);
     localStorage.clear();
+    // Freeze the clock: the document cache's freshness window then only lapses
+    // where a test says so, the way seconds pass between two polls.
+    vi.useFakeTimers({ toFake: ['Date'] });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -290,9 +311,13 @@ describe('CloudStorageAdapter session restore', () => {
     backend = createCloudBackend();
     vi.stubGlobal('fetch', backend.fetchMock);
     localStorage.clear();
+    // Freeze the clock: the document cache's freshness window then only lapses
+    // where a test says so, the way seconds pass between two polls.
+    vi.useFakeTimers({ toFake: ['Date'] });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -362,9 +387,13 @@ describe('CloudStorageAdapter freshness probes', () => {
     backend = createCloudBackend();
     vi.stubGlobal('fetch', backend.fetchMock);
     localStorage.clear();
+    // Freeze the clock: the document cache's freshness window then only lapses
+    // where a test says so, the way seconds pass between two polls.
+    vi.useFakeTimers({ toFake: ['Date'] });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -374,8 +403,9 @@ describe('CloudStorageAdapter freshness probes', () => {
     await adapter.loadAllMaps();
     backend.requests.length = 0;
 
-    // What the poll loop does while a map is open.
+    // What the poll loop does while a map is open, a few seconds apart.
     for (let i = 0; i < 10; i++) {
+      advancePastFreshness();
       await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
     }
 
@@ -398,6 +428,7 @@ describe('CloudStorageAdapter freshness probes', () => {
     const adapter = await createAuthenticatedAdapter(backend);
     await adapter.loadAllMaps();
     backend.requests.length = 0;
+    advancePastFreshness();
 
     await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
     const markdown = await adapter.getMapMarkdown?.({ mapId: 'Alpha', workspaceId: 'cloud' });
@@ -414,6 +445,7 @@ describe('CloudStorageAdapter freshness probes', () => {
     // Someone else edits the map.
     backend.seed('Alpha', '# Alpha edited elsewhere\n', '2026-02-02T00:00:00.000Z');
     backend.requests.length = 0;
+    advancePastFreshness();
 
     await adapter.getMapLastModified?.({ mapId: 'Alpha', workspaceId: 'cloud' });
     const markdown = await adapter.getMapMarkdown?.({ mapId: 'Alpha', workspaceId: 'cloud' });
@@ -439,9 +471,13 @@ describe('CloudStorageAdapter document round-trip', () => {
     backend = createCloudBackend();
     vi.stubGlobal('fetch', backend.fetchMock);
     localStorage.clear();
+    // Freeze the clock: the document cache's freshness window then only lapses
+    // where a test says so, the way seconds pass between two polls.
+    vi.useFakeTimers({ toFake: ['Date'] });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
 
@@ -509,5 +545,333 @@ describe('CloudStorageAdapter document round-trip', () => {
     await adapter.addMapToList(openedMap(NESTED_ID, source));
 
     expect(written(NESTED_ID)).toBe(source);
+  });
+});
+
+describe('CloudStorageAdapter map listing', () => {
+  let backend: CloudBackend;
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  const seedMany = (count: number): void => {
+    for (let i = 0; i < count; i++) {
+      backend.seed(`Map${i}`, `# Map ${i}\n`, `2026-01-0${(i % 9) + 1}T00:00:00.000Z`);
+    }
+  };
+
+  it('lists a workspace of N maps with one request and no document downloads', async () => {
+    seedMany(8);
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    const summaries = await adapter.listMapSummaries();
+
+    expect(summaries).toHaveLength(8);
+    expect(summaries[0]).toMatchObject({
+      mapIdentifier: { mapId: 'Map0', workspaceId: 'cloud' },
+      title: 'Map 0',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    expect(mapListGets(backend)).toBe(1);
+    expect(mapDetailGets(backend)).toBe(0);
+  });
+
+  it('opens one map with exactly one document request', async () => {
+    seedMany(8);
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.listMapSummaries();
+    backend.requests.length = 0;
+
+    // What selectMapById asks for: the document, then its timestamp.
+    const id = { mapId: 'Map3', workspaceId: 'cloud' };
+    const markdown = await adapter.getMapMarkdown?.(id);
+    const lastModified = await adapter.getMapLastModified?.(id);
+
+    expect(markdown).toBe('# Map 3\n');
+    expect(lastModified).toBe(Date.parse('2026-01-04T00:00:00.000Z'));
+    expect(backend.requests).toHaveLength(1);
+    expect(mapBodyGets(backend)).toBe(1);
+  });
+
+  it('reports a failed listing as a failure, not as an empty workspace', async () => {
+    seedMany(2);
+    const adapter = await createAuthenticatedAdapter(backend);
+    backend.setOutage(503);
+
+    await expect(adapter.listMapSummaries()).rejects.toMatchObject({ status: 503 });
+    await expect(adapter.getExplorerTree?.()).rejects.toMatchObject({ status: 503 });
+    await expect(adapter.loadAllMaps()).rejects.toMatchObject({ status: 503 });
+    await expect(adapter.listMapIdentifiers?.()).rejects.toMatchObject({ status: 503 });
+  });
+
+  it('drops a cached document that the listing shows was edited elsewhere', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    const id = { mapId: 'Alpha', workspaceId: 'cloud' };
+    await adapter.getMapMarkdown?.(id);
+
+    backend.seed('Alpha', '# Alpha remote\n', '2026-02-02T00:00:00.000Z');
+    await adapter.listMapSummaries();
+
+    expect(await adapter.getMapMarkdown?.(id)).toBe('# Alpha remote\n');
+  });
+
+  it('keeps the copy it just saved when an older listing finishes afterwards', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    const id = { mapId: 'Alpha', workspaceId: 'cloud' };
+    await adapter.getMapMarkdown?.(id);
+
+    const listing = adapter.listMapSummaries(); // started before the save
+    await adapter.saveMapMarkdown?.(id, '# Alpha saved\n');
+    await listing;
+    backend.requests.length = 0;
+
+    expect(await adapter.getMapMarkdown?.(id)).toBe('# Alpha saved\n');
+    expect(mapDetailGets(backend)).toBe(0);
+  });
+
+  it('serves search a second time without downloading unchanged documents', async () => {
+    seedMany(5);
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    const first = await adapter.loadMapDocuments();
+    expect(first.map((d) => d.markdown)).toContain('# Map 2\n');
+    expect(mapBodyGets(backend)).toBe(5);
+
+    backend.requests.length = 0;
+    advancePastFreshness();
+    await adapter.loadMapDocuments();
+
+    expect(mapListGets(backend)).toBe(1);
+    expect(mapDetailGets(backend)).toBe(0);
+  });
+});
+
+describe('CloudStorageAdapter personal conflict detection', () => {
+  let backend: CloudBackend;
+  const ID = { mapId: 'Alpha', workspaceId: 'cloud' };
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  const collectConflicts = (): { conflicts: MapConflictDetail[]; stop: () => void } => {
+    const conflicts: MapConflictDetail[] = [];
+    const onConflict = (event: Event) => {
+      if (event instanceof CustomEvent) conflicts.push(event.detail);
+    };
+    window.addEventListener(MAP_CONFLICT_EVENT, onConflict);
+    return { conflicts, stop: () => window.removeEventListener(MAP_CONFLICT_EVENT, onConflict) };
+  };
+
+  it('sends the version it opened as the optimistic lock', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    await adapter.getMapMarkdown?.(ID);
+    await adapter.saveMapMarkdown?.(ID, '# Alpha edited\n');
+
+    const [write] = writesTo(backend, 'Alpha');
+    expect((write.body as { expectedUpdatedAt?: string }).expectedUpdatedAt).toBe('2026-01-01T00:00:00.000Z');
+  });
+
+  it('refuses to overwrite an edit made in another tab and tells the UI', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.getMapMarkdown?.(ID);
+    backend.seed('Alpha', '# Alpha from another tab\n', '2026-03-03T00:00:00.000Z');
+
+    const { conflicts, stop } = collectConflicts();
+    try {
+      await expect(adapter.saveMapMarkdown?.(ID, '# my edit\n')).rejects.toMatchObject({ status: 409 });
+    } finally {
+      stop();
+    }
+
+    expect(backend.maps.get('Alpha')?.content).toBe('# Alpha from another tab\n');
+    expect(conflicts).toEqual([
+      { mapIdentifier: { mapId: 'Alpha', workspaceId: 'cloud' }, currentUpdatedAt: '2026-03-03T00:00:00.000Z' },
+    ]);
+  });
+
+  it('does not let a background read of a newer version unlock an overwrite', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.getMapMarkdown?.(ID); // the editor is based on this version
+
+    backend.seed('Alpha', '# Alpha from another tab\n', '2026-03-03T00:00:00.000Z');
+    // A search and a freshness probe both see the newer version...
+    await adapter.loadMapDocuments();
+    advancePastFreshness();
+    await adapter.getMapLastModified?.(ID);
+
+    // ...but the editor still holds the old one, so saving must conflict.
+    const { stop } = collectConflicts();
+    try {
+      await expect(adapter.saveMapMarkdown?.(ID, '# my edit\n')).rejects.toMatchObject({ status: 409 });
+    } finally {
+      stop();
+    }
+    expect(backend.maps.get('Alpha')?.content).toBe('# Alpha from another tab\n');
+  });
+});
+
+describe('CloudStorageAdapter rename and move', () => {
+  let backend: CloudBackend;
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  });
+
+  const nonGetRequests = () => backend.requests.filter((r) => r.method !== 'GET');
+
+  it('renames with a single server-side move', async () => {
+    backend.seed('Notes/Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    await adapter.renameItem?.('/cloud/Notes/Alpha.md', 'Renamed');
+
+    expect(nonGetRequests()).toEqual([
+      { method: 'POST', path: '/api/maps/move', body: { fromId: 'Notes/Alpha', toId: 'Notes/Renamed' } },
+    ]);
+    expect(backend.requests).toHaveLength(1);
+    expect(backend.maps.get('Notes/Renamed')?.content).toBe('# Alpha\n');
+    expect(backend.maps.has('Notes/Alpha')).toBe(false);
+  });
+
+  it('refuses to rename onto an existing map and leaves both untouched', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    backend.seed('Beta', '# Beta\n', '2026-01-02T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    const attempt = adapter.renameItem?.('/cloud/Alpha.md', 'Beta');
+
+    await expect(attempt).rejects.toBeInstanceOf(CloudMapDestinationExistsError);
+    await expect(attempt).rejects.toThrow('Beta');
+    expect(backend.maps.get('Alpha')?.content).toBe('# Alpha\n');
+    expect(backend.maps.get('Beta')?.content).toBe('# Beta\n');
+  });
+
+  it('moves into a folder with one request and keeps the known document cached', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.getMapMarkdown?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+    backend.requests.length = 0;
+
+    await adapter.moveItem?.('/cloud/Alpha.md', '/cloud/Archive');
+
+    expect(nonGetRequests()).toEqual([
+      {
+        method: 'POST',
+        path: '/api/maps/move',
+        body: { fromId: 'Alpha', toId: 'Archive/Alpha', expectedUpdatedAt: '2026-01-01T00:00:00.000Z' },
+      },
+    ]);
+    advancePastFreshness();
+    const moved = { mapId: 'Archive/Alpha', workspaceId: 'cloud' };
+    expect(await adapter.getMapLastModified?.(moved)).toBe(Date.parse(backend.maps.get('Archive/Alpha')?.updatedAt ?? ''));
+    expect(await adapter.getMapMarkdown?.(moved)).toBe('# Alpha\n');
+    expect(mapBodyGets(backend)).toBe(0);
+
+    // The lock follows the map to its new id.
+    await adapter.saveMapMarkdown?.(moved, '# Alpha moved\n');
+    expect(backend.maps.get('Archive/Alpha')?.content).toBe('# Alpha moved\n');
+  });
+
+  it('reports a conflict instead of moving a map that changed elsewhere', async () => {
+    backend.seed('Alpha', '# Alpha\n', '2026-01-01T00:00:00.000Z');
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.getMapMarkdown?.({ mapId: 'Alpha', workspaceId: 'cloud' });
+    backend.seed('Alpha', '# Alpha newer\n', '2026-02-02T00:00:00.000Z');
+
+    await expect(adapter.moveItem?.('/cloud/Alpha.md', '/cloud/Archive')).rejects.toMatchObject({
+      status: 409,
+      currentUpdatedAt: '2026-02-02T00:00:00.000Z',
+    });
+    expect(backend.maps.has('Archive/Alpha')).toBe(false);
+  });
+});
+
+describe('CloudStorageAdapter images', () => {
+  let backend: CloudBackend;
+  const PNG = new Uint8Array([137, 80, 78, 71, 0, 255]);
+
+  beforeEach(() => {
+    backend = createCloudBackend();
+    vi.stubGlobal('fetch', backend.fetchMock);
+    localStorage.clear();
+    clearCloudImageCache();
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    clearCloudImageCache();
+  });
+
+  it('downloads raw bytes once and serves later reads from memory', async () => {
+    backend.seedImage('assets/logo.png', PNG);
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    const first = await adapter.readImageAsDataURL?.('assets/logo.png', 'cloud');
+    const second = await adapter.readImageAsDataURL?.('assets/logo.png', 'cloud');
+
+    expect(first).toBe(`data:image/png;base64,${btoa(String.fromCharCode(...PNG))}`);
+    expect(second).toBe(first);
+    expect(backend.requests.map((r) => r.path)).toEqual([`/api/images/${encodeURIComponent('assets/logo.png')}?raw=1`]);
+  });
+
+  it('reads an image as a File with its bytes and type', async () => {
+    backend.seedImage('assets/photo.jpg', PNG, 'image/jpeg');
+    const adapter = await createAuthenticatedAdapter(backend);
+
+    const file = await adapter.readImageFile?.('assets/photo.jpg', 'cloud');
+
+    expect(file?.name).toBe('photo.jpg');
+    expect(file?.type).toBe('image/jpeg');
+    // jsdom's File has no arrayBuffer(); its FileReader does read it.
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file ?? new Blob());
+    });
+    expect(dataUrl).toBe(`data:image/jpeg;base64,${btoa(String.fromCharCode(...PNG))}`);
+  });
+
+  it('downloads an image again after it is replaced', async () => {
+    backend.seedImage('assets/logo.png', PNG);
+    const adapter = await createAuthenticatedAdapter(backend);
+    await adapter.readImageAsDataURL?.('assets/logo.png', 'cloud');
+
+    backend.seedImage('assets/logo.png', new Uint8Array([1, 2, 3]));
+    await adapter.saveImageFile?.('assets/logo.png', new File(['x'], 'logo.png', { type: 'image/png' }), 'cloud');
+
+    expect(await adapter.readImageAsDataURL?.('assets/logo.png', 'cloud')).toBe('data:image/png;base64,AQID');
   });
 });

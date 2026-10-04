@@ -17,12 +17,55 @@ export interface ExplorerItem {
 }
 
 
+/**
+ * What a listing knows about a map without its document: enough for the
+ * sidebar, the command palette and the map switcher.
+ */
+export interface MapSummary {
+  mapIdentifier: MapIdentifier;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+  category?: string;
+}
+
+/** A map summary together with its stored markdown. */
+export interface MapDocument extends MapSummary {
+  markdown: string;
+}
+
+/**
+ * Fired on `window` when a remote workspace rejects a write because the map
+ * changed since this client last read it.
+ */
+export const MAP_CONFLICT_EVENT = 'mindoodle:mapConflict';
+
+export interface MapConflictDetail {
+  mapIdentifier: MapIdentifier;
+  currentUpdatedAt?: string;
+}
+
 export interface StorageAdapter {
-  
+
   readonly isInitialized: boolean;
 
-  
+
+  /**
+   * Every map with its parsed tree. Expensive for remote adapters: prefer
+   * `listMapSummaries` when only titles and versions are needed.
+   */
   loadAllMaps(): Promise<MindMapData[]>;
+  /**
+   * Remote adapters: the map list without downloading any document. Throws
+   * when the listing fails, so callers can tell a failure from an empty
+   * workspace.
+   */
+  listMapSummaries?(): Promise<MapSummary[]>;
+  /**
+   * Remote adapters: every map's markdown, for consumers that genuinely need
+   * contents (full-text search). Unchanged documents are served from cache.
+   */
+  loadMapDocuments?(): Promise<MapDocument[]>;
   addMapToList(map: MindMapData): Promise<void>;
   removeMapFromList(id: MapIdentifier): Promise<void>;
 

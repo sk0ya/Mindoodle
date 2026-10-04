@@ -1,11 +1,48 @@
 import type { MindMapData, MapIdentifier } from '@shared/types';
-import type { ExplorerItem } from '../../types/storage.types';
+import {
+  MAP_CONFLICT_EVENT,
+  type ExplorerItem,
+  type MapConflictDetail,
+  type MapDocument,
+  type MapSummary,
+} from '../../types/storage.types';
 import { logger, getLocalStorage, setLocalStorage, removeLocalStorage, STORAGE_KEYS, parseWorkspacePath } from '@shared/utils';
 import { WorkspaceService } from '@shared/services';
 import { MarkdownImporter } from '../../../features/markdown/markdownImporter';
 import { nodeToMarkdown } from '../../../features/markdown/markdownExport';
+import {
+  RAW_IMAGE_QUERY,
+  cloudImageKey,
+  imageResponseToBlob,
+  imageResponseToDataUrl,
+  invalidateCloudImage,
+  resolveCloudImage,
+} from '../../../features/markdown/hooks/cloudImageCache';
 import { BaseStorageAdapter } from './BaseStorageAdapter';
 import { CloudMapCache, DEFAULT_MAP_FRESHNESS_MS, type CloudMapDetail } from './CloudMapCache';
+
+/**
+ * Renaming or moving a map onto an id that is already taken. The backend
+ * refuses rather than overwrite, and the user needs to hear why.
+ */
+export class CloudMapDestinationExistsError extends Error {
+  readonly status = 409;
+
+  constructor(readonly destinationId: string) {
+    super(`移動先に同名のマップ「${destinationId}」が既に存在します`);
+    this.name = 'CloudMapDestinationExistsError';
+  }
+}
+
+type RequestError = Error & { status?: number; currentUpdatedAt?: string };
+
+const errorStatus = (error: unknown): number | undefined =>
+  error instanceof Error && 'status' in error && typeof error.status === 'number' ? error.status : undefined;
+
+const errorCurrentUpdatedAt = (error: unknown): string | undefined =>
+  error instanceof Error && 'currentUpdatedAt' in error && typeof error.currentUpdatedAt === 'string'
+    ? error.currentUpdatedAt
+    : undefined;
 
 interface CloudUser {
   id: string;
@@ -43,12 +80,17 @@ interface MapDetailResponse {
 interface ImagesListResponse {
   success: boolean;
   files?: string[];
+  error?: string;
 }
 
-interface ImageGetResponse {
+interface MapMoveResponse {
   success: boolean;
-  data?: string;
-  contentType?: string;
+  map?: { id: string; title?: string; createdAt?: string; updatedAt?: string };
+  error?: string;
+}
+
+interface RawRequestOptions extends Omit<RequestInit, 'headers'> {
+  headers?: Record<string, string>;
 }
 
 type AuthVerdict = 'valid' | 'rejected' | 'unavailable';
@@ -127,17 +169,21 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     return !!this.authToken && !!this.user;
   }
 
+  /**
+   * Tell the UI a write was refused because the map changed underneath us.
+   * Personal cloud maps are edited from several tabs and devices, so this is
+   * not specific to the group workspace.
+   */
   private emitConflict(mapId: string, currentUpdatedAt?: string): void {
-    if (this.workspaceId !== 'group' || typeof window === 'undefined') {
+    if (typeof window === 'undefined') {
       return;
     }
 
-    window.dispatchEvent(new CustomEvent('mindoodle:groupMapConflict', {
-      detail: {
-        mapIdentifier: { mapId, workspaceId: this.workspaceId },
-        currentUpdatedAt
-      }
-    }));
+    const detail: MapConflictDetail = {
+      mapIdentifier: { mapId, workspaceId: this.workspaceId },
+      currentUpdatedAt
+    };
+    window.dispatchEvent(new CustomEvent<MapConflictDetail>(MAP_CONFLICT_EVENT, { detail }));
   }
 
   /**
@@ -296,6 +342,44 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
 
     return await response.json() as T;
+  }
+
+  /**
+   * Like `makeRequest`, but hands back the Response untouched so the caller
+   * can read raw bytes and headers. Fails with the same error shape.
+   */
+  private async makeRawRequest(endpoint: string, options: RawRequestOptions = {}): Promise<Response> {
+    const headers: Record<string, string> = { ...(options.headers ?? {}) };
+    if (this.authToken) {
+      headers.Authorization = `Bearer ${this.authToken}`;
+    }
+
+    const response = await fetch(`${this.baseUrl}${endpoint}`, { ...options, headers });
+
+    if (!response.ok) {
+      let errMsg = response.statusText || 'Network error';
+      let currentUpdatedAt: string | undefined;
+      try {
+        const errorData: unknown = await response.json();
+        if (errorData && typeof errorData === 'object') {
+          if ('error' in errorData && typeof errorData.error === 'string' && errorData.error) {
+            errMsg = errorData.error;
+          }
+          const conflict = 'conflict' in errorData ? errorData.conflict : undefined;
+          if (conflict && typeof conflict === 'object' && 'currentUpdatedAt' in conflict && typeof conflict.currentUpdatedAt === 'string') {
+            currentUpdatedAt = conflict.currentUpdatedAt;
+          }
+        }
+      } catch {
+        // Not JSON: keep the status text.
+      }
+      const error: RequestError = new Error(errMsg || `HTTP ${response.status}`);
+      error.status = response.status;
+      error.currentUpdatedAt = currentUpdatedAt;
+      throw error;
+    }
+
+    return response;
   }
 
   async register(email: string, password: string, groupCode?: string): Promise<AuthResponse> {
@@ -463,15 +547,18 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(mapId)}`);
       if (!response.success || !response.map) return null;
 
-      const detail: CloudMapDetail = {
+      // Deliberately does not touch knownUpdatedAtByMapId: that records the
+      // version the editor is based on, and only getMapMarkdown (the read the
+      // editor consumes) and our own writes may advance it. A background read
+      // of a newer version must not turn the next save into a silent
+      // overwrite.
+      return {
         id: mapId,
         title: response.map.title || 'Untitled',
         content: response.map.content || '',
         createdAt: response.map.createdAt,
         updatedAt: response.map.updatedAt
       };
-      this.knownUpdatedAtByMapId.set(mapId, detail.updatedAt);
-      return detail;
     }, maxAgeMs);
   }
 
@@ -523,83 +610,127 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     return results;
   }
 
-  private toMindMapData(detail: CloudMapDetail): MindMapData {
-    const parseResult = MarkdownImporter.parseMarkdownToNodes(detail.content);
+  private toMindMapData(doc: MapDocument): MindMapData {
+    const parseResult = MarkdownImporter.parseMarkdownToNodes(doc.markdown);
 
     return {
-      title: detail.title,
+      title: doc.title,
       rootNodes: parseResult.rootNodes,
-      createdAt: detail.createdAt,
-      updatedAt: detail.updatedAt,
+      createdAt: doc.createdAt,
+      updatedAt: doc.updatedAt,
       settings: {
         autoSave: true,
         autoLayout: true,
         showGrid: false,
         animationEnabled: true
       },
-      mapIdentifier: {
-        mapId: detail.id,
-        workspaceId: this.workspaceId
-      }
+      mapIdentifier: { ...doc.mapIdentifier }
     };
   }
 
+  /**
+   * The map list as the server reports it, without downloading a single
+   * document. This is what list refreshes and polling use: a workspace with N
+   * maps costs one request, not N + 1.
+   *
+   * Throws when the listing fails, so a backend outage is never mistaken for
+   * an empty workspace.
+   */
+  async listMapSummaries(): Promise<MapSummary[]> {
+    if (!this.isAuthenticated) {
+      return [];
+    }
+
+    const response = await this.fetchMapsList();
+    if (!response.success || !Array.isArray(response.maps)) {
+      throw new Error(response.error || 'Failed to list cloud maps');
+    }
+
+    return response.maps.map((entry) => {
+      const updatedAt = entry.updatedAt || '';
+      this.reconcileCachedDocument(entry.id, updatedAt);
+      return {
+        mapIdentifier: { mapId: entry.id, workspaceId: this.workspaceId },
+        title: entry.title || 'Untitled',
+        createdAt: entry.createdAt || updatedAt,
+        updatedAt
+      };
+    });
+  }
+
+  /**
+   * Drop a cached document the listing proves outdated. Only a strictly newer
+   * listed version counts: a listing that started before one of our own
+   * writes reports the older version, and must not evict the fresh copy.
+   */
+  private reconcileCachedDocument(mapId: string, listedUpdatedAt: string): void {
+    if (!listedUpdatedAt || this.mapCache.getByUpdatedAt(mapId, listedUpdatedAt)) return;
+    const cached = this.mapCache.peek(mapId);
+    if (cached && cached.updatedAt < listedUpdatedAt) {
+      this.mapCache.invalidate(mapId);
+    }
+  }
+
+  /**
+   * Every map's markdown, for consumers that need contents (full-text
+   * search). Documents whose listed version matches the cache are not
+   * downloaded again.
+   */
+  async loadMapDocuments(): Promise<MapDocument[]> {
+    if (!this.isAuthenticated) {
+      return [];
+    }
+
+    const summaries = await this.listMapSummaries();
+    const docs = await this.mapWithConcurrency(
+      summaries,
+      CloudStorageAdapter.MAP_FETCH_CONCURRENCY,
+      async (summary): Promise<MapDocument | null> => {
+        const mapId = summary.mapIdentifier.mapId;
+        try {
+          const detail = this.mapCache.getByUpdatedAt(mapId, summary.updatedAt || undefined)
+            ?? await this.fetchMapDetail(mapId, 0);
+          if (!detail) return null;
+          return {
+            mapIdentifier: summary.mapIdentifier,
+            title: detail.title,
+            createdAt: detail.createdAt,
+            updatedAt: detail.updatedAt,
+            markdown: detail.content
+          };
+        } catch (error) {
+          // One unreadable map should not hide the others from a search.
+          logger.warn(`CloudStorageAdapter: Failed to load map ${mapId}`, error);
+          return null;
+        }
+      }
+    );
+
+    const loaded = docs.filter((doc): doc is MapDocument => doc !== null);
+    logger.info(`CloudStorageAdapter: Loaded ${loaded.length}/${summaries.length} map documents from cloud`);
+    return loaded;
+  }
+
+  /**
+   * Every map with its parsed tree. Downloads the documents that are not
+   * cached, so nothing on the list-refresh path calls this; use
+   * `listMapSummaries` there.
+   */
   async loadAllMaps(): Promise<MindMapData[]> {
     if (!this.isAuthenticated) {
       logger.warn('CloudStorageAdapter: Not authenticated, returning empty map list');
       return [];
     }
 
-    try {
-      const response = await this.fetchMapsList();
-
-      if (!response.success || !response.maps) {
-        logger.warn('CloudStorageAdapter: Failed to load maps', response.error);
-        return [];
-      }
-
-      const summaries = response.maps;
-      const details = await this.mapWithConcurrency(
-        summaries,
-        CloudStorageAdapter.MAP_FETCH_CONCURRENCY,
-        async (summary) => {
-          // The list endpoint reports the authoritative updatedAt for every
-          // map, so an unchanged document never needs a second round trip.
-          const cached = this.mapCache.getByUpdatedAt(summary.id, summary.updatedAt);
-          if (cached) return cached;
-
-          try {
-            return await this.fetchMapDetail(summary.id, 0);
-          } catch (error) {
-            logger.warn(`CloudStorageAdapter: Failed to load map ${summary.id}`, error);
-            return null;
-          }
-        }
-      );
-
-      const maps = details.filter((detail): detail is CloudMapDetail => detail !== null).map(detail => this.toMindMapData(detail));
-      logger.info(`CloudStorageAdapter: Loaded ${maps.length}/${summaries.length} maps from cloud`);
-      return maps;
-    } catch (error) {
-      logger.error('CloudStorageAdapter: Failed to load maps', error);
-      return [];
-    }
+    const docs = await this.loadMapDocuments();
+    return docs.map((doc) => this.toMindMapData(doc));
   }
 
   // Lightweight list of map identifiers for workspace-wide operations (no content fetch)
   async listMapIdentifiers?(): Promise<Array<{ mapId: string; workspaceId: string }>> {
-    if (!this.isAuthenticated) {
-      return [];
-    }
-    try {
-      const response = await this.fetchMapsList();
-      if (!response.success || !Array.isArray(response.maps)) return [];
-      return response.maps.map((m) => ({ mapId: m.id, workspaceId: this.workspaceId }));
-    } catch {
-      return [];
-    }
+    const summaries = await this.listMapSummaries();
+    return summaries.map((summary) => ({ ...summary.mapIdentifier }));
   }
-
   async addMapToList(map: MindMapData): Promise<void> {
     if (!this.isAuthenticated) {
       throw new Error('Not authenticated');
@@ -624,9 +755,9 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       // backend both do, so the cached title matches what a listing reports.
       const title = this.extractTitleFromMarkdown(markdown);
 
-      const expectedUpdatedAt = this.workspaceId === 'group'
-        ? this.knownUpdatedAtByMapId.get(mapPath)
-        : undefined;
+      // Optimistic lock for every workspace: a personal map is edited from
+      // several tabs and devices just as a group map is by several members.
+      const expectedUpdatedAt = this.knownUpdatedAtByMapId.get(mapPath);
 
       const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(mapPath)}` , {
         method: 'PUT',
@@ -638,8 +769,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       logger.info(`CloudStorageAdapter: Saved map ${mapPath} to cloud`);
     } catch (error) {
       this.mapCache.invalidate(mapPath);
-      if ((error as { status?: number }).status === 409) {
-        this.emitConflict(map.mapIdentifier.mapId, (error as { currentUpdatedAt?: string }).currentUpdatedAt);
+      if (errorStatus(error) === 409) {
+        this.emitConflict(map.mapIdentifier.mapId, errorCurrentUpdatedAt(error));
       }
       logger.error('CloudStorageAdapter: Failed to save map', error);
       throw error;
@@ -724,8 +855,13 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
 
     try {
 
+      // A failed listing throws (from makeRequest, or below) rather than
+      // producing an empty tree: the caller keeps the tree it already shows.
       const listResp = await this.fetchExplorerListing();
-      const keys: string[] = Array.isArray(listResp?.files) ? (listResp.files) : [];
+      if (!listResp.success || !Array.isArray(listResp.files)) {
+        throw new Error(listResp.error || 'Failed to list cloud files');
+      }
+      const keys: string[] = listResp.files;
 
 
       type Node = { name: string; children?: Map<string, Node>; isFile?: boolean; path?: string; isMarkdown?: boolean };
@@ -804,7 +940,62 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       return toExplorer(root, '');
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to build explorer tree', error);
-      return { type: 'folder', name: this.workspaceName, path: `/${this.workspaceId}`, children: [] };
+      throw error;
+    }
+  }
+
+  /**
+   * Move a map server-side in one request. Copying from the client (PUT the
+   * new id, then DELETE the old) left a duplicate whenever the DELETE failed
+   * and silently overwrote a map that already had the target id.
+   */
+  private async moveMap(oldMapId: string, newMapId: string): Promise<void> {
+    if (oldMapId === newMapId) return;
+
+    const expectedUpdatedAt = this.knownUpdatedAtByMapId.get(oldMapId);
+    const cached = this.mapCache.peek(oldMapId);
+
+    let response: MapMoveResponse;
+    try {
+      response = await this.makeRequest<MapMoveResponse>(`${this.mapsEndpoint}/move`, {
+        method: 'POST',
+        body: JSON.stringify({ fromId: oldMapId, toId: newMapId, expectedUpdatedAt })
+      });
+    } catch (error) {
+      if (errorStatus(error) === 409) {
+        const currentUpdatedAt = errorCurrentUpdatedAt(error);
+        // A version conflict names the source's current version; a taken
+        // destination does not.
+        if (!currentUpdatedAt) {
+          throw new CloudMapDestinationExistsError(newMapId);
+        }
+        this.mapCache.invalidate(oldMapId);
+        this.emitConflict(oldMapId, currentUpdatedAt);
+      }
+      throw error;
+    }
+
+    this.forgetMap(oldMapId);
+
+    // The reply has no content. The cached body is still the moved document
+    // only if the server confirmed the version it was cached at.
+    const updatedAt = response.success ? response.map?.updatedAt : undefined;
+    if (updatedAt && expectedUpdatedAt) {
+      this.knownUpdatedAtByMapId.set(newMapId, updatedAt);
+    } else {
+      this.knownUpdatedAtByMapId.delete(newMapId);
+    }
+
+    if (updatedAt && expectedUpdatedAt && cached?.updatedAt === expectedUpdatedAt) {
+      this.mapCache.set({
+        id: newMapId,
+        title: response.map?.title || cached.title,
+        content: cached.content,
+        createdAt: response.map?.createdAt || cached.createdAt,
+        updatedAt
+      });
+    } else {
+      this.mapCache.invalidate(newMapId);
     }
   }
 
@@ -848,34 +1039,13 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     const oldMapId = this.removeMdExtension(rel);
 
     try {
-      // Get existing map content
-      const detail = await this.fetchMapDetail(oldMapId);
-      if (!detail) {
-        throw new Error('Map not found');
-      }
-
       // Build new mapId by replacing the last segment with newName
       const parts = oldMapId.split('/').filter(Boolean);
       const newTitle = newName.replace(/\.md$/i, ''); // Remove .md if present
       parts[parts.length - 1] = newTitle;
       const newMapId = parts.join('/');
 
-      // Save with new mapId
-      const saved = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          title: newTitle,
-          content: detail.content
-        })
-      });
-
-      // Delete old map
-      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`, {
-        method: 'DELETE'
-      });
-
-      this.forgetMap(oldMapId);
-      this.acceptWriteResult(newMapId, newTitle, detail.content, saved);
+      await this.moveMap(oldMapId, newMapId);
       logger.info(`CloudStorageAdapter: Renamed map ${oldMapId} to ${newMapId}`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to rename map', error);
@@ -955,34 +1125,12 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     const oldMapId = this.removeMdExtension(rel);
 
     try {
-      // Get existing map content
-      const detail = await this.fetchMapDetail(oldMapId);
-      if (!detail) {
-        throw new Error('Map not found');
-      }
-
       // Build new mapId: targetFolder + filename
       const parts = oldMapId.split('/').filter(Boolean);
       const filename = parts[parts.length - 1];
       const newMapId = targetFolder ? `${targetFolder}/${filename}` : filename;
-      const newTitle = detail.title || filename;
 
-      // Save with new mapId
-      const saved = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(newMapId)}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          title: newTitle,
-          content: detail.content
-        })
-      });
-
-      // Delete old map
-      await this.makeRequest(`${this.mapsEndpoint}/${encodeURIComponent(oldMapId)}`, {
-        method: 'DELETE'
-      });
-
-      this.forgetMap(oldMapId);
-      this.acceptWriteResult(newMapId, newTitle, detail.content, saved);
+      await this.moveMap(oldMapId, newMapId);
       logger.info(`CloudStorageAdapter: Moved map ${oldMapId} to ${newMapId}`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to move map', error);
@@ -998,7 +1146,12 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       // notes panel, markdown stream). They all land inside the freshness
       // window, so the document is downloaded once.
       const detail = await this.fetchMapDetail(id.mapId);
-      if (detail) return detail.content || null;
+      if (detail) {
+        // This is the read the editor is built from, so its version is the
+        // one the next save must be based on.
+        this.knownUpdatedAtByMapId.set(id.mapId, detail.updatedAt);
+        return detail.content || null;
+      }
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to get map markdown', error);
     }
@@ -1010,6 +1163,14 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     if (!this.isAuthenticated) return null;
 
     try {
+      // A copy confirmed within the freshness window is as current as a probe
+      // would be. Opening a map reads the document and then asks for its
+      // timestamp; that second question must not cost a request.
+      const fresh = this.mapCache.getFresh(id.mapId);
+      if (fresh) {
+        return new Date(fresh.updatedAt).getTime();
+      }
+
       // With no cached copy there is nothing to compare a timestamp against,
       // and the caller is about to want the body anyway: one full read costs
       // the same round trip and leaves the document cached.
@@ -1029,8 +1190,9 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       );
       if (!response.success || !response.map) return null;
 
+      // Not recorded as the known version: a probe only learns that the map
+      // changed, and the editor still holds the older content until it reads.
       const updatedAt = response.map.updatedAt;
-      this.knownUpdatedAtByMapId.set(id.mapId, updatedAt);
 
       // Reconcile the cached document with what the server just reported.
       // getByUpdatedAt renews the entry when the versions agree, so the common
@@ -1069,10 +1231,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       // Extract first level-1 heading as title
       const title = this.extractTitleFromMarkdown(markdown);
 
-
-      const expectedUpdatedAt = this.workspaceId === 'group'
-        ? this.knownUpdatedAtByMapId.get(idPath)
-        : undefined;
+      const expectedUpdatedAt = this.knownUpdatedAtByMapId.get(idPath);
 
       const response = await this.makeRequest<MapDetailResponse>(`${this.mapsEndpoint}/${encodeURIComponent(idPath)}` , {
         method: 'PUT',
@@ -1084,8 +1243,8 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       logger.info(`CloudStorageAdapter: Saved markdown for map ${id.mapId}`);
     } catch (error) {
       this.mapCache.invalidate(idPath);
-      if ((error as { status?: number }).status === 409) {
-        this.emitConflict(id.mapId, (error as { currentUpdatedAt?: string }).currentUpdatedAt);
+      if (errorStatus(error) === 409) {
+        this.emitConflict(id.mapId, errorCurrentUpdatedAt(error));
       }
       logger.error('CloudStorageAdapter: Failed to save markdown', error);
       throw error;
@@ -1177,6 +1336,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
         await tryJsonBase64();
       }
       this.invalidateListings();
+      invalidateCloudImage(this.imageCacheKey(relativePath));
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to upload image', error);
       const msg = error instanceof Error ? error.message : 'Internal server error during upload';
@@ -1190,25 +1350,14 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
     }
 
     try {
+      // Raw bytes rather than base64 JSON: a third less on the wire and no
+      // decode loop on the client.
+      const response = await this.makeRawRequest(this.rawImageEndpoint(relativePath));
+      const blob = await imageResponseToBlob(response);
+      if (!blob) return null;
 
-      const response = await this.makeRequest<ImageGetResponse>(`${this.imagesEndpoint}/${encodeURIComponent(relativePath)}`);
-
-      if (response.success && response.data) {
-
-        const byteCharacters = atob(response.data);
-        const byteNumbers = new Array(byteCharacters.length);
-        for (let i = 0; i < byteCharacters.length; i++) {
-          byteNumbers[i] = byteCharacters.charCodeAt(i);
-        }
-        const byteArray = new Uint8Array(byteNumbers);
-        const blob = new Blob([byteArray], { type: response.contentType || 'image/png' });
-
-
-        const filename = relativePath.split('/').pop() || 'image.png';
-        return new File([blob], filename, { type: response.contentType || 'image/png' });
-      }
-
-      return null;
+      const filename = relativePath.split('/').pop() || 'image.png';
+      return new File([blob], filename, { type: blob.type || 'image/png' });
     } catch (error) {
       logger.warn('CloudStorageAdapter: Failed to read image', error);
       return null;
@@ -1221,19 +1370,26 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       return null;
     }
 
-    try {
-      const response = await this.makeRequest<ImageGetResponse>(`${this.imagesEndpoint}/${encodeURIComponent(relativePath)}`);
-      if (response?.success && response?.data) {
-        const ct = response.contentType || 'image/png';
-        return `data:${ct};base64,${response.data}`;
+    // Shared with the markdown preview, so an image already shown there (or
+    // on a previous render of the canvas) is not downloaded again.
+    return resolveCloudImage(this.imageCacheKey(relativePath), async () => {
+      try {
+        const response = await this.makeRawRequest(this.rawImageEndpoint(relativePath));
+        return await imageResponseToDataUrl(response);
+      } catch (error) {
+        logger.warn('CloudStorageAdapter: Failed to read image as data URL', error);
+        return null;
       }
-      return null;
-    } catch (error) {
-      logger.warn('CloudStorageAdapter: Failed to read image as data URL', error);
-      return null;
-    }
+    });
   }
 
+  private rawImageEndpoint(relativePath: string): string {
+    return `${this.imagesEndpoint}/${encodeURIComponent(relativePath)}${RAW_IMAGE_QUERY}`;
+  }
+
+  private imageCacheKey(relativePath: string): string {
+    return cloudImageKey(this.workspaceId, relativePath);
+  }
   async deleteImageFile?(relativePath: string, _workspaceId?: string): Promise<void> {
     if (!this.isAuthenticated) {
       throw new Error('Not authenticated');
@@ -1245,6 +1401,7 @@ export class CloudStorageAdapter extends BaseStorageAdapter {
       });
 
       this.invalidateListings();
+      invalidateCloudImage(this.imageCacheKey(relativePath));
       logger.info(`CloudStorageAdapter: Deleted image from R2: ${relativePath}`);
     } catch (error) {
       logger.error('CloudStorageAdapter: Failed to delete image', error);

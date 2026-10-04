@@ -130,6 +130,15 @@ export class CloudMapCache {
     return this.entries.has(mapId);
   }
 
+  /**
+   * The cached document regardless of age, without renewing it. Only for a
+   * caller that verifies the version itself (e.g. a move whose
+   * `expectedUpdatedAt` the server confirmed).
+   */
+  peek(mapId: string): CloudMapDetail | null {
+    return this.entries.get(mapId)?.detail ?? null;
+  }
+
   invalidate(mapId: string): void {
     this.generations.set(mapId, (this.generations.get(mapId) ?? 0) + 1);
     this.entries.delete(mapId);

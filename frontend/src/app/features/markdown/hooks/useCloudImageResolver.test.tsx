@@ -26,10 +26,16 @@ const Preview: React.FC<{ html: string; mapId: string }> = ({ html, mapId }) => 
   );
 };
 
-const imageResponse = (data: string) => ({
+/** What `?raw=1` returns: the image bytes. [0, 0, 0] is base64 "AAAA". */
+const imageResponse = (bytes: Uint8Array = new Uint8Array([0, 0, 0])) =>
+  new Response(bytes, { status: 200, headers: { 'Content-Type': 'image/png', ETag: '"v1"' } });
+
+/** What a backend that predates `?raw=1` returns. */
+const legacyImageResponse = (data: string) => ({
   ok: true,
   status: 200,
   statusText: 'OK',
+  headers: new Headers({ 'Content-Type': 'application/json' }),
   json: async () => ({ data, contentType: 'image/png' }),
 }) as unknown as Response;
 
@@ -40,7 +46,7 @@ describe('useCloudImageResolver', () => {
     clearCloudImageCache();
     localStorage.clear();
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify('token-1'));
-    fetchMock = vi.fn(async () => imageResponse('AAAA'));
+    fetchMock = vi.fn(async () => imageResponse());
     vi.stubGlobal('fetch', fetchMock);
   });
 
@@ -59,8 +65,18 @@ describe('useCloudImageResolver', () => {
     });
     expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(String(fetchMock.mock.calls[0][0])).toBe(
-      `${ENDPOINT}/api/images/${encodeURIComponent('Notes/assets/logo.png')}`
+      `${ENDPOINT}/api/images/${encodeURIComponent('Notes/assets/logo.png')}?raw=1`
     );
+  });
+
+  it('still shows images from a backend that answers ?raw=1 with base64 JSON', async () => {
+    fetchMock.mockImplementation(async () => legacyImageResponse('BBBB'));
+
+    const { container } = render(<Preview html={html('a')} mapId="Notes/Alpha" />);
+
+    await waitFor(() => {
+      expect(container.querySelector('img')?.getAttribute('src')).toBe('data:image/png;base64,BBBB');
+    });
   });
 
   it('does not re-fetch when the preview re-renders', async () => {
@@ -125,7 +141,7 @@ describe('useCloudImageResolver', () => {
 
     // The user signs in again; the preview must not stay broken.
     localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, JSON.stringify('token-2'));
-    fetchMock.mockResolvedValue(imageResponse('AAAA'));
+    fetchMock.mockImplementation(async () => imageResponse());
     rerender(<Preview html={html('ab')} mapId="Notes/Alpha" />);
 
     await waitFor(() => {

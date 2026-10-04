@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { GroupCloudStorageAdapter } from './CloudStorageAdapter';
 import { STORAGE_KEYS } from '@shared/utils';
+import { DEFAULT_MAP_FRESHNESS_MS } from './CloudMapCache';
+import { MAP_CONFLICT_EVENT } from '../../types/storage.types';
 import {
   BASE_URL,
   createCloudBackend,
@@ -28,11 +30,18 @@ describe('GroupCloudStorageAdapter', () => {
     backend = createCloudBackend({ mapsPath: '/api/group/maps', imagesPath: '/api/group/images' });
     vi.stubGlobal('fetch', backend.fetchMock);
     localStorage.clear();
+    vi.useFakeTimers({ toFake: ['Date'] });
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     vi.unstubAllGlobals();
   });
+
+  /** The seconds between two polls: long enough for a cached copy to need revalidating. */
+  const advancePastFreshness = (): void => {
+    vi.setSystemTime(Date.now() + DEFAULT_MAP_FRESHNESS_MS + 1);
+  };
 
   it('talks to the group endpoints and stores its own credentials', async () => {
     backend.seed('Shared/Plan', '# Plan\n', '2026-01-01T00:00:00.000Z');
@@ -60,6 +69,7 @@ describe('GroupCloudStorageAdapter', () => {
     // Opening a map: the listing already cached it, so the probe only asks for
     // the timestamp and the read is served from cache.
     backend.requests.length = 0;
+    advancePastFreshness();
     await adapter.getMapLastModified?.(ID);
     await adapter.getMapMarkdown?.(ID);
     expect(mapMetaGets(backend)).toBe(1);
@@ -74,6 +84,7 @@ describe('GroupCloudStorageAdapter', () => {
     // Another member saves.
     backend.seed('Shared/Plan', '# Plan v2\n', '2026-06-06T00:00:00.000Z');
     backend.requests.length = 0;
+    advancePastFreshness();
 
     const probed = await adapter.getMapLastModified?.(ID);
     expect(probed).toBe(Date.parse('2026-06-06T00:00:00.000Z'));
@@ -119,7 +130,7 @@ describe('GroupCloudStorageAdapter', () => {
 
     const conflicts: Array<{ mapIdentifier?: { mapId: string }; currentUpdatedAt?: string }> = [];
     const onConflict = (event: Event) => conflicts.push((event as CustomEvent).detail);
-    window.addEventListener('mindoodle:groupMapConflict', onConflict);
+    window.addEventListener(MAP_CONFLICT_EVENT, onConflict);
 
     try {
       // Another member saved in the meantime.
@@ -137,7 +148,7 @@ describe('GroupCloudStorageAdapter', () => {
       expect(await adapter.getMapMarkdown?.(ID)).toBe('# Plan from someone else\n');
       expect(mapDetailGets(backend)).toBe(1);
     } finally {
-      window.removeEventListener('mindoodle:groupMapConflict', onConflict);
+      window.removeEventListener(MAP_CONFLICT_EVENT, onConflict);
     }
   });
 

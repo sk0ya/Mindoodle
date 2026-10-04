@@ -1,6 +1,13 @@
 import { useEffect } from 'react';
 import { getLocalStorage, STORAGE_KEYS } from '@shared/utils';
-import { cloudImageKey, clearCloudImageFailures, getCachedCloudImage, resolveCloudImage } from './cloudImageCache';
+import {
+  RAW_IMAGE_QUERY,
+  cloudImageKey,
+  clearCloudImageFailures,
+  getCachedCloudImage,
+  imageResponseToDataUrl,
+  resolveCloudImage,
+} from './cloudImageCache';
 
 export interface CloudImageResolverOptions {
   mapIdentifier?: { mapId: string; workspaceId?: string | null } | null;
@@ -33,8 +40,8 @@ async function fetchCloudImage(url: string, token: string | null): Promise<strin
   });
   if (!res.ok) return null;
 
-  const json = (await res.json().catch(() => null)) as { data?: string; contentType?: string } | null;
-  return json?.data && json?.contentType ? `data:${json.contentType};base64,${json.data}` : null;
+  // Raw bytes: base64 JSON is a third larger on the wire and costs a decode.
+  return imageResponseToDataUrl(res);
 }
 
 export function useCloudImageResolver({
@@ -106,7 +113,7 @@ export function useCloudImageResolver({
             continue;
           }
 
-          const url = `${cloudApiEndpoint}${imageEndpoint}/${encodeURIComponent(cloudPath)}`;
+          const url = `${cloudApiEndpoint}${imageEndpoint}/${encodeURIComponent(cloudPath)}${RAW_IMAGE_QUERY}`;
           pending.push(
             resolveCloudImage(key, () => fetchCloudImage(url, token))
               .then((dataUrl) => {

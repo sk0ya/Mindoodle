@@ -225,3 +225,23 @@ describe('CloudMapCache.has', () => {
     expect(cache.has(ID)).toBe(false);
   });
 });
+
+describe('CloudMapCache.peek', () => {
+  it('returns a stale copy without making it fresh again', () => {
+    const { cache, clock } = createCache();
+    cache.set(detail());
+    clock.value += DEFAULT_MAP_FRESHNESS_MS + 1;
+
+    expect(cache.peek('Notes/Alpha')?.content).toBe('# Alpha\n');
+    expect(cache.getFresh('Notes/Alpha')).toBeNull();
+  });
+
+  it('returns null for an unknown or invalidated map', () => {
+    const { cache } = createCache();
+    expect(cache.peek('Notes/Alpha')).toBeNull();
+
+    cache.set(detail());
+    cache.invalidate('Notes/Alpha');
+    expect(cache.peek('Notes/Alpha')).toBeNull();
+  });
+});
