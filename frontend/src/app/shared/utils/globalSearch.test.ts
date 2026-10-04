@@ -57,6 +57,26 @@ describe('globalSearch', () => {
     })]);
   });
 
+  it('searches a remote adapter\'s documents in one pass, without reading each map again', async () => {
+    const adapter = {
+      loadAllMaps: vi.fn(),
+      getMapMarkdown: vi.fn(),
+      loadMapDocuments: vi.fn().mockResolvedValue([{
+        mapIdentifier: { mapId: 'Notes/Plan', workspaceId: 'cloud' },
+        title: 'Plan',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+        markdown: '# Plan\n- find the needle\n'
+      }])
+    };
+
+    const results = await searchFilesForContent('needle', adapter as unknown as StorageAdapter, [{ id: 'cloud', name: 'Cloud' }]);
+
+    expect(results).toEqual([expect.objectContaining({ mapId: 'Notes/Plan', lineNumber: 2, filePath: 'Cloud/Plan' })]);
+    expect(adapter.loadAllMaps).not.toHaveBeenCalled();
+    expect(adapter.getMapMarkdown).not.toHaveBeenCalled();
+  });
+
   it('returns partial results when a map markdown read fails', async () => {
     const adapter = {
       loadAllMaps: vi.fn().mockResolvedValue([

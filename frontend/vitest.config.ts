@@ -100,6 +100,12 @@ export default defineConfig({
       '@mindmap': resolve(__dirname, './src/app/features/mindmap'),
       '@core': resolve(__dirname, './src/app/core'),
       '@commands': resolve(__dirname, './src/app/commands'),
+      // Mirrors tsconfig paths, so hooks that use them can be tested.
+      '@ai': resolve(__dirname, './src/app/features/ai'),
+      '@file-management': resolve(__dirname, './src/app/features/file-management'),
+      '@markdown': resolve(__dirname, './src/app/features/markdown'),
+      '@theme': resolve(__dirname, './src/app/features/theme'),
+      '@vim': resolve(__dirname, './src/app/features/vim'),
     },
   },
 });

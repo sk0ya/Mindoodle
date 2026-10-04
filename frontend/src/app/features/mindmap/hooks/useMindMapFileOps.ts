@@ -7,6 +7,8 @@ import { logger } from '@shared/utils';
 import type { MindMapData, MapIdentifier } from '@shared/types';
 import { PathResolutionService } from '@mindmap/services/PathResolutionService';
 import { MapOperationsService } from '@mindmap/services/MapOperationsService';
+import { hasLoadedTree } from '@mindmap/services/MapListService';
+import { MarkdownImporter } from '@markdown/markdownImporter';
 
 export interface UseMindMapFileOpsParams {
   data: MindMapData | null;
@@ -15,6 +17,8 @@ export interface UseMindMapFileOpsParams {
     readImageAsDataURL?: (path: string, workspaceId?: string) => Promise<string | null>;
     refreshMapList?: () => Promise<void>;
     selectRootFolder?: () => Promise<boolean>;
+    /** Reads a map whose list entry carries no tree (remote workspaces list summaries only). */
+    getMapMarkdown?: (id: MapIdentifier) => Promise<string | null>;
   };
   showNotification: (type: 'success' | 'error' | 'info' | 'warning', message: string) => void;
 }
@@ -32,6 +36,16 @@ export function useMindMapFileOps(params: UseMindMapFileOpsParams) {
 
         // Find target map in all maps
         const targetMap = MapOperationsService.findMapByIdentifier(allMindMaps, mapIdentifier);
+        if (targetMap && hasLoadedTree(targetMap)) return targetMap;
+
+        // A remote listing has titles and versions but no document; read
+        // this one map on demand rather than downloading every map up front.
+        if (targetMap && typeof mindMap.getMapMarkdown === 'function') {
+          const markdown = await mindMap.getMapMarkdown(mapIdentifier);
+          if (markdown != null) {
+            return { ...targetMap, rootNodes: MarkdownImporter.parseMarkdownToNodes(markdown).rootNodes };
+          }
+        }
         if (targetMap) return targetMap;
 
         logger.warn('指定されたマップが見つかりません:', mapIdentifier);

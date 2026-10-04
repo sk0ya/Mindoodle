@@ -17,6 +17,8 @@ import { MarkdownConversionService } from '@mindmap/services/MarkdownConversionS
 import { PathResolutionService } from '@mindmap/services/PathResolutionService';
 import { MapOperationsService } from '@mindmap/services/MapOperationsService';
 import { ExplorerMoveService } from '@mindmap/services/ExplorerMoveService';
+import { hasLoadedTree } from '@mindmap/services/MapListService';
+import { CLOUD_AUTH_EXPIRED_EVENT } from '@core/storage/adapters/CloudStorageAdapter';
 
 export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) => {
   const dataHook = useMindMapData();
@@ -73,6 +75,22 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
   const dataRef = useLatestRef(dataHook.data);
   const updateNodeRef = useLatestRef(dataHook.updateNode);
   const applyAutoLayoutRef = useLatestRef(dataHook.applyAutoLayout);
+
+  // A refused session can no longer read or save its maps. Close a map that
+  // belongs to it instead of leaving an editor whose saves can only fail;
+  // the login dialog that reopens explains why.
+  const closeMapOfEndedSession = useStableCallback((event: Event) => {
+    const detail: unknown = event instanceof CustomEvent ? event.detail : undefined;
+    if (!detail || typeof detail !== 'object' || !('workspaceId' in detail)) return;
+    if (dataRef.current?.mapIdentifier.workspaceId !== detail.workspaceId) return;
+    cancelPendingMarkdownWrites();
+    dataHook.clearData();
+  });
+
+  useEffect(() => {
+    window.addEventListener(CLOUD_AUTH_EXPIRED_EVENT, closeMapOfEndedSession);
+    return () => window.removeEventListener(CLOUD_AUTH_EXPIRED_EVENT, closeMapOfEndedSession);
+  }, [closeMapOfEndedSession]);
 
   const skipNodeToMarkdownSyncTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -354,8 +372,13 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
         // Keep the persistence manager's active workspace aligned with the
         // map being opened. Otherwise a later refresh can replace the
         // authenticated workspace's list with the default local list.
+        //
+        // Not awaited: switching selects the workspace synchronously and then
+        // refreshes its list, and the map the user clicked must not wait for
+        // that listing.
         if (persistenceHook.currentWorkspaceId !== workspaceId) {
-          await persistenceHook.switchWorkspace(workspaceId);
+          void persistenceHook.switchWorkspace(workspaceId)
+            .catch((error: unknown) => logger.warn('selectMapById: workspace switch failed', error));
         }
 
         const adapter = getAdapterForWorkspace(persistenceHook, workspaceId);
@@ -364,13 +387,16 @@ export const useMindMap = (storageConfig?: StorageConfig, resetKey: number = 0) 
           return false;
         }
 
-        // The map list contains parsed data, but it may be stale after an edit
-        // or an external file change. Verify the source timestamp before using
-        // the cached tree.
-        const cachedMap = persistenceHook.allMindMaps.find(map =>
+        // The map list may contain parsed data, but it may be stale after an
+        // edit or an external file change. Verify the source timestamp before
+        // using the cached tree. Remote workspaces list summaries only: an
+        // entry without nodes has no tree to reuse, and selecting it would
+        // open an empty map.
+        const listed = persistenceHook.allMindMaps.find(map =>
           map.mapIdentifier.mapId === mapId &&
           map.mapIdentifier.workspaceId === workspaceId
         );
+        const cachedMap = hasLoadedTree(listed) ? listed : undefined;
 
         let verifiedLastModified: number | null = null;
         if (cachedMap && typeof adapter.getMapLastModified === 'function') {

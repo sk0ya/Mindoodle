@@ -75,6 +75,33 @@ export async function searchFilesForContent(
     const searchTerm = query.trim().toLowerCase();
 
   try {
+    // A remote adapter hands over every document in one pass (cached by
+    // version), instead of loadAllMaps downloading them all and the loop
+    // below downloading each one again.
+    if (typeof storageAdapter.loadMapDocuments === 'function') {
+      const docs = await storageAdapter.loadMapDocuments();
+      for (const doc of docs) {
+        const { mapId, workspaceId } = doc.mapIdentifier;
+        const workspaceName = workspaces?.find(w => w.id === workspaceId)?.name || workspaceId || 'デフォルト';
+        const mapName = doc.title || mapId;
+        doc.markdown.split('\n').forEach((line, index) => {
+          if (line.toLowerCase().includes(searchTerm)) {
+            results.push({
+              filePath: `${workspaceName}/${mapName}`,
+              fileName: mapName,
+              mapId,
+              workspaceId: workspaceId || '',
+              lineNumber: index + 1,
+              lineContent: line.trim(),
+              matchedText: query,
+              matchType: 'text'
+            });
+          }
+        });
+      }
+      return results;
+    }
+
     const maps = await storageAdapter.loadAllMaps();
 
     for (const map of maps) {

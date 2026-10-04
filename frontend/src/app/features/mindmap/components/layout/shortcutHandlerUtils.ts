@@ -1,4 +1,5 @@
 import type { MindMapNode, MindMapData } from '@shared/types';
+import { hasLoadedTree } from '@mindmap/services/MapListService';
 
 // Pure utility functions for shortcut handlers
 
@@ -124,7 +125,9 @@ export const switchMap = (
     if (!candidate) continue;
     const mapData = maps.find((m) => m?.mapIdentifier?.mapId === candidate.mapId);
 
-    if (!mapData || !isMapEmpty(mapData)) {
+    // A remote listing carries no tree, so emptiness is unknown until the
+    // map is opened (the selectMapById handler skips it then if it is empty).
+    if (!mapData || !hasLoadedTree(mapData) || !isMapEmpty(mapData)) {
       return candidate;
     }
   }

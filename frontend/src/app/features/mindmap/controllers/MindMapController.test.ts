@@ -51,7 +51,7 @@ describe('MindMapController auth bridge: ended sessions', () => {
     const adapter = await signInCloud();
 
     backend.fetchMock.mockImplementationOnce(async () => unauthorized());
-    await act(async () => { await adapter.loadAllMaps(); });
+    await act(async () => { await expect(adapter.loadAllMaps()).rejects.toMatchObject({ status: 401 }); });
 
     expect(modal.result.current.open).toBe(true);
     expect(modal.result.current.adapter).toBe(adapter);
@@ -67,7 +67,7 @@ describe('MindMapController auth bridge: ended sessions', () => {
   it('picks up a session that ended before the bridge was attached', async () => {
     const adapter = await signInCloud();
     backend.fetchMock.mockImplementationOnce(async () => unauthorized());
-    await adapter.loadAllMaps();
+    await expect(adapter.loadAllMaps()).rejects.toMatchObject({ status: 401 });
 
     const modal = renderModalState();
     act(() => {
@@ -88,7 +88,7 @@ describe('MindMapController auth bridge: ended sessions', () => {
     detach = new MindMapController().attachAuthModalBridge(modal.result.current.handlers);
 
     groupBackend.fetchMock.mockImplementationOnce(async () => unauthorized());
-    await act(async () => { await group.loadAllMaps(); });
+    await act(async () => { await expect(group.loadAllMaps()).rejects.toMatchObject({ status: 401 }); });
     expect(modal.result.current.adapter).toBe(group);
 
     await group.login('a@b.c', 'password1', 'code');

@@ -1,12 +1,25 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useStableCallback } from '@shared/hooks';
 import { getRootNodes } from './useStoreSelectors';
 import { useEventListener } from '@shared/hooks/system/useEventListener';
-import { logger } from '@shared/utils';
+import { logger, statusMessages } from '@shared/utils';
+import type { RefreshMapListOptions } from './useMindMapPersistence';
+
+/**
+ * How often the map list is polled while the tab is visible. Local folders
+ * are re-read on every tick (external edits); remote workspaces are reached
+ * at most every REMOTE_BACKGROUND_REFRESH_MS (see useMindMapPersistence).
+ */
+export const MAP_LIST_POLL_INTERVAL_MS = 7000;
+
+/** Showing the tab again refreshes at most once within this window. */
+export const RETURN_REFRESH_MIN_GAP_MS = 5000;
+
+const errorMessage = (err: unknown): string => (err instanceof Error && err.message ? err.message : String(err));
 
 interface UseMindMapEventsParams {
   mindMap: {
-    refreshMapList?: () => Promise<void> | void;
+    refreshMapList?: (options?: RefreshMapListOptions) => Promise<void> | void;
     renameItem?: (oldPath: string, newName: string) => Promise<void>;
     deleteItem?: (path: string) => Promise<void>;
     moveItem?: (sourcePath: string, targetFolderPath: string, workspaceId?: string | null) => Promise<void>;
@@ -56,46 +69,63 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
 
   useEventListener('mindoodle:selectMapById', handleSelectMapById, { target: window });
 
-  
-  const doRefresh = useStableCallback(() => {
+  const refresh = useStableCallback((options?: RefreshMapListOptions) => {
     try {
-      if (typeof (mindMap).refreshMapList === 'function') {
-        const r = (mindMap).refreshMapList();
-        if (r && typeof (r).then === 'function') {
-          (r as Promise<unknown>).catch((err) => logger.warn('Refresh list failed:', err));
-        }
+      const r = mindMap.refreshMapList?.(options);
+      if (r && typeof r.then === 'function') {
+        r.catch((err: unknown) => logger.warn('Refresh list failed:', err));
       }
     } catch (e) {
       logger.error('Explorer refresh failed:', e);
     }
   });
 
+  const lastReturnRefreshRef = useRef(0);
+
+  // The tab was hidden, so polls were skipped: catch up now. Revealing a tab
+  // can fire several events in a row; refresh once for all of them.
   const onVisibility = useStableCallback(() => {
-    if (!document.hidden) doRefresh();
+    if (document.hidden) return;
+    const now = Date.now();
+    if (now - lastReturnRefreshRef.current < RETURN_REFRESH_MIN_GAP_MS) return;
+    lastReturnRefreshRef.current = now;
+    refresh();
   });
 
-  const onFocus = useStableCallback(() => doRefresh());
+  // Window focus also fires when switching between two visible windows, so it
+  // only nudges a background refresh (cheap, and rate-limited for remote
+  // workspaces) rather than forcing a fetch.
+  const onFocus = useStableCallback(() => {
+    if (!document.hidden) refresh({ background: true });
+  });
+
+  const onRefreshExplorer = useStableCallback(() => refresh());
+
+  const onPollTick = useStableCallback(() => {
+    if (!document.hidden) refresh({ background: true });
+  });
 
   useEventListener('visibilitychange', onVisibility, { target: document });
   useEventListener('focus', onFocus, { target: window });
-  useEventListener('mindoodle:refreshExplorer', doRefresh, { target: window });
+  useEventListener('mindoodle:refreshExplorer', onRefreshExplorer, { target: window });
 
   useEffect(() => {
-    const interval = window.setInterval(doRefresh, 7000);
+    const interval = window.setInterval(onPollTick, MAP_LIST_POLL_INTERVAL_MS);
     return () => window.clearInterval(interval);
-  }, [doRefresh]);
+  }, [onPollTick]);
 
-  
   const onRename = useStableCallback((e: Event) => {
     const evt = e as CustomEvent;
     const oldPath = evt?.detail?.oldPath;
     const newName = evt?.detail?.newName;
     if (oldPath && newName && typeof (mindMap).renameItem === 'function') {
+      // renameItem refreshes the list itself; dispatching another refresh
+      // here only repeated the same requests.
       (mindMap).renameItem(oldPath, newName)
-        .then(() => {
-          window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-        })
-        .catch((err: unknown) => logger.error('Rename failed:', err));
+        .catch((err: unknown) => {
+          logger.error('Rename failed:', err);
+          statusMessages.customError(`名前の変更に失敗しました: ${errorMessage(err)}`);
+        });
     }
   });
 
@@ -104,10 +134,10 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     const path = evt?.detail?.path;
     if (path && typeof (mindMap).deleteItem === 'function') {
       (mindMap).deleteItem(path)
-        .then(() => {
-          window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-        })
-        .catch((err: unknown) => logger.error('Delete failed:', err));
+        .catch((err: unknown) => {
+          logger.error('Delete failed:', err);
+          statusMessages.customError(`削除に失敗しました: ${errorMessage(err)}`);
+        });
     }
   });
 
@@ -122,10 +152,10 @@ export function useMindMapEvents({ mindMap, selectMapById }: UseMindMapEventsPar
     const ws = evt?.detail?.workspaceId as (string | undefined);
     if (src !== undefined && typeof (mindMap).moveItem === 'function') {
       (mindMap).moveItem(src, dst, ws)
-        .then(() => {
-          window.dispatchEvent(new CustomEvent('mindoodle:refreshExplorer'));
-        })
-        .catch((err: unknown) => logger.error('Move failed:', err));
+        .catch((err: unknown) => {
+          logger.error('Move failed:', err);
+          statusMessages.customError(`移動に失敗しました: ${errorMessage(err)}`);
+        });
     }
   });
 

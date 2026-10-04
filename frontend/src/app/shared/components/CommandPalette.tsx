@@ -10,8 +10,13 @@ import { getFolderName } from '../utils/folderUtils';
 import { logger } from '@shared/utils';
 import { useModalBehavior } from '../../features/mindmap/components/Shared/useModalBehavior';
 
+/** What the palette shows for a map: no document needed. */
+type PaletteMap = Pick<MindMapData, 'mapIdentifier' | 'title' | 'category'>;
+
 interface StorageAdapter {
   loadAllMaps?: () => Promise<MindMapData[]>;
+  /** Preferred: remote adapters list maps without downloading their documents. */
+  listMapSummaries?: () => Promise<PaletteMap[]>;
 }
 
 interface CommandPaletteProps {
@@ -53,7 +58,7 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
-  const [loadedMaps, setLoadedMaps] = useState<MindMapData[]>([]);
+  const [loadedMaps, setLoadedMaps] = useState<PaletteMap[]>([]);
   const [mapsLoading, setMapsLoading] = useState(false);
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -68,9 +73,11 @@ const CommandPalette: React.FC<CommandPaletteProps> = ({
       const loadMaps = async () => {
         try {
           const adapter = storageAdapter;
-          if (adapter && typeof adapter.loadAllMaps === 'function') {
-            const maps = await adapter.loadAllMaps();
-            setLoadedMaps(maps);
+          // The palette lists titles only: never download every document for it.
+          if (adapter && typeof adapter.listMapSummaries === 'function') {
+            setLoadedMaps(await adapter.listMapSummaries());
+          } else if (adapter && typeof adapter.loadAllMaps === 'function') {
+            setLoadedMaps(await adapter.loadAllMaps());
           }
         } catch (error) {
           logger.warn('Failed to load maps from storage:', error);
